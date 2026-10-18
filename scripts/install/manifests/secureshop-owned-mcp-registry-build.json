@@ -1,0 +1,28 @@
+{
+  "files": {
+    "sidecars/sandbox-runner/owned-mcp-registry/Dockerfile.candidate": "8acac4b9597dea9aa005cfa9d26f8ab7b9cda80c95300bad6a5764423bbb2281",
+    "sidecars/sandbox-runner/owned-mcp-registry/package.json": "df9d7b0a569cfe6e46ee4fd5bca785f7d48f82fbd6b629da1dfed28782c30126",
+    "sidecars/sandbox-runner/owned-mcp-registry/package-lock.json": "9cc260a6311211f57d78282ff233b0145ec1a45bc26a0b1eb5de2179a2ba5488",
+    "sidecars/sandbox-runner/owned-mcp-registry/worker.js": "64fcb3fec6f8738745611655ab7c00159e3b7fd227f1df5ef1856b6fe37ef40f",
+    "sidecars/sandbox-runner/owned-mcp-registry/executor.js": "02088ed0e2df345a24edeadeb667457ade6ab425a33a4910c6761ba110505f45",
+    "sidecars/sandbox-runner/owned-mcp-registry/http-handler.js": "d395b84107a539ca20a258de8f0948fdec3ae94b7127ba03c8e94862fe6c37e5",
+    "sidecars/sandbox-runner/owned-mcp-registry/http-listener.js": "be96888924abd638604fe6743572bd6cc6f65f478028184b2b962bfd219fd950",
+    "sidecars/sandbox-runner/owned-mcp-registry/buildAssets.js": "15d9caac00c69ef7eccdf170a8a27faa9083bc18700e06a465ef8164abd247ab",
+    "sidecars/sandbox-runner/owned-mcp-registry/process-supervisor.c": "b40a79585aa08895d39249bbaf623376bd75027763b0204aeb42b71273f5ea68",
+    "sidecars/sandbox-runner/owned-mcp-registry/network-manifest.json": "ca95180bf0aea561da3ae9e7e336f1fa18ef664d36f18a0828d9147579cf2b20",
+    "sidecars/sandbox-runner/owned-http/namespace-init.c": "104f1a9879672022f56b15e597af11adc35c602bb79c48d168c71e8c6f0140df",
+    "sidecars/sandbox-runner/mcpSeccompFilter.c": "3af63bd90352b47b23e386c71175f83317fd61e7a2d7a7dc8c2dd784d30ca20d",
+    "server/services/secureshopMcpRegistryContract.js": "f3c6fdeec4c5ccc76173cdf3e028514741f69fd2a0e19aa76979255b971db0e1",
+    "server/services/secureshopMcpRegistryDiscovery.js": "b422f49ad9abb920c98030b05d6234c082f7c2542723118ab3470c878f6e281f",
+    "server/services/secureshopMcpSchemaDigest.js": "043776bc304edeb25497f2f182563dbea095c16289ddf3038e1a4d71f9bf1362",
+    "tests/fixtures/secureshopOwnedMcpRegistryPackaged.native.cjs": "0df2de49051c89b905163bb05d913fadb10c928fa13e0d4e5ef14adaa788352d",
+    "sidecars/sandbox-runner/owned-mcp-registry/invoke-protocol.js": "79482668569277bb907413ce9e6108dea53e099c7e0650ded272b917541de103",
+    "server/services/secureshopOwnedMcpInvocationContract.js": "fec6826d6165b0637b7a1d01dafd1e69d9c442ee72a3b27f5bbb68f93b347344",
+    "server/services/secureshopConversationBinding.js": "b9e32cd6bba6487e4b923e02ce5142810c344ec2b340238cb2a7fa05063251ed",
+    "server/services/secureshopMcpRegistryDiscoveryContract.js": "020357e7424cc949e0028451ff0536196d1bb574db0a46f9aa36ba60c7dcb624"
+  },
+  "scope": "20 explicit packaged build inputs; streamed memory archive; no source clone; no application private data",
+  "platform": "linux/arm64",
+  "version": 1,
+  "dockerfile": "sidecars/sandbox-runner/owned-mcp-registry/Dockerfile.candidate"
+}
