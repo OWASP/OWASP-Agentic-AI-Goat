@@ -1,0 +1,12 @@
+.ss-analytics-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 720px) {
+  .ss-analytics-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
