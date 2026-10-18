@@ -1,0 +1,74 @@
+{
+  "status": "promoted-applied-activated",
+  "date": "2026-09-13",
+  "scope": "platform student deletion and legacy platform mutation lifecycle",
+  "baseline": {
+    "identity": "0039_secureshop_cleanup_catalog_independence.sql",
+    "finflow": "0008_student_deletion.sql",
+    "legacy_challenge": "0002_import_provenance.sql",
+    "sensitive_lookup": "0001_schema.sql"
+  },
+  "order": [
+    {
+      "store": "identity",
+      "draft": "legacy-upload-lifecycle.sql",
+      "promotionName": "0040_legacy_upload_lifecycle.sql",
+      "sha256": "5f5f8b001b41271aeb0be3fa6614ed087eb6163a78930bab2d315eea4c16e4bf"
+    },
+    {
+      "store": "identity",
+      "draft": "0041_finflow_response_repair_copy.sql",
+      "promotionName": "0041_finflow_response_repair_copy.sql",
+      "sha256": "92efa253ecb0537e43c081bbe64e1d29933c6a9f1f85eca342994117d3e77cee"
+    },
+    {
+      "store": "legacy_challenge",
+      "draft": "legacy-challenge-student-deletion.sql",
+      "promotionName": "0003_student_deletion.sql",
+      "sha256": "4c37577e55c487ced16e902359661d02ce09983af30b168b3c127f4734994d41"
+    },
+    {
+      "store": "sensitive_lookup",
+      "draft": "sensitive-lookup-student-deletion.sql",
+      "promotionName": "0002_student_deletion.sql",
+      "sha256": "dfef99650939b1c0ebd623078d53cdc399cdf41f6ee9cb59e83f48797ad59bb6"
+    }
+  ],
+  "postPromotionHeads": {
+    "identity": "0041_finflow_response_repair_copy.sql",
+    "finflow": "0008_student_deletion.sql",
+    "legacy_challenge": "0003_student_deletion.sql",
+    "sensitive_lookup": "0002_student_deletion.sql"
+  },
+  "requiredProof": {
+    "freshSetup": "Apply through the production migration loader on empty provisioned stores, then run every normal application initializer and seed.",
+    "populatedUpgrade": "Apply to private copies of the configured stores containing representative instructor edits, learner rows, pending judgments, scoped legacy content, and ambiguous historical legacy rows; preserve every non-target byte.",
+    "repeat": "Run the same production initializers again and require an empty migration replay with exact ledger name/checksum equality.",
+    "runtime": "Require all 17 durable cleanup steps, strict capability ACL checks, hidden-catalog SecureShop cleanup, one failed-step retry on the same job, session revocation, owner removal, and sibling preservation through the mounted admin route."
+  },
+  "qualifiedEvidence": [
+    "dvaia-student-deletion-legacy-stores-4m4k8_cs",
+    "dvaia-student-deletion-production-http-mgbeodud",
+    "dvaia-student-deletion-production-http-2s24s7zu"
+  ],
+  "qualification": "Revised 0040 passed owned PostgreSQL 18 with active admin and super-admin mutation/upload admission, canonical JWT continuity, cross-owner/locked/revoked denial, lifecycle races, exact cleanup, and loader replay.",
+  "activation": {
+    "default": "required when PLATFORM_DATABASE_ENGINE=postgres and LEGACY_PLATFORM_LIFECYCLE_ENABLED is unset or true",
+    "optOut": "LEGACY_PLATFORM_LIFECYCLE_ENABLED=false",
+    "invalidValues": "fail configuration",
+    "publishBoundary": "Do not listen for HTTP until normal PostgreSQL initialization and retained deletion composition readiness both succeed."
+  },
+  "promotionEvidence": {
+    "privateRecoveryDirectory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-student-deletion-promotion-recovery-fTNO4p",
+    "publicProofDirectory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-student-deletion-promotion-proof-M30lZ9",
+    "normalInitializerRuns": 2,
+    "allConfiguredStoreReplay": "empty-exact-ledger",
+    "runtimeHealth": "HTTP 200 healthy",
+    "activationFocusedTests": "27 lifecycle/legacy plus 3 production startup-boundary tests passed under managed Node 26.8.2",
+    "broadRegression": "6wAA0b running; no result claimed",
+    "retainedRestoreFixtureFailures": [
+      "missing referenced runtime roles in empty restore cluster",
+      "safe umask masked restored upload modes before permission-preserving retry"
+    ]
+  }
+}

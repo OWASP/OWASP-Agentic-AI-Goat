@@ -1,0 +1,36 @@
+{
+  "status": "promoted-local-runtime-activation-pending",
+  "promotion": {
+    "date": "2026-09-13",
+    "normalInitializersAndSeeds": "passed",
+    "configuredStoreReplay": "empty-for-all-four-stores",
+    "configuredLedgersMatchSource": true,
+    "backendHealth": 200,
+    "boundFeatureActivated": false,
+    "recoveryCheckpoint": "docs/modernization/consolidated-migration-recovery-2026-09-13.md"
+  },
+  "baseline": {
+    "identity": "0032_secureshop_progress_cleanup_checkpoint.sql",
+    "secureshop_agents": "0007_secureshop_conversation_generation_retirement.sql",
+    "secureshop_review": "0003_secureshop_review_learner_submissions.sql",
+    "nova": "0004_import_metadata.sql"
+  },
+  "order": [
+    {"store":"identity","file":"secureshop-product-target-reservation.sql","promotionName":"0033_secureshop_product_target_reservation.sql","sha256":"7038e706cccdfaa38465d54d2f9e1248e671c95ffeb77cb132ae036e991b8a22","readiness":"ready"},
+    {"store":"identity","file":"secureshop-owner-reset.sql","promotionName":"0034_secureshop_owner_reset.sql","sha256":"573ecdc97e8d364f3b1de1521aff8dda76b6de73e4def9ea74c04e9400c73970","readiness":"ready"},
+    {"store":"identity","file":"student-deletion-journal.sql","promotionName":"0035_student_deletion_journal.sql","sha256":"1f50e45cc81e23477c03c4bdb9e1367c44aea42ddde80fb19e3e6d641c67554f","readiness":"ready"},
+    {"store":"identity","file":"dpi-teaching-scope.sql","promotionName":"0036_dpi_teaching_scope.sql","sha256":"c8de6bc4a9bab04a37801fdc1b257be0b5fc8b1f31c209b6521fb52bff27083e","readiness":"ready"},
+    {"store":"identity","file":"nosqli9-identity-content.sql","promotionName":"0037_nosqli9_identity_content.sql","sha256":"8e3b8e86de9366beb2e066290623e6d2e35f0caad1fabaf6afaa70472c9602c5","readiness":"ready"},
+    {"store":"secureshop_agents","file":"secureshop-bound-persona-sessions.sql","promotionName":"0008_secureshop_bound_persona_sessions.sql","sha256":"976588ba54dca65cf7c657748bea2a850b359dad26f2313393f382c8e1cfb53f","readiness":"ready"},
+    {"store":"secureshop_agents","file":"secureshop-bound-persona-renewal.sql","promotionName":"0009_secureshop_bound_persona_renewal.sql","sha256":"4876ab3f57f5c8af839cfea4332f36ecf02f0db620d4a7f78ef0697ee5becd23","readiness":"ready"},
+    {"store":"secureshop_review","file":"secureshop-bound-product-target.sql","promotionName":"0004_secureshop_bound_product_target.sql","sha256":"2d82ab80413dccac913e9a12cfba32b6f215715a60d49c798fa434f97699042d","readiness":"ready"},
+    {"store":"nova","file":"nosqli9-nova-content.sql","promotionName":"0005_nosqli9_content.sql","sha256":"6f3fcdc48e93c282c58d5bbfa2517f85ef0f5f59f463929bf013ddec1d2a4c31","readiness":"ready"}
+  ],
+  "activationGates": [
+    "Copy no draft until the private recovery backup and watcher pause are independently verified.",
+    "Install all four store suffixes before enabling persona, product, owner-reset, deletion, DPI, or NOVA behavior that depends on them.",
+    "Run each store initializer and seed phase after migration; the two identity content migrations and NOVA content migration intentionally update only exact pre-existing shipped rows, while current seeds already contain their corrected defaults.",
+    "Keep the bound gateway and SecureShop curriculum disabled until product, persona, reset, deletion, review, and progress readiness checks all pass.",
+    "Do not infer application activation from a complete migration ledger. Runtime composition, catalog activation, rendered workflows, and private backup recovery remain separate gates."
+  ]
+}

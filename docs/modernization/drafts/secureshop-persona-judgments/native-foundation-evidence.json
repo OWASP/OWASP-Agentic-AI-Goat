@@ -1,0 +1,44 @@
+{
+  "status": "foundation_qualified_unwired",
+  "scope": "Candidate SQL/repository native foundation; no shared-core or canonical Judge/lifecycle race qualification",
+  "native": {
+    "evidence": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-persona-judgments-q85j412f",
+    "container": "dvaia-persona-judgments-e9bdee3144be",
+    "image": "sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280",
+    "nodeVersion": "v26.9.0",
+    "runStatus": "passed",
+    "cleanup": {
+      "removeExitCode": 0,
+      "containerAbsent": true,
+      "nodeBrowserPgidAbsent": true,
+      "errors": [],
+      "completedAt": "2026-09-20T07:53:15.361040+00:00"
+    }
+  },
+  "frozenSourceHashCount": 644,
+  "frozenSourceManifestSha256": "a892bf70ebeeb112e5cd15bed953037d4ac9dae147145d6c50d2e7d67f434262",
+  "candidateHashes": {
+    "docs/modernization/drafts/secureshop-persona-judgments/persona-judgments.candidate.sql": "23ecc79e1af202f72949f467ac2c0050d00ea8a63b652bdf02653d7b0aeab902",
+    "docs/modernization/drafts/secureshop-persona-judgments/repository.candidate.js": "f1fe4dbcecc913bcad1eee8418196bdf5014349a0dbe86ffedbd8c287315b5db",
+    "tests/postgres/secureshopPersonaJudgmentCandidate.integration.test.js": "450d6631cd80a92746474970bc0b716a0a64923fa4e932f161d9de635e802689"
+  },
+  "retainedFailure": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-persona-judgments-3oaj46a4",
+    "handle": 2509,
+    "cause": "Fixture expected inner23514/interrupt rather than cross-store uncertainty wrapper; exact outer+private cause and independent rollback absence now asserted",
+    "cleanup": "root verified clean"
+  },
+  "checks": [
+    "fresh fullchain and populated additive application; second-run exact empty migration results",
+    "old receipts markerfalse; required missing/wrong originalrun/session binding rejected",
+    "exact replay accepted, rebind/downgrade/runtime deletion/migration mutation rejected",
+    "pending judgment+packet+binding and retry originalscope atomic; interrupted tx leaves no rows",
+    "live session removal nulls FK, retained originalsession binding permits historical SecureShop resultredaction",
+    "stale original authority rejects recovery; public projection exposes no binding coordinates"
+  ],
+  "limitations": [
+    "Session removal/redaction is structural compatibility, not canonical student-deletion finalizer proof",
+    "No Judge calls; commit vs role/reset/deletion races remain",
+    "No core integration, active migration or default activation"
+  ]
+}

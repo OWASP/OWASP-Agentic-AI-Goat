@@ -1,0 +1,155 @@
+{
+  "status": "promoted-hidden-structural",
+  "scope": "SecureShop launch-bound persona inbox and three authorization objectives",
+  "prerequisites": {
+    "identity": {
+      "requiredHead": "0044_sensitive_info_aggregate_reset.sql",
+      "currentReviewedHead": "0044_sensitive_info_aggregate_reset.sql",
+      "fileCount": 43,
+      "note": "The Sensitive Information aggregate reset prerequisite is promoted and independently verified."
+    },
+    "secureshop_agents": {
+      "requiredHead": "0009_secureshop_bound_persona_renewal.sql",
+      "fileCount": 9
+    }
+  },
+  "order": [
+    {
+      "store": "identity",
+      "promotionName": "0045_secureshop_persona_inbox_identity.sql",
+      "draft": "secureshop-persona-inbox-identity.sql",
+      "sha256": "a7736a4dfa7277b713f19c2842418eefba376f221b94702b8bab661ed70c824c"
+    },
+    {
+      "store": "secureshop_agents",
+      "promotionName": "0010_secureshop_persona_inbox.sql",
+      "draft": "secureshop-persona-inbox-agents.sql",
+      "sha256": "3855742f3a716f8498611a7fce8b442c8759706974dc0a45a14a810dc968ec45"
+    }
+  ],
+  "objectives": [
+    "ss_cross_persona_effect",
+    "ss_acl_advisory_effect",
+    "ss_acl_enforced_block"
+  ],
+  "qualification": {
+    "grantId": "ss-persona-auth-20260914-08",
+    "evidenceDirectory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-secureshop-persona-inbox-auth-us_00s2z",
+    "resultSha256": "6a8e0d3c1ff3a79cff3cef41fe0a881e090174105d41cd87eac0f264fc0df78c",
+    "ownershipSha256": "c7c9d9ea960fb07779a4c944f4c18dfd5fa219e5aa9afecafbda8476c13088b7",
+    "provider": "ollama",
+    "model": "llama3.1:8b",
+    "assertions": [
+      "real platform JWT, launch capability and immutable shop persona authentication",
+      "model-selected advisory disclosure and enforced denial use exact owned message receipts",
+      "three independent Judge passes produce canonical immutable generation-one contributions",
+      "stable request replay creates no additional model run, effect, judgment or contribution",
+      "reset removes active progress, fences generation two and preserves immutable history",
+      "a distinct platform owner remains isolated"
+    ]
+  },
+  "releaseOrder": [
+    "Back up identity and secureshop_agents stores and verify the recorded migration heads.",
+    "Promote the two exact draft byte sequences under their reserved names and run normal initializers.",
+    "Verify fresh, populated and instructor-customized stores, full restore, checksums and no-op replay.",
+    "Ship structural readiness separately from mutable instructor visibility and objective enablement.",
+    "Change only these three curriculum entries to native-model and add their real adapter coverage and teaching copy.",
+    "Set the workshop route to /workshop/secureshop while retaining defaultVisible false and every objective defaultEnabled false.",
+    "Enable SS_PERSONA_INBOX_READY only after the structural readiness probe passes; instructors still choose objective and exercise visibility.",
+    "Run mounted default-off, selective-enable, hide-after-start, restart-hidden, reset and recovery gates before exposing the workshop."
+  ],
+  "requiredSourceRepair": {
+    "status": "implemented-focused-qualified",
+    "problem": "The earlier readiness probe treated is_visible and is_enabled as schema readiness, creating an activation cycle and making a hidden workshop fail startup.",
+    "contract": "Startup checks immutable relations, constraints and catalog registration. Each readiness/read/enforce request separately checks current canonical exercise visibility and the required objective enablement. Hidden or disabled state fails closed without unmounting legacy routes or losing instructor choices."
+  },
+  "defaults": {
+    "environmentFlag": "SS_PERSONA_INBOX_READY",
+    "environmentDefault": false,
+    "workshopVisible": false,
+    "objectivesEnabled": false,
+    "draftsRegistered": true
+  },
+  "sourceSnapshot": {
+    "server/services/secureshopPersonaInboxComposition.js": "ddb8fc9f40aa8504e1293e5fa70412033209ded19ccef238ac284b127341b540",
+    "server/services/secureshopPersonaInboxAvailability.js": "0f03a265a6f3c0fe6739253b6ebbf1fa752d5ecdb5f6dd5e02402ac2daf13f71",
+    "server/services/secureshopBoundReviewComposition.js": "6d9e02e42320cf6cdd2a699ca6267dbe05737b1d970d36c3ada3f90a681b3945",
+    "server/services/secureshopBoundApplication.js": "97e49e79f56e015833d19fad3e67d2499aaab41f1007f27799cd27306b88f464",
+    "server/routes/secureshop/boundPersonaInbox.js": "777192d0946731065b0157ccde637e8cb685fa25384bb6a34763e6a6f646c74f",
+    "server/routes/secureshop/boundGateway.js": "23143436c9c6fde2680f0bcbf082f8c17c9929f9519535df55d5ba4b58c934d7",
+    "server/config/secureshopCurriculum.js": "e63f7b375625ad403df39f95fb07b83cc326e50e63c98abf38030984ded782c0"
+  },
+  "activationReview": {
+    "structuralPromotion": "completed under secureshop-persona-promotion-20260914-01 with paired recovery, all16 exact ledgers, empty replay and hidden readiness",
+    "runtimeMount": "existing production source mounts only when SS_PERSONA_INBOX_READY is exactly true and structural readiness passes",
+    "learnerAvailability": "every request separately requires canonical exercise visibility and the exact required objective enablement",
+    "currentHeadGap": "closed by current-head02 structural qualification after identity0044 and secureshop_agents0009; live promotion still requires a fresh quiet paired backup/restore and all16 initializer/replay/readiness gate",
+    "sourceReleaseGap": "the three qualified objectives still say pending and the challenge route is empty; review those catalog source changes and a shared no-private-env activation policy before exposure"
+  },
+  "remainingSequence": [
+    {
+      "objective": "ss_stored_browser_execution",
+      "priority": 1,
+      "state": "connected-qualified-awaiting-catalog-release",
+      "reason": "The built parent, opaque frame, persisted ReviewCard sink, native effect, real Judge, replay and reset gate passed in h3s9g0qg. Its catalog/readiness release remains staged."
+    },
+    {
+      "objectives": [
+        "ss_rogue_tool_selected",
+        "ss_rug_pull_invoked"
+      ],
+      "priority": 2,
+      "state": "missing-secureshop-production-vertical",
+      "reason": "Generic MCP teaching paths exist, but SecureShop still needs one launch-owned registration/schema-change resource, scoped invocation receipts, cleanup and mounted actor/Judge qualification."
+    },
+    {
+      "objective": "ss_controlled_ssrf",
+      "priority": 3,
+      "state": "missing-real-scoped-tool-and-target",
+      "reason": "No launch-owned internal HTTP target, bounded egress tool, nonce-bound response receipt or connected SecureShop Judge workflow is qualified."
+    }
+  ],
+  "excluded": [
+    "No migration is registered or applied by this package.",
+    "No environment flag, catalog objective, hint, solution or workshop visibility is enabled by this package.",
+    "Legacy shared SecureShop commerce rows and tagged intentional vulnerabilities are unchanged."
+  ],
+  "currentHeadQualification": {
+    "grantId": "secureshop-persona-current-head-20260914-02",
+    "evidenceDirectory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-secureshop-persona-current-bp229gow",
+    "resultSha256": "047e0b8baf355141e519e608ec89f1aa5fc38dbf87211e3e7a414d03e1b66279",
+    "ownershipSha256": "5f024a2dcdf64ca9a469a38afeb7c9dade14bef6b0ce796cd5a1eaaa9a3595f6",
+    "nodeVersion": "v26.8.2",
+    "assertions": [
+      "identity0044/count43 and secureshop_agents0009/count9 exact prerequisite prefixes",
+      "fresh and populated actual-loader application with empty replay",
+      "instructor visibility and objective settings remain hidden and disabled",
+      "runtime provision, cleanup replay, resurrection fence and sibling isolation",
+      "runtime grants are present and PUBLIC authority is absent"
+    ],
+    "boundary": "Structural current-head PostgreSQL proof; the retained auth08 run remains the actual llama3.1:8b and real JWT proof."
+  },
+  "promotionRunner": {
+    "path": "tests/postgres/run-secureshop-persona-promotion.py",
+    "mode": "--promote-persona",
+    "status": "source-prepared-awaiting-review-and-single-use-grant",
+    "quiescence": "pause validated watcher, drain its current backend and supervised agent host, then require zero other configured identity/agents sessions",
+    "recovery": "fresh custom-format identity and agents dumps with full row, sequence, ledger, owner, effective/default/database ACL and generated-role inventories; restore and compare before mutation",
+    "activation": "structural migrations only; SS_PERSONA_INBOX_READY, curriculum visibility and objective enablement remain unchanged"
+  },
+  "structuralPromotion": {
+    "grantId": "secureshop-persona-promotion-20260914-01",
+    "evidenceDirectory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-secureshop-persona-promotion-fz6n6dao",
+    "ownerHandle": 62566,
+    "ownershipSha256": "aaffd74df7823301d0310464e7e48450f51145b7ddce5f1fc0d2ad6a6d80cda7",
+    "resultSha256": "c73d1125973bf7757a081d9df2ca4c4594908096a24ea28909cdc15a6d2fdd79",
+    "backupManifestSha256": "4905491ddb48d7c718abe8e35f05dce45d3783f42cdc3f106286ff09da542929",
+    "restoreComparisonSha256": "eba36263d2e27db955c1eddfeee9c419fe7f683fb647dbf53c7f8d9fcd6bb6af",
+    "readiness": {
+      "registered": true,
+      "visible": false,
+      "enabledObjectives": []
+    },
+    "rootAudit": "full prefixes, exact checksums, all16 empty replay, exact container absence and health200 independently verified"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "qualification": "Explicitly injected candidate effective persona auth; no production wiring",
+  "terminal": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-6p4_vhxu",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "0db69874578be1ac453fa33397f360420d068557670de36530d260349742a6d6",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "controlledTestsPassed": 27,
+  "nativeProof": [
+    "Fresh/populated candidate and no-op, existing lifecycle/replay/sibling gates retained",
+    "Actual promoted customer username login/renew and immutable-version JWT authentication",
+    "Stable-ID password change after role change, actual audit merchant role",
+    "Current-session-bound API-key mint and effective-role key authentication",
+    "Ban rejects login/renew/keymint/keyauth and revokes existing sessions/keys"
+  ],
+  "sourceHashes": {
+    "server/services/secureshopBoundPersonaAuth.js": "ba8bc406777cfdbfeff6f7f5f35ddb3414544fc1d841dc9ed2ddf40c43b9b6cb",
+    "server/database/postgres/secureshopBoundPersonaRepository.js": "278997aa759fd7fc69ed2dc6e78cb964b69d020a97584e6ea10f0d59c6ccc58c",
+    "server/database/postgres/secureshopBoundPersonaAuthority.js": "a0bd799e5f74fda1472e5a043a7fdd2d32e4bb67344cb9171bb3b676425a81b4",
+    "server/database/postgres/secureshopBoundUserAdministrationRepository.js": "a75f07a4be88e3a700dbe0a831ea2cb1992f4b55a22b7af7575adbcdb3419851",
+    "tests/postgres/secureshopBoundUserAdministration.integration.test.js": "b0505838373feaa11c3d5f2918a0be59f82602535a5266ef1ff182583a0ec1b7",
+    "docs/modernization/drafts/secureshop-user-administration/persona-state.candidate.sql": "ee8a37de874aa9b4993b5d9db66ddbd43955ec072fe6367c0e78c6ebda4ff145"
+  },
+  "logSha256": "53354144c92460f081a845d39f75adf6eb144c5aac433d08b7f57a984ad6a3ce",
+  "limits": [
+    "Platform launch callback controlled, not canonical identity admission proof",
+    "No long-running agent effect fence; API design documented only",
+    "Production gateway must supply currentSessionId for candidate key mint; dependency not wired",
+    "Existing default controlled suites pass without injected authority",
+    "Initial native exposed immutable-template role FK; corrected only unapplied candidate with stable identity FK and effective insertion guard"
+  ]
+}

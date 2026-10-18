@@ -1,0 +1,56 @@
+{
+  "scope": "Optional actual inbox composition with canonical persisted graph/turns; controlled provider and failing controlled Judge only, no earned credit or actual model",
+  "result": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-60wli9vx",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "331a1273c88c47ac6047648b008fa96b92947c3d4d4ab2b382452a7bc4e5c6f3",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "checks": [
+    "same agents client effect and audit inside persona transaction",
+    "advisory cross-persona disclosure preserved",
+    "default ACL transition waits for effect without deadlock",
+    "default enforced read blocks disclosure",
+    "sibling advisory remains available",
+    "platform revoke after audit insertion rolls back access event and audit atomically",
+    "actual persona ban and platform revoke during held composition provider decision deny late read; turns uncertain",
+    "live controlled graph completes and persists genuine read event"
+  ],
+  "sourceSha256": {
+    "tests/postgres/secureshopPersonaInboxAuthority.integration.test.js": "3bbdc7d74abb890513fe638a605a00f8e11926c84566065f05be0ca3511d659d",
+    "server/services/secureshopPersonaInboxComposition.js": "05d6811ea8005790b8382a5a8441c716d9f5bef60bcabd7004b88662aec856ff",
+    "server/services/secureshopPersonaInboxApplication.js": "8fbb21a4d212b3608a215f7934dc9631b15697462965aeb6462c83ec7e2bbd40",
+    "server/services/secureshopPersonaInboxTools.js": "163e4a05e191b430f181b35c0cf238c3dad463d4051c327377198391d317571d",
+    "server/services/secureshopPersonaInboxEffect.js": "35d75aa5c9a7bb3eb75ff016295b75ae4a5cde4b6ec3fff481cadf77817b8755",
+    "server/routes/secureshop/boundPersonaInbox.js": "1c5e8599ba337b7258c740b7a1148aaf8beb11d1f88475a8040077895254914d",
+    "server/database/postgres/secureshopPersonaInboxRepository.js": "1bfda1802d0dca80ce6370ef016d0cc78364cd6eab746c87327007438e03f4e7",
+    "server/database/postgres/secureshopBoundPersonaAuthority.js": "348e4c00c6af168e3b92c0dbd7ecc53a4e638511485a10fb2eb64394650180fc",
+    "db/postgres/workshop-migrations/secureshop_agents/0010_secureshop_persona_inbox.sql": "3855742f3a716f8498611a7fce8b442c8759706974dc0a45a14a810dc968ec45",
+    "package-lock.json": "34ba2ea15dd634f8e6a6df4ae4443aa8af953cb2df951923d1ae8472889a2c27"
+  },
+  "lockOrder": {
+    "existingSql": "read/advance/retire begin target FOR UPDATE; audit INSERT trigger subsequently takes owner lock",
+    "wrapperChange": "read/advance preacquire owner-audit then launch-admission before target; shared authority client reentrant",
+    "provision": "no audit owner/admission acquisition; inserts target/fixtures",
+    "retire": "target row then cleanup rows; no owner/admission reverse acquisition found"
+  },
+  "priorFailures": [
+    {
+      "directory": "pbdggpp1",
+      "cause": "fixture passed full persona DTO rather than exact id/role; corrected fixture"
+    },
+    {
+      "directory": "q4pu1_j2",
+      "cause": "controlled fail Judge missing required scoped verdict fields; corrected always-fail fixture"
+    }
+  ],
+  "focusedTests": 53,
+  "remaining": [
+    "manual inbox enforce/status authority integration",
+    "other factory consumers",
+    "production activation gates"
+  ]
+}

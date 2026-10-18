@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "purpose": "Byte-exact source archive for the historical SecureShop conversation-purpose native qualification; these files preserve the reviewed closure and are not current production sources.",
+  "evidence": "tasks/secureshop-conversation-purpose-native-manifest.json",
+  "sources": {
+    "db/postgres/migrate.js": {
+      "archivePath": "docs/modernization/archive/secureshop-conversation-purpose/migrate.js",
+      "sha256": "077db5fd54015509c5e337ace90f8cbefced5a6cb3099d2093653ebce89ece44"
+    },
+    "server/database/postgres/secureshopBoundConversationsRepository.js": {
+      "archivePath": "docs/modernization/archive/secureshop-conversation-purpose/secureshopBoundConversationsRepository.js",
+      "sha256": "22886f037e3840ffbd3a3752fb974654683ba91438b7aaf63797e6a998b31f44"
+    },
+    "server/services/secureshopConversationPurpose.js": {
+      "archivePath": "docs/modernization/archive/secureshop-conversation-purpose/secureshopConversationPurpose.js",
+      "sha256": "1b80bf46f988c0807099cf1b88c6e8a87fc62769d445de7aa3a4dd489deab06b"
+    }
+  }
+}

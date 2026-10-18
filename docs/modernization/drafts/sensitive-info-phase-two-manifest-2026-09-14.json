@@ -1,0 +1,29 @@
+{
+  "status": "draft-unregistered",
+  "prerequisites": {
+    "identityHead": "0043_dpi_evidence_guidance.sql",
+    "finflowHead": "0008_student_deletion.sql"
+  },
+  "order": [
+    {
+      "store": "identity",
+      "promotionName": "0044_sensitive_info_aggregate_reset.sql",
+      "file": "sensitive-info-aggregate-reset.sql",
+      "sha256": "1485e878466a6a52b598f176832af45d8f5a7fc3ae5ec13e008abaea2c8ad186"
+    },
+    {
+      "store": "identity",
+      "promotionName": "0045_legacy_sensitive_canonical_catalog.sql",
+      "file": "legacy-sensitive-canonical-catalog.sql",
+      "sha256": "18abf90ad29ae14e13a2a40b670b14bcb2303bf7d4a9e640b54249e9f0dbdec5"
+    },
+    {
+      "store": "finflow",
+      "promotionName": "0009_sensitive_info_aggregate_reset.sql",
+      "file": "sensitive-info-aggregate-reset-finflow.sql",
+      "sha256": "87ee181873584976096ec94a4f57987e60ecce8433220e76be60b2d68a7925be"
+    }
+  ],
+  "activation": "Do not promote or register the five phase-two objectives until native qualification and source-catalog review pass.",
+  "lockBoundary": "Single-row runtime writes serialize with reset admission. Arbitrary direct multi-row UPDATE statements can select an opposing tuple order; PostgreSQL may abort one participant with 40P01, so callers must surface failure and retry the whole transaction. The native gate forces this case and verifies no lost data."
+}

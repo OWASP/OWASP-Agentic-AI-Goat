@@ -1,0 +1,225 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-09-13",
+  "policy": {
+    "allowedDispositions": [
+      "preserve-for-learning",
+      "investigate",
+      "current-reviewed"
+    ],
+    "preserveRule": "A preserve-for-learning entry requires repository evidence that the exact resolved version is necessary for an intentional vulnerability. An advisory or a challenge import is insufficient.",
+    "investigateRule": "Keep the recorded manifest constraint and lockfile resolution unchanged until the proof test passes with a proposed replacement and the curriculum owner reviews the result.",
+    "currentReviewedRule": "A current-reviewed entry records a package at the reviewed current version whose teaching behavior is application-created rather than version-specific. It does not freeze that version against later review."
+  },
+  "runtimeContext": {
+    "observedLocalNode": "26.10.0",
+    "frozenAwsNode": "18",
+    "targetNodeAtAssessment": "Root manifest now requires Node ^24.15.0 or >=26.0.0; the earlier generic Node 24 assessment label is superseded.",
+    "postgresqlTarget": "Supported setup/startup uses PostgreSQL runtime/migration URL pairs from the canonical application store manifest. Legacy drivers remain for retained fixtures; full application qualification and legacy retirement remain incomplete. Frozen AWS deployment has no authorized PostgreSQL or Node runtime cutover.",
+    "conflicts": [
+      {
+        "packages": [
+          "langchain",
+          "@langchain/core",
+          "@langchain/langgraph"
+        ],
+        "declared": [
+          "1.5.12",
+          "1.2.12",
+          "1.4.18"
+        ],
+        "resolved": [
+          "1.5.12",
+          "1.2.12",
+          "1.4.18"
+        ],
+        "nodeConstraint": [
+          "Node >=20",
+          "Node >=20",
+          "Node >=18"
+        ],
+        "impact": "The exact LangChain and core releases cannot run on the frozen Node 18 deployment, although LangGraph's own minimum includes Node 18. The local modernization artifact is not AWS-qualified."
+      },
+      {
+        "packages": [
+          "better-sqlite3"
+        ],
+        "declared": "13.0.3",
+        "resolved": "13.0.3",
+        "nodeConstraint": "Node >=22",
+        "impact": "The current native driver cannot run on frozen Node 18. It remains for retained legacy/fixture paths and is not a learning-dependency exception."
+      },
+      {
+        "packages": [
+          "sqlite3",
+          "better-sqlite3",
+          "mysql2"
+        ],
+        "declared": [
+          "6.0.1",
+          "13.0.3",
+          "3.24.4"
+        ],
+        "resolved": [
+          "6.0.1",
+          "13.0.3",
+          "3.24.4"
+        ],
+        "nodeConstraint": "sqlite3 requires Node >=20.17; better-sqlite3 requires Node >=22; mysql2 requires Node >=8.",
+        "impact": "Sole-engine cutover retires these after remaining runtime and fixture consumers move to PostgreSQL-specific proofs. None is a learning-version exception; sqlite3 and better-sqlite3 are incompatible with frozen Node 18."
+      },
+      {
+        "packages": [
+          "pg"
+        ],
+        "declared": "8.23.0",
+        "resolved": "8.23.0",
+        "nodeConstraint": "Node >=16",
+        "impact": "The driver supports frozen Node 18 and the current application target. PostgreSQL is the supported setup/startup engine; full application qualification and frozen-AWS deployment compatibility remain separate."
+      }
+    ],
+    "checkedAt": "2026-09-27"
+  },
+  "entries": [
+    {
+      "package": "jsonwebtoken",
+      "manifest": "package.json",
+      "lockfile": "package-lock.json",
+      "scope": "dependencies",
+      "declared": "9.0.3",
+      "resolved": "9.0.3",
+      "dependencyPaths": [
+        "dvaia@1.0.0 > jsonwebtoken@9.0.3"
+      ],
+      "disposition": "current-reviewed",
+      "reviewOwner": "SecureShop curriculum owner",
+      "vulnerabilityIds": [
+        "auth-bypass-jwt-none"
+      ],
+      "importingCode": [
+        "server/routes/secureshop/postgres/admin.js"
+      ],
+      "catalogEvidence": "docs/secureshop/VULNERABILITIES.md",
+      "proofTests": [
+        "tests/secureshop/vuln/web/auth-bypass-jwt-none.test.js"
+      ],
+      "whyVersionMatters": "The alg=none sink is application policy: both SecureShop admin routes explicitly verify an unsigned token with an empty key and algorithms [none]. Disposable qualification on 9.0.3 preserved that sink and ordinary HS256 boundaries; no package version is curriculum-critical.",
+      "versionSpecificEvidence": [],
+      "vulnerableModeExpectation": "A manually forged alg=none token reaches the deliberately permissive verifier and is decoded.",
+      "fixedModeExpectation": "No package-level fixed mode exists; a future curriculum-safe fix would reject alg=none in route policy while normal HS256 verification continues.",
+      "runtimeCompatibility": "Lockfile engine: Node >=12 and npm >=6; compatible with local Node 26, target Node 24 and frozen Node 18.",
+      "qualificationEvidence": [
+        "docs/modernization/learning-dependency-investigation-2026-09-13.md"
+      ]
+    },
+    {
+      "package": "nunjucks",
+      "manifest": "package.json",
+      "lockfile": "package-lock.json",
+      "scope": "dependencies",
+      "declared": "3.2.4",
+      "resolved": "3.2.4",
+      "dependencyPaths": [
+        "dvaia@1.0.0 > nunjucks@3.2.4"
+      ],
+      "disposition": "current-reviewed",
+      "reviewOwner": "SecureShop curriculum owner",
+      "vulnerabilityIds": [
+        "ssti-listing-template",
+        "ssti-policy-template"
+      ],
+      "importingCode": [
+        "agent-host/agents/listing/tools/_nunjucksSink.js"
+      ],
+      "catalogEvidence": "docs/secureshop/VULNERABILITIES.md",
+      "proofTests": [
+        "tests/secureshop/vuln/web/ssti-listing-template.test.js",
+        "tests/secureshop/vuln/web/ssti-policy-template.test.js"
+      ],
+      "whyVersionMatters": "The application disables autoescape and explicitly exposes process/global, with a vm fallback exposing the same surface. Version 3.2.4 is current and the teaching sink is application configuration, not a package-version defect.",
+      "versionSpecificEvidence": [],
+      "vulnerableModeExpectation": "Attacker templates can read process state and execute a benign child process proof through the exposed global.",
+      "fixedModeExpectation": "No package-level fixed mode exists; a future exercise mode must remove globals/prototype access while preserving ordinary template rendering.",
+      "runtimeCompatibility": "Lockfile engine: Node >=6.9.0; compatible with local Node 26, target Node 24 and frozen Node 18. Optional peer chokidar ^3.3.0 is present in the lock graph.",
+      "qualificationEvidence": [
+        "docs/modernization/learning-dependency-investigation-2026-09-13.md"
+      ]
+    },
+    {
+      "package": "sax",
+      "manifest": "package.json",
+      "lockfile": "package-lock.json",
+      "scope": "dependencies",
+      "declared": "1.6.1",
+      "resolved": "1.6.1",
+      "dependencyPaths": [
+        "dvaia@1.0.0 > sax@1.6.1",
+        "dvaia@1.0.0 > xml2js@0.6.2 > sax@1.6.1 (xml2js requires >=0.6.0)"
+      ],
+      "transitiveConstraints": [
+        {
+          "fromPackage": "xml2js",
+          "dependency": "sax",
+          "declared": ">=0.6.0",
+          "resolved": "1.6.1"
+        }
+      ],
+      "disposition": "current-reviewed",
+      "reviewOwner": "SecureShop curriculum owner",
+      "vulnerabilityIds": [
+        "xxe-import-bulk",
+        "xxe-import-manifest"
+      ],
+      "importingCode": [
+        "agent-host/agents/listing/tools/import_bulk.postgres.js"
+      ],
+      "catalogEvidence": "docs/secureshop/VULNERABILITIES.md",
+      "proofTests": [
+        "tests/secureshop/vuln/web/xxe-import-bulk.test.js",
+        "tests/secureshop/vuln/mcp/xxe-import-manifest.test.js"
+      ],
+      "whyVersionMatters": "The application reads SYSTEM entity targets and assigns their bytes to the sax parser entity table. Disposable qualification on 1.6.1 preserved both XXE proofs and normal XML shape; no sax version is curriculum-critical.",
+      "versionSpecificEvidence": [],
+      "vulnerableModeExpectation": "DOCTYPE SYSTEM file entities resolve to local file contents through the deliberately populated parser entity table.",
+      "fixedModeExpectation": "No package-level fixed mode exists; a future exercise mode must disable external entity resolution while retaining ordinary XML parsing.",
+      "runtimeCompatibility": "Lockfile engine: Node >=11; compatible with local Node 26, target Node 24 and frozen Node 18.",
+      "qualificationEvidence": [
+        "docs/modernization/learning-dependency-investigation-2026-09-13.md"
+      ]
+    },
+    {
+      "package": "xml2js",
+      "manifest": "package.json",
+      "lockfile": "package-lock.json",
+      "scope": "dependencies",
+      "declared": "0.6.2",
+      "resolved": "0.6.2",
+      "dependencyPaths": [
+        "dvaia@1.0.0 > xml2js@0.6.2"
+      ],
+      "disposition": "current-reviewed",
+      "reviewOwner": "SecureShop curriculum owner",
+      "vulnerabilityIds": [
+        "xxe-import-bulk",
+        "xxe-import-manifest"
+      ],
+      "importingCode": [
+        "agent-host/agents/listing/tools/import_bulk.postgres.js",
+        "agent-host/agents/mcp-registry/tools/index.js"
+      ],
+      "catalogEvidence": "docs/secureshop/VULNERABILITIES.md",
+      "proofTests": [
+        "tests/secureshop/vuln/web/xxe-import-bulk.test.js",
+        "tests/secureshop/vuln/mcp/xxe-import-manifest.test.js"
+      ],
+      "whyVersionMatters": "Version 0.6.2 is current. SecureShop imports xml2js but its XXE paths do not call it; the shared sax event parser builds the returned object after application-managed file resolution. The separate legacy route remains a consumer but does not justify a SecureShop version freeze.",
+      "versionSpecificEvidence": [],
+      "vulnerableModeExpectation": "Expanded entity content remains observable in the parsed document returned by the teaching tools.",
+      "fixedModeExpectation": "No package-level fixed mode exists; a future exercise mode must parse normal XML without resolving external entities.",
+      "runtimeCompatibility": "Lockfile engine: Node >=4; compatible with local Node 26, target Node 24 and frozen Node 18. Its sax dependency range is >=0.6.0 and currently resolves to the root sax 1.6.1.",
+      "qualificationEvidence": [
+        "docs/modernization/learning-dependency-investigation-2026-09-13.md"
+      ]
+    }
+  ]
+}

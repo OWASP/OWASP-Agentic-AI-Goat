@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "status": "draft_unregistered_unpromoted",
+  "ordering": [
+    {
+      "suffix": "0046",
+      "owner": "/root/workshop_authenticity",
+      "purpose": "graph Judge validationCode compatibility",
+      "included": false,
+      "status": "applied_and_root_audited"
+    },
+    {
+      "suffix": "0047",
+      "purpose": "exact-predecessor SecureShop Persona catalog transition",
+      "draft": "docs/modernization/drafts/secureshop-persona-inbox-catalog-transition.sql",
+      "sha256": "e12496c0ebf7c3927ab2d967afa286b3e5774d88f4223527444c222c19ed3e64"
+    },
+    {
+      "suffix": "0048",
+      "purpose": "catalog field provenance schema and conservative legacy_unknown inventory",
+      "status": "reserved_draft_only",
+      "draft": "docs/modernization/drafts/workshop-catalog-field-provenance.sql",
+      "sha256": "96ea10297e339cc277a0c76db8dad7028f5683b1dbc1db46a3d913889fe24de2"
+    },
+    {
+      "suffix": "0049",
+      "purpose": "adopt only exact post-0047 Persona platform defaults",
+      "status": "reserved_draft_only",
+      "draft": "docs/modernization/drafts/workshop-catalog-field-provenance-persona-adoption.sql",
+      "sha256": "aa22efe7d731bbb378f6cc9d7954f109af34573773f2f0f6ade10098b02abccb"
+    }
+  ],
+  "qualifiedCandidateBytes": {
+    "docs/modernization/drafts/catalogDefaultProvenance.candidate.js": "d141c235826cf0a379fc202f970654fdf970f080a3ee816cee06934294b3aa31",
+    "docs/modernization/drafts/workshopPlatformSeed.provenance.candidate.js": "bf9ea4a6eb8beff236e8eb86188058aef886b797aa4c37ae418f20cee8ff48dd",
+    "docs/modernization/drafts/workshop-catalog-field-provenance.sql": "96ea10297e339cc277a0c76db8dad7028f5683b1dbc1db46a3d913889fe24de2"
+  },
+  "integrationCandidates": {
+    "docs/modernization/drafts/workshopPlatformSeed.provenance.integration.candidate.js": "509ead4b362dd0fedf84df9e116e64826721ee0e66c3d521832e3d83a055b92d",
+    "docs/modernization/drafts/workshopConfigProvenanceIntegration.candidate.js": "29c5a1c9284906d5eac4b6f7c9e69de5c73fc1c47d89a1978df789b88504132f",
+    "docs/modernization/drafts/secureshopPersonaInboxActivationCandidate.js": "930cb6f62eda9fa5fa6744be67a64124f77738bfced62baa55db789eebcbcf0e",
+    "docs/modernization/drafts/secureshopPersonaCatalogCurriculumCandidate.js": "96311c5a083265210d916d8fdf86300482bc7a2b36ede5f56e7f5407283d33a8"
+  },
+  "pinnedProductionInputs": {
+    "server/database/postgres/workshopPlatformSeed.js": "6c26c5333633891593fb56597751fc0a9e877d6086fdf88171cb3c78b35e66db",
+    "server/database/postgres/workshopConfigRepository.js": "7f882098b18856a5560082f1b50ff6ba1e5b6093690d23e978f97ba088baed8d",
+    "server/config/secureshopCurriculum.js": "e63f7b375625ad403df39f95fb07b83cc326e50e63c98abf38030984ded782c0",
+    "server/services/secureshopBoundApplication.js": "97e49e79f56e015833d19fad3e67d2499aaab41f1007f27799cd27306b88f464",
+    "server/services/secureshopBoundReviewComposition.js": "6d9e02e42320cf6cdd2a699ca6267dbe05737b1d970d36c3ada3f90a681b3945"
+  },
+  "generatedProductionOutputs": {
+    "server/database/postgres/catalogDefaultProvenance.js": "d141c235826cf0a379fc202f970654fdf970f080a3ee816cee06934294b3aa31",
+    "server/database/postgres/workshopPlatformSeedCore.js": "bf9ea4a6eb8beff236e8eb86188058aef886b797aa4c37ae418f20cee8ff48dd",
+    "server/database/postgres/workshopPlatformSeed.js": "509ead4b362dd0fedf84df9e116e64826721ee0e66c3d521832e3d83a055b92d",
+    "server/database/postgres/workshopConfigRepository.js": "a9ad86724c3d0c8f29e36b72f2379fe67f3ad96682f0ff854765d3321fb1c0e6",
+    "server/config/secureshopCurriculum.js": "bbec09c5ad3eb42fd95f4298227854f612f1ccd0fab9f320c6f49ffd8b762ad4",
+    "server/services/secureshopBoundApplication.js": "e0f9823e5c15688f84446778fb21725b2837d32defeb1430a015139b429f72b6",
+    "server/services/secureshopBoundReviewComposition.js": "156c49830689cb835b242e5b67e9571f216660df5aef12f226b5265fe01a7991"
+  },
+  "catalogVersion": "workshop-defaults-2026-09-14-v1",
+  "nativeEvidence": {
+    "grantId": "workshop-catalog-provenance-20260914-02",
+    "evidenceDirectory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-catalog-provenance-w9ny8ad1",
+    "resultSha256": "3d6bc47f41844f16faafb4ffc5217a61affcf658b429ca6127ac781b398d9b39",
+    "ownershipSha256": "e44795a45f512d7ceeb8ab855a38167efafc32b461b06347b5aa5ddd62b91b1c",
+    "result": "pass",
+    "containerAbsent": true
+  },
+  "nextIntegrationQualification": {
+    "status": "prepared_unrun",
+    "test": "tests/postgres/workshopCatalogProvenanceRelease.integration.test.js",
+    "testSha256": "20bd03198a3e8b4d8958bcd8d27642ba2954232f30e06e9c32f5683e3c0ccb74",
+    "launcher": "tests/postgres/run-workshop-catalog-provenance-release-isolated.py",
+    "launcherSha256": "e7f0538ddfd06eec4d3064a7d89cae7140e78530ebbe1dcfb95bac2033efa3d3",
+    "scope": "owned PostgreSQL 18; copied current source; actual loader 0047/schema/adoption; generated seed/config/curriculum paths; no model or live data"
+  },
+  "releaseRequirements": [
+    "fresh coherent identity backup and owned PostgreSQL 18 restore proof",
+    "watcher and backend held through migrations, source install, initialize, replay and readiness",
+    "actual loader exact prefix and checksum verification",
+    "normal all-store initializer and empty migration replay",
+    "populated custom, legacy_unknown, managed upgrade, tombstone and revision preservation",
+    "runtime and migration role ACL/readiness checks",
+    "backend health after controlled resume"
+  ]
+}

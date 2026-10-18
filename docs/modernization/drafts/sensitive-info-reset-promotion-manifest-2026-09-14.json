@@ -1,0 +1,53 @@
+{
+  "status": "qualified-awaiting-promotion",
+  "scope": "Sensitive Information aggregate reset capability only",
+  "prerequisites": {
+    "identity": {
+      "head": "0043_dpi_evidence_guidance.sql",
+      "fileCount": 42
+    },
+    "finflow": {
+      "head": "0008_student_deletion.sql",
+      "fileCount": 8
+    }
+  },
+  "order": [
+    {
+      "store": "identity",
+      "promotionName": "0044_sensitive_info_aggregate_reset.sql",
+      "draft": "sensitive-info-aggregate-reset.sql",
+      "sha256": "1485e878466a6a52b598f176832af45d8f5a7fc3ae5ec13e008abaea2c8ad186"
+    },
+    {
+      "store": "finflow",
+      "promotionName": "0009_sensitive_info_aggregate_reset.sql",
+      "draft": "sensitive-info-aggregate-reset-finflow.sql",
+      "sha256": "87ee181873584976096ec94a4f57987e60ecce8433220e76be60b2d68a7925be"
+    }
+  ],
+  "excluded": [
+    {
+      "draft": "legacy-sensitive-canonical-catalog.sql",
+      "reason": "The five phase-two objectives are a separate inactive curriculum change and are not required by reset readiness or execution."
+    }
+  ],
+  "activation": {
+    "targetDefault": "requested for PostgreSQL when SENSITIVE_INFO_AGGREGATE_RESET_ENABLED is absent or true",
+    "maintenanceOptOut": "SENSITIVE_INFO_AGGREGATE_RESET_ENABLED=false",
+    "publishBoundary": "normal all-store initialization and retained reset composition readiness complete before HTTP listen",
+    "maintenanceBehavior": "PostgreSQL reset endpoints return503 when explicitly disabled; no partial single-store fallback.",
+    "target": "server/services/sensitiveInfoResetComposition.js",
+    "baselineSha256": "06e7d97a803cf1bef8b15cf5b018a1f2e7e145eb7d6353515513f480cc693637",
+    "candidate": "sensitiveInfoResetComposition.activated.js",
+    "candidateSha256": "1e8e2a58c50a7f4d276ee826d114d21f63b1cf7025efa6cb60ae0761f867f69d"
+  },
+  "evidence": {
+    "mountedHttp": "dvaia-sensitive-info-reset-fz0epvm2",
+    "mountedHttpResultSha256": "823007bff6675046da945fe60a4624ee449388b045ea541ee5d6003f3b7153ee",
+    "qualified": "Only reset migrations, actual authenticated routes, failure/replay/owner fencing, post-reset canonical and legacy projections.",
+    "pairedRecovery": "dvaia-sensitive-reset-recovery-qsn6uy0s",
+    "pairedRecoveryManifestSha256": "d138209abfa1eb0cf5c84651eb9e5c7f67abb60f6fd4b91fb7397d8cb7718bce",
+    "pairedRecoveryComparisonSha256": "c62f401ed2fe9dfff372d7954222316c85f6d237893a86160e8bfa6779e81f3b",
+    "remaining": "Fresh paired backup/owned restore in the paused promotion run, coherent forward application, production readiness and activation."
+  }
+}

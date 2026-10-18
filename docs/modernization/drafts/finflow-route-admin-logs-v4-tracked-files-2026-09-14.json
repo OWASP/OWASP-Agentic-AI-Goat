@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "trackedFiles": [
+    "docs/modernization/drafts/finflow-route-admin-logs-v4-tracked-files-2026-09-14.json",
+    "docs/modernization/drafts/finflow_llm_request_log_default_content_guarded.sql",
+    "docs/modernization/drafts/finflow_log_default_content_snapshots.json",
+    "docs/modernization/drafts/generate_finflow_log_default_content_draft.js",
+    "package-lock.json",
+    "package.json",
+    "scripts/register-native-owner-handle.py",
+    "server/agent-runtime/finflowDecisionGraph.js",
+    "server/database/postgres/identityRepository.js",
+    "server/database/postgres/sensitiveInfoWorkshopDb.js",
+    "server/database/postgres/workshopProgressRepository.js",
+    "server/routes/sensitiveInfoWorkshop.js",
+    "server/services/finflowLogArtifactReceipt.js",
+    "server/services/postgresIdentityAdapter.js",
+    "server/services/sensitiveInfoWorkshopAgent.js",
+    "tests/finflowLogArtifactAuthority.test.js",
+    "tests/finflowRouteNativeLauncher.test.js",
+    "tests/objectiveJudgmentRepositoryMetadata.test.js",
+    "tests/postgres/finflowRoute.integration.test.js",
+    "tests/postgres/finflow_native_gate.py",
+    "tests/postgres/native_source_provenance.py",
+    "tests/postgres/run-finflow-route-isolated.py"
+  ]
+}

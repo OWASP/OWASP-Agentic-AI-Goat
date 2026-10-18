@@ -1,0 +1,25 @@
+{
+  "status": "draft-only",
+  "baseline": {
+    "identity": "0027_secureshop_target_admission.sql",
+    "secureshop_agents": "0005_conversation_binding.sql",
+    "secureshop_review": "0002_cleanup_receipts.sql"
+  },
+  "order": [
+    {"store":"identity","file":"secureshop-review-target-reservation.sql","promotionName":"0028_secureshop_review_target_reservation.sql","sha256":"8887937a90a3071bebfd08e382df4f3344bfb44c482d2ec9546d60aa808011d2"},
+    {"store":"identity","file":"secureshop-target-reconciliation.sql","promotionName":"0029_secureshop_target_reconciliation.sql","sha256":"5abba71445b1ae93057d16822014cc28caa59f8c6b960903c997d7f9aadd2013"},
+    {"store":"identity","file":"secureshop-instance-objective-contributions.sql","promotionName":"0030_secureshop_instance_objective_contributions.sql","sha256":"23767a5e316729f3f4a60d8e3085138a6b56f2a78ddd929ff5d3cfd714867f0f"},
+    {"store":"identity","file":"secureshop-conversation-cleanup-checkpoint.sql","promotionName":"0031_secureshop_conversation_cleanup_checkpoint.sql","sha256":"480e7b539a48e0cf44664bffc48ca971535df379f1674c4e158b69292dc0cbe7"},
+    {"store":"identity","file":"secureshop-progress-cleanup-checkpoint.sql","promotionName":"0032_secureshop_progress_cleanup_checkpoint.sql","sha256":"27547f4979fa3498f578d623dc681fc9c5a3902a339ee3e6aa0390b8a5bab6a1"},
+    {"store":"secureshop_agents","file":"secureshop-turn-admission.sql","promotionName":"0006_secureshop_turn_admission.sql","sha256":"ce7bbe2e92f3b802b72b2a5b89b5fb1865f6a19e0b9c58156e8f1646eea50d9c"},
+    {"store":"secureshop_agents","file":"secureshop-conversation-generation-retirement.sql","promotionName":"0007_secureshop_conversation_generation_retirement.sql","sha256":"7eb9bb1d517a18c75abc0c62d370eef7a852c17d266075af9a7b119e0540ffde"},
+    {"store":"secureshop_review","file":"secureshop-review-learner-submissions.sql","promotionName":"0003_secureshop_review_learner_submissions.sql","sha256":"7149a50e87e8532502d79cb2982f2b24ce212069289d0047517c7c6d2f51cdeb"}
+  ],
+  "activationGates": [
+    "Install all three store suffixes before enabling any bound route.",
+    "Seed the stable secureshop_agent_security exercise and objective catalog before grading or progress writes.",
+    "Configure and initialize dedicated review and agents runtime URLs before declaring readiness.",
+    "Keep reset commit gated by target, conversation, and progress reconciliation receipts.",
+    "Do not migrate pre-existing unscoped SecureShop credit; the identity drafts deliberately reject it."
+  ]
+}

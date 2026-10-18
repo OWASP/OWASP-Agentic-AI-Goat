@@ -1,0 +1,34 @@
+{
+  "scope": "Canonical persisted refund graph with controlled provider only; real repository-issued platform sessions and actual persona JWT/session, no HTTP login in this cohort, no LLM or earned objective credit",
+  "result": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-vy0auh4y",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "2e404cf2a42b9fc101af1df3a8fa200bea3de6ada6203a289984edba0dd823e6",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "checks": [
+    "successful refund immutable receipt links completed canonical run and completed turn",
+    "actual admin ban while provider decision held blocks refund effect",
+    "actual platform session revoke while provider decision held blocks refund effect",
+    "both interrupted turns remain uncertain with zero tickets and zero refund operation receipts",
+    "successful sibling turn replay preserves immutable receipt and does not call provider or create another canonical run"
+  ],
+  "sourceSha256": {
+    "tests/postgres/secureshopPersonaRefundCanonical.integration.test.js": "2062236a53b23da97b6e55cdd02bb1880e2aaef343f89868934491c7d0845dac",
+    "server/services/secureshopBoundRefundRuntime.js": "c38c5e8a589283b558e970f1a68771ddbabe53956aeb6b6b4d818cb71c37222d",
+    "server/services/secureshopBoundRefundTools.js": "3d57bfc7a0f66f78aca9aa925266dc95cf7778b6bef87c5a5de774f501d81b87",
+    "server/services/secureshopPersonaRefundEffect.js": "6759028f3eb1229a1b1a50b828fb9c379ba045a7b8682cdca9a1fb349207c4d7",
+    "server/database/postgres/secureshopBoundRefundRepository.js": "781159e7cf3cce35a244cb167b9f7ad2799175c8b677a37f67eae7b244c48e8b",
+    "server/database/postgres/secureshopRefundOperationReceipt.js": "3645f3fc955607f570790a92972d748b78a4aebf3174ae36a64c5601b4b5aed2",
+    "server/database/postgres/secureshopBoundPersonaAuthority.js": "348e4c00c6af168e3b92c0dbd7ecc53a4e638511485a10fb2eb64394650180fc",
+    "server/database/postgres/secureshopBoundUserAdministrationRepository.js": "ebaade72a13076d7e57b6720ddd992e06a2ca6a29b44a970f90efd0da84066af",
+    "server/services/secureshopBoundAgentRunner.js": "f2e7d1a92670ab974e3f0c6179bd2df5d465c6b7521cd5fec333bce4e74ec7da",
+    "server/database/postgres/secureshopTurnRequestsRepository.js": "1333b1d2be34a66d5530dcd300fffdedc7b8d6207e416313d51f2effa419870f",
+    "server/agent-runtime/postgresRunLedger.js": "96e17d1d8f58c219f1725f28e10407ec1fc22ed9343eaf8ad80eed303d2d7384",
+    "package-lock.json": "34ba2ea15dd634f8e6a6df4ae4443aa8af953cb2df951923d1ae8472889a2c27"
+  },
+  "productionEnabled": false
+}

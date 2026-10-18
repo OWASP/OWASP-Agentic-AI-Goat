@@ -1,0 +1,40 @@
+{
+  "scope": "Candidate actual review approve transaction under separate agents persona lease; no factory defaults or platform revocation proof",
+  "terminal": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-ccwir22u",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "eb7b9a80877cd5408aff53f83416ba4844ba7d848879bac9bcf35c999370e444",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "sourceHashes": {
+    "server/database/postgres/secureshopBoundPersonaAuthority.js": "c0ff1667261bc50a14590043ba4a29c8f12dbf4f1f7853930f4ddb0cc3642d06",
+    "server/database/postgres/secureshopBoundReviewRepository.js": "a4c31a7af0713364a1ebc130d1508bac6ad063573867a6ffc1da9d3cc8c1fa9f",
+    "server/services/secureshopPersonaReviewEffect.js": "87e2aa8b4a6405e11e9fbd16ab4de1bf6014dbf5b8da734c7d2bdd762a7a6efd",
+    "server/services/secureshopBoundReviewTools.js": "1213106486354536d1ea199fa9d4e9d5d1c8919b462ab328f8957fc39e2381b8",
+    "tests/postgres/secureshopPersonaReviewEffect.integration.test.js": "ce5d97047680585d54c9b5efda4951e40462ebd2c5aeeff61d454ed3a5ddf8d8",
+    "docs/modernization/drafts/secureshop-user-administration/persona-state.candidate.sql": "ee8a37de874aa9b4993b5d9db66ddbd43955ec072fe6367c0e78c6ebda4ff145"
+  },
+  "logSha256": "3a589d6b010ca92b83bd176c2fd8fc428cc214201f275e0c3e3a83cc24078115",
+  "controlledTests": 22,
+  "proof": [
+    "Actual review store transition and local immutable audit execute under agents authority lease",
+    "Actual admin ban blocked on advisory authority lock until approved review transaction completed",
+    "After ban exact former persona session rejected before later effect",
+    "Separate sibling target reject committed before deliberately lost acknowledgement; typed uncertain outcome and exactly one repository call",
+    "Sibling persona remains unbanned; all owned resources removed"
+  ],
+  "limitations": [
+    "checkCurrent platform callback controlled; not a platform revocation proof",
+    "Existing audit/status evidence is not yet exact per-operation recovery receipt",
+    "Review statement and lock deadlines do not bound arbitrary application callback wall time",
+    "Native held audit callback is controlled test scheduling only; never model work inside lease"
+  ],
+  "retainedFailedFixtures": [
+    "t9a965e3",
+    "f9s0vq1e",
+    "cf_dhvqc"
+  ]
+}

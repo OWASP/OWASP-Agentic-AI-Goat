@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "status": "deferred candidate; not reserved, registered, or applied pending FinFlow trust-boundary curriculum coherence",
+  "store": "identity",
+  "proposedReservation": {
+    "prefix": "0054",
+    "owner": "/root/dpi_release_gate",
+    "purpose": "Guarded adoption of qualified FinFlow log-content defaults",
+    "ledgerPrecondition": "tasks/identity-migration-reservations.json must retain verifiedAppliedSourceHead 0053_codebot_request_journal.sql and have no conflicting 0054 reservation"
+  },
+  "candidate": {
+    "draft": "docs/modernization/drafts/0054_finflow_log_default_content.candidate.sql",
+    "sha256": "c2e8fc64fdc22e85a3db54e2d9ef58f7d827549a4fed287aa207b773d1e23352",
+    "promotionDestination": "db/postgres/identity-migrations/0054_finflow_log_default_content.sql",
+    "qualifiedSource": "docs/modernization/drafts/finflow_llm_request_log_default_content_guarded.sql",
+    "qualifiedSourceSha256": "c2e8fc64fdc22e85a3db54e2d9ef58f7d827549a4fed287aa207b773d1e23352",
+    "snapshots": "docs/modernization/drafts/finflow_log_default_content_snapshots.json",
+    "snapshotsSha256": "efe0fb0aa2b3ef6181df5f1f7ede79cd10395c7cab5b6835063e4fa61e4941a3"
+  },
+  "scope": {
+    "objectives": ["admin_read_logs", "admin_llm_logs", "admin_modify_logs"],
+    "preserves": [
+      "instructor-custom hint_content and solution_content",
+      "NULL content",
+      "objective labels, categories, ordinals, and visibility toggles",
+      "learner progress, user state, and completions"
+    ],
+    "revision": "increments workshop_platform.config_revision once only when an exact historical default changes; replay is a no-op"
+  },
+  "requiredQualification": {
+    "launcher": "tests/postgres/run-finflow-default-content-promotion-isolated.py",
+    "integration": "tests/postgres/finflowDefaultContentPromotion.integration.test.js",
+    "staging": "copy only the candidate into a disposable source copy at the proposed destination, then use the normal identity migration loader",
+    "cases": [
+      "fresh exact-default adoption",
+      "populated exact-default adoption",
+      "custom and NULL content preservation",
+      "label/toggle/progress/user-state/completion preservation",
+      "second-loader replay with no new revision or ledger row"
+    ]
+  },
+  "nonActions": [
+    "Do not alter applied 0041 bytes",
+    "Do not add the candidate to db/postgres/identity-migrations",
+    "Do not edit private environment files",
+    "Do not apply against a configured or learner database"
+  ]
+}

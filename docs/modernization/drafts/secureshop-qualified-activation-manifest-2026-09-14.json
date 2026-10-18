@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "workshopKey": "secureshop_agent_security",
+  "registeredHeads": {
+    "identity": "0053_codebot_request_journal.sql",
+    "secureshop_agents": "0013_secureshop_conversation_purpose.sql"
+  },
+  "sourceInputs": {
+    "server/config/secureshopCurriculum.js": "bbec09c5ad3eb42fd95f4298227854f612f1ccd0fab9f320c6f49ffd8b762ad4",
+    "server/database/postgres/workshopPlatformSeed.js": "509ead4b362dd0fedf84df9e116e64826721ee0e66c3d521832e3d83a055b92d",
+    "server/index.js": "2a0fa146133c8206787f437acac155e66e63ccb6ce916752e05314994a92bbb1",
+    "docs/modernization/drafts/secureshopQualifiedActivationCandidate.js": "6617bad44abdbc72c4d389c75efb83a73f9b98c3727e128f031b7443b11146dd",
+    "docs/modernization/drafts/secureshopQualifiedManagedConfiguration.candidate.js": "b45471468bc81af62b93cc2fecef6f7d9e59b6d62870d013de2e973f8d462414",
+    "docs/modernization/drafts/secureshopQualifiedLocalProvision.candidate.js": "a7f83cecbc44b8c79c4198dee67f0beb99f3d2f63b7da5825dc70d7c767028a4",
+    "docs/modernization/drafts/secureshop-qualified-local.candidate.js": "687a37d1e094a6dd56d922f07b454af4f635c7d464781d8a486b142d5abe52bf",
+    "scripts/build-secureshop-qualified-activation.js": "99f11e47902e102797397c492858725d70813f92f590001d6bb45c9231a220d9",
+    "scripts/qualify-secureshop-qualified-activation.js": "b92258843988ccf8a426b5b0aafb9b80dd271ef41e080ce9e62473fccdb783bd",
+    "server/services/secureshopBoundApplication.js": "e26f1d504e3672e0a04c9ad227ad557354e8d4e0288153ff3947f8857c725b1c",
+    "docs/modernization/drafts/secureshopRuntimeReadiness.candidate.js": "3e307e55c0b1bbd35c2d22d6a8c36c98895a0f8d35dafd7a4f97ae90e9ed062e"
+  },
+  "productionOutputs": {
+    "server/config/secureshopCurriculum.js": "265a499ce9800f49d39820827611df61f06e64a1607b96ca5792a40a7258103e",
+    "server/database/postgres/workshopPlatformSeed.js": "6e79c197ee7ea379473219bceeb2688d3853f8b7499ad5243c42293f351f09a7",
+    "server/index.js": "134b236dd56975a01d06795b7ce4dcda5ab3d5a3d911aa62c1fc31348ce715c3",
+    "server/services/secureshopQualifiedManagedConfiguration.js": "bd80d646f38dec5205be2fc32b886443bfea5b9d6ebccd8c153b721c85e215e5",
+    "scripts/install/secureshop-qualified-local-lib.js": "3e8f80055e2341e8405e38a98d2537ac06ad75c1bf3a7a056ba854cc71f2c818",
+    "scripts/install/secureshop-qualified-local.js": "c604e5fe316061c2c72d9f91a4df2ef86daa4b015e56bb9cb3392112b9fbe2fc",
+    "server/services/secureshopBoundApplication.js": "87e406a9c89b902d88204723c5dd06d21bd0e0106341d3266164139fb40c03ba",
+    "server/routes/secureshopRuntimeReadiness.js": "3e307e55c0b1bbd35c2d22d6a8c36c98895a0f8d35dafd7a4f97ae90e9ed062e"
+  },
+  "allowedCatalogTransitions": {
+    "objective:secureshop_agent_security:ss_rogue_tool_selected:hint_content": {
+      "before": "63a9f947b6b1388437edb215b55565be82e3a8431c523dcf59a76f824946f527",
+      "after": "5c38522ad5ec4ece33721e16da6a3d692e940bc336b0d5fa56027b9b92dad06c"
+    },
+    "objective:secureshop_agent_security:ss_rogue_tool_selected:solution_content": {
+      "before": "89f85e934158a69c6e4f5623ec404926d97f2553872a34ae260e49017977191d",
+      "after": "411527504a7365dd0a8c9768c44421c3b1c9f153e3da2b00d95a600104f5c1ec"
+    },
+    "objective:secureshop_agent_security:ss_rug_pull_invoked:hint_content": {
+      "before": "ac42b018d424ea43b38180bf9891f3541bfc099aafa0e511478233e1cab41780",
+      "after": "62dcfc719091762da669d24c5d0105d265d3382bf04c071d1e7f57138623a3c3"
+    },
+    "objective:secureshop_agent_security:ss_rug_pull_invoked:solution_content": {
+      "before": "13dea2fce9fa56dd4a9594a22ea99e4ac2f9d32d7d42b1d05719e090e07eccb8",
+      "after": "0eb979559a885e58b24c4d74fcd859551f0637d6c2f7ac4fe90a7b752ca40ab9"
+    },
+    "objective:secureshop_agent_security:ss_stored_browser_execution:hint_content": {
+      "before": "bbb48cbacd2c179ddc2907cf7a4a6d94cdcbd9c20d8bd31a67a6980b042a2863",
+      "after": "b7a0a7bce53983fe9d3b670e596c17ba5f59faf251c81c7ecefb37ebd2477b4e"
+    },
+    "objective:secureshop_agent_security:ss_stored_browser_execution:solution_content": {
+      "before": "962434f140c83ecfc0e1ec0c63774a0d550450aa8c4232a7d31326192a03350c",
+      "after": "a727d740376b09ae7896696d03f2ad85c538775abf07f161fc837119b69344ba"
+    },
+    "objective:secureshop_agent_security:ss_controlled_ssrf:hint_content": {
+      "before": "494023abbc95afa88dd7950d18867d835a919c35fe75e87d883d70c341d8333f",
+      "after": "0787e28af6cae09123fd0927c9f0ab78c22c283f68f35e6a62ef44e4e3142ade"
+    },
+    "objective:secureshop_agent_security:ss_controlled_ssrf:solution_content": {
+      "before": "bd461817f8850a40b43e35a198f3335029284db3814021aa94fff87445f11e6a",
+      "after": "27f946aad98a5bf35db9204541f0fd366e041c7e00100e538444ce7380d12f35"
+    }
+  },
+  "qualifiedObjectiveIds": [
+    "ss_loop_observation",
+    "ss_content_persist",
+    "ss_content_followed",
+    "ss_cross_persona_effect",
+    "ss_acl_advisory_effect",
+    "ss_acl_enforced_block",
+    "ss_rogue_tool_selected",
+    "ss_rug_pull_invoked",
+    "ss_stored_browser_execution",
+    "ss_controlled_ssrf"
+  ],
+  "catalogContract": {
+    "exerciseVisible": false,
+    "enabledObjectives": [],
+    "defaultEnabled": false,
+    "seedMode": "identity-only-provenance-reconciliation"
+  }
+}

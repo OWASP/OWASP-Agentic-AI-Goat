@@ -1,0 +1,66 @@
+{
+  "classification": "post-restart read-only audit after a terminal-failed promotion run",
+  "promotionRun": {
+    "grantId": "graph-judge-validation-live-promotion-20260914-01",
+    "ownerHandle": 64390,
+    "runStatus": "terminal_fail",
+    "failureBoundary": "The migration and restore gates passed, but nodemon replaced the backend after resume, violating the promised same-process cleanup assertion.",
+    "evidenceDirectory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-graph-judge-validation-live-cp91bflt",
+    "ownershipSha256": "0ad383aac16b1413281793388614dd8db5f15e7a8f6aa8db84d5f035d6bc5af3",
+    "resultSha256": "ba626ee15df27ce46c85760c03b5ae1206c3161ee2ddf297eb08de1270e584b7",
+    "backupManifestSha256": "4605a35a9dfcd40aa475ad9dc93d06594c9f9273b297d4c4f647dddde70de2f3",
+    "restoreComparisonSha256": "5fa91fee6e31dee42f5bac6f21a42d173b6af6e3eb5d4d3add0240ba52a2f273"
+  },
+  "catalogAudit": {
+    "source": "A read-only query of every workshop_platform base table after the automatic backend replacement, compared with the same table hashes in the quiet pre-pause backup manifest.",
+    "querySource": "scripts/audit-graph-judge-validation-post-restart.py",
+    "querySourceSha256": "72debee7c24e858d7d84f86193fb4c5d50abd3c68ec0f7f665e06aa43bd02f01",
+    "perTableEvidence": "docs/modernization/drafts/graph-judge-validation-code-post-restart-table-hashes-2026-09-14.json",
+    "perTableEvidenceSha256": "fb20a4e16f0c26cd27474cc6970bfdb70b220f596108d3a233010e8751c7d674",
+    "tableCount": 16,
+    "rowCount": 153,
+    "prePauseDigest": "3b28ab68809727861bbeacfa2c5911076a8dd908ee78d899f875112fbde5fd3b",
+    "postRestartDigest": "3b28ab68809727861bbeacfa2c5911076a8dd908ee78d899f875112fbde5fd3b",
+    "matches": true,
+    "canonicalLabelGuard": {
+      "activeObjectiveCount": 116,
+      "digest": "52e5513bdc53f3342f9f21c172cd1a80800e1114e379c17e1e53d8507eed3667",
+      "matchesCurrentCatalogSource": true,
+      "catalogSource": "server/config/workshopCatalog.js",
+      "catalogSourceSha256": "54be1234e42d524e8090fe334bfb24538b8f0442b04b25d326169d75b0ceaa32"
+    },
+    "seedSource": "server/database/postgres/workshopPlatformSeed.js",
+    "seedSourceSha256": "6c26c5333633891593fb56597751fc0a9e877d6086fdf88171cb3c78b35e66db",
+    "restoredSnapshotSeedChanged": false
+  },
+  "migrationAudit": {
+    "source": "scripts/qualify-graph-judge-validation-promotion.js --ledger and --readiness against configured stores after restart",
+    "storeCount": 16,
+    "allReplaysEmpty": true,
+    "canonicalLedgerDigest": "252d29e444a42872da6e2e6e5031bffabc72d1185c3622e0fa0c43a78caa0119",
+    "identityLedgerCount": 45,
+    "identityHead": {
+      "name": "0046_graph_judge_validation_code.sql",
+      "checksum": "d5b40afc1d3c43c2371ec30fd9d1cc119a935cbc1840ef3b11c8bc4cfa6be936"
+    },
+    "migrationSource": "db/postgres/identity-migrations/0046_graph_judge_validation_code.sql",
+    "migrationSourceSha256": "d5b40afc1d3c43c2371ec30fd9d1cc119a935cbc1840ef3b11c8bc4cfa6be936",
+    "readiness": {
+      "ready": true,
+      "constraints": [
+        "events_metadata_keys_check",
+        "events_validation_code_check"
+      ],
+      "traceSanitizerSource": "server/agent-runtime/runTraceStore.js",
+      "traceSanitizerSourceSha256": "a841ed164922772b1ec50b77740b0f3a7c0a24359859b15df5961d5c88471df0"
+    }
+  },
+  "runtimeAudit": {
+    "watcherPid": 60889,
+    "replacementBackendPidAtAudit": 73107,
+    "healthStatus": 200,
+    "ownedRestoreContainer": "dvaia-graph-judge-validation-live-30fe62a346c7",
+    "ownedRestoreContainerAbsent": true
+  },
+  "privacy": "No catalog labels, instructor content, credentials, database URLs, raw Judge output, or learner data are included in this artifact."
+}

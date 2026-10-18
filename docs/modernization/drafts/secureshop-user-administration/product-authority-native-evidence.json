@@ -1,0 +1,46 @@
+{
+  "scope": "Direct real PostgreSQL catalog/retrieval/reindex services with actual persona role transitions and controlled CPU embeddings; NOT canonical ProductAssist graph/turn composition or actual model proof",
+  "result": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-979_gixs",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "2baca84ab758e852b52b479be4832abe09a711b88f78e6a6bea7bfe78fc3530f",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "sourceSha256": {
+    "tests/postgres/secureshopPersonaProductEffect.integration.test.js": "2ac2c602357de763c5aa54e559c94d17ab0f57885a2a2232b978f12d1cce2893",
+    "server/services/secureshopPersonaProductEffect.js": "411164b399630d2beebdbed8a55bc9f2e441f0215421a310b48fc43e81e50520",
+    "server/services/secureshopBoundProductAssist.js": "9a4ad5021aea4951f382f89b971ddbd445228fa8e8ae7fdc19f21ae243d5b848",
+    "server/services/secureshopBoundProductTools.js": "d43ce266d905a7c15669d8a22a4921b9962f5f58460e60a09f9ab78bec488873",
+    "server/services/secureshopBoundProductRetrieval.js": "abdf9f4ce17498e22c52c2e1583a1b7ff85ed9adc2bca0c956c5c52fe329843e",
+    "server/services/secureshopEmbeddingReindex.js": "3a8a997b624a777bd954bb33838cda07412f81af6e74c7619dd6bdd1bf26e112",
+    "server/services/secureshopBoundCatalog.js": "bc4f93fbe8a4b233e4ffbb47c92e5eb861ec75df385a246360c0a8293c302850",
+    "server/database/postgres/secureshopBoundProductRepository.js": "f101af34d654d6ad9199d9f653404e5966b1e25d260a43a5252fa93c151a992f",
+    "server/database/postgres/secureshopBoundProductRetrievalRepository.js": "976bf0e83d9758cad1f19d6bbf3908a7af1a906447457d684dadbd67d4781ba1",
+    "server/database/postgres/secureshopEmbeddingRevisionRepository.js": "f3053fabefe5280297b30a4c06d2ec349da7155618bf7d8809e1854ea07f0a79",
+    "server/routes/secureshop/boundGateway.js": "c2cd60db561239057e57e2941d1e49865e4029f17caadee551779d4259ec8067",
+    "package-lock.json": "34ba2ea15dd634f8e6a6df4ae4443aa8af953cb2df951923d1ae8472889a2c27"
+  },
+  "checks": [
+    "exact SHOP_AUTH_INVALID after role change while initial corpus embedding held; no source corpus published",
+    "exact SHOP_AUTH_INVALID after role change while revision embedding held; no head published and original source retained",
+    "independent valid owner publishes current revision",
+    "held real synthetic catalog source query followed by role change blocks review product snapshot/projection with exact authority error",
+    "identity target allocation retained for normal cleanup; no distributed rollback claim"
+  ],
+  "focused": {
+    "count": 46,
+    "log": "/private/tmp/dvaia-product-authority-tests-r2.log",
+    "scope": "Includes shared queue stale-A/valid-B separation and controlled-memory graph held decision/current-observation; not native combined graph proof",
+    "priorFailure": "New graph fixture lacked required withPersonaEffect method, corrected test-only; previous45pass1fail retained in /private/tmp/dvaia-product-authority-tests.log"
+  },
+  "priorNative": "nfeisyhw passed generic rejection only; superseded by exact-error cohort",
+  "remaining": [
+    "native canonical graph/turn + actual persona transitions",
+    "current supported optional composition capability matrix",
+    "remaining three factory consumers"
+  ],
+  "productionEnabled": false
+}

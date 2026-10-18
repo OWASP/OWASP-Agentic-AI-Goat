@@ -1,0 +1,619 @@
+{
+  "candidate": {
+    "draft": "docs/modernization/drafts/graph-judge-validation-code.sql",
+    "promotionTarget": "db/postgres/identity-migrations/0046_graph_judge_validation_code.sql",
+    "sha256": "d5b40afc1d3c43c2371ec30fd9d1cc119a935cbc1840ef3b11c8bc4cfa6be936"
+  },
+  "liveLauncher": {
+    "dockerHost": "unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock",
+    "mode": "--promote-graph-validation",
+    "owner": "/root/workshop_authenticity",
+    "path": "tests/postgres/run-graph-judge-validation-code-live-promotion.py",
+    "sha256": "86b4944e821ef4b81807bf7b4ff804b59aafca085c02baff7817107a0f3d9705"
+  },
+  "prerequisites": {
+    "aria": {
+      "fileCount": 3,
+      "head": {
+        "checksum": "dac92afabb22f37e421b9c587bc7abdc02fe5d492265171a0274657c9f16791d",
+        "name": "0003_import_metadata.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "3bd3569e581e77a8f6c92e8689848391f98fb765b4ac0e1e0d6490806e77e93e",
+          "name": "0001_schema.sql"
+        },
+        {
+          "checksum": "31454748c6cae3d2e7f0ba88fec2b7d1c4d6057ad39c177ea6fc35ade277af7a",
+          "name": "0002_import_history.sql"
+        },
+        {
+          "checksum": "dac92afabb22f37e421b9c587bc7abdc02fe5d492265171a0274657c9f16791d",
+          "name": "0003_import_metadata.sql"
+        }
+      ],
+      "migrationVariable": "SQL_WORKSHOP_MIGRATION_DATABASE_URL"
+    },
+    "csrf": {
+      "fileCount": 3,
+      "head": {
+        "checksum": "75cbddb27bd370384ef5ca8a09db6c51acdef857bc64dae2a2152ba5be945a0b",
+        "name": "0003_owner_binding.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "d90b70dfc49a649481c112e807c7fd9604b5e5143e12473303bc9b59346467e9",
+          "name": "0001_schema.sql"
+        },
+        {
+          "checksum": "29915d5febe3ddec0738514b002b9d1a3d5b3fa7cf625f7e3b78a1a7cb8a76e6",
+          "name": "0002_import_history.sql"
+        },
+        {
+          "checksum": "75cbddb27bd370384ef5ca8a09db6c51acdef857bc64dae2a2152ba5be945a0b",
+          "name": "0003_owner_binding.sql"
+        }
+      ],
+      "migrationVariable": "CSRF_WORKSHOP_MIGRATION_DATABASE_URL"
+    },
+    "ctf": {
+      "fileCount": 2,
+      "head": {
+        "checksum": "443da9ba36e10761ce5e9070a36eb74eae44f138e49c3bcabb7aabb217de14e5",
+        "name": "0002_import_provenance.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "f08475806881e2b94b214df23f7ba9aaf8e18708f468db108abe7f1df4b7413c",
+          "name": "0001_schema.sql"
+        },
+        {
+          "checksum": "443da9ba36e10761ce5e9070a36eb74eae44f138e49c3bcabb7aabb217de14e5",
+          "name": "0002_import_provenance.sql"
+        }
+      ],
+      "migrationVariable": "CTF_MIGRATION_DATABASE_URL"
+    },
+    "excessive_agency": {
+      "fileCount": 1,
+      "head": {
+        "checksum": "41c9d3b71cb9229fa4150b5ad3e884067d35b0b23a0bffbfe820bb234c77e1fc",
+        "name": "0001_schema.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "41c9d3b71cb9229fa4150b5ad3e884067d35b0b23a0bffbfe820bb234c77e1fc",
+          "name": "0001_schema.sql"
+        }
+      ],
+      "migrationVariable": "EXCESSIVE_AGENCY_MIGRATION_DATABASE_URL"
+    },
+    "finflow": {
+      "fileCount": 9,
+      "head": {
+        "checksum": "87ee181873584976096ec94a4f57987e60ecce8433220e76be60b2d68a7925be",
+        "name": "0009_sensitive_info_aggregate_reset.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "0fa54c35b688bd4f65f04ea58c49229d5366fd1d38365abfc6de4ca8a21dbc59",
+          "name": "0001_schema.sql"
+        },
+        {
+          "checksum": "eb34685bf5870b4e9f81ff75018310dce4d7ac08cb59f563dd1065d59dba65c3",
+          "name": "0002_legacy_sensitive.sql"
+        },
+        {
+          "checksum": "b04e44e3d83a1561a0af82d3e2c4b766a56431f3f6340f33abffd553fd8a0df2",
+          "name": "0003_import_provenance.sql"
+        },
+        {
+          "checksum": "a6db324a6b7830b75d69c683d144141133e40882130c597cec96184c5773bf4d",
+          "name": "0004_import_batches.sql"
+        },
+        {
+          "checksum": "363a20f941c41d5a1557311811791e32ab4618af9bb05abaf6dfd5c726d40dde",
+          "name": "0005_legacy_sensitive_archive.sql"
+        },
+        {
+          "checksum": "d3152e93163a5a857d79001b8c8457f24cabf312ce2082980dee0befe76f7e2b",
+          "name": "0006_owner_binding.sql"
+        },
+        {
+          "checksum": "7b2d307a493bdbb29b9900a973ca6bc2cadaf23a3369b57a0ac521e832208008",
+          "name": "0007_legacy_sensitive_import_provenance.sql"
+        },
+        {
+          "checksum": "f9fe657104c5757e710e3da6a67d29da7ec11031d5533ea1c52943a05aeac0ca",
+          "name": "0008_student_deletion.sql"
+        },
+        {
+          "checksum": "87ee181873584976096ec94a4f57987e60ecce8433220e76be60b2d68a7925be",
+          "name": "0009_sensitive_info_aggregate_reset.sql"
+        }
+      ],
+      "migrationVariable": "FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL"
+    },
+    "identity": {
+      "fileCount": 44,
+      "head": {
+        "checksum": "a7736a4dfa7277b713f19c2842418eefba376f221b94702b8bab661ed70c824c",
+        "name": "0045_secureshop_persona_inbox_identity.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "e11a3d736b95e24c63d0978276ba2db381e9ccd50e55f8250278d07d1852b290",
+          "name": "0001_identity.sql"
+        },
+        {
+          "checksum": "c66614fe96e8d083dcb5a03c05b46cce94f56bc3a4a36936e5a6c0acea2f3d16",
+          "name": "0002_workshop_platform.sql"
+        },
+        {
+          "checksum": "4c2b1dc14d0e569e26d96bdfd61421faf5160a21c58c1508eeaf6959ea6bbc72",
+          "name": "0003_account_flows.sql"
+        },
+        {
+          "checksum": "9142fc8b173fcb9811d5f002d6de3094b9c438786a11c8de86efe644773eefce",
+          "name": "0004_graph_runtime.sql"
+        },
+        {
+          "checksum": "d628bc60d4fc5a56487037ad0688aa4c699cb578e7f5bcb36ea424242fa28baf",
+          "name": "0005_attendee_email.sql"
+        },
+        {
+          "checksum": "2c0172071845b9fc50ccb3e1a5dec6f018902dc3afaf8499dafb0cb64be013cf",
+          "name": "0006_graph_trace.sql"
+        },
+        {
+          "checksum": "fc402b6b0c42db9b80cb38da5578a44e92a36e14e1755446a6a09e614a13a9fb",
+          "name": "0007_objective_judgments.sql"
+        },
+        {
+          "checksum": "a6908bc9b8e9ad2828672a7f7d565f7fe29d9645862e9cd53d606d63e41c58e9",
+          "name": "0008_objective_evidence.sql"
+        },
+        {
+          "checksum": "908a08e475f3c66dab407ff309a305cccbb112f684e6dd40bc4fb3fb0598a6ac",
+          "name": "0009_grade_recovery.sql"
+        },
+        {
+          "checksum": "2fdc3870172cdff6ab3e71df629b69ec8e324c1cfd31e89172030063652822e8",
+          "name": "0010_workshop_activity.sql"
+        },
+        {
+          "checksum": "28dae1a95a41030a58da69d3c6c46c6b53460885f367978a1d8e6ca23be45ff4",
+          "name": "0011_dpi_practice_receipts.sql"
+        },
+        {
+          "checksum": "c295a68e588aac2a95380403b51fb759db0ed7d3db7dae9a65de30db61549c4f",
+          "name": "0012_historical_import_provenance.sql"
+        },
+        {
+          "checksum": "3404b01cefeb17e1cabf8268f577ef204f80297c451de915914de4ac3b458d95",
+          "name": "0013_import_batches.sql"
+        },
+        {
+          "checksum": "d37cab88f97d7d6303f551ca4827b896596184e4e45551a3f7a315e527988278",
+          "name": "0014_xss_legacy_admin.sql"
+        },
+        {
+          "checksum": "acb61dfcc888432c666671c46836821bfd8c31671567f426d37830ffcf5ffa6e",
+          "name": "0015_identity_auxiliary_provenance.sql"
+        },
+        {
+          "checksum": "ae2abb8d9e0ec6f6fb22672add8a7013a08215d825a8593e542a4d9f4c177d72",
+          "name": "0016_graph_judge_trace_metadata.sql"
+        },
+        {
+          "checksum": "b1b23b8d62c765e8e860cba2a6655cd39dcc169f5c9683782541b7e6dd3698a8",
+          "name": "0017_auxiliary_trigger_table_fields.sql"
+        },
+        {
+          "checksum": "a6fa2dd54cd5ce6d4dcf3c1eb393da0574773c32bec02e834a37de8ba375f8df",
+          "name": "0018_graph_provisional_event.sql"
+        },
+        {
+          "checksum": "f6d138ee12fc36c2c5a18fbea8bf214eeb654440667afed24783f7eea52cc6d3",
+          "name": "0019_archive_owner_bindings.sql"
+        },
+        {
+          "checksum": "b8b3da6440a38152440c4a78e10a6ad559b2fbadd23ce9a8acc846a633452d79",
+          "name": "0020_bootstrap_admin_permissions.sql"
+        },
+        {
+          "checksum": "d3697b5384643a891011fa627779d9b5bf5a147e66e9e15a825e463e75692922",
+          "name": "0022_activity_log_retention.sql"
+        },
+        {
+          "checksum": "b7fc060900c4100e27ec8558fb0ba9ab0982d7f6364af8c5a72904054b0d2d2e",
+          "name": "0023_workshop_teaching_content.sql"
+        },
+        {
+          "checksum": "9c0df183c9a93285cf71cf24e529905dcf9313304ef266e776eba0b624c7b923",
+          "name": "0024_codebot_javascript_objective.sql"
+        },
+        {
+          "checksum": "8208ac3e570520491c9700dd2c954172484013033e5d7a16d70d0a1fd5267b3e",
+          "name": "0025_secureshop_launch_authority.sql"
+        },
+        {
+          "checksum": "ae135e65ea7d1bb641a1828f0958c0973954bb63824e7bcc22d4170f129b48d7",
+          "name": "0026_secureshop_target_reservations.sql"
+        },
+        {
+          "checksum": "6cfb2f5058da5560f125a3073e129c68a796b94abc0382ccae4c64ee66a60c8b",
+          "name": "0027_secureshop_target_admission.sql"
+        },
+        {
+          "checksum": "8887937a90a3071bebfd08e382df4f3344bfb44c482d2ec9546d60aa808011d2",
+          "name": "0028_secureshop_review_target_reservation.sql"
+        },
+        {
+          "checksum": "5abba71445b1ae93057d16822014cc28caa59f8c6b960903c997d7f9aadd2013",
+          "name": "0029_secureshop_target_reconciliation.sql"
+        },
+        {
+          "checksum": "23767a5e316729f3f4a60d8e3085138a6b56f2a78ddd929ff5d3cfd714867f0f",
+          "name": "0030_secureshop_instance_objective_contributions.sql"
+        },
+        {
+          "checksum": "480e7b539a48e0cf44664bffc48ca971535df379f1674c4e158b69292dc0cbe7",
+          "name": "0031_secureshop_conversation_cleanup_checkpoint.sql"
+        },
+        {
+          "checksum": "27547f4979fa3498f578d623dc681fc9c5a3902a339ee3e6aa0390b8a5bab6a1",
+          "name": "0032_secureshop_progress_cleanup_checkpoint.sql"
+        },
+        {
+          "checksum": "7038e706cccdfaa38465d54d2f9e1248e671c95ffeb77cb132ae036e991b8a22",
+          "name": "0033_secureshop_product_target_reservation.sql"
+        },
+        {
+          "checksum": "573ecdc97e8d364f3b1de1521aff8dda76b6de73e4def9ea74c04e9400c73970",
+          "name": "0034_secureshop_owner_reset.sql"
+        },
+        {
+          "checksum": "1f50e45cc81e23477c03c4bdb9e1367c44aea42ddde80fb19e3e6d641c67554f",
+          "name": "0035_student_deletion_journal.sql"
+        },
+        {
+          "checksum": "c8de6bc4a9bab04a37801fdc1b257be0b5fc8b1f31c209b6521fb52bff27083e",
+          "name": "0036_dpi_teaching_scope.sql"
+        },
+        {
+          "checksum": "8e3b8e86de9366beb2e066290623e6d2e35f0caad1fabaf6afaa70472c9602c5",
+          "name": "0037_nosqli9_identity_content.sql"
+        },
+        {
+          "checksum": "3172c3cdc039fd7b9c9698e331baf8d65cda2837c065d982711599af701e3d94",
+          "name": "0038_student_deletion_finalizer.sql"
+        },
+        {
+          "checksum": "7b83acc118e07715ee001951080cd9b2f59fe1be84e176f437799a0ff45c956a",
+          "name": "0039_secureshop_cleanup_catalog_independence.sql"
+        },
+        {
+          "checksum": "5f5f8b001b41271aeb0be3fa6614ed087eb6163a78930bab2d315eea4c16e4bf",
+          "name": "0040_legacy_upload_lifecycle.sql"
+        },
+        {
+          "checksum": "92efa253ecb0537e43c081bbe64e1d29933c6a9f1f85eca342994117d3e77cee",
+          "name": "0041_finflow_response_repair_copy.sql"
+        },
+        {
+          "checksum": "0669b29b0b9bd37b0670aa1c5a8f5a2722ad447ae6dcdd191860dafa8a704b96",
+          "name": "0042_rag_upload_guidance.sql"
+        },
+        {
+          "checksum": "81750871291a64cb3fac21599653b42ab28d3dd24d3d6e6c74a7b1912ef058cc",
+          "name": "0043_dpi_evidence_guidance.sql"
+        },
+        {
+          "checksum": "1485e878466a6a52b598f176832af45d8f5a7fc3ae5ec13e008abaea2c8ad186",
+          "name": "0044_sensitive_info_aggregate_reset.sql"
+        },
+        {
+          "checksum": "a7736a4dfa7277b713f19c2842418eefba376f221b94702b8bab661ed70c824c",
+          "name": "0045_secureshop_persona_inbox_identity.sql"
+        }
+      ],
+      "migrationVariable": "IDENTITY_MIGRATION_DATABASE_URL"
+    },
+    "legacy_challenge": {
+      "fileCount": 3,
+      "head": {
+        "checksum": "4c37577e55c487ced16e902359661d02ce09983af30b168b3c127f4734994d41",
+        "name": "0003_student_deletion.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "aea1b348cddc3e4186a87c1d23b1f0a6f580f5d2a7eb9ee8241b752c158e8d7e",
+          "name": "0001_schema.sql"
+        },
+        {
+          "checksum": "19c4dc364672dd55d77c7896e04bb8710d4840daec8af7105396ec673e8410ba",
+          "name": "0002_import_provenance.sql"
+        },
+        {
+          "checksum": "4c37577e55c487ced16e902359661d02ce09983af30b168b3c127f4734994d41",
+          "name": "0003_student_deletion.sql"
+        }
+      ],
+      "migrationVariable": "LEGACY_CHALLENGE_MIGRATION_DATABASE_URL"
+    },
+    "mcp": {
+      "fileCount": 3,
+      "head": {
+        "checksum": "cd5322dc8f3602ae9b181824c81bb66aef4d8bded937cc8a1e173353b6427646",
+        "name": "0003_owner_binding.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "e8f76cfd98c8615751f31910652f6bb5c9aa356571034e23a2e03e8aace7039a",
+          "name": "0001_schema.sql"
+        },
+        {
+          "checksum": "a251c57d80b28c08c8935a3a539c6c0ed4c01472840c01a8f72e8cb5f5c1b2b8",
+          "name": "0002_import_provenance.sql"
+        },
+        {
+          "checksum": "cd5322dc8f3602ae9b181824c81bb66aef4d8bded937cc8a1e173353b6427646",
+          "name": "0003_owner_binding.sql"
+        }
+      ],
+      "migrationVariable": "MCP_WORKSHOP_MIGRATION_DATABASE_URL"
+    },
+    "nova": {
+      "fileCount": 5,
+      "head": {
+        "checksum": "6f3fcdc48e93c282c58d5bbfa2517f85ef0f5f59f463929bf013ddec1d2a4c31",
+        "name": "0005_nosqli9_content.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "2139d072e50b0fc6ae18223e5b8238d3de7cc67b3b873797c9326918f17e5b0a",
+          "name": "0001_schema.sql"
+        },
+        {
+          "checksum": "f9edd0e9fc0d8cc63ba0f91772b4c620a741024d97d8234794d8c0aa995ee4e9",
+          "name": "0002_paper_access.sql"
+        },
+        {
+          "checksum": "757b5b5b0a123aebc7144c5731f3633b59adc30e4b84a4207aa85abd3123bb5d",
+          "name": "0003_import_history.sql"
+        },
+        {
+          "checksum": "7e34a24ca49b3da6f8a32d08e1518b82091a1a67bb2f4152cb62094ea412a406",
+          "name": "0004_import_metadata.sql"
+        },
+        {
+          "checksum": "6f3fcdc48e93c282c58d5bbfa2517f85ef0f5f59f463929bf013ddec1d2a4c31",
+          "name": "0005_nosqli9_content.sql"
+        }
+      ],
+      "migrationVariable": "NOSQL_WORKSHOP_MIGRATION_DATABASE_URL"
+    },
+    "secureshop": {
+      "fileCount": 2,
+      "head": {
+        "checksum": "65a032d7fac3dbf53471124168e991efe682bed932c9d0d039cf9c9d225034fd",
+        "name": "0002_import_history.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "9b1e10ebe8ae9f951e5f6bd0d2aaac83aeb6dc76f2ffe3a02b8c42030a3d3708",
+          "name": "0001_schema.sql"
+        },
+        {
+          "checksum": "65a032d7fac3dbf53471124168e991efe682bed932c9d0d039cf9c9d225034fd",
+          "name": "0002_import_history.sql"
+        }
+      ],
+      "migrationVariable": "SECURESHOP_MIGRATION_DATABASE_URL"
+    },
+    "secureshop_agents": {
+      "fileCount": 10,
+      "head": {
+        "checksum": "3855742f3a716f8498611a7fce8b442c8759706974dc0a45a14a810dc968ec45",
+        "name": "0010_secureshop_persona_inbox.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "7095d82940455c50dce8c5fa21febddff2f8626a8529b5c28d0d3cc7088e4ec8",
+          "name": "0001_schema.sql"
+        },
+        {
+          "checksum": "a344b88643002ae6d323089aa9f75a274b3da1cad916c3347e4de23748dd3e67",
+          "name": "0002_vectors.sql"
+        },
+        {
+          "checksum": "6c0b6b38914e90d0dbea3afe0502c03857eed73fbfd9615ac689709d18c7535a",
+          "name": "0003_import_history.sql"
+        },
+        {
+          "checksum": "0cbbc15abf2350016fcbcb8ebc1e4dc150fb2ad99cdc3c395cf19890720655f3",
+          "name": "0004_embedding_identity.sql"
+        },
+        {
+          "checksum": "07bb013a7ad38634843f26e18be3160c39589089ea1d604c6e3589a53c940570",
+          "name": "0005_conversation_binding.sql"
+        },
+        {
+          "checksum": "ce7bbe2e92f3b802b72b2a5b89b5fb1865f6a19e0b9c58156e8f1646eea50d9c",
+          "name": "0006_secureshop_turn_admission.sql"
+        },
+        {
+          "checksum": "7eb9bb1d517a18c75abc0c62d370eef7a852c17d266075af9a7b119e0540ffde",
+          "name": "0007_secureshop_conversation_generation_retirement.sql"
+        },
+        {
+          "checksum": "976588ba54dca65cf7c657748bea2a850b359dad26f2313393f382c8e1cfb53f",
+          "name": "0008_secureshop_bound_persona_sessions.sql"
+        },
+        {
+          "checksum": "4876ab3f57f5c8af839cfea4332f36ecf02f0db620d4a7f78ef0697ee5becd23",
+          "name": "0009_secureshop_bound_persona_renewal.sql"
+        },
+        {
+          "checksum": "3855742f3a716f8498611a7fce8b442c8759706974dc0a45a14a810dc968ec45",
+          "name": "0010_secureshop_persona_inbox.sql"
+        }
+      ],
+      "migrationVariable": "SECURESHOP_AGENTS_MIGRATION_DATABASE_URL"
+    },
+    "secureshop_review": {
+      "fileCount": 4,
+      "head": {
+        "checksum": "2d82ab80413dccac913e9a12cfba32b6f215715a60d49c798fa434f97699042d",
+        "name": "0004_secureshop_bound_product_target.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "ebabe8884fbdde7ed412fa47f3af6b198664a9a234fb559f79de0e4f7e97a7fc",
+          "name": "0001_schema.sql"
+        },
+        {
+          "checksum": "4d85cb92ac3ea4c34d89817e13dea5cc181134cac4cfe16152fad7dc45d9ceef",
+          "name": "0002_cleanup_receipts.sql"
+        },
+        {
+          "checksum": "7149a50e87e8532502d79cb2982f2b24ce212069289d0047517c7c6d2f51cdeb",
+          "name": "0003_secureshop_review_learner_submissions.sql"
+        },
+        {
+          "checksum": "2d82ab80413dccac913e9a12cfba32b6f215715a60d49c798fa434f97699042d",
+          "name": "0004_secureshop_bound_product_target.sql"
+        }
+      ],
+      "migrationVariable": "SECURESHOP_REVIEW_MIGRATION_DATABASE_URL"
+    },
+    "sensitive_lookup": {
+      "fileCount": 2,
+      "head": {
+        "checksum": "dfef99650939b1c0ebd623078d53cdc399cdf41f6ee9cb59e83f48797ad59bb6",
+        "name": "0002_student_deletion.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "5d43c152e6858c5270d38f262ea49c58d00aa9a3918d26c2cf348bdef125e5b9",
+          "name": "0001_schema.sql"
+        },
+        {
+          "checksum": "dfef99650939b1c0ebd623078d53cdc399cdf41f6ee9cb59e83f48797ad59bb6",
+          "name": "0002_student_deletion.sql"
+        }
+      ],
+      "migrationVariable": "SENSITIVE_LOOKUP_MIGRATION_DATABASE_URL"
+    },
+    "session_disclosure": {
+      "fileCount": 1,
+      "head": {
+        "checksum": "532b3f33afead775cd02322d04cb8a6aeb3bc179bcade5f7fe862661612f6d80",
+        "name": "0001_schema.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "532b3f33afead775cd02322d04cb8a6aeb3bc179bcade5f7fe862661612f6d80",
+          "name": "0001_schema.sql"
+        }
+      ],
+      "migrationVariable": "SESSION_DISCLOSURE_MIGRATION_DATABASE_URL"
+    },
+    "supply_chain": {
+      "fileCount": 4,
+      "head": {
+        "checksum": "3aa2647d3dd2e974090d4db4929ab159f8c9baacafeec5d91ff11a4670c91523",
+        "name": "0004_owner_binding.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "3bcd68fb77a75ba767722d7e9677d8758dfa6f6fb05d08ee11110f4e8838b08c",
+          "name": "0001_schema.sql"
+        },
+        {
+          "checksum": "6e244126405ee967da59493e27e3f545a0c965466b1117d96d636065b2ee66e9",
+          "name": "0002_import_provenance.sql"
+        },
+        {
+          "checksum": "a20b1ba53a64d7896c3dfc80e95070ea350b4671da6cc39e322b44c7bca7f0c6",
+          "name": "0003_import_batches.sql"
+        },
+        {
+          "checksum": "3aa2647d3dd2e974090d4db4929ab159f8c9baacafeec5d91ff11a4670c91523",
+          "name": "0004_owner_binding.sql"
+        }
+      ],
+      "migrationVariable": "SUPPLY_CHAIN_WORKSHOP_MIGRATION_DATABASE_URL"
+    },
+    "xss": {
+      "fileCount": 7,
+      "head": {
+        "checksum": "d4cac9f7f67fc32a926e456b985c198a06111b979b895b3355e21dbf1b7b1c0e",
+        "name": "0007_student_deletion.sql"
+      },
+      "ledger": [
+        {
+          "checksum": "207d4dd7ced66c8e3c00644d623cd04665a034fc91f0622e765ae8af33ee9fd8",
+          "name": "0001_schema.sql"
+        },
+        {
+          "checksum": "f144a9bce5e2f020066ef87a0eb3dbd133f289ffa7a43945f0933bbb114657b6",
+          "name": "0002_email_builder.sql"
+        },
+        {
+          "checksum": "d9579b1b057c7490f34a8214cebee77fd243b11042da41b76ec135d1bc026cfb",
+          "name": "0003_legacy_challenge_config.sql"
+        },
+        {
+          "checksum": "ba487643f19e89f31f44e3343434784f308eac6091a94090b5ea53dc4e2ca418",
+          "name": "0004_import_history.sql"
+        },
+        {
+          "checksum": "0d7fbf8513baffbaf314e1961faa7212a55b8a1553065a46936b9719897767b5",
+          "name": "0005_owner_binding.sql"
+        },
+        {
+          "checksum": "2d22cd959598cd165f80a312d09f582f8ac649e630fce21c840409ecf5adca4f",
+          "name": "0006_profile_model_origin.sql"
+        },
+        {
+          "checksum": "d4cac9f7f67fc32a926e456b985c198a06111b979b895b3355e21dbf1b7b1c0e",
+          "name": "0007_student_deletion.sql"
+        }
+      ],
+      "migrationVariable": "XSS_WORKSHOP_MIGRATION_DATABASE_URL"
+    }
+  },
+  "qualification": {
+    "contractTest": "tests/graphJudgeValidationPromotion.test.js",
+    "contractTestSha256": "a3a1b4ca19c8265951ce4ca45418a4fc86c17e8807f70d4c488ce23ae5085dcc",
+    "requiredStages": [
+      "--ledger",
+      "--initialize",
+      "--ledger",
+      "--replay",
+      "--readiness"
+    ],
+    "script": "scripts/qualify-graph-judge-validation-promotion.js",
+    "sha256": "f144e6e19171e01ddb7f94b6bf3fdeb95079a9f88589b1b4b6a996a21c31ec27"
+  },
+  "recoveryProtocol": {
+    "reference": "tests/postgres/run-sensitive-info-reset-recovery.py",
+    "referenceSha256": "a4381f5a312741821850d0d5856bbe6c679061552e1ae4b4cc66f4117ba1727f",
+    "requirements": [
+      "pause validated watcher before resolving and draining its sole backend child",
+      "fresh mode-0600 custom-format identity backup",
+      "owned PostgreSQL 18 restore with required roles",
+      "complete identity table/sequence/schema/owner/ACL and migration-ledger comparison",
+      "atomic exact candidate installation",
+      "normal all-16-store initializer with only identity ledger incrementing by one",
+      "empty all-store replay and validationCode readiness",
+      "resume watcher and require backend health 200",
+      "retain backup and exact owned-container cleanup evidence"
+    ]
+  },
+  "reservedIdentityMigration": "0046",
+  "status": "prepared_unpromoted_unrun",
+  "version": 1
+}

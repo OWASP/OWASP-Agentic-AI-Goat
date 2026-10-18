@@ -1,0 +1,47 @@
+{
+  "scope": "Optional refund persona effect candidate. Real four-store persisted platform/persona authority, immutable refund audit and concurrent admin ban. No model or default production activation.",
+  "result": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-t6wqlajl",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "780805b3e3ab5442a719e2c02addcf02caa44a0e72b27562506df06f47dc3f2d",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "sourceSha256": {
+    "server/services/secureshopBoundRefundRuntime.js": "c38c5e8a589283b558e970f1a68771ddbabe53956aeb6b6b4d818cb71c37222d",
+    "server/services/secureshopBoundRefundTools.js": "3d57bfc7a0f66f78aca9aa925266dc95cf7778b6bef87c5a5de774f501d81b87",
+    "server/services/secureshopPersonaRefundEffect.js": "6759028f3eb1229a1b1a50b828fb9c379ba045a7b8682cdca9a1fb349207c4d7",
+    "server/database/postgres/secureshopBoundRefundRepository.js": "781159e7cf3cce35a244cb167b9f7ad2799175c8b677a37f67eae7b244c48e8b",
+    "server/database/postgres/secureshopRefundOperationReceipt.js": "3645f3fc955607f570790a92972d748b78a4aebf3174ae36a64c5601b4b5aed2",
+    "server/routes/secureshop/boundRefund.js": "abc1eaf811ad5bf5351b136bcdeab26c613f617934bef0d929afda518f2924dc",
+    "tests/postgres/secureshopPersonaRefundEffect.integration.test.js": "46d45cdce9b84c8ad340b821484c44cdb01fab08703311a73f7202933b6a8206",
+    "package-lock.json": "34ba2ea15dd634f8e6a6df4ae4443aa8af953cb2df951923d1ae8472889a2c27"
+  },
+  "checks": [
+    "same exact operation immutable replay",
+    "changed reason conflict",
+    "new operation existing ticket applied false not replay",
+    "original ticket reason preserved",
+    "receipt readback under original persona session/version",
+    "revoked platform authority denies readback",
+    "sibling ticket remains available",
+    "actual admin ban waits for held refund transaction then denies later effect"
+  ],
+  "controlledTests": {
+    "count": 10,
+    "log": "/private/tmp/dvaia-persona-refund-tests.log",
+    "scope": "Includes real factory graph with controlled held provider decision/revoked authority; not native graph admission"
+  },
+  "priorFailure": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-jasyf85x",
+    "cause": "test fixture source_count=0 violated existing constraint; corrected to real one-product fixture",
+    "cleanup": true
+  },
+  "remaining": [
+    "canonical persisted graph with held decision/native persona transition",
+    "installed/production readiness for remaining consumers",
+    "receipt HTTP recovery not exposed by this factory"
+  ]
+}

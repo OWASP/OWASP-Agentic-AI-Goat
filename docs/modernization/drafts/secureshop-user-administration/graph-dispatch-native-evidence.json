@@ -1,0 +1,34 @@
+{
+  "qualification": "Candidate actual bound graph dispatch with controlled held provider and native persona/effect store",
+  "terminal": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-ojkdcw4e",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "c7fcfd9ae57c6890b2d2ef175b84cf6d6b697ab56aae9ef921844743479d2b33",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "controlledDispatchAndRunnerTests": 28,
+  "sourceHashes": {
+    "server/services/secureshopBoundAgentRunner.js": "cc978130ea3c3440a2d9dec0c972832944ff8dcfb8baaa2f5fe95f6d027edf41",
+    "server/services/secureshopPersonaToolDispatch.js": "bb33e4096c37a9e5878c15df312469554108e61de217db843a69b1c50edc4188",
+    "server/database/postgres/secureshopBoundPersonaAuthority.js": "7ed5ceddde820a422fb048a0be4842c0011ee12bd913b7017ad2d19fec0a0652",
+    "tests/fixtures/secureshopHeldPersonaGraph.js": "e7687072150472fabc24148ca31398ea7487d3a9f1b5d60a50ed0ac6f54b8a22",
+    "tests/postgres/secureshopBoundUserAdministration.integration.test.js": "e831a318532117ad4f3cf1fac627d9021441a0ae26a5967469c4650bbecae7a4"
+  },
+  "testsLogSha256": "c8f769170e6370d8a26f67c0e4a7820521f753af68b3b9e50eab4a91fa8334bd",
+  "proof": [
+    "Selected positive local graph tool receives actual shared PostgreSQL client and commits bound audit",
+    "Provider held without SQL lease while role transition commits; released selected effect never called",
+    "Ban and actual self-password-change session revocation similarly deny selected effects",
+    "Remote wrapper checked separately in controlled test; effect may occur before post-check rejects, no rollback claim"
+  ],
+  "limits": [
+    "No actual LLM calls",
+    "Conversation and turn journal are controlled memory adapters, not canonical native graph persistence",
+    "No production capture injection or complete tool capability inventory",
+    "Admin password reset unsupported",
+    "Platform authority check remains controlled callback"
+  ]
+}
