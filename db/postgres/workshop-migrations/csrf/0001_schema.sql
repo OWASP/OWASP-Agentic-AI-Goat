@@ -1,0 +1,10 @@
+CREATE SCHEMA csrf;
+REVOKE ALL ON SCHEMA csrf FROM PUBLIC;
+CREATE TABLE csrf.progress(user_key text NOT NULL,objective_id text NOT NULL,completed integer NOT NULL DEFAULT 1 CHECK(completed IN (0,1)),completed_at timestamptz NOT NULL DEFAULT now(),created_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(user_key,objective_id));
+CREATE TABLE csrf.tool_log(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,user_key text NOT NULL,exercise_id text,tool_name text NOT NULL,args text,result_summary text,flag text,success integer NOT NULL DEFAULT 1 CHECK(success IN (0,1)),created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX tool_log_owner ON csrf.tool_log(user_key,id DESC);
+CREATE TABLE csrf.victim_state(session_key text PRIMARY KEY,state_json jsonb NOT NULL,updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE csrf.wallets(user_key text PRIMARY KEY,balance integer NOT NULL DEFAULT 10000,updated_at timestamptz NOT NULL DEFAULT now());
+GRANT USAGE ON SCHEMA csrf TO dvaia_csrf_runtime;
+GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA csrf TO dvaia_csrf_runtime;
+GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA csrf TO dvaia_csrf_runtime;

@@ -1,0 +1,10 @@
+ALTER TABLE csrf.progress ALTER COLUMN completed DROP NOT NULL,ALTER COLUMN completed_at DROP NOT NULL,ALTER COLUMN created_at DROP NOT NULL;
+ALTER TABLE csrf.tool_log ALTER COLUMN success DROP NOT NULL,ALTER COLUMN created_at DROP NOT NULL;
+ALTER TABLE csrf.wallets ALTER COLUMN balance TYPE bigint,ALTER COLUMN updated_at DROP NOT NULL;
+ALTER TABLE csrf.victim_state ALTER COLUMN updated_at DROP NOT NULL;
+CREATE TABLE csrf.import_provenance(archive_sha256 text NOT NULL CHECK(archive_sha256 ~ '^[a-f0-9]{64}$'),source_file text NOT NULL,source_table text NOT NULL,source_id text NOT NULL,source_row jsonb NOT NULL,PRIMARY KEY(archive_sha256,source_file,source_table,source_id));
+CREATE TABLE csrf.import_batches(singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),archive_sha256 text NOT NULL CHECK(archive_sha256 ~ '^[a-f0-9]{64}$'),counts jsonb NOT NULL,review_metadata jsonb NOT NULL,imported_at timestamptz NOT NULL DEFAULT now());
+CREATE FUNCTION csrf.protect_import_history() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'CSRF import history is immutable' USING ERRCODE='55000'; END; $$;
+CREATE TRIGGER immutable_import_provenance BEFORE UPDATE OR DELETE OR TRUNCATE ON csrf.import_provenance FOR EACH STATEMENT EXECUTE FUNCTION csrf.protect_import_history();
+CREATE TRIGGER immutable_import_batches BEFORE UPDATE OR DELETE OR TRUNCATE ON csrf.import_batches FOR EACH STATEMENT EXECUTE FUNCTION csrf.protect_import_history();
+REVOKE ALL ON csrf.import_provenance,csrf.import_batches FROM PUBLIC;
