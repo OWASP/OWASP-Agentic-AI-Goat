@@ -1,0 +1,158 @@
+'use strict';
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const express=require('express');
+const session=require('express-session');
+const bcrypt=require('bcryptjs');
+const jwt=require('jsonwebtoken');
+const {createPool}=require('../../server/database/postgres');
+const {initializeIdentityRepository,createIdentityRepository}=require('../../server/database/postgres/identityRepository');
+const {createWorkshopProgressRepository}=require('../../server/database/postgres/workshopProgressRepository');
+const {seedWorkshopPlatform}=require('../../server/database/postgres/workshopPlatformSeed');
+const {createPostgresIdentityAdapter}=require('../../server/services/postgresIdentityAdapter');
+const {createPostgresAuthRouter}=require('../../server/routes/postgresAuth');
+const {createPostgresAdminAuth}=require('../../server/middleware/postgresAdminAuth');
+const {createPostgresSessionManager}=require('../../server/middleware/postgresSessionManager');
+const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&Boolean(process.env.PG_HTTP_TEST_MIGRATION_URL);
+test('real PG18 HTTP auth and session middleware: coherent login/status/logout/password/profile/verification contracts',{skip:!enabled,timeout:300000},async()=>{
+ require('./platformAuthCtfScope').pair(process.env,'PG_HTTP_TEST');
+ for(const key of ['PG_HTTP_TEST_MIGRATION_URL','PG_HTTP_TEST_RUNTIME_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ const migration=createPool(process.env,'PG_HTTP_TEST_MIGRATION_URL'),pool=createPool(process.env,'PG_HTTP_TEST_RUNTIME_URL');
+ let server,manager,router,primaryFailure;
+ try{
+  assert.equal((await migration.query("SELECT to_regnamespace('identity') AS schema")).rows[0].schema,null);
+  await initializeIdentityRepository(pool,migration);await seedWorkshopPlatform(migration);
+  const repository=createIdentityRepository(pool),progress=createWorkshopProgressRepository(pool),secret='isolated-test-jwt-secret-not-for-deployment';
+  const password='FixturePass@123',hash=await bcrypt.hash(password,4);
+  const a=await repository.createUser({username:'student-one',email:'one@example.test',passwordHash:hash}),b=await repository.createUser({username:'student-two',email:'two@example.test',passwordHash:hash});
+  const adapter=createPostgresIdentityAdapter({repository,progress,jwtSecret:secret}),auth=createPostgresAdminAuth(adapter);
+  manager=createPostgresSessionManager(adapter);
+  const pass=(req,res,next)=>next();router=createPostgresAuthRouter({adapter,limiters:{loginRateLimiter:pass,registerRateLimiter:pass,passwordResetRateLimiter:pass}});
+  const app=express();app.use(express.json());app.use(session({secret,resave:false,saveUninitialized:false}));app.use(manager.middleware());app.use('/api/auth',router);
+  const launchRepository=require('../../server/database/postgres/secureshopLaunchRepository').createSecureShopLaunchRepository(pool);
+  app.use('/api/auth/secureshop-launch',require('../../server/routes/secureshopPlatformLaunch').createSecureShopLaunchRouter({
+    enabled:true,engine:'postgres',authenticateToken:auth.authenticateToken,repository:launchRepository,
+    audit:event=>repository.recordAudit(event),
+  }));
+  const config=require('../../server/database/postgres/workshopConfigRepository').createWorkshopConfigRepository(pool);
+  app.use('/api/workshop',require('../../server/routes/postgresWorkshop').createPostgresWorkshopRouter({stores:{pool,progress,config},authenticateToken:auth.authenticateToken,requirePermission:auth.requirePermission,resetService:require('../../server/services/postgresWorkshopResetService').createPostgresWorkshopResetService({progress,adapters:{}})}));
+  app.use('/api/hints',require('../../server/routes/postgresWorkshopContent').createPostgresHintsRouter(config));
+  app.use('/api/solutions',require('../../server/routes/postgresWorkshopContent').createPostgresSolutionsRouter(config));
+  app.get('/permission',auth.authenticateToken,auth.requirePermission('view_analytics'),(req,res)=>res.json({id:req.user.id}));
+  // Test-only cookie probe: never mounted by the application.
+  app.get('/browser-session',(req,res)=>{req.session.probe=true;res.json({id:req.sessionID,owner:req.session.platformOwnerId,platformSessionId:req.session.platformSessionId});});
+  server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});
+  const base=`http://127.0.0.1:${server.address().port}`;
+  async function request(path,{method='GET',body,token,cookie}={}){const response=await fetch(base+path,{signal:AbortSignal.timeout(10000),method,headers:{...(body?{'content-type':'application/json'}:{}),...(token?{authorization:`Bearer ${token}`}:{}) ,...(cookie?{cookie}:{})},body:body?JSON.stringify(body):undefined});return{status:response.status,cookie:response.headers.get('set-cookie')?.split(';')[0],body:await response.json()};}
+  assert.equal((await request('/api/auth/signup-config')).body.registrationEnabled,true);
+  assert.equal((await request('/api/auth/status')).body.authenticated,false);
+  assert.equal((await request('/api/auth/login',{method:'POST',body:{username:"student-one' OR 1=1 --",password}})).status,401,'PG platform login is parameterized');
+  assert.equal((await request('/api/auth/login',{method:'POST',body:{username:'student-one'}})).status,400);
+  const anonymous=await request('/browser-session');assert.ok(anonymous.cookie);
+  const login=await request('/api/auth/login',{method:'POST',cookie:anonymous.cookie,body:{username:'student-one',password}});assert.equal(login.status,200);const token=login.body.token;assert.equal(login.body.user.adminLevel,0);assert.equal(login.body.sessionInfo.tokenType,'Bearer');
+  assert.ok(login.cookie);assert.notEqual(login.cookie,anonymous.cookie,'platform login must rotate the pre-authentication cookie');
+  const browserSession=(await request('/browser-session',{cookie:login.cookie})).body;
+  assert.notEqual(browserSession.id,anonymous.body.id);assert.equal(browserSession.owner,a.id);
+  assert.equal(String(browserSession.platformSessionId),String((await adapter.validateSession(token)).session.id),'browser binding matches the real durable identity session');
+  assert.equal((await request('/browser-session',{cookie:anonymous.cookie})).body.owner,undefined,'pre-login cookie cannot retain platform authority');
+  const second=await request('/api/auth/login',{method:'POST',body:{username:'student-one',password}});assert.notEqual(second.body.token,token,'JWT nonce prevents collisions on rapid logins');
+  const launchPath='/api/auth/secureshop-launch';
+  assert.equal((await request(launchPath,{method:'POST',body:{}})).status,401);
+  const issued=await request(launchPath,{method:'POST',token,body:{}});
+  assert.equal(issued.status,201);assert.equal(issued.body.preparationOnly,true);
+  assert.equal(issued.body.launch.platformOwnerId,undefined);
+  const launchMetadata=(await request(launchPath,{token})).body.launch;
+  assert.equal(launchMetadata.launchId,issued.body.launch.launchId);
+  const recoverBody={launchId:launchMetadata.launchId,expectedCredentialVersion:launchMetadata.credentialVersion};
+  assert.equal((await request(launchPath+'/recover',{method:'POST',token:second.body.token,body:recoverBody})).status,409,'Same user in another durable session cannot recover the launch');
+  const recovered=await request(launchPath+'/recover',{method:'POST',token,body:recoverBody});
+  assert.equal(recovered.status,200);assert.notEqual(recovered.body.bearer,issued.body.bearer);
+  assert.equal((await request(launchPath,{method:'PATCH',token,body:{bearer:issued.body.bearer}})).status,409);
+  const renewed=await request(launchPath,{method:'PATCH',token,body:{bearer:recovered.body.bearer}});
+  assert.equal(renewed.status,200);
+  const status=await request('/api/auth/status',{token});assert.equal(status.body.authenticated,true);assert.equal(status.body.user.id,a.id);assert.ok(status.body.sessionInfo.expiresAt);
+  assert.equal((await request(`/api/auth/profile/${b.id}`,{token})).status,403);assert.equal((await request(`/api/auth/profile/${a.id}`,{token})).body.user.username,'student-one');
+  // A stale numeric level must not turn a learner into an administrator.
+  await migration.query('UPDATE identity.users SET admin_level=1 WHERE id=$1',[a.id]);
+  assert.equal((await request(`/api/auth/profile/${b.id}`,{token})).status,403);
+  const learnerProfile=await request(`/api/auth/profile/${a.id}`,{token});
+  assert.equal(learnerProfile.status,200);assert.equal(Object.hasOwn(learnerProfile.body.user,'admin_level'),false);
+  await migration.query('UPDATE identity.users SET admin_level=0 WHERE id=$1',[a.id]);
+  assert.equal((await request('/permission',{token})).status,403);
+  await repository.grantPermission({userId:a.id,permission:'view_analytics',grantedBy:a.id});
+  assert.equal((await request('/permission',{token})).status,403,'a permission row cannot elevate a student account');
+  await migration.query("UPDATE identity.users SET role='admin',admin_level=1 WHERE id=$1",[a.id]);
+  assert.equal((await request('/permission',{token})).status,200,'current admin role and active permission are both required');
+  assert.equal((await request(`/api/auth/profile/${b.id}`,{token})).status,200,'current administrator retains sibling profile access');
+  assert.equal(await repository.issueVerificationToken(a.id,'owned-old-address-verification-token'),true);
+  assert.equal(await repository.issueVerificationToken(b.id,'sibling-address-verification-token'),true);
+  await migration.query('UPDATE identity.users SET email_verified=1 WHERE id=$1',[a.id]);
+  const siblingTokens=await pool.query('SELECT token_hash,used FROM identity.email_verification_tokens WHERE user_id=$1 ORDER BY token_hash',[b.id]);
+  assert.equal(siblingTokens.rows.length,1);assert.equal(siblingTokens.rows[0].used,false);
+  const sameEmail=await request('/api/auth/profile',{method:'PUT',token,body:{email:'one@example.test',fullName:'Same address'}});
+  assert.equal(sameEmail.status,200);
+  assert.equal((await repository.getUserById(a.id)).email_verified,1,'unchanged email preserves instructor attestation');
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM identity.email_verification_tokens WHERE user_id=$1 AND used=false',[a.id])).rows[0].n,1,'unchanged email preserves pending token');
+  const updated=await request('/api/auth/profile',{method:'PUT',token,body:{email:'changed@example.test',fullName:'<b>Student</b>'}});assert.equal(updated.body.user.full_name,'Student');assert.equal(updated.body.user.username,'student-one');
+  assert.equal((await repository.getUserById(a.id)).email_verified,0,'new address cannot retain old attestation');
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM identity.email_verification_tokens WHERE user_id=$1 AND used=false',[a.id])).rows[0].n,0,'old address tokens retired');
+  assert.equal(await repository.verifyEmail('owned-old-address-verification-token'),null,'old internal token cannot verify replacement address');
+  assert.equal(await repository.issueVerificationToken(a.id,'owned-before-collision-verification-token'),true);
+  const profileCollision=await request('/api/auth/profile',{method:'PUT',token,body:{email:'two@example.test'}});assert.equal(profileCollision.status,400);
+  assert.equal((await repository.getUserById(a.id)).email,'changed@example.test');
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM identity.email_verification_tokens WHERE user_id=$1 AND used=false',[a.id])).rows[0].n,1,'failed email update rolls back token retirement');
+  assert.deepEqual((await pool.query('SELECT token_hash,used FROM identity.email_verification_tokens WHERE user_id=$1 ORDER BY token_hash',[b.id])).rows,siblingTokens.rows,'sibling tokens preserved');
+  await request('/api/auth/logout',{method:'POST',token});assert.equal((await request('/api/auth/status',{token})).body.authenticated,false);await repository.cleanupExpiredSessions();assert.equal((await request('/api/auth/status',{token})).body.authenticated,false);
+  assert.equal((await request(launchPath,{token})).status,401);
+  assert.equal((await pool.query('SELECT status FROM identity.secureshop_launches WHERE launch_id=$1',[launchMetadata.launchId])).rows[0].status,'revoked');
+  const token2=second.body.token;
+  assert.equal((await request('/api/auth/password',{method:'PUT',token:token2,body:{currentPassword:'wrong',newPassword:'ChangedPass@123'}})).status,400);
+  assert.equal((await request('/api/auth/password',{method:'PUT',token:token2,body:{currentPassword:password,newPassword:'ChangedPass@123'}})).status,200);assert.equal((await request('/api/auth/status',{token:token2})).body.authenticated,false);
+  const after=await request('/api/auth/secure-login',{method:'POST',body:{username:'student-one',password:'ChangedPass@123'}});assert.equal(after.status,200);assert.equal((await request('/api/auth/status',{token:after.body.token})).body.authenticated,true,'Secure login must also persist its session');
+  const forged=jwt.sign({userId:b.id},secret,{expiresIn:'1h'});assert.equal((await request('/api/auth/status',{token:forged})).body.authenticated,false,'Signed token without durable row is rejected');
+  await migration.query("UPDATE identity.users SET account_locked_until=now()+interval '1 hour' WHERE id=$1",[a.id]);assert.equal((await request(`/api/auth/profile/${a.id}`,{token:after.body.token})).status,423);
+  const registration=await request('/api/auth/register',{method:'POST',body:{username:'newstudent',email:'new@example.test',password:'NewStudent@123',role:'super_admin',admin_level:2}});assert.equal(registration.status,201);assert.equal(registration.body.user.role,'student');assert.equal(Object.hasOwn(registration.body,'verificationToken'),false);assert.equal(registration.body.emailVerificationRequired,false);assert.equal(registration.body.emailVerificationAvailable,false);
+  for(const endpoint of ['verify-email','resend-verification'])assert.equal((await request('/api/auth/'+endpoint,{method:'POST',body:{token:'previously-exposed',email:'new@example.test'}})).status,409);
+  assert.equal((await request('/api/auth/login',{method:'POST',body:{username:'newstudent',password:'NewStudent@123'}})).status,200,'Local registration remains usable without mailbox verification');
+  assert.equal(Number((await migration.query('SELECT count(*) AS n FROM identity.email_verification_tokens WHERE user_id=$1',[registration.body.userId])).rows[0].n),0);
+  const recovery=await request('/api/auth/reset-password',{method:'POST',body:{email:'unknown@example.test'}});
+  assert.equal(recovery.status,409);assert.equal(recovery.body.code,'PASSWORD_RESET_INSTRUCTOR_MANAGED');assert.equal(recovery.body.success,false);
+  const bLogin=await request('/api/auth/login',{method:'POST',body:{username:'student-two',password}});assert.equal((await request('/api/auth/activity',{token:bLogin.body.token})).body.success,true);
+  const dashboardToken=bLogin.body.token;
+  const stats=await request('/api/workshop/student/stats',{token:dashboardToken}),challenges=await request('/api/workshop/challenges',{token:dashboardToken}),dashboard=await request('/api/workshop/progress',{token:dashboardToken});
+  assert.equal(stats.status,200);assert.deepEqual(challenges.body.challenges,dashboard.body.challenges);assert.equal(stats.body.totalObjectives,challenges.body.challenges.reduce((sum,c)=>sum+c.objectiveCount,0));
+  await config.setMasterSolutionVisibility('sql_injection_workshop',true);await config.setMasterHintVisibility('sql_injection_workshop',false);
+  assert.equal((await request('/api/solutions/sql-injection/sqli_1')).status,200);assert.equal((await request('/api/hints/sql_injection_workshop/sqli_1')).status,403);
+  assert.equal((await request('/api/workshop/student/stats')).status,401);
+  const csrfStatus=(await request('/api/solutions/csrf-workshop/status')).body;assert.equal(typeof csrfStatus.master.hints,'boolean');assert.equal(typeof Object.values(csrfStatus.objectives)[0].solution,'boolean');
+  assert.equal((await request('/api/workshop/instructor/students',{token:dashboardToken})).status,403);
+  assert.equal((await request('/api/workshop/progress/reset/xss_workshop',{method:'POST',token:dashboardToken})).status,503);
+  assert.equal((await request('/api/workshop/objective/complete',{method:'POST',token:dashboardToken,body:{challengeId:'direct_prompt_injection',objectiveId:'jailbreak'}})).status,410);
+  const {WORKSHOP_OBJECTIVES,toChallengeKey}=require('../../server/config/workshopCatalog');
+  const expectedObjectiveCount=Object.values(WORKSHOP_OBJECTIVES).reduce((sum,objectives)=>sum+objectives.length,0);
+  assert.ok(expectedObjectiveCount>0,'The canonical catalog must contain objectives to test');
+  let rejectedObjectiveCount=0;
+  for(const [workshopKey,objectives] of Object.entries(WORKSHOP_OBJECTIVES)) {
+    for(const objective of objectives) {
+      const response=await request('/api/workshop/objective/complete',{method:'POST',token:dashboardToken,
+        body:{challengeId:toChallengeKey(workshopKey),objectiveId:objective.id,verdict:'pass',completed:true}});
+      assert.equal(response.status,workshopKey==='direct_prompt_injection'?410:409,`${workshopKey}/${objective.id} cannot self-award`);
+      rejectedObjectiveCount++;
+    }
+  }
+  assert.equal(rejectedObjectiveCount,expectedObjectiveCount,'Every canonical objective must reject learner self-award');
+  const {createPostgresWorkshopResetService}=require('../../server/services/postgresWorkshopResetService');
+  const events=[];
+  const reset=createPostgresWorkshopResetService({progress,adapters:{sql_injection_workshop:{reset:async(owner,work)=>{events.push(['drain',owner]);await work();},clear:async owner=>events.push(['clear',owner])}},listUserIds:async()=>[b.id]});
+  await progress.syncObjectiveComplete(b.id,'sql_injection_workshop','sqli_1');
+  const generation=await progress.getGeneration(b.id,'sql_injection_workshop');
+  await reset.resetStudent({userId:b.id,workshopKey:'sql_injection_workshop'});
+  assert.deepEqual(events,[['drain',String(b.id)],['clear',String(b.id)]]);
+  assert.equal((await progress.getWorkshopProgress(b.id,'sql_injection_workshop')).completedObjectiveCount,0);
+  assert.equal(await progress.getGeneration(b.id,'sql_injection_workshop'),generation+1);
+  await assert.rejects(reset.resetAll(),{code:'RESET_STORAGE_NOT_READY'});assert.equal(events.length,2);
+  const audit=(await migration.query('SELECT action_details FROM identity.activity_logs')).rows;assert.ok(!JSON.stringify(audit).includes(password));
+  const {execFileSync}=require('node:child_process');
+  execFileSync(process.execPath,['-e',`(async()=>{require('./server/routes/auth');require('./server/routes/admin');require('./server/routes/workshop');require('./server/routes/hints');require('./server/routes/solutions');require('./server/routes/workshopConfig');require('./server/services/changeRevisionService');require('./server/utils/progressSync');require('./server/middleware/adminAuth');const manager=require('./server/middleware/sessionManager');await new Promise(setImmediate);if(Object.keys(require.cache).some(p=>/node_modules\\/(sqlite3|better-sqlite3)\\//.test(p)))throw new Error('SQLite imported');manager.stopCleanupTask();await require('./server/database/postgres').closePostgresPools();})().catch(e=>{console.error(e);process.exitCode=1})`],{cwd:require('node:path').join(__dirname,'../..'),env:{...process.env,PLATFORM_DATABASE_ENGINE:'postgres',IDENTITY_DATABASE_URL:process.env.PG_HTTP_TEST_RUNTIME_URL,JWT_SECRET:secret},timeout:15000});
+ }catch(error){primaryFailure=error;throw error;}finally{try{await require('./platformAuthCtfScope').cleanup([()=>router?.close(),()=>manager?.stopCleanupTask(),()=>server?new Promise(resolve=>{server.close(resolve);server.closeAllConnections?.();}):undefined,()=>Promise.all([pool.end(),migration.end()])]);}catch(cleanupError){if(primaryFailure){primaryFailure.cleanupFailed=true;}else throw cleanupError;}}
+});
