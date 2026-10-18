@@ -1,0 +1,20 @@
+'use strict';
+const crypto=require('node:crypto'),protocol=require('./protocolContext');const {canonicalDigest}=require('../../../sidecars/sandbox-runner/owned-http/canonical');const {verifyOwnedShadowReceipt}=require('./ownedShadowReceipt');
+const fail=code=>{throw Object.assign(Error(code),{code});};
+function id(input){const h=crypto.createHash('sha256').update(input).digest('hex');return`${h.slice(0,8)}-${h.slice(8,12)}-5${h.slice(13,16)}-8${h.slice(17,20)}-${h.slice(20,32)}`;}
+function createOwnedShadowClient({service,scope,capability,readMode,receiptRepository}={}){
+ if(!service||typeof service.execute!=='function'||typeof service.readReceipt!=='function'||typeof service.recoverRegistration!=='function'||typeof readMode!=='function'||typeof receiptRepository?.begin!=='function'||typeof receiptRepository?.complete!=='function'||typeof capability!=='string')throw TypeError('Owned shadow durable composition required');
+ const bound=Object.freeze({targetId:scope.targetId,ownerId:scope.platformOwnerId,platformSessionId:scope.platformSessionId,generation:scope.generation});
+ async function execute(sessionId,action,args){const context=protocol.requireProtocolContext(sessionId),execution=context.execution;if(sessionId!==`mcp_${bound.ownerId}`||execution.ownerKey!==JSON.stringify(['MCP',String(bound.ownerId)])||protocol._internals.normalizeGeneration(execution)!==String(bound.generation))fail('SHADOW_OWNER_MISMATCH');await execution.check();
+  const operationId=id(`${execution.runId}:${context.effectKey}:shadow:${action}`);const request={action,operationId,registrationId:action==='register'?id(`${operationId}:registration`):args.registrationId,runId:execution.runId,invocationId:context.invocationId};let registration=null;
+  if(action==='register'){request.endpoint=args.endpoint;request.mode=await readMode();}
+  else{registration=await receiptRepository.readRegistration({binding:bound,registrationId:args.registrationId,execution});request.remoteName=args.remoteName;request.args=structuredClone(args.args);}
+  const identity={binding:bound,request};const admission=await receiptRepository.begin({identity,execution});let receipt;
+  if(admission.state==='replay')receipt=admission.receipt;
+  else if(admission.state==='pending'){const recovered=await service.readReceipt(capability,{operationId,requestDigest:canonicalDigest(identity)});if(recovered?.state!=='completed')fail('SHADOW_OPERATION_UNCERTAIN');receipt=recovered.receipt;if(action==='register'&&receipt.version==='owned-shadow.v1')await service.recoverRegistration(capability,{operationId,registrationId:request.registrationId});}
+  else receipt=await service.execute(capability,request,{signal:execution.signal});
+  verifyOwnedShadowReceipt(receipt,identity,registration);await execution.check();if(admission.state!=='replay')await receiptRepository.complete({identity,execution,receipt});if(receipt.version==='owned-shadow-denial.v1')throw Object.assign(Error(receipt.code),{code:receipt.code,noEffect:true});return receipt;
+ }
+ return Object.freeze({centralPersistence:true,async readRegistration(sessionId,registrationId){const context=protocol.requireProtocolContext(sessionId);if(sessionId!==`mcp_${bound.ownerId}`)fail('SHADOW_OWNER_MISMATCH');return receiptRepository.readRegistration({binding:bound,registrationId,execution:context.execution});},async catalog(sessionId){const context=protocol.requireProtocolContext(sessionId),execution=context.execution;if(sessionId!==`mcp_${bound.ownerId}`)fail('SHADOW_OWNER_MISMATCH');const registrations=await receiptRepository.listRegistrations({binding:bound,execution});return registrations.flatMap(r=>r.result.catalog.map(tool=>({name:'shadow_'+r.registrationId.replaceAll('-','')+'_'+tool.name,description:tool.description||'',inputSchema:structuredClone(tool.inputSchema),registrationId:r.registrationId,catalogDigest:r.result.catalogDigest})));},register:(sessionId,endpoint)=>execute(sessionId,'register',{endpoint}),invoke:(sessionId,registrationId,remoteName,args)=>execute(sessionId,'invoke',{registrationId,remoteName,args})});
+}
+module.exports={createOwnedShadowClient};
