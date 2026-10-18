@@ -1,0 +1,8 @@
+{
+  "name": "dvaia-owned-upload-preview-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "sharp": "0.35.4"
+  }
+}

@@ -1,0 +1,44 @@
+# UNQUALIFIED local AMD64 candidate; not selected by active installer. Build context: sidecars/sandbox-runner/owned-system.
+# This is separate from the main sandbox-runner and all deployment images.
+FROM node@sha256:0e6e6feab3409d135561b2dac7f75dad902ceb5e14c35de4521155779ae70cee
+
+RUN test "$(dpkg --print-architecture)" = amd64 \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends gcc libc6-dev bubblewrap \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --chown=0:0 system-init.c process-supervisor.c diagnostic-init.c diagnostic-supervisor.c restart-init.c restart-supervisor.c restart-service-child.c upload-preview-init.c /build/owned-system/
+COPY --chown=0:0 restart-systemctl /opt/dvaia-owned-system/restart-systemctl
+RUN mkdir -p /usr/local/libexec /opt/dvaia-owned-system \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/system-init.c -o /usr/local/libexec/dvaia-system-config-init \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/process-supervisor.c -o /usr/local/libexec/dvaia-system-config-supervisor \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/diagnostic-init.c -o /usr/local/libexec/dvaia-system-diagnostic-init \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/diagnostic-supervisor.c -o /usr/local/libexec/dvaia-system-diagnostic-supervisor \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/restart-init.c -o /usr/local/libexec/dvaia-system-restart-init \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/restart-supervisor.c -o /usr/local/libexec/dvaia-system-restart-supervisor \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/restart-service-child.c -o /usr/local/libexec/dvaia-system-restart-child \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/upload-preview-init.c -o /usr/local/libexec/dvaia-upload-preview-init \
+    && chmod 0555 /usr/local/libexec/dvaia-upload-preview-init /usr/local/libexec/dvaia-system-* /usr/bin/bwrap \
+    && chmod 0555 /opt/dvaia-owned-system/restart-systemctl \
+    && for file in /usr/local/libexec/dvaia-upload-preview-init /usr/local/libexec/dvaia-system-config-init /usr/local/libexec/dvaia-system-config-supervisor /usr/local/libexec/dvaia-system-diagnostic-init /usr/local/libexec/dvaia-system-diagnostic-supervisor /usr/local/libexec/dvaia-system-restart-init /usr/local/libexec/dvaia-system-restart-supervisor /usr/local/libexec/dvaia-system-restart-child /opt/dvaia-owned-system/restart-systemctl; do sha256sum "$file" | cut -d' ' -f1 > "$file.sha256"; chmod 0444 "$file.sha256"; done \
+    && printf 'owned-system:x:10001:10001:Owned System:/nonexistent:/usr/sbin/nologin\n' >> /etc/passwd \
+    && install -d -o 10001 -g 10001 -m 0700 /var/lib/dvaia-owned-restart /var/lib/dvaia-owned-restart/effects /var/lib/dvaia-owned-restart/targets /owned-restart /owned-restart/targets /var/lib/dvaia-owned-upload-preview \
+    && dpkg-query -W > /opt/dvaia-owned-system/packages.txt \
+    && rm -rf /build/owned-system
+
+COPY --chown=0:0 upload-preview-runtime/package.json upload-preview-runtime/package-lock.json /opt/dvaia-owned-system/upload-preview-runtime/
+RUN --mount=type=secret,id=npm_ca cd /opt/dvaia-owned-system/upload-preview-runtime \
+    && if [ -f /run/secrets/npm_ca ]; then NODE_EXTRA_CA_CERTS=/run/secrets/npm_ca npm ci --omit=dev --ignore-scripts --include=optional --bin-links=false; else npm ci --omit=dev --ignore-scripts --include=optional --bin-links=false; fi
+
+COPY --chown=0:0 local-listener-entry.js http-listener.js http-handler.js health-metrics.js health-contract.js executor.js receipt.js worker.js config-reader.js contract.js diagnostic-http-listener.js diagnostic-http-handler.js diagnostic-executor.js diagnostic-wire.js diagnostic-result.js diagnostic-contract.js diagnostic-receipt.js restart-command-executor.js restart-target.js restart-manager.js restart-contract.js restart-wire.js restart-http-handler.js restart-http-listener.js upload-preview-contract.js upload-preview-worker.js upload-preview-executor.js upload-preview-dependencies.js upload-preview-http-handler.js upload-preview-http-listener.js /opt/dvaia-owned-system/
+RUN find /opt/dvaia-owned-system -type f -exec chmod 0444 {} + \
+    && find /opt/dvaia-owned-system -type d -exec chmod 0555 {} + \
+    && chmod 0555 /opt/dvaia-owned-system/restart-systemctl \
+    && chmod 0555 /opt/dvaia-owned-system \
+    && node /opt/dvaia-owned-system/upload-preview-dependencies.js --build-manifest \
+    && node -e "require('/opt/dvaia-owned-system/executor').loadAssets()"
+
+USER 10001:10001
+WORKDIR /opt/dvaia-owned-system
+ENTRYPOINT ["/usr/local/bin/node", "/opt/dvaia-owned-system/local-listener-entry.js"]
+# Required argument: config, diagnostic, restart, or upload-preview. No default mode or auto-enable.
