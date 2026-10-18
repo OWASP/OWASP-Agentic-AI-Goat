@@ -1,0 +1,36 @@
+# Unqualified local ARM64 owned MCP registry candidate; not selected by setup/start or deployment assets.
+FROM node:26.10.0-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1 AS build
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev libseccomp-dev && rm -rf /var/lib/apt/lists/*
+WORKDIR /build
+COPY sidecars/sandbox-runner/owned-mcp-registry/package.json sidecars/sandbox-runner/owned-mcp-registry/package-lock.json ./
+RUN --mount=type=secret,id=npm_ca if [ -f /run/secrets/npm_ca ]; then export NODE_EXTRA_CA_CERTS=/run/secrets/npm_ca; fi; npm ci --ignore-scripts --no-audit --no-fund
+COPY sidecars/sandbox-runner/owned-mcp-registry /source/sidecars/sandbox-runner/owned-mcp-registry
+COPY sidecars/sandbox-runner/owned-http/namespace-init.c sidecars/sandbox-runner/mcpSeccompFilter.c /build/
+COPY server/services/secureshopMcpRegistryContract.js server/services/secureshopMcpRegistryDiscoveryContract.js server/services/secureshopMcpRegistryDiscovery.js server/services/secureshopMcpSchemaDigest.js server/services/secureshopOwnedMcpInvocationContract.js server/services/secureshopConversationBinding.js /source/server/services/
+RUN mkdir /out \
+ && node -e "const f=require('node:fs');f.writeFileSync('/build/registry-init.c',f.readFileSync('/build/namespace-init.c','utf8').replaceAll('dvaia-owned-http','dvaia-owned-mcp-registry').replaceAll('DVAIA_OWNED_HTTP_ATTESTED','DVAIA_OWNED_MCP_REGISTRY_ATTESTED'))" \
+ && gcc -O2 -Wall -Wextra -Werror registry-init.c -o /out/dvaia-owned-mcp-registry-init \
+ && gcc -O2 -Wall -Wextra -Werror /source/sidecars/sandbox-runner/owned-mcp-registry/process-supervisor.c -o /out/dvaia-owned-mcp-registry-supervisor \
+ && gcc -O2 -Wall -Wextra -Werror mcpSeccompFilter.c -lseccomp -o /tmp/filter && /tmp/filter /out/mcp-target.seccomp.bpf \
+ && NODE_PATH=/build/node_modules ./node_modules/.bin/esbuild /source/sidecars/sandbox-runner/owned-mcp-registry/worker.js --bundle --platform=node --format=cjs --outfile=/out/dvaia-owned-mcp-registry-worker.js \
+ && NODE_PATH=/build/node_modules ./node_modules/.bin/esbuild /source/sidecars/sandbox-runner/owned-mcp-registry/invoke-protocol.js --bundle --platform=node --format=cjs --outfile=/out/invoke-protocol.js \
+ && NODE_PATH=/build/node_modules ./node_modules/.bin/esbuild /source/sidecars/sandbox-runner/owned-mcp-registry/http-handler.js --bundle --platform=node --format=cjs --outfile=/out/http-handler.js
+FROM node:26.10.0-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1
+RUN test "$(dpkg --print-architecture)" = arm64 && apt-get update && apt-get install -y --no-install-recommends bubblewrap libseccomp2 && rm -rf /var/lib/apt/lists/* && mkdir -p /usr/share/dvaia /usr/local/libexec
+WORKDIR /app
+COPY --chmod=0444 sidecars/sandbox-runner/owned-mcp-registry/buildAssets.js sidecars/sandbox-runner/owned-mcp-registry/executor.js sidecars/sandbox-runner/owned-mcp-registry/http-listener.js /app/sidecars/sandbox-runner/owned-mcp-registry/
+COPY --from=build --chmod=0444 /out/http-handler.js /out/invoke-protocol.js /app/sidecars/sandbox-runner/owned-mcp-registry/
+COPY --chmod=0444 server/services/secureshopMcpRegistryContract.js server/services/secureshopMcpRegistryDiscoveryContract.js server/services/secureshopMcpSchemaDigest.js /app/server/services/
+COPY --chmod=0444 sidecars/sandbox-runner/owned-mcp-registry/network-manifest.json /app/sidecars/sandbox-runner/owned-mcp-registry/network-manifest.json
+COPY --chmod=0444 tests/fixtures/secureshopOwnedMcpRegistryPackaged.native.cjs /app/tests/fixtures/secureshopOwnedMcpRegistryPackaged.native.cjs
+COPY --from=build /out/dvaia-owned-mcp-registry-init /out/dvaia-owned-mcp-registry-supervisor /out/dvaia-owned-mcp-registry-worker.js /usr/local/libexec/
+COPY --from=build /out/mcp-target.seccomp.bpf /usr/share/dvaia/mcp-target.seccomp.bpf
+COPY sidecars/sandbox-runner/owned-mcp-registry/network-manifest.json /usr/local/libexec/dvaia-owned-mcp-registry-manifest.json
+RUN node sidecars/sandbox-runner/owned-mcp-registry/buildAssets.js
+RUN chmod 0555 /app /app/sidecars /app/sidecars/sandbox-runner /app/sidecars/sandbox-runner/owned-mcp-registry /app/server /app/server/services /app/tests /app/tests/fixtures
+USER 10001:10001
+# Build-time check runs as the same non-root identity as the listener. Frozen
+# source may be mode 0400; image permissions must not inherit that host mode.
+RUN node -e "const fs=require('node:fs'); for(const p of ['buildAssets.js','executor.js','http-handler.js','http-listener.js','invoke-protocol.js','network-manifest.json'].map(x=>'/app/sidecars/sandbox-runner/owned-mcp-registry/'+x).concat(['secureshopMcpRegistryContract.js','secureshopMcpRegistryDiscoveryContract.js','secureshopMcpSchemaDigest.js'].map(x=>'/app/server/services/'+x),['/app/tests/fixtures/secureshopOwnedMcpRegistryPackaged.native.cjs'])) { fs.accessSync(p,fs.constants.R_OK); if((fs.statSync(p).mode & 0o777)!==0o444) throw Error('Unexpected application asset mode'); } require('./sidecars/sandbox-runner/owned-mcp-registry/http-handler');require('./sidecars/sandbox-runner/owned-mcp-registry/invoke-protocol');const e=require('./sidecars/sandbox-runner/owned-mcp-registry/executor'); for(const p of e.ASSETS.concat(['/usr/share/dvaia/owned-mcp-registry-assets.json'])) fs.accessSync(p,fs.constants.R_OK); for(const p of ['/usr/local/bin/node','/usr/bin/bwrap','/usr/local/libexec/dvaia-owned-mcp-registry-init','/usr/local/libexec/dvaia-owned-mcp-registry-supervisor']) fs.accessSync(p,fs.constants.X_OK);"
+EXPOSE 8094
+ENTRYPOINT ["node","sidecars/sandbox-runner/owned-mcp-registry/http-listener.js"]
