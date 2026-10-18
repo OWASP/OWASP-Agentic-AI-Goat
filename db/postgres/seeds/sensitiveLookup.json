@@ -1,0 +1,176 @@
+{
+  "fileReferences": [
+    {
+      "key": "welcome",
+      "path": "public/welcome.txt",
+      "level": "public",
+      "desc": "Welcome message"
+    },
+    {
+      "key": "help",
+      "path": "public/help.txt",
+      "level": "public",
+      "desc": "Help documentation"
+    },
+    {
+      "key": "info",
+      "path": "public/info.html",
+      "level": "public",
+      "desc": "Information page"
+    },
+    {
+      "key": "user_guide",
+      "path": "restricted/user_guide.pdf",
+      "level": "restricted",
+      "desc": "User guide"
+    },
+    {
+      "key": "policy",
+      "path": "restricted/policy.txt",
+      "level": "restricted",
+      "desc": "Security policy"
+    },
+    {
+      "key": "db_creds",
+      "path": "secret/database_credentials.txt",
+      "level": "secret",
+      "desc": "Database credentials"
+    },
+    {
+      "key": "api_keys",
+      "path": "secret/api_keys.json",
+      "level": "secret",
+      "desc": "API keys"
+    },
+    {
+      "key": "employee_data",
+      "path": "secret/employee_ssn.txt",
+      "level": "secret",
+      "desc": "Employee SSN data"
+    },
+    {
+      "key": "admin_pass",
+      "path": "admin/admin_passwords.txt",
+      "level": "admin",
+      "desc": "Admin passwords"
+    },
+    {
+      "key": "admin_secret",
+      "path": "admin/secret.txt",
+      "level": "admin",
+      "desc": "Admin secret data"
+    },
+    {
+      "key": "db_config",
+      "path": "config/database.config",
+      "level": "secret",
+      "desc": "Database configuration"
+    },
+    {
+      "key": "app_config",
+      "path": "config/application.yml",
+      "level": "secret",
+      "desc": "Application config"
+    }
+  ],
+  "templates": [
+    {
+      "name": "greeting",
+      "content": "Hello! I am your AI assistant. How can I help you today?",
+      "path": null,
+      "category": "general"
+    },
+    {
+      "name": "database_response",
+      "content": "Database connection: <!--#echo var=\"DATABASE_HOST\" -->:<!--#echo var=\"DATABASE_PORT\" -->",
+      "path": null,
+      "category": "system"
+    },
+    {
+      "name": "admin_template",
+      "content": "Admin Portal - User: <!--#echo var=\"ADMIN_USER\" -->, Pass: <!--#echo var=\"ADMIN_PASS\" -->",
+      "path": "templates/admin_response.html",
+      "category": "admin"
+    },
+    {
+      "name": "secret_template",
+      "content": "<!--#include virtual=\"secret/api_keys.json\" -->",
+      "path": "templates/secret_data.html",
+      "category": "secret"
+    },
+    {
+      "name": "config_template",
+      "content": "Configuration: <!--#echo var=\"SECRET_KEY\" -->",
+      "path": "templates/config_response.html",
+      "category": "config"
+    },
+    {
+      "name": "file_include",
+      "content": "<!--#include file=\"admin/admin_passwords.txt\" -->",
+      "path": null,
+      "category": "admin"
+    }
+  ],
+  "configs": [
+    {
+      "key": "DATABASE_HOST",
+      "value": "postgres.training.local",
+      "type": "variable",
+      "sensitive": true
+    },
+    {
+      "key": "DATABASE_PORT",
+      "value": "5432",
+      "type": "variable",
+      "sensitive": false
+    },
+    {
+      "key": "DATABASE_PASSWORD",
+      "value": "Sup3rS3cr3t!Pass2024",
+      "type": "variable",
+      "sensitive": true
+    },
+    {
+      "key": "ADMIN_USER",
+      "value": "admin",
+      "type": "variable",
+      "sensitive": true
+    },
+    {
+      "key": "ADMIN_PASS",
+      "value": "Admin@12345!",
+      "type": "variable",
+      "sensitive": true
+    },
+    {
+      "key": "SECRET_KEY",
+      "value": "sk-ultra-secret-key-abc123xyz789",
+      "type": "variable",
+      "sensitive": true
+    },
+    {
+      "key": "API_KEY",
+      "value": "api_key_12345_abcdef",
+      "type": "variable",
+      "sensitive": true
+    },
+    {
+      "key": "JWT_SECRET",
+      "value": "jwt_secret_token_987654",
+      "type": "variable",
+      "sensitive": true
+    },
+    {
+      "key": "base_path",
+      "value": "server/sensitive_files/",
+      "type": "path",
+      "sensitive": false
+    },
+    {
+      "key": "template_path",
+      "value": "server/templates/",
+      "type": "path",
+      "sensitive": false
+    }
+  ]
+}
