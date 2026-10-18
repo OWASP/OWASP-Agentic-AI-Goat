@@ -1,0 +1,38 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),express=require('express');
+const {createPostgresAdminRouter}=require('../server/routes/postgresAdmin');
+const {createPostgresAdminAuth}=require('../server/middleware/postgresAdminAuth');
+test('student creation cannot promote accounts and level checks require an administrative role',async t=>{
+ const created=[],administrators=[],audit=[];
+ const adapter={repository:{recordAudit:async event=>{audit.push(event.actionType);},hasPermission:async(id,p)=>id!==3&&['system_config','user_management'].includes(p)},validateSession:async token=>token==='none'?null:{user:{id:token==='super_noperm'?3:1,username:'fixture',role:token==='inconsistent'?'student':['super','super_noperm'].includes(token)?'super_admin':'admin',admin_level:['inconsistent','super','super_noperm'].includes(token)?2:1},session:{id:17}}};
+ const auth=createPostgresAdminAuth(adapter),handler=(_req,res)=>res.sendStatus(501);
+ const operational=Object.fromEntries(['providerStatus','switchProvider','configureProvider','testProvider','testLlm','appLogs','llmLogs','logStats','systemMonitoring'].map(key=>[key,handler]));
+ operational.configureProvider=(_req,res)=>res.json({success:true});
+ const app=express();app.use(express.json());app.use('/api/admin',createPostgresAdminRouter({adapter,auth,stores:{config:{},progress:{}},repository:{createUser:async input=>{created.push(input);return{id:2,role:input.role,admin_level:input.adminLevel};},createAdministrator:async input=>{administrators.push(input);if(input.username==='duplicate')throw Object.assign(new Error('duplicate'),{code:'23505'});return{id:3,username:input.username,role:'admin',admin_level:input.adminLevel};}},resetService:{},xssLegacyRepository:{},operational}));
+ const server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));t.after(()=>new Promise(resolve=>server.close(resolve)));
+ const request=async(body,token='admin')=>fetch(`http://127.0.0.1:${server.address().port}/api/admin/students`,{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({username:'student-fixture',email:'student@example.test',password:'fixture-password',...body})});
+ assert.equal((await request({role:'super_admin',adminLevel:2})).status,400);
+ assert.equal((await request({role:'admin'})).status,400);
+ assert.equal((await request({adminLevel:1})).status,400);assert.equal(created.length,0);
+ assert.equal((await request({},'inconsistent')).status,403);assert.equal((await request({},'none')).status,401);assert.equal(created.length,0);
+ assert.equal((await request({})).status,201);assert.equal(created.length,1);assert.equal(created[0].role,'student');assert.equal(created[0].adminLevel,0);assert.match(created[0].passwordHash,/^\$2/);
+ const configure=token=>fetch(`http://127.0.0.1:${server.address().port}/api/admin/ai/providers/configure`,{method:'POST',headers:{authorization:'Bearer '+token}});
+ assert.equal((await configure('admin')).status,403);assert.equal((await configure('super')).status,200);
+ const createAdmin=(body,token='super')=>fetch(`http://127.0.0.1:${server.address().port}/api/admin/administrators`,{method:'POST',headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({username:'new-admin',email:'admin@example.test',password:'fixture-password',adminLevel:1,permissions:['challenge_management'],...body})});
+ for(const token of ['none','admin','inconsistent','super_noperm'])assert.equal((await createAdmin({},token)).status,token==='none'?401:403);
+ assert.equal(administrators.length,0);
+ for(const body of [{adminLevel:0},{adminLevel:3},{role:'super_admin'},{password:'short'},{password:'x'.repeat(73)},{permissions:[]},{permissions:['database_access']},{permissions:['challenge_management','challenge_management']},{email:'bad'}])assert.equal((await createAdmin(body)).status,400);
+ assert.equal(administrators.length,0);
+ assert.equal((await createAdmin({adminLevel:2,permissions:['challenge_management','user_management']})).status,201);
+ assert.equal(administrators.length,1);assert.equal(administrators[0].adminLevel,2);assert.equal(administrators[0].sessionId,17);
+ assert.match(administrators[0].passwordHash,/^\$2/);assert.notEqual(administrators[0].passwordHash,'fixture-password');
+ assert.ok(audit.includes('admin_administrator_create'));
+ assert.equal((await createAdmin({username:'duplicate'})).status,409);
+ adapter.repository.hasPermission=async()=>false;assert.equal((await configure('super')).status,403);
+});
+test('PostgreSQL instructor access accepts fresh super-admin and denies inconsistent student role',async t=>{
+ const {createPostgresWorkshopRouter}=require('../server/routes/postgresWorkshop');
+ const app=express();app.use(createPostgresWorkshopRouter({stores:{pool:{query:async()=>({rows:[]})},progress:{getVisibleUsersProgress:async()=>[],recordHeartbeat:async()=>{}}},authenticateToken:(req,_res,next)=>{req.user={id:1,role:req.headers['x-role'],admin_level:2};next();},requirePermission:()=>((_req,_res,next)=>next()),resetService:{}}));
+ const server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));t.after(()=>new Promise(resolve=>server.close(resolve)));
+ for(const [role,status]of [['super_admin',200],['admin',200],['student',403]])assert.equal((await fetch(`http://127.0.0.1:${server.address().port}/instructor/students`,{headers:{'x-role':role}})).status,status);
+});
