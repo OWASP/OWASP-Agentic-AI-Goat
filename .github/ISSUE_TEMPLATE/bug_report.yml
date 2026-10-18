@@ -1,0 +1,31 @@
+name: Functional bug
+description: Report a reproducible non-security bug.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: "For undisclosed security or isolation defects, follow SECURITY.md instead of opening a public issue. Remove secrets and personal data."
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include affected route, role, exercise/objective and vulnerable/fixed mode where applicable.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Commit/version, OS/architecture, Node version, installation command and model if relevant. No credentials or database URLs.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitized logs or screenshots
