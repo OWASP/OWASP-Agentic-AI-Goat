@@ -1,0 +1,20 @@
+{
+  "ignore": [
+    "**/*.db",
+    "**/*.db-journal",
+    "**/*.db-wal",
+    "**/*.db-shm",
+    "**/node_modules/**",
+    "client/**",
+    "tests/**",
+    "tasks/**",
+    "docs/**",
+    "terminals/**",
+    "logs/**",
+    "*.log",
+    "server/sensitive_files/**",
+    "server/uploads/**"
+  ],
+  "ext": "js,mjs,cjs,json",
+  "delay": "2500"
+}
