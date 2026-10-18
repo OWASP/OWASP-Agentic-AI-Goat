@@ -1,0 +1,116 @@
+{
+  "name": "dvaia-client",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@fontsource-variable/fraunces": "5.3.0",
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "axios": "1.20.0",
+    "framer-motion": "14.0.0",
+    "lucide-react": "1.52.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-icons": "5.7.0",
+    "react-markdown": "10.1.0",
+    "react-router-dom": "7.18.4",
+    "react-toastify": "11.1.0",
+    "recharts": "3.10.1",
+    "remark-gfm": "4.0.1",
+    "styled-components": "6.5.3"
+  },
+  "devDependencies": {
+    "@swc/core": "1.16.13",
+    "@swc/jest": "0.2.39",
+    "@vitejs/plugin-react": "6.1.2",
+    "identity-obj-proxy": "3.0.0",
+    "jest": "30.5.2",
+    "jest-environment-jsdom": "30.5.2",
+    "undici": "8.11.2",
+    "vite": "8.3.3"
+  },
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build && npm run build:review-renderer && npm run build:product-description-renderer && npm run build:mail-renderer && npm run build:ticket-renderer && npm run build:search-echo-renderer && npm run build:policy-output-renderer",
+    "build:review-renderer": "vite build --config vite.review-renderer.config.mjs",
+    "preview": "vite preview",
+    "test": "jest --runInBand",
+    "test:watch": "jest --watch",
+    "build:product-description-renderer": "vite build --config vite.product-description-renderer.config.mjs",
+    "build:mail-renderer": "vite build --config vite.mail-renderer.config.mjs",
+    "build:ticket-renderer": "vite build --config vite.ticket-renderer.config.mjs",
+    "build:search-echo-renderer": "vite build --config vite.search-echo-renderer.config.mjs",
+    "build:policy-output-renderer": "vite build --config vite.policy-output-renderer.config.mjs"
+  },
+  "jest": {
+    "clearMocks": true,
+    "restoreMocks": true,
+    "testEnvironment": "jsdom",
+    "setupFiles": [
+      "<rootDir>/src/setupTests.js"
+    ],
+    "roots": [
+      "<rootDir>/src"
+    ],
+    "moduleFileExtensions": [
+      "js",
+      "jsx",
+      "mjs",
+      "json"
+    ],
+    "moduleNameMapper": {
+      "\\.(css|less|scss|sass)$": "identity-obj-proxy",
+      "^react-markdown$": "<rootDir>/src/test/reactMarkdownMock.js",
+      "^remark-gfm$": "<rootDir>/src/test/remarkGfmMock.js"
+    },
+    "transform": {
+      "^.+\\.(mjs|[jt]sx?)$": [
+        "@swc/jest",
+        {
+          "jsc": {
+            "target": "es2022",
+            "parser": {
+              "syntax": "ecmascript",
+              "jsx": true
+            },
+            "transform": {
+              "react": {
+                "runtime": "automatic"
+              }
+            }
+          },
+          "module": {
+            "type": "commonjs"
+          }
+        }
+      ]
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.6.0": true,
+    "fsevents@2.3.3": true,
+    "unrs-resolver@1.12.2": true,
+    "@swc/core@1.16.2": true
+  },
+  "overrides": {
+    "@istanbuljs/load-nyc-config": {
+      "js-yaml": "3.15.2"
+    },
+    "anymatch": {
+      "picomatch": "2.3.2"
+    }
+  }
+}
