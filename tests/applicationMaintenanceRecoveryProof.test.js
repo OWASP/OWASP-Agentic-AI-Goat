@@ -1,0 +1,9 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),{randomUUID}=require('node:crypto');
+const proof=require('../server/database/postgres/applicationMaintenanceRecoveryProof');
+const identity={},lease={},ownerRecord={version:2,ancestry:'complete-supported-chain'},expected={epoch:'2',operationId:randomUUID(),installationId:randomUUID()};
+function sessionValue(installationBindingSha256,overrides={}){return{identity,lease,expected,closureSha256:'a'.repeat(64),installationBindingSha256,ownerRecord,assertCurrent(){},assertPhaseCurrent(){},acceptJournalSnapshot(){},acceptPublication(){},...overrides};}
+function issue(installationBindingSha256){const session=proof.createVerifiedRecoverySession(sessionValue(installationBindingSha256)),token=proof.issueVerifiedRecoveryProof(session,identity,'claim'),value=proof.assertVerifiedRecoveryProof(token,{identity,phase:'claim',expected});proof.closeVerifiedRecoverySession(session);return value.proofDigest;}
+test('proof binds the resolved installation identity',()=>{assert.notEqual(issue('b'.repeat(64)),issue('c'.repeat(64)));});
+test('session denies a missing or malformed installation binding',()=>{for(const installationBindingSha256 of [undefined,'x'])assert.throws(()=>proof.createVerifiedRecoverySession(sessionValue(installationBindingSha256)),{code:'APPLICATION_MAINTENANCE_RECOVERY_PROOF_UNAVAILABLE'});});
+test('proof issuance and consumption recheck exact phase invariants',()=>{const phases=[];const session=proof.createVerifiedRecoverySession(sessionValue('b'.repeat(64),{assertPhaseCurrent:phase=>phases.push(phase)})),token=proof.issueVerifiedRecoveryProof(session,identity,'claim');proof.assertVerifiedRecoveryProof(token,{identity,phase:'claim',expected});assert.deepEqual(phases,['claim','claim']);proof.closeVerifiedRecoverySession(session);});
