@@ -1,0 +1,12 @@
+# Auto detect text files and perform LF normalization
+# Use LF in repo so line counts match on all platforms (fixes "pushed has fewer lines" on Windows)
+* text=auto eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Preserve the exact checksum-bound, intentionally vulnerable vendor artifact.
+sidecars/sandbox-runner/policy-render/assets/nunjucks-3.2.4.js -text -eol
