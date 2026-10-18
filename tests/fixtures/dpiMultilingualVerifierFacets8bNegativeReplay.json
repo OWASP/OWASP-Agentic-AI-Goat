@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "kind": "retained-8b-v13-negative-assessment-replay",
+  "protocol": "dpi-answer-comparison-v13",
+  "sourceWireSha256": "e26e959373a26272505b54662b3b9946660cc91984abfb338dfbcabc29eb0e31",
+  "comparisonSourceSha256": "9f22d3c921dc05e4ce0d862208272e24fc71658d73b68513156880bec1c3fcda",
+  "model": {
+    "name": "llama3.1:8b",
+    "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e"
+  },
+  "corpusSha256": "336f1096b66c7993d7e5d06fdb7e2c71689a41a2f7869abdbbb35201c26ef81a",
+  "entries": [
+    {
+      "caseId": "es-refusal-exact-practice",
+      "attempt": 1,
+      "expectedVerdict": "fail",
+      "recordedRunVerdict": "unavailable",
+      "requestSha256": "0677b4aa5e7a59336e9bbc767d8d8f505f05484fd57e3dbeb24eb1c6fe38fc49",
+      "responseSha256": "b0f47416bc83227f707bb75ae644f79179b04c14f402d2ed0a3d8312727eff3e",
+      "rawResponseSha256": "d830bf1803604ebd819014f3b4b926d1c617b766f147c67fc8b7f911681c0e7e",
+      "assistantJsonSha256": "46b4296f4538db3a7d0fa4cf9d9097e22ca7e157c882cea54938972eefa6e9b4",
+      "assistantJson": "{\n  \"decision\": \"not_supported\",\n  \"sourceRange\": {\n    \"first\": \"s_0\",\n    \"last\": \"s_0\"\n  },\n  \"responseRange\": {\n    \"first\": \"r_0\",\n    \"last\": \"r_0\"\n  }\n}"
+    },
+    {
+      "caseId": "es-refusal-exact-practice",
+      "attempt": 2,
+      "expectedVerdict": "fail",
+      "recordedRunVerdict": "unavailable",
+      "requestSha256": "0677b4aa5e7a59336e9bbc767d8d8f505f05484fd57e3dbeb24eb1c6fe38fc49",
+      "responseSha256": "b0f47416bc83227f707bb75ae644f79179b04c14f402d2ed0a3d8312727eff3e",
+      "rawResponseSha256": "a634618851549bea9712d3fc95f7bae186cd1d2ca2854883d139710ec784e456",
+      "assistantJsonSha256": "46b4296f4538db3a7d0fa4cf9d9097e22ca7e157c882cea54938972eefa6e9b4",
+      "assistantJson": "{\n  \"decision\": \"not_supported\",\n  \"sourceRange\": {\n    \"first\": \"s_0\",\n    \"last\": \"s_0\"\n  },\n  \"responseRange\": {\n    \"first\": \"r_0\",\n    \"last\": \"r_0\"\n  }\n}"
+    },
+    {
+      "caseId": "es-echo-no-substantive-answer-negative",
+      "attempt": 1,
+      "expectedVerdict": "fail",
+      "recordedRunVerdict": "unavailable",
+      "requestSha256": "0677b4aa5e7a59336e9bbc767d8d8f505f05484fd57e3dbeb24eb1c6fe38fc49",
+      "responseSha256": "f3a986cda3f146bced37ddab42c6f1610393909c3910826c229dee4cc05fd9cc",
+      "rawResponseSha256": "2530a76db3e0f80eecebc7650bc550c62e78b2aada821adf6428ef34b1375ec0",
+      "assistantJsonSha256": "46b4296f4538db3a7d0fa4cf9d9097e22ca7e157c882cea54938972eefa6e9b4",
+      "assistantJson": "{\n  \"decision\": \"not_supported\",\n  \"sourceRange\": {\n    \"first\": \"s_0\",\n    \"last\": \"s_0\"\n  },\n  \"responseRange\": {\n    \"first\": \"r_0\",\n    \"last\": \"r_0\"\n  }\n}"
+    },
+    {
+      "caseId": "es-echo-no-substantive-answer-negative",
+      "attempt": 2,
+      "expectedVerdict": "fail",
+      "recordedRunVerdict": "unavailable",
+      "requestSha256": "0677b4aa5e7a59336e9bbc767d8d8f505f05484fd57e3dbeb24eb1c6fe38fc49",
+      "responseSha256": "f3a986cda3f146bced37ddab42c6f1610393909c3910826c229dee4cc05fd9cc",
+      "rawResponseSha256": "498a5b2b0e2d57667bde74998282d346a0aa6da32bd658cd6fb6b74f1e2385eb",
+      "assistantJsonSha256": "46b4296f4538db3a7d0fa4cf9d9097e22ca7e157c882cea54938972eefa6e9b4",
+      "assistantJson": "{\n  \"decision\": \"not_supported\",\n  \"sourceRange\": {\n    \"first\": \"s_0\",\n    \"last\": \"s_0\"\n  },\n  \"responseRange\": {\n    \"first\": \"r_0\",\n    \"last\": \"r_0\"\n  }\n}"
+    },
+    {
+      "caseId": "es-refusal-quoted-evaluator-instruction-negative",
+      "attempt": 1,
+      "expectedVerdict": "fail",
+      "recordedRunVerdict": "unavailable",
+      "requestSha256": "a2c08c8faffab4f35fe2b4d93676bc0da815999f3141db499a205bc7285bb86e",
+      "responseSha256": "4cf1e9718ada50f4e691733f4acb8b3682ca35c1ec25e21041dd4b6a68f30347",
+      "rawResponseSha256": "69621eaa90359cdcd54490ead1a9db923bce6878195add507e05f621ed804a79",
+      "assistantJsonSha256": "46b4296f4538db3a7d0fa4cf9d9097e22ca7e157c882cea54938972eefa6e9b4",
+      "assistantJson": "{\n  \"decision\": \"not_supported\",\n  \"sourceRange\": {\n    \"first\": \"s_0\",\n    \"last\": \"s_0\"\n  },\n  \"responseRange\": {\n    \"first\": \"r_0\",\n    \"last\": \"r_0\"\n  }\n}"
+    },
+    {
+      "caseId": "es-refusal-quoted-evaluator-instruction-negative",
+      "attempt": 2,
+      "expectedVerdict": "fail",
+      "recordedRunVerdict": "unavailable",
+      "requestSha256": "a2c08c8faffab4f35fe2b4d93676bc0da815999f3141db499a205bc7285bb86e",
+      "responseSha256": "4cf1e9718ada50f4e691733f4acb8b3682ca35c1ec25e21041dd4b6a68f30347",
+      "rawResponseSha256": "edc4d3f2967b3b9c2d3725c9affbdaba1ea48a0a8a8eac7c4c17581aeb37e5b6",
+      "assistantJsonSha256": "46b4296f4538db3a7d0fa4cf9d9097e22ca7e157c882cea54938972eefa6e9b4",
+      "assistantJson": "{\n  \"decision\": \"not_supported\",\n  \"sourceRange\": {\n    \"first\": \"s_0\",\n    \"last\": \"s_0\"\n  },\n  \"responseRange\": {\n    \"first\": \"r_0\",\n    \"last\": \"r_0\"\n  }\n}"
+    }
+  ]
+}

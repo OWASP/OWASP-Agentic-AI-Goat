@@ -1,0 +1,74 @@
+{
+  "container": "dvaia-ssrf-feasibility-6390174d4150",
+  "image": "sha256:a3d5f773664ac2efc5a5fa3eb281aa697188b759c38681c59eb677aa03be0d43",
+  "exitCode": 0,
+  "stdout": "{\"version\":1,\"productionQualified\":false,\"httpTopologyQualified\":false,\"packagedBoundaryProbePassed\":true,\"prototypeChanges\":[\"namespace uid/gid0 avoids devpts second userns\",\"namespaced NET_ADMIN and SETPCAP\",\"proc-free ioctl/netlink/prctl attestation\"],\"status\":\"partial-prototype-pass\",\"exitCode\":0,\"stdout\":\"{\\\"prototypeOnly\\\":true,\\\"rawUrlSocketPassed\\\":true,\\\"zeroFinalCapabilities\\\":true,\\\"noDefaultRoute\\\":true,\\\"interfaces\\\":[\\\"lo\\\"],\\\"negativeDestinations\\\":5,\\\"joinedServer\\\":true,\\\"metadataPort80Qualified\\\":false}\\n\",\"stderr\":\"setup_cap_words=4352,4352,4352,0,0,0\\n\",\"modelCalls\":0,\"metadataPort80Qualified\":false}\n",
+  "stderr": "",
+  "containerAbsent": true,
+  "scope": "Partial proc-free internal-address feasibility only; not production, objective or complete HTTP-topology qualification.",
+  "priorAttempts": [
+    {
+      "stage": "private proc mount",
+      "result": "EPERM"
+    },
+    {
+      "stage": "network address ioctl from second userns",
+      "result": "EPERM with retained NET_ADMIN+SETPCAP"
+    }
+  ],
+  "sourceSha256": {
+    "mcpOwnedSsrfFeasibilityGate.cjs": "84878d5bd97d7d93ea0856a85c254e9b21fbbe8e14e42eb372a474abeca12db7",
+    "mcpOwnedSsrfNamespaceSetup.pl": "1289b8369f556f97913259f5c0f48e2762a96ba5207e9e9daea7bb19c9cb54b0",
+    "mcpOwnedSsrfNamespaceWorker.pl": "816e6baab067976b2fdd65c5a90b1bbff1b9aa91697d28558817124f08b579d6"
+  },
+  "profile": {
+    "installedFileMatchesRenderedTemplate": true,
+    "sha256": "c3cd8e253e789d459705ab7d31d822cbd6b6d12cbd0a02d562d9af22645ba2d0",
+    "loadedProfilesEnforcing": [
+      "dvaia-mcp-sandbox",
+      "dvaia-mcp-sandbox//bwrap"
+    ],
+    "kernelCompiledPolicyHashCompared": false
+  },
+  "diagnosis": {
+    "bubblewrapVersion": "0.12.0",
+    "source": "https://github.com/containers/bubblewrap/blob/v0.12.0/bubblewrap.c",
+    "cause": "--dev requires devpts uid0 mapping; restoring nonzero uid creates a second user namespace whose capabilities do not authorize changes to the parent-owned network namespace.",
+    "prototypeFix": "Use uid0/gid0 inside the initial user namespace; supervisor remains outer uid10001. Drop all capability sets and set no_new_privs before exec final worker.",
+    "outerSeccomp": "unconfined, matching existing owned-runner contract; packaged inner filter retained",
+    "innerIoctlDenied": false
+  },
+  "limitations": [
+    "Single synthetic internal address on port8080 only.",
+    "Port80 metadata setup, hosts resolution, redirects and fixed-mode policy not tested.",
+    "Five TCP denial probes are not a complete UDP/DNS/IPv6 egress qualification.",
+    "No production helper provenance, durable ownership receipts, reset/replay or model/Judge qualification.",
+    "No profiles, services, production code or deployment configuration changed."
+  ],
+  "historicalAttemptEvidence": [
+    {
+      "historicalSha256": "6b08ef0b9a0cdc49c0918e14156112c33ddf918811822a1de3059f7d41b45add",
+      "purpose": "Preserved failed private-proc feasibility attempt; not production, model, objective or HTTP topology qualification",
+      "record": {
+        "container": "dvaia-ssrf-feasibility-0db344f0a142",
+        "image": "sha256:a3d5f773664ac2efc5a5fa3eb281aa697188b759c38681c59eb677aa03be0d43",
+        "exitCode": 0,
+        "stdout": "{\"version\":1,\"productionQualified\":false,\"httpTopologyQualified\":false,\"packagedBoundaryProbePassed\":true,\"prototypeChanges\":[\"namespaced NET_ADMIN and SETPCAP\",\"namespace-private proc mount\"],\"status\":\"prototype-failed\",\"exitCode\":1,\"stdout\":\"\",\"stderr\":\"bwrap: Can't mount proc on /proc: Operation not permitted\\n\",\"modelCalls\":0,\"metadataPort80Qualified\":false}\n",
+        "stderr": "",
+        "containerAbsent": true,
+        "scope": "Conditional feasibility prototype only; HTTP worker was not executed.",
+        "sourceSha256": {
+          "mcpOwnedSsrfFeasibilityGate.cjs": "662755f3d8d78856a616f4c4c3da1a9b0ff74ada2dce58841430ffd9df3b8d57",
+          "mcpOwnedSsrfNamespaceSetup.pl": "44135b6d7da68ff7129ffecf05e6a0755d5502d9ef51adb31d57f3dc969f7a03",
+          "mcpOwnedSsrfNamespaceWorker.cjs": "88a0da79496a7e0049cf50c9b1ff8e3c26d592b0811edab144e730732c9a3797"
+        },
+        "limitations": [
+          "Existing packaged namespace/seccomp probe passed before prototype attempt.",
+          "Private proc mount rejected before address setup, capability drop or HTTP operations.",
+          "No raw URL HTTP, no-egress, zero-worker-capability or port80 qualification claimed.",
+          "No production files, profiles, services or deployment configuration modified."
+        ]
+      }
+    }
+  ]
+}

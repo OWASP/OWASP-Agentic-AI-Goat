@@ -1,0 +1,11 @@
+'use strict';
+const http=require('node:http'),path=require('node:path'),express=require('express');
+const gate=require('../../server/middleware/eventGate'),{createTrackRequestCompletion}=require('../../server/middleware/trackRequestCompletion');
+const monitorPath=require.resolve('../../server/middleware/performanceMonitor'),authPath=require.resolve('../../server/routes/auth'),postgresAuthPath=require.resolve('../../server/routes/postgresAuth'),ollamaPath=require.resolve('../../server/services/ollamaService');
+const monitor={systemStats:{activeConnections:0},recordMetrics(){},getSystemStats(){return{activeConnections:this.systemStats.activeConnections};}};
+const busy=process.env.OWNED_MAINTENANCE_BUSY==='true';
+require.cache[monitorPath]={id:monitorPath,filename:monitorPath,loaded:true,exports:monitor};
+if(process.env.OWNED_LEGACY_AUTH==='true'){const legacy=require('./legacyRamRagMaintenanceAuth');require.cache[authPath]={id:authPath,filename:authPath,loaded:true,exports:legacy.createLegacyRouter()};require.cache[postgresAuthPath]={id:postgresAuthPath,filename:postgresAuthPath,loaded:true,exports:{createPostgresAuthRouter:legacy.createPostgresAuthRouter}};}else require.cache[authPath]={id:authPath,filename:authPath,loaded:true,exports:{loginRuntimeSnapshot:()=>({admission:{active:0,queued:0},passwords:{active:0,queued:0,quarantined:0}})}};
+require.cache[ollamaPath]={id:ollamaPath,filename:ollamaPath,loaded:true,exports:{scheduler:{snapshot:()=>({active:busy?1:0,queued:0})}}};
+const app=express();app.use(createTrackRequestCompletion(monitor));app.use(gate.eventGate);app.get('/api/monitoring/performance',(req,res)=>res.json({ok:true}));app.get('/api/monitoring/health',(req,res)=>res.json({status:'healthy',system:{activeConnections:monitor.systemStats.activeConnections},ollama:{concurrent_requests:busy?1:0,queue_length:0}}));
+const port=Number(process.env.OWNED_HEALTH_PORT),server=http.createServer(app);server.listen(port,'127.0.0.1',()=>process.send?.({type:'ready'}));process.on('message',message=>{if(message==='stop')server.close(()=>process.exit(0));});setInterval(()=>{},1000).unref();

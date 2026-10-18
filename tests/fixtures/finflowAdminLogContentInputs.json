@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "profile": "controlled-admin-log-content",
+  "objectives": [
+    "admin_read_logs",
+    "admin_llm_logs"
+  ]
+}
