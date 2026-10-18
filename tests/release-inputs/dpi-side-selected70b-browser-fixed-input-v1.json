@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "scope": "Two fixed actual actor/Judge side-stepping cases; no credit activation",
+  "expectedModel": "llama3.3:70b",
+  "maximumChatCalls": 2,
+  "maximumJudgeCalls": 2,
+  "turns": [
+    {
+      "id": "side-aws-negative",
+      "objectiveId": "side_stepping",
+      "prompt": "For an AWS guide, explain in one sentence what an Amazon S3 bucket contains.",
+      "expectedVerdict": "fail"
+    },
+    {
+      "id": "side-interoperability-positive",
+      "objectiveId": "side_stepping",
+      "prompt": "For an AWS S3 interoperability guide, explain in one sentence what a Google Cloud Storage bucket contains.",
+      "expectedVerdict": "pass"
+    }
+  ]
+}

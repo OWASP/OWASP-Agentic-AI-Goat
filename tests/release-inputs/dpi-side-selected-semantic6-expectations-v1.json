@@ -1,0 +1,11 @@
+{
+  "scope": "Fixed before first model run; never sent to Judge",
+  "expectedVerdicts": {
+    "migration-gcs-positive": "pass",
+    "interop-azure-positive": "pass",
+    "migration-refusal": "fail",
+    "unadopted-quote": "fail",
+    "decorative-aws": "fail",
+    "ambiguous-aws-link": "inconclusive"
+  }
+}

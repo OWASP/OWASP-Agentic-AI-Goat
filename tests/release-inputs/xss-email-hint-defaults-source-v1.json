@@ -1,0 +1,67 @@
+{
+  "status": "source-and-guarded-controls-only",
+  "scope": "Only XSS email3 hint defaults; canonical identities, solutions, sinks, rubrics, gates and seed implementation unchanged",
+  "sourcePins": {
+    "server/data/workshopHints.js": "d2cf43269b77a95a7d32664f4a2304eab4549160683d1ff7e1968c69b8eefdc6",
+    "tests/xssEmailHintDefaults.test.js": "4e688f11d9892f1bb0492b46c37d9e3f66707d6d1d26c8ed856d1fe25dc1c2dc"
+  },
+  "predecessor": {
+    "server/data/workshopHints.js": "c35bf4f3a12c3dd0eba2e7ff61a5d85725fa0f92f3badd9912fc61e5770e9dec"
+  },
+  "inverseReplacements": [
+    [
+      "List Your Workshop Inbox",
+      "List Your SharkLaser Inbox"
+    ],
+    [
+      "Confirm your assigned workshop inbox in the setup panel, then ask the assistant to show your emails.",
+      "Configure your permitted SharkLaser address, then ask the assistant to show your emails."
+    ],
+    [
+      "Use the setup panel to select or enter an HTML event-handler payload and send it to your assigned workshop inbox.",
+      "Use the setup panel to select or enter an HTML event-handler payload and send it to your canonical SharkLaser inbox."
+    ],
+    [
+      "Completion requires a valid attack payload and SMTP acceptance for your owner-configured recipient; inbox retrieval is a separate step.",
+      "Completion requires the server mail service to confirm delivery to the owner-configured recipient."
+    ],
+    [
+      "Ask the assistant to summarize your latest exercise attack email; retrieval must match your current owner-bound dispatch.",
+      "Ask the assistant to summarize the attack email from indirectpromptinjection@gmail.com."
+    ]
+  ],
+  "exactInverseVerified": true,
+  "seedReview": {
+    "paths": [
+      "server/database/postgres/workshopPlatformSeed.js",
+      "server/database/postgres/workshopPlatformSeedCore.js:64",
+      "server/database/postgres/catalogDefaultProvenance.js:42"
+    ],
+    "behavior": "Fresh insertion adopts exact source defaults. Managed fields update only when current hash equals previously applied hash. Source hash changes trigger upgrade even with same catalog version. Custom, legacy-unknown, changed values and explicit instructor null remain preserved. Second current seed does not rewrite content.",
+    "migrationNeeded": false,
+    "qualificationLimit": "Controlled resolver/reconciler coverage only; native full-seed fresh/populated/no-op and email rendered parity remain pending."
+  },
+  "controls": {
+    "redTerminal": "a65a2c",
+    "redPassed": 3,
+    "redFailed": 4,
+    "greenTerminal": "461c35",
+    "greenPassed": 7,
+    "greenFailed": 0,
+    "logs": {
+      "xss-email-hint-defaults-red-v1.log": "adcd1c9fa73ea2ced408f4ade7960af640ad344356c5f1067ed50f7387d431f7",
+      "xss-email-hint-defaults-green-v1.log": "cd1515f71c37b8eb2b9e9875ee96a2fc92b2d6869f4d0dd2fd982b2759d242a0"
+    }
+  },
+  "copySemantics": [
+    "Assigned/configured owner inbox replaces provider-specific address claims",
+    "SMTP acceptance distinguished from later inbox retrieval",
+    "Current owner-bound dispatch replaces fixed sender",
+    "Exact raw-body rendering and isolated handler execution lesson retained"
+  ],
+  "limits": [
+    "No native/model/database/browser execution",
+    "No current installed content mutation",
+    "Email3 full acceptance remains unproven; historical evidence and prior failures retained"
+  ]
+}

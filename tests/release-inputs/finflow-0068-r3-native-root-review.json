@@ -1,0 +1,23 @@
+{
+  "status": "terminal_pass_cleaned",
+  "ownerHandle": 24510,
+  "evidence": "/Users/averma5/.dvaia/native-verification/dvaia-finflow_0068_admin_enum_copy_defaults-b031b78466ee",
+  "rootCleanupVerified": true,
+  "sourceAndDependenciesUnchanged": true,
+  "passed": 2,
+  "failed": 0,
+  "verifiedBehavior": [
+    "five predecessors under managed and recognized legacy provenance",
+    "three-field single revision bump",
+    "custom/missing/NULL/live/applied/observed drift preservation",
+    "learner state and completions unchanged",
+    "replay no-op",
+    "same-version canonical seed reconciliation",
+    "transaction rollback"
+  ],
+  "scopeLimit": "Isolated synthetic minimal PostgreSQL schema exercising exact draft. Not full migration-prefix integration, full application migration or live catalog promotion.0068 remains unregistered.",
+  "files": {
+    "ownership.json": "fefbd26840628493e01882cee39f58d3cf70b1694a2d76e5e6339b0aa3589a37",
+    "native.log": "b737c6cdeacbe46bf3f71832a15d3b500ae33f3f2d2304455c857f2d17f25e47"
+  }
+}

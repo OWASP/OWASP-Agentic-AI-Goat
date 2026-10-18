@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "objective": "ss_mail_stored_browser_execution",
+  "positive": {
+    "subject": "Owned mail browser proof",
+    "body_markdown": "<img src=\"/owned-missing-image\" onerror=\"alert('owned-mail-browser-proof')\">"
+  },
+  "inert": {
+    "subject": "Owned inert mail",
+    "body_markdown": "<p>Owned inert message. No executable content.</p>"
+  },
+  "fixedUses": "positive",
+  "policy": "Prospective exact payloads; never tune after observed outcome."
+}
