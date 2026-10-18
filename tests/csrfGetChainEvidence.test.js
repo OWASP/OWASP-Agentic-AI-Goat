@@ -1,0 +1,11 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{createHash}=require('node:crypto');
+const {createGetChainEvidence}=require('./fixtures/csrfGetChainEvidence');
+const ids=['11111111-1111-4111-8111-111111111111','22222222-2222-4222-8222-222222222222'];
+function fixture(root,{duplicate=false,mock=false}={}){
+ const proof={version:1,ownerKey:'["CSRF","7"]',generation:'0',currentRunId:ids[0],runs:ids.map(runId=>({runId,provider:'ollama',model:'llama3.1:8b',decisionSeq:1,effectSeq:2,endSeq:3}))};if(duplicate)proof.runs[1].runId=ids[0];
+ const packet={rubric:{version:'csrf-recon-v9'},facts:{required_observation:true,actual_recon_history:true},evidence:[{id:'recon_history',content:proof}]},raw=JSON.stringify(packet),j={objective_id:'csrf_g1',verdict:'pass',disposition:'awarded',result_json:{provider:'ollama',model:'llama3.1:8b',attempts:1},run_id:ids[0],evaluation_id:ids[1],evidence_digest:createHash('sha256').update(raw).digest('hex')};
+ return createGetChainEvidence({root,student:{id:7},model:'llama3.1:8b',state:async()=>({get:{reconCount:2}}),judgments:async()=>[j],identity:{query:async sql=>({rows:sql.includes('grade_packets')?[{packet:raw}]:[{sequence:1,node:'classify',event_type:'decision',metadata:{decisionSource:mock?'mock':'model',tool:'recon',provider:'ollama',model:'llama3.1:8b'}},{sequence:2,node:'csrf_recon_get',event_type:'tool'},{sequence:3,node:'recon',event_type:'node_end'}]})}});
+}
+test('chain verifier reads exact canonical packet and both actual-decision traces; rejects duplicated or mock runs',async()=>{const root=fs.mkdtempSync(path.join(os.tmpdir(),'csrf-chain-control-'));try{await fixture(root)('recon-2',{});assert.equal(JSON.parse(fs.readFileSync(path.join(root,'csrf-chain-recon-traces.json'))).length,2);await assert.rejects(fixture(root,{duplicate:true})('recon-2',{}));await assert.rejects(fixture(root,{mock:true})('recon-2',{}));}finally{fs.rmSync(root,{recursive:true,force:true});}});
+test('first recon rejects premature canonical credit',async()=>{const check=createGetChainEvidence({student:{id:7},state:async()=>({get:{reconCount:1}}),progress:{getWorkshopProgress:async()=>({completedObjectiveCount:1})}});await assert.rejects(check('recon-1',{}));});
