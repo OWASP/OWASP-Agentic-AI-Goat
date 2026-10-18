@@ -1,0 +1,9 @@
+'use strict';
+const express=require('express'),assert=require('node:assert/strict');
+module.exports=async function createHttpHarness({composition,launches,auth,nativeFetch,signal}){
+ const unavailable=async()=>{throw Error('Unrelated native gateway capability unavailable');},methods=names=>Object.fromEntries(names.map(name=>[name,unavailable]));
+ const router=require('../../server/routes/secureshop/boundGateway').createSecureShopBoundGateway({launches,authenticatePersona:auth.authenticatePersona,personaAuth:auth,reviewsRouter:express.Router(),browserRouter:express.Router(),analyticsRouter:composition.router,
+ catalog:methods(['listProducts','getProduct','listMerchantProducts','createMerchantProduct','updateMerchantProduct','archiveMerchantProduct','categories']),commerce:methods(['cart','add','update','remove','summary','checkout','orders','order']),account:methods(['profile','updateProfile','addresses','createAddress','updateAddress','deleteAddress'])});
+ const app=express();app.use(express.json());app.use('/bound',router);const server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));const origin='http://127.0.0.1:'+server.address().port;
+ return {async request({bearer,token},suffix,{method='GET',body}={}){const url=origin+'/bound/merchant/analytics'+suffix;assert.equal(new URL(url).origin,origin);const response=await nativeFetch(url,{method,headers:{'x-dvaia-secureshop-launch':bearer,authorization:'Bearer '+token,...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.any([signal,AbortSignal.timeout(300000)])});return {status:response.status,body:await response.json()};},close(){server.closeAllConnections();return new Promise((resolve,reject)=>server.close(error=>error?reject(error):resolve()));}};
+};
