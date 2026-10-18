@@ -1,0 +1,167 @@
+{
+  "candidateOnly": true,
+  "cohort": "listings-package",
+  "error": null,
+  "frozenFileCount": 25,
+  "frozenHashesVerified": true,
+  "imageId": "sha256:b66387d71e82a839271d065c6218b481d30d3dd07a493f8542baf2a80cdaa498",
+  "modelCalls": 0,
+  "ownedProcesses": {
+    "build": {
+      "pgid": 98755,
+      "pid": 98755
+    },
+    "fresh": {
+      "pgid": 98979,
+      "pid": 98979
+    },
+    "restart": {
+      "pgid": 99154,
+      "pid": 99154
+    }
+  },
+  "postPackage": null,
+  "reportedCleanup": {
+    "buildPgidAbsent": true,
+    "containerAbsent": true,
+    "errors": [],
+    "freshPgidAbsent": true,
+    "imageAbsent": true,
+    "profileAbsent": true,
+    "restartPgidAbsent": true,
+    "volumeAbsent": true
+  },
+  "restartResult": {
+    "checks": [
+      "real-supplier-prototype-effect",
+      "fixed-prototype-no-effect",
+      "internal-prototype-route-denial",
+      "real-json",
+      "internal-ssrf",
+      "fixed-denial",
+      "real-file-entity",
+      "real-http-entity",
+      "external-host-denial",
+      "restart-no-refetch",
+      "timeout-child-cleanup",
+      "readonly-write-denial",
+      "authenticated-http",
+      "retirement-redaction-sibling"
+    ],
+    "existingReceipt": true,
+    "modelCalls": 0,
+    "runtimeDigest": "43a619874d7729199f23a25e20fd59136ec9219091ddfcb8883ed841aec47743",
+    "status": "passed"
+  },
+  "result": {
+    "checks": [
+      "real-supplier-prototype-effect",
+      "fixed-prototype-no-effect",
+      "internal-prototype-route-denial",
+      "real-json",
+      "internal-ssrf",
+      "fixed-denial",
+      "real-file-entity",
+      "real-http-entity",
+      "external-host-denial",
+      "restart-no-refetch",
+      "timeout-child-cleanup",
+      "readonly-write-denial",
+      "authenticated-http",
+      "retirement-redaction-sibling"
+    ],
+    "existingReceipt": false,
+    "modelCalls": 0,
+    "runtimeDigest": "43a619874d7729199f23a25e20fd59136ec9219091ddfcb8883ed841aec47743",
+    "status": "passed"
+  },
+  "source": {
+    "buildx": {
+      "path": "/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker-buildx",
+      "sha256": "591a852237e8ed2b8c65f6be8105ef8c2d1ec52edc77c8acf8f263c2240ef4d6"
+    },
+    "docker": "95fab203ab36bd2b4f3cd8a1d0dc6d084252f2ec224dc76bfbaebe1540cdd15e",
+    "drivers": {
+      "node_modules/dotenv/dist/index.cjs": "40bc5b3df4b4c38129f23ebdc09dd50baff0b875acabe60fe3ee6099299f15fd",
+      "scripts/application-data-root.js": "daf1657adfb1d86c96e183d0ec569f5bd063d8b58f4c916ebe3084036272794b",
+      "scripts/install/mcp-owned-local.js": "764147cc1f7da7621df98d8b797977c5b9aca3a5d7937a1f347de46c4659b9d4",
+      "scripts/install/secureshop-owned-listings-provision.js": "ed1afca27b67e66f4ae2aaea1f11bf3f1755616fdb2479c538a0a3d0cbc9a3c8",
+      "scripts/install/secureshop-owned-listings-qualified-candidate.js": "d1b84ddab97cdbc2e35120e95cbcaa40efb93e0275f3cf40c0e4fc1c3760a832",
+      "scripts/install/secureshop-owned-listings.js": "74b9cea41b8864e610982ebf6169f0f8e921edd80093f32ad2da594c83da98f4",
+      "scripts/install/secureshop-owned-system-provision.js": "c4b006866336009fbc50bee90efcfd0ddc4a3602e963ac0bbbdc9ae5b3562cd9",
+      "scripts/install/secureshop-owned-system.js": "18f8441fd6f236e7242bb70e13cae7b6aed105800833819abc4cd1ca6576cc36",
+      "scripts/lib/windows-private-publication.js": "ea25c3e7b972f266509bcbfe2f2e94e648ade36312150eb7e3859e34286d122b",
+      "scripts/lib/windows-private-state.js": "a6d87f3612819e7d3de8e9e43ae8e4a73ee26773e3c6e587754b72d569704cbd",
+      "scripts/lib/windows-provisioning-journal.js": "685bd7e68f5cae4be7fd66d70105a5041371274b275d450dcfee2798907b47f3",
+      "scripts/local-docker-authority.js": "b15daa51775a5d6d300d5b80ce616709c01f5f22b8a105fbd154e531becc49b9",
+      "scripts/render-mcp-sandbox-apparmor.js": "f4d0fa626c2b9211e917b3552642e1b46e3473e905028dbd5457a9ff4e2d8d5e",
+      "server/services/mcp/ownedManagedConfiguration.js": "6988069246e453dd7d57687317c82bcde12233dfcce0367db73dbb8c994d1efb",
+      "server/services/platformSigningConfiguration.js": "134388f89562def65b550f82665b4a4e1e669053549f4b253427cbb18efd0b6d",
+      "server/services/secureshopConversationBinding.js": "b9e32cd6bba6487e4b923e02ce5142810c344ec2b340238cb2a7fa05063251ed",
+      "server/services/secureshopListingJournalContract.js": "ed4b3af371028b4b0be9c178f00298e35ce83ef1c864fe43667130d00e338d3f",
+      "server/services/secureshopListingRequestContract.js": "9895c0aee6dc1f17cad0066f2b2ea8002ff6b7292b96e4840b9ec7a9eddfa0c9",
+      "server/services/secureshopListingsManagedConfiguration.js": "c4171466eec0b19b48d3fca8606daa59048873c0afa3e10eff492528f5d2be63",
+      "server/services/secureshopListingsTargetManager.js": "7ea4dbe232cd9e9f0c20818f93b10d90d80456b5097b112501e50e93905d1e73",
+      "server/services/secureshopOwnedListingsClient.js": "fbeba9aa0faacc36f0dfd7c6c2964b76016ba44299645bc16421fb36d550e995",
+      "server/services/secureshopPasswordResetKeys.js": "d41defa19e5b74c96444127e53f965bc8079cf1d50cef0feadb56362a592d2e2",
+      "server/services/secureshopSceneBinding.js": "84e618179b8399d3ebe75324ac572c9535cc6715d6ac0d60842ffb5c778636cd",
+      "server/services/secureshopSystemConfigClient.js": "d010475eb8433635c4212851bc6d23d0994f1ff8aad54e83716828385b642ae3",
+      "server/services/secureshopSystemDiagnosticClient.js": "c9898826460763dfc5a37043e3b60490ecd136565afae21f26575b4a07df0def",
+      "server/services/secureshopSystemManagedConfiguration.js": "3497d14adb240ace03b834e12c20b20d27b479c81c69bfdc34b0f51aad0ebd50",
+      "server/services/secureshopSystemRestartClient.js": "887258df35d052745a67bee9ab42b1e397cedef9fe73cd47ea77dbc6bbde51e8",
+      "server/services/secureshopSystemRestartContract.js": "61abbe1f19ef6ac96d3fb9f4a5b7b474dbea0ef447927feafc0a9547c70fffb5",
+      "sidecars/sandbox-runner/owned-system/contract.js": "f197254bc1c683989737ba819ac1c2e79f0262b57dc963439013c3cfb14923e9",
+      "sidecars/sandbox-runner/owned-system/diagnostic-contract.js": "c13a107ee6476b3f9cea8e266ca002b23bf7ceedf1751de3ef7e228b07a60cd9",
+      "sidecars/sandbox-runner/owned-system/diagnostic-result.js": "6d90dfa12408d2fef7f257fa00337e05ebe205ecaaa9c151cf48455249d82311",
+      "sidecars/sandbox-runner/owned-system/diagnostic-wire.js": "c9548dbb6aa768d9ca19c222af3cf8304c743c043c0b3a783f123adbef6e51e7",
+      "sidecars/sandbox-runner/owned-system/health-contract.js": "8f539aab47b4f7f6231a7b240b98ce5e12c11886aa09051ec17719e456bc825e",
+      "sidecars/sandbox-runner/owned-system/receipt.js": "a68c0a32eac22b80d04b2d8f199dcac927d50975392ccc5237e21e2094144124",
+      "sidecars/sandbox-runner/owned-system/restart-contract.js": "61abbe1f19ef6ac96d3fb9f4a5b7b474dbea0ef447927feafc0a9547c70fffb5",
+      "sidecars/sandbox-runner/owned-system/restart-wire.js": "90cdf49371051228e344b62327a7116910115d158fdd647222f0c9d8e1daa0cc",
+      "tests/postgres/admin_browser_current_main_admission.py": "419feb044bc76bcbc09e44b1a7b9267fcad79b857db9d37437c2342f975395fd",
+      "tests/postgres/listings_native_resources.py": "92b9ca4e6c818ddd47f7a984436bda5a85869ee49a0bfb987d6c3097fba613b0",
+      "tests/postgres/listings_package_candidate.py": "52febf678834cb8b128e23bf160a5566fddcda9d022c7918898b5ee2356d4c0c",
+      "tests/postgres/run-secureshop-agent-host-transport-main.py": "76fd6aa89ebc4f0e6e88996fb441f8c6bcf848ff4b0583959db34378e914186a",
+      "tests/postgres/sql_nosql_docker_ownership.py": "0a89d9d736b9e76a55f0400c46d343c17d2ff254269f8946b21d9d2a2ee5021f"
+    },
+    "node": "56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861",
+    "package": {
+      "files": {
+        "server/services/secureshopListingRequestContract.js": "9895c0aee6dc1f17cad0066f2b2ea8002ff6b7292b96e4840b9ec7a9eddfa0c9",
+        "sidecars/sandbox-runner/mcpSeccompFilter.c": "3af63bd90352b47b23e386c71175f83317fd61e7a2d7a7dc8c2dd784d30ca20d",
+        "sidecars/sandbox-runner/owned-http/namespace-init.c": "104f1a9879672022f56b15e597af11adc35c602bb79c48d168c71e8c6f0140df",
+        "sidecars/sandbox-runner/owned-listings/Dockerfile.candidate": "dbcbccff4888ac554e960f0fc3c713c54bc5f3b7edc098f8a8dda6fe8d904a03",
+        "sidecars/sandbox-runner/owned-listings/README.candidate.md": "b76b2455c8b059dcf44ffbb7cce817083b0a0810471a4dfd1ff1ffaecf95ad9a",
+        "sidecars/sandbox-runner/owned-listings/buildAssets.js": "398456c7f91e9d2db91d6bd901fbc10cf0c9e0cf98a2d64af0039367eeeb219b",
+        "sidecars/sandbox-runner/owned-listings/http-listener.js": "c8b161bd0d891f26b30d38b519a235cf474cc4b5446590514f3bb452ca769072",
+        "sidecars/sandbox-runner/owned-listings/import-executor.js": "e04593563bb780fc51155dfbf0eb81558657612c7e4a788542f822f3fdd2adaf",
+        "sidecars/sandbox-runner/owned-listings/json-worker.js": "582f0e19439e783934342dc53e8f2f02a3a5a46d3717a7cb6cd96f857743b17b",
+        "sidecars/sandbox-runner/owned-listings/manager-entry.js": "1a46b8c876bd7fb64adc9d232ace15b236068f7dc5cca07e340423dee54693b2",
+        "sidecars/sandbox-runner/owned-listings/manager-http.js": "5c0f310f643b42e26be0dfbe5074668f4753cef3d3f3a4f4f4fc39c6aa8f5375",
+        "sidecars/sandbox-runner/owned-listings/namespace-executor.js": "7f4f14a7099d15a3cb4781d485415e70c66da3bd63f904766c2c113093e7f885",
+        "sidecars/sandbox-runner/owned-listings/namespace-worker.js": "de3fdeaae4aa6945200fa7dd5983abbc8b1a81e912925de8a3bcc95a15f73ff5",
+        "sidecars/sandbox-runner/owned-listings/network-manifest.json": "6d78960ff742064c91fdd6cd7017a7948b65cc6b749aaa3c6954381ac6770ba7",
+        "sidecars/sandbox-runner/owned-listings/operation-executor.js": "a16f5dc0b4b03771a830746518af3d0ae091f45d54b3bbc7902d8095ad0fabde",
+        "sidecars/sandbox-runner/owned-listings/profile.apparmor.in": "89d2b2194d05f55b86bc3bb0582365f707a9de7aa090a8f2eecfa9f2ca937a25",
+        "sidecars/sandbox-runner/owned-listings/resource-reader.js": "6dd3427420fc1515ebf613f9d391422cc5793c8c36345458a503728d07e75fec",
+        "sidecars/sandbox-runner/owned-listings/target-manager.js": "1ac5e00d8a817146e52d9bc725116a43d1ad3ebf8e72268c6b824ae6e1cb70bd",
+        "sidecars/sandbox-runner/owned-listings/teaching-http.js": "711d0036563dd758066b1e469a66d4504d2404da44f39c0bc013afa8167d0be6",
+        "sidecars/sandbox-runner/owned-listings/xml-parser.js": "7cdbbc9b5dd01fdbf413567da3335ecf43c95fd48924665b7fe0e471f64e03cf",
+        "sidecars/sandbox-runner/owned-mcp-registry/package-lock.json": "9cc260a6311211f57d78282ff233b0145ec1a45bc26a0b1eb5de2179a2ba5488",
+        "sidecars/sandbox-runner/owned-mcp-registry/package.json": "df9d7b0a569cfe6e46ee4fd5bca785f7d48f82fbd6b629da1dfed28782c30126",
+        "sidecars/sandbox-runner/owned-mcp-registry/process-supervisor.c": "b40a79585aa08895d39249bbaf623376bd75027763b0204aeb42b71273f5ea68",
+        "tests/fixtures/secureshopListingsSharedManager.native.cjs": "3dd73e99af613b05417d0b0bcbcf5fc9a87d722351074dea4012334dd9a71b9c",
+        "tests/fixtures/secureshopOwnedListingsPackaged.native.cjs": "330dcc02859aa7c6df48e73b0b521f98c32bd537a981a6cce03f51dcd5090087"
+      },
+      "sha256": "5e1c00c1331d39719d1281c96a33abbbd58556483baef707de9544fd91765e96"
+    }
+  },
+  "sourceCopy": false,
+  "sourceRoot": "/Users/averma5/Documents/github/Damn-Vulnerable-AI-Application",
+  "status": "passed",
+  "unusedResources": {
+    "buildCa": "not-used",
+    "remote": "not-used"
+  },
+  "version": 2
+}

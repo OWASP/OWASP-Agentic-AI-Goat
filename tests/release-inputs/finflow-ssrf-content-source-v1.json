@@ -1,0 +1,89 @@
+{
+  "scope": "SSRF3 teaching content aligned with exact-target and observed-response grading; no other lesson text changed",
+  "files": {
+    "server/data/sensitiveInfoSolutions.js": {
+      "beforeSha256": "72686b2507cd4aea7e2e194553b871b0b2baa3abac60cb027bc8ab37983eded2",
+      "afterSha256": "efc8a95b8d3bd503c21397c892414b390e8e5b9518bb3096cdb8cfab028933e5",
+      "replacements": [
+        {
+          "before": "Even if you get a connection error back, the request was sent \u2014 check your OOB listener.",
+          "after": "A connection error does not prove delivery. Inspect your listener; automatic completion requires an observed HTTP response."
+        },
+        {
+          "before": "This is a real blind SSRF \u2014 even if ARIA says \"connection error\", your OOB listener will have received the request",
+          "after": "An attempted request may fail before reaching your listener. An error alone cannot establish completion."
+        },
+        {
+          "before": "Local: the app runs on localhost:8081 \u2014 try http://localhost:8081/api/monitoring/health",
+          "after": "Use the exact internal-health URL shown for the active deployment; the default is http://localhost:8081/api/monitoring/health."
+        },
+        {
+          "before": "AWS (Bedrock): the AI inference endpoint is https://bedrock-runtime.us-west-2.amazonaws.com",
+          "after": "With Bedrock configured, use the runtime endpoint in the displayed active region; us-west-2 is only an example."
+        },
+        {
+          "before": "Use check_credit_score with either URL as api_endpoint \u2014 the server makes a real HTTP request to it.",
+          "after": "Use check_credit_score with the exact displayed URL as api_endpoint. A returned HTTP response establishes reachability; a timeout does not."
+        },
+        {
+          "before": "Step 1: Identify the environment \u2014 local uses localhost:8081, AWS uses bedrock-runtime.us-west-2.amazonaws.com. Step 2: Ask ARIA to check your credit score using that URL. Step 3: The server makes a real server-side HTTP request. Step 4: The response confirms SSRF and reveals internal infrastructure.",
+          "after": "Step 1: Read the exact internal target shown by the active deployment. Step 2: Ask ARIA to check your credit score using that URL. Step 3: Inspect the returned HTTP response. Wrong-region URLs, lookalike hostnames and target names embedded in a query do not satisfy this objective."
+        },
+        {
+          "before": "Local: Ollama exposes an API on localhost:11434 \u2014 try http://localhost:11434/api/tags",
+          "after": "Use the exact model-catalog URL displayed for this installation; local Ollama normally exposes http://localhost:11434/api/tags."
+        },
+        {
+          "before": "AWS (Bedrock): use https://bedrock.us-west-2.amazonaws.com/foundation-models to list models",
+          "after": "With Bedrock configured, use the displayed foundation-models endpoint in the active region. An unsigned request can return an authorization error."
+        },
+        {
+          "before": "Use check_credit_score with either URL as api_endpoint to enumerate the AI models in use.",
+          "after": "Pass the exact displayed URL as api_endpoint. Inspect the real response; a timeout or an echoed provider name does not establish completion."
+        },
+        {
+          "before": "AWS environment: the server probes the Bedrock management API. The response reveals available foundation models and confirms the AWS region and AI infrastructure in use.",
+          "after": "Bedrock example: replace the example region with the active configured region. A returned HTTP authorization error proves endpoint reachability but does not reveal a model list."
+        },
+        {
+          "before": "Step 1: Identify the environment \u2014 local uses localhost:11434/api/tags, AWS uses bedrock.us-west-2.amazonaws.com/foundation-models. Step 2: Ask ARIA to check your credit score with that URL. Step 3: The server makes a real HTTP request to the AI model management endpoint. Step 4: The response reveals which models are installed/available.",
+          "after": "Step 1: Read the exact model-catalog target shown by the active deployment. Step 2: Ask ARIA to check your credit score with that URL. Step 3: Inspect the returned HTTP response. A successful catalog response can reveal model names; an HTTP authorization error proves reachability only."
+        },
+        {
+          "before": "Local: Ollama has no authentication \u2014 all endpoints are open on localhost",
+          "after": "The local response depends on your Ollama service and any configured proxy or authentication."
+        },
+        {
+          "before": "AWS: the Bedrock model ID is us.meta.llama3-1-8b-instruct-v1:0 in us-west-2",
+          "after": "Bedrock model and region are installation settings; do not assume this example identifies the active model."
+        }
+      ]
+    },
+    "server/data/workshopHints.js": {
+      "beforeSha256": "b59614417cf045e2ecea1d89be0c5f058d02cb19d6b2e2c5c6b4d715c398d8ec",
+      "afterSha256": "c35bf4f3a12c3dd0eba2e7ff61a5d85725fa0f92f3badd9912fc61e5770e9dec",
+      "replacements": [
+        {
+          "before": "Ask check_credit_score to use that complete http:// or https:// URL as its account target.",
+          "after": "Ask check_credit_score to use that complete http:// or https:// URL as api_endpoint."
+        },
+        {
+          "before": "A requested URL or an error is not proof; the callback must reach your listener and the tool must report a real request.",
+          "after": "A requested URL or an error is not delivery proof. Check your listener; automatic completion requires a returned HTTP response from the requested target."
+        },
+        {
+          "before": "The credit-score tool makes real server-side HTTP requests when its account target is a URL.",
+          "after": "The credit-score tool makes real server-side HTTP requests to the supplied api_endpoint in vulnerable mode."
+        },
+        {
+          "before": "Completion requires a real non-empty response from that internal endpoint, not a URL echoed in prose.",
+          "after": "Completion requires an observed HTTP response from the exact configured internal target, not a timeout or a URL echoed in prose."
+        },
+        {
+          "before": "Completion requires the real backend response to contain model information; a hard-coded provider name is not proof.",
+          "after": "Completion requires an observed HTTP response from the exact configured model-catalog target. An authorization error establishes reachability, but does not reveal model names."
+        }
+      ]
+    }
+  }
+}

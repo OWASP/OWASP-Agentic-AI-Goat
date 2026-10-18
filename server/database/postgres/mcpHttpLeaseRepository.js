@@ -1,0 +1,27 @@
+'use strict';
+const crypto=require('node:crypto');const {withTransaction}=require('./index');
+const fail=code=>{throw Object.assign(Error(code),{code});};
+const canonical=x=>JSON.stringify(Object.fromEntries(Object.keys(x).sort().map(key=>[key,x[key]])));
+function args(scope){if(!scope||!/^[a-f0-9-]{36}$/.test(scope.targetId||'')||!['platformOwnerId','platformSessionId','generation'].every(key=>Number.isSafeInteger(scope[key])&&scope[key]>=(key==='generation'?0:1)))fail('HTTP_LEASE_SCOPE_INVALID');return [scope.targetId,String(scope.platformOwnerId),scope.platformSessionId,scope.generation];}
+function verifyCleanup(receipt,scope){const body=receipt&&Object.fromEntries(Object.entries(receipt).filter(([key])=>key!=='receiptSha256'));
+ const expected={version:1,targetId:scope.targetId,ownerId:scope.platformOwnerId,platformSessionId:scope.platformSessionId,generation:scope.generation,operationId:scope.operationId,status:'completed',completedAt:receipt?.completedAt,cleanupPending:false};
+ if(!body||canonical(body)!==canonical(expected)||!Number.isFinite(Date.parse(receipt.completedAt))||new Date(receipt.completedAt).toISOString()!==receipt.completedAt||receipt.receiptSha256!==crypto.createHash('sha256').update(canonical(body)).digest('hex'))fail('HTTP_CLEANUP_RECEIPT_INVALID');return receipt;}
+async function assertRetired(client,targetId){
+ const installed=(await client.query("SELECT to_regclass('mcp.http_target_leases')::text AS name")).rows[0]?.name;if(!installed)return;
+ const row=(await client.query('SELECT * FROM mcp.http_target_leases WHERE target_id=$1',[targetId])).rows[0];if(!row)return;
+ if(row.state!=='retired')fail('HTTP_CHILD_CLEANUP_REQUIRED');
+ verifyCleanup(row.cleanup_receipt,{targetId:row.target_id,platformOwnerId:Number(row.user_key),platformSessionId:Number(row.platform_session_id),generation:Number(row.generation),operationId:row.cleanup_operation_id});
+}
+function createMcpHttpLeaseRepository(pool){
+ async function locked(scope,work){const values=args(scope);return withTransaction(pool,async client=>{const parent=(await client.query('SELECT * FROM mcp.runner_targets WHERE target_id=$1 FOR UPDATE',[values[0]])).rows[0];if(!parent||parent.user_key!==values[1]||String(parent.platform_session_id)!==String(values[2])||String(parent.generation)!==String(values[3]))fail('HTTP_LEASE_SCOPE_INVALID');const row=(await client.query('SELECT * FROM mcp.http_target_leases WHERE target_id=$1 FOR UPDATE',[values[0]])).rows[0];return work(client,parent,row,values);});}
+ return Object.freeze({
+  async checkReadiness(){const exists=(await pool.query("SELECT to_regclass('mcp.http_target_leases')::text AS name")).rows[0]?.name;if(!exists)fail('HTTP_LEASE_UNAVAILABLE');const p=(await pool.query("SELECT has_table_privilege(current_user,'mcp.http_target_leases','SELECT') AS read,has_table_privilege(current_user,'mcp.http_target_leases','INSERT') AS insert,has_column_privilege(current_user,'mcp.http_target_leases','cleanup_receipt','UPDATE') AS publish,has_table_privilege(current_user,'mcp.http_target_leases','DELETE') AS delete")).rows[0];if(!p?.read||!p.insert||!p.publish||p.delete)fail('HTTP_LEASE_UNAVAILABLE');return {ready:true};},
+  async read(scope){const values=args(scope);const row=(await pool.query('SELECT * FROM mcp.http_target_leases WHERE target_id=$1 AND user_key=$2 AND platform_session_id=$3 AND generation=$4',values)).rows[0];return row||null;},
+  async reserve(scope){return locked(scope,async(client,parent,row,values)=>{if(parent.state!=='active'||row&& !['provisioning','active'].includes(row.state))fail('HTTP_LEASE_RETIRED');if(!row)await client.query('INSERT INTO mcp.http_target_leases(target_id,user_key,platform_session_id,generation) VALUES($1,$2,$3,$4)',values);return {state:row?.state||'provisioning'};});},
+  async activate(scope){return locked(scope,async(client,parent,row)=>{if(parent.state!=='active'||!row||!['active','provisioning'].includes(row.state))fail('HTTP_LEASE_RETIRED');if(row.state==='provisioning')await client.query("UPDATE mcp.http_target_leases SET state='active' WHERE target_id=$1",[scope.targetId]);});},
+  async beginRetirement(scope){args(scope);if(!/^[a-f0-9-]{36}$/.test(scope.operationId||''))fail('HTTP_LEASE_SCOPE_INVALID');return locked(scope,async(client,_parent,row)=>{if(!row)return null;if(row.cleanup_operation_id&&row.cleanup_operation_id!==scope.operationId)fail('HTTP_LEASE_CONFLICT');if(row.state==='retired'){verifyCleanup(row.cleanup_receipt,scope);return row.cleanup_receipt;}if(row.state!=='retiring')await client.query("UPDATE mcp.http_target_leases SET state='retiring',cleanup_operation_id=$2 WHERE target_id=$1",[scope.targetId,scope.operationId]);return null;});},
+  async completeRetirement(scope,receipt){verifyCleanup(receipt,scope);return locked(scope,async(client,_parent,row)=>{if(!row||row.cleanup_operation_id!==scope.operationId)fail('HTTP_LEASE_CONFLICT');if(row.state==='retired'){if(canonical(row.cleanup_receipt)!==canonical(receipt))fail('HTTP_LEASE_CONFLICT');return row.cleanup_receipt;}if(row.state!=='retiring')fail('HTTP_LEASE_CONFLICT');await client.query("UPDATE mcp.http_target_leases SET state='retired',cleanup_receipt=$2::jsonb WHERE target_id=$1",[scope.targetId,JSON.stringify(receipt)]);return receipt;});},
+  async assertRetired(scope){args(scope);await assertRetired(pool,scope.targetId);},
+ });
+}
+module.exports={createMcpHttpLeaseRepository,assertHttpChildRetired:assertRetired,verifyHttpCleanupReceipt:verifyCleanup};

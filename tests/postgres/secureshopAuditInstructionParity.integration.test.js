@@ -1,0 +1,30 @@
+'use strict';
+// Model-free, candidate-only UI projection. No actor/Judge success is claimed.
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),express=require('express');
+test('released audit instruction full App instructor projection',{skip:process.env.PG_TEST_DISPOSABLE!=='yes'},async()=>{
+ const root=process.cwd();assert.match(root,/dvaia-secureshop-bound-review-composition-/);
+ const prefix='PG_SECURESHOP_BOUND_REVIEW_COMPOSITION_';
+ const {Pool}=require('pg');const pools=[];let server;
+ const make=(store,role)=>{const url=process.env[prefix+store+'_'+role+'_URL'];assert.equal(new URL(url).hostname,'127.0.0.1');assert.match(new URL(url).pathname,/^\/dvaia_test_/);const pool=new Pool({connectionString:url,max:3});pools.push(pool);return pool;};
+ const identity=make('IDENTITY','RUNTIME'),migration=make('IDENTITY','MIGRATION'),agents=make('AGENTS','RUNTIME'),agentsMigration=make('AGENTS','MIGRATION');
+ process.env.PLATFORM_DATABASE_ENGINE='postgres';process.env.WORKSHOP_DATABASE_ENGINE='postgres';process.env.IDENTITY_DATABASE_URL=process.env[prefix+'IDENTITY_RUNTIME_URL'];process.env.JWT_SECRET=crypto.randomBytes(48).toString('hex');
+ process.env.AUDIT_SQL_RENDERED_WORKSPACE=path.join(root,'client');
+ // Actual released curriculum; controlled persistence is not model evidence.
+ const curriculum=require('../../server/config/secureshopCurriculum'),objective='ss_audit_instruction_followed';assert.equal(curriculum.isQualifiedObjective(objective),true);
+ // Release source now supplies qualification; no override.
+ try{
+  const identities=require('../../server/database/postgres/identityRepository');await require('../helpers/secureshopAuditInstructionDefaults').qualifyAuditInstructionDefaults({migration});await require('../helpers/secureshopAuditInstructionDefaults').qualifyAuditInstructionDefaults({migration:make('CUSTOM','MIGRATION'),customBefore:true});await identities.initializeIdentityRepository(identity,migration);await require('../../server/database/postgres/workshopPlatformSeed').seedWorkshopPlatform(migration);await require('../../server/database/postgres/secureshopInitialization').initializeSecureShopAgentsDb({runtimePool:agents,migrationPool:agentsMigration});
+  const repository=identities.createIdentityRepository(identity),passwordHash=await require('bcryptjs').hash('owned-projection-only',4);const user=await repository.createUser({username:'instruction-projection',email:'instruction-projection@example.invalid',passwordHash});const session=await repository.createSession({userId:user.id,token:crypto.randomUUID(),expiresAt:new Date(Date.now()+3600000),expectedPasswordHash:passwordHash});
+  const launch=await require('../../server/database/postgres/secureshopLaunchRepository').createSecureShopLaunchRepository(identity).issueOrRenew({platformOwnerId:user.id,platformSessionId:session.id,expiresAt:new Date(Date.now()+3600000)}),binding=launch.binding;
+  const conversationId=crypto.randomUUID(),runId=crypto.randomUUID(),ownerKey=JSON.stringify(['SecureShopBoundConversation',conversationId]);
+  await agents.query(`INSERT INTO secureshop_agents.agent_sessions(id,user_id,role,authority_mode,binding_state,platform_launch_id,platform_scenario_id,platform_launch_generation,original_platform_owner_id,original_platform_session_id,conversation_purpose) VALUES($1,1,'admin','launch_bound','pending',$2,$3,$4,$5,$6,'secureshop_audit_summary')`,[conversationId,binding.launchId,binding.scenarioId,binding.generation,user.id,session.id]);await agents.query("UPDATE secureshop_agents.agent_sessions SET binding_state='active' WHERE id=$1",[conversationId]);
+  await identity.query('INSERT INTO graph_runtime.owners(owner_key,generation) VALUES($1,0)',[ownerKey]);await identity.query("INSERT INTO graph_runtime.runs(run_id,owner_key,generation,status) VALUES($1,$2,0,'completed')",[runId,ownerKey]);
+  await identity.query("UPDATE graph_runtime.runs SET provider='controlled-projection',model='no-model-call',decision_source='model',last_node='model' WHERE run_id=$1",[runId]);
+  await identity.query("INSERT INTO graph_runtime.events(run_id,owner_key,sequence,node,event_type,metadata) VALUES($1,$2,1,'model','decision',$3)",[runId,ownerKey,JSON.stringify({provider:'controlled-projection',model:'no-model-call',decisionSource:'model',tool:'read_audit_log'})]);
+  await migration.query(`INSERT INTO workshop_platform.objective_judgments(user_id,evaluation_id,workshop_key,objective_id,family,scenario,rubric_version,evidence_digest,run_id,generation,verdict,result_json,disposition,evaluated_at,platform_launch_id,platform_scenario_id,platform_launch_generation) VALUES($1,$2,'secureshop_agent_security',$3,'SecureShopBoundConversation','secureshop_audit_summary','controlled-projection',$4,$5,0,'pass',$6,'awarded',now(),$7,$8,$9)`,[user.id,crypto.randomUUID(),objective,'a'.repeat(64),runId,JSON.stringify({verdict:'pass',explanation:'Controlled UI projection, not a model execution',provider:'controlled-projection',model:'no-model-call'}),binding.launchId,binding.scenarioId,binding.generation]);
+  // Owned UI fixture content; released seed defaults qualified independently.
+  await migration.query("UPDATE workshop_platform.objectives SET hint_content=$1,solution_content=$2 WHERE workshop_key='secureshop_agent_security' AND objective_id=$3",[JSON.stringify({title:'Candidate audit instruction hint',hints:['Owned event instruction boundary']}),JSON.stringify({title:'Candidate audit instruction solution',steps:['Observe owned event summary']}),objective]);
+  const web=express();web.use(express.json());server=await new Promise(resolve=>{const value=web.listen(0,'127.0.0.1',()=>resolve(value));});
+  await require('../helpers/secureshopAuditInstructionParity').qualifyAuditInstructionParity({web,webUrl:'http://127.0.0.1:'+server.address().port,fixture:{binding:{...binding,platformOwnerId:user.id,platformSessionId:session.id}},identity,migration,agents,runId});
+ }finally{if(server)await new Promise(r=>server.close(r));await Promise.all(pools.map(p=>p.end()));}
+});

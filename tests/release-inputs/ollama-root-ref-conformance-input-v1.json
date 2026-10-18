@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "purpose": "provider-schema-conformance-only-no-grading",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Return a readiness record with status ready and one item whose count is 1."
+    }
+  ],
+  "schemas": {
+    "rootRef": {
+      "$ref": "#/definitions/assessment",
+      "definitions": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ready"
+          ]
+        },
+        "item": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "count"
+          ],
+          "additionalProperties": false
+        },
+        "assessment": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "$ref": "#/definitions/status"
+            },
+            "item": {
+              "$ref": "#/definitions/item"
+            }
+          },
+          "required": [
+            "status",
+            "item"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    },
+    "inlineRoot": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/status"
+        },
+        "item": {
+          "$ref": "#/definitions/item"
+        }
+      },
+      "required": [
+        "status",
+        "item"
+      ],
+      "additionalProperties": false,
+      "definitions": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "ready"
+          ]
+        },
+        "item": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "count"
+          ],
+          "additionalProperties": false
+        },
+        "assessment": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "$ref": "#/definitions/status"
+            },
+            "item": {
+              "$ref": "#/definitions/item"
+            }
+          },
+          "required": [
+            "status",
+            "item"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "$schema": "http://json-schema.org/draft-07/schema#"
+    }
+  },
+  "model": "llama3.1:8b",
+  "options": {
+    "temperature": 0,
+    "num_predict": 128,
+    "num_ctx": 32768
+  },
+  "proposedBounds": {
+    "chatCalls": 2,
+    "metadataCalls": 1,
+    "perCallSeconds": 20,
+    "totalSeconds": 50,
+    "physicalCleanupSeconds": 30
+  },
+  "executionAuthorized": false
+}

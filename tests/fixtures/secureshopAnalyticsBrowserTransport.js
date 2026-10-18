@@ -1,0 +1,8 @@
+'use strict';
+// Browser transport preflight only: no databases, model, authentication or credit.
+const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+async function qualifyBrowserTransport(root){let server,browser;const events=[];
+ try{server=http.createServer((req,res)=>{events.push({kind:'server',url:req.url});res.setHeader('content-type','text/html');res.end('<!doctype html><title>Owned transport</title><p>Owned transport ready</p>');});await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port;browser=await require('./secureshopAnalyticsBrowserOwner').launchOwnedAnalyticsBrowser(root,'transport');const page=await browser.newPage();await require('./configureDurableNetworkMessages').configureDurableNetworkMessages(page);await page.setRequestInterception(true);page.on('request',async request=>{events.push({kind:'request',url:request.url()});try{assert.equal(new URL(request.url()).origin,origin);await request.continue();events.push({kind:'continued',url:request.url()});}catch(error){events.push({kind:'intercept-error',message:error.message});}});page.on('requestfailed',r=>events.push({kind:'failed',error:r.failure()?.errorText}));const response=await page.goto(origin+'/workshop-login',{waitUntil:'domcontentloaded',timeout:10000});assert.equal(response.status(),200);assert.equal(await page.title(),'Owned transport');return {passed:true,events};
+ }catch(error){return {passed:false,error:error.message,events};}finally{if(browser)await browser.close();if(server){server.closeAllConnections();await new Promise(r=>server.close(r));}}
+}
+module.exports={qualifyBrowserTransport};

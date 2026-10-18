@@ -1,0 +1,49 @@
+name: Contribution checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contribution-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contribution-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
+      - name: Install locked dependencies
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: 'true'
+        run: |
+          npm ci
+          npm ci --prefix client
+      - name: Verify teaching dependency and vulnerability contracts
+        run: |
+          npm run verify:learning-dependencies
+          npm run verify:secureshop:vuln-coverage
+      - name: Controlled platform and schema contracts (no database or model)
+        run: >-
+          node --test tests/platformSessionValidity.test.js
+          tests/authSessionHandlers.test.js
+          tests/instructorStudentHandlers.test.js
+          tests/secureshopSchemaVerifier.test.js
+          tests/learningDependencies.test.js
+      - name: Build frontend
+        run: npm run build
+# Deliberately scoped: native PostgreSQL/browser/model qualification is separate.
+# Never initialize application databases or fall back to SQLite in a PR check.

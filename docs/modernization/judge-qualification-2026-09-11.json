@@ -1,0 +1,590 @@
+{
+  "date": "2026-09-11",
+  "model": "llama3.1:8b",
+  "provider": "local Ollama",
+  "judgeVersion": "2026-09-11.grounded-v11",
+  "ipiDefenseRubricVersion": "ipi-grounded-v4",
+  "ipiEmailDefenseRubricVersion": "ipi-email-defense-verified-v4",
+  "legacyEmailRubricVersion": "xss-email-v3",
+  "method": "One complete strict serial 250-case qualification run against frozen grounded-v11 with exclusive local model use. No family or case substitutions. Exit code 0.",
+  "sourceLog": "/tmp/dvaia-judge-v11-full-8b.log",
+  "rubricVersions": {
+    "CSRF": [
+      "csrf-observed-v4"
+    ],
+    "CTF": [
+      "ctf-visible-secret-v2"
+    ],
+    "CodeBot": [
+      "codebot-structured-v3"
+    ],
+    "DPI": [
+      "dpi-structured-v1"
+    ],
+    "ExcessiveAgency": [
+      "ea-structured-v2"
+    ],
+    "FinFlow": [
+      "finflow-structured-v1",
+      "finflow-structured-v2"
+    ],
+    "IPI": [
+      "ipi-email-defense-verified-v4",
+      "ipi-grounded-v4",
+      "ipi-structured-v1",
+      "ipi-structured-v2"
+    ],
+    "LegacySensitive": [
+      "legacy-sensitive-v3"
+    ],
+    "MCP": [
+      "mcp_real_tools.v1",
+      "mcp_secret_grounded.v2"
+    ],
+    "XSS": [
+      "xss_browser.v1",
+      "xss_email_chain.v2"
+    ],
+    "xss_email_builder": [
+      "xss-email-v3"
+    ]
+  },
+  "boundaries": [
+    "Recorded/synthetic evidence, not a full live attack execution matrix.",
+    "106 canonical objectives plus 19 objectives in separate namespaces; positive and negative case for each.",
+    "Latency is observed serial local inference, not a 200-attendee model-capacity measurement.",
+    "IPI source comparison uses the original actor-visible email content after the existing graph 5000-character cutoff; the verifier does not further truncate its packet.",
+    "Separate browser and native integration tests verify execution provenance, trace storage, receipts and reset fencing."
+  ],
+  "scope": "Recorded diagnostic rows only; suite headers do not prove completion. Contract correctness counts negative nonpass; semantic correctness requires explicit fail. Test assertions without diagnostics are not inferred as verdicts.",
+  "total": {
+    "recorded": 250,
+    "duplicateCases": 0,
+    "unidentifiedCases": 0,
+    "verdicts": {
+      "pass": 125,
+      "fail": 125,
+      "inconclusive": 0,
+      "unavailable": 0
+    },
+    "conclusive": 250,
+    "labeled": 250,
+    "contractCorrect": 250,
+    "semanticCorrect": 250,
+    "falsePositives": 0,
+    "falseNegatives": 0,
+    "unresolved": 0,
+    "latencyMs": {
+      "samples": 250,
+      "p50": 2748,
+      "p95": 6358,
+      "max": 10642
+    },
+    "repairCalls": 32,
+    "verification": {
+      "evaluations": 2,
+      "calls": 2,
+      "repairCalls": 0
+    },
+    "missingMetrics": {
+      "labels": 0,
+      "durationMs": 0,
+      "attempts": 0
+    }
+  },
+  "families": {
+    "ARIA": {
+      "recorded": 20,
+      "duplicateCases": 0,
+      "unidentifiedCases": 0,
+      "verdicts": {
+        "pass": 10,
+        "fail": 10,
+        "inconclusive": 0,
+        "unavailable": 0
+      },
+      "conclusive": 20,
+      "labeled": 20,
+      "contractCorrect": 20,
+      "semanticCorrect": 20,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "unresolved": 0,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 4232,
+        "p95": 5930,
+        "max": 6568
+      },
+      "repairCalls": 5,
+      "verification": {
+        "evaluations": 0,
+        "calls": 0,
+        "repairCalls": 0
+      },
+      "missingMetrics": {
+        "labels": 0,
+        "durationMs": 0,
+        "attempts": 0
+      }
+    },
+    "CSRF": {
+      "recorded": 24,
+      "duplicateCases": 0,
+      "unidentifiedCases": 0,
+      "verdicts": {
+        "pass": 12,
+        "fail": 12,
+        "inconclusive": 0,
+        "unavailable": 0
+      },
+      "conclusive": 24,
+      "labeled": 24,
+      "contractCorrect": 24,
+      "semanticCorrect": 24,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "unresolved": 0,
+      "latencyMs": {
+        "samples": 24,
+        "p50": 3475,
+        "p95": 6354,
+        "max": 6508
+      },
+      "repairCalls": 12,
+      "verification": {
+        "evaluations": 0,
+        "calls": 0,
+        "repairCalls": 0
+      },
+      "missingMetrics": {
+        "labels": 0,
+        "durationMs": 0,
+        "attempts": 0
+      }
+    },
+    "CTF": {
+      "recorded": 20,
+      "duplicateCases": 0,
+      "unidentifiedCases": 0,
+      "verdicts": {
+        "pass": 10,
+        "fail": 10,
+        "inconclusive": 0,
+        "unavailable": 0
+      },
+      "conclusive": 20,
+      "labeled": 20,
+      "contractCorrect": 20,
+      "semanticCorrect": 20,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "unresolved": 0,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 2350,
+        "p95": 3668,
+        "max": 4306
+      },
+      "repairCalls": 0,
+      "verification": {
+        "evaluations": 0,
+        "calls": 0,
+        "repairCalls": 0
+      },
+      "missingMetrics": {
+        "labels": 0,
+        "durationMs": 0,
+        "attempts": 0
+      }
+    },
+    "CodeBot": {
+      "recorded": 12,
+      "duplicateCases": 0,
+      "unidentifiedCases": 0,
+      "verdicts": {
+        "pass": 6,
+        "fail": 6,
+        "inconclusive": 0,
+        "unavailable": 0
+      },
+      "conclusive": 12,
+      "labeled": 12,
+      "contractCorrect": 12,
+      "semanticCorrect": 12,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "unresolved": 0,
+      "latencyMs": {
+        "samples": 12,
+        "p50": 2820,
+        "p95": 4831,
+        "max": 4831
+      },
+      "repairCalls": 0,
+      "verification": {
+        "evaluations": 0,
+        "calls": 0,
+        "repairCalls": 0
+      },
+      "missingMetrics": {
+        "labels": 0,
+        "durationMs": 0,
+        "attempts": 0
+      }
+    },
+    "DPI": {
+      "recorded": 16,
+      "duplicateCases": 0,
+      "unidentifiedCases": 0,
+      "verdicts": {
+        "pass": 8,
+        "fail": 8,
+        "inconclusive": 0,
+        "unavailable": 0
+      },
+      "conclusive": 16,
+      "labeled": 16,
+      "contractCorrect": 16,
+      "semanticCorrect": 16,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "unresolved": 0,
+      "latencyMs": {
+        "samples": 16,
+        "p50": 1711,
+        "p95": 3471,
+        "max": 3471
+      },
+      "repairCalls": 1,
+      "verification": {
+        "evaluations": 0,
+        "calls": 0,
+        "repairCalls": 0
+      },
+      "missingMetrics": {
+        "labels": 0,
+        "durationMs": 0,
+        "attempts": 0
+      }
+    },
+    "ExcessiveAgency": {
+      "recorded": 18,
+      "duplicateCases": 0,
+      "unidentifiedCases": 0,
+      "verdicts": {
+        "pass": 9,
+        "fail": 9,
+        "inconclusive": 0,
+        "unavailable": 0
+      },
+      "conclusive": 18,
+      "labeled": 18,
+      "contractCorrect": 18,
+      "semanticCorrect": 18,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "unresolved": 0,
+      "latencyMs": {
+        "samples": 18,
+        "p50": 1606,
+        "p95": 1941,
+        "max": 1941
+      },
+      "repairCalls": 0,
+      "verification": {
+        "evaluations": 0,
+        "calls": 0,
+        "repairCalls": 0
+      },
+      "missingMetrics": {
+        "labels": 0,
+        "durationMs": 0,
+        "attempts": 0
+      }
+    },
+    "FinFlow": {
+      "recorded": 36,
+      "duplicateCases": 0,
+      "unidentifiedCases": 0,
+      "verdicts": {
+        "pass": 18,
+        "fail": 18,
+        "inconclusive": 0,
+        "unavailable": 0
+      },
+      "conclusive": 36,
+      "labeled": 36,
+      "contractCorrect": 36,
+      "semanticCorrect": 36,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "unresolved": 0,
+      "latencyMs": {
+        "samples": 36,
+        "p50": 2081,
+        "p95": 4119,
+        "max": 5273
+      },
+      "repairCalls": 4,
+      "verification": {
+        "evaluations": 0,
+        "calls": 0,
+        "repairCalls": 0
+      },
+      "missingMetrics": {
+        "labels": 0,
+        "durationMs": 0,
+        "attempts": 0
+      }
+    },
+    "IPI": {
+      "recorded": 20,
+      "duplicateCases": 0,
+      "unidentifiedCases": 0,
+      "verdicts": {
+        "pass": 10,
+        "fail": 10,
+        "inconclusive": 0,
+        "unavailable": 0
+      },
+      "conclusive": 20,
+      "labeled": 20,
+      "contractCorrect": 20,
+      "semanticCorrect": 20,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "unresolved": 0,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 1895,
+        "p95": 5386,
+        "max": 5876
+      },
+      "repairCalls": 0,
+      "verification": {
+        "evaluations": 2,
+        "calls": 2,
+        "repairCalls": 0
+      },
+      "missingMetrics": {
+        "labels": 0,
+        "durationMs": 0,
+        "attempts": 0
+      }
+    },
+    "LegacySensitive": {
+      "recorded": 10,
+      "duplicateCases": 0,
+      "unidentifiedCases": 0,
+      "verdicts": {
+        "pass": 5,
+        "fail": 5,
+        "inconclusive": 0,
+        "unavailable": 0
+      },
+      "conclusive": 10,
+      "labeled": 10,
+      "contractCorrect": 10,
+      "semanticCorrect": 10,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "unresolved": 0,
+      "latencyMs": {
+        "samples": 10,
+        "p50": 4719,
+        "p95": 9791,
+        "max": 9791
+      },
+      "repairCalls": 0,
+      "verification": {
+        "evaluations": 0,
+        "calls": 0,
+        "repairCalls": 0
+      },
+      "missingMetrics": {
+        "labels": 0,
+        "durationMs": 0,
+        "attempts": 0
+      }
+    },
+    "MCP": {
+      "recorded": 22,
+      "duplicateCases": 0,
+      "unidentifiedCases": 0,
+      "verdicts": {
+        "pass": 11,
+        "fail": 11,
+        "inconclusive": 0,
+        "unavailable": 0
+      },
+      "conclusive": 22,
+      "labeled": 22,
+      "contractCorrect": 22,
+      "semanticCorrect": 22,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "unresolved": 0,
+      "latencyMs": {
+        "samples": 22,
+        "p50": 2748,
+        "p95": 3822,
+        "max": 5983
+      },
+      "repairCalls": 0,
+      "verification": {
+        "evaluations": 0,
+        "calls": 0,
+        "repairCalls": 0
+      },
+      "missingMetrics": {
+        "labels": 0,
+        "durationMs": 0,
+        "attempts": 0
+      }
+    },
+    "NOVA": {
+      "recorded": 20,
+      "duplicateCases": 0,
+      "unidentifiedCases": 0,
+      "verdicts": {
+        "pass": 10,
+        "fail": 10,
+        "inconclusive": 0,
+        "unavailable": 0
+      },
+      "conclusive": 20,
+      "labeled": 20,
+      "contractCorrect": 20,
+      "semanticCorrect": 20,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "unresolved": 0,
+      "latencyMs": {
+        "samples": 20,
+        "p50": 5033,
+        "p95": 10241,
+        "max": 10642
+      },
+      "repairCalls": 7,
+      "verification": {
+        "evaluations": 0,
+        "calls": 0,
+        "repairCalls": 0
+      },
+      "missingMetrics": {
+        "labels": 0,
+        "durationMs": 0,
+        "attempts": 0
+      }
+    },
+    "XSS": {
+      "recorded": 24,
+      "duplicateCases": 0,
+      "unidentifiedCases": 0,
+      "verdicts": {
+        "pass": 12,
+        "fail": 12,
+        "inconclusive": 0,
+        "unavailable": 0
+      },
+      "conclusive": 24,
+      "labeled": 24,
+      "contractCorrect": 24,
+      "semanticCorrect": 24,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "unresolved": 0,
+      "latencyMs": {
+        "samples": 24,
+        "p50": 3585,
+        "p95": 6058,
+        "max": 7213
+      },
+      "repairCalls": 3,
+      "verification": {
+        "evaluations": 0,
+        "calls": 0,
+        "repairCalls": 0
+      },
+      "missingMetrics": {
+        "labels": 0,
+        "durationMs": 0,
+        "attempts": 0
+      }
+    },
+    "xss_email_builder": {
+      "recorded": 8,
+      "duplicateCases": 0,
+      "unidentifiedCases": 0,
+      "verdicts": {
+        "pass": 4,
+        "fail": 4,
+        "inconclusive": 0,
+        "unavailable": 0
+      },
+      "conclusive": 8,
+      "labeled": 8,
+      "contractCorrect": 8,
+      "semanticCorrect": 8,
+      "falsePositives": 0,
+      "falseNegatives": 0,
+      "unresolved": 0,
+      "latencyMs": {
+        "samples": 8,
+        "p50": 2908,
+        "p95": 3677,
+        "max": 3677
+      },
+      "repairCalls": 0,
+      "verification": {
+        "evaluations": 0,
+        "calls": 0,
+        "repairCalls": 0
+      },
+      "missingMetrics": {
+        "labels": 0,
+        "durationMs": 0,
+        "attempts": 0
+      }
+    }
+  },
+  "coverage": {
+    "observedSuites": [
+      "DPI",
+      "IPI",
+      "EA",
+      "FinFlow",
+      "CodeBot",
+      "CSRF",
+      "XSS",
+      "MCP",
+      "ARIA-NOVA",
+      "CTF",
+      "LegacySensitive",
+      "LegacyEmail"
+    ],
+    "suitesWithoutDiagnostics": [],
+    "suiteDiagnostics": {
+      "DPI": 16,
+      "IPI": 20,
+      "EA": 18,
+      "FinFlow": 36,
+      "CodeBot": 12,
+      "CSRF": 24,
+      "XSS": 24,
+      "MCP": 22,
+      "ARIA-NOVA": 40,
+      "CTF": 20,
+      "LegacySensitive": 10,
+      "LegacyEmail": 8
+    }
+  },
+  "nativeFollowup": {
+    "test": "tests/postgres/indirectIpiJudgeNative.live.test.js",
+    "log": "/tmp/dvaia-ipi-native-v11-live.log",
+    "passed": 1,
+    "durationSeconds": 12.3,
+    "scope": "Controlled server-owned email evidence through actual local8B Judge, native coordinator/ledger/receipts, verifier traces and reset fencing. No actor invocation or email delivery."
+  }
+}

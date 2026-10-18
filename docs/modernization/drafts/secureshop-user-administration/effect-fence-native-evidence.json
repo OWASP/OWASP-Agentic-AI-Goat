@@ -1,0 +1,35 @@
+{
+  "qualification": "Candidate short local effect fence and released point-in-time remote admission",
+  "terminal": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-8vdj5f4x",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "dd1cb0d67dc2edf913ac1b194eadceb4291438af4631d4fb0418598f6dbe3e86",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "controlledExistingAndCandidate": 57,
+  "additionalEffectFocused": 7,
+  "frozenSourceHashes": {
+    "server/database/postgres/secureshopBoundPersonaAuthority.js": "7ed5ceddde820a422fb048a0be4842c0011ee12bd913b7017ad2d19fec0a0652",
+    "server/services/secureshopBoundPersonaAuth.js": "6965bbd325bb282e23f92cc44cd643a8722b24dcc0e91fc5bc4ea4e2a15fe82d",
+    "server/routes/secureshop/boundGateway.js": "fcc0c65473c94b37e8762cccd5a30be26ca8c077de607adae9e177173806c074",
+    "tests/postgres/secureshopBoundUserAdministration.integration.test.js": "621570427abaa7f94d8ca7bf542edef32dd9ac86d82e2fc3ccf1cab98792c73e",
+    "docs/modernization/drafts/secureshop-user-administration/persona-state.candidate.sql": "ee8a37de874aa9b4993b5d9db66ddbd43955ec072fe6367c0e78c6ebda4ff145"
+  },
+  "logSha256": "cc3ce937a3a9c086684aa4521457288396fa57956cda1f36377a4c09f1b96cd6",
+  "nativeAssertions": [
+    "Admin role transition completes while modeled decision is held outside SQL; released old decision cannot invoke effect callback",
+    "Ban and self-service credential change revoking another session prevent captured follow-on effects",
+    "Live local effect+real audit commits under same client transaction",
+    "Remote admission is point-in-time observation; stale authority subsequently denied"
+  ],
+  "limits": [
+    "No actual LLM required/called; held decision is explicit controlled gate",
+    "Admin password reset still unsupported; credential test uses actual existing self-service password change with sibling-session revocation",
+    "Not wired into all graph/tool dispatchers; no completed long-running agent capability claim",
+    "Platform check callback controlled; cross-store platform session revocation atomicity unqualified",
+    "Remote/network effects are not executed or rolled back by this primitive"
+  ]
+}

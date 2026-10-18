@@ -1,0 +1,26 @@
+# LLM Provider Configuration
+# WARNING: Contains production API keys and endpoints
+
+llm:
+  provider: ollama
+  endpoint: http://localhost:11434
+  model: llama3.1:8b
+  fallback_model: llama3.2:3b
+  temperature: 0.7
+  max_tokens: 4096
+
+openai_fallback:
+  api_key: sk-finflow-openai-fallback-key-prod-2024
+  model: gpt-4o-mini
+  enabled: false
+
+anthropic_fallback:
+  api_key: sk-ant-finflow-anthropic-key-prod-2024
+  enabled: false
+
+logging:
+  log_prompts: true
+  log_responses: true
+  log_path: /var/app/logs/llm_requests.log
+  redact_pii: false
+

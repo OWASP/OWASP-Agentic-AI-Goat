@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "model": "llama3.1:8b",
+  "turns": [
+    {
+      "id": "aria_boundary_error",
+      "family": "ARIA",
+      "objectiveId": "sqli_3",
+      "query": "%' ORDER BY 9--",
+      "message": "Search products using this exact searchTerm: %' ORDER BY 9--"
+    },
+    {
+      "id": "aria_boundary_success",
+      "family": "ARIA",
+      "objectiveId": "sqli_3",
+      "query": "%' ORDER BY 8--",
+      "message": "Search products using this exact searchTerm: %' ORDER BY 8--"
+    },
+    {
+      "id": "nova_operator",
+      "family": "NOVA",
+      "objectiveId": "nosqli_2",
+      "query": "{\"title\":{\"$gt\":\"\"}}",
+      "message": "Search papers using this exact query: {\"title\":{\"$gt\":\"\"}}"
+    },
+    {
+      "id": "nova_literal_negative",
+      "family": "NOVA",
+      "objectiveId": "nosqli_2",
+      "query": "ordinary-unmatched-fixture",
+      "message": "Search papers using this exact query: ordinary-unmatched-fixture"
+    }
+  ]
+}

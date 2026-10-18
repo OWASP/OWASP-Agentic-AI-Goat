@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "profile": "controlled-recon-content",
+  "objectives": [
+    "tool_enum",
+    "llm_identify",
+    "tool_version",
+    "error_leak"
+  ]
+}

@@ -1,0 +1,102 @@
+COMPANY HUMAN RESOURCES HANDBOOK
+Employee Policies and Guidelines — Effective January 2024
+
+============================================
+1. REMOTE WORK AND FLEXIBLE WORK ARRANGEMENTS
+============================================
+
+Overview
+This policy governs remote work and hybrid arrangements for all full-time and part-time employees. The company supports flexible work to promote work-life balance and productivity.
+
+Eligibility
+Employees may work remotely up to 3 days per week after completing 90 days of employment and manager approval. New hires must complete the onboarding period and probation before applying. Managers must approve remote work schedules on a quarterly basis. Roles designated as fully remote are exempt from the 3-day limit.
+
+Core Hours and Availability
+All remote and hybrid employees must be available and responsive during core hours: 10:00 AM to 3:00 PM Eastern Time (EST/EDT). Attendance at scheduled team meetings, all-hands, and client calls is mandatory regardless of location. Employees must maintain calendar visibility and respond to Slack and email within 2 business hours during core hours.
+
+Equipment and Security
+Employees must use company-issued devices (laptop, monitor, peripherals) for all work tasks. VPN connection is required when accessing internal systems, shared drives, or production environments remotely. Personal devices are not permitted for handling confidential data, code, or customer information. Lost or damaged equipment must be reported within 24 hours.
+
+Reimbursement for Remote Work
+A monthly stipend of $75 is provided for internet and home office expenses for employees who work remotely at least 2 days per week. Receipts are required for any reimbursement claims above $50. One-time home office setup reimbursement up to $500 is available for new remote hires (receipts required).
+
+============================================
+2. LEAVE AND TIME OFF
+============================================
+
+Vacation (PTO)
+Full-time employees accrue 15 days of paid time off (PTO) per year in their first year. After 3 years, accrual increases to 20 days; after 5 years, 25 days. PTO must be requested at least 2 weeks in advance via the HR portal; manager approval is required. Unused PTO may be carried over up to 5 days into the next year; the rest is paid out or forfeited per local policy.
+
+Sick Leave
+Employees receive 10 days of paid sick leave per year. Sick leave can be used for personal illness, medical appointments, or caring for an immediate family member. Documentation may be required for absences of 3 or more consecutive days.
+
+Parental Leave
+Primary caregivers receive 16 weeks of paid parental leave; secondary caregivers receive 4 weeks. Leave must be taken within 12 months of birth or adoption. Employees must notify HR at least 30 days before the expected start date where possible.
+
+Bereavement Leave
+Up to 5 days of paid bereavement leave are provided for the death of an immediate family member (spouse, parent, child, sibling). Additional unpaid leave may be requested.
+
+Holidays
+The company observes 11 paid holidays per year: New Year's Day, Martin Luther King Jr. Day, Presidents' Day, Memorial Day, Juneteenth, Independence Day, Labor Day, Thanksgiving and the day after, and Christmas Day. A floating holiday is also provided.
+
+============================================
+3. HEALTH AND WELLNESS BENEFITS
+============================================
+
+Medical, Dental, and Vision
+Medical coverage is offered through our preferred provider network. The company pays 80% of premiums for employees and 70% for dependents. Dental and vision plans are available; the company pays 50% of employee premiums. Open enrollment is held annually in November; new hires may enroll within 30 days of start date.
+
+Mental Health and EAP
+The Employee Assistance Program (EAP) provides confidential counseling, legal and financial referrals, and crisis support. Up to 6 sessions per issue per year are covered at no cost. Mental health coverage is included in medical plans with parity for in-network therapy and psychiatry.
+
+Wellness Program
+Annual wellness stipend of $300 for gym memberships, fitness classes, or wellness apps. Bi-annual health screenings are subsidized. On-site flu shots and health fairs are offered at headquarters.
+
+============================================
+4. RETIREMENT AND FINANCIAL BENEFITS
+============================================
+
+401(k) Plan
+The company offers a 401(k) plan with a 50% match on the first 6% of salary deferred. Employees are eligible after 90 days. Vesting is 25% per year of service, 100% vested after 4 years.
+
+Life and Disability Insurance
+Basic life insurance of 1x annual salary is provided at no cost. Supplemental life and AD&D are available. Short-term disability (STD) covers 60% of base salary for up to 12 weeks; long-term disability (LTD) continues at 60% up to age 65. Premiums are employer-paid for basic coverage.
+
+============================================
+5. PERFORMANCE AND DEVELOPMENT
+============================================
+
+Performance Reviews
+Annual performance reviews are conducted in Q1 for the prior year. Goals are set at the start of the year and reviewed mid-year. Feedback is 360 where applicable. Ratings inform merit increases and bonus eligibility.
+
+Learning and Development
+Each employee receives an annual learning budget of $1,500 for courses, certifications, conferences, or books. Internal training on leadership, technical skills, and compliance is provided. Tuition reimbursement for job-related degrees is available up to $5,250 per year (IRS limit).
+
+Career Growth
+Internal mobility is encouraged. Open roles are posted internally first. Employees should discuss career interests with their manager and HR during check-ins.
+
+============================================
+6. CODE OF CONDUCT AND WORKPLACE POLICIES
+============================================
+
+Conduct
+All employees are expected to act with integrity, respect, and professionalism. Harassment, discrimination, retaliation, and violence are prohibited. Confidentiality of company and customer data is mandatory. Suspected violations should be reported to HR or the ethics hotline.
+
+Expense and Travel Policy
+Business expenses must be pre-approved for amounts over $500. Travel should be booked through the company portal; economy class for flights under 6 hours. Per diem rates apply for meals when not reimbursed by receipt. Expense reports must be submitted within 30 days.
+
+============================================
+7. ONBOARDING AND PROBATION
+============================================
+
+New Hire Onboarding
+First week includes orientation, system access, and introductions. Goals and 30-60-90 day expectations are set with the manager. Probation period is 90 days; performance and fit are evaluated before confirmation.
+
+Equipment and Access
+IT provisions equipment and access on or before day one. Security and compliance training must be completed within the first 2 weeks.
+
+============================================
+DOCUMENT END
+============================================
+For the most current version of any policy, refer to the HR portal or contact Human Resources.
+Last updated: January 2024.

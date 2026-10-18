@@ -1,0 +1,3 @@
+import{validateShopSnapshot}from'./stateStore.mjs';import{SHOP_TOKEN_KEY,SHOP_CART_KEY,SHOP_CUSTOMER_FILE_SUMMARY_KEY,SHOP_CUSTOMER_FILE_SUMMARY_ASSESSMENT_KEY}from'../utils/shopStorage.mjs';
+const saved=JSON.stringify({version:1,shopUserId:7,sessionId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',requestId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',startedAt:100});
+test('file-summary IDs survive exact parent state validation',()=>{const state=validateShopSnapshot({[SHOP_TOKEN_KEY]:null,[SHOP_CART_KEY]:null,[SHOP_CUSTOMER_FILE_SUMMARY_KEY]:saved,[SHOP_CUSTOMER_FILE_SUMMARY_ASSESSMENT_KEY]:saved});expect(state[SHOP_CUSTOMER_FILE_SUMMARY_KEY]).toBe(saved);expect(state[SHOP_CUSTOMER_FILE_SUMMARY_ASSESSMENT_KEY]).toBe(saved);});

@@ -1,0 +1,1 @@
+{"listeners":[{"address":"169.254.169.254","hostname":"metadata.training"},{"address":"10.0.1.100","hostname":"internal.training"},{"address":"10.0.2.10","hostname":"private.training"},{"address":"192.0.2.10","hostname":"supplier.training"}]}

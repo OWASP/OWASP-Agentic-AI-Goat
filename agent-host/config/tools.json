@@ -1,0 +1,7 @@
+{
+  "defaults": {
+    "timeout_ms": 30000,
+    "max_result_bytes": 262144
+  },
+  "overrides": {}
+}

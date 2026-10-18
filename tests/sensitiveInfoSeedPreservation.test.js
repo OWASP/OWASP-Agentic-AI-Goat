@@ -1,0 +1,32 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const path = require('node:path');
+const os = require('node:os');
+const { seedMissingLabFiles } = require('../server/database/labFixtureSeed');
+
+test('missing-file seeding preserves existing content and does not follow lab directory links', async t => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-seed-files-'));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const fixtures = path.join(root, 'fixtures');
+  seedMissingLabFiles(fixtures, { 'public/example.txt': 'default', 'config/example.txt': 'configuration' });
+  await fs.writeFile(path.join(fixtures, 'public/example.txt'), 'instructor edit');
+  await fs.unlink(path.join(fixtures, 'config/example.txt'));
+  seedMissingLabFiles(fixtures, { 'public/example.txt': 'new default', 'config/example.txt': 'configuration' });
+  assert.equal(await fs.readFile(path.join(fixtures, 'public/example.txt'), 'utf8'), 'instructor edit');
+  assert.equal(await fs.readFile(path.join(fixtures, 'config/example.txt'), 'utf8'), 'configuration');
+  assert.throws(() => seedMissingLabFiles(fixtures, { '../outside.txt': 'bad' }), /Invalid lab fixture path/);
+  const outside = path.join(root, 'owned-outside');
+  await fs.mkdir(outside);
+  await fs.symlink(outside, path.join(fixtures, 'linked'), process.platform === 'win32' ? 'junction' : 'dir');
+  assert.throws(() => seedMissingLabFiles(fixtures, { 'linked/created.txt': 'bad' }), /real directory/);
+  assert.deepEqual(await fs.readdir(outside), []);
+  const outsideFile = path.join(outside, 'outside.txt');
+  await fs.writeFile(outsideFile, 'outside content');
+  await fs.symlink(outsideFile, path.join(fixtures, 'public/linked.txt'));
+  assert.throws(() => seedMissingLabFiles(fixtures, { 'public/linked.txt': 'default' }), /regular file/);
+  assert.equal(await fs.readFile(outsideFile, 'utf8'), 'outside content');
+  await fs.mkdir(path.join(fixtures, 'public/not-a-file'));
+  assert.throws(() => seedMissingLabFiles(fixtures, { 'public/not-a-file': 'default' }), /regular file/);
+});

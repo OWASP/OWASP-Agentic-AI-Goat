@@ -1,0 +1,41 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const {createPool}=require('../../server/database/postgres');
+const {createXssWorkshopDb}=require('../../server/database/postgres/xssWorkshopDb');
+const {createPostgresEmailStore}=require('../../server/database/postgres/xssEmailStore');
+const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_XSS_TEST_RUNTIME_URL;
+test('PG email builder enforces owner joins, preserves HTML and immutable receipts, resets atomically',{skip:!enabled},async()=>{
+ const pool=createPool(process.env,'PG_XSS_TEST_RUNTIME_URL'),migration=createPool(process.env,'PG_XSS_TEST_MIGRATION_URL');
+ try{
+  await createXssWorkshopDb(pool).initializeXssWorkshopDb(migration);
+  const store=createPostgresEmailStore(pool),a=901,b=902;
+  const pa=await store.ensureProfile(a),pb=await store.ensureProfile(b),html='<img src=x onerror="fixture()"><script>fixture()</script>';
+  await store.updateProfile(a,['Owner A','a@fixture.test','company','job','phone',html,'plain']);
+  assert.equal((await store.ensureProfile(a)).signature_html,html,'Ensure is non-destructive');
+  const ta=await store.saveTemplate([a,pa.id,'A','general',html,'untrusted fixture','mock']);
+  const tb=await store.saveTemplate([b,pb.id,'B','general','B','fixture','mock']);
+  assert.equal((await store.getTemplate(a,ta)).html_content,html);assert.equal(await store.getTemplate(b,ta),undefined);
+  await assert.rejects(store.saveTemplate([b,pa.id,'invalid','general','x','x','mock']),{code:'23503'});
+  await assert.rejects(store.recordPreview(b,ta,true),{code:'23503'});
+  await store.recordView(b,ta);assert.equal((await store.getTemplate(a,ta)).view_count,0);
+  await store.recordPreview(a,ta,true);await store.recordPreview(b,tb,false);
+  const judgment={userId:a,level:1,templateId:ta,verdict:'pass',judgeVersion:'fixture',rubricVersion:'v1',evidenceDigest:'a'.repeat(64),runId:'fixture-run',errorCode:null,browserExecuted:true,browserReason:'local fixture'};
+  await assert.rejects(store.persistJudgment({...judgment,userId:b}),{code:'TEMPLATE_NOT_FOUND'});
+  await assert.rejects(store.persistJudgment({...judgment,templateId:-1}),{code:'TEMPLATE_NOT_FOUND'});
+  await assert.rejects(store.persistJudgment({...judgment,verdict:'unknown'}),{code:'23514'});
+  await store.persistJudgment({...judgment,verdict:'unavailable',judgeVersion:null,evidenceDigest:null,browserExecuted:false});
+  const receipt=await store.persistJudgment(judgment);
+  await store.persistCompletion({userId:a,level:1,challengeName:'fixture',receipt:{id:receipt}});
+  await store.persistCompletion({userId:b,level:1,challengeName:'other',receipt:{id:99}});
+  await assert.rejects(pool.query('UPDATE xss.xss_email_judge_receipts SET verdict=$1 WHERE id=$2',['fail',receipt]),{code:'42501'});
+  await assert.rejects(pool.query('DELETE FROM xss.xss_email_judge_receipts WHERE id=$1',[receipt]),{code:'42501'});
+  await migration.query("CREATE FUNCTION xss.reject_email_reset() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fixture reset failure'; END $$");
+  await migration.query('CREATE TRIGGER reject_email_reset BEFORE DELETE ON xss.xss_challenge_progress FOR EACH ROW EXECUTE FUNCTION xss.reject_email_reset()');
+  await assert.rejects(store.reset(a),/fixture reset failure/);assert.equal((await store.listTemplates(a)).length,1,'Failed reset rolls back template cascade');
+  await migration.query('DROP TRIGGER reject_email_reset ON xss.xss_challenge_progress');
+  await store.reset(a);assert.deepEqual(await store.listTemplates(a),[]);assert.deepEqual(await store.listProgress(a),[]);
+  assert.equal((await pool.query('SELECT count(*)::int AS n FROM xss.template_previews WHERE user_id=$1',[a])).rows[0].n,0);
+  assert.equal((await store.getProfile(a)).signature_html,html);assert.equal((await store.listTemplates(b)).length,1);assert.equal((await store.listProgress(b)).length,1);
+  assert.equal((await pool.query('SELECT verdict FROM xss.xss_email_judge_receipts WHERE id=$1',[receipt])).rows[0].verdict,'pass');
+ }finally{await Promise.all([pool.end(),migration.end()]);}
+});

@@ -1,0 +1,2015 @@
+{
+  "accessCode": "DC34@DVAIA!PWN!",
+  "levels": {
+    "lv1": [
+      {
+        "username": "userdc1-user1",
+        "password": "Pulse58@Stealth"
+      },
+      {
+        "username": "userdc1-user2",
+        "password": "Blizzard60^Eagl"
+      },
+      {
+        "username": "userdc1-user3",
+        "password": "Wraith37~Viper"
+      },
+      {
+        "username": "userdc1-user4",
+        "password": "Tiger41-Viper"
+      },
+      {
+        "username": "userdc1-user5",
+        "password": "Venom56!Nomad"
+      },
+      {
+        "username": "userdc1-user6",
+        "password": "Wraith65@Comet"
+      },
+      {
+        "username": "userdc1-user7",
+        "password": "Dragon63^Obsidi"
+      },
+      {
+        "username": "userdc1-user8",
+        "password": "Frost12%Apex"
+      },
+      {
+        "username": "userdc1-user9",
+        "password": "Primal55=Shadow"
+      },
+      {
+        "username": "userdc1-user10",
+        "password": "Primal29^Primal"
+      },
+      {
+        "username": "userdc1-user11",
+        "password": "Wraith35#Apex"
+      },
+      {
+        "username": "userdc1-user12",
+        "password": "Forge71@Pulse"
+      },
+      {
+        "username": "userdc1-user13",
+        "password": "Eagle43^Apex"
+      },
+      {
+        "username": "userdc1-user14",
+        "password": "Dragon32=Specte"
+      },
+      {
+        "username": "userdc1-user15",
+        "password": "Pulse32!Prism"
+      },
+      {
+        "username": "userdc1-user16",
+        "password": "Echo38!Shadow"
+      },
+      {
+        "username": "userdc1-user17",
+        "password": "Inferno42%Spark"
+      },
+      {
+        "username": "userdc1-user18",
+        "password": "Cipher48!Forge"
+      },
+      {
+        "username": "userdc1-user19",
+        "password": "Forge48@Nomad"
+      },
+      {
+        "username": "userdc1-user20",
+        "password": "Rogue36-Glacier"
+      },
+      {
+        "username": "userdc1-user21",
+        "password": "Wraith94@Knight"
+      },
+      {
+        "username": "userdc1-user22",
+        "password": "Quantum52=Apex"
+      },
+      {
+        "username": "userdc1-user23",
+        "password": "Rogue33&Prism"
+      },
+      {
+        "username": "userdc1-user24",
+        "password": "Falcon66=Echo"
+      },
+      {
+        "username": "userdc1-user25",
+        "password": "Nexus72=Ranger"
+      },
+      {
+        "username": "userdc1-user26",
+        "password": "Archer95+Glacie"
+      },
+      {
+        "username": "userdc1-user27",
+        "password": "Zenith31#Nexus"
+      },
+      {
+        "username": "userdc1-user28",
+        "password": "Blizzard38&Volt"
+      },
+      {
+        "username": "userdc1-user29",
+        "password": "Storm57+Titan"
+      },
+      {
+        "username": "userdc1-user30",
+        "password": "Comet37!Primal"
+      },
+      {
+        "username": "userdc1-user31",
+        "password": "Stealth13$Prima"
+      },
+      {
+        "username": "userdc1-user32",
+        "password": "Storm43-Rogue"
+      },
+      {
+        "username": "userdc1-user33",
+        "password": "Echo62*Pulse"
+      },
+      {
+        "username": "userdc1-user34",
+        "password": "Phoenix45=Tiger"
+      },
+      {
+        "username": "userdc1-user35",
+        "password": "Specter18-Tiger"
+      },
+      {
+        "username": "userdc1-user36",
+        "password": "Thunder58@Spect"
+      },
+      {
+        "username": "userdc1-user37",
+        "password": "Zenith79#Frost"
+      },
+      {
+        "username": "userdc1-user38",
+        "password": "Archer64~Nomad"
+      },
+      {
+        "username": "userdc1-user39",
+        "password": "Ranger67#Specte"
+      },
+      {
+        "username": "userdc1-user40",
+        "password": "Sonic87@Archer"
+      },
+      {
+        "username": "userdc1-user41",
+        "password": "Phoenix17%Nomad"
+      },
+      {
+        "username": "userdc1-user42",
+        "password": "Blaze16#Titan"
+      },
+      {
+        "username": "userdc1-user43",
+        "password": "Cipher20#Knight"
+      },
+      {
+        "username": "userdc1-user44",
+        "password": "Obsidian74^Obsi"
+      },
+      {
+        "username": "userdc1-user45",
+        "password": "Glacier51~Volt"
+      },
+      {
+        "username": "userdc1-user46",
+        "password": "Forge11@Sonic"
+      },
+      {
+        "username": "userdc1-user47",
+        "password": "Eagle37^Inferno"
+      },
+      {
+        "username": "userdc1-user48",
+        "password": "Surge19^Frost"
+      },
+      {
+        "username": "userdc1-user49",
+        "password": "Ranger48@Cipher"
+      },
+      {
+        "username": "userdc1-user50",
+        "password": "Cipher49^Phoeni"
+      },
+      {
+        "username": "userdc1-user51",
+        "password": "Inferno15=Glaci"
+      },
+      {
+        "username": "userdc1-user52",
+        "password": "Thunder95@Glaci"
+      },
+      {
+        "username": "userdc1-user53",
+        "password": "Warrior54=Knigh"
+      },
+      {
+        "username": "userdc1-user54",
+        "password": "Obsidian19&Crim"
+      },
+      {
+        "username": "userdc1-user55",
+        "password": "Venom14-Falcon"
+      },
+      {
+        "username": "userdc1-user56",
+        "password": "Frost91!Frost"
+      },
+      {
+        "username": "userdc1-user57",
+        "password": "Echo58@Phoenix"
+      },
+      {
+        "username": "userdc1-user58",
+        "password": "Zenith15%Blizza"
+      },
+      {
+        "username": "userdc1-user59",
+        "password": "Inferno51+Glaci"
+      },
+      {
+        "username": "userdc1-user60",
+        "password": "Zenith39-Swift"
+      },
+      {
+        "username": "userdc1-user61",
+        "password": "Nomad88~Forge"
+      },
+      {
+        "username": "userdc1-user62",
+        "password": "Mystic66-Specte"
+      },
+      {
+        "username": "userdc1-user63",
+        "password": "Prism67+Storm"
+      },
+      {
+        "username": "userdc1-user64",
+        "password": "Titan97$Pulse"
+      },
+      {
+        "username": "userdc1-user65",
+        "password": "Swift83#Cipher"
+      },
+      {
+        "username": "userdc1-user66",
+        "password": "Phoenix14=Nova"
+      },
+      {
+        "username": "userdc1-user67",
+        "password": "Mystic34$Blizza"
+      },
+      {
+        "username": "userdc1-user68",
+        "password": "Crimson55%Cosmi"
+      },
+      {
+        "username": "userdc1-user69",
+        "password": "Stealth90+Prima"
+      },
+      {
+        "username": "userdc1-user70",
+        "password": "Surge35^Glacier"
+      },
+      {
+        "username": "userdc1-user71",
+        "password": "Phoenix24#Drago"
+      },
+      {
+        "username": "userdc1-user72",
+        "password": "Volt67-Comet"
+      },
+      {
+        "username": "userdc1-user73",
+        "password": "Volt47^Zenith"
+      },
+      {
+        "username": "userdc1-user74",
+        "password": "Thunder82+Apex"
+      },
+      {
+        "username": "userdc1-user75",
+        "password": "Thunder79#Shado"
+      },
+      {
+        "username": "userdc1-user76",
+        "password": "Cipher56*Warrio"
+      },
+      {
+        "username": "userdc1-user77",
+        "password": "Volt11!Cipher"
+      },
+      {
+        "username": "userdc1-user78",
+        "password": "Thunder62-Drago"
+      },
+      {
+        "username": "userdc1-user79",
+        "password": "Quantum69%Prism"
+      },
+      {
+        "username": "userdc1-user80",
+        "password": "Comet91#Knight"
+      },
+      {
+        "username": "userdc1-user81",
+        "password": "Sonic60&Mystic"
+      },
+      {
+        "username": "userdc1-user82",
+        "password": "Falcon93+Primal"
+      },
+      {
+        "username": "userdc1-user83",
+        "password": "Obsidian53#Tita"
+      },
+      {
+        "username": "userdc1-user84",
+        "password": "Mystic95~Nova"
+      },
+      {
+        "username": "userdc1-user85",
+        "password": "Warrior70#Titan"
+      },
+      {
+        "username": "userdc1-user86",
+        "password": "Falcon76%Thunde"
+      },
+      {
+        "username": "userdc1-user87",
+        "password": "Spark75*Obsidia"
+      },
+      {
+        "username": "userdc1-user88",
+        "password": "Pulse59&Hunter"
+      },
+      {
+        "username": "userdc1-user89",
+        "password": "Warrior58^Tiger"
+      },
+      {
+        "username": "userdc1-user90",
+        "password": "Knight10#Eagle"
+      },
+      {
+        "username": "userdc1-user91",
+        "password": "Swift45$Apex"
+      },
+      {
+        "username": "userdc1-user92",
+        "password": "Eagle69+Quantum"
+      },
+      {
+        "username": "userdc1-user93",
+        "password": "Nexus96%Sonic"
+      },
+      {
+        "username": "userdc1-user94",
+        "password": "Apex87&Shadow"
+      },
+      {
+        "username": "userdc1-user95",
+        "password": "Mystic48$Zenith"
+      },
+      {
+        "username": "userdc1-user96",
+        "password": "Obsidian55^Bliz"
+      },
+      {
+        "username": "userdc1-user97",
+        "password": "Mystic61^Viper"
+      },
+      {
+        "username": "userdc1-user98",
+        "password": "Prism13!Hunter"
+      },
+      {
+        "username": "userdc1-user99",
+        "password": "Quantum43=Volt"
+      },
+      {
+        "username": "userdc1-user100",
+        "password": "Blizzard47@Soni"
+      }
+    ],
+    "lv2": [
+      {
+        "username": "userdc2-user101",
+        "password": "Volt86%Nexus"
+      },
+      {
+        "username": "userdc2-user102",
+        "password": "Prism62~Spark"
+      },
+      {
+        "username": "userdc2-user103",
+        "password": "Titan12^Echo"
+      },
+      {
+        "username": "userdc2-user104",
+        "password": "Swift47&Phantom"
+      },
+      {
+        "username": "userdc2-user105",
+        "password": "Phantom30=Obsid"
+      },
+      {
+        "username": "userdc2-user106",
+        "password": "Wraith52^Infern"
+      },
+      {
+        "username": "userdc2-user107",
+        "password": "Venom13=Primal"
+      },
+      {
+        "username": "userdc2-user108",
+        "password": "Cosmic65+Apex"
+      },
+      {
+        "username": "userdc2-user109",
+        "password": "Archer86#Zenith"
+      },
+      {
+        "username": "userdc2-user110",
+        "password": "Echo43!Crimson"
+      },
+      {
+        "username": "userdc2-user111",
+        "password": "Quantum76=Surge"
+      },
+      {
+        "username": "userdc2-user112",
+        "password": "Falcon37-Echo"
+      },
+      {
+        "username": "userdc2-user113",
+        "password": "Tiger40*Storm"
+      },
+      {
+        "username": "userdc2-user114",
+        "password": "Apex43*Thunder"
+      },
+      {
+        "username": "userdc2-user115",
+        "password": "Storm49#Quantum"
+      },
+      {
+        "username": "userdc2-user116",
+        "password": "Shadow90!Phanto"
+      },
+      {
+        "username": "userdc2-user117",
+        "password": "Rogue74-Archer"
+      },
+      {
+        "username": "userdc2-user118",
+        "password": "Stealth82@Forge"
+      },
+      {
+        "username": "userdc2-user119",
+        "password": "Surge95~Pulse"
+      },
+      {
+        "username": "userdc2-user120",
+        "password": "Phoenix42~Nexus"
+      },
+      {
+        "username": "userdc2-user121",
+        "password": "Prism75=Archer"
+      },
+      {
+        "username": "userdc2-user122",
+        "password": "Prism93@Warrior"
+      },
+      {
+        "username": "userdc2-user123",
+        "password": "Primal65^Sonic"
+      },
+      {
+        "username": "userdc2-user124",
+        "password": "Stealth50*Range"
+      },
+      {
+        "username": "userdc2-user125",
+        "password": "Glacier38@Warri"
+      },
+      {
+        "username": "userdc2-user126",
+        "password": "Obsidian59*Glac"
+      },
+      {
+        "username": "userdc2-user127",
+        "password": "Falcon42!Archer"
+      },
+      {
+        "username": "userdc2-user128",
+        "password": "Ranger22*Swift"
+      },
+      {
+        "username": "userdc2-user129",
+        "password": "Cosmic16~Prism"
+      },
+      {
+        "username": "userdc2-user130",
+        "password": "Ranger68^Prism"
+      },
+      {
+        "username": "userdc2-user131",
+        "password": "Glacier32^Storm"
+      },
+      {
+        "username": "userdc2-user132",
+        "password": "Dragon14*Thunde"
+      },
+      {
+        "username": "userdc2-user133",
+        "password": "Blaze52=Crimson"
+      },
+      {
+        "username": "userdc2-user134",
+        "password": "Frost38%Blizzar"
+      },
+      {
+        "username": "userdc2-user135",
+        "password": "Inferno82@Pulse"
+      },
+      {
+        "username": "userdc2-user136",
+        "password": "Knight76@Glacie"
+      },
+      {
+        "username": "userdc2-user137",
+        "password": "Nova98*Venom"
+      },
+      {
+        "username": "userdc2-user138",
+        "password": "Volt90!Quantum"
+      },
+      {
+        "username": "userdc2-user139",
+        "password": "Mystic29-Stealt"
+      },
+      {
+        "username": "userdc2-user140",
+        "password": "Venom21~Nexus"
+      },
+      {
+        "username": "userdc2-user141",
+        "password": "Falcon76=Crimso"
+      },
+      {
+        "username": "userdc2-user142",
+        "password": "Crimson50&Blizz"
+      },
+      {
+        "username": "userdc2-user143",
+        "password": "Frost55-Knight"
+      },
+      {
+        "username": "userdc2-user144",
+        "password": "Viper56~Blizzar"
+      },
+      {
+        "username": "userdc2-user145",
+        "password": "Primal24$Quantu"
+      },
+      {
+        "username": "userdc2-user146",
+        "password": "Hunter90=Spark"
+      },
+      {
+        "username": "userdc2-user147",
+        "password": "Spark17*Nomad"
+      },
+      {
+        "username": "userdc2-user148",
+        "password": "Cosmic77~Obsidi"
+      },
+      {
+        "username": "userdc2-user149",
+        "password": "Nexus32%Glacier"
+      },
+      {
+        "username": "userdc2-user150",
+        "password": "Nomad27$Specter"
+      },
+      {
+        "username": "userdc2-user151",
+        "password": "Warrior30=Eagle"
+      },
+      {
+        "username": "userdc2-user152",
+        "password": "Hunter24%Quantu"
+      },
+      {
+        "username": "userdc2-user153",
+        "password": "Quantum44=Warri"
+      },
+      {
+        "username": "userdc2-user154",
+        "password": "Titan53+Shadow"
+      },
+      {
+        "username": "userdc2-user155",
+        "password": "Eagle14!Crimson"
+      },
+      {
+        "username": "userdc2-user156",
+        "password": "Prism40!Inferno"
+      },
+      {
+        "username": "userdc2-user157",
+        "password": "Ranger27!Cosmic"
+      },
+      {
+        "username": "userdc2-user158",
+        "password": "Surge51!Sonic"
+      },
+      {
+        "username": "userdc2-user159",
+        "password": "Stealth42!Apex"
+      },
+      {
+        "username": "userdc2-user160",
+        "password": "Echo30#Obsidian"
+      },
+      {
+        "username": "userdc2-user161",
+        "password": "Comet23#Wraith"
+      },
+      {
+        "username": "userdc2-user162",
+        "password": "Inferno93!Nomad"
+      },
+      {
+        "username": "userdc2-user163",
+        "password": "Specter54+Zenit"
+      },
+      {
+        "username": "userdc2-user164",
+        "password": "Tiger16=Specter"
+      },
+      {
+        "username": "userdc2-user165",
+        "password": "Warrior37&Nexus"
+      },
+      {
+        "username": "userdc2-user166",
+        "password": "Nomad16&Frost"
+      },
+      {
+        "username": "userdc2-user167",
+        "password": "Stealth91%Venom"
+      },
+      {
+        "username": "userdc2-user168",
+        "password": "Zenith15%Nomad"
+      },
+      {
+        "username": "userdc2-user169",
+        "password": "Archer99$Frost"
+      },
+      {
+        "username": "userdc2-user170",
+        "password": "Blizzard13*Echo"
+      },
+      {
+        "username": "userdc2-user171",
+        "password": "Thunder51$Range"
+      },
+      {
+        "username": "userdc2-user172",
+        "password": "Falcon28^Glacie"
+      },
+      {
+        "username": "userdc2-user173",
+        "password": "Knight37-Swift"
+      },
+      {
+        "username": "userdc2-user174",
+        "password": "Blizzard23+Fros"
+      },
+      {
+        "username": "userdc2-user175",
+        "password": "Quantum21!Storm"
+      },
+      {
+        "username": "userdc2-user176",
+        "password": "Swift80^Forge"
+      },
+      {
+        "username": "userdc2-user177",
+        "password": "Comet48=Wraith"
+      },
+      {
+        "username": "userdc2-user178",
+        "password": "Blaze57#Stealth"
+      },
+      {
+        "username": "userdc2-user179",
+        "password": "Viper20~Comet"
+      },
+      {
+        "username": "userdc2-user180",
+        "password": "Knight79!Phanto"
+      },
+      {
+        "username": "userdc2-user181",
+        "password": "Knight47&Ranger"
+      },
+      {
+        "username": "userdc2-user182",
+        "password": "Venom99&Hunter"
+      },
+      {
+        "username": "userdc2-user183",
+        "password": "Spark53^Venom"
+      },
+      {
+        "username": "userdc2-user184",
+        "password": "Mystic98+Cipher"
+      },
+      {
+        "username": "userdc2-user185",
+        "password": "Rogue50%Glacier"
+      },
+      {
+        "username": "userdc2-user186",
+        "password": "Blaze74~Cipher"
+      },
+      {
+        "username": "userdc2-user187",
+        "password": "Zenith79&Sonic"
+      },
+      {
+        "username": "userdc2-user188",
+        "password": "Forge93*Apex"
+      },
+      {
+        "username": "userdc2-user189",
+        "password": "Eagle61#Wraith"
+      },
+      {
+        "username": "userdc2-user190",
+        "password": "Pulse19%Phantom"
+      },
+      {
+        "username": "userdc2-user191",
+        "password": "Hunter45~Thunde"
+      },
+      {
+        "username": "userdc2-user192",
+        "password": "Forge11%Warrior"
+      },
+      {
+        "username": "userdc2-user193",
+        "password": "Nova41$Thunder"
+      },
+      {
+        "username": "userdc2-user194",
+        "password": "Warrior39$Echo"
+      },
+      {
+        "username": "userdc2-user195",
+        "password": "Surge53%Knight"
+      },
+      {
+        "username": "userdc2-user196",
+        "password": "Blaze65&Spark"
+      },
+      {
+        "username": "userdc2-user197",
+        "password": "Hunter14$Titan"
+      },
+      {
+        "username": "userdc2-user198",
+        "password": "Storm88#Frost"
+      },
+      {
+        "username": "userdc2-user199",
+        "password": "Comet15*Sonic"
+      },
+      {
+        "username": "userdc2-user200",
+        "password": "Spark26@Falcon"
+      }
+    ],
+    "lv3": [
+      {
+        "username": "userdc3-user201",
+        "password": "Swift18~Cosmic"
+      },
+      {
+        "username": "userdc3-user202",
+        "password": "Crimson78&Infer"
+      },
+      {
+        "username": "userdc3-user203",
+        "password": "Wraith47=Crimso"
+      },
+      {
+        "username": "userdc3-user204",
+        "password": "Apex59^Wraith"
+      },
+      {
+        "username": "userdc3-user205",
+        "password": "Falcon71=Rogue"
+      },
+      {
+        "username": "userdc3-user206",
+        "password": "Dragon43%Rogue"
+      },
+      {
+        "username": "userdc3-user207",
+        "password": "Viper25#Comet"
+      },
+      {
+        "username": "userdc3-user208",
+        "password": "Crimson90!Spect"
+      },
+      {
+        "username": "userdc3-user209",
+        "password": "Pulse60=Sonic"
+      },
+      {
+        "username": "userdc3-user210",
+        "password": "Frost98*Phoenix"
+      },
+      {
+        "username": "userdc3-user211",
+        "password": "Rogue63$Apex"
+      },
+      {
+        "username": "userdc3-user212",
+        "password": "Prism47^Swift"
+      },
+      {
+        "username": "userdc3-user213",
+        "password": "Rogue32#Shadow"
+      },
+      {
+        "username": "userdc3-user214",
+        "password": "Prism57$Knight"
+      },
+      {
+        "username": "userdc3-user215",
+        "password": "Surge14~Echo"
+      },
+      {
+        "username": "userdc3-user216",
+        "password": "Viper34@Tiger"
+      },
+      {
+        "username": "userdc3-user217",
+        "password": "Cipher63#Storm"
+      },
+      {
+        "username": "userdc3-user218",
+        "password": "Mystic74%Cipher"
+      },
+      {
+        "username": "userdc3-user219",
+        "password": "Prism85%Thunder"
+      },
+      {
+        "username": "userdc3-user220",
+        "password": "Phantom30!Eagle"
+      },
+      {
+        "username": "userdc3-user221",
+        "password": "Shadow27!Crimso"
+      },
+      {
+        "username": "userdc3-user222",
+        "password": "Forge68=Spark"
+      },
+      {
+        "username": "userdc3-user223",
+        "password": "Tiger16*Volt"
+      },
+      {
+        "username": "userdc3-user224",
+        "password": "Pulse25@Nexus"
+      },
+      {
+        "username": "userdc3-user225",
+        "password": "Specter92%Ciphe"
+      },
+      {
+        "username": "userdc3-user226",
+        "password": "Pulse27&Zenith"
+      },
+      {
+        "username": "userdc3-user227",
+        "password": "Cipher87!Specte"
+      },
+      {
+        "username": "userdc3-user228",
+        "password": "Sonic30!Phoenix"
+      },
+      {
+        "username": "userdc3-user229",
+        "password": "Echo76@Sonic"
+      },
+      {
+        "username": "userdc3-user230",
+        "password": "Primal86#Primal"
+      },
+      {
+        "username": "userdc3-user231",
+        "password": "Knight42~Archer"
+      },
+      {
+        "username": "userdc3-user232",
+        "password": "Archer16!Shadow"
+      },
+      {
+        "username": "userdc3-user233",
+        "password": "Inferno71&Hunte"
+      },
+      {
+        "username": "userdc3-user234",
+        "password": "Venom71-Comet"
+      },
+      {
+        "username": "userdc3-user235",
+        "password": "Venom19~Storm"
+      },
+      {
+        "username": "userdc3-user236",
+        "password": "Nomad98-Nexus"
+      },
+      {
+        "username": "userdc3-user237",
+        "password": "Stealth28%Rogue"
+      },
+      {
+        "username": "userdc3-user238",
+        "password": "Swift35$Eagle"
+      },
+      {
+        "username": "userdc3-user239",
+        "password": "Rogue10=Venom"
+      },
+      {
+        "username": "userdc3-user240",
+        "password": "Wraith41~Pulse"
+      },
+      {
+        "username": "userdc3-user241",
+        "password": "Phoenix47&Warri"
+      },
+      {
+        "username": "userdc3-user242",
+        "password": "Nomad83&Blizzar"
+      },
+      {
+        "username": "userdc3-user243",
+        "password": "Blaze95%Blaze"
+      },
+      {
+        "username": "userdc3-user244",
+        "password": "Apex77&Blaze"
+      },
+      {
+        "username": "userdc3-user245",
+        "password": "Pulse44-Blaze"
+      },
+      {
+        "username": "userdc3-user246",
+        "password": "Hunter82~Sonic"
+      },
+      {
+        "username": "userdc3-user247",
+        "password": "Wraith98+Eagle"
+      },
+      {
+        "username": "userdc3-user248",
+        "password": "Warrior84@Eagle"
+      },
+      {
+        "username": "userdc3-user249",
+        "password": "Venom77~Nexus"
+      },
+      {
+        "username": "userdc3-user250",
+        "password": "Comet39!Ranger"
+      },
+      {
+        "username": "userdc3-user251",
+        "password": "Specter92%Titan"
+      },
+      {
+        "username": "userdc3-user252",
+        "password": "Thunder44^Apex"
+      },
+      {
+        "username": "userdc3-user253",
+        "password": "Primal74!Phanto"
+      },
+      {
+        "username": "userdc3-user254",
+        "password": "Viper43@Warrior"
+      },
+      {
+        "username": "userdc3-user255",
+        "password": "Pulse41$Nova"
+      },
+      {
+        "username": "userdc3-user256",
+        "password": "Blaze92=Shadow"
+      },
+      {
+        "username": "userdc3-user257",
+        "password": "Storm64+Surge"
+      },
+      {
+        "username": "userdc3-user258",
+        "password": "Comet29&Thunder"
+      },
+      {
+        "username": "userdc3-user259",
+        "password": "Wraith47@Cosmic"
+      },
+      {
+        "username": "userdc3-user260",
+        "password": "Swift59^Wraith"
+      },
+      {
+        "username": "userdc3-user261",
+        "password": "Apex38$Specter"
+      },
+      {
+        "username": "userdc3-user262",
+        "password": "Quantum34*Comet"
+      },
+      {
+        "username": "userdc3-user263",
+        "password": "Quantum35=Glaci"
+      },
+      {
+        "username": "userdc3-user264",
+        "password": "Archer97@Glacie"
+      },
+      {
+        "username": "userdc3-user265",
+        "password": "Thunder85#Tiger"
+      },
+      {
+        "username": "userdc3-user266",
+        "password": "Inferno91@Venom"
+      },
+      {
+        "username": "userdc3-user267",
+        "password": "Knight91*Shadow"
+      },
+      {
+        "username": "userdc3-user268",
+        "password": "Nexus96+Sonic"
+      },
+      {
+        "username": "userdc3-user269",
+        "password": "Stealth50&Phoen"
+      },
+      {
+        "username": "userdc3-user270",
+        "password": "Forge32$Prism"
+      },
+      {
+        "username": "userdc3-user271",
+        "password": "Apex95&Obsidian"
+      },
+      {
+        "username": "userdc3-user272",
+        "password": "Tiger94+Eagle"
+      },
+      {
+        "username": "userdc3-user273",
+        "password": "Warrior97^Storm"
+      },
+      {
+        "username": "userdc3-user274",
+        "password": "Shadow82~Ranger"
+      },
+      {
+        "username": "userdc3-user275",
+        "password": "Frost40-Warrior"
+      },
+      {
+        "username": "userdc3-user276",
+        "password": "Titan79*Ranger"
+      },
+      {
+        "username": "userdc3-user277",
+        "password": "Quantum53!Forge"
+      },
+      {
+        "username": "userdc3-user278",
+        "password": "Prism93=Nova"
+      },
+      {
+        "username": "userdc3-user279",
+        "password": "Primal66~Dragon"
+      },
+      {
+        "username": "userdc3-user280",
+        "password": "Storm80&Titan"
+      },
+      {
+        "username": "userdc3-user281",
+        "password": "Nova62*Cipher"
+      },
+      {
+        "username": "userdc3-user282",
+        "password": "Mystic20#Eagle"
+      },
+      {
+        "username": "userdc3-user283",
+        "password": "Dragon94$Venom"
+      },
+      {
+        "username": "userdc3-user284",
+        "password": "Nexus59*Archer"
+      },
+      {
+        "username": "userdc3-user285",
+        "password": "Ranger87=Prism"
+      },
+      {
+        "username": "userdc3-user286",
+        "password": "Venom42*Pulse"
+      },
+      {
+        "username": "userdc3-user287",
+        "password": "Obsidian10#Thun"
+      },
+      {
+        "username": "userdc3-user288",
+        "password": "Warrior98-Storm"
+      },
+      {
+        "username": "userdc3-user289",
+        "password": "Mystic55%Wraith"
+      },
+      {
+        "username": "userdc3-user290",
+        "password": "Frost95#Tiger"
+      },
+      {
+        "username": "userdc3-user291",
+        "password": "Zenith80+Specte"
+      },
+      {
+        "username": "userdc3-user292",
+        "password": "Quantum73~Prima"
+      },
+      {
+        "username": "userdc3-user293",
+        "password": "Cipher55-Glacie"
+      },
+      {
+        "username": "userdc3-user294",
+        "password": "Stealth97^Mysti"
+      },
+      {
+        "username": "userdc3-user295",
+        "password": "Apex90#Specter"
+      },
+      {
+        "username": "userdc3-user296",
+        "password": "Apex73$Shadow"
+      },
+      {
+        "username": "userdc3-user297",
+        "password": "Viper25@Sonic"
+      },
+      {
+        "username": "userdc3-user298",
+        "password": "Rogue91~Titan"
+      },
+      {
+        "username": "userdc3-user299",
+        "password": "Nomad12*Inferno"
+      },
+      {
+        "username": "userdc3-user300",
+        "password": "Zenith72~Spark"
+      }
+    ],
+    "lv4": [
+      {
+        "username": "userdc4-user301",
+        "password": "Blaze36#Stealth"
+      },
+      {
+        "username": "userdc4-user302",
+        "password": "Ranger17~Frost"
+      },
+      {
+        "username": "userdc4-user303",
+        "password": "Nexus63&Apex"
+      },
+      {
+        "username": "userdc4-user304",
+        "password": "Nomad77^Blaze"
+      },
+      {
+        "username": "userdc4-user305",
+        "password": "Dragon27^Obsidi"
+      },
+      {
+        "username": "userdc4-user306",
+        "password": "Volt11@Obsidian"
+      },
+      {
+        "username": "userdc4-user307",
+        "password": "Primal37#Infern"
+      },
+      {
+        "username": "userdc4-user308",
+        "password": "Nomad46$Zenith"
+      },
+      {
+        "username": "userdc4-user309",
+        "password": "Comet45%Blaze"
+      },
+      {
+        "username": "userdc4-user310",
+        "password": "Apex34!Nova1"
+      },
+      {
+        "username": "userdc4-user311",
+        "password": "Pulse55+Spark"
+      },
+      {
+        "username": "userdc4-user312",
+        "password": "Thunder49^Echo"
+      },
+      {
+        "username": "userdc4-user313",
+        "password": "Inferno53#Cosmi"
+      },
+      {
+        "username": "userdc4-user314",
+        "password": "Quantum64^Falco"
+      },
+      {
+        "username": "userdc4-user315",
+        "password": "Wraith23+Rogue"
+      },
+      {
+        "username": "userdc4-user316",
+        "password": "Blizzard86-Crim"
+      },
+      {
+        "username": "userdc4-user317",
+        "password": "Rogue62~Volt"
+      },
+      {
+        "username": "userdc4-user318",
+        "password": "Mystic58%Infern"
+      },
+      {
+        "username": "userdc4-user319",
+        "password": "Glacier30&Phant"
+      },
+      {
+        "username": "userdc4-user320",
+        "password": "Inferno13~Prism"
+      },
+      {
+        "username": "userdc4-user321",
+        "password": "Obsidian65-Falc"
+      },
+      {
+        "username": "userdc4-user322",
+        "password": "Tiger18#Sonic"
+      },
+      {
+        "username": "userdc4-user323",
+        "password": "Obsidian41$Soni"
+      },
+      {
+        "username": "userdc4-user324",
+        "password": "Quantum97=Forge"
+      },
+      {
+        "username": "userdc4-user325",
+        "password": "Primal64^Rogue"
+      },
+      {
+        "username": "userdc4-user326",
+        "password": "Frost38-Warrior"
+      },
+      {
+        "username": "userdc4-user327",
+        "password": "Stealth65%Arche"
+      },
+      {
+        "username": "userdc4-user328",
+        "password": "Surge62*Glacier"
+      },
+      {
+        "username": "userdc4-user329",
+        "password": "Rogue93!Primal"
+      },
+      {
+        "username": "userdc4-user330",
+        "password": "Apex12$Quantum"
+      },
+      {
+        "username": "userdc4-user331",
+        "password": "Phoenix24!Hunte"
+      },
+      {
+        "username": "userdc4-user332",
+        "password": "Specter59%Nexus"
+      },
+      {
+        "username": "userdc4-user333",
+        "password": "Thunder42#Glaci"
+      },
+      {
+        "username": "userdc4-user334",
+        "password": "Mystic79%Primal"
+      },
+      {
+        "username": "userdc4-user335",
+        "password": "Primal67~Nexus"
+      },
+      {
+        "username": "userdc4-user336",
+        "password": "Nomad52%Wraith"
+      },
+      {
+        "username": "userdc4-user337",
+        "password": "Obsidian82!Rang"
+      },
+      {
+        "username": "userdc4-user338",
+        "password": "Forge69+Titan"
+      },
+      {
+        "username": "userdc4-user339",
+        "password": "Storm29&Cipher"
+      },
+      {
+        "username": "userdc4-user340",
+        "password": "Frost73#Pulse"
+      },
+      {
+        "username": "userdc4-user341",
+        "password": "Swift72-Nova"
+      },
+      {
+        "username": "userdc4-user342",
+        "password": "Glacier88+Obsid"
+      },
+      {
+        "username": "userdc4-user343",
+        "password": "Glacier68*Nomad"
+      },
+      {
+        "username": "userdc4-user344",
+        "password": "Spark43~Cipher"
+      },
+      {
+        "username": "userdc4-user345",
+        "password": "Storm62-Mystic"
+      },
+      {
+        "username": "userdc4-user346",
+        "password": "Crimson20*Crims"
+      },
+      {
+        "username": "userdc4-user347",
+        "password": "Blaze86~Crimson"
+      },
+      {
+        "username": "userdc4-user348",
+        "password": "Blaze38&Apex"
+      },
+      {
+        "username": "userdc4-user349",
+        "password": "Shadow73#Phanto"
+      },
+      {
+        "username": "userdc4-user350",
+        "password": "Swift48%Phantom"
+      },
+      {
+        "username": "userdc4-user351",
+        "password": "Dragon70@Cipher"
+      },
+      {
+        "username": "userdc4-user352",
+        "password": "Eagle54-Rogue"
+      },
+      {
+        "username": "userdc4-user353",
+        "password": "Hunter46=Archer"
+      },
+      {
+        "username": "userdc4-user354",
+        "password": "Warrior20!Infer"
+      },
+      {
+        "username": "userdc4-user355",
+        "password": "Prism59+Phoenix"
+      },
+      {
+        "username": "userdc4-user356",
+        "password": "Cosmic22&Ranger"
+      },
+      {
+        "username": "userdc4-user357",
+        "password": "Tiger46%Glacier"
+      },
+      {
+        "username": "userdc4-user358",
+        "password": "Cosmic10^Eagle"
+      },
+      {
+        "username": "userdc4-user359",
+        "password": "Cipher85&Volt"
+      },
+      {
+        "username": "userdc4-user360",
+        "password": "Specter82#Glaci"
+      },
+      {
+        "username": "userdc4-user361",
+        "password": "Viper27%Volt"
+      },
+      {
+        "username": "userdc4-user362",
+        "password": "Sonic10&Volt"
+      },
+      {
+        "username": "userdc4-user363",
+        "password": "Eagle71^Forge"
+      },
+      {
+        "username": "userdc4-user364",
+        "password": "Rogue84!Comet"
+      },
+      {
+        "username": "userdc4-user365",
+        "password": "Surge33+Frost"
+      },
+      {
+        "username": "userdc4-user366",
+        "password": "Thunder18!Tiger"
+      },
+      {
+        "username": "userdc4-user367",
+        "password": "Storm11~Primal"
+      },
+      {
+        "username": "userdc4-user368",
+        "password": "Eagle57&Pulse"
+      },
+      {
+        "username": "userdc4-user369",
+        "password": "Storm74=Surge"
+      },
+      {
+        "username": "userdc4-user370",
+        "password": "Venom36#Blizzar"
+      },
+      {
+        "username": "userdc4-user371",
+        "password": "Specter15$Arche"
+      },
+      {
+        "username": "userdc4-user372",
+        "password": "Forge86!Obsidia"
+      },
+      {
+        "username": "userdc4-user373",
+        "password": "Nexus78#Frost"
+      },
+      {
+        "username": "userdc4-user374",
+        "password": "Glacier19@Arche"
+      },
+      {
+        "username": "userdc4-user375",
+        "password": "Rogue13^Spark"
+      },
+      {
+        "username": "userdc4-user376",
+        "password": "Hunter97$Stealt"
+      },
+      {
+        "username": "userdc4-user377",
+        "password": "Rogue15*Rogue"
+      },
+      {
+        "username": "userdc4-user378",
+        "password": "Phantom66+Viper"
+      },
+      {
+        "username": "userdc4-user379",
+        "password": "Zenith68@Phoeni"
+      },
+      {
+        "username": "userdc4-user380",
+        "password": "Warrior37^Viper"
+      },
+      {
+        "username": "userdc4-user381",
+        "password": "Echo44~Nova0"
+      },
+      {
+        "username": "userdc4-user382",
+        "password": "Nomad96#Shadow"
+      },
+      {
+        "username": "userdc4-user383",
+        "password": "Tiger58-Viper"
+      },
+      {
+        "username": "userdc4-user384",
+        "password": "Tiger21-Mystic"
+      },
+      {
+        "username": "userdc4-user385",
+        "password": "Ranger56~Primal"
+      },
+      {
+        "username": "userdc4-user386",
+        "password": "Blizzard94=Tige"
+      },
+      {
+        "username": "userdc4-user387",
+        "password": "Swift88=Apex"
+      },
+      {
+        "username": "userdc4-user388",
+        "password": "Swift43$Specter"
+      },
+      {
+        "username": "userdc4-user389",
+        "password": "Tiger57-Knight"
+      },
+      {
+        "username": "userdc4-user390",
+        "password": "Echo17-Crimson"
+      },
+      {
+        "username": "userdc4-user391",
+        "password": "Knight93~Tiger"
+      },
+      {
+        "username": "userdc4-user392",
+        "password": "Prism23&Blizzar"
+      },
+      {
+        "username": "userdc4-user393",
+        "password": "Crimson75^Prima"
+      },
+      {
+        "username": "userdc4-user394",
+        "password": "Venom39^Rogue"
+      },
+      {
+        "username": "userdc4-user395",
+        "password": "Archer23%Prism"
+      },
+      {
+        "username": "userdc4-user396",
+        "password": "Hunter19-Surge"
+      },
+      {
+        "username": "userdc4-user397",
+        "password": "Knight19!Falcon"
+      },
+      {
+        "username": "userdc4-user398",
+        "password": "Knight87$Phanto"
+      },
+      {
+        "username": "userdc4-user399",
+        "password": "Blaze52^Spark"
+      },
+      {
+        "username": "userdc4-user400",
+        "password": "Prism91~Echo"
+      }
+    ],
+    "lv5": [
+      {
+        "username": "userdc5-user401",
+        "password": "Echo82^Surge"
+      },
+      {
+        "username": "userdc5-user402",
+        "password": "Storm56@Frost"
+      },
+      {
+        "username": "userdc5-user403",
+        "password": "Apex31=Shadow"
+      },
+      {
+        "username": "userdc5-user404",
+        "password": "Archer36$Echo"
+      },
+      {
+        "username": "userdc5-user405",
+        "password": "Comet42#Eagle"
+      },
+      {
+        "username": "userdc5-user406",
+        "password": "Comet15*Thunder"
+      },
+      {
+        "username": "userdc5-user407",
+        "password": "Ranger67+Sonic"
+      },
+      {
+        "username": "userdc5-user408",
+        "password": "Zenith50^Ranger"
+      },
+      {
+        "username": "userdc5-user409",
+        "password": "Echo77&Archer"
+      },
+      {
+        "username": "userdc5-user410",
+        "password": "Viper74+Crimson"
+      },
+      {
+        "username": "userdc5-user411",
+        "password": "Obsidian34*Stea"
+      },
+      {
+        "username": "userdc5-user412",
+        "password": "Quantum45+Prima"
+      },
+      {
+        "username": "userdc5-user413",
+        "password": "Cosmic87-Specte"
+      },
+      {
+        "username": "userdc5-user414",
+        "password": "Specter91#Prima"
+      },
+      {
+        "username": "userdc5-user415",
+        "password": "Tiger98&Surge"
+      },
+      {
+        "username": "userdc5-user416",
+        "password": "Prism20#Swift"
+      },
+      {
+        "username": "userdc5-user417",
+        "password": "Crimson47&Ciphe"
+      },
+      {
+        "username": "userdc5-user418",
+        "password": "Mystic62^Frost"
+      },
+      {
+        "username": "userdc5-user419",
+        "password": "Ranger36+Quantu"
+      },
+      {
+        "username": "userdc5-user420",
+        "password": "Falcon23@Warrio"
+      },
+      {
+        "username": "userdc5-user421",
+        "password": "Venom41%Nomad"
+      },
+      {
+        "username": "userdc5-user422",
+        "password": "Quantum97#Frost"
+      },
+      {
+        "username": "userdc5-user423",
+        "password": "Spark23=Crimson"
+      },
+      {
+        "username": "userdc5-user424",
+        "password": "Rogue79+Crimson"
+      },
+      {
+        "username": "userdc5-user425",
+        "password": "Knight40=Ranger"
+      },
+      {
+        "username": "userdc5-user426",
+        "password": "Rogue14#Apex"
+      },
+      {
+        "username": "userdc5-user427",
+        "password": "Blizzard21*Thun"
+      },
+      {
+        "username": "userdc5-user428",
+        "password": "Specter82=Cosmi"
+      },
+      {
+        "username": "userdc5-user429",
+        "password": "Nexus85+Crimson"
+      },
+      {
+        "username": "userdc5-user430",
+        "password": "Dragon68=Phoeni"
+      },
+      {
+        "username": "userdc5-user431",
+        "password": "Tiger43#Obsidia"
+      },
+      {
+        "username": "userdc5-user432",
+        "password": "Crimson30^Crims"
+      },
+      {
+        "username": "userdc5-user433",
+        "password": "Nexus85!Primal"
+      },
+      {
+        "username": "userdc5-user434",
+        "password": "Primal68=Frost"
+      },
+      {
+        "username": "userdc5-user435",
+        "password": "Prism30%Swift"
+      },
+      {
+        "username": "userdc5-user436",
+        "password": "Falcon31=Swift"
+      },
+      {
+        "username": "userdc5-user437",
+        "password": "Warrior43#Thund"
+      },
+      {
+        "username": "userdc5-user438",
+        "password": "Hunter12$Cosmic"
+      },
+      {
+        "username": "userdc5-user439",
+        "password": "Echo61@Comet"
+      },
+      {
+        "username": "userdc5-user440",
+        "password": "Shadow54@Tiger"
+      },
+      {
+        "username": "userdc5-user441",
+        "password": "Phoenix84$Spark"
+      },
+      {
+        "username": "userdc5-user442",
+        "password": "Eagle54=Nexus"
+      },
+      {
+        "username": "userdc5-user443",
+        "password": "Tiger51$Nexus"
+      },
+      {
+        "username": "userdc5-user444",
+        "password": "Blizzard70*Falc"
+      },
+      {
+        "username": "userdc5-user445",
+        "password": "Blizzard24=Vipe"
+      },
+      {
+        "username": "userdc5-user446",
+        "password": "Archer27=Echo"
+      },
+      {
+        "username": "userdc5-user447",
+        "password": "Prism58*Glacier"
+      },
+      {
+        "username": "userdc5-user448",
+        "password": "Surge61-Prism"
+      },
+      {
+        "username": "userdc5-user449",
+        "password": "Knight41@Hunter"
+      },
+      {
+        "username": "userdc5-user450",
+        "password": "Eagle85#Volt"
+      },
+      {
+        "username": "userdc5-user451",
+        "password": "Ranger97#Primal"
+      },
+      {
+        "username": "userdc5-user452",
+        "password": "Prism64$Hunter"
+      },
+      {
+        "username": "userdc5-user453",
+        "password": "Primal86!Phanto"
+      },
+      {
+        "username": "userdc5-user454",
+        "password": "Inferno26*Swift"
+      },
+      {
+        "username": "userdc5-user455",
+        "password": "Apex87~Inferno"
+      },
+      {
+        "username": "userdc5-user456",
+        "password": "Stealth18-Phant"
+      },
+      {
+        "username": "userdc5-user457",
+        "password": "Nomad17$Hunter"
+      },
+      {
+        "username": "userdc5-user458",
+        "password": "Cipher50#Forge"
+      },
+      {
+        "username": "userdc5-user459",
+        "password": "Frost37#Frost"
+      },
+      {
+        "username": "userdc5-user460",
+        "password": "Phoenix38!Mysti"
+      },
+      {
+        "username": "userdc5-user461",
+        "password": "Viper17$Blaze"
+      },
+      {
+        "username": "userdc5-user462",
+        "password": "Blaze90#Crimson"
+      },
+      {
+        "username": "userdc5-user463",
+        "password": "Dragon43#Cosmic"
+      },
+      {
+        "username": "userdc5-user464",
+        "password": "Crimson42&Eagle"
+      },
+      {
+        "username": "userdc5-user465",
+        "password": "Specter81+Tiger"
+      },
+      {
+        "username": "userdc5-user466",
+        "password": "Nova62$Swift"
+      },
+      {
+        "username": "userdc5-user467",
+        "password": "Nexus23^Mystic"
+      },
+      {
+        "username": "userdc5-user468",
+        "password": "Stealth59@Venom"
+      },
+      {
+        "username": "userdc5-user469",
+        "password": "Mystic30-Blizza"
+      },
+      {
+        "username": "userdc5-user470",
+        "password": "Phantom29!Nova"
+      },
+      {
+        "username": "userdc5-user471",
+        "password": "Frost56$Nexus"
+      },
+      {
+        "username": "userdc5-user472",
+        "password": "Obsidian94!Rogu"
+      },
+      {
+        "username": "userdc5-user473",
+        "password": "Inferno45^Blaze"
+      },
+      {
+        "username": "userdc5-user474",
+        "password": "Nomad41&Eagle"
+      },
+      {
+        "username": "userdc5-user475",
+        "password": "Specter89$Shado"
+      },
+      {
+        "username": "userdc5-user476",
+        "password": "Comet33~Viper"
+      },
+      {
+        "username": "userdc5-user477",
+        "password": "Primal72~Blizza"
+      },
+      {
+        "username": "userdc5-user478",
+        "password": "Forge63%Nova"
+      },
+      {
+        "username": "userdc5-user479",
+        "password": "Cosmic59%Storm"
+      },
+      {
+        "username": "userdc5-user480",
+        "password": "Quantum86$Phant"
+      },
+      {
+        "username": "userdc5-user481",
+        "password": "Glacier43&Cosmi"
+      },
+      {
+        "username": "userdc5-user482",
+        "password": "Wraith27$Crimso"
+      },
+      {
+        "username": "userdc5-user483",
+        "password": "Hunter60&Specte"
+      },
+      {
+        "username": "userdc5-user484",
+        "password": "Tiger94~Cosmic"
+      },
+      {
+        "username": "userdc5-user485",
+        "password": "Comet41^Inferno"
+      },
+      {
+        "username": "userdc5-user486",
+        "password": "Glacier19^Zenit"
+      },
+      {
+        "username": "userdc5-user487",
+        "password": "Blaze57-Stealth"
+      },
+      {
+        "username": "userdc5-user488",
+        "password": "Pulse60!Nova"
+      },
+      {
+        "username": "userdc5-user489",
+        "password": "Blaze40*Cosmic"
+      },
+      {
+        "username": "userdc5-user490",
+        "password": "Frost35@Blaze"
+      },
+      {
+        "username": "userdc5-user491",
+        "password": "Inferno68+Volt"
+      },
+      {
+        "username": "userdc5-user492",
+        "password": "Blizzard30@Apex"
+      },
+      {
+        "username": "userdc5-user493",
+        "password": "Echo56%Blaze"
+      },
+      {
+        "username": "userdc5-user494",
+        "password": "Thunder95^Arche"
+      },
+      {
+        "username": "userdc5-user495",
+        "password": "Titan85^Blizzar"
+      },
+      {
+        "username": "userdc5-user496",
+        "password": "Nova97#Titan"
+      },
+      {
+        "username": "userdc5-user497",
+        "password": "Nexus79+Nova"
+      },
+      {
+        "username": "userdc5-user498",
+        "password": "Echo13-Ranger"
+      },
+      {
+        "username": "userdc5-user499",
+        "password": "Nexus69~Quantum"
+      },
+      {
+        "username": "userdc5-user500",
+        "password": "Tiger60^Rogue"
+      }
+    ]
+  }
+}

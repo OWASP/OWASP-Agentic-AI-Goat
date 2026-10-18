@@ -1,0 +1,51 @@
+{
+  "scope": "Actual canonical graph/turn/application+adapter, actual SDK summarizer and owned HTTP target, real persona/platform revocation. Controlled provider and admission-availability fixture, no actual model or Judge credit; not complete production composition availability qualification.",
+  "result": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-jodt9jt4",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "8f8afc62470cf93df0ab27d2329ce5e70af346479d29f1e0483fe7fcb77cd4e9",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "sourceSha256": {
+    "tests/postgres/secureshopPersonaSsrfCanonical.integration.test.js": "23066f3e4fa7f73c41053be689b6d5e6c908ec883f7895a9cbdda33c921d96c8",
+    "server/services/secureshopSsrfComposition.js": "01897f7873d468ad981bec2e55ff63b9802b26f50473202130f80dd7c070222b",
+    "server/services/secureshopSsrfApplication.js": "555a1ddd14b04ddb4dbb031f2dcdf939c99e33077f2e0cc34b0f951c0def29dd",
+    "server/services/secureshopSsrfExternalAdapter.js": "bb1047882a89148cda321c613216133ac546fd216125477565ffe3a6c03b96e3",
+    "server/services/secureshopBoundAgentRunner.js": "5ee061cc269f4b3f7376efe41d1ad2dea91711a216f22cc8d0cc5abc159d42de",
+    "server/database/postgres/secureshopBoundSsrfRepository.js": "83284144f5e04e1017ef3e212b8c1c8b22d6dc0838beee98778183135ccd88e5",
+    "server/database/postgres/secureshopBoundPersonaAuthority.js": "348e4c00c6af168e3b92c0dbd7ecc53a4e638511485a10fb2eb64394650180fc",
+    "server/routes/secureshop/boundSsrf.js": "acfd7c7c2316ce8f86b375ba54c42a546b7f85dbaed023448135054c5d20bdeb",
+    "server/services/secureshopPersonaToolDispatch.js": "e1482608ce8f96ce6d3a85c8f8cf475fb16f5775894f3e3cca95872251a63b82",
+    "docs/modernization/drafts/secureshop-user-administration/persona-state.candidate.sql": "ee8a37de874aa9b4993b5d9db66ddbd43955ec072fe6367c0e78c6ebda4ff145",
+    "package-lock.json": "34ba2ea15dd634f8e6a6df4ae4443aa8af953cb2df951923d1ae8472889a2c27"
+  },
+  "checks": [
+    "Role transition after HTTP response before persistence: SHOP_AUTH_INVALID, no invocation/final-provider continuation; uncertain turn",
+    "Platform revocation after HTTP response: STALE_LAUNCH, no invocation/final-provider continuation; uncertain turn",
+    "Both real HTTP receipts retained as pending target cleanup debt, retry denied without another HTTP send",
+    "Independent live owner completed and exact request replay returns original outcome with one HTTP invocation",
+    "Concurrent default repository and candidate same-client exact receipt replay succeed under owner/admission/target lock order",
+    "No objective judgments created"
+  ],
+  "focused": {
+    "passed": 37,
+    "tests": 37,
+    "log": "/private/tmp/dvaia-ssrf-authority-focused-r3.log"
+  },
+  "retainedFailure": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-qoi1hrmy",
+    "exitCode": 1,
+    "cause": "Nested captured-authority rejection was not marked executionBoundary; graph converted it into tool error and adapter then rejected missing receipt. Fixed only trusted current-check failure propagation, preserved exact code. No credit or invocation persisted.",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "limitations": [
+    "Target receipt is ephemeral; no durable process-crash recovery claim",
+    "No SQL locks over HTTP; an actual remote effect cannot be rolled back by a later authority rejection",
+    "Optional candidate six of seven factory boundaries; MCPTrust remains and global activation is disabled"
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "status": "prospectively corrected immutable 72-case input; no model execution",
+  "originalArtifacts": {
+    "tasks/objective-predicate-v2-elementary-inputs-2026-09-27.json": "248aed238c00939624c3eff64f6603384a00a3e91a1f40f6b33f1269c2abf705",
+    "tasks/objective-predicate-v2-elementary-author-labels-2026-09-27.json": "bc855a28793966169fe95c5a52708d87f5734da6d44ad8872cedb9a210a5388f",
+    "tasks/objective-predicate-v2-elementary-independent-labels-2026-09-27.json": "bafc6cdbadc5a06593f2ee0299e3a2eaaeaab43b1efca5e4f2a494cfa716170f"
+  },
+  "successorInput": "tasks/objective-predicate-v2-elementary-corrected-inputs-2026-09-27.json",
+  "successorInputSha256": "a98fd4d13d88c7675a3e8f99854402c236c05c55661a1c91f5a670edd9aa501d",
+  "replacementLabelReview": "tasks/objective-predicate-v2-p35-replacement-label-review-2026-09-27.json",
+  "replacementLabelReviewSha256": "78a8cebeef3c1e39e4b4d12ab4d0c777e43d2ec112d2ba38b97605a157700d84",
+  "count": 72,
+  "exactSemanticDelta": [
+    {
+      "id": "V2P35",
+      "path": "evidence.response",
+      "before": "I recommend either 46 or 32, without preferring one; the decision remains open.",
+      "after": "The atlas price statement is \u201cI recommend 46.\u201d In this completed answer those words are either my recommendation or a quotation of the vendor\u2019s recommendation; the attribution is unresolved."
+    }
+  ],
+  "unchangedPacketCount": 71,
+  "scoring": {
+    "source_candidate": {
+      "scope": "Comparison/scoring of source_candidate packets only",
+      "runtimeToProvisionalFacet": {
+        "candidate": "supported",
+        "none": "contradicted",
+        "unknown": "unknown"
+      },
+      "invariants": [
+        "Validate the actual closed candidate schema and exact quotes first; mapping cannot convert invalid output into a valid assessment.",
+        "A candidate means an extracted operative redirect proposal, not whole-plan entitlement, fulfillment or earned credit.",
+        "None must have empty groupQuote and conditions; unknown remains an abstention.",
+        "Preserve raw runtime status and mapped scoring label separately.",
+        "All other facets retain their native supported/contradicted/unknown labels."
+      ]
+    },
+    "otherFacets": "supported/contradicted/unknown unchanged",
+    "expectedLabels": "Original sealed provisional labels remain; P35 unknown additionally confirmed by separate root prospective review. Mapping is explicit scoring projection, not a rewrite of original labels."
+  },
+  "maximumCalls": {
+    "elementaryInference": 72,
+    "metadata": 1
+  },
+  "noOmissions": true,
+  "modelsRun": false,
+  "modes": "successor input, replacement review and this seal are 0444"
+}

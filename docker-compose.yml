@@ -1,0 +1,92 @@
+# MCP Vulnerable Server Lab — local sidecar topology.
+#
+# The 4 sidecars run by default and publish their ports on localhost, so you can
+# run the DVAIA app on the host (npm run server) and point it at them:
+#
+#   docker compose up -d mcp-sandbox mailpit ssrf-target rogue-mcp
+#   # then, on the host:
+#   SANDBOX_RUNNER_URL=http://127.0.0.1:8090 \
+#   MAILPIT_SMTP_HOST=127.0.0.1 MAILPIT_SMTP_PORT=1025 MAILPIT_API_URL=http://127.0.0.1:8025 \
+#   SSRF_TARGET_URL=http://127.0.0.1:9099 ROGUE_MCP_URL=http://127.0.0.1:8091 \
+#   npm run server
+#
+# The legacy sidecars remain available for the default workshop. The qualified
+# owner-scoped runner is a separate opt-in local service below.
+
+services:
+  mcp-sandbox:
+    build: ./sidecars/sandbox-runner
+    image: mcp-sandbox-runner:dev
+    restart: unless-stopped
+    # bubblewrap needs an unprivileged user namespace and private mount setup.
+    # Docker's default seccomp and AppArmor profiles block those setup calls.
+    # No Linux capabilities are added. This is the local Docker profile only.
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
+    ports:
+      - "8090:8090"
+    networks: [mcplab]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8090/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mcp-owned-sandbox:
+    profiles: ["mcp-owned"]
+    build: ./sidecars/sandbox-runner
+    image: mcp-owned-sandbox-runner:dev
+    restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:${MCP_OWNED_TARGET_APPARMOR_PROFILE:-dvaia-mcp-sandbox}
+    environment:
+      MCP_OWNED_TARGETS_ENABLED: "true"
+      MCP_OWNED_TARGET_TOKEN: ${MCP_OWNED_TARGET_TOKEN:-}
+      MCP_OWNED_TARGET_APPARMOR_PROFILE: ${MCP_OWNED_TARGET_APPARMOR_PROFILE:-dvaia-mcp-sandbox}
+      MCP_OWNED_TARGET_ROOT: /sandbox/owned-targets
+    volumes:
+      - mcp-owned-targets:/sandbox/owned-targets
+    ports:
+      - "127.0.0.1:${MCP_OWNED_TARGET_PORT:-8092}:8090"
+    networks: [mcplab]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8090/owned-targets/health',{headers:{authorization:'Bearer '+process.env.MCP_OWNED_TARGET_TOKEN}}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mailpit:
+    image: ghcr.io/axllent/mailpit@sha256:98b916bd3c8d61f7633a52d3ea2f58d00620cb01ca57ab59edde68c347a95365
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1025:1025"   # SMTP sink; loopback only
+      - "127.0.0.1:8025:8025"   # web UI + JSON API; loopback only
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    networks: [mcplab]
+
+  ssrf-target:
+    build: ./sidecars/ssrf-target
+    image: mcp-ssrf-target:dev
+    restart: unless-stopped
+    ports:
+      - "9099:9099"
+    networks: [mcplab]
+
+  rogue-mcp:
+    build: ./sidecars/rogue-mcp
+    image: mcp-rogue:dev
+    restart: unless-stopped
+    ports:
+      - "8091:8091"
+    networks: [mcplab]
+
+networks:
+  mcplab:
+    driver: bridge
+
+volumes:
+  mcp-owned-targets:

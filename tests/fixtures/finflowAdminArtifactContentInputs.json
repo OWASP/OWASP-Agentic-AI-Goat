@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "profile": "controlled-admin-artifact-content",
+  "objectives": [
+    "admin_secrets",
+    "admin_dirlist"
+  ]
+}

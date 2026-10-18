@@ -1,0 +1,23 @@
+-- Extend the applied 0007 owner deletion primitive to retain no scoped reset
+-- receipts for a deleted owner. This is a forward correction after 0008;
+-- runtime receives only EXECUTE on the fixed-purpose SECURITY DEFINER function.
+CREATE OR REPLACE FUNCTION xss.destroy_student_owner(requested_user_id bigint)
+RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog,xss AS $$
+DECLARE removed integer:=0; DECLARE n integer;
+BEGIN
+  IF requested_user_id IS NULL OR requested_user_id<1 OR requested_user_id>2147483647 THEN
+    RAISE EXCEPTION 'Invalid deletion owner' USING ERRCODE='22023';
+  END IF;
+  DELETE FROM xss.template_previews WHERE user_id=requested_user_id; GET DIAGNOSTICS n=ROW_COUNT; removed:=removed+n;
+  DELETE FROM xss.email_templates WHERE user_id=requested_user_id; GET DIAGNOSTICS n=ROW_COUNT; removed:=removed+n;
+  DELETE FROM xss.email_profiles WHERE user_id=requested_user_id; GET DIAGNOSTICS n=ROW_COUNT; removed:=removed+n;
+  DELETE FROM xss.xss_challenge_progress WHERE user_id=requested_user_id; GET DIAGNOSTICS n=ROW_COUNT; removed:=removed+n;
+  DELETE FROM xss.xss_email_judge_receipts WHERE user_id=requested_user_id; GET DIAGNOSTICS n=ROW_COUNT; removed:=removed+n;
+  DELETE FROM xss.emails WHERE user_key=requested_user_id::text; GET DIAGNOSTICS n=ROW_COUNT; removed:=removed+n;
+  DELETE FROM xss.progress WHERE user_key=requested_user_id::text; GET DIAGNOSTICS n=ROW_COUNT; removed:=removed+n;
+  DELETE FROM xss.profiles WHERE user_key=requested_user_id::text; GET DIAGNOSTICS n=ROW_COUNT; removed:=removed+n;
+  DELETE FROM xss.scoped_profile_reset_receipts WHERE owner_id=requested_user_id; GET DIAGNOSTICS n=ROW_COUNT; removed:=removed+n;
+  RETURN removed;
+END $$;
+REVOKE ALL ON FUNCTION xss.destroy_student_owner(bigint) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION xss.destroy_student_owner(bigint) TO dvaia_xss_runtime;

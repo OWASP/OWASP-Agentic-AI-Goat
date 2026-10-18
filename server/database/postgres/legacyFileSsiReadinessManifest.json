@@ -1,0 +1,200 @@
+{
+  "identity": [
+    {
+      "name": "begin_legacy_file_ssi_reset",
+      "arguments": "integer, uuid",
+      "result": "TABLE(operation_id uuid, owner_id integer, from_generation integer, to_generation integer, status text)",
+      "hash": "cea089cff72b8f196753b8b12007d1cdeb4785a549c65108aa38169b91f50aca",
+      "definer": true,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "execute": true
+    },
+    {
+      "name": "guard_legacy_file_ssi_reset_admission",
+      "arguments": "",
+      "result": "trigger",
+      "hash": "302cb16c458d210c667e0ae4a543ba9d52a8edf1079d464a16251c3ade35118c",
+      "definer": true,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "execute": false
+    },
+    {
+      "name": "guard_legacy_file_ssi_reset_run",
+      "arguments": "",
+      "result": "trigger",
+      "hash": "7efc4ab5569621622d5573ee1c68a9c21fda0798a9740830d459d93323911d34",
+      "definer": true,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "execute": false
+    },
+    {
+      "name": "guard_legacy_file_ssi_reset_binding",
+      "arguments": "",
+      "result": "trigger",
+      "hash": "0b71094b4011ca80aa28deea404576e42dd598240da528cd4140d7df56f3c6f5",
+      "definer": false,
+      "config": null,
+      "execute": false
+    },
+    {
+      "name": "guard_legacy_file_ssi_reset_step_binding",
+      "arguments": "",
+      "result": "trigger",
+      "hash": "1376ed1e7faf3665e0bb5e3df34dbf93ea32657360159c9b66739fd089079b62",
+      "definer": false,
+      "config": null,
+      "execute": false
+    },
+    {
+      "name": "begin_sensitive_info_reset",
+      "arguments": "integer, uuid",
+      "result": "TABLE(operation_id uuid, owner_id integer, from_generation integer, to_generation integer, status text)",
+      "hash": "52d52e94f603afeca03144428e58aa5e240980c65123c9a74dc5f57d11b42faf",
+      "definer": true,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "execute": true
+    },
+    {
+      "name": "guard_sensitive_info_reset_binding",
+      "arguments": "",
+      "result": "trigger",
+      "hash": "455679b912ad98ca01fc8df9b3446fc611aadeff0ce86cf5afcb25f2cd9e0b77",
+      "definer": false,
+      "config": null,
+      "execute": false
+    },
+    {
+      "name": "guard_sensitive_info_reset_run",
+      "arguments": "",
+      "result": "trigger",
+      "hash": "1aa89522716c0eecd253c508c8a99b3e408a4308a9389d730e0f4922064e2def",
+      "definer": true,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "execute": false
+    }
+  ],
+  "finflow": [
+    {
+      "name": "guard_legacy_file_ssi_cleanup_binding",
+      "arguments": "",
+      "result": "trigger",
+      "hash": "66c2e3e8903888281bb2ee09e300bada1d1075a5fd02523220b9562b91ef4d8d",
+      "definer": false,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "execute": false
+    },
+    {
+      "name": "apply_legacy_file_ssi_cleanup",
+      "arguments": "uuid, bigint, integer, integer, text",
+      "result": "TABLE(operation_id uuid, step_key text, owner_id bigint, from_generation integer, to_generation integer)",
+      "hash": "5f41a3f09bde2045523ff313f865f78aebc14c98707acd229d1e9cd1b596ec39",
+      "definer": true,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "execute": true
+    },
+    {
+      "name": "read_legacy_file_ssi_cleanup_receipt",
+      "arguments": "uuid, text",
+      "result": "TABLE(operation_id uuid, step_key text, owner_id bigint, from_generation integer, to_generation integer)",
+      "hash": "7260303287227a6c232bba17b1a321e762f40e1f6bae581c82106e15df0306ec",
+      "definer": true,
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "execute": true
+    }
+  ],
+  "triggers": {
+    "identity": [
+      {
+        "name": "legacy_file_ssi_reset_completion_guard",
+        "table": "workshop_platform.completions",
+        "function": "identity.guard_legacy_file_ssi_reset_admission",
+        "type": 23,
+        "columns": []
+      },
+      {
+        "name": "legacy_file_ssi_reset_activity_guard",
+        "table": "workshop_platform.activity_counters",
+        "function": "identity.guard_legacy_file_ssi_reset_admission",
+        "type": 23,
+        "columns": []
+      },
+      {
+        "name": "legacy_file_ssi_reset_time_guard",
+        "table": "workshop_platform.time_tracking",
+        "function": "identity.guard_legacy_file_ssi_reset_admission",
+        "type": 23,
+        "columns": []
+      },
+      {
+        "name": "legacy_file_ssi_reset_judgment_guard",
+        "table": "workshop_platform.objective_judgments",
+        "function": "identity.guard_legacy_file_ssi_reset_admission",
+        "type": 7,
+        "columns": []
+      },
+      {
+        "name": "legacy_file_ssi_reset_state_guard",
+        "table": "workshop_platform.user_state",
+        "function": "identity.guard_legacy_file_ssi_reset_admission",
+        "type": 19,
+        "columns": []
+      },
+      {
+        "name": "legacy_file_ssi_reset_run_guard",
+        "table": "graph_runtime.runs",
+        "function": "identity.guard_legacy_file_ssi_reset_run",
+        "type": 23,
+        "columns": [
+          "owner_key",
+          "status"
+        ]
+      },
+      {
+        "name": "legacy_file_ssi_reset_binding_guard",
+        "table": "identity.legacy_file_ssi_resets",
+        "function": "identity.guard_legacy_file_ssi_reset_binding",
+        "type": 27,
+        "columns": []
+      },
+      {
+        "name": "legacy_file_ssi_reset_step_binding_guard",
+        "table": "identity.legacy_file_ssi_reset_steps",
+        "function": "identity.guard_legacy_file_ssi_reset_step_binding",
+        "type": 27,
+        "columns": []
+      }
+    ],
+    "finflow": [
+      {
+        "name": "legacy_file_ssi_cleanup_operation_binding_guard",
+        "table": "finflow.legacy_file_ssi_cleanup_operations",
+        "function": "finflow.guard_legacy_file_ssi_cleanup_binding",
+        "type": 27,
+        "columns": []
+      },
+      {
+        "name": "legacy_file_ssi_cleanup_receipt_binding_guard",
+        "table": "finflow.legacy_file_ssi_cleanup_receipts",
+        "function": "finflow.guard_legacy_file_ssi_cleanup_binding",
+        "type": 27,
+        "columns": []
+      }
+    ]
+  }
+}

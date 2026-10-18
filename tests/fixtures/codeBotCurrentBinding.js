@@ -1,0 +1,62 @@
+'use strict';
+const assert=require('node:assert/strict'),path=require('node:path'),{isDeepStrictEqual}=require('node:util'),crypto=require('node:crypto');
+const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
+function decode(row){require('../postgres/finflowBackupBrowserActualTransport').validateResponse(row);assert.equal(row.terminal,'returned');assert.equal(sha(row.request),row.requestSha256);assert.equal(Buffer.byteLength(row.request),row.requestBytes);const frames=row.response.trim().split('\n').map(JSON.parse);return {row,request:JSON.parse(row.request),frames,output:frames.map(f=>f.message?.content||'').join('')};}
+function snapshotActorArgs(args){return structuredClone([args[0],args[1],Object.fromEntries(Object.entries(args[2]||{}).filter(([k])=>['temperature','format','num_predict','num_ctx','max_tokens','top_p','top_k','stop','timeout'].includes(k)))]);}
+function bindJournal(c,run){const rows=c.requests.filter(q=>q.run_id===run.run_id);assert.equal(rows.length,1);const j=rows[0];assert.equal(j.owner_key,run.owner_key);assert.equal(String(j.user_id),String(c.userId));assert.equal(String(j.generation),String(run.generation));assert.equal(j.status,'completed');assert.deepEqual(j.response_json,c.body);assert.equal(j.request_key_sha256,require('../../server/services/supplyChain/codeBotProduction').requestKey(c.key,j.platform_session_id));assert.equal(j.request_fingerprint_sha256,require('../../server/agent-runtime/codeBotRequestJournal').requestFingerprint({userMessage:c.message,conversationHistory:[]}));return j;}
+function bindActors(actors,rows){
+ const wire=rows.filter(r=>r.kind==='chat').map(decode).filter(x=>x.request.options.num_predict===1024);assert.equal(wire.length,actors.length);assert(wire.length>0&&wire.length<=8);
+ const {messagesForLangChain}=require('../../server/agent-runtime/providers/langchainProvider');
+ const {convertToOllamaMessages,convertOllamaMessagesToLangChain}=require(path.join(path.dirname(require.resolve('@langchain/ollama/package.json')),'dist/utils.cjs'));
+ for(const [i,actor]of actors.entries()){
+  const x=wire[i];assert.deepEqual(x.request.messages,convertToOllamaMessages(messagesForLangChain(actor.messages)));assert.deepEqual(x.request.tools||[],actor.tools||[]);assert.equal(x.request.options.temperature,actor.options.temperature??0.7);assert.deepEqual(x.request.format,actor.options.format);
+  assert.equal(actor.value.provider,'ollama');assert.equal(actor.value.model,'llama3.1:8b');assert.equal(actor.value.mocked,false);assert.equal(actor.value.fallback,false);assert.equal(actor.value.content,x.output);
+  let chunk;for(const f of x.frames){const next=convertOllamaMessagesToLangChain(f.message);chunk=chunk?chunk.concat(next):next;}
+  assert.deepEqual((actor.value.tool_calls||[]).map(c=>c.function),(chunk.tool_calls||[]).map(c=>({name:c.name,arguments:c.args})));
+ }
+ return wire;
+}
+function bindCall(call,actors,message,textRepairs=[]){
+ const bind=params=>call.name==='check_dependencies'?require('../../server/agent-runtime/codeBotManifestBinding').bindManifest(message,params):params;
+ const selected=actors.findIndex(a=>{
+  if(call.decision.kind==='structured_tool_call')return (a.value.tool_calls||[]).some(t=>t.function.name===call.name&&isDeepStrictEqual(bind(t.function.arguments),call.params));
+  if(call.decision.kind==='manifest_repair_authorization'){try{const d=JSON.parse(a.value.content);return Object.keys(d).length===1&&d.action===call.name&&isDeepStrictEqual(a.options.format,require('./codeBotCurrentWirePolicy').REPAIR)&&isDeepStrictEqual(bind({}),call.params);}catch{return false;}}
+  return call.decision.kind==='text_tool_call_repair'&&textRepairs.some(p=>p.text===a.value.content&&p.message===message&&p.parsed?.name===call.name&&isDeepStrictEqual(bind(p.parsed.params),call.params));
+ });assert(selected>=0,'Exact model-selected tool arguments required');
+ if(call.continuation?.available){assert.equal(call.continuation.source,'model');const expected=JSON.stringify(call.result),limit=call.continuation.kind==='tool_loop'?expected.substring(0,1500):expected;const continuation=actors.findIndex((a,i)=>i>selected&&a.messages.some(m=>m.role==='tool'&&m.content===limit)&&((typeof a.value.content==='string'&&a.value.content.trim())||(call.continuation.kind==='tool_loop'&&a.value.tool_calls?.length)));assert(continuation>selected,'Later exact tool observation required');if(call.continuation.kind!=='tool_loop')assert.equal(actors[continuation].value.tool_calls?.length||0,0);return {selected,continuation};}
+ return {selected,continuation:null};
+}
+function bindSandbox({c,run,journal,call,packet}){const observed=(c.sandbox||[]).filter(x=>x.input.scope.runId===run.run_id);assert.equal(observed.length,1);const actual=observed[0];assert.equal(String(actual.input.scope.platformOwnerId),String(c.userId));assert.equal(String(actual.input.scope.platformSessionId),String(journal.platform_session_id));assert.equal(String(actual.input.scope.generation),String(run.generation));assert.equal(actual.input.transform,JSON.parse(call.params.manifest).transform);const manifest=JSON.parse(call.params.manifest);assert.deepEqual(call.result,{...actual.value,pkg_name:manifest.name||'unknown',pkg_version:manifest.version||'0.0.0',dep_count:Object.keys(manifest.dependencies||{}).length,pkg_parse_version:'1.2.0',pkg_parse_provenance:'fictional_training_dependency'},'Exact runtime result changed');assert.equal(call.result.runner?.isolation,'bwrap-codebot-v1');assert.equal(call.result.runner?.source,'sandbox_runner');assert.equal(call.result.runner?.exit_code,0);assert.equal(call.result.transform_executed,true);const observation={rce_env:'env_file_read',rce_ssh:'ssh_file_read'}[packet.rubric?.objectiveId]||'javascript_evaluated';assert.equal(call.result.runner?.observations?.[observation],true);if(['rce_env','rce_ssh'].includes(packet.rubric?.objectiveId))assert.equal(packet.facts.isolated_execution,true);assert(call.result.transform_output?.trim());const effect=c.effects.filter(x=>x.run_id===run.run_id);assert.equal(effect.length,1);assert.equal(effect[0].owner_key,run.owner_key);assert.equal(String(effect[0].generation),String(run.generation));assert.equal(effect[0].status,'completed');assert.equal(effect[0].effect_key,journal.request_key_sha256+':codebot-transform');assert.equal(call.result.runner.session_id,require('../../server/services/supplyChain/codeBotSandboxRuntime').sessionIdForScope({platformOwnerId:c.userId,platformSessionId:journal.platform_session_id,generation:run.generation,runId:run.run_id}));assert.equal(packet.facts.verified_effect,true);}
+function bindGenericCodeBot({packet,result,judges,usedJudges}){
+ assert.equal(packet.rubric.version,'codebot-structured-v6');assert(packet.rubric.criterionScoped===undefined||packet.rubric.criterionScoped===false,'CodeBot requires generic Judge dispatch');assert.equal(result.scopedCriteria,undefined);assert(Number.isInteger(result.attempts)&&result.attempts>=0&&result.attempts<=2);
+ const rubricMarker='\nAUTHORITATIVE RUBRIC:\n'+JSON.stringify(packet.rubric)+'\nAUTHORITATIVE SERVER FACTS:\n'+JSON.stringify(packet.facts)+'\n';
+ const matching=judges.filter(x=>x.request.messages?.length===2&&x.request.messages[0].role==='system'&&x.request.messages[0].content.includes(rubricMarker)&&x.request.messages[1].role==='user'&&x.request.messages[1].content===JSON.stringify(packet.evidence));
+ assert.equal(matching.length,result.attempts,'Generic Judge attempts must bind exact packet');
+ for(const x of matching){assert(!usedJudges.has(x.row.index),'Judge call reused');usedJudges.add(x.row.index);}
+ if(['pass','fail','inconclusive'].includes(result.verdict)&&result.attempts){const parsed=JSON.parse(matching.at(-1).output);const missing=packet.rubric.requiredFacts.some(id=>packet.facts[id]!==true);const projected=parsed.verdict==='pass'&&missing?{...parsed,verdict:'inconclusive',explanation:'Required server-observed proof is missing; no completion was awarded.'}:parsed;assert.equal(projected.verdict,result.verdict);assert.deepEqual(projected.criteria,result.criteria);assert.equal(projected.explanation,result.explanation);}
+ return matching.length;
+}
+function bindCompletion(c,j,run){
+ const projected=(c.body.newlyCompletedObjectives||[]).includes(j.objective_id);
+ if(j.disposition==='already_complete'){assert.equal(c.scope,'all');assert.equal(j.verdict,'pass');const prior=(c.priorBoundJudgments||[]).filter(p=>p.objective_id===j.objective_id&&p.disposition==='awarded'&&p.verdict==='pass'&&String(p.user_id)===String(c.userId)&&String(p.generation)===String(run.generation)&&p.run_id!==run.run_id);assert.equal(prior.length,1,'Exactly one earlier bound canonical award required');const retained=c.judgments.filter(p=>p.evaluation_id===prior[0].evaluation_id);assert.equal(retained.length,1);assert.deepEqual(retained[0],prior[0],'Prior canonical award changed');const completed=(c.completions||[]).filter(p=>String(p.user_id)===String(c.userId)&&p.workshop_key==='supply_chain_rce'&&p.objective_id===j.objective_id);assert.equal(completed.length,1,'Actual canonical completion required');assert.deepEqual(completed[0],c.priorBoundCompletions?.[prior[0].evaluation_id],'Earlier canonical completion row changed');assert.equal(projected,true);}
+ else assert.equal(j.disposition==='awarded',projected);
+}
+function bindCapture(c,actors,rows){
+ const wire=bindActors(actors,rows),judges=rows.filter(r=>r.kind==='chat').map(decode).filter(x=>x.request.options.num_predict===900),usedJudges=new Set();
+ assert.equal(c.graphs?.length,1);const graph=c.graphs[0];assert.equal(graph.input.userMessage,c.message);assert.equal(String(graph.input.userId),String(c.userId));assert.equal(graph.value.modelIsReal,true);assert.equal(c.body.response,graph.value.finalResponse);assert(wire.some(x=>x.output.trim()===graph.value.rawModelResponse),'Raw graph response absent from actual wire');
+ const run=c.runs.find(r=>r.run_id===c.body.run?.runId);assert(run);assert.equal(run.owner_key,JSON.stringify(['CodeBot',String(c.userId)]));
+ const journal=bindJournal(c,run);
+ const selected=c.judgments.filter(j=>j.run_id===run.run_id);assert.equal(selected.length,c.body.judgments.length);const used=new Set();
+ for(const published of c.body.judgments){const id=published.evaluationId||published.receiptId;assert(!used.has(id));used.add(id);const matches=selected.filter(j=>j.evaluation_id===id);assert.equal(matches.length,1);const j=matches[0];assert.equal(j.objective_id,published.objectiveId);assert.equal(j.verdict,published.verdict);assert.equal(j.result_json.verdict,j.verdict);bindCompletion(c,j,run);assert.equal(String(j.generation),String(run.generation));
+  const records=c.packets.filter(p=>p.evaluation_id===id&&String(p.user_id)===String(c.userId));assert.equal(records.length,1);assert.equal(records[0].owner_key,run.owner_key);assert.equal(String(records[0].owner_generation),String(run.generation));const raw=records[0].packet;const packet=require('./mcpMountedHttpComposition').decodePacket(raw);assert.equal(packet.rubric.version,'codebot-structured-v6');assert.equal(packet.rubric.objectiveId,j.objective_id);assert.equal(packet.evidence.find(e=>e.id==='request')?.content,c.message);
+  bindGenericCodeBot({packet,result:j.result_json,judges,usedJudges});
+  const rawResponse=packet.evidence.find(e=>e.id==='raw_response');if(rawResponse)assert(wire.some(x=>x.output===rawResponse.content));
+  for(const e of packet.evidence.filter(e=>/^tool_\d+$/.test(e.id))){const call=e.content;assert.deepEqual(call,graph.value.toolInvocations[Number(e.id.slice(5))]);assert.equal(call.decision.source,'model');assert.equal(call.decision.validated,true);
+   bindCall(call,actors,c.message,c.textRepairs);
+   if(call.result?.security==='rce_executed'){bindSandbox({c,run,journal,call,packet});}
+  }
+ }
+ assert.equal(usedJudges.size,judges.length);return {actorCalls:wire.length,judgeCalls:judges.length,evaluationIds:[...used],runId:run.run_id};
+}
+async function closeOwned(tasks){const results=await require('./secureshopAnalyticsBrowserOwner').settleOwnership(tasks,10000);const failures=results.filter(x=>x.status!=='fulfilled');if(failures.length)throw Object.assign(Error('CodeBot owned cleanup failed'),{cleanupFailures:failures.map(({name,status})=>({resource:name,status}))});return results.map(({name,status})=>({resource:name,status}));}
+module.exports={bindCompletion,bindGenericCodeBot,bindSandbox,bindCall,snapshotActorArgs,bindJournal,bindActors,bindCapture,closeOwned,decode};

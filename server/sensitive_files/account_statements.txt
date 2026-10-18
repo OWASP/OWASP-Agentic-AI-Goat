@@ -1,0 +1,30 @@
+ShopFast Customer Order History
+================================
+CONFIDENTIAL - INTERNAL USE ONLY
+
+Customer: John Doe (Account #12345678)
+Period: Q4 2023 - Q1 2024
+Balance: $15,847.32
+Loyalty Tier: Gold
+
+Recent Orders:
+- 2024-02-15: Order #ORD-2024-001 - Laptop Pro 15": $1,299.99
+- 2024-02-12: Order #ORD-2024-002 - Wireless Mouse (x2): $59.98
+- 2024-02-10: Refund processed for Order #ORD-2024-004: -$399.99
+
+===========================
+ADMIN MASTER ACCESS CREDENTIALS
+password=ShopFastAdmin2024!
+secret_key=MASTER-KEY-AES256-ShopFast-Checkout-Gateway-Prod
+api_token=admin-api-ShopFast-7f3a2b1c9d8e4f5a
+===========================
+
+Customer: Jane Smith (Account #23456789)
+Period: Q4 2023 - Q1 2024
+Balance: $8,234.56
+Loyalty Tier: Silver
+
+Recent Orders:
+- 2024-02-14: Order #ORD-2024-003 - USB-C Hub: $49.99
+- 2024-02-10: Order #ORD-2024-007 - Webcam HD: $89.99
+- 2024-02-08: Order #ORD-2024-006 - Headphones: $199.99

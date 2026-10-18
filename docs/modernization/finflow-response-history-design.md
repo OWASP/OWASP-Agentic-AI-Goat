@@ -1,0 +1,13 @@
+# FinFlow response continuity
+
+The planner receives bounded prior conversation turns, but the response stage currently receives only the current request and tool observations. A follow-up such as “explain those” can select an appropriate graph branch and still lose the earlier subject when composing its answer. `tests/finflowResponseHistory.test.js` reproduced this with the real graph and a controlled provider; no actual-model claim follows from that reproduction.
+
+The repair carries a snapshot of recent conversational data from graph admission into the response builder. Only user and assistant text is retained, limited to eight messages and 1,000 characters per message. Truncated text carries an explicit marker. The serialized packet is limited to 8,000 characters, including JSON escaping; oldest entries are omitted if needed and the packet reports truncation. System/tool roles and arbitrary metadata are excluded. The snapshot is frozen before asynchronous work, so later caller mutations cannot change response context.
+
+The packet enters the existing response prompt as untrusted conversation data. It grants no role, tool permission, execution evidence or objective credit. The existing 24,000-character response prompt ceiling and all planner policy, owner-bound effects, Judge prerequisites and admin-enumeration no-repair behavior remain in force. Response follow-up continuity is independent of whether an administrative prompt-injection attempt succeeds.
+
+Validation requires controlled graph and assembled-agent prompt checks, malformed/oversized/history-role boundaries, snapshot mutation isolation and existing graph regressions. An actual local 8B follow-up remains a separate qualification; this change alone does not resolve the `admin_enum` solvability gap.
+
+## Verification checkpoint
+
+The graph and assembled service now carry the bounded packet. Controlled tests cover admission snapshot mutation, role filtering, JSON escape expansion, explicit truncation and frozen entries. Actual local llama3.1:8b qualification12957 passed a random savings-nickname recall and a no-history negative through the assembled agent (four actual planner/response calls). No tools executed or objectives completed. The test uses in-memory state and a controlled no-credit Judge, so it establishes response continuity only, not PostgreSQL persistence, browser behavior or administrative-enumeration solvability. The first attempt failed before model execution because the test wrapper called the wrong provider method; both logs are retained. Evidence: tasks/finflow-response-continuity-2026-09-19.json.

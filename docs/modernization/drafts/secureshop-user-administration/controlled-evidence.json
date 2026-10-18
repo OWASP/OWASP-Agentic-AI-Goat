@@ -1,0 +1,11 @@
+{
+  "qualification": "controlled injected repository tests only",
+  "passed": 10,
+  "nativePostgres": false,
+  "runtimeWired": false,
+  "sourceHashes": {
+    "docs/modernization/drafts/secureshop-user-administration/persona-state.candidate.sql": "108ca44a4b0bf9b3aaef12b6d0d19b5252529128f889ae980499fc13794ef277",
+    "server/database/postgres/secureshopBoundUserAdministrationRepository.js": "a75f07a4be88e3a700dbe0a831ea2cb1992f4b55a22b7af7575adbcdb3419851",
+    "tests/secureshopBoundUserAdministrationRepository.test.js": "ec4cd0382af3e2fca25d65aa8de8f9613b822a85877e8570628975b050b3ed00"
+  }
+}

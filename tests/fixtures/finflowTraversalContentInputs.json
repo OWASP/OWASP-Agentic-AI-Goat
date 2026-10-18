@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "profile": "controlled-traversal-content",
+  "objectives": [
+    "traversal_secrets",
+    "traversal_passwd",
+    "traversal_llm"
+  ]
+}

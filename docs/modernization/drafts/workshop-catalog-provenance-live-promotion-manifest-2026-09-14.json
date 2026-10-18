@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "status": "prepared_unpromoted_unrun",
+  "owner": "/root/secureshop_architecture",
+  "prerequisites": {
+    "identity": {
+      "fileCount": 45,
+      "requiredHead": "0046_graph_judge_validation_code.sql",
+      "requiredChecksum": "d5b40afc1d3c43c2371ec30fd9d1cc119a935cbc1840ef3b11c8bc4cfa6be936"
+    }
+  },
+  "migrations": [
+    {
+      "name": "0047_secureshop_persona_inbox_catalog.sql",
+      "draft": "docs/modernization/drafts/secureshop-persona-inbox-catalog-transition.sql",
+      "sha256": "e12496c0ebf7c3927ab2d967afa286b3e5774d88f4223527444c222c19ed3e64"
+    },
+    {
+      "name": "0048_workshop_catalog_field_provenance.sql",
+      "draft": "docs/modernization/drafts/workshop-catalog-field-provenance.sql",
+      "sha256": "96ea10297e339cc277a0c76db8dad7028f5683b1dbc1db46a3d913889fe24de2"
+    },
+    {
+      "name": "0049_workshop_catalog_persona_adoption.sql",
+      "draft": "docs/modernization/drafts/workshop-catalog-field-provenance-persona-adoption.sql",
+      "sha256": "aa22efe7d731bbb378f6cc9d7954f109af34573773f2f0f6ade10098b02abccb"
+    }
+  ],
+  "sourceInputs": {
+    "server/database/postgres/workshopPlatformSeed.js": "6c26c5333633891593fb56597751fc0a9e877d6086fdf88171cb3c78b35e66db",
+    "server/database/postgres/workshopConfigRepository.js": "7f882098b18856a5560082f1b50ff6ba1e5b6093690d23e978f97ba088baed8d",
+    "server/config/secureshopCurriculum.js": "e63f7b375625ad403df39f95fb07b83cc326e50e63c98abf38030984ded782c0",
+    "server/services/secureshopBoundApplication.js": "97e49e79f56e015833d19fad3e67d2499aaab41f1007f27799cd27306b88f464",
+    "server/services/secureshopBoundReviewComposition.js": "6d9e02e42320cf6cdd2a699ca6267dbe05737b1d970d36c3ada3f90a681b3945",
+    "docs/modernization/drafts/workshopPlatformSeed.provenance.integration.candidate.js": "509ead4b362dd0fedf84df9e116e64826721ee0e66c3d521832e3d83a055b92d",
+    "docs/modernization/drafts/workshopConfigProvenanceIntegration.candidate.js": "29c5a1c9284906d5eac4b6f7c9e69de5c73fc1c47d89a1978df789b88504132f",
+    "docs/modernization/drafts/secureshopPersonaInboxActivationCandidate.js": "930cb6f62eda9fa5fa6744be67a64124f77738bfced62baa55db789eebcbcf0e",
+    "docs/modernization/drafts/secureshopPersonaCatalogCurriculumCandidate.js": "96311c5a083265210d916d8fdf86300482bc7a2b36ede5f56e7f5407283d33a8",
+    "docs/modernization/drafts/catalogDefaultProvenance.candidate.js": "d141c235826cf0a379fc202f970654fdf970f080a3ee816cee06934294b3aa31",
+    "docs/modernization/drafts/workshopPlatformSeed.provenance.candidate.js": "bf9ea4a6eb8beff236e8eb86188058aef886b797aa4c37ae418f20cee8ff48dd",
+    "docs/modernization/drafts/workshop-catalog-field-provenance.sql": "96ea10297e339cc277a0c76db8dad7028f5683b1dbc1db46a3d913889fe24de2",
+    "docs/modernization/drafts/secureshopPersonaInboxActivationPolicy.candidate.js": "0ea2ebde9d704a6b0ab31747dd7a458b20df5363fae78d0997bf8508e101c3d8"
+  },
+  "generatedProductionOutputs": {
+    "server/database/postgres/catalogDefaultProvenance.js": "d141c235826cf0a379fc202f970654fdf970f080a3ee816cee06934294b3aa31",
+    "server/database/postgres/workshopPlatformSeedCore.js": "bf9ea4a6eb8beff236e8eb86188058aef886b797aa4c37ae418f20cee8ff48dd",
+    "server/database/postgres/workshopPlatformSeed.js": "509ead4b362dd0fedf84df9e116e64826721ee0e66c3d521832e3d83a055b92d",
+    "server/database/postgres/workshopConfigRepository.js": "a9ad86724c3d0c8f29e36b72f2379fe67f3ad96682f0ff854765d3321fb1c0e6",
+    "server/config/secureshopCurriculum.js": "bbec09c5ad3eb42fd95f4298227854f612f1ccd0fab9f320c6f49ffd8b762ad4",
+    "server/services/secureshopBoundApplication.js": "e0f9823e5c15688f84446778fb21725b2837d32defeb1430a015139b429f72b6",
+    "server/services/secureshopBoundReviewComposition.js": "156c49830689cb835b242e5b67e9571f216660df5aef12f226b5265fe01a7991",
+    "server/services/secureshopPersonaInboxActivationPolicy.js": "0ea2ebde9d704a6b0ab31747dd7a458b20df5363fae78d0997bf8508e101c3d8"
+  },
+  "catalogContract": {
+    "canonicalObjectiveCount": 116,
+    "personaWorkshopKey": "secureshop_agent_security",
+    "personaVisible": false,
+    "personaEnabledObjectives": []
+  },
+  "recovery": {
+    "freshIdentityAndAgentsBackup": true,
+    "ownedPostgres18Restore": true,
+    "holdWatcherOnPartialMutationFailure": true
+  },
+  "qualificationEvidence": {
+    "grantId": "workshop-catalog-provenance-release-20260914-02",
+    "evidenceDirectory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-catalog-release-rvzfdk8w",
+    "resultSha256": "69bc39e4b3f5fde8d98461f8737d01ad4325fa9b9e17d36d5842cdb7d9601f17",
+    "ownershipSha256": "6793314c69e7c6b032ff574fe106d3758f8b2d3dc2b06c06fbe35febaa777caf",
+    "containerAbsent": true
+  },
+  "allowedCatalogTransitions": {
+    "exercise:secureshop_agent_security::route": {
+      "before": "16b2a3fbe6384c970a031dfdb4bf6e133daed7b04de6ff65e80eaf79bf5a91ad",
+      "after": "6f4373ee0101e80030b53f240585ca8ca919d3beb6c8282c31be88f8b995cbb1"
+    },
+    "exercise:secureshop_agent_security::challenge_description": {
+      "before": "61c1cdb481f74bd514cc9b31c911f8c28b8fdc7d8df6e3a8490807cd98097076",
+      "after": "d203a3f0aa65f5908a4012bc30afba3b8ee730fd69add8d6a88a5ca9e7db0394"
+    },
+    "objective:secureshop_agent_security:ss_cross_persona_effect:hint_content": {
+      "before": "4d9c502cc0c7d1112201f514b3893411f75074a7464c117adac3025c792ccbaf",
+      "after": "c2659bb78c60d424cf83bc31f3687a92f061f8d4ee81a3a047b6db71c83353ef"
+    },
+    "objective:secureshop_agent_security:ss_cross_persona_effect:solution_content": {
+      "before": "1efb8200c50410e740cbca147a08ab2c884b9e3648469df0b49f8f5c04a09aac",
+      "after": "91335d6f2a27a744616273ab0da7cb60b325adac3b917e3c1576e78bd341ef3c"
+    },
+    "objective:secureshop_agent_security:ss_acl_advisory_effect:hint_content": {
+      "before": "467e3a64618d96291bc1c9be5b568c80e050250b04ea2a3837fd463bed979ffb",
+      "after": "324a0fb7102eba972a2033f71a7d05234b731a919a7e428be8707619d6106842"
+    },
+    "objective:secureshop_agent_security:ss_acl_advisory_effect:solution_content": {
+      "before": "b70f11cbd857ce983093f3918b48d461e6e801e31697c71ef16c167190dbd3d1",
+      "after": "1af3c4de7b84f21505b6e48eefa9dd392f87f3e3d1141564edfce5b0b8cca77f"
+    },
+    "objective:secureshop_agent_security:ss_acl_enforced_block:hint_content": {
+      "before": "e79653c0e848bb8fa51255d31e80f64f14a80201499bba0f06064222a81af52e",
+      "after": "129878358767c108cfb59c8f0be96de60fc7e6196c87fc087f1bff0bd711b339"
+    },
+    "objective:secureshop_agent_security:ss_acl_enforced_block:solution_content": {
+      "before": "2aaa0cab42c7c3bcbe9af4d66a22ef727d897a2251b7bcf7e5ac9c55f82e455b",
+      "after": "e649d34770e4c5991d2c1ab663eb355dd7a1eb4b02f83777bdee0daef94ae5c4"
+    }
+  },
+  "initializerPolicy": {
+    "mutationScope": "identity_loader_and_catalog_seed_only",
+    "ledgerAuditStores": [
+      "identity",
+      "aria",
+      "nova",
+      "xss",
+      "mcp",
+      "csrf",
+      "supply_chain",
+      "finflow",
+      "excessive_agency",
+      "ctf",
+      "legacy_challenge",
+      "sensitive_lookup",
+      "secureshop",
+      "secureshop_agents",
+      "session_disclosure",
+      "secureshop_review"
+    ],
+    "replayScope": "all_16_stores_empty"
+  },
+  "postRestartChecks": [
+    "health_200",
+    "replacement_child_identity",
+    "catalog_preservation",
+    "all_16_ledgers",
+    "eight_installed_source_hashes"
+  ],
+  "generatedSourceRegression": {
+    "snapshotDirectory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-catalog-broad-source-oCMeKxNY",
+    "snapshotMetadataSha256": "842caf5f9cdcd22ae4af9100cd1c567b544e39dd4e64ac7434974e136ae7f826",
+    "evidenceDirectory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-regression-64hfOl",
+    "nodeVersion": "v26.8.2",
+    "tests": 2263,
+    "passed": 2208,
+    "failed": 0,
+    "skipped": 55,
+    "boundary": "generated catalog release bytes in an isolated source and data copy; no live database or model"
+  }
+}

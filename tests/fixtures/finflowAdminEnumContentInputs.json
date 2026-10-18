@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "profile": "controlled-admin-enum-content",
+  "objectives": [
+    "admin_enum"
+  ]
+}

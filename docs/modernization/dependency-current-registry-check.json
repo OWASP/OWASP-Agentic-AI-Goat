@@ -1,0 +1,688 @@
+{
+  "checkedAt": "2026-09-14T02:03:15.853Z",
+  "scope": "Direct dependencies only; registry latest is not compatibility or vulnerability qualification",
+  "packages": [
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "@aws-sdk/client-bedrock-runtime",
+      "declared": "3.1131.0",
+      "latest": "3.1131.0",
+      "engines": {
+        "node": ">=20.0.0"
+      },
+      "source": "https://registry.npmjs.org/%40aws-sdk%2Fclient-bedrock-runtime/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "@huggingface/transformers",
+      "declared": "4.2.0",
+      "latest": "4.2.0",
+      "engines": {},
+      "source": "https://registry.npmjs.org/%40huggingface%2Ftransformers/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "@langchain/anthropic",
+      "declared": "1.5.10",
+      "latest": "1.5.10",
+      "engines": {
+        "node": ">=20"
+      },
+      "source": "https://registry.npmjs.org/%40langchain%2Fanthropic/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "@langchain/aws",
+      "declared": "1.4.5",
+      "latest": "1.4.5",
+      "engines": {
+        "node": ">=20"
+      },
+      "source": "https://registry.npmjs.org/%40langchain%2Faws/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "@langchain/core",
+      "declared": "1.2.11",
+      "latest": "1.2.11",
+      "engines": {
+        "node": ">=20"
+      },
+      "source": "https://registry.npmjs.org/%40langchain%2Fcore/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "@langchain/langgraph",
+      "declared": "1.4.15",
+      "latest": "1.4.15",
+      "engines": {
+        "node": ">=18"
+      },
+      "source": "https://registry.npmjs.org/%40langchain%2Flanggraph/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "@langchain/ollama",
+      "declared": "1.3.0",
+      "latest": "1.3.0",
+      "engines": {
+        "node": ">=20"
+      },
+      "source": "https://registry.npmjs.org/%40langchain%2Follama/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "@langchain/openai",
+      "declared": "1.5.13",
+      "latest": "1.5.13",
+      "engines": {
+        "node": ">=22"
+      },
+      "source": "https://registry.npmjs.org/%40langchain%2Fopenai/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "@modelcontextprotocol/sdk",
+      "declared": "1.30.0",
+      "latest": "1.30.0",
+      "engines": {
+        "node": ">=18"
+      },
+      "source": "https://registry.npmjs.org/%40modelcontextprotocol%2Fsdk/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "axios",
+      "declared": "1.20.0",
+      "latest": "1.20.0",
+      "engines": {},
+      "source": "https://registry.npmjs.org/axios/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "bcrypt",
+      "declared": "^6.0.0",
+      "latest": "6.0.0",
+      "engines": {
+        "node": ">= 18"
+      },
+      "source": "https://registry.npmjs.org/bcrypt/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "bcryptjs",
+      "declared": "3.0.3",
+      "latest": "3.0.3",
+      "engines": {},
+      "source": "https://registry.npmjs.org/bcryptjs/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "better-sqlite3",
+      "declared": "13.0.3",
+      "latest": "13.0.3",
+      "engines": {
+        "node": ">=22"
+      },
+      "source": "https://registry.npmjs.org/better-sqlite3/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "body-parser",
+      "declared": "2.3.0",
+      "latest": "2.3.0",
+      "engines": {
+        "node": ">=18"
+      },
+      "source": "https://registry.npmjs.org/body-parser/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "compression",
+      "declared": "1.8.2",
+      "latest": "1.8.2",
+      "engines": {
+        "node": ">= 0.8.0"
+      },
+      "source": "https://registry.npmjs.org/compression/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "cookie-parser",
+      "declared": "^1.4.6",
+      "latest": "1.4.7",
+      "engines": {
+        "node": ">= 0.8.0"
+      },
+      "source": "https://registry.npmjs.org/cookie-parser/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "cors",
+      "declared": "2.8.6",
+      "latest": "2.8.6",
+      "engines": {
+        "node": ">= 0.10"
+      },
+      "source": "https://registry.npmjs.org/cors/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "dotenv",
+      "declared": "17.4.2",
+      "latest": "17.4.2",
+      "engines": {
+        "node": ">=12"
+      },
+      "source": "https://registry.npmjs.org/dotenv/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "express",
+      "declared": "5.2.1",
+      "latest": "5.2.1",
+      "engines": {
+        "node": ">= 18"
+      },
+      "source": "https://registry.npmjs.org/express/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "express-rate-limit",
+      "declared": "8.7.0",
+      "latest": "8.7.0",
+      "engines": {
+        "node": ">= 16"
+      },
+      "source": "https://registry.npmjs.org/express-rate-limit/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "express-session",
+      "declared": "1.19.0",
+      "latest": "1.19.0",
+      "engines": {
+        "node": ">= 0.8.0"
+      },
+      "source": "https://registry.npmjs.org/express-session/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "helmet",
+      "declared": "8.3.0",
+      "latest": "8.3.0",
+      "engines": {
+        "node": ">=18.0.0"
+      },
+      "source": "https://registry.npmjs.org/helmet/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "hnswlib-node",
+      "declared": "^3.0.0",
+      "latest": "3.0.0",
+      "engines": {},
+      "source": "https://registry.npmjs.org/hnswlib-node/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "jsonwebtoken",
+      "declared": "9.0.3",
+      "latest": "9.0.3",
+      "engines": {
+        "npm": ">=6",
+        "node": ">=12"
+      },
+      "source": "https://registry.npmjs.org/jsonwebtoken/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "langchain",
+      "declared": "1.5.11",
+      "latest": "1.5.11",
+      "engines": {
+        "node": ">=20"
+      },
+      "source": "https://registry.npmjs.org/langchain/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "mammoth",
+      "declared": "1.12.3",
+      "latest": "1.12.3",
+      "engines": {
+        "node": ">=12.0.0"
+      },
+      "source": "https://registry.npmjs.org/mammoth/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "marked",
+      "declared": "18.0.13",
+      "latest": "18.0.13",
+      "engines": {
+        "node": ">= 20"
+      },
+      "source": "https://registry.npmjs.org/marked/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "morgan",
+      "declared": "1.12.1",
+      "latest": "1.12.1",
+      "engines": {
+        "node": ">= 0.8.0"
+      },
+      "source": "https://registry.npmjs.org/morgan/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "multer",
+      "declared": "2.3.0",
+      "latest": "2.3.0",
+      "engines": {
+        "node": ">= 10.16.0"
+      },
+      "source": "https://registry.npmjs.org/multer/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "mysql2",
+      "declared": "3.24.4",
+      "latest": "3.24.4",
+      "engines": {
+        "node": ">= 8.0"
+      },
+      "source": "https://registry.npmjs.org/mysql2/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "node-gyp",
+      "declared": "13.0.2",
+      "latest": "13.0.2",
+      "engines": {
+        "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+      },
+      "source": "https://registry.npmjs.org/node-gyp/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "nodemailer",
+      "declared": "10.0.9",
+      "latest": "10.0.9",
+      "engines": {
+        "node": ">=20.0.0"
+      },
+      "source": "https://registry.npmjs.org/nodemailer/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "nunjucks",
+      "declared": "3.2.4",
+      "latest": "3.2.4",
+      "engines": {
+        "node": ">= 6.9.0"
+      },
+      "source": "https://registry.npmjs.org/nunjucks/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "pdf-parse",
+      "declared": "2.4.5",
+      "latest": "2.4.5",
+      "engines": {
+        "node": ">=20.16.0 <21 || >=22.3.0"
+      },
+      "source": "https://registry.npmjs.org/pdf-parse/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "pg",
+      "declared": "8.23.0",
+      "latest": "8.23.0",
+      "engines": {
+        "node": ">= 16.0.0"
+      },
+      "source": "https://registry.npmjs.org/pg/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "puppeteer",
+      "declared": "25.10.0",
+      "latest": "25.10.0",
+      "engines": {
+        "node": ">=22.12.0"
+      },
+      "source": "https://registry.npmjs.org/puppeteer/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "sax",
+      "declared": "1.6.1",
+      "latest": "1.6.1",
+      "engines": {
+        "node": ">=11.0.0"
+      },
+      "source": "https://registry.npmjs.org/sax/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "sqlite3",
+      "declared": "6.0.1",
+      "latest": "6.0.1",
+      "engines": {
+        "node": ">=20.17.0"
+      },
+      "source": "https://registry.npmjs.org/sqlite3/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "winston",
+      "declared": "^3.19.0",
+      "latest": "3.19.0",
+      "engines": {
+        "node": ">= 12.0.0"
+      },
+      "source": "https://registry.npmjs.org/winston/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "dependencies",
+      "name": "xml2js",
+      "declared": "0.6.2",
+      "latest": "0.6.2",
+      "engines": {
+        "node": ">=4.0.0"
+      },
+      "source": "https://registry.npmjs.org/xml2js/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "devDependencies",
+      "name": "concurrently",
+      "declared": "10.0.5",
+      "latest": "10.0.5",
+      "engines": {
+        "node": ">=22"
+      },
+      "source": "https://registry.npmjs.org/concurrently/latest"
+    },
+    {
+      "manifest": "package.json",
+      "kind": "devDependencies",
+      "name": "nodemon",
+      "declared": "3.1.14",
+      "latest": "3.1.14",
+      "engines": {
+        "node": ">=10"
+      },
+      "source": "https://registry.npmjs.org/nodemon/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "dependencies",
+      "name": "axios",
+      "declared": "1.20.0",
+      "latest": "1.20.0",
+      "engines": {},
+      "source": "https://registry.npmjs.org/axios/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "dependencies",
+      "name": "framer-motion",
+      "declared": "13.2.0",
+      "latest": "13.2.0",
+      "engines": {},
+      "source": "https://registry.npmjs.org/framer-motion/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "dependencies",
+      "name": "lucide-react",
+      "declared": "1.45.0",
+      "latest": "1.45.0",
+      "engines": {},
+      "source": "https://registry.npmjs.org/lucide-react/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "dependencies",
+      "name": "react",
+      "declared": "19.3.0",
+      "latest": "19.3.0",
+      "engines": {
+        "node": ">=0.10.0"
+      },
+      "source": "https://registry.npmjs.org/react/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "dependencies",
+      "name": "react-dom",
+      "declared": "19.3.0",
+      "latest": "19.3.0",
+      "engines": {},
+      "source": "https://registry.npmjs.org/react-dom/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "dependencies",
+      "name": "react-icons",
+      "declared": "5.7.0",
+      "latest": "5.7.0",
+      "engines": {},
+      "source": "https://registry.npmjs.org/react-icons/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "dependencies",
+      "name": "react-markdown",
+      "declared": "10.1.0",
+      "latest": "10.1.0",
+      "engines": {},
+      "source": "https://registry.npmjs.org/react-markdown/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "dependencies",
+      "name": "react-router-dom",
+      "declared": "7.18.3",
+      "latest": "7.18.3",
+      "engines": {
+        "node": ">=20.0.0"
+      },
+      "source": "https://registry.npmjs.org/react-router-dom/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "dependencies",
+      "name": "react-toastify",
+      "declared": "11.1.0",
+      "latest": "11.1.0",
+      "engines": {},
+      "source": "https://registry.npmjs.org/react-toastify/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "dependencies",
+      "name": "recharts",
+      "declared": "3.10.1",
+      "latest": "3.10.1",
+      "engines": {
+        "node": ">=18"
+      },
+      "source": "https://registry.npmjs.org/recharts/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "dependencies",
+      "name": "remark-gfm",
+      "declared": "4.0.1",
+      "latest": "4.0.1",
+      "engines": {},
+      "source": "https://registry.npmjs.org/remark-gfm/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "dependencies",
+      "name": "styled-components",
+      "declared": "6.5.3",
+      "latest": "6.5.3",
+      "engines": {
+        "node": ">= 16"
+      },
+      "source": "https://registry.npmjs.org/styled-components/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "devDependencies",
+      "name": "@babel/core",
+      "declared": "8.0.5",
+      "latest": "8.0.5",
+      "engines": {
+        "node": "^22.18.0 || >=24.11.0"
+      },
+      "source": "https://registry.npmjs.org/%40babel%2Fcore/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "devDependencies",
+      "name": "@babel/preset-env",
+      "declared": "8.0.5",
+      "latest": "8.0.5",
+      "engines": {
+        "node": "^22.18.0 || >=24.11.0"
+      },
+      "source": "https://registry.npmjs.org/%40babel%2Fpreset-env/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "devDependencies",
+      "name": "@babel/preset-react",
+      "declared": "8.0.1",
+      "latest": "8.0.1",
+      "engines": {
+        "node": "^22.18.0 || >=24.11.0"
+      },
+      "source": "https://registry.npmjs.org/%40babel%2Fpreset-react/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "devDependencies",
+      "name": "@vitejs/plugin-react",
+      "declared": "6.1.1",
+      "latest": "6.1.1",
+      "engines": {
+        "node": "^20.19.0 || >=22.12.0"
+      },
+      "source": "https://registry.npmjs.org/%40vitejs%2Fplugin-react/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "devDependencies",
+      "name": "babel-jest",
+      "declared": "30.5.1",
+      "latest": "30.5.1",
+      "engines": {
+        "node": "^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0"
+      },
+      "source": "https://registry.npmjs.org/babel-jest/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "devDependencies",
+      "name": "identity-obj-proxy",
+      "declared": "3.0.0",
+      "latest": "3.0.0",
+      "engines": {
+        "node": ">=4"
+      },
+      "source": "https://registry.npmjs.org/identity-obj-proxy/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "devDependencies",
+      "name": "jest",
+      "declared": "30.5.1",
+      "latest": "30.5.1",
+      "engines": {
+        "node": "^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0"
+      },
+      "source": "https://registry.npmjs.org/jest/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "devDependencies",
+      "name": "jest-environment-jsdom",
+      "declared": "30.5.1",
+      "latest": "30.5.1",
+      "engines": {
+        "node": "^18.14.0 || ^20.0.0 || ^22.0.0 || >=24.0.0"
+      },
+      "source": "https://registry.npmjs.org/jest-environment-jsdom/latest"
+    },
+    {
+      "manifest": "client/package.json",
+      "kind": "devDependencies",
+      "name": "vite",
+      "declared": "8.3.0",
+      "latest": "8.3.0",
+      "engines": {
+        "node": "^20.19.0 || >=22.12.0"
+      },
+      "source": "https://registry.npmjs.org/vite/latest"
+    }
+  ],
+  "previousAttempt": {
+    "transport": "Node fetch",
+    "unresolved": 63
+  },
+  "applicationUpdates": [
+    {
+      "name": "cookie-parser",
+      "from": "^1.4.6",
+      "to": "1.4.7",
+      "reason": "Pin already locked and installed latest version; package bytes unchanged."
+    }
+  ]
+}

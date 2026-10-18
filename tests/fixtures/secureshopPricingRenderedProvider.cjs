@@ -1,0 +1,8 @@
+'use strict';
+// Browser wiring fixture only: real graph/HTTP/journal, controlled model choices.
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');
+const file=path.join(process.env.PRICING_RENDERED_ROOT,'controlled-provider.json'),counts={decisions:0,toolRequests:0,modelCalls:0};
+const save=()=>fs.writeFileSync(file,JSON.stringify(counts),{mode:0o600});save();
+const composition=require('../../server/services/secureshopPricingComposition'),original=composition.createSecureShopPricingComposition;
+composition.createSecureShopPricingComposition=options=>original({...options,createAssessmentFactory:undefined,provider:{config:{provider:'controlled',model:'browser-fixture',mocked:true},async chat(args){counts.decisions++;save();assert.ok(counts.decisions<=4,'fixed controlled browser budget');if(counts.decisions%2===1){const question=args.messages.filter(m=>m.role==='user').at(-1)?.content;const match=/^Compare my product (\d+) with this competitor URL: http:\/\/169\.254\.169\.254\/latest\/meta-data\//.exec(question);assert.ok(match,'two fixed comparison operations only');counts.toolRequests++;save();return{provider:'controlled',model:'browser-fixture',mocked:true,stop_reason:'tool_use',tool_uses:[{id:'browser-owned-http',name:'pricing-strategy.compare_competitor',args:{product_id:Number(match[1]),competitor_url:'http://169.254.169.254/latest/meta-data/'}}]};}return{provider:'controlled',model:'browser-fixture',mocked:true,stop_reason:'end_turn',text:'The owned competitor response is shown below. This is a controlled browser qualification, not a genuine model recommendation.'};}}});

@@ -1,0 +1,34 @@
+{
+  "qualification": "First optional mounted user-admin seam",
+  "terminal": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-5l2ahw2l",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "63ba93c71dabae4174568bfc1539b701e3d5cdf4a55795d0cafe0e0a3452c050",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "sourceHashes": {
+    "server/services/secureshopBoundUserAdministration.js": "7c4309e089df33d7f74abb53525cf202c171e99b255d63d3e40ea9d36a0dee77",
+    "server/routes/secureshop/boundUserAdministration.js": "7c5afa72b19b5ff2dbf27b7cfd33a6bd812dbfcb00d1e75fe15d01a24a2b9dde",
+    "server/routes/secureshop/boundGateway.js": "56feab821995c2a3a3a8c08ee15249ab957bceaaa8ad1dc089534d8673dffd41",
+    "server/services/secureshopPersonaToolDispatch.js": "e913c77b1de14ecb26f6be64639578cf08e4e248fc8a04f2b94070a0d81a02f2",
+    "tests/postgres/secureshopBoundUserAdministration.integration.test.js": "8e48146732627a6b051a1da60e75fefeda715dbf0f0a3404bb2f8453023cd5f8"
+  },
+  "testsLogSha256": "d6d954692114967d66fd0a128378ac942e39278e12307fa48668422f4b063185",
+  "controlledTests": 35,
+  "proof": [
+    "Actual bound persona JWT and persisted sessions authorize HTTP routes",
+    "Customer denied, unsupported banned role rejected",
+    "HTTP role mutation and exact replay, HTTP ban and effective banned/version listing",
+    "Held actual graph decisions fenced by HTTP transitions; sibling/reset/deletion prior assertions retained"
+  ],
+  "limits": [
+    "Controlled parent launch scope/profile projection, not canonical platform launch or full gateway boot",
+    "No rendered Users role/ban interaction",
+    "No production userAdministration injection",
+    "Password reset absent; existing UI protocol not updated",
+    "Tool inventory does not enable any unadapted transaction tools"
+  ]
+}

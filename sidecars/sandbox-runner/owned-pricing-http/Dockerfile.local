@@ -1,0 +1,19 @@
+# Local ARM64 owned Pricing service candidate; native listener packaging gate pending.
+FROM node:26.10.0-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1 AS builder
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev libseccomp-dev && rm -rf /var/lib/apt/lists/*
+COPY sidecars/sandbox-runner/owned-pricing-http/namespace-init.c sidecars/sandbox-runner/owned-pricing-http/process-supervisor.c /build/
+COPY sidecars/sandbox-runner/mcpSeccompFilter.c /build/
+RUN mkdir /out && gcc -O2 -Wall -Wextra -Werror /build/namespace-init.c -o /out/dvaia-owned-pricing-http-init && gcc -O2 -Wall -Wextra -Werror /build/process-supervisor.c -o /out/dvaia-owned-pricing-http-supervisor && gcc -O2 -Wall -Wextra -Werror /build/mcpSeccompFilter.c -lseccomp -o /out/filter && /out/filter /out/mcp-target.seccomp.bpf
+FROM node:26.10.0-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1
+RUN test "$(dpkg --print-architecture)" = arm64 && apt-get update && apt-get install -y --no-install-recommends bubblewrap libseccomp2 && rm -rf /var/lib/apt/lists/* && mkdir -p /usr/share/dvaia /usr/local/libexec
+WORKDIR /app
+COPY sidecars/sandbox-runner/owned-pricing-http/buildAssets.js sidecars/sandbox-runner/owned-pricing-http/executor.js sidecars/sandbox-runner/owned-pricing-http/http-handler.js sidecars/sandbox-runner/owned-pricing-http/http-listener.js sidecars/sandbox-runner/owned-pricing-http/input.js sidecars/sandbox-runner/owned-pricing-http/wire.js /app/sidecars/sandbox-runner/owned-pricing-http/
+COPY --from=builder /out/dvaia-owned-pricing-http-init /out/dvaia-owned-pricing-http-supervisor /usr/local/libexec/
+COPY --from=builder /out/mcp-target.seccomp.bpf /usr/share/dvaia/mcp-target.seccomp.bpf
+COPY sidecars/sandbox-runner/owned-pricing-http/worker.js /usr/local/libexec/dvaia-owned-pricing-http-worker.js
+COPY sidecars/sandbox-runner/owned-pricing-http/input.js /usr/local/libexec/dvaia-owned-pricing-http-input.js
+COPY sidecars/sandbox-runner/owned-pricing-http/network-manifest.json /usr/local/libexec/dvaia-owned-pricing-http-manifest.json
+RUN node sidecars/sandbox-runner/owned-pricing-http/buildAssets.js && dpkg-query -W bubblewrap libseccomp2 libc6 > /usr/share/dvaia/pricing-packages.txt
+USER 10001:10001
+EXPOSE 8093
+ENTRYPOINT ["node", "sidecars/sandbox-runner/owned-pricing-http/http-listener.js"]

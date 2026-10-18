@@ -1,0 +1,25 @@
+name: Feature or lesson proposal
+description: Propose a focused improvement or teaching scenario.
+title: "[Proposal]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Learner or contributor problem
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and alternatives
+    validations:
+      required: true
+  - type: textarea
+    id: boundaries
+    attributes:
+      label: Teaching and security boundaries
+      description: Describe intentional vulnerabilities, fixed-mode behavior, isolation, objective evidence and any local hardware requirements.
+  - type: textarea
+    id: verification
+    attributes:
+      label: How should this be verified?

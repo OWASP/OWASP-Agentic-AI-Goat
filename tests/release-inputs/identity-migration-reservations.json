@@ -1,0 +1,264 @@
+{
+  "updatedAt": "2026-09-17T00:58:30Z",
+  "verifiedAppliedSourceHead": "0065_ipi_email_artifacts.sql",
+  "policy": "Reservations coordinate parallel drafts only. They do not register or apply migrations. Applied migration bytes remain immutable; promotion requires isolated PostgreSQL qualification and reviewed backup/restore evidence. Permanently retired numbers never become executable files; future accepted work receives a number above the released head.",
+  "reservations": [
+    {
+      "prefix": "0046",
+      "owner": "/root/workshop_authenticity",
+      "purpose": "Bounded Judge validationCode durable trace metadata compatibility",
+      "status": "applied; promotion launcher cleanup failed, recovered backend healthy"
+    },
+    {
+      "prefix": "0047",
+      "owner": "/root/secureshop_architecture",
+      "purpose": "Existing-data persona curriculum transition preserving instructor configuration",
+      "status": "applied; live catalog promotion independently audited"
+    },
+    {
+      "prefix": "0048",
+      "owner": "/root/secureshop_architecture",
+      "purpose": "Catalog-wide field-level default provenance schema",
+      "status": "applied; live catalog promotion independently audited"
+    },
+    {
+      "prefix": "0049",
+      "owner": "/root/secureshop_architecture",
+      "purpose": "Narrow exact post0047 persona default adoption",
+      "status": "applied; live catalog promotion independently audited"
+    },
+    {
+      "prefix": "0050",
+      "owner": "/root/workshop_authenticity",
+      "purpose": "MCP owned conversation history identity schema",
+      "status": "applied; live promotion03 backup/restore and restart verified"
+    },
+    {
+      "prefix": "0051",
+      "owner": "/root/agent_loop_review",
+      "purpose": "SecureShop MCP trust target authority and cleanup",
+      "draft": "docs/modernization/drafts/secureshop-mcp-trust-identity.sql",
+      "status": "applied; retained backup preservation, exact ledger replay and healthy resume verified; feature activation separate"
+    },
+    {
+      "prefix": "0052",
+      "owner": "/root/agent_loop_review",
+      "purpose": "SecureShop controlled SSRF target authority and cleanup",
+      "draft": "docs/modernization/drafts/secureshop-controlled-ssrf-identity.sql",
+      "status": "applied; retained backup preservation, exact ledger replay and healthy resume verified; feature activation separate"
+    },
+    {
+      "prefix": "0053",
+      "owner": "/root/secureshop_architecture",
+      "purpose": "CodeBot durable session-bound request fingerprint and response replay journal",
+      "draft": "docs/modernization/drafts/0053_codebot_request_journal.sql",
+      "status": "applied; retained backup preservation, exact ledger replay and healthy resume verified; feature activation separate"
+    },
+    {
+      "prefix": "0054",
+      "owner": "/root",
+      "purpose": "Exact recognized default hints/solutions for qualified FinFlow log customer-policy objectives, preserving custom/NULL content and toggles",
+      "draft": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/finflow-v7-defaults.BROyof/0054_finflow_log_policy_defaults.sql",
+      "sha256": "91db77530d1632518dedc4403d455c0b5be632309a8c607c07576f2027b7fa21",
+      "status": "applied; quiesced backup and isolated restore verified, scoped migration and semantic preservation passed, post-restart catalog verified"
+    },
+    {
+      "prefix": "0055",
+      "owner": "/root",
+      "purpose": "Guarded FinFlow authentic config/directory default curriculum, preserving custom/NULL fields and toggles",
+      "draft": "/tmp/finflow-admin-artifacts.qYxwQX/0055_finflow_admin_artifact_defaults.sql",
+      "sha256": "56a19e666f359082a89995ef89d943d99b3a99e98330f680e84cc173b5812580",
+      "status": "applied; quiesced backup and isolated restore verified, scoped migration and semantic preservation passed, post-restart catalog verified"
+    },
+    {
+      "prefix": "0056",
+      "owner": "/root",
+      "purpose": "Guarded authentic FinFlow traversal and missing-account error curriculum for four objectives",
+      "draft": "/private/tmp/finflow-durable-integration-preview/source/db/postgres/identity-migrations/0056_finflow_authentic_curriculum_defaults.sql",
+      "status": "applied; quiesced backup and isolated restore verified, scoped migration and semantic preservation passed, post-restart catalog verified",
+      "sha256": "fd0b4178a6ae181f6001c765f0963cacfc4cde814124858d7420101bc526c7d8"
+    },
+    {
+      "prefix": "0057",
+      "owner": "/root",
+      "purpose": "Bounded graph termination reason and tool count event metadata",
+      "draft": "/private/tmp/finflow-durable-integration-preview/source/db/postgres/identity-migrations/0057_graph_agent_outcome.sql",
+      "sha256": "99b5581d9c1de403b26a696cc91f34c93e7cc81bcab4d8ef5d727bbbf55ded7c",
+      "status": "applied; quiesced backup and isolated restore verified, scoped migration and semantic preservation passed, post-restart catalog verified"
+    },
+    {
+      "prefix": "0058",
+      "owner": "/root/finflow_durable_review",
+      "purpose": "Exact-old guarded log-modification curriculum describing controlled baseline and durable PostgreSQL overlay",
+      "status": "applied; quiesced backup and isolated restore verified, scoped migration and semantic preservation passed, post-restart catalog verified",
+      "draft": "/private/tmp/finflow-durable-integration-preview/source/db/postgres/identity-migrations/0058_finflow_durable_log_overlay_tip.sql",
+      "sha256": "49ec113eb5bd0e646e2eef6900cb54ebc8a8585e7af1ea7a225724275c449248"
+    },
+    {
+      "prefix": "0059",
+      "owner": "/root/dpi_release_gate",
+      "purpose": "Bounded DPI actor policy profile/version/digest observability aligned with trace sanitization",
+      "status": "reserved for private design/implementation; not applied or qualified"
+    },
+    {
+      "prefix": "0060",
+      "owner": "/root",
+      "purpose": "Guarded FinFlow exercise-description default/provenance transition from obsolete 19-objective copy to count-free canonical copy",
+      "status": "unregistered draft; consolidated duplicate0062 into existing0060 reservation; native qualification pending",
+      "draft": "docs/modernization/drafts/0060_finflow_description_default.sql",
+      "sha256": "5532df2fd0b0a665a10089b744687cb2a2aecc895b0b1a45a1e5053ffcde56cf"
+    },
+    {
+      "prefix": "0061",
+      "owner": "/root/finflow_durable_review",
+      "purpose": "Guarded MCP supply-chain authentic controlled archive curriculum defaults, preserving custom/NULL content and toggles",
+      "status": "reserved for private integration implementation; not applied or qualified"
+    },
+    {
+      "prefix": "0062",
+      "owner": "/root",
+      "purpose": "Retired duplicate reservation for FinFlow description correction",
+      "status": "retired duplicate; use0060 instead; never registered or applied",
+      "draft": "docs/modernization/drafts/0060_finflow_description_default.sql"
+    },
+    {
+      "prefix": "0063",
+      "owner": "/root/finflow_policy_launcher_review",
+      "purpose": "Legacy ecommerce authentic SQL agent catalog registration preserving existing instructor content",
+      "status": "permanently retired coordination number; never registered or applied; preserved ecommerce goal and evidence require a future number above the released head",
+      "retirementRecord": "tasks/identity-0063-0065-append-only-sequencing-review.json"
+    },
+    {
+      "store": "identity",
+      "prefix": "0064",
+      "owner": "/root/finflow_durable_review",
+      "purpose": "Bounded RAG model-loop trace metadata: preserve private-payload exclusions and existing policy constraints",
+      "status": "permanently retired coordination number; never registered or applied; preserved RAG goal and evidence require a future number above the released head",
+      "retirementRecord": "tasks/identity-0063-0065-append-only-sequencing-review.json"
+    },
+    {
+      "store": "identity",
+      "prefix": "0065",
+      "owner": "/root/finflow_durable_review",
+      "purpose": "Owner/run/generation-bound IPI email ingestion artifacts with opaque selection and lifecycle retirement",
+      "draft": "docs/modernization/drafts/0065_ipi_email_artifacts_v2.sql",
+      "sha256": "9dc6820b56a261e648f2aa1d5eb7635bb61f3f91530f8251c93bdbe45a1fa30c",
+      "qualificationRecord": "tasks/ipi-email-canonical-r2-native-root-review.json",
+      "qualificationRecordSha256": "2b85bf11694fd9b67ab974189158967e88c568c4e09a984531581ef9b4f03806",
+      "status": "source registered after canonical v2 native qualification and independent cleanup; application databases not migrated",
+      "sequencingRecord": "tasks/identity-0063-0065-append-only-sequencing-review.json"
+    },
+    {
+      "store": "identity",
+      "prefix": "0066",
+      "owner": "/root/finflow_policy_launcher_review",
+      "purpose": "Forward guarded reconciliation of legacy ecommerce shopper-policy defaults; preserve custom content, visibility and progress",
+      "draft": "/private/tmp/legacy-ecommerce-canonical-promotion-r1.rP0Nu2ok/db/postgres/identity-migrations/0066_legacy_ecommerce_shopper_policy_defaults.sql",
+      "sha256": "c595d2b8e907f963d680f3d6f0e8765eda73c3d65bc6a894748ed64e5f27e9a1",
+      "status": "reserved draft; not registered, applied or PostgreSQL-qualified; requires the independently qualified canonical 0065 release first and its own later qualification"
+    },
+    {
+      "store": "identity",
+      "prefix": "0067",
+      "owner": "/root",
+      "purpose": "Guarded managed-default reconciliation for distinct FinFlow public5/admin8 tool enumeration, preserving instructor-custom fields",
+      "draft": "docs/modernization/drafts/finflow-recon-scope-managed-defaults.candidate.sql",
+      "sha256": "5df10119b77c85b52e72dd08477fa636059e7f192660d349b344f8b972492a2f",
+      "status": "draft qualified in disposable PostgreSQL18 for six-field preservation/replay/rollback; not registered or applied; actual actor/Judge and release prefix remain pending",
+      "qualificationRecord": "tasks/finflow-recon-pg-r3-native-root-review.json"
+    }
+  ],
+  "unassigned": [],
+  "otherStoreReservations": [
+    {
+      "store": "mcp",
+      "prefix": "0004",
+      "owner": "/root/workshop_authenticity",
+      "purpose": "MCP owned resources",
+      "status": "applied; live promotion03 verified"
+    },
+    {
+      "store": "secureshop_agents",
+      "prefix": "0011",
+      "owner": "/root/agent_loop_review",
+      "purpose": "SecureShop MCP trust durable targets, schemas and invocations",
+      "draft": "docs/modernization/drafts/secureshop-mcp-trust-agents.sql",
+      "status": "applied; original rows and native cache content preserved; exact ledger replay and healthy resume verified"
+    },
+    {
+      "store": "secureshop_agents",
+      "prefix": "0012",
+      "owner": "/root/agent_loop_review",
+      "purpose": "SecureShop controlled SSRF durable requests, invocations and retirement",
+      "draft": "docs/modernization/drafts/secureshop-controlled-ssrf-agents.sql",
+      "status": "applied; original rows and native cache content preserved; exact ledger replay and healthy resume verified"
+    },
+    {
+      "store": "secureshop_agents",
+      "prefix": "0013",
+      "owner": "/root/agent_loop_review",
+      "purpose": "Stable server-owned exercise conversation purpose, independent histories with aggregate lifecycle preservation",
+      "draft": "docs/modernization/drafts/secureshop-conversation-purpose-agents.sql",
+      "status": "applied; original rows and native cache content preserved; exact ledger replay and healthy resume verified"
+    },
+    {
+      "store": "finflow",
+      "prefix": "0010",
+      "owner": "/root",
+      "purpose": "Durable owner/generation traversal targets with immutable lifecycle and cleanup",
+      "draft": "external frozen finflow-traversal-model-candidate.ta1d687f UNREGISTERED-finflow-traversal-targets-v1.sql",
+      "status": "applied; quiesced backup and isolated restore verified, scoped migration and semantic preservation passed, runtime readiness verified"
+    },
+    {
+      "store": "finflow",
+      "prefix": "0011",
+      "owner": "/root/finflow_policy_launcher_review",
+      "purpose": "Durable customer dataset and real backup artifact metadata/readback/retirement",
+      "status": "applied; quiesced backup and isolated restore verified, scoped migration and semantic preservation passed, runtime readiness verified"
+    },
+    {
+      "store": "finflow",
+      "prefix": "0012",
+      "owner": "/root/finflow_durable_review",
+      "purpose": "Owner/generation durable controlled log modifications and reset lifecycle",
+      "status": "applied; quiesced backup and isolated restore verified, scoped migration and semantic preservation passed, runtime readiness verified",
+      "draft": "/private/tmp/finflow-durable-integration-preview/source/db/postgres/workshop-migrations/finflow/0012_durable_log_overlays.sql",
+      "sha256": "80f962f4b3fac1f8e01bd994541151bebb1817f9e0da6cf5a6af6087bc8913a1"
+    },
+    {
+      "store": "legacy_challenge",
+      "prefix": "0004",
+      "owner": "/root/finflow_policy_launcher_review",
+      "purpose": "Owner/generation ecommerce agent targets, immutable SQL action lineage, reset retirement and job-bound account scrub",
+      "draft": "/private/tmp/legacy-ecommerce-agent-integration-r2.t4iyeeub/source/db/postgres/workshop-migrations/legacy_challenge/0004_ecommerce_agent_targets.sql",
+      "status": "reserved for private lifecycle qualification; not applied or registered"
+    },
+    {
+      "store": "ctf",
+      "prefix": "0003",
+      "owner": "/root",
+      "purpose": "Field-level CTF default provenance preserving instructor/unknown content",
+      "draft": "db/postgres/workshop-migrations/ctf/0003_stage_default_provenance.sql",
+      "sha256": "d8367402e3bd2938727b06d99b7dd84a15c30e426f02ebbd2687ad3c3d9ab717",
+      "status": "source integrated and native PostgreSQL qualified (23247,5686); live migration not applied"
+    },
+    {
+      "store": "ctf",
+      "prefix": "0004",
+      "owner": "/root/dpi_launcher_finish",
+      "purpose": "Extend CTF field provenance to system_prompt while preserving unknown/custom instructor content",
+      "status": "source integrated; native PostgreSQL13-contract run22253 qualified; not live-applied",
+      "draft": "db/postgres/workshop-migrations/ctf/0004_system_prompt_default_provenance.sql",
+      "sha256": "a41d0235686dd7e40189ec47c5f65cf06578c9663b3b33751075dd32d5d1112c"
+    },
+    {
+      "store": "legacy_challenge",
+      "prefix": "0005",
+      "owner": "/root/finflow_policy_launcher_review",
+      "purpose": "Immutable same-execution PostgreSQL relation/projection provenance for ecommerce SQL actions; versioned commit and deletion scrub",
+      "filename": "0005_ecommerce_action_execution_provenance.sql",
+      "status": "reserved private implementation; not registered, applied or qualified"
+    }
+  ],
+  "sourceHeadEvidenceScope": "Registered executable source only; no new application database migration or live ledger query."
+}

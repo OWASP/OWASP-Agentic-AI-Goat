@@ -1,0 +1,14 @@
+Excellent work! Level 2: SSI Injection - Complete
+
+You exploited Server-Side Includes directives to execute commands
+and read sensitive files on the server.
+
+FLAG{LEVEL_2_SSI_INJECTION_EXPERT}
+
+Techniques Mastered:
+- SSI directive injection
+- #include file exploitation
+- #echo variable extraction
+- Alternative SSI syntax
+
+Next Challenge: Level 3 - Advanced LFI with PHP Wrappers

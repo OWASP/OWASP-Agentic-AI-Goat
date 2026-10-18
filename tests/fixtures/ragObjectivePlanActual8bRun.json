@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "scope": "Judge-only unmounted RAG objective-plan diagnostic on four preregistered controlled inputs; no actor, native service ownership, database, persistence, objective credit, or release qualification.",
+  "root": "/Users/averma5/Documents/github/Damn-Vulnerable-AI-Application",
+  "model": {
+    "name": "llama3.1:8b",
+    "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e"
+  },
+  "bounds": {
+    "cases": 4,
+    "metadataCalls": 1,
+    "maximumCallsPerCase": 6,
+    "maximumStructuralRepairsPerCase": 1,
+    "maximumInferenceCalls": 24,
+    "maximumHttpCalls": 25,
+    "perHttpSeconds": 60,
+    "perCaseSeconds": 120,
+    "overallSeconds": 480,
+    "contextTokens": 32768,
+    "outputTokens": 4096
+  },
+  "input": {
+    "path": "tests/fixtures/ragObjectivePlanDiagnosticCases.json",
+    "sha256": "fdac470a93fdabe75e6fd0a312318dc05f45197d2c9ebb5c53a7c405646b99e7"
+  },
+  "cases": [
+    {
+      "id": "attack_true_positive",
+      "objective": "rag_query_injection",
+      "expectedVerdict": "pass",
+      "sourceSha256": "2652bcdb349cb480f607003a3f4e6cd376b077c6baf1d513b707a0b422a82673",
+      "responseSha256": "aa6290acb1351398e550ecbe8fc6b055fa87b983c01b0051895534984547390f"
+    },
+    {
+      "id": "clean_task_false_positive_guard",
+      "objective": "rag_query_injection",
+      "expectedVerdict": "fail",
+      "sourceSha256": "32624135238d16bd91a15801932b646155ba5a027b366acf01ddbe0703947e18",
+      "responseSha256": "2efb9bf9af5c7b0e5119a5ab6ac9d9fc54cb4b592b2389f84c348054d8047625"
+    },
+    {
+      "id": "generic_refusal_without_same_group_recognition",
+      "objective": "rag_injected_doc",
+      "expectedVerdict": "fail",
+      "sourceSha256": "2652bcdb349cb480f607003a3f4e6cd376b077c6baf1d513b707a0b422a82673",
+      "responseSha256": "a5004601b02521af1a693d5347c0b6f84808bff82a6a4ce45bb154cfe94a7a7c"
+    },
+    {
+      "id": "quoted_training_warning_is_not_injection",
+      "objective": "rag_injected_doc",
+      "expectedVerdict": "fail",
+      "sourceSha256": "706e7c6befb837b06f7b276df2dc54d2a20ee302322626fab2a04aada72744a2",
+      "responseSha256": "2efb9bf9af5c7b0e5119a5ab6ac9d9fc54cb4b592b2389f84c348054d8047625"
+    }
+  ],
+  "sourcePins": {
+    "server/agent-runtime/ragObjectivePlanDiagnostic.js": "ef5ddaa1e726c830af90b7053fed5afd369c4ec6a5c443374ee80236face5c14",
+    "server/agent-runtime/exactQuoteResolver.js": "a7720be1cc6c513138db01ab71b5db8e8d9a68e7715c250fa4ea6dc260237807",
+    "server/agent-runtime/pricingEvidenceCatalogue.js": "87cb92ed735a32ac8209f2470d43b6e7cf46a9b9b10aea4dd4ff4fd9bc6dbade",
+    "server/agent-runtime/providers/langchainProvider.js": "b434b47847c59a89205bd203f64cd5f3bcc07565681c100f6121ddbb656c2ff9",
+    "server/agent-runtime/providers/modelScheduler.js": "7a638e6d4f604755e460d53880517836cb3b0cc39150f609c584ae7eebeb4a3b",
+    "server/agent-runtime/ownerWorkflowRoutes.js": "c2dbed4e6f9b4063bb9cc3822b95b2d001ef3dd9a9d903f8873b5630c06f6f99",
+    "server/agent-runtime/ownerWorkflowHttpError.js": "0be79c867de368294afca1cb2c04308143805d480c23acc3ec66498955cf948e",
+    "server/utils/requestContext.js": "4ac3aab07b77f0f77a608a72437e1f0e4f8f784ca8bf28a33245b0d12c0f0ac0",
+    "tests/fixtures/pricingDirectiveGroupsActualJudge.js": "b15c24d4e4fb9c97322426680d7b643c35d0b07319bbeeb5aee6166bc2bc1f40",
+    "tests/fixtures/ragObjectivePlanActual8b.js": "5a522832155e85b0414b604c25d25be157a95f34b509bc8b4def95740f976423"
+  },
+  "runtimePins": {
+    "nodeVersion": "v26.10.0",
+    "nodeSha256": "56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861",
+    "packageJsonSha256": "31160bbbef85a1d1447221ab2cf2cbe8fa084acd996378edf25f333d6b05a98b",
+    "packageLockSha256": "9b1f67f80c3915e8b94dc3b5a0eaf65c019255cadd67280cffaf46fbd5e36d1d"
+  }
+}

@@ -1,0 +1,47 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto');
+const {executeDatabasePhase,validateRequest,publicResult,runSetupDatabasePhase}=require('../scripts/install/setup-database-phase');
+function request(){const root=path.resolve(__dirname,'..'),id=crypto.createHash('sha256').update(root).digest('hex').slice(0,12);return{kind:'fresh',context:{root,id,homeDirectory:os.homedir(),directory:path.join(os.homedir(),'.dvaia',id),envPath:path.join(root,'.env'),appDataRoot:'/tmp/controlled',processEnvironment:{PG_TLS:'require'},config:{IDENTITY_DATABASE_URL:'postgres://runtime@localhost/id',IDENTITY_MIGRATION_DATABASE_URL:'postgres://migration@localhost/id'}}};}
+async function preserveEnvironment(work){const before={...process.env};try{return await work();}finally{for(const key of Object.keys(process.env))if(!(key in before))delete process.env[key];Object.assign(process.env,before);}}
+test('phase busy performs no mutation or publication and never logs private request',async()=>preserveEnvironment(async()=>{let touched=false;await assert.rejects(executeDatabasePhase(request(),{acquire:async()=>{throw Object.assign(Error('busy'),{code:'APPLICATION_MAINTENANCE_BUSY'});},execute:async()=>{touched=true;},drain:async()=>{touched=true;}}),{code:'APPLICATION_MAINTENANCE_BUSY'});assert.equal(touched,false);}));
+test('phase owns one lease, drains then publishes and strips private result fields',async()=>preserveEnvironment(async()=>{const calls=[];const result=await executeDatabasePhase(request(),{acquire:async args=>{calls.push('lease');assert.equal(args.env.PG_TLS,'require');return{assertHeld(){},async beginMaintenance(){calls.push('dirty');return Object.freeze({epoch:'1'});},async finishMaintenance(token){assert.equal(token.epoch,'1');calls.push('clean');},async close(){calls.push('close');}};},execute:async(_request,scope,{deferPublication})=>{scope.assertHeld();calls.push('work');deferPublication(async()=>calls.push('publish'));return{envPath:'/private/.env',configuration:{SECRET:'secret'},ownedRunner:{available:true,token:'secret'}};},drain:async()=>calls.push('drain')});assert.deepEqual(calls,['lease','dirty','work','drain','publish','clean','close']);assert.deepEqual(result,{envPath:'/private/.env',ownedRunner:{available:true}});}));
+test('phase failure withholds publication and retains lease until owned process exit',async()=>preserveEnvironment(async()=>{const calls=[];await assert.rejects(executeDatabasePhase(request(),{acquire:async()=>({assertHeld(){},async beginMaintenance(){calls.push('dirty');return Object.freeze({epoch:'1'});},async finishMaintenance(){calls.push('clean');},async close(){calls.push('close');}}),execute:async(_request,_scope,{deferPublication})=>{calls.push('work');deferPublication(async()=>calls.push('publish'));throw Object.assign(Error('private'),{code:'CONTROLLED_FAILURE'});},drain:async()=>calls.push('drain')}),{code:'APPLICATION_INITIALIZATION_REQUIRES_EXIT'});assert.deepEqual(calls,['dirty','work','drain']);}));
+test('closed phase request accepts policy flags, strips private results and rejects unknown or mismatched inputs',()=>{const valid=request();valid.context.ownedPolicyRenderer=true;valid.context.enableOwnedPolicyRenderer=false;valid.context.ownedListings=true;valid.context.enableOwnedListings=false;assert.doesNotThrow(()=>validateRequest(valid));assert.deepEqual(publicResult({policyRenderer:{requested:true,ready:false,enabled:false,preservedDisabled:true,baseUrl:'private',containerId:'private',managedPath:'private'}}),{policyRenderer:{requested:true,ready:false,enabled:false,preservedDisabled:true,managedPath:'private'}});for(const alter of [r=>{r.context.extra=true;},r=>{r.context.id='a'.repeat(12);},r=>{delete r.context.config.IDENTITY_DATABASE_URL;},r=>{r.context.ownedPolicyRenderer='true';},r=>{r.context.ownedListings='true';},r=>{r.context.enableOwnedListings=true;},r=>{r.kind='arbitrary';}]){const r=request();alter(r);assert.throws(()=>validateRequest(r),{code:'SETUP_PHASE_REQUEST_INVALID'});}assert(!JSON.stringify(publicResult({token:'secret',ownedHttp:{configuration:'secret',available:true}})).includes('secret'));});
+test('closed phase admits paired Listings template flags and exposes only public setup status',()=>{
+ const valid=request();valid.context.ownedListingTemplate=true;valid.context.enableOwnedListingTemplate=false;
+ assert.doesNotThrow(()=>validateRequest(valid));
+ assert.deepEqual(publicResult({listingTemplate:{requested:true,ready:false,enabled:false,staged:true,baseUrl:'private',containerId:'private',imageId:'private',inertReceiptSha256:'private'}}),
+   {listingTemplate:{requested:true,ready:false,enabled:false,staged:true}});
+ for(const alter of [r=>{r.context.ownedListingTemplate='true';},r=>{r.context.enableOwnedListingTemplate='true';},r=>{r.context.enableOwnedListingTemplate=true;}]){
+   const invalid=request();alter(invalid);assert.throws(()=>validateRequest(invalid),{code:'SETUP_PHASE_REQUEST_INVALID'});
+ }
+});
+test('canonical16 upgrade cannot enter ordinary maintenance without completed prospective segment',async()=>{const value=request();value.kind='upgrade';value.context.state={parsed:Object.fromEntries(require('../db/postgres/initialize-application').requiredStoreManifest.flatMap(row=>[[row.runtimeVariable,'postgresql://u:p@localhost/d'],[row.migrationVariable,'postgresql://m:p@localhost/d']]))};await assert.rejects(executeDatabasePhase(value),{code:'SETUP_PHASE_PROSPECTIVE_REQUIRED'});});
+test('real IPC child invalid request exits without application/database import',async()=>{const {spawn}=require('node:child_process');const child=spawn(process.execPath,[require.resolve('../scripts/install/setup-database-phase'),'--owned-phase'],{stdio:['ignore','pipe','pipe','ipc']});const output=[];child.stdout.on('data',x=>output.push(x));child.stderr.on('data',x=>output.push(x));const messages=[];child.on('message',x=>messages.push(x));child.send({kind:'invalid'});const code=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{child.kill('SIGKILL');reject(Error('child did not exit'));},3000);child.once('close',code=>{clearTimeout(timer);resolve(code);});});assert.equal(code,1);assert.equal(Buffer.concat(output).length,0);assert.equal(messages[0].code,'SETUP_PHASE_REQUEST_INVALID');});
+test('parent waits actual owned child termination, not result IPC or disconnect',async()=>{
+ const {EventEmitter}=require('node:events');const child=new EventEmitter();child.connected=true;child.send=(_message,callback)=>callback?.();
+ let settled=false;
+ const pending=runSetupDatabasePhase(request(),{}, {spawn:()=>child,timeoutMs:1000}).then(value=>{settled=true;return value;});
+ child.emit('spawn');child.emit('message',{type:'result',result:{envPath:'/private/.env'}});child.emit('disconnect');await new Promise(setImmediate);assert.equal(settled,false);child.emit('close',0);assert.deepEqual(await pending,{envPath:'/private/.env'});
+});
+test('owned parent cancellation waits cooperative child close and rejects safely',async()=>{
+ const {EventEmitter}=require('node:events');const child=new EventEmitter();child.connected=true;const messages=[];child.send=(message,callback)=>{messages.push(message);callback?.();};
+ const abort=new AbortController();let settled=false;
+ const pending=runSetupDatabasePhase(request(),{}, {spawn:()=>child,signal:abort.signal,timeoutMs:1000,killGraceMs:1000}).catch(error=>{settled=true;return error;});
+ child.emit('spawn');abort.abort();await new Promise(setImmediate);assert.equal(settled,false);assert.equal(messages.at(-1).type,'cancel');child.emit('close',1);assert.equal((await pending).code,'SETUP_PHASE_CANCELLED');
+});
+test('actual phase CLI orphan joins cleanup and exits despite retained lease handle',async()=>{
+ const fs=require('node:fs'),{spawn}=require('node:child_process');
+ const filename=require.resolve('../scripts/install/setup-database-phase');
+ const source=fs.readFileSync(filename,'utf8');
+ const shim=`const Module=require('node:module');const load=Module._load;Module._load=function(name,...rest){
+ if(name.endsWith('applicationMaintenanceLease'))return{acquireApplicationMaintenanceLease:async()=>{setInterval(()=>{},1000);return{assertHeld(){},async beginMaintenance(){return Object.freeze({epoch:'1'});},async finishMaintenance(){throw Error('must remain dirty');},async close(){throw Error('must retain failure lease');}};}};
+ if(name==='../../server/database/postgres')return{closePostgresPools:async()=>{}};
+ if(name==='../setup-application')return{executeSetupDatabasePhase:async(_r,scope)=>{process.send({type:'controlled-work-ready'});await new Promise(resolve=>scope.signal.addEventListener('abort',resolve,{once:true}));scope.assertHeld();}};
+ return load.call(this,name,...rest);};require.main=module;`;
+ const child=spawn(process.execPath,['-e',shim+source],{cwd:path.dirname(filename),stdio:['ignore','pipe','pipe','ipc']});
+ const output=[];child.stdout.on('data',b=>output.push(b));child.stderr.on('data',b=>output.push(b));
+ child.on('message',m=>{if(m.type==='controlled-work-ready')child.disconnect();});child.send(request());
+ const code=await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{child.kill('SIGKILL');reject(Error('orphan retained lease indefinitely'));},3000);child.once('close',code=>{clearTimeout(timer);resolve(code);});});
+ assert.equal(code,1,Buffer.concat(output).toString());assert.equal(Buffer.concat(output).length,0);
+});

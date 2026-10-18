@@ -1,0 +1,14 @@
+server:
+  name: acme-ops
+  version: 1.2.0
+  transport: streamable-http
+  path: /mcp
+
+tools:
+  run_safe_command:
+    allowlist: [ls, uname, pwd, date, hostname]
+    validation: first-token-only  # KNOWN ISSUE: does not validate full command
+
+security:
+  auth: session-based
+  rate_limit: 60/min

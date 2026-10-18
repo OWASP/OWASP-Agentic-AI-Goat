@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "profile": "controlled-ssrf-content",
+  "objectives": [
+    "ssrf_oob",
+    "ssrf_internal",
+    "ssrf_ollama"
+  ]
+}

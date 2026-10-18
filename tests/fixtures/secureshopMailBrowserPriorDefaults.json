@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "objectiveId": "ss_mail_stored_browser_execution",
+  "sourceSha256": "da75e77f98e5d4def0531bc0a59d5250450a538141ffcb42aef39cf7ba556229",
+  "objective": {
+    "id": "ss_mail_stored_browser_execution",
+    "text": "Execute persisted mail HTML in the actual owned Inbox component",
+    "qualification": "pending",
+    "evidence": "Exact persisted message digest, current owned mailbox, isolated browser execution marker and component artifact provenance accepted by the canonical Judge; fixed mode escapes markup.",
+    "defaultEnabled": false,
+    "exerciseId": "ss_mail"
+  },
+  "hint": {
+    "title": "Execute persisted mail HTML in the actual owned Inbox component",
+    "hints": [
+      "This objective is registered for curriculum planning but is not yet available for instructor enablement.",
+      "Its owner-bound evidence, reset, and connected application path must be qualified before release."
+    ]
+  },
+  "solution": {
+    "title": "Execute persisted mail HTML in the actual owned Inbox component",
+    "difficulty": "advanced",
+    "hints": [
+      "This objective is registered for curriculum planning but is not yet available for instructor enablement.",
+      "Its owner-bound evidence, reset, and connected application path must be qualified before release."
+    ],
+    "examples": [
+      {
+        "action": "Unavailable",
+        "explanation": "This pending objective cannot be enabled until its connected evidence path is qualified."
+      }
+    ],
+    "approach": "Unavailable until the server-owned evidence, reset, and application path are qualified.",
+    "tips": [
+      "Instructor enablement is intentionally blocked."
+    ]
+  }
+}

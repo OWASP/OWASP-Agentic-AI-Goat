@@ -1,0 +1,9 @@
+{
+  "internal_api": "https://api.internal.fileserve.com",
+  "admin_api": "https://admin.fileserve.com/api",
+  "api_keys": {
+    "master_key": "sk_live_abc123xyz789",
+    "backup_key": "sk_backup_def456uvw321"
+  },
+  "flag": "FLAG{CONFIG_003_API_KEYS}"
+}

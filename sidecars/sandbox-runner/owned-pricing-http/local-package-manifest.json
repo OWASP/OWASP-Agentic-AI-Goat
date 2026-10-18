@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "architecture": "arm64",
+  "files": {
+    "sidecars/sandbox-runner/mcpSeccompFilter.c": "3af63bd90352b47b23e386c71175f83317fd61e7a2d7a7dc8c2dd784d30ca20d",
+    "sidecars/sandbox-runner/owned-pricing-http/Dockerfile.local": "0a68e3115ad0268bd6fbf8eed1871b2604f256be3b080694f48b45b97bc6f4a5",
+    "sidecars/sandbox-runner/owned-pricing-http/buildAssets.js": "0db012f53a27e36a5b197663f2c3932bd013a040d0343727f31030535767d37b",
+    "sidecars/sandbox-runner/owned-pricing-http/executor.js": "c57575d8946d3681e01cbda4e528c576218fee32140dca41d628e4ea875fee0c",
+    "sidecars/sandbox-runner/owned-pricing-http/http-handler.js": "f4c4ff30c761287d91a49501011edd9440daa84a4200392e6df36b0b4b12e280",
+    "sidecars/sandbox-runner/owned-pricing-http/http-listener.js": "abaf8d2cfa2273bc059bda3d12075981db60c587fd24aecfc86f784242234e45",
+    "sidecars/sandbox-runner/owned-pricing-http/http-profile.apparmor.in": "89d2b2194d05f55b86bc3bb0582365f707a9de7aa090a8f2eecfa9f2ca937a25",
+    "sidecars/sandbox-runner/owned-pricing-http/input.js": "fd83a492b783b45002b363b7941569d92bc28e32443f0200763084047f2b36da",
+    "sidecars/sandbox-runner/owned-pricing-http/namespace-init.c": "42fc9a2c0569efa2dc6975700cc721c968aed6716f9231f5b26aef9dbbb63498",
+    "sidecars/sandbox-runner/owned-pricing-http/network-manifest.json": "32c2bb591693df42abca2dadf35e6dfe92e7734525100e2f872d95358edd8f60",
+    "sidecars/sandbox-runner/owned-pricing-http/process-supervisor.c": "a8fd47acec5f48889a9d06849db38d401d0ea78dbb91a207d5a37cd0263b388b",
+    "sidecars/sandbox-runner/owned-pricing-http/profile.js": "974782c58f723514e22ccc87bd71b688815568bc081aa27cd3a8bd5bc9018823",
+    "sidecars/sandbox-runner/owned-pricing-http/wire.js": "b4108d65183b5578b2717c2f95d15de0ff19773683a953eca5178953af64d66f",
+    "sidecars/sandbox-runner/owned-pricing-http/worker.js": "f505001abf76f9c82e7e8a72ca46d8594e8b768236c4aaf72172bb2a0547fd13"
+  },
+  "sha256": "d4481053aab895969e8937b9e20de5884e616b64611fca7d4e15c6debb343bf3",
+  "qualification": "tasks/sidecar-pricing-package-qualified-2026-09-26.json"
+}

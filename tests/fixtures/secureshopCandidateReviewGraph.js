@@ -1,0 +1,14 @@
+'use strict';
+const {randomUUID}=require('node:crypto');
+function startCandidateReviewGraph({scope,persona,personaSession,authority,repository,targetId,launches:actualLaunches,conversationRepository,journal:actualJournal,coordinator:actualCoordinator}) {
+ let ready,release;const reached=new Promise(r=>ready=r),gate=new Promise(r=>release=r);const messages=[];let session,calls=0;const runId=randomUUID(),requestId=randomUUID();
+ const conversations={acquireBoundSession:async({id,binding,purpose})=>(session={id,binding,purpose,state:'active'}),getBoundSession:async()=>session,getMessages:async()=>structuredClone(messages),appendMessage:async(_id,_b,row)=>messages.push(structuredClone(row)),getTokens:async()=>0,addTokens:async()=>{},appendTraces:async()=>{}};
+ const runtime=require('../../server/services/secureshopBoundReviewRuntime').createBoundReviewRuntime({
+  launches:actualLaunches || {assertCurrent:async()=>{},resolveCapability:async()=>scope,reserveReviewsTarget:async()=>({...scope,targetId,kind:'reviews'})},personaAuthority:authority,reviewRepository:repository,conversationRepository:conversationRepository||conversations,
+  journal:actualJournal||{lookupGeneralRequest:async()=>null,claim:async()=>({status:'claimed',claimId:requestId}),complete:async()=>{},markUncertain:async()=>{}},coordinator:actualCoordinator||{reset:async(_id,work)=>work(),run:async(_id,_options,work)=>work({runId,ownerKey:'controlled-owned-native',durableGeneration:'1',check:async()=>{},effect:async(_key,work)=>work()})},authenticatePersona:(_q,_s,n)=>n(),buildBasePrompt:()=> 'Controlled native review decisions',buildPolicyBlock:async()=>'',checkToolAcl:async()=>({action:'dispatch',policyViolation:null}),
+  provider:{chat:async input=>{calls++;if(calls===1)return{stop_reason:'tool_use',tool_uses:[{id:'native-read',name:'review-moderator.moderate_pending',args:{limit:1}}]};const observation=JSON.parse(input.messages.at(-1).content);ready();await gate;return{stop_reason:'tool_use',tool_uses:[{id:'native-approve',name:'review-moderator.approve',args:{review_id:observation.reviews[0].id}}]};},finalResponse:async()=>({stop_reason:'end_turn',text:'Controlled review complete',responseMode:'structured_final'})},
+  manifest:{getForRole:()=>[{agent:'review-moderator',tool:'moderate_pending',description:'read'},{agent:'review-moderator',tool:'approve',description:'approve'},{agent:'review-moderator',tool:'reject',description:'reject'}]},fixtures:[{productId:7,authorId:11,body:'Owned native graph fixture',rating:4}],assessmentFactory:()=>({begin:async()=>({}),observe:async()=>{},finalize:async()=>({status:'ungraded'})})
+ });
+ const running=runtime.moderation.moderateReviews({scope,persona,personaSession,requestId,limit:1});running.catch(()=>{});return{ready:Promise.race([reached,running.then(()=>{throw Error('No held decision');})]),release,running,runId,requestId,runtime};
+}
+module.exports={startCandidateReviewGraph};

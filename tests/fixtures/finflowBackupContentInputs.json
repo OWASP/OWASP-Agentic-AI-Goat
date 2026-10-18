@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "profile": "controlled-backup-content",
+  "objectives": [
+    "admin_backup",
+    "admin_dl_backup"
+  ]
+}

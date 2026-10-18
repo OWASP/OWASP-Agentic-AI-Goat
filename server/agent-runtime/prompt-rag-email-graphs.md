@@ -1,0 +1,15 @@
+# DPI, document RAG, and indirect email graphs
+
+The non-RAG descriptions below are historical bootstrap notes, not current acceptance evidence. Consult `docs/modernization/current-closure-checklist-2026-09-19.md` and the scoped native/model receipts for current behavior.
+
+DPI chat uses prepare → model → deterministic detection → conditional judge. Preparation preserves practice-history exclusion and decoded obfuscation instructions. Route owner serialization includes progress persistence; progress reset drains and fences those runs.
+
+Current RAG query behavior uses a real model decision loop when a durable RAG store is provided: the model chooses a bound document search and then answers from its observations. The retained fixture path uses retrieve → prepare → model. Both paths preserve the raw actor answer and grade with the canonical per-objective Judge; no synthetic bypass answer is substituted. The `model_and_detect` node name remains for trace compatibility, but it no longer invokes a separate answer-only model or regex detector. The presentation warning is true only for a provenance-qualified actor response with a passing `rag_injected_doc` or `rag_query_injection` judgment. Fail, unavailable and inconclusive judgments cannot set it. Canonical completion and session/reset fences remain separate from this presentation flag.
+
+Current controlled graph/provenance/fence/trace checks are recorded in `tasks/rag-canonical-warning-2026-09-20.json`; genuine model qualification is separate. Session deletion/reset behavior must be assessed using the current route coordinator and durable store, not the historical bootstrap description.
+
+Indirect email send uses send → audit → credit, without automatic retries. Fetch branches between manual input and inbox retrieval, then reads bodies → analyzes → credits; empty/failed inboxes exit without credit. Summarization forks vulnerable and secure model nodes and joins before detection/credit. Raw HTML and injection instructions remain unchanged. Save-inbox/manual grading and scoped reset use the same local owner coordinator. Health/setup/scenario/progress reads remain ordinary HTTP handlers.
+
+These are process-local fences, not cross-process durable transactions or resumable checkpoints. Reset cannot undo an email already sent or a store write already executing. A failed canonical progress write can leave local progress requiring reconciliation. DPI's existing service signature does not propagate the route abort signal into its model/judge; reset prevents late persistence but waits for those calls to settle. CSRF inbox and indirect-RAG surrounding route branches remain direct orchestration as recorded in xss-csrf-graphs.md.
+
+`tests/promptRagEmailGraphs.test.js` blocks real authDb imports and exercises eight injected/local HTTP cases, including raw-HTML retention, secure/vulnerable grading, reset during model work, and physical cancellation of an Ollama HTTP request that returns no chunks. No remote provider, external email, or database initialization is used.

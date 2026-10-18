@@ -1,0 +1,44 @@
+{
+  "date": "2026-09-11",
+  "test": "tests/postgres/workshopLoad.integration.test.js",
+  "log": "/tmp/dvaia-native-load-scoped-final.log",
+  "metrics": {
+    "attendees": 200,
+    "model": "explicit mock; no live inference",
+    "storage": "native PostgreSQL14 isolated databases",
+    "distribution": {
+      "200": 200
+    },
+    "p50": 1785,
+    "p95": 3254,
+    "totalMs": 3804,
+    "receiptCounts": [
+      {
+        "verdict": "unavailable",
+        "n": 10
+      }
+    ],
+    "receiptBeforeReset": [
+      {
+        "verdict": "unavailable",
+        "n": 10
+      }
+    ],
+    "runCounts": [
+      {
+        "status": "completed",
+        "n": 210
+      }
+    ],
+    "resets": 10,
+    "rateLimitConfig": "false"
+  },
+  "boundaries": [
+    "Full application and17agent startup with14isolated native PostgreSQL databases.",
+    "Real native users and sessions were seeded; this does not measure login/registration throughput.",
+    "Inference and Judge provider explicitly mock; unavailable receipts never award completion.",
+    "Default rate-limit configuration false was preserved, not overridden for the benchmark.",
+    "Owner-scoped assertions and resets do not delete unrelated fixtures.",
+    "This is a local application/database qualification, not AWS deployment or real8B capacity certification."
+  ]
+}

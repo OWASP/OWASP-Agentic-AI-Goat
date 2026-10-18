@@ -1,0 +1,58 @@
+{
+  "scope": "Exact review operation receipts reused immutable bound_audit_events; optional actual review factory persona capture; native store/session effects with controlled provider and memory turn journal, not model/platform admission proof",
+  "terminal": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-wxtyaxv4",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "fe068672cf0e9ea9d753d3641390bf0e79316eaa620ad81bdbf8e57e9dff991b",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "sourceHashes": {
+    "server/database/postgres/secureshopReviewDecisionReceipt.js": "08ba27d75a42637b5886b692bdf6b9a26e20177e047171c5c4a4a4adfdf908cd",
+    "server/database/postgres/secureshopBoundReviewRepository.js": "68a5c0389dfe8c575f9aa8b22528c284feab19c0dd1197e09e5b122348f9f72a",
+    "server/database/postgres/secureshopBoundPersonaAuthority.js": "348e4c00c6af168e3b92c0dbd7ecc53a4e638511485a10fb2eb64394650180fc",
+    "server/services/secureshopReviewDecisionOperation.js": "47c86ed3e830acc05d0c70a194630f3268c47f5c65f5d35140196093b980d411",
+    "server/services/secureshopPersonaReviewEffect.js": "14213aa1d1a39c31445d98e69b040fb225897a1dc4ed7018b4fd1805880c546e",
+    "server/services/secureshopBoundReviewRuntime.js": "6d70009ce2bf0079501312aadb6ae016204240b36e6affe9878c9109d2cee4d2",
+    "server/services/secureshopBoundReviewTools.js": "94c1b800088daf549dd9922e1b15674f582d4af0852c02f13f1b8c76bd72c757",
+    "server/services/secureshopBoundReviewModeration.js": "72be63c5329e5243e3b8bad60c237771ada7e6dd3db12a55198dd69fa540ac8f",
+    "server/services/secureshopBoundAgentRunner.js": "f2e7d1a92670ab974e3f0c6179bd2df5d465c6b7521cd5fec333bce4e74ec7da",
+    "server/services/secureshopPersonaToolDispatch.js": "e1482608ce8f96ce6d3a85c8f8cf475fb16f5775894f3e3cca95872251a63b82",
+    "server/agent-runtime/secureshopSupervisorGraph.js": "7fd467801a9cacd897024a02e20e4d2acdbfcdc836ef772b8c6ca35f2f93ba11",
+    "server/routes/secureshop/boundReviews.js": "8b0813c909ecb6a7b7250ec4bcea7e3b17ec300d99b2cf2c4d25e770a865445d",
+    "tests/postgres/secureshopPersonaReviewEffect.integration.test.js": "cf5a41a7eefc4a6b148dcb7cc4911a5c2bb935114e7ada88109205daeff84c14",
+    "tests/fixtures/secureshopCandidateReviewGraph.js": "9b3e41a4ab4d66f19b875d09bcfb4ba9ffeddbec035c1a7638af8d577d4da696"
+  },
+  "logSha256": "1687391ed30e683d234a170480c2b53417ec049086f4306c33b69d11f9c3513c",
+  "focusedTests": 63,
+  "postSnapshotValidationTightening": {
+    "file": "server/services/secureshopReviewDecisionOperation.js",
+    "change": "Reject malformed run UUID rather than merely 36 UUID-like characters; no accepted native UUID behavior changed",
+    "sha256": "cb390b608cbf103ffa78f7abbab3038800ece0a1cb1118cff8da3ca5ea24fd78",
+    "focusedTests": 2
+  },
+  "proof": [
+    "Exact request digest covers scope actor original persona session authority version manual/agent run invocation and decision args",
+    "Review transition existing audit and deterministic operation receipt atomic in review DB",
+    "Lost acknowledgement recovered by recreated service; exact replay no extra audit rows; conflict denied",
+    "Retirement denies online receipt lookup while history retained",
+    "Actual review factory held controlled decision denied after real persona ban, fresh sibling writes original run/call receipt",
+    "Readback after ban denied; canonical review-audit owner deletion erases operation receipt, exact deletion replay stable and sibling history preserved",
+    "All owned stores/resources cleaned"
+  ],
+  "remaining": [
+    "No production factory defaults changed",
+    "Optional candidate manual HTTP actions blocked pending their UUID/receipt UI contract",
+    "Memory turn journal/controlled platform check are explicitly not canonical run/launch revocation proof",
+    "Other six factory effect boundaries still require integration before mutable persona production enablement",
+    "No new schema required for this receipt; candidate persona SQL still outside active chain"
+  ],
+  "postSnapshotHttpCompatibility": {
+    "file": "server/routes/secureshop/boundReviews.js",
+    "change": "Forward verified personaSession only to moderation, only when present; preserve existing unrelated route DTO shape",
+    "sha256": "11b9e0a15b068e4d88cd9194d0c9c1702cdeacf3f549a3cbdd0425389b00beb6",
+    "focusedTests": 9
+  }
+}

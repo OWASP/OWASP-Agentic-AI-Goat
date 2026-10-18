@@ -1,0 +1,6 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const {createReviewDecisionOperation:create}=require('../server/services/secureshopReviewDecisionOperation');
+const options={runId:'11111111-1111-4111-8111-111111111111',fence:{binding:{sessionId:'22222222-2222-4222-8222-222222222222',authorityVersion:'3'}}};
+test('operation identity derives from admitted run and actual immutable invocation coordinates',()=>{const factory=create(options),call={callId:'actual-provider-call',step:2,tool:'review-moderator.approve'},a=factory(call);assert.deepEqual(factory(call),a);assert.equal(a.personaSessionId,options.fence.binding.sessionId);assert.equal(a.runId,options.runId);assert.notEqual(factory({...call,step:3}).operationId,a.operationId);assert.notEqual(create({...options,runId:'33333333-3333-4333-8333-333333333333'})(call).operationId,a.operationId);assert.equal(Object.isFrozen(a),true);});
+test('missing invocation or unrelated tool and malformed run fail closed',()=>{assert.throws(()=>create({...options,runId:'-'.repeat(36)}));for(const call of [null,{callId:'x',step:0,tool:'unrelated.tool'},{callId:'',step:0,tool:'review-moderator.approve'}])assert.throws(()=>create(options)(call));});

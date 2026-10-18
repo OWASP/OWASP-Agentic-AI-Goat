@@ -1,0 +1,51 @@
+{
+  "scope": "Canonical ProductAssist summary graph, persisted turns and real persona role changes in four owned PostgreSQL stores. Controlled provider protocol; no actual Ollama, embedding model, Judge or objective-credit proof.",
+  "result": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-zrfmpwbm",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "b63a60f67d1ef7033a81d31bbdd3c55e37111282a27080f4ad5da425a2fd4b2e",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "sourceSha256": {
+    "tests/postgres/secureshopPersonaProductCanonical.integration.test.js": "4dc032bad83cf4505358dfee0789a97b74516acbfcb5b71f947f24308b6a1f68",
+    "server/services/secureshopPersonaProductEffect.js": "411164b399630d2beebdbed8a55bc9f2e441f0215421a310b48fc43e81e50520",
+    "server/services/secureshopBoundProductAssist.js": "9a4ad5021aea4951f382f89b971ddbd445228fa8e8ae7fdc19f21ae243d5b848",
+    "server/services/secureshopBoundProductTools.js": "d43ce266d905a7c15669d8a22a4921b9962f5f58460e60a09f9ab78bec488873",
+    "server/services/secureshopBoundProductRetrieval.js": "abdf9f4ce17498e22c52c2e1583a1b7ff85ed9adc2bca0c956c5c52fe329843e",
+    "server/services/secureshopEmbeddingReindex.js": "3a8a997b624a777bd954bb33838cda07412f81af6e74c7619dd6bdd1bf26e112",
+    "server/services/secureshopBoundCatalog.js": "bc4f93fbe8a4b233e4ffbb47c92e5eb861ec75df385a246360c0a8293c302850",
+    "server/database/postgres/secureshopBoundProductRepository.js": "f101af34d654d6ad9199d9f653404e5966b1e25d260a43a5252fa93c151a992f",
+    "server/database/postgres/secureshopBoundProductRetrievalRepository.js": "976bf0e83d9758cad1f19d6bbf3908a7af1a906447457d684dadbd67d4781ba1",
+    "server/database/postgres/secureshopEmbeddingRevisionRepository.js": "f3053fabefe5280297b30a4c06d2ec349da7155618bf7d8809e1854ea07f0a79",
+    "server/routes/secureshop/boundGateway.js": "c2cd60db561239057e57e2941d1e49865e4029f17caadee551779d4259ec8067",
+    "package-lock.json": "34ba2ea15dd634f8e6a6df4ae4443aa8af953cb2df951923d1ae8472889a2c27",
+    "server/database/postgres/secureshopBoundPersonaAuthority.js": "348e4c00c6af168e3b92c0dbd7ecc53a4e638511485a10fb2eb64394650180fc",
+    "server/database/postgres/secureshopTurnRequestsRepository.js": "1333b1d2be34a66d5530dcd300fffdedc7b8d6207e416313d51f2effa419870f",
+    "server/services/secureshopBoundPersonaAuth.js": "6965bbd325bb282e23f92cc44cd643a8722b24dcc0e91fc5bc4ea4e2a15fe82d",
+    "docs/modernization/drafts/secureshop-user-administration/persona-state.candidate.sql": "ee8a37de874aa9b4993b5d9db66ddbd43955ec072fe6367c0e78c6ebda4ff145"
+  },
+  "checks": [
+    "Role changed while canonical model decision held: SHOP_AUTH_INVALID, zero catalog observations, uncertain turn",
+    "Role changed after real owned catalog observation: SHOP_AUTH_INVALID, no final projection, uncertain turn",
+    "Independent live owner completes canonical turn with source description preserved",
+    "Exactly three persisted graph runs, only live control completed; no objective judgments for all three owners"
+  ],
+  "priorFailure": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-9lkb64om",
+    "exitCode": 1,
+    "cause": "Fixture queried nonexistent owner column directly on turn_requests. Corrected to join agent_sessions using session_id; no production source fix.",
+    "cleanup": {
+      "containerRemoved": true,
+      "pidAbsent": true,
+      "pgidAbsent": true
+    }
+  },
+  "limitations": [
+    "Candidate optional authority remains unactivated globally",
+    "This canonical cohort uses summary path; corpus/revision publication and held embedding gates are separate direct native evidence",
+    "Remaining ManualIngestion, MCPTrust and SSRF factories still need candidate authority integration"
+  ]
+}

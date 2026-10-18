@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "command": "PATH=/Users/averma5/.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin:$PATH python3 tests/postgres/run-mcp-owned-local-activation.py --grant-file tasks/native-verification-slot.json --grant-id <ROOT_GRANT> --owner-handle-file <0600_HANDLE_FILE> --watcher-pid 60889 --backend-pid 98421",
+  "sourceHashes": {
+    "docker-compose.yml": "272777d179639afd0f6a04484b2d6d5635b12d723033bc04b38d7a78f9a3cf0a",
+    "package-lock.json": "c40250c3a4595093a8303e831caaea9524aadde1394bc990c90f75b7e2e7a0a7",
+    "package.json": "4c1b3ac2d5b833979c8be7dfd384f0ed854c93cde6bc51772d5a72abf31e2b0d",
+    "scripts/install/mcp-owned-local.js": "0c789ff56e2825b79a2c4d29b0aef18ef0d0fb4b8bb8bffb05d6ec5dff461bd6",
+    "scripts/install/mcp-owned-provision.js": "a1cb1c9a58a62c944a351ea1e71898aff86bcac3ae95f9c077d436313e588157",
+    "scripts/render-mcp-sandbox-apparmor.js": "f4d0fa626c2b9211e917b3552642e1b46e3473e905028dbd5457a9ff4e2d8d5e",
+    "server/index.js": "2a0fa146133c8206787f437acac155e66e63ccb6ce916752e05314994a92bbb1",
+    "server/services/mcp/ownedManagedConfiguration.js": "7003e0df17c7390e2ed04207b9f002bb0225e08850e28cbb05e135f0bfc8b22a",
+    "server/services/mcp/ownedResourceProduction.js": "293b257c87b0e682d0c9fc1cf972ea1bb24e8a43b92f629c4d6099e2a36ff0d4",
+    "server/services/mcp/ownedTargetClient.js": "859794b3d34fee718bb1cf0bd6932fb4a92bc8f06ac2c30bf359c6f6f0a57f7c",
+    "server/services/supplyChain/codeBotProduction.js": "6c5f956e2d25febf1c622b3159e490ea8ad76d8369e531882bb024df2e5843b2",
+    "sidecars/sandbox-runner/Dockerfile": "c8771e9991eae83a3308c9e69a6021faf98a3181a36693aa326bd39d58a7b8fd",
+    "sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in": "dbd654c9ec9c10de04c77b76fc55c57ef5750a8cbe19870e132fc145f86a89d2",
+    "sidecars/sandbox-runner/entrypoint.sh": "6d480382004cfb23b4a33a197c932a978b65c4db2bdfd250cf76b4db4e62bafa",
+    "sidecars/sandbox-runner/index.js": "02c7dbb430fcc4ef9957a38f67610b138c15743adc89570103214802a295b2a1",
+    "sidecars/sandbox-runner/mcpProtectedState.js": "ce1d4d926d6c4faf96dd9acf0c204865b6f07d702f9e8fb5252a3d6dd43f7a9f",
+    "sidecars/sandbox-runner/mcpSeccompFilter.c": "3af63bd90352b47b23e386c71175f83317fd61e7a2d7a7dc8c2dd784d30ca20d",
+    "sidecars/sandbox-runner/mcpSeccompProbe.c": "eaefd96898e549ec7c0ea96880a34f1b674f023dc5a730a765fbd62cc367cc61",
+    "sidecars/sandbox-runner/mcpTargets.js": "1dd8b89ad3fc09fbf40bfba8eeb9f5ecc7acaa024ef898137013108747bb121c",
+    "sidecars/sandbox-runner/ownedTargetApi.js": "cb0090272a8af0e3ae010a0001035fb34bc5aae1116c8c8c0f4229a17dc9ca4a",
+    "sidecars/sandbox-runner/package.json": "ee7577c87b17d2acd9b76be687126992acf91131c97e10f7871a5e898c83dba9",
+    "tests/mcpOwnedLocalActivationLauncher.test.js": "59d58b7a483f7013f115fdbf92607dcfc995d40327cbb362f0cd11988bc27067",
+    "tests/mcpOwnedLocalInstall.test.js": "de8ef5b1092d068e6e220dda299ab00ae67c411d3e95ff85efa85347017dae8c",
+    "tests/postgres/mcp_owned_live_promotion_safety.py": "a4697aa73d8331bab1c47719c3abc9d66aa9a463ea7473e95bc0ae2205d2436b",
+    "tests/postgres/run-mcp-owned-local-activation.py": "a10e7dfcdddb4a633b33228cb2560b91efbd280452c83aa28398fdf97617f992",
+    "tests/postgres/sensitive_info_recovery_safety.py": "2317a9facf689c8e6b4f1e5682c2a7b732afbe7cee0c0438dd0a688ae748b7e8"
+  }
+}

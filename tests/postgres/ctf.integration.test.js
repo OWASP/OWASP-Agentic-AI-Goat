@@ -1,0 +1,80 @@
+'use strict';
+const Module=require('node:module'),load=Module._load;
+Module._load=function(r,p,m){if(/(?:^|\/)(authDb|ctfDb)(?:\.js)?$/.test(r)&&!r.includes('/postgres/'))throw Error('Working database initializer forbidden');return load.call(this,r,p,m);};
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const {createPool}=require('../../server/database/postgres');
+const {createCtfDb}=require('../../server/database/postgres/ctfDb');
+const {TABLES,importCtfSnapshot}=require('../../server/database/postgres/ctfImport');
+const {stageDigest}=require('../../server/agent-runtime/ctfStageJudge');
+const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_CTF_TEST_RUNTIME_URL;
+test('CTF native PostgreSQL retains ten stages, atomic judgments, restart/reset fencing and administration',{skip:!enabled},async()=>{
+ for(const key of ['PG_CTF_TEST_RUNTIME_URL','PG_CTF_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ const pool=createPool(process.env,'PG_CTF_TEST_RUNTIME_URL'),migration=createPool(process.env,'PG_CTF_TEST_MIGRATION_URL');
+ try{
+ const store=createCtfDb(pool);await store.initialize(migration);
+ assert.equal((await store.getAllStages()).length,10);
+ const participantId=await store.registerParticipant(1001,'fixture','fixture@example.invalid');
+ const participant=await store.findActiveParticipant(1001),stage=await store.getActiveStage(1);
+ await store.startStage(participantId,stage.id);const progress=await store.getProgress(participantId,stage.id);
+ const attemptNumber=await store.incrementAttempts(participantId,stage.id,false,progress.id);
+ const input={runId:'fixture-pass',participant,stage,progress,stageDigest:stageDigest(stage),judgment:{verdict:'pass',rubricVersion:'fixture',judgeVersion:'fixture'},realModel:true,observedSecret:true,attemptNumber,payload:'synthetic',studentResponse:'synthetic observed response',responseTime:1,sessionToken:'fixture',techniqueTag:'role_play',techniqueConfidence:1,payloadHash:'fixture-hash',normalizedSnippet:'synthetic',adaptiveMode:'hybrid',otherTechnique:'other',execution:{check:async()=>{}}};
+ const winners=await Promise.all([store.commitAttempt(input),createCtfDb(pool).commitAttempt(input)]);
+ assert.ok(winners.every(r=>r.accepted));assert.equal(winners.filter(r=>r.replayed).length,1);
+ assert.equal((await store.getAttempts()).length,1);assert.equal((await store.getLeaderboard())[0].total_stages_completed,1);
+ const dto=await require('../../server/agent-runtime/ctfResultGraph').runCtfResultGraph({...input,stageId:stage.id,showFeedback:true},{CTFHelpers:store,commit:()=>store.commitAttempt(input),judgment:input.judgment});assert.equal(dto.success,true);assert.equal(dto.aiResponse,input.studentResponse);assert.equal(dto.judgment.verdict,'pass');
+ assert.equal(await store.isPayloadBlocked(stage.id,'fixture-hash'),true);
+ const distinctParticipantId=await store.registerParticipant(1003,'distinct winner fixture','distinct@example.invalid');
+ const distinctParticipant=await store.findActiveParticipant(1003);await store.startStage(distinctParticipantId,stage.id);
+ const distinctProgress=await store.getProgress(distinctParticipantId,stage.id);const distinctAttempt=await store.incrementAttempts(distinctParticipantId,stage.id,false,distinctProgress.id);
+ const distinctBase={...input,participant:distinctParticipant,progress:distinctProgress,attemptNumber:distinctAttempt,sessionToken:'distinct-session'};
+ const distinctResults=await Promise.all([
+  store.commitAttempt({...distinctBase,runId:'distinct-winner-a',payload:'distinct payload a',payloadHash:'distinct-hash-a',normalizedSnippet:'distinct payload a'}),
+  createCtfDb(pool).commitAttempt({...distinctBase,runId:'distinct-winner-b',payload:'distinct payload b',payloadHash:'distinct-hash-b',normalizedSnippet:'distinct payload b'}),
+ ]);
+ assert.equal(distinctResults.filter(result=>result.accepted).length,1);assert.equal(distinctResults.filter(result=>result.replayed).length,0);
+ const distinctJudgments=(await pool.query("SELECT accepted FROM ctf.ctf_judgments WHERE run_id IN ('distinct-winner-a','distinct-winner-b') ORDER BY run_id")).rows;
+ assert.equal(distinctJudgments.length,2);assert.equal(distinctJudgments.filter(row=>row.accepted===1).length,1);
+ const distinctCounters=(await pool.query('SELECT status,attempts_count,successful_attempts,failed_attempts FROM ctf.ctf_progress WHERE id=$1',[distinctProgress.id])).rows[0];
+ assert.deepEqual(distinctCounters,{status:'completed',attempts_count:1,successful_attempts:1,failed_attempts:0});
+ assert.equal((await pool.query("SELECT COUNT(*)::integer count FROM ctf.ctf_attempts WHERE participant_id=$1",[distinctParticipantId])).rows[0].count,1);
+ assert.equal((await pool.query("SELECT COUNT(*)::integer count FROM ctf.ctf_technique_blocklist WHERE participant_id=$1 AND stage_id=$2",[distinctParticipantId,stage.id])).rows[0].count,1);
+ assert.equal((await pool.query("SELECT COUNT(*)::integer count FROM ctf.ctf_payload_blocklist WHERE stage_id=$1 AND payload_hash IN ('distinct-hash-a','distinct-hash-b')",[stage.id])).rows[0].count,1);
+ assert.equal((await store.getLeaderboard()).find(row=>row.participant_id===distinctParticipantId).total_stages_completed,1);
+ await store.resetParticipant(distinctParticipantId);
+ assert.equal((await pool.query("SELECT COUNT(*)::integer count FROM ctf.ctf_judgments WHERE run_id IN ('distinct-winner-a','distinct-winner-b')")).rows[0].count,2);
+ await store.resetParticipant(participantId);
+ assert.equal((await store.commitAttempt(input)).stale,true);assert.equal((await store.getAttempts()).length,0);
+ await store.startStage(participantId,stage.id);const next=await store.getProgress(participantId,stage.id);assert.notEqual(next.id,progress.id);
+ await store.updateStage(stage.id,{stage_name:'edited fixture'});
+ assert.equal((await store.commitAttempt({...input,runId:'late-edit',progress:next})).accepted,false);
+ const updated=await store.getStage(stage.id);
+ const unavailable={...input,runId:'unavailable',stage:updated,stageDigest:stageDigest(updated),progress:next,judgment:{verdict:'unavailable'},techniqueTag:'new_technique',payloadHash:'unavailable-hash'};
+ assert.equal((await store.commitAttempt(unavailable)).accepted,false);
+ assert.equal(await store.istechniqueBlocked(participantId,stage.id,'new_technique'),false);
+ assert.equal(await store.isPayloadBlocked(stage.id,'unavailable-hash'),false);
+ await assert.rejects(store.commitAttempt({...unavailable,runId:'cancelled',execution:{check:async()=>{throw Error('cancel');}}}),/cancel/);
+ assert.equal((await pool.query("SELECT COUNT(*)::integer count FROM ctf.ctf_judgments WHERE run_id='cancelled'")).rows[0].count,0);
+ await store.banUser(1001,'fixture',2);assert.equal(await store.isBanned(1001),true);await store.unbanUser(1001);assert.equal(await store.isBanned(1001),false);
+ assert.equal((await store.listStudentStages()).length,10);
+ assert.ok(!Object.hasOwn((await store.listStudentStages())[0],'success_criteria'));
+ for(const method of ['participantAnalytics','stageAnalytics','techniqueAnalytics','blockAnalytics','recentActivity','getParticipants'])assert.ok(await store[method]());
+ await assert.rejects(importCtfSnapshot(migration,{version:1,tables:Object.fromEntries(TABLES.map(name=>[name,[]]))}),/empty destination/);
+ const snapshot={version:1,tables:{}};for(const table of TABLES)snapshot.tables[table]=(await pool.query(`SELECT * FROM ctf.${table}`)).rows;
+ await store.reset({all:true});assert.equal(await store.countParticipants(),0);
+ assert.equal((await pool.query('SELECT COUNT(*)::integer count FROM ctf.ctf_judgments')).rows[0].count,5);
+ // This is an explicitly guarded disposable cluster; production importer never truncates.
+ await migration.query('TRUNCATE '+TABLES.map(name=>'ctf.'+name).join(',')+' RESTART IDENTITY CASCADE');
+ const imported=await importCtfSnapshot(migration,snapshot);assert.ok(imported.rows>10);
+ assert.equal((await store.getAttempts()).length,1);
+ assert.equal((await store.getAllStages()).length,10);
+ const another=await store.registerParticipant(1002,'new fixture','new@example.invalid');assert.ok(another>participantId);
+ await store.startStage(another,updated.id);
+ const raceProgress=await store.getProgress(another,updated.id),raceParticipant=await store.findActiveParticipant(1002);
+ let entered,release;const inside=new Promise(r=>entered=r),pause=new Promise(r=>release=r);let checked=false;
+ const pending=store.commitAttempt({...input,runId:'reset-race',stage:updated,stageDigest:stageDigest(updated),participant:raceParticipant,progress:raceProgress,execution:{check:async()=>{if(!checked){checked=true;entered();await pause;}}}});
+ await inside;const resetting=createCtfDb(pool).resetParticipant(another);release();await pending;await resetting;
+ assert.equal(await store.getProgress(another,updated.id),undefined);
+ assert.equal((await store.getAttempts({participantId:another})).length,0);
+ assert.equal((await store.getLeaderboard()).find(row=>row.participant_id===another).total_stages_completed,0);
+ }finally{await pool.end();await migration.end();}
+});

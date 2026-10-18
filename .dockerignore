@@ -1,0 +1,24 @@
+# Private historical data must never enter an application build context.
+.git/
+node_modules/
+client/node_modules/
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+tasks/
+server/logs/
+backups/
+server/database/users_auth.db
+server/database/users_auth.db-*
+tasks/main-workspace-preservation-2026-09-28/
+
+# SQLite databases and journals are runtime state; build from reviewed schemas/seeds.
+**/*.db
+**/*.db-*
+**/*.sqlite
+**/*.sqlite-*
+**/*.sqlite3
+**/*.sqlite3-*

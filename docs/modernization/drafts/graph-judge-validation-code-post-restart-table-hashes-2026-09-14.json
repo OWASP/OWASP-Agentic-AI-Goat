@@ -1,0 +1,204 @@
+{
+  "backupManifestSha256": "4605a35a9dfcd40aa475ad9dc93d06594c9f9273b297d4c4f647dddde70de2f3",
+  "capturedAt": "2026-09-14T11:33:30.945140+00:00",
+  "constraints": [
+    "events_metadata_keys_check",
+    "events_validation_code_check"
+  ],
+  "identityLedger": {
+    "count": 45,
+    "head": {
+      "checksum": "d5b40afc1d3c43c2371ec30fd9d1cc119a935cbc1840ef3b11c8bc4cfa6be936",
+      "name": "0046_graph_judge_validation_code.sql"
+    },
+    "sha256": "5f6e4d1b95bf4f4facc3cfd1d75bffc698b3c467ffaa844c8494d85b3005af79"
+  },
+  "privacy": "Only table names, counts and SHA-256 digests are retained.",
+  "querySource": "scripts/audit-graph-judge-validation-post-restart.py",
+  "summary": {
+    "afterDigest": "3b28ab68809727861bbeacfa2c5911076a8dd908ee78d899f875112fbde5fd3b",
+    "beforeDigest": "3b28ab68809727861bbeacfa2c5911076a8dd908ee78d899f875112fbde5fd3b",
+    "exactMatch": true,
+    "rowCount": 153,
+    "tableCount": 16
+  },
+  "tables": {
+    "workshop_platform.activity_counters": {
+      "after": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "before": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "matches": true
+    },
+    "workshop_platform.completions": {
+      "after": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "before": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "matches": true
+    },
+    "workshop_platform.config_revision": {
+      "after": {
+        "rows": 1,
+        "sha256": "6dc11ab2516a73284e7a64f6fd6ba9fad3f5d6904664aa947106f653ac7a36fd"
+      },
+      "before": {
+        "rows": 1,
+        "sha256": "6dc11ab2516a73284e7a64f6fd6ba9fad3f5d6904664aa947106f653ac7a36fd"
+      },
+      "matches": true
+    },
+    "workshop_platform.exercises": {
+      "after": {
+        "rows": 11,
+        "sha256": "21999ce98d1856d5e7413b13f83ab1d0f643ba474f815aae6d74af3666b81a3e"
+      },
+      "before": {
+        "rows": 11,
+        "sha256": "21999ce98d1856d5e7413b13f83ab1d0f643ba474f815aae6d74af3666b81a3e"
+      },
+      "matches": true
+    },
+    "workshop_platform.grade_packets": {
+      "after": {
+        "rows": 3,
+        "sha256": "4789918f41c2b0e1007ff688b79db4ab4a7e4fb873b65ad92b6e4173bfd5a86c"
+      },
+      "before": {
+        "rows": 3,
+        "sha256": "4789918f41c2b0e1007ff688b79db4ab4a7e4fb873b65ad92b6e4173bfd5a86c"
+      },
+      "matches": true
+    },
+    "workshop_platform.instance_activity_contributions": {
+      "after": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "before": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "matches": true
+    },
+    "workshop_platform.objective_contributions": {
+      "after": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "before": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "matches": true
+    },
+    "workshop_platform.objective_evidence": {
+      "after": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "before": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "matches": true
+    },
+    "workshop_platform.objective_judgments": {
+      "after": {
+        "rows": 3,
+        "sha256": "cbc798e84d83dfe09c59957c95df3011556f318d2b50a914576cbca6aa118738"
+      },
+      "before": {
+        "rows": 3,
+        "sha256": "cbc798e84d83dfe09c59957c95df3011556f318d2b50a914576cbca6aa118738"
+      },
+      "matches": true
+    },
+    "workshop_platform.objectives": {
+      "after": {
+        "rows": 116,
+        "sha256": "7196b901e52157c11e4e8043a8a0d36f61329fa1e54a40b5b9af52a12360da3c"
+      },
+      "before": {
+        "rows": 116,
+        "sha256": "7196b901e52157c11e4e8043a8a0d36f61329fa1e54a40b5b9af52a12360da3c"
+      },
+      "matches": true
+    },
+    "workshop_platform.revisions": {
+      "after": {
+        "rows": 3,
+        "sha256": "777341308576fd6f9fc21054a1f8599a43460829581bc523708baea1ca4328d3"
+      },
+      "before": {
+        "rows": 3,
+        "sha256": "777341308576fd6f9fc21054a1f8599a43460829581bc523708baea1ca4328d3"
+      },
+      "matches": true
+    },
+    "workshop_platform.time_tracking": {
+      "after": {
+        "rows": 4,
+        "sha256": "b990224628d4b27470b82659cd8c036d7500d7fc3af2547a131609f8b6603d9f"
+      },
+      "before": {
+        "rows": 4,
+        "sha256": "b990224628d4b27470b82659cd8c036d7500d7fc3af2547a131609f8b6603d9f"
+      },
+      "matches": true
+    },
+    "workshop_platform.user_modes": {
+      "after": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "before": {
+        "rows": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "matches": true
+    },
+    "workshop_platform.user_state": {
+      "after": {
+        "rows": 4,
+        "sha256": "a7e3d011587fa4b4a18e87d1cb7d3476742ac4c4ba25d78da2ccf80a00a0116d"
+      },
+      "before": {
+        "rows": 4,
+        "sha256": "a7e3d011587fa4b4a18e87d1cb7d3476742ac4c4ba25d78da2ccf80a00a0116d"
+      },
+      "matches": true
+    },
+    "workshop_platform.xss_legacy_solution_visibility": {
+      "after": {
+        "rows": 4,
+        "sha256": "e1d217d6cb0328e1cb7c9bd94afd2534e7da6728e302eb31700546490e108610"
+      },
+      "before": {
+        "rows": 4,
+        "sha256": "e1d217d6cb0328e1cb7c9bd94afd2534e7da6728e302eb31700546490e108610"
+      },
+      "matches": true
+    },
+    "workshop_platform.xss_legacy_solutions": {
+      "after": {
+        "rows": 4,
+        "sha256": "7b77bcdaf30da56e7eb3d3bb7e12a38e569715c9aada03fcf5f2019b7f962711"
+      },
+      "before": {
+        "rows": 4,
+        "sha256": "7b77bcdaf30da56e7eb3d3bb7e12a38e569715c9aada03fcf5f2019b7f962711"
+      },
+      "matches": true
+    }
+  },
+  "version": 1
+}

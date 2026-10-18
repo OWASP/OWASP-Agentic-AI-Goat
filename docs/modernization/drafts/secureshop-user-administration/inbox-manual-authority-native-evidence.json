@@ -1,0 +1,35 @@
+{
+  "scope": "Optional manual inbox authority, real four-store repositories and exact single-client ACL effect; status is checked read projection not atomic snapshot; no model or activation",
+  "result": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-gt2gs1cs",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "f55470215e5556ecdb9290ee3fcb00dc4323ab18a6fdad7dccac9f25fe1a46dc",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "checks": [
+    "live merchant status and single audited enforce",
+    "completed enforce returns current enforced ACL without duplicate audit",
+    "role change after status metadata read rejects response",
+    "role change after initial ACL read rejects mutation before effect",
+    "banned/revoked personas denied for both controls",
+    "prior same-client rollback/held graph/sibling cohort also passes"
+  ],
+  "sourceSha256": {
+    "tests/postgres/secureshopPersonaInboxAuthority.integration.test.js": "7ff8980776815b919fda4cb45dd242c0f261c4c7207cdeac666831a65361c5fb",
+    "server/services/secureshopPersonaInboxComposition.js": "da22cf3cf3993e3d72d7a71eb296834f607e9f45337bf1101cd8f02907ac093f",
+    "server/services/secureshopPersonaInboxApplication.js": "343e2ca34d30284a7f16dbb78a0726425bbe744cd0c4da5b8c66f863c883982e",
+    "server/services/secureshopPersonaInboxEffect.js": "fa668c6120a1b0cb944d554b2675d5bbe76caca56ae7b12f8323955e48e2dad0",
+    "server/routes/secureshop/boundPersonaInbox.js": "0ec7cdef06716fa7ded9aa84556f5e2913ed9d78bd712614c68f1f14e119e3f8",
+    "server/database/postgres/secureshopPersonaInboxRepository.js": "a60f71329f04a103730381bae50a62a0b0d9af4390c966a7b81b7bb86434326d",
+    "package-lock.json": "34ba2ea15dd634f8e6a6df4ae4443aa8af953cb2df951923d1ae8472889a2c27"
+  },
+  "focusedTests": 54,
+  "priorFailure": {
+    "directory": "pdovs834",
+    "cause": "unused manual fixture provider omitted required finalResponse method; fixture-only corrected",
+    "cleanup": true
+  }
+}

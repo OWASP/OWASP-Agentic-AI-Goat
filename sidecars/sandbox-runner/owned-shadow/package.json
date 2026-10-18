@@ -1,0 +1,13 @@
+{
+  "name": "dvaia-owned-shadow-build",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Build-time dependencies for the immutable isolated shadow MCP worker",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

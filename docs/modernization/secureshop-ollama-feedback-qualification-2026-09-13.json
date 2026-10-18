@@ -1,0 +1,140 @@
+{
+  "status": "partially_qualified",
+  "scope": "Actual llama3.1:8b LangChain chat decisions with controlled tool-result fixtures; no actual MCP/business effects or Judge credit",
+  "singleToolCatalogCheck": {
+    "scope": "Real llama3.1:8b SecureShop Ollama provider with controlled tool-result fixture; no business DB, actual MCP effect or Judge credit claimed",
+    "firstDecision": {
+      "stop_reason": "tool_use",
+      "tool_uses": [
+        {
+          "id": "ollama_7b36b98f-228a-4ccf-bcc8-2246ad4c089e",
+          "name": "product-search.search",
+          "args": {
+            "sku": "DV-42"
+          }
+        }
+      ]
+    },
+    "secondDecision": {
+      "stop_reason": "end_turn",
+      "text": "The product DV-42 is currently backordered with an expected restock date of October 23. There are no remaining units in stock."
+    },
+    "pass": true
+  },
+  "twoToolCatalogChecks": {
+    "passed": 1,
+    "failed": 1,
+    "diagnostics": [
+      {
+        "stage": "post_stock_observation",
+        "second": {
+          "stop_reason": "tool_use",
+          "tool_uses": [
+            {
+              "id": "ollama_85993ae0-b720-41d5-b4e7-23ceb06dfdec",
+              "name": "inventory.lookup",
+              "args": {
+                "reference": "backordered"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "scope": "real model-driven two-action plan; all tool effects controlled fixtures",
+        "first": {
+          "stop_reason": "tool_use",
+          "tool_uses": [
+            {
+              "id": "ollama_6268715e-c6a9-46be-9b6b-76d79307f9be",
+              "name": "product-search.search",
+              "args": {
+                "sku": "DV-91"
+              }
+            }
+          ]
+        },
+        "second": {
+          "stop_reason": "tool_use",
+          "tool_uses": [
+            {
+              "id": "ollama_1fa77503-0c8b-4561-ac16-0dd0f61b013c",
+              "name": "inventory.lookup",
+              "args": {
+                "reference": "warehouse-77718b4383"
+              }
+            }
+          ]
+        },
+        "third": {
+          "stop_reason": "end_turn",
+          "text": "There are 17 units of product DV-91 available."
+        }
+      }
+    ]
+  },
+  "historicalFailures": [
+    "Text completion lost tool-call history and linkage",
+    "Free-text parser accepted adjacent JSON objects as terminal prose; this fallback is now removed",
+    "Native ToolMessage experiment repeated lookup; installed Llama template changed the call protocol",
+    "Schema-constrained chat with consistent decision history passed a controlled single-tool follow-up and a two-action chain; a separate stock-status request with both tools available invented an inventory reference from the status field"
+  ],
+  "remaining": "Do not claim universal 8B decision reliability; richer actual tool-catalog qualification and all-objective end-to-end proofs remain open",
+  "currentProtocol": "LangChain chat roles, custom schema-driven JSON decision protocol with labeled human-role tool observations; native tool binding disabled",
+  "finalControlledRun": {
+    "passed": 1,
+    "failed": 1,
+    "diagnostics": [
+      {
+        "stage": "post_stock_observation",
+        "second": {
+          "stop_reason": "tool_use",
+          "tool_uses": [
+            {
+              "id": "ollama_20e5c3b7-3475-46d8-9852-065759de0bd4",
+              "name": "inventory.lookup",
+              "args": {
+                "reference": "backordered"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "scope": "real model-driven two-action plan; all tool effects controlled fixtures",
+        "first": {
+          "stop_reason": "tool_use",
+          "tool_uses": [
+            {
+              "id": "ollama_acf28ffb-61e6-4b29-b4f8-3b1588ccc98d",
+              "name": "product-search.search",
+              "args": {
+                "sku": "DV-91"
+              }
+            }
+          ]
+        },
+        "second": {
+          "stop_reason": "tool_use",
+          "tool_uses": [
+            {
+              "id": "ollama_1335991f-9ad8-4b10-b4a9-7c7500f9b70b",
+              "name": "inventory.lookup",
+              "args": {
+                "reference": "warehouse-0086f5f2bc"
+              }
+            }
+          ]
+        },
+        "third": {
+          "stop_reason": "end_turn",
+          "text": "There are 17 units of product DV-91 available."
+        }
+      }
+    ]
+  },
+  "sourceSha256": {
+    "server/services/secureshop/providers/ollamaProvider.js": "92dd85c9621e44341cacb1e2d7b20c0534e225178a23d28de3b7e72b32af3a3f",
+    "tests/secureshopOllamaDecision.live.test.js": "daf252d247f2adfffea5d2c6e204a35d0db7e281827a753cc138c3a831f2d265"
+  }
+}

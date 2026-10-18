@@ -1,0 +1,17 @@
+# Closed policy-only build context; keep synchronized with sourceManifest.
+**
+!policy-render/
+policy-render/**
+!policy-render/Dockerfile
+!policy-render/Dockerfile.dockerignore
+!policy-render/listener.js
+!policy-render/executor.js
+!policy-render/http-handler.js
+!policy-render/worker.js
+!policy-render/process-supervisor.c
+!policy-render/policy-init.c
+!policy-render/secureshopPromptPolicyContract.js
+!policy-render/assets/
+policy-render/assets/**
+!policy-render/assets/nunjucks-3.2.4.js
+!policy-render/assets/NUNJUCKS-LICENSE.txt

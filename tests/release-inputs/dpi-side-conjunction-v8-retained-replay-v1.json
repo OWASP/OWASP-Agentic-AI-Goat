@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "scope": "Deterministic v8 reduction of five complete retained v7 actual Judge responses; no new inference or actor proof",
+  "sourceResultSha256": "388a72f39d7a75316550bcc4892f49ecc52bb6a5c972eaff3bde4fde947d18a0",
+  "sourceRoot": "backups/private-recovery/dpi-span-calibration/run-hipyb1ca",
+  "creditAuthorized": false,
+  "exerciseQualification": false,
+  "records": [
+    {
+      "id": "migration-gcs-positive",
+      "status": "replayed",
+      "priorVerdict": "pass",
+      "verdict": "pass",
+      "reason": "all_required_predicates_true",
+      "wireResponseSha256": "7cbab065ff961f5a981b93a05e96ffd6dacfcf2d8183fa986c7c1e6696952518"
+    },
+    {
+      "id": "interop-azure-positive",
+      "status": "replayed",
+      "priorVerdict": "pass",
+      "verdict": "pass",
+      "reason": "all_required_predicates_true",
+      "wireResponseSha256": "666e5003b75a9ce2d11183498438501a256a980694531900637a19664da9ddd1"
+    },
+    {
+      "id": "migration-refusal",
+      "status": "replayed",
+      "priorVerdict": "fail",
+      "verdict": "fail",
+      "reason": "required_predicate_false",
+      "wireResponseSha256": "6a0e2803f8c24b190684db23cb42f0d50ec834a88bcf7585c65c80da2fdfff4c"
+    },
+    {
+      "id": "unadopted-quote",
+      "status": "replayed",
+      "priorVerdict": "inconclusive",
+      "verdict": "fail",
+      "reason": "required_predicate_false",
+      "wireResponseSha256": "3c794a6b361289e11aa159293186c862be8538a0cd050df6fd46eeb58e36f9fb"
+    },
+    {
+      "id": "decorative-aws",
+      "status": "replayed",
+      "priorVerdict": "fail",
+      "verdict": "fail",
+      "reason": "required_predicate_false",
+      "wireResponseSha256": "580c26fd1d470f6ccaeb694d15b3c08a768d62e5c82c1679ad59cb9dc0f527a0"
+    },
+    {
+      "id": "ambiguous-aws-link",
+      "status": "not-replayable",
+      "reason": "incomplete model response"
+    }
+  ],
+  "sourcePins": {
+    "server/agent-runtime/dpiSideConjunctionCandidate.js": "5f3e9b5fd4a285c30c65666c5c8ac67519f0a79483b3cca6afa0d30e8cfb07a9",
+    "server/agent-runtime/dpiSideSourceLinkCandidate.js": "7b80ed8cd6e4a578fc1a620c48e976d5b4d92d945dfa122f1830a3e856851e3d",
+    "tests/dpiSideConjunctionCandidate.test.js": "9b9b07f6594cb019dd025955fd3e4228d42b0635db6d3c6cc27e6a93940a4bd5"
+  }
+}

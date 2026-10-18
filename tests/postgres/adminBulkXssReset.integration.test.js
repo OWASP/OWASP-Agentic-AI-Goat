@@ -1,0 +1,43 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');const{randomUUID}=require('node:crypto');const{Pool}=require('pg');const{migrate,readMigrations}=require('../../db/postgres/migrate');
+test('bulk XSS replay reconciles actual cross-store parent and scoped child receipts',{skip:process.env.BULK_XSS_NATIVE!=='1',timeout:120000},async()=>{
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(path.resolve(__dirname,'../..')),fs.realpathSync(process.cwd()));
+ const evidencePath=process.env.WORKSHOP_RAG_EVIDENCE_PATH;assert.ok(evidencePath&&path.isAbsolute(evidencePath));const evidenceDir=fs.realpathSync(path.dirname(evidencePath)),source=fs.realpathSync(path.resolve(__dirname,'../..'));assert.ok(evidenceDir!==source&&!evidenceDir.startsWith(source+path.sep));const evidenceStat=fs.statSync(evidenceDir);assert.equal(evidenceStat.mode&0o077,0);assert.equal(evidenceStat.uid,process.getuid());assert.equal(fs.existsSync(evidencePath),false);
+ const pools=[];function pool(key,store,role){const u=new URL(process.env[key]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,new RegExp('^/dvaia_test_'+store+'_[a-f0-9]+$'));assert.equal(u.username,'dvaia_'+(store==='workshop_rag'?'identity':'xss')+'_'+role);const p=new Pool({connectionString:u.href,max:5});pools.push(p);return p;}
+ const migration=pool('WORKSHOP_RAG_MIGRATION_URL','workshop_rag','migration'),identity=pool('WORKSHOP_RAG_RUNTIME_URL','workshop_rag','runtime'),leases=pool('WORKSHOP_RAG_RUNTIME_URL','workshop_rag','runtime'),bulkLeases=pool('WORKSHOP_RAG_RUNTIME_URL','workshop_rag','runtime'),storeMigration=pool('XSS_NATIVE_MIGRATION_URL','xss','migration'),storePool=pool('XSS_NATIVE_RUNTIME_URL','xss','runtime');
+ const evidence={scope:'Actual PostgreSQL XSS profile store plus identity bulk/parent/scoped-child journals; controlled post-commit interruption; no model or installed app'};
+ try{
+ const directory=path.resolve(__dirname,'../../db/postgres/identity-migrations');
+ assert.equal(fs.readFileSync('docs/modernization/drafts/admin-bulk-reset/0085_admin_bulk_xss_replay.candidate.sql','utf8'),fs.readFileSync(path.join(directory,'0085_admin_bulk_xss_replay.sql'),'utf8'));
+ const expected=await readMigrations(directory);assert.equal(expected.filter(row=>row.name==='0085_admin_bulk_xss_replay.sql').length,1);
+ assert.deepEqual(await migrate(migration,directory),expected.map(row=>row.name));assert.deepEqual(await migrate(migration,directory),[]);
+ assert.deepEqual((await migration.query('SELECT name,checksum FROM dvaia_migrations.ledger ORDER BY name')).rows,expected.map(({name,checksum})=>({name,checksum})));
+ await require('../../server/database/postgres/workshopPlatformSeed').seedWorkshopPlatform(migration);
+ await require('../../server/database/postgres/xssWorkshopDb').createXssWorkshopDb(storePool).initializeXssWorkshopDb(storeMigration);
+ const users=require('../../server/database/postgres/identityRepository').createIdentityRepository(identity),password=await require('bcryptjs').hash(randomUUID(),4);
+ async function owner(admin=false){const u=await users.createUser({username:randomUUID(),email:randomUUID()+'@example.invalid',passwordHash:password});if(admin){await migration.query("UPDATE identity.users SET role='admin',admin_level=2 WHERE id=$1",[u.id]);await users.grantPermission({userId:u.id,permission:'manage_progress',grantedBy:u.id});}return u.id;}
+ const admin=await owner(true),a=await owner(),b=await owner();const session=(await migration.query("INSERT INTO identity.user_sessions(user_id,session_token_hash,expires_at) VALUES($1,$2,clock_timestamp()+interval '1 hour') RETURNING id",[admin,'a'.repeat(64)])).rows[0].id;
+ for(const id of[a,b]){await migration.query('INSERT INTO graph_runtime.owners(owner_key,generation) VALUES($1,0)',[JSON.stringify(['XSS',String(id)])]);await migration.query("INSERT INTO workshop_platform.user_state(user_id,workshop_key,generation) VALUES($1,'xss_workshop',0)",[id]);await storePool.query("INSERT INTO xss.profiles(user_key,name,bio,website) VALUES($1,'Original','Keep','https://fixture.invalid')",[String(id)]);}
+ const scoped=require('../../server/database/postgres/xssProfileResetJournalRepository').createXssProfileResetJournalRepository(identity);const pending=await scoped.begin({operationId:randomUUID(),ownerId:b,graphParentGeneration:'0',workshopGeneration:'0'});
+ const realStore=require('../../server/database/postgres/xssScopedProfileResetRepository').createXssScopedProfileResetRepository(storePool);let interrupt=true;
+ const store={...realStore,clearParent:async input=>{const receipt=await realStore.clearParent(input);if(input.ownerId===b&&interrupt){interrupt=false;throw new Error('owned interruption after XSS store commit');}return receipt;}};
+ const runs=require('../../server/agent-runtime/runCoordinator').createRunCoordinator({family:'XSS',ledger:require('../../server/agent-runtime/postgresRunLedger').createPostgresRunLedger(identity,{leasePool:leases})});
+ const composition=require('../../server/services/xssParentResetComposition').createXssParentResetComposition({identityPool:identity,store,runs});await composition.assertReady();
+ const reset=require('../../server/services/postgresWorkshopResetService'),adapters=reset.createPostgresWorkshopResetAdapters(name=>{if(name==='./xssParentResetComposition')return{getXssParentResetComposition:async()=>composition};throw new Error('Unexpected '+name);});
+ assert.equal(await adapters.xss_workshop.bulkResetReplaySafe(),true);
+ await require('../../server/services/adminBulkResetComposition').assertAdminBulkResetReadiness(identity);
+ const journal=require('../../server/database/postgres/adminBulkResetRepository').createAdminBulkResetRepository(identity,{leasePool:bulkLeases});const authority={actorId:admin,sessionId:String(session)};
+ const service=reset.createPostgresWorkshopResetService({adapters,bulkJournal:journal,resolveBulkActor:async()=>authority,withStudentResetAdmission:(id,work)=>reset.withPostgresStudentResetAdmission(leases,id,work)});
+ const operationId=randomUUID();await assert.rejects(service.resetWorkshop({workshopKey:'xss_workshop',operationId}),/owned interruption/);
+ const parent=(await journal.listPending(authority)).find(p=>p.operationId===operationId),failed=parent.children.find(c=>c.ownerId===b);assert.equal(failed.state,'uncertain');assert.equal(parent.children.find(c=>c.ownerId===a).state,'completed');
+ const retained=(await storeMigration.query('SELECT * FROM xss.parent_profile_reset_receipts WHERE operation_id=$1',[failed.childOperationId])).rows;assert.equal(retained.length,1);
+ await storePool.query("UPDATE xss.profiles SET name='Newer after effect' WHERE user_key=ANY($1::text[])",[[String(a),String(b)]]);
+ const late=await owner();await storePool.query("INSERT INTO xss.profiles(user_key,name,bio,website) VALUES($1,'Late owner','Keep','https://fixture.invalid')",[String(late)]);
+ await service.resetWorkshop({workshopKey:'xss_workshop',operationId});assert.deepEqual((await storeMigration.query('SELECT * FROM xss.parent_profile_reset_receipts WHERE operation_id=$1',[failed.childOperationId])).rows,retained);
+ assert.equal((await scoped.read(pending.operationId)).status,'superseded');
+ for(const id of[a,b])assert.equal((await storePool.query('SELECT name FROM xss.profiles WHERE user_key=$1',[String(id)])).rows[0].name,'Newer after effect');
+ assert.equal((await storePool.query('SELECT name FROM xss.profiles WHERE user_key=$1',[String(late)])).rows[0].name,'Late owner');
+ const generations=(await migration.query("SELECT user_id,generation FROM workshop_platform.user_state WHERE workshop_key='xss_workshop' ORDER BY user_id")).rows;await service.resetWorkshop({workshopKey:'xss_workshop',operationId});assert.deepEqual((await migration.query("SELECT user_id,generation FROM workshop_platform.user_state WHERE workshop_key='xss_workshop' ORDER BY user_id")).rows,generations);
+ evidence.passed=true;evidence.checks=['Actual committed XSS clear receipt reused after interrupted identity acknowledgment','Pending scoped profile child superseded through actual parent protocol','Newer profiles preserved for completed and interrupted owners','Late learner excluded','Completed parent replay does not increment canonical generations','Second registered/candidate migration run no-op'];
+ }catch(error){evidence.failure={code:error.code||null,message:error.message};throw error;}finally{await Promise.all(pools.map(p=>p.end()));fs.writeFileSync(evidencePath,JSON.stringify(evidence,null,2),{flag:'wx',mode:0o600});}
+});

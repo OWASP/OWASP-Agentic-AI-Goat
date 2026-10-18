@@ -1,0 +1,32 @@
+{
+  "objectiveId": "ss_mail_cross_persona_read",
+  "hint": {
+    "title": "Read another synthetic persona’s mutable mail inside your own target",
+    "hints": [
+      "In your owned merchant Inbox, select another synthetic persona with User_id (IDOR knob). Reload is ungraded browsing; use Read for assessment, then Check saved disclosure to assess the saved read when available.",
+      "The explicit POST /api/secureshop/email/disclosure route records a read with a new requestId and selected userId. Use that original read requestId as readOperationId in POST /api/secureshop/email/disclosure-assessment with a separate requestId, using the same authenticated persona session and owned launch.",
+      "A nonempty mailbox belonging to another synthetic persona, an immutable matching read receipt and canonical Judge acceptance are required. Your own mailbox, empty results, fixed mode and stale or reset sessions cannot complete this objective."
+    ]
+  },
+  "solution": {
+    "title": "Read another synthetic persona’s mutable mail inside your own target",
+    "difficulty": "advanced",
+    "hints": [
+      "In your owned merchant Inbox, select another synthetic persona with User_id (IDOR knob). Reload is ungraded browsing; use Read for assessment, then Check saved disclosure to assess the saved read when available.",
+      "The explicit POST /api/secureshop/email/disclosure route records a read with a new requestId and selected userId. Use that original read requestId as readOperationId in POST /api/secureshop/email/disclosure-assessment with a separate requestId, using the same authenticated persona session and owned launch.",
+      "A nonempty mailbox belonging to another synthetic persona, an immutable matching read receipt and canonical Judge acceptance are required. Your own mailbox, empty results, fixed mode and stale or reset sessions cannot complete this objective."
+    ],
+    "examples": [
+      {
+        "action": "Unavailable",
+        "explanation": "This pending objective cannot be enabled until its connected evidence path is qualified."
+      }
+    ],
+    "approach": "Unavailable until the server-owned evidence, reset, and application path are qualified.",
+    "tips": [
+      "Use only synthetic personas in your own current launch; keep the original authenticated persona session for read and assessment.",
+      "Read for assessment and Check saved disclosure are the explicit Inbox controls; the bound API is an alternative. Production availability remains pending until the complete native, actual Judge and connected UI qualification is accepted.",
+      "Do not treat an empty or own-mailbox read, a copied claim, fixed-mode denial or a stale receipt as success. Reset and mode changes invalidate prior assessment publication."
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const {randomUUID,createHash}=require('node:crypto');
+const {normalizeListingEditPatch,listingEditView,listingEditMergedView}=require('../server/services/secureshopListingEditContract');
+const {createListingOptimizeSetup}=require('../server/services/secureshopRoleListingOptimizeSetup');
+const attack='https://owned.invalid/p.jpg; /usr/bin/uname -n; #';
+const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const mode=featureId=>({version:1,featureId,policyVersion:featureId==='listings'?'owned-listing-import-v1':'owned-merchant-read-and-confirmation-v1',effectiveMode:'vuln',scope:{kind:'launch_feature',id:featureId}});
+test('learner-edited image URL survives visible Listings edit codecs, owned row, and setup exactly',async()=>{
+ const jsx=fs.readFileSync(path.join(__dirname,'../client/src/pages/secureshop/pages/merchant/Listings.jsx'),'utf8');
+ assert.match(jsx,/Field label="Images \(1-5 URLs\)"/);assert.match(jsx,/onChange=\{\(e\) => setImage\(i, e\.target\.value\)\}/);
+ const client=await import('../client/src/pages/secureshop/pages/merchant/listingEditOperation.mjs');
+ const clientPatch=client.decodeListingEditPatch({imageUrl:attack});
+ const serverPatch=normalizeListingEditPatch({imageUrl:clientPatch.imageUrl});assert.equal(serverPatch.imageUrl,attack);
+ const before=listingEditView({name:'Owned image',description:'body',descriptionHtml:null,price:1,category:'lab',templateSource:null,imageUrl:'https://owned.invalid/clean.jpg'});
+ const after=listingEditMergedView(before,serverPatch,false);const ownedRow={id:7,name:after.name,image_url:after.imageUrl,retailer_id:12,status:'active'};
+ const context={scope:{launchId:randomUUID(),scenarioId:randomUUID(),generation:1,platformOwnerId:1,platformSessionId:2},persona:{id:12,role:'merchant'},personaSession:{sessionId:randomUUID(),authorityVersion:'1'},target:{targetId:randomUUID(),scene:{sceneId:randomUUID(),sceneGeneration:7,grantId:randomUUID()}}};
+ const selected={version:1,kind:'merchant_product',choiceId:randomUUID(),sourceId:7,snapshotSha256:digest({id:7}),card:{}};
+ const setup=createListingOptimizeSetup({context,selected,product:{...ownedRow,imageUrl:ownedRow.image_url},source:{sessionId:randomUUID(),requestId:randomUUID()},origin:{step:1,callId:'call-1'},modeCapability:mode('merchant_assistant'),listingsModeCapability:mode('listings')});
+ assert.equal(after.imageUrl,attack);assert.equal(ownedRow.image_url,attack);assert.equal(setup.product.imageUrl,attack);
+ assert.equal(setup.product.imageUrlSha256,createHash('sha256').update(attack).digest('hex'));
+});

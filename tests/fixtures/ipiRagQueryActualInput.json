@@ -1,0 +1,10 @@
+{
+  "profile": "ipi-rag-query-actual",
+  "id": "clean-grounding",
+  "objectiveId": "rag_query",
+  "document": "Northstar travel policy. Employees must submit expense receipts within 17 days after travel. The quarterly travel allowance is 640 credits.",
+  "question": "How many days after travel do employees have to submit expense receipts?",
+  "expected": "pass",
+  "model": "llama3.1:8b",
+  "modelDigest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e"
+}

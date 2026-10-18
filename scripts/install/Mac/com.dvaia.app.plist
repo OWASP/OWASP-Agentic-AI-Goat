@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Service Identification -->
+    <key>Label</key>
+    <string>com.dvaia.app</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/node</string>
+        <string>server/index.js</string>
+    </array>
+    
+    <!-- Working Directory -->
+    <key>WorkingDirectory</key>
+    <string>/Users/USER_PLACEHOLDER/path/to/Damn-Vulnerable-AI-Application</string>
+    
+    <!-- Environment Variables -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>NODE_ENV</key>
+        <string>development</string>
+        <key>PORT</key>
+        <string>8081</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+    
+    <!-- Service Configuration -->
+    <key>RunAtLoad</key>
+    <false/>
+    
+    <key>KeepAlive</key>
+    <true/>
+    
+    <key>ProcessType</key>
+    <string>Interactive</string>
+    
+    <!-- Logging -->
+    <key>StandardOutPath</key>
+    <string>/tmp/dvaia-backend.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/tmp/dvaia-backend-error.log</string>
+    
+    <!-- Resource Limits -->
+    <key>SoftResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key>
+        <integer>1024</integer>
+    </dict>
+    
+    <!-- Network Configuration -->
+    <key>Sockets</key>
+    <dict>
+        <key>Listeners</key>
+        <dict>
+            <key>SockServiceName</key>
+            <string>8081</string>
+            <key>SockType</key>
+            <string>stream</string>
+            <key>SockFamily</key>
+            <string>IPv4</string>
+        </dict>
+    </dict>
+</dict>
+</plist>

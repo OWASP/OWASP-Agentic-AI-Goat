@@ -1,0 +1,53 @@
+{
+  "scope": "Candidate canonical platform login/launch + real persona auth + opaque full App Users role/ban, template profile projection. No model or production activation claim.",
+  "terminal": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-0kjw6_zz",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "50bc1492e3600a25c1f73662fe19756ad935b6380c10ccaf2073450facd458fd",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "result": {
+    "scope": "Candidate real platform/JWT/launch and opaque full App UI, template profile projection, unrelated effects unavailable; no model or production readiness claim",
+    "browser": "Chrome/153.0.8010.36",
+    "roleBanOperations": 2,
+    "lostAcknowledgementRecoveredAfterParentReload": true,
+    "errors": []
+  },
+  "sourceHashes": {
+    "client/src/pages/secureshop/pages/admin/Users.jsx": "a49272d64c0484596fd5fbcb78d9d6c82fa6d556d578a398f140ad4c353d6e72",
+    "client/src/pages/secureshop/pages/admin/userAdminOperation.js": "3e83845dbf378a3c11539207f6d042ddf3c5d706281a168f58230c1e69bc25fd",
+    "client/src/pages/secureshop/utils/shopStorage.mjs": "e4e84e8babe5348d71c7631af7098e14f048a1119ef1782a571ee3fb02c6ccf0",
+    "client/src/pages/secureshop/bridge/operations.mjs": "84036e11aaf68196fe367eba30b243d90a53bb403562becddeb61a5b1204334e",
+    "client/src/pages/secureshop/bridge/stateStore.mjs": "442461af110863ffedfc323bff20db775a939c6409807460a36e5144e94da519",
+    "client/src/pages/secureshop/bridge/stateChannel.mjs": "e5379cec31f6735485484a44159764d5a1e6e8a7bbd8cc16a1359de1d259f2c6",
+    "server/services/secureshopUserAdministrationCandidateComposition.js": "52443b9e3949d81c8128a2643893a9c45893aed2617f2cb2f2a95cf7b5f9f357",
+    "server/services/secureshopBoundUserAdministration.js": "f51f293fcf9fe2c0ffae41070690ea372af1861a8760c3a89ee39cbee92aea8e",
+    "server/database/postgres/secureshopBoundUserAdministrationRepository.js": "ebaade72a13076d7e57b6720ddd992e06a2ca6a29b44a970f90efd0da84066af",
+    "server/database/postgres/secureshopBoundPersonaAuthority.js": "7ed5ceddde820a422fb048a0be4842c0011ee12bd913b7017ad2d19fec0a0652",
+    "server/database/postgres/secureshopBoundPersonaRepository.js": "278997aa759fd7fc69ed2dc6e78cb964b69d020a97584e6ea10f0d59c6ccc58c",
+    "server/services/secureshopBoundPersonaAuth.js": "6965bbd325bb282e23f92cc44cd643a8722b24dcc0e91fc5bc4ea4e2a15fe82d",
+    "server/routes/secureshop/boundUserAdministration.js": "60a2f4510cf86ad7f38fb18110bd8657ebd43e8c218ea493b88ef1fd2468ae6a",
+    "server/routes/secureshop/boundGateway.js": "56feab821995c2a3a3a8c08ee15249ab957bceaaa8ad1dc089534d8673dffd41",
+    "docs/modernization/drafts/secureshop-user-administration/persona-state.candidate.sql": "ee8a37de874aa9b4993b5d9db66ddbd43955ec072fe6367c0e78c6ebda4ff145",
+    "tests/postgres/secureshopUserAdministrationRendered.integration.test.js": "58357947477b120ac61d63adf72a80b083d651453dd5ffb9765005e2427d3b14",
+    "package-lock.json": "34ba2ea15dd634f8e6a6df4ae4443aa8af953cb2df951923d1ae8472889a2c27",
+    "client/package-lock.json": "f97367a43679a12245d87c4bc58140c765ae0b93c83a7b07b4cf78ba855bfb98"
+  },
+  "testsLogSha256": "b7d2d2515ce476aea24179f8297029e666d4fbc10a8f06cd991581d3de28c474",
+  "launcherSha256": "4abc01a0bc62f1e74bfdf7044d3fac81aae78d93de3fb98b68e51c634dc397f3",
+  "controlledTests": {
+    "users": 10,
+    "bridge": 11,
+    "storageAndChannel": 16
+  },
+  "limitations": [
+    "Candidate SQL remains outside active chain; productionReady false",
+    "Profile read uses immutable template projection; broader commerce/review effects not yet adapted",
+    "No installed backend restart or migrations; existing workspace Vite may hot reload source UI",
+    "No cross-device pending recovery or generated-password reset",
+    "Earlier fixture failures retained j85oux4o/ehg_mbq0; selectors corrected without weakening durable state assertions"
+  ]
+}

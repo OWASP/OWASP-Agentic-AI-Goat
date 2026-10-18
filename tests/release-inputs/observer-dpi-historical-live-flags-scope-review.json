@@ -1,0 +1,60 @@
+{
+  "scope": "Read-only mapping of four retained opt-in tests; no execution or fixture payload edits",
+  "sourcePins": {
+    "tests/dpiStructuredJudge.test.js": "fce2f7578a022d64d5eea71c9e2914fc8c5a26f9b8fe17311a7137ebd168c958",
+    "tests/fixtures/dpiTechniqueActualQualification.js": "da82b84f158c5a598a77ba8cf826b12efe400456c9f7e0ec9e3daba1e56924e6",
+    "tests/postgres/dpiOwnedDecoderV10.native.js": "dcbed4394bb254ef8688df6adf09df9401b2e186173ebce3bcd00ba61d5aac8e",
+    "tests/postgres/run-dpi-owned-decoder-v10-isolated.py": "c198b3fcfccfb7d4a01f149920482421a37cb126e1e05fc0ab3894d4e504a7e8",
+    "tests/postgres/dpiLiveWorkflow.integration.test.js": "4343ad9ef565c5382d2539ff756a9b996fcc4a246fa82442eacee335a21b77c1",
+    "tests/postgres/dpiFullAppRendered.native.js": "ca43b89a95cbf43fe29566e69606d900b1da6999b795b6af490a5c8e569e033c"
+  },
+  "flags": [
+    {
+      "flag": "LIVE_OLLAMA_TEST",
+      "status": "unsupported as current owned attack qualification",
+      "reason": "Mixed practice/jailbreak supplied-response test expects genuine provider and passing jailbreak without actorEvidence. Current technique-v2 denies before model dispatch. Practice portion alone remains a Judge-only concept, not an actor workflow."
+    },
+    {
+      "flag": "LIVE_DPI_MATRIX",
+      "status": "unsupported full-current-matrix harness",
+      "reason": "Supplied responses lack owned actor proof for jailbreak/role_playing/side_stepping/virtualization and decoder proof for obfuscation. Expected passes cannot qualify current paths."
+    },
+    {
+      "flag": "LIVE_DPI_JAILBREAK_V3_COHORT",
+      "status": "historical-v3 supplied-response harness; not current technique-v2 qualification",
+      "reason": "Current service uses technique-v2 and requires authentic owned actor evidence. Retained expected verdicts do not authorize fabricating proof."
+    },
+    {
+      "flag": "LIVE_DPI_PRACTICE_V4_COHORT",
+      "status": "structurally compatible Judge-only calibration; unexecuted here",
+      "reason": "Practice-v4 still requires known objective/request/response, not owned attack proof. This is not stale for the same reason as the other three. Direct local provider/raw diagnostic output does not supply main-only owned transport/process qualification."
+    }
+  ],
+  "relatedImplementations": [
+    {
+      "path": "tests/fixtures/dpiTechniqueActualQualification.js",
+      "scope": "Explicit Phase A synthetic controlled-evidence packet and real Judge diagnostic. Does not mint private proof or persist credit; cannot replace actor/effect qualification."
+    },
+    {
+      "path": "tests/postgres/dpiOwnedDecoderV10.native.js",
+      "scope": "Actual mounted actor/decoder/Judge design with owner/reset/sibling receipts, but asserts historical dpi-obfuscation-v10 and its retained launcher copies source. Not a current main-only v14 replacement."
+    },
+    {
+      "path": "tests/postgres/dpiLiveWorkflow.integration.test.js",
+      "scope": "Retained mounted real-route cohort with database/effect/receipt assertions. Default branch copies source, uses synthetic auth middleware and historical protocol/event assumptions. Requires explicit adaptation/review; not drop-in main-only current full-objective replacement."
+    },
+    {
+      "path": "tests/postgres/dpiFullAppRendered.native.js",
+      "scope": "Explicit fixture-only projection and rendered evidence, not canonical actor/Judge proof."
+    }
+  ],
+  "evidence": [
+    "dpi-source18-25544-independent-outcome.json retains failed source-only diagnostic, not positive whole-objective qualification.",
+    "dpi-codebot-v8-independent-terminal-review.json proves scoped rendered editor/parity with controlled rows, not actor/Judge success."
+  ],
+  "missingSuccessor": "No verified current main-only owned all-eight actor/Judge replacement is established by these sources or this review. Do not imply the four skipped flags are valid current live qualification simply because their bodies are preserved.",
+  "limits": [
+    "No models, resources, historical extraction or source changes.",
+    "No fresh semantic qualification or cleanup authorization."
+  ]
+}

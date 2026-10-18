@@ -1,0 +1,66 @@
+'use strict';
+const assert=require('node:assert/strict'),{randomUUID,randomBytes}=require('node:crypto');
+function publicationBarrier(){
+ let release,enter,used=false;const entered=new Promise(r=>enter=r),released=new Promise(r=>release=r);
+ return {entered,release:()=>release(),async hold(value){assert.equal(used,false);used=true;enter();await released;return value;}};
+}
+async function bounded(promise,ms,label){let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error(label+' deadline')),ms);})]);}finally{clearTimeout(timer);}}
+function assertCanonicalReplay(original,replayed){assert.equal(original.status,200);assert.equal(original.body.state,'completed');assert.equal(original.body.replayed,false);assert.equal(replayed.status,200);assert.deepEqual(replayed.body,{...original.body,replayed:true});}
+function unavailableSurface(names){return Object.fromEntries(names.map(name=>[name,async()=>{throw Error('Unrelated native fixture surface unavailable');}]));}
+async function settleCloseGroups(groups){const errors=[];for(const group of groups){const results=await Promise.allSettled(group.map(close=>Promise.resolve().then(close)));for(const result of results)if(result.status==='rejected')errors.push(result.reason);}if(errors.length)throw new AggregateError(errors,'Owned assembly resource shutdown failed');}
+function assertResetProvenance(before,after){
+ const without=(row,keys)=>Object.fromEntries(Object.entries(row).filter(([key])=>!keys.includes(key)));
+ for(const [table,payloads] of [['operations',['request_json','receipt_json']],['revisions',['endpoint_text','tools_json','effect_json']]]){
+  assert(before[table].length>0);assert.equal(after[table].length,before[table].length);
+  const stable=rows=>rows.map(row=>without(row,[...payloads,'redacted_at'])).sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
+  assert.deepEqual(stable(after[table]),stable(before[table]));
+  for(const row of after[table]){assert(row.redacted_at);for(const key of payloads)assert.equal(row[key],null);}
+ }
+}
+function identityCommitPool(pool,{hold,fail=false}={}){
+ let held=false;
+ return{query:pool.query.bind(pool),async connect(){const client=await pool.connect();return{async query(sql,...args){
+  if(sql==='COMMIT'){if(hold&&!held){held=true;await hold.hold(null);}if(fail)throw Error('fixture identity commit failure');}
+  return client.query(sql,...args);
+ },release:()=>client.release()};}};
+}
+async function createAssembly({invocationJournal=false,invocationManager}={}){
+ const {Pool}=require('pg'),{migrate}=require('../../db/postgres/migrate'),express=require('express');
+ assert.equal(process.env.MCP_ASSEMBLY_NATIVE,'1');const pools=[],productions=[],lifecycles=[];let server,authRouter;
+ function pool(label,role,max=4){const url=new URL(process.env[`MCP_ASSEMBLY_${label}_${role}_URL`]);assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/dvaia_test_mcp_assembly_[a-f0-9]{12}_(identity|agents|commerce|review|agents_fresh)$/);const value=new Pool({connectionString:url.href,max,statement_timeout:10000,connectionTimeoutMillis:5000});pools.push(value);return value;}
+ const identity=pool('IDENTITY','RUNTIME'),im=pool('IDENTITY','MIGRATION'),agents=pool('AGENTS','RUNTIME'),am=pool('AGENTS','MIGRATION'),commerce=pool('COMMERCE','RUNTIME'),cm=pool('COMMERCE','MIGRATION'),review=pool('REVIEW','RUNTIME'),rm=pool('REVIEW','MIGRATION'),lease=pool('IDENTITY','RUNTIME');
+ async function close(){await settleCloseGroups([productions.map(value=>()=>value.close()),[...(server?[()=>new Promise((resolve,reject)=>server.close(error=>error?reject(error):resolve()))]:[]),...(authRouter?[()=>authRouter.close()]:[]),...lifecycles.map(value=>()=>value.closeFeatureTransports())],pools.map(value=>()=>value.end())]);}
+ try{
+  await migrate(im,'db/postgres/identity-migrations');await require('../../server/database/postgres/workshopPlatformSeed').seedWorkshopPlatform(im);
+  await migrate(cm,'db/postgres/workshop-migrations/secureshop');await require('../../server/database/postgres/secureshopSeed').seedSecureShop(cm);
+  if(invocationJournal){
+   const view=require('../helpers/secureshopAgentsMigrationView').createAgentsMigrationView(40);
+   await view.migrate(am,view.directory);
+  }else await migrate(am,'db/postgres/workshop-migrations/secureshop_agents');await migrate(rm,'db/postgres/workshop-migrations/secureshop_review');
+  const users=require('../../server/database/postgres/identityRepository').createIdentityRepository(identity),progress=require('../../server/database/postgres/workshopProgressRepository').createWorkshopProgressRepository(identity);
+  const adapter=require('../../server/services/postgresIdentityAdapter').createPostgresIdentityAdapter({repository:users,progress,jwtSecret:randomBytes(32).toString('hex')}),platformAuth=require('../../server/middleware/postgresAdminAuth').createPostgresAdminAuth(adapter);
+  const launches=require('../../server/database/postgres/secureshopLaunchRepository').createSecureShopLaunchRepository(identity),cleanupAuthority=require('../../server/database/postgres/secureshopResetCleanupAuthorityRepository').createSecureShopResetCleanupAuthorityRepository(identity);
+  const authority=require('../../server/database/postgres/secureshopBoundPersonaAuthority').createSecureShopBoundPersonaAuthority({pool:agents,checkCurrent:s=>launches.assertCurrent(s)});
+  const audit=require('../../server/services/secureshopBoundAuditComposition').createSecureShopBoundAuditComposition({agentsPool:agents,reviewPool:review});
+  const personas=require('../../server/database/postgres/secureshopBoundPersonaRepository').createSecureShopBoundPersonaRepository({commercePool:commerce,agentsPool:agents,personaAuthority:authority,auditStore:audit.agents});await personas.ensureTemplates();
+  const personaAuth=require('../../server/services/secureshopBoundPersonaAuth').createSecureShopBoundPersonaAuth({repository:personas,personaAuthority:authority,launches,jwtSecret:randomBytes(32).toString('hex')});
+  const makeCleanup=()=>{const value=require('../../server/services/secureshopCleanupComposition').createSecureShopCleanupComposition({identityPool:identity,agentsPool:agents,reviewPool:review,leasePool:lease,launches,cleanupAuthority,audit,ownedMcpInvocationManager:invocationManager});lifecycles.push(value);return value;};
+  let lifecycle=makeCleanup(),held,executorCalls=0;
+  const configuration={version:1,workspace:require('../../server/services/mcp/ownedManagedConfiguration').workspaceId(require('node:path').resolve(__dirname,'../..')),enabled:true,mode:'vuln',baseURL:process.env.MCP_ASSEMBLY_EXECUTOR_URL,token:process.env.MCP_ASSEMBLY_EXECUTOR_TOKEN,runtimeDigest:process.env.MCP_ASSEMBLY_EXECUTOR_DIGEST};
+  // The only injected seam delays a real completed executor result. It neither
+  // fabricates output nor substitutes platform/persona authorization.
+  const production=await require('../../server/services/secureshopOwnedMcpRegistryProduction').createOwnedMcpRegistryProduction({configuration,agentsPool:agents,personaAuthority:authority,authenticatePersona:personaAuth.authenticatePersona,expectedDatabase:new URL(process.env.MCP_ASSEMBLY_AGENTS_RUNTIME_URL).pathname.slice(1),createClient:options=>{assert.equal(options.expectedRuntimeDigest,configuration.runtimeDigest);const actual=require('../../server/services/secureshopOwnedMcpRegistryClient').createOwnedMcpRegistryClient(options);return {health:actual.health,async execute(...args){executorCalls++;const result=await actual.execute(...args);if(held){const gate=held;held=undefined;return gate.hold(result);}return result;}};}});productions.push(production);
+  const registryReads=require('../../server/services/secureshopOwnedMcpRegistryAdminReadOverlay').createOwnedMcpRegistryAdminReadOverlay({enabled:true,repository:require('../../server/database/postgres/secureshopOwnedMcpRegistryAdminReadRepository').createOwnedMcpRegistryAdminReadRepository({pool:agents}),base:require('../../server/services/secureshopBoundAdminReadAdapter').createSecureShopBoundAdminReadAdapter({repository:{},mcpConfigured:false})});
+  const admin=require('../../server/services/secureshopBoundAdmin').createSecureShopBoundAdmin({launches,personas,personaAuthority:authority,account:unavailableSurface(['profile']),catalog:unavailableSurface(['prepareTarget']),accountRepository:require('../../server/database/postgres/secureshopBoundAccountRepository').createSecureShopBoundAccountRepository(review,{effectTimeoutMs:3000,auditStore:audit.review,checkCurrent:value=>launches.assertCurrent(value)}),administrationRepository:require('../../server/database/postgres/secureshopBoundUserAdministrationRepository').createSecureShopBoundUserAdministrationRepository({pool:agents,auditStore:audit.agents,checkCurrent:value=>launches.assertCurrent(value)}),readAdapter:registryReads});
+  const app=express();app.use(express.json());const pass=(req,res,next)=>next();authRouter=require('../../server/routes/postgresAuth').createPostgresAuthRouter({adapter,limiters:{loginRateLimiter:pass,registerRateLimiter:pass,passwordResetRateLimiter:pass},loginRuntime:require('../../server/services/loginAuthenticationProduction').createLoginAuthenticationProduction({concurrency:1})});app.use('/auth',authRouter);
+  app.use('/launch',require('../../server/routes/secureshopPlatformLaunch').createSecureShopLaunchRouter({enabled:true,engine:'postgres',authenticateToken:platformAuth.authenticateToken,repository:launches,audit:value=>users.recordAudit(value),resetCoordinator:{reset:input=>lifecycle.launchResetCoordinator.reset(input)}}));
+  app.use('/shop',require('../../server/routes/secureshop/boundGateway').createSecureShopBoundGateway({launches,personaAuth,authenticatePersona:personaAuth.authenticatePersona,ownedMcpRegistryRouter:production.router,admin,reviewsRouter:express.Router(),browserRouter:express.Router(),catalog:unavailableSurface(['listProducts','getProduct','listMerchantProducts','createMerchantProduct','updateMerchantProduct','archiveMerchantProduct','categories']),commerce:unavailableSurface(['cart','add','update','remove','summary','checkout','orders','order']),account:unavailableSurface(['profile','updateProfile','addresses','createAddress','updateAddress','deleteAddress'])}));
+  server=await new Promise(resolve=>{const value=app.listen(0,'127.0.0.1',()=>resolve(value));});
+  const request=async(route,{method='POST',body,token,launch}={})=>{const response=await fetch(`http://127.0.0.1:${server.address().port}${route}`,{method,signal:AbortSignal.timeout(45000),headers:{'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{}),...(launch?{'x-dvaia-secureshop-launch':launch}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});return {status:response.status,body:await response.json()};};
+  async function owner(){const username='mcp-'+randomUUID().slice(0,8),password='Owned-only-Password!42';const user=await users.createUser({username,email:randomUUID()+'@example.invalid',passwordHash:await require('bcryptjs').hash(password,4)});const login=await request('/auth/login',{body:{username,password}});assert.equal(login.status,200);assert.equal(typeof login.body.token,'string');const launched=await request('/launch',{token:login.body.token,body:{}});assert.equal(launched.status,201);const scope=require('../../server/services/secureshopConversationBinding').createLaunchScope(await launches.resolveCapability(launched.body.bearer));const shop=await request('/shop/v2/auth/login',{launch:launched.body.bearer,body:{username:'student_admin',password:'student123'}});assert.equal(shop.status,200);assert.equal(shop.body.user.role,'admin');return {user,token:login.body.token,launch:launched.body.bearer,scope,shopToken:shop.body.token};}
+  async function shop(owner,route,body,method='POST'){return request('/shop'+route,{method,body,token:owner.shopToken,launch:owner.launch});}
+  async function snapshot(owner){const id=owner.user.id,rows={};for(const table of ['entries','operations','revisions','heads'])rows[table]=(await agents.query(`SELECT * FROM secureshop_agents.bound_mcp_registry_${table} WHERE original_platform_owner_id=$1 ORDER BY 1,2`,[id])).rows.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));return rows;}
+  return {createRecoveryIdentityPool(){return pool('IDENTITY','RUNTIME',1);},get executorCalls(){return executorCalls;},identity,im,agents,am,users,launches,authority,personaAuth,cleanupAuthority,production,owner,shop,request,snapshot,registryReads,close,holdNext(){assert.equal(held,undefined);held=publicationBarrier();return held;},get lifecycle(){return lifecycle;},async disableServing(){await production.close();const disabled=await require('../../server/services/secureshopOwnedMcpRegistryProduction').createOwnedMcpRegistryProduction({configuration:{...configuration,enabled:false}});assert.equal(disabled.ready,false);lifecycle=makeCleanup();return disabled;}};
+ }catch(error){try{await close();}catch(cleanupError){throw new AggregateError([error,cleanupError],'Assembly setup and cleanup failed');}throw error;}
+}
+module.exports={identityCommitPool,createAssembly,publicationBarrier,bounded,unavailableSurface,assertCanonicalReplay,settleCloseGroups,assertResetProvenance};

@@ -1,0 +1,497 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
+.grunt
+
+# Bower dependency directory (https://bower.io/)
+bower_components
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release
+
+# Dependency directories
+jspm_packages/
+
+# TypeScript v1 declaration files
+typings/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+# Supported setup generates private root configuration; preserve it locally only.
+/.env
+/.env.upgrade
+# Private installation/provider settings never belong in a release.
+.env.*
+!.env.example
+.env.test
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Preflight sentinel cache (scripts/lib/preflight.sh dep-lock hashes) — generated
+.preflight/
+client/.preflight/
+
+# Self-heal DB backups (scripts/lib/preflight.sh ensure_databases) — local only
+backups/heal_*/
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+!client/public/
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Rollup.js default build output
+dist/
+
+# Uncomment the public line in if your project uses Gatsby and not Next.js
+# https://nextjs.org/blog/next-9-1#public-directory-support
+# public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# React build output
+build/
+client/build/
+
+# Logs
+logs
+*.log
+!server/sensitive_files/logs/
+server/sensitive_files/logs/*
+!server/sensitive_files/logs/access.log
+!server/sensitive_files/logs/error.log
+!server/sensitive_files/logs/audit.log
+!server/sensitive_files/logs/llm_requests.log
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+
+# Local development (committed — see .env.local and .env.aws)
+
+# Package manager lockfiles (keep package-lock.json but ignore others)
+yarn.lock
+pnpm-lock.yaml
+
+# Cache directories
+.cache/
+client/.cache/
+server/.cache/
+
+# Build artifacts
+*.tgz
+*.tar.gz
+
+# Runtime files
+*.pid
+*.seed
+*.pid.lock
+
+# Webpack bundle analyzer
+bundle-analyzer-report.html
+
+# Jest coverage
+coverage/
+
+# ESLint cache
+.eslintcache
+
+# Prettier cache
+.prettiercache
+
+# Stylelint cache
+.stylelintcache
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# Claude Code specific
+.claude/
+
+# Playwright MCP session artifacts
+.playwright-mcp/
+
+# Security - API keys and sensitive data
+config/keys.js
+config/prod.js
+.env.production
+
+# Gmail / Google OAuth - never commit credentials or tokens
+**/client_secret*.json
+**/gmail*credentials*.json
+server/.credentials/
+**/gmail-token*.json
+**/gmail_token*.json
+
+# Backup files
+*.backup
+*.bak
+*.old
+node_modules
+
+# Local backups directory
+backups/
+
+# Restricted config files (created at runtime)
+server/restricted/
+
+# SecureShop v2 — runtime-generated files
+server/database/vector-indexes/*.hnsw
+server/uploads/secureshop/avatars/*/
+server/uploads/secureshop/product_images/*/
+server/uploads/secureshop/product_manuals/*/
+server/uploads/secureshop/return_evidence/*/
+server/uploads/secureshop/seed_manuals/*
+!server/uploads/secureshop/seed_manuals/.gitkeep
+
+# Local verification process ownership; not application configuration or evidence
+/tasks/native-verification-slot.json
+
+# Private fresh-setup publication staging (contains complete credentials).
+/.env.setup-publication
+
+# Legacy SQLite sidecars are local archives/fixtures, never repository data.
+*.db-wal
+*.db-shm
+*.sqlite-wal
+*.sqlite-shm
+
+# Private preservation snapshots include historical databases and credentials.
+# Keep this portable; .git/info/exclude does not accompany a new repository.
+/tasks/main-workspace-preservation-2026-09-28/
+
+# Local work journals and qualification evidence; portable test inputs live in tests/.
+/tasks/
+
+# Local frontend qualification captures (retain on disk, never ship as source).
+# Portable qualification inputs and their recorder remain eligible for release.
+/tests/release-inputs/frontend-build-*/
+
+# Python interpreter bytecode caches
+__pycache__/
+*.pyc
+
+# Personal AI-agent work and local scratch (never release inputs)
+/.codex/
+/.claude/
+/.agents/
+/.superpowers/
+/docs/superpowers/
+/plans/
+/scratch/
+/tmp/
+/test-results/
+/playwright-report/
+# Keep AGENTS.md, CLAUDE.md, source manifests and reviewed teaching fixtures.
+# Retired internal development journals remain in the original repository.
+/docs/modernization/agent-decision-loop-checkpoint-2026-09-15.md
+/docs/modernization/agent-execution-repair-checkpoint-2026-09-13.md
+/docs/modernization/agent-loop-audit-2026-09-13.md
+/docs/modernization/agents-guidance-audit-2026-09-14.md
+/docs/modernization/alternate-secure-server-audit.md
+/docs/modernization/baseline-tests-2026-09-10.txt
+/docs/modernization/bug-and-gap-register-2026-09-10.md
+/docs/modernization/csrf-mounted-native-checkpoint-2026-09-13.md
+/docs/modernization/csrf-rendered-ui-checkpoint-2026-09-13.md
+/docs/modernization/ctf-stages-qualification-plan-2026-09-13.md
+/docs/modernization/ctf-ten-stage-pedagogical-coherence-audit-2026-09-15.md
+/docs/modernization/current-exercise-implementation-gaps-2026-09-15.md
+/docs/modernization/current-status-2026-09-13.md
+/docs/modernization/current-work-queue.md
+/docs/modernization/dependency-promotion-plan-2026-09-26.md
+/docs/modernization/dpi-guidance-promotion-2026-09-14.md
+/docs/modernization/drafts/admin-bulk-reset/README.md
+/docs/modernization/drafts/ctf-advanced-curriculum-acceptance.md
+/docs/modernization/drafts/ctf-defense-evaluation.md
+/docs/modernization/drafts/current-installed-activation-preservation.md
+/docs/modernization/drafts/dpi-scoped-answer/design-2026-09-26.md
+/docs/modernization/drafts/dpi-scoped-answer/exact-session-fence-reuse-plan-2026-09-26.md
+/docs/modernization/drafts/dpi-scoped-answer/fixed-decoder-workflow-design-2026-09-26.md
+/docs/modernization/drafts/dpi-scoped-answer/fixed-output-validation-design-2026-09-26.md
+/docs/modernization/drafts/dpi-scoped-answer/owned-decoder-graph-design-2026-09-26.md
+/docs/modernization/drafts/dpi-scoped-answer/publication-native-privacy-plan-2026-09-26.md
+/docs/modernization/drafts/finflow-admin-trust-boundary-design-2026-09-14.md
+/docs/modernization/drafts/mcp-protected-recovery/linux-qualification-plan.md
+/docs/modernization/drafts/mcp-qualified-subset-application-integration-2026-09-14.md
+/docs/modernization/drafts/mcp-remaining-nine-effect-priorities-2026-09-14.md
+/docs/modernization/drafts/secureshop-bound-access-control-design.md
+/docs/modernization/drafts/secureshop-bound-access-control/runtime-integration-review.md
+/docs/modernization/drafts/secureshop-bound-analytics/actual8b-native-plan.md
+/docs/modernization/drafts/secureshop-bound-analytics/actual8b-qualification.md
+/docs/modernization/drafts/secureshop-bound-analytics/adapter-contract.md
+/docs/modernization/drafts/secureshop-bound-analytics/admission-native-plan.md
+/docs/modernization/drafts/secureshop-bound-analytics/disclosure-objective-contract.md
+/docs/modernization/drafts/secureshop-bound-analytics/fixed-mode-capability.md
+/docs/modernization/drafts/secureshop-bound-analytics/mounted-native-plan.md
+/docs/modernization/drafts/secureshop-bound-analytics/mounted-workflow-design.md
+/docs/modernization/drafts/secureshop-bound-analytics/native-plan.md
+/docs/modernization/drafts/secureshop-bound-analytics/native-qualification.md
+/docs/modernization/drafts/secureshop-bound-analytics/objective-contracts.proposed.md
+/docs/modernization/drafts/secureshop-bound-analytics/owned-target-design.md
+/docs/modernization/drafts/secureshop-bound-analytics/persona-effect-native-plan.md
+/docs/modernization/drafts/secureshop-bound-analytics/private-cluster-install-design.md
+/docs/modernization/drafts/secureshop-bound-analytics/promotion-and-model-gate.md
+/docs/modernization/drafts/secureshop-bound-analytics/purpose-native-plan.md
+/docs/modernization/drafts/secureshop-bound-analytics/purpose-qualification.md
+/docs/modernization/drafts/secureshop-bound-analytics/rendered-native-plan.md
+/docs/modernization/drafts/secureshop-bound-coupons/design.md
+/docs/modernization/drafts/secureshop-bound-inventory/categorical-comparison-design-2026-09-26.md
+/docs/modernization/drafts/secureshop-bound-inventory/design.md
+/docs/modernization/drafts/secureshop-bound-owned-restart-design.md
+/docs/modernization/drafts/secureshop-bound-policy-retrieval-design.md
+/docs/modernization/drafts/secureshop-bound-pricing-design.md
+/docs/modernization/drafts/secureshop-bound-pricing/managed-installation.md
+/docs/modernization/drafts/secureshop-bound-pricing/native-qualification-plan.md
+/docs/modernization/drafts/secureshop-bound-prompt-policies-design.md
+/docs/modernization/drafts/secureshop-bound-storefront-gaps.md
+/docs/modernization/drafts/secureshop-bound-system-diagnostic/amd64-install-gap-inventory.md
+/docs/modernization/drafts/secureshop-bound-system-diagnostic/amd64-package-candidate-design.md
+/docs/modernization/drafts/secureshop-bound-system-diagnostic/assembled-native-plan.md
+/docs/modernization/drafts/secureshop-bound-system-diagnostic/enabled-index-native-plan.md
+/docs/modernization/drafts/secureshop-bound-system-diagnostic/fresh-native-qualification-plan.md
+/docs/modernization/drafts/secureshop-bound-system-diagnostic/local-installer-integration.md
+/docs/modernization/drafts/secureshop-bound-system-diagnostic/supported-setup-start-qualification.md
+/docs/modernization/drafts/secureshop-bound-system-first-index-design.md
+/docs/modernization/drafts/secureshop-bound-system-operation-inventory.md
+/docs/modernization/drafts/secureshop-bound-system-rebuild-contract.md
+/docs/modernization/drafts/secureshop-bound-system-rebuild/http-and-ui-contract.md
+/docs/modernization/drafts/secureshop-bound-system-restart/multi-target-managed-design.md
+/docs/modernization/drafts/secureshop-bound-system-target-design.md
+/docs/modernization/drafts/secureshop-bound-system-ui-contract.md
+/docs/modernization/drafts/secureshop-bound-system-ui-evidence-2026-09-20.md
+/docs/modernization/drafts/secureshop-bound-users-remaining-design.md
+/docs/modernization/drafts/secureshop-controlled-ssrf-activation-plan-2026-09-14.md
+/docs/modernization/drafts/secureshop-mcp-trust-activation-plan-2026-09-14.md
+/docs/modernization/drafts/secureshop-owned-listings/design.md
+/docs/modernization/drafts/secureshop-owned-listings/integrated-native-gate.md
+/docs/modernization/drafts/secureshop-owned-mail/action-grounding-proposal-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/capability-admission-review-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/categorical-comparison-design-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/compact-entailment-design-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/conditional-repair-proposal-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/design-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/grounded-calibration-budget-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/grounded-diagnostic-followup-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/header-evidence-plan-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/header-judge-qualification-plan-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/keyed-diagnostic-findings-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/learning-contract-review-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/native-qualification.md
+/docs/modernization/drafts/secureshop-owned-mail/qualification-plan-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/source-only-candidate-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/sparse-operation-design-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/transport-paired-diagnostic-proposal-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mail/whole-source-selection-proposal-2026-09-26.md
+/docs/modernization/drafts/secureshop-owned-mailbox-design.md
+/docs/modernization/drafts/secureshop-owned-mcp-registry/design.md
+/docs/modernization/drafts/secureshop-persona-inbox-activation-plan-2026-09-14.md
+/docs/modernization/drafts/secureshop-persona-inbox-exposure-checklist-2026-09-14.md
+/docs/modernization/drafts/secureshop-persona-judgments/README.md
+/docs/modernization/drafts/secureshop-persona-judgments/assembled-external-native-next-gate.md
+/docs/modernization/drafts/secureshop-persona-judgments/audit-actual-model-plan.md
+/docs/modernization/drafts/secureshop-persona-judgments/audit-grading-integration-plan.md
+/docs/modernization/drafts/secureshop-persona-judgments/audit-publication-native-next-gate.md
+/docs/modernization/drafts/secureshop-persona-judgments/audit-sql-outcome-semantics-2026-09-20.md
+/docs/modernization/drafts/secureshop-persona-judgments/core-integration-plan.md
+/docs/modernization/drafts/secureshop-persona-judgments/enabled-index-startup-next-gate.md
+/docs/modernization/drafts/secureshop-persona-judgments/inbox-ssrf-native-next-gate.md
+/docs/modernization/drafts/secureshop-persona-judgments/loop-review-native-next-gate.md
+/docs/modernization/drafts/secureshop-persona-judgments/mcp-actual-model-plan.md
+/docs/modernization/drafts/secureshop-persona-judgments/mcp-assembled-native-plan.md
+/docs/modernization/drafts/secureshop-persona-judgments/owned-audit-query-native-plan.md
+/docs/modernization/drafts/secureshop-persona-judgments/production-core-wiring-plan.md
+/docs/modernization/drafts/secureshop-persona-judgments/remaining-consumer-integration.md
+/docs/modernization/drafts/secureshop-persona-judgments/stored-browser-native-next-gate.md
+/docs/modernization/drafts/secureshop-persona-judgments/user-administration-main-wiring.md
+/docs/modernization/drafts/secureshop-prompt-policy-task-target-map.md
+/docs/modernization/drafts/secureshop-qualified-local-activation-plan-2026-09-14.md
+/docs/modernization/drafts/secureshop-remaining-agent-integration.md
+/docs/modernization/drafts/secureshop-selective-reindex/native-plan.md
+/docs/modernization/drafts/secureshop-system-diagnostic-journal.md
+/docs/modernization/drafts/secureshop-system-remaining-actions.md
+/docs/modernization/drafts/secureshop-system-remaining-operations.md
+/docs/modernization/drafts/secureshop-task-policy-recipients.md
+/docs/modernization/drafts/secureshop-user-administration/README.md
+/docs/modernization/drafts/secureshop-user-administration/main-composition-readiness-2026-09-20.md
+/docs/modernization/drafts/workshop-catalog-field-provenance-design-2026-09-14.md
+/docs/modernization/drafts/workshop-catalog-provenance-integration-plan-2026-09-14.md
+/docs/modernization/drafts/workshop-catalog-provenance-live-promotion-plan-2026-09-14.md
+/docs/modernization/embedding-installation-checkpoint-2026-09-13.md
+/docs/modernization/exercise-remediation-plan-2026-09-13.md
+/docs/modernization/finflow-authenticity-checkpoint-2026-09-13.md
+/docs/modernization/finflow-combined-architecture-checkpoint-2026-09-14.md
+/docs/modernization/implementation-plan-2026-09-10.md
+/docs/modernization/implementation-status.md
+/docs/modernization/installer-gap-review-2026-09-15.md
+/docs/modernization/ipi-email-authenticity-gaps.md
+/docs/modernization/legacy-ai-authenticity-audit-2026-09-13.md
+/docs/modernization/legacy-ai-history-isolation-plan.md
+/docs/modernization/legacy-ecommerce-current-gaps.md
+/docs/modernization/mcp-owned-http-promotion-delta.md
+/docs/modernization/mcp-recon-admin-parity-plan.md
+/docs/modernization/mcp-remaining-capabilities-implementation-plan.md
+/docs/modernization/mcp-workshop-authenticity-audit-2026-09-13.md
+/docs/modernization/postgresql-single-engine-plan-2026-09-10.md
+/docs/modernization/qualification-history-through-2026-09-18.md
+/docs/modernization/qualification-history-through-product-activation-2026-09-19.md
+/docs/modernization/rag-guidance-promotion-2026-09-14.md
+/docs/modernization/release-candidate-checkpoint-2026-09-11.md
+/docs/modernization/release-status-2026-09-11.md
+/docs/modernization/secureshop-audit-instruction-release.md
+/docs/modernization/secureshop-audit-sql-integration-contract.md
+/docs/modernization/secureshop-auth-state-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-authenticity-audit-2026-09-13.md
+/docs/modernization/secureshop-browser-entry-storage-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-cart-lifecycle-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-chat-lifecycle-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-cleanup-promotion-2026-09-13.md
+/docs/modernization/secureshop-closed-bridge-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-conversation-binding-plan-2026-09-13.md
+/docs/modernization/secureshop-cors-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-files-foundation-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-frame-adapter-gaps-2026-09-13.md
+/docs/modernization/secureshop-frame-startup-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-judge-integration-plan-2026-09-13.md
+/docs/modernization/secureshop-launch-api-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-launch-authority-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-launch-recovery-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-manual-retrieval-objective-gap.md
+/docs/modernization/secureshop-owned-audit-search-design.md
+/docs/modernization/secureshop-owner-capability-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-owner-capability-plan-2026-09-13.md
+/docs/modernization/secureshop-pending-objective-audit-2026-09-14.md
+/docs/modernization/secureshop-persona-inbox-structural-promotion-2026-09-14.md
+/docs/modernization/secureshop-request-adapter-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-reserved-file-reader-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-reset-cleanup-coordinator-draft-2026-09-13.md
+/docs/modernization/secureshop-review-activation-plan-2026-09-13.md
+/docs/modernization/secureshop-review-lifecycle-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-target-reservation-checkpoint-2026-09-13.md
+/docs/modernization/secureshop-turn-admission-plan-2026-09-13.md
+/docs/modernization/sensitive-info-reset-promotion-2026-09-14.md
+/docs/modernization/student-deletion-activation-plan-2026-09-13.md
+/docs/modernization/test-isolation-incident-2026-09-13.md
+/docs/modernization/verification-incidents.md
+/docs/modernization/work-queue-history-through-2026-09-18.md
+/docs/modernization/work-queue-history-through-2026-09-19.md
+/docs/modernization/workshop-authenticity-audit-2026-09-13.md
+/docs/modernization/workshop-catalog-provenance-promotion-2026-09-14.md
+/docs/modernization/xss-local-mail-checkpoint-2026-09-13.md

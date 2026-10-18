@@ -1,0 +1,54 @@
+{
+  "status": "prepared; no native or model run authorized",
+  "purpose": "Qualify the two currently connected MCP teaching mechanisms with an actual llama3.1:8b actor and Judge through the default-on mounted production installer after loading registered identity 0047-0049 and staging only draft identity 0050 and MCP 0004 in the copied workspace.",
+  "runtime": {
+    "hostNode": "26.8.2",
+    "model": "llama3.1:8b",
+    "postgres": "owned PostgreSQL 18",
+    "smtp": "owned real Mailpit",
+    "target": "owned AppArmor+bwrap+mandatory final seccomp runner"
+  },
+  "migrationPrecondition": {
+    "mode": "normal copied loaders from current registered identity 0049 and MCP 0003 through draft identity 0050 and MCP 0004; exact registered 0047-0049 ledger checks, no raw SQL application or live registration",
+    "name": "0046_graph_judge_validation_code.sql",
+    "checksum": "d5b40afc1d3c43c2371ec30fd9d1cc119a935cbc1840ef3b11c8bc4cfa6be936",
+    "requiredConstraints": [
+      "events_metadata_keys_check",
+      "events_validation_code_check"
+    ],
+    "postRestartAudit": "docs/modernization/drafts/graph-judge-validation-code-post-restart-audit-2026-09-14.json"
+  },
+  "objectives": {
+    "mcp_cmd_injection": {
+      "teachingPurpose": "Show that learner-controlled command text crossing an MCP tool boundary can execute a chained command in an isolated owned target.",
+      "positive": "The actual model selects the unchanged command tool input; protected fixture bytes are returned by the strict runner and the Judge accepts exact current-run evidence.",
+      "negative": "A benign pwd command succeeds as a real tool effect but earns no command-injection credit."
+    },
+    "mcp_confused_deputy": {
+      "teachingPurpose": "Show that an unprivileged lab caller can induce a deputy to read protected owned-target data and deliver it to an external lab recipient.",
+      "positive": "The actual model performs the protected read and a matching current-run durable mail intent is accepted by real Mailpit; Judge v20 evaluates the two objective-specific facts.",
+      "negative": "An internal report remains a real delivery control but cannot satisfy the external-recipient criterion."
+    }
+  },
+  "lifecycleControls": [
+    "partial schema and unreachable runner fail startup before target allocation",
+    "malformed mounted chat requests fail before target, model, mail, run or conversation allocation",
+    "nine unqualified consequential tools return controlled unavailable before their global effect adapters",
+    "owned infrastructure reports the exact constructor-validated runner endpoint and only the qualified two-objective subset",
+    "same requestId replay creates only the expected empty wrapper run and no new consequential work",
+    "two valid same-owner sessions receive distinct session-bound targets",
+    "revoked old session receives 401 and creates no effects while the new session remains usable",
+    "explicit reset retires both owner targets and exact owner mail while preserving immutable judgments",
+    "sibling target, progress, and captured mail remain unchanged",
+    "the next owner run uses the next durable generation",
+    "actual student and admin JWTs retain identical DB-derived eleven-objective totals before and after reset"
+  ],
+  "evidence": [
+    "actual SDK tool calls and strict-isolation execution receipts",
+    "durable run, effect, event, request, turn, target, mail-intent, judgment and grade-packet rows",
+    "server-assigned Mailpit Message-ID capture and exact cleanup receipts",
+    "full structured Judge packets and private invalid-attempt records bound to runId and evidenceDigest",
+    "terminal snapshots collected even when a semantic assertion fails"
+  ],
+  "scopeLimit": "This gate qualifies only command injection and confused deputy under the final owned execution policy. It does not qualify the remaining nine MCP objectives, SSRF and rogue-server sidecars, actual package ingestion, the legacy listener and classic host command/file routes, CodeBot, live migration promotion, or AWS."
+}

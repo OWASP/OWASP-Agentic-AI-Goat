@@ -1,0 +1,40 @@
+{
+  "result": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-rpgqmltr",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "3755d36188823b891fccdd5eb93e59af7600825a2f77c847ad5a7e62850f8bb6",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "browserResult": {
+    "scope": "Canonical platform login and actual persona JWT in full App opaque iframe; controlled review fixture, no model or production readiness claim",
+    "browser": "Chrome/153.0.8010.36",
+    "writes": 1,
+    "lostAckRecoveredAfterParentReload": true,
+    "errors": []
+  },
+  "sourceSha256": {
+    "tests/postgres/secureshopManualReviewRendered.integration.test.js": "4e18c3ddd1a488fb438d9453f4a2d352da6ee534c4071c67d83092e3144f1d6b",
+    "client/src/pages/secureshop/pages/merchant/Reviews.jsx": "4cfc01b5aa1c5da3849f35c365cda975c31fcca4bcce3b5e016e909386ac68d0",
+    "client/src/pages/secureshop/utils/manualReviewOperation.mjs": "0b9845c3df77cad146f88b1b856b5b7ecbe706176d14d253da82fa0a474b60b0",
+    "client/src/pages/secureshop/utils/shopStorage.mjs": "8e3b84075857321c76ca9319ea613e37aabb10a39f36a49d4029981083a6f169",
+    "client/src/pages/secureshop/bridge/stateStore.mjs": "531b0dcc7598bdc5f338bf0b6fabfc008b29d1b0132cae8a6716c0dbe9101ed6",
+    "client/src/pages/secureshop/bridge/stateChannel.mjs": "54d1fb0bcf36363ae00ea1417056de5df395a9c6fed6b03e892d5e23819e4808",
+    "client/src/pages/secureshop/bridge/operations.mjs": "4ccdaccbde67247524eaecdc74c2d7eaee0988eb6ba93c3fb5ddd11c1b9a13fe",
+    "server/routes/secureshop/boundReviews.js": "24cb323e52db6ecc9f97bf5df8d85b8dc0ec134b232af430390ab3b25c8ed519",
+    "server/services/secureshopManualReviewDecision.js": "747999d0f78d2577a175f45f6fda8970964c8be9c95ebe3f27641fbfb956d1d9",
+    "server/database/postgres/secureshopReviewDecisionReceipt.js": "b478cf7777f83388b992b03a11d8a8565f7715245d7d0dfcdff300bd297b4da1",
+    "package-lock.json": "34ba2ea15dd634f8e6a6df4ae4443aa8af953cb2df951923d1ae8472889a2c27",
+    "client/package-lock.json": "f97367a43679a12245d87c4bc58140c765ae0b93c83a7b07b4cf78ba855bfb98"
+  },
+  "screenshot": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-rpgqmltr/source/manual-review-recovered.png",
+  "visualReview": "Reviews page, approved feedback and counts visible. Capture retains parent transition tint; not a settled color-fidelity qualification.",
+  "limits": [
+    "candidate only",
+    "no actual model/Judge",
+    "unrelated tools unavailable",
+    "remaining factory authority consumers prevent default activation"
+  ]
+}

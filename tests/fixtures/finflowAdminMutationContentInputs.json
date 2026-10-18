@@ -1,0 +1,7 @@
+{
+  "version": 1,
+  "profile": "controlled-admin-mutation-content",
+  "objectives": [
+    "admin_modify_logs"
+  ]
+}

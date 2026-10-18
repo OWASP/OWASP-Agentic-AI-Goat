@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "status": "superseded_unregistered_draft",
+  "preservedAt": "2026-09-15",
+  "reason": "Canonical FinFlow admin_enum teaching copy now requires accurate names and purposes rather than names alone.",
+  "originalPath": "docs/modernization/drafts/0068_finflow_admin_enum_copy_defaults.sql",
+  "preservedPath": "docs/modernization/drafts/predecessors/0068_finflow_admin_enum_copy_defaults_names_only.sql",
+  "originalSha256": "00b934ed0e6bd9d07a6cba18e20d222975ddf613a2dd9713a0a2ee2f51be5fb1",
+  "generatorAtPreservation": {
+    "path": "scripts/generate-finflow-admin-enum-copy-defaults.js",
+    "sha256": "aff359cf290a3426df58952b5b7e19c58b111b0b25768f2a9e0739cef7eb5942"
+  },
+  "offlineContractAtPreservation": {
+    "path": "tests/finflowAdminEnumCopyMigrationDraft.test.js",
+    "sha256": "5e2d96303cabf8fd0716a9f6e6ed7720e3dc7a5fa028faf2c33dff127cf2f5ae"
+  },
+  "registration": {
+    "checkedPath": "db/postgres/identity-migrations/0068_finflow_admin_enum_copy_defaults.sql",
+    "presentAtPreservation": false,
+    "databaseLedgerInspected": false
+  },
+  "nativeQualification": {
+    "reviewRecord": "tasks/finflow-0068-r3-native-root-review.json",
+    "reviewRecordSha256": "e24c77e8e70c7880818bab7c9d177cbe630e05a93c7d718e94a1d7cec5473653",
+    "evidence": "/Users/averma5/.dvaia/native-verification/dvaia-finflow_0068_admin_enum_copy_defaults-b031b78466ee",
+    "status": "terminal_pass_cleaned",
+    "passed": 2,
+    "failed": 0
+  },
+  "promotion": {
+    "blocked": true,
+    "reason": "Identity0068 remains unregistered pending a coherent authorized 0063-0067 prefix."
+  }
+}

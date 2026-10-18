@@ -1,0 +1,35 @@
+{
+  "status": "record-level-impact-unverified",
+  "trigger": "Root direct test run mcpOwnedResourceRoute.test.js imported legacy SQLite initialization",
+  "testLog": "/tmp/dvaia-mcp-conversation-handoff-root-20260914.log",
+  "livePostgresHealth": 200,
+  "noRollbackPerformed": true,
+  "limitation": "No pre-run hashes or row snapshots were captured; changed legacy row content cannot be inferred or reversed safely from mtime. Current hashes are observations only.",
+  "files": [
+    {
+      "file": "server/database/users_auth.db",
+      "bytes": 2543616,
+      "modifiedUTC": "2026-09-14T09:01:21.360554+00:00",
+      "observedSha256": "d4b4d8a5e2c9001212b10b2455a1a466371a7275fec054a203800e06792a3018"
+    },
+    {
+      "file": "server/database/mcp_workshop.db",
+      "bytes": 24576,
+      "modifiedUTC": "2026-09-03T15:32:59.332716+00:00",
+      "observedSha256": "0c1ca9356b82d65800cd9ea3b2945aee7c28aa57ceb7771ce4b7d1ecd1b39d5e"
+    },
+    {
+      "file": "server/database/sensitive_info_workshop.db",
+      "bytes": 114688,
+      "modifiedUTC": "2026-09-14T09:01:21.357070+00:00",
+      "observedSha256": "c2fe21a8dd1afd4a44b3775bc59ef7db0c187ca6f0e3b0e34cdf2bacfdbdc4f0"
+    },
+    {
+      "file": "server/database/supply_chain_workshop.db",
+      "bytes": 45056,
+      "modifiedUTC": "2026-09-14T09:01:21.354295+00:00",
+      "observedSha256": "f485b19d919b9b2f4c89cddb8f2039ad92bde0c83182410f3fb07a8ca7c170c5"
+    }
+  ],
+  "additionalConfirmedExecution": "Agent reported earlier35focusedtests also ran in workingtree; record-level impact of both runs remains unverified."
+}

@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "owner": "/root/purpose_native_review",
+  "purpose": "Owned PostgreSQL 18 qualification of reserved SecureShop agents0013 conversation-purpose isolation",
+  "launcher": "tests/postgres/run-secureshop-conversation-purpose-isolated.py",
+  "test": "tests/postgres/secureshopConversationPurpose.integration.test.js",
+  "sourceHashes": {
+    "db/postgres/migrate.js": "077db5fd54015509c5e337ace90f8cbefced5a6cb3099d2093653ebce89ece44",
+    "db/postgres/workshop-migrations/secureshop_agents/0001_schema.sql": "7095d82940455c50dce8c5fa21febddff2f8626a8529b5c28d0d3cc7088e4ec8",
+    "db/postgres/workshop-migrations/secureshop_agents/0002_vectors.sql": "a344b88643002ae6d323089aa9f75a274b3da1cad916c3347e4de23748dd3e67",
+    "db/postgres/workshop-migrations/secureshop_agents/0003_import_history.sql": "6c0b6b38914e90d0dbea3afe0502c03857eed73fbfd9615ac689709d18c7535a",
+    "db/postgres/workshop-migrations/secureshop_agents/0004_embedding_identity.sql": "0cbbc15abf2350016fcbcb8ebc1e4dc150fb2ad99cdc3c395cf19890720655f3",
+    "db/postgres/workshop-migrations/secureshop_agents/0005_conversation_binding.sql": "07bb013a7ad38634843f26e18be3160c39589089ea1d604c6e3589a53c940570",
+    "db/postgres/workshop-migrations/secureshop_agents/0006_secureshop_turn_admission.sql": "ce7bbe2e92f3b802b72b2a5b89b5fb1865f6a19e0b9c58156e8f1646eea50d9c",
+    "db/postgres/workshop-migrations/secureshop_agents/0007_secureshop_conversation_generation_retirement.sql": "7eb9bb1d517a18c75abc0c62d370eef7a852c17d266075af9a7b119e0540ffde",
+    "db/postgres/workshop-migrations/secureshop_agents/0008_secureshop_bound_persona_sessions.sql": "976588ba54dca65cf7c657748bea2a850b359dad26f2313393f382c8e1cfb53f",
+    "db/postgres/workshop-migrations/secureshop_agents/0009_secureshop_bound_persona_renewal.sql": "4876ab3f57f5c8af839cfea4332f36ecf02f0db620d4a7f78ef0697ee5becd23",
+    "db/postgres/workshop-migrations/secureshop_agents/0010_secureshop_persona_inbox.sql": "3855742f3a716f8498611a7fce8b442c8759706974dc0a45a14a810dc968ec45",
+    "docs/modernization/drafts/secureshop-controlled-ssrf-agents.sql": "a6c1f07d4207b5cf1413d553ef3de6068ca2c8c29eab87672e803fbf12caafc9",
+    "docs/modernization/drafts/secureshop-conversation-purpose-agents.sql": "4446bed59d6734d19066f5ef8486e3c254dbb90681c2a155edecf57949682b9d",
+    "docs/modernization/drafts/secureshop-mcp-trust-agents.sql": "06cc0794509b2744e1fc2f0d4dcdc3f10e303e61acb54b44ec90ab1e479179d0",
+    "server/database/postgres/secureshopBoundConversationsRepository.js": "22886f037e3840ffbd3a3752fb974654683ba91438b7aaf63797e6a998b31f44",
+    "server/database/postgres/secureshopConversationLifecycleRepository.js": "bbfea2b37243922e4ade307f6df7ce26b694c9b66dd9479ecbd59914889e1b3c",
+    "server/services/secureshopBoundTraceRecord.js": "dda227b7535aaa0277ba9cd18aaf13f0ae7222b0b614e366d3925162ff81c1a4",
+    "server/services/secureshopConversationBinding.js": "b9e32cd6bba6487e4b923e02ce5142810c344ec2b340238cb2a7fa05063251ed",
+    "server/services/secureshopConversationPurpose.js": "1b80bf46f988c0807099cf1b88c6e8a87fc62769d445de7aa3a4dd489deab06b",
+    "tests/postgres/native_source_provenance.py": "95768afdf0f51feb7c9025e4c04c4083f2805a4f0b03983972b35554e54956b5",
+    "tests/postgres/run-secureshop-conversation-purpose-isolated.py": "94cff0be3c975bd1f2bbc2b64a7309fca8c211d5254f0f5e22c525c7a0243284",
+    "tests/postgres/secureshopConversationPurpose.integration.test.js": "2a4f5f0dbaefaca477993854d2eeeb95077501b482350a3ef51ce4508afa6d43",
+    "tests/postgres/sensitive_info_recovery_safety.py": "2317a9facf689c8e6b4f1e5682c2a7b732afbe7cee0c0438dd0a688ae748b7e8"
+  },
+  "stagedMigrations": {
+    "db/postgres/workshop-migrations/secureshop_agents/0011_secureshop_mcp_trust.sql": "06cc0794509b2744e1fc2f0d4dcdc3f10e303e61acb54b44ec90ab1e479179d0",
+    "db/postgres/workshop-migrations/secureshop_agents/0012_secureshop_controlled_ssrf.sql": "a6c1f07d4207b5cf1413d553ef3de6068ca2c8c29eab87672e803fbf12caafc9",
+    "db/postgres/workshop-migrations/secureshop_agents/0013_secureshop_conversation_purpose.sql": "4446bed59d6734d19066f5ef8486e3c254dbb90681c2a155edecf57949682b9d"
+  }
+}

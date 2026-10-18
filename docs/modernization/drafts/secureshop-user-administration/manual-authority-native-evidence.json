@@ -1,0 +1,51 @@
+{
+  "scope": "Actual canonical manual graph, persisted turns, real persona/platform revocation and review-store receipt transactions; native private file bytes through actual writer with injected filesystem transport. Controlled provider/embedding, no sandbox or actual model qualification. Optional candidate remains globally disabled.",
+  "result": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-iepd_2sg",
+    "exitCode": 0,
+    "actualEmbedding": false,
+    "containerId": "d0ee5e84c34527c81d85739ca3732fd445d19ab26d4cae745fe15cd895160ec6",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "sourceSha256": {
+    "tests/postgres/secureshopPersonaManualCanonical.integration.test.js": "3b616eb93546da3fd82452540e410252e835278bedb61fcd184707b2663834fe",
+    "server/services/secureshopBoundManualIngestion.js": "fe7aeeee8d6a295223806e8358f77657dcf1b7e6c569bce78a39e01c2662c5b8",
+    "server/services/secureshopReservedFileWriter.js": "bb32a42aa4beb88f237a81fe6ecacfd22583b15a8e521ede3eda371a192b635d",
+    "server/services/secureshopPersonaProductEffect.js": "859cd7da2f92fd9d1b37365337521a9810774eb46f1e26a7c6241b2bf022ad61",
+    "server/services/secureshopBoundProductRetrieval.js": "88f41da3b5fd7740e6bc0ecaa819744080aa5db4e0aef0e165aaad89efac7e6a",
+    "server/services/secureshopBoundCatalog.js": "bc4f93fbe8a4b233e4ffbb47c92e5eb861ec75df385a246360c0a8293c302850",
+    "server/database/postgres/secureshopBoundManualIngestRepository.js": "da7434884847fa28e9cd67a39b52115cb4ef1c3b110f991f6f55dfcac76f2a18",
+    "server/database/postgres/secureshopBoundPersonaAuthority.js": "348e4c00c6af168e3b92c0dbd7ecc53a4e638511485a10fb2eb64394650180fc",
+    "server/database/postgres/secureshopTurnRequestsRepository.js": "1333b1d2be34a66d5530dcd300fffdedc7b8d6207e416313d51f2effa419870f",
+    "server/routes/secureshop/boundGateway.js": "8c29ad815db37301343577ca819a69bf1dc6544ce281f275d356d485a1e343fb",
+    "docs/modernization/drafts/secureshop-user-administration/persona-state.candidate.sql": "ee8a37de874aa9b4993b5d9db66ddbd43955ec072fe6367c0e78c6ebda4ff145",
+    "package-lock.json": "34ba2ea15dd634f8e6a6df4ae4443aa8af953cb2df951923d1ae8472889a2c27"
+  },
+  "checks": [
+    "Actual merchant role changed during manual CPU embedding: exact SHOP_AUTH_INVALID; no manual receipt, uncertain turn, exact native file bytes retained",
+    "Actual platform session revoked during embedding: exact STALE_LAUNCH; no manual receipt, uncertain turn, exact native file bytes retained",
+    "Actual platform session revoked after committed append before acknowledgement: exact STALE_LAUNCH; original turn uncertain, one immutable receipt retained; upload retry and receipt readback denied",
+    "Independent live owner completes; identical source retry returns replay, one immutable manual receipt and exact source hash retained",
+    "No canonical objective judgments generated"
+  ],
+  "focused": {
+    "tests": 53,
+    "passed": 53,
+    "log": "/private/tmp/dvaia-manual-authority-focused.log"
+  },
+  "priorFailure": {
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-workshop-rag-store-36qh77xr",
+    "exitCode": 1,
+    "cause": "Fixture expected SESSION_UNAVAILABLE rather than actual canonical STALE_LAUNCH for revoked platform session. Exact source inspected; expectation corrected, no production fix.",
+    "containerRemoved": true,
+    "pidAbsent": true,
+    "pgidAbsent": true
+  },
+  "limitations": [
+    "Filesystem IO uses point-in-time authority; no transaction rollback claim and no agents locks over files/models/embedding",
+    "No new public recovery endpoint; existing deterministic upload retry uses current captured authority",
+    "No global activation; MCPTrust and SSRF factories still need authority integration"
+  ]
+}

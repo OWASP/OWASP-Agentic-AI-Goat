@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 600 800" role="img" aria-labelledby="title description">
+  <title id="title">SecureShop product</title>
+  <desc id="description">Abstract product package on a warm neutral background</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eee8dc"/>
+      <stop offset="1" stop-color="#d8cbb8"/>
+    </linearGradient>
+    <linearGradient id="package" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#304940"/>
+      <stop offset="1" stop-color="#172a24"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="800" fill="url(#background)"/>
+  <circle cx="492" cy="126" r="92" fill="#b85c38" opacity=".18"/>
+  <circle cx="98" cy="686" r="132" fill="#304940" opacity=".12"/>
+  <path d="M170 238h260l42 88v286c0 25-20 45-45 45H173c-25 0-45-20-45-45V326z" fill="url(#package)"/>
+  <path d="M170 238h260l42 88H128z" fill="#496c60"/>
+  <path d="M213 238c8-65 37-98 87-98s79 33 87 98" fill="none" stroke="#b85c38" stroke-width="22" stroke-linecap="round"/>
+  <rect x="190" y="390" width="220" height="116" rx="8" fill="#f6f0e5"/>
+  <path d="M226 428h148M226 462h102" stroke="#304940" stroke-width="12" stroke-linecap="round" opacity=".72"/>
+  <text x="300" y="584" fill="#f6f0e5" font-family="system-ui, sans-serif" font-size="30" font-weight="700" text-anchor="middle" letter-spacing="4">SECURESHOP</text>
+</svg>

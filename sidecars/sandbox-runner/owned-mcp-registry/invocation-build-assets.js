@@ -1,0 +1,8 @@
+'use strict';
+const fs=require('node:fs'),crypto=require('node:crypto');
+const ASSETS=Object.freeze(['/usr/local/bin/node','/usr/bin/bwrap','/usr/local/libexec/dvaia-invocation-supervisor','/usr/local/libexec/dvaia-invocation-bootstrap','/usr/local/libexec/dvaia-invocation-peer.node','/usr/local/libexec/dvaia-invocation-worker.js','/app/sidecars/sandbox-runner/owned-mcp-registry/invocation-listener.js','/usr/share/dvaia/invocation-target.seccomp.bpf']);
+const REGISTRY='/usr/share/dvaia/invocation-assets.json';
+function hash(file){const fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);try{const s=fs.fstatSync(fd);if(!s.isFile()||s.uid!==0||s.nlink!==1||(s.mode&0o022)||s.size>268435456)throw Error('Untrusted invocation asset');return crypto.createHash('sha256').update(fs.readFileSync(fd)).digest('hex');}finally{fs.closeSync(fd);}}
+function verify(){const fd=fs.openSync(REGISTRY,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);let hashes;try{const s=fs.fstatSync(fd);if(!s.isFile()||s.uid!==0||s.nlink!==1||(s.mode&0o022)||s.size>8192)throw Error('Invalid invocation asset registry');hashes=JSON.parse(fs.readFileSync(fd));}finally{fs.closeSync(fd);}if(Object.keys(hashes).join()!==ASSETS.join()||ASSETS.some(p=>hash(p)!==hashes[p]))throw Error('Invocation assets changed');return{runtimeSha256:crypto.createHash('sha256').update(JSON.stringify(hashes)).digest('hex')};}
+if(require.main===module){for(const p of ASSETS)fs.chmodSync(p,p.endsWith('/node')||p.endsWith('/bwrap')||p.endsWith('-supervisor')||p.endsWith('-bootstrap')?0o555:0o444);fs.writeFileSync(REGISTRY,JSON.stringify(Object.fromEntries(ASSETS.map(p=>[p,hash(p)]))),{mode:0o444});verify();}
+module.exports={ASSETS,verify};

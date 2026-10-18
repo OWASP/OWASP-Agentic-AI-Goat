@@ -1,0 +1,16 @@
+{
+  "account_id": "FF-001",
+  "account_holder": "Alice Morgan",
+  "account_number": "****-****-****-4821",
+  "account_type": "Premium Checking",
+  "current_balance": 12847.33,
+  "available_balance": 12347.33,
+  "currency": "USD",
+  "transactions": [
+    { "date": "2024-11-01", "description": "Direct Deposit - Employer", "amount": 3200.00, "type": "credit", "balance": 12847.33 },
+    { "date": "2024-10-29", "description": "Amazon.com", "amount": -89.99, "type": "debit", "balance": 9647.33 },
+    { "date": "2024-10-28", "description": "Starbucks #4821", "amount": -6.75, "type": "debit", "balance": 9737.32 },
+    { "date": "2024-10-27", "description": "ACH Transfer - Savings", "amount": -500.00, "type": "debit", "balance": 9744.07 },
+    { "date": "2024-10-25", "description": "Whole Foods Market", "amount": -134.22, "type": "debit", "balance": 10244.07 }
+  ]
+}
