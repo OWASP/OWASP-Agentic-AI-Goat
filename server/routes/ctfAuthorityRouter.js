@@ -1,0 +1,60 @@
+'use strict';
+// Supported PostgreSQL router: authentication returns canonical {user,session}.
+const {hasAdminLevel}=require('../middleware/postgresAdminAuth');
+const express=require('express');
+const {readBearerAuthorization}=require('../middleware/bearerToken');
+const {ctfStageIdInput,ctfAttemptInput,ctfStageSecretInput}=require('../middleware/ctfAttemptInput');
+const {ctfHintConfigInput}=require('../middleware/ctfHintConfigInput');
+const {validateFilters}=require('../database/postgres/ctfAdminReadQueries');
+const fields=['stage_number','stage_name','stage_description','difficulty_level','ai_guardian_name','ai_guardian_personality','system_prompt','success_criteria','hints','stage_order','difficulty','defense_style','adaptive_mode','level_score','time_bonus_seconds','feedback_mode','is_active','max_attempts'];
+const teachingContentFields=['stage_name','stage_description','hints','teaching_objective','solution_content'];
+const bad=()=>{throw Object.assign(Error('Invalid CTF request'),{statusCode:400});};
+function closed(value,keys){if(!value||typeof value!=='object'||Array.isArray(value)||Object.keys(value).some(k=>!keys.includes(k)))bad();return value;}
+const integer=(x,min,max)=>{if(typeof x!=='string'||!/^\d+$/.test(x)||!Number.isSafeInteger(Number(x))||Number(x)<min||Number(x)>max)bad();return Number(x);};
+const hintIndex=x=>{if(typeof x!=='number'||!Number.isInteger(x)||x<0||x>2)bad();return x;};
+function createCtfAuthorityRouter({runtime,attemptHandlers,authenticate,previewHandler,practiceHandler}){
+ for(const key of ['read','mutate','heartbeat','adminSolutions'])if(typeof runtime?.[key]!=='function')throw TypeError('CTF runtime required');
+ for(const key of ['attempt','recoverOperation','recoverDecision','authorizeDecision','publishDecision','publishBlocked','recoverPredefense','resumePredefense'])if(typeof attemptHandlers?.[key]!=='function')throw TypeError('CTF attempt handlers required');
+ if(typeof authenticate!=='function'||typeof previewHandler!=='function'||typeof practiceHandler!=='function')throw TypeError('Canonical authentication and trusted CTF handlers required');
+ const router=express.Router(),wrap=fn=>(req,res,next)=>Promise.resolve().then(()=>fn(req,res,next)).catch(next);
+ const auth=(optional=false,admin=false)=>wrap(async(req,res,next)=>{
+  const bearer=readBearerAuthorization(req);delete req.user;delete req.identitySession;
+  if(!bearer.present&&optional)return next();
+  if(!bearer.token)throw Object.assign(Error('Authentication required'),{statusCode:401});
+  const result=await authenticate(bearer.token);
+  if(!result?.user||!result?.session||String(result.session.user_id)!==String(result.user.id)||!result.session.id)throw Object.assign(Error('Authentication required'),{statusCode:401});
+  req.user=result.user;req.identitySession=result.session;
+  if(admin&&!hasAdminLevel(req.user))throw Object.assign(Error('Administrator required'),{statusCode:403});next();
+ });
+ const body=keys=>wrap((req,res,next)=>{closed(req.body??{},keys);next();});
+ const query=keys=>wrap((req,res,next)=>{closed(req.query,keys);next();});
+ const send=(res,r)=>{if(!r||!Number.isInteger(r.status)||r.status<200||r.status>599||!r.body)throw Error('Invalid runtime response');res.status(r.status).json(r.body);};
+ const mutate=(kind,input)=>wrap(async(req,res)=>send(res,await runtime.mutate({req,kind,input:input(req)})));
+ const read=(kind,admin=false,extra=()=>({}))=>[auth(!admin&&kind!=='status',admin),wrap(async(req,res)=>res.json(await runtime.read({...(req.identitySession?{req}:{}),kind,...extra(req)})))];
+ for(const [route,kind] of [['config','config'],['stages','stages'],['status','status'],['admin/analytics','analytics'],['admin/stages','adminStages'],['admin/participants','adminParticipants']])router.get('/'+route,query([]),...read(kind,route.startsWith('admin/')));
+ for(const kind of ['leaderboard','events'])router.get('/'+kind,query(['limit']),...read(kind,false,req=>({limit:req.query.limit===undefined?50:integer(req.query.limit,1,200)})));
+ router.get('/admin/attempts',query(['limit','offset','participantId','stageId','blocked','wasSuccessful','techniqueTag']),...read('adminAttempts',true,req=>{const filters={};for(const k of ['participantId','stageId','offset'])if(req.query[k]!==undefined)filters[k]=integer(req.query[k],k==='offset'?0:1,k==='offset'?100000:2147483647);for(const k of ['blocked','wasSuccessful'])if(req.query[k]!==undefined){if(!['true','false'].includes(req.query[k]))bad();filters[k]=req.query[k]==='true';}if(req.query.techniqueTag!==undefined)filters.techniqueTag=req.query.techniqueTag;return{filters:validateFilters(filters),limit:req.query.limit===undefined?100:integer(req.query.limit,1,200)};}));
+ router.get('/admin/solutions',query([]),auth(false,true),wrap(async(req,res)=>res.json(await runtime.adminSolutions({req}))));
+ router.post('/register',auth(),body(['displayName','teamName']),mutate('register',req=>req.body??{}));
+ router.post('/stage/:stageId/start',auth(),body([]),ctfStageIdInput('stageId'),mutate('start',req=>({stageId:req.params.stageId})));
+ router.post('/stage/:stageId/hint',auth(),body(['hintIndex']),ctfStageIdInput('stageId'),mutate('hint',req=>({stageId:req.params.stageId,...(Object.hasOwn(req.body??{},'hintIndex')?{hintIndex:hintIndex(req.body.hintIndex)}:{})})));
+ router.post('/stage/:stageId/attempt',auth(),body(['payload','sessionToken']),ctfAttemptInput('stageId'),wrap(attemptHandlers.attempt));
+ router.post('/stage/:stageId/practice',auth(),body(['payload','sessionToken']),ctfAttemptInput('stageId'),wrap(practiceHandler));
+ router.post('/heartbeat',auth(),body(['sessionToken']),wrap(async(req,res)=>send(res,await runtime.heartbeat({req,registrationToken:req.body?.sessionToken??null}))));
+ router.post('/admin/config',auth(false,true),body(['key','value']),ctfHintConfigInput,mutate('config_mutation',req=>({key:req.body.key,value:req.body.value})));
+ const bonus=wrap((req,res,next)=>{if(Object.hasOwn(req.body,'time_bonus_seconds'))bad();next();});
+ router.post('/admin/stages',auth(false,true),body(fields),bonus,ctfStageSecretInput(),mutate('catalog_mutation',req=>({action:'create',fields:req.body})));
+ router.put('/admin/stages/:id',auth(false,true),body(fields),ctfStageIdInput('id'),bonus,ctfStageSecretInput({partial:true}),mutate('catalog_mutation',req=>({action:'update',stageId:req.params.id,fields:req.body})));
+ router.put('/admin/stages/:id/content',auth(false,true),body(teachingContentFields),ctfStageIdInput('id'),mutate('catalog_mutation',req=>({action:'update',stageId:req.params.id,fields:req.body})));
+ router.delete('/admin/stages/:id',auth(false,true),body([]),ctfStageIdInput('id'),mutate('catalog_mutation',req=>({action:'delete',stageId:req.params.id,fields:{}})));
+ router.post('/admin/stages/:id/preview',auth(false,true),body(['payload']),ctfAttemptInput('id'),wrap(previewHandler));
+ for(const [route,kind] of [['reset','owner_reset'],['remove','owner_remove'],['ban','ban'],['unban','unban']])router.post('/admin/participants/:userId/'+route,auth(false,true),body(route==='ban'?['reason']:[]),ctfStageIdInput('userId'),mutate(kind,req=>({ownerId:req.params.userId,...(route==='ban'?{reason:req.body?.reason||'Banned by admin'}:{})})));
+ for(const memory of ['technique','payload'])router.post('/admin/blocklists/'+memory+'/clear',auth(false,true),body(['stageId']),mutate('blocklist_clear',req=>({memory,stageId:req.body?.stageId==null?null:String(integer(String(req.body.stageId),1,2147483647))})));
+ router.post('/admin/reset',auth(false,true),body(['confirm']),wrap((req,res,next)=>{if(req.body?.confirm!=='RESET_CTF_CONFIRM')bad();next();}),mutate('global_reset',()=>({})));
+ router.post('/predefense/:runId/resume',auth(),query([]),body([]),wrap((req,res,next)=>{if(!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(req.params.runId))bad();return attemptHandlers.resumePredefense(req,res,next);}));
+ router.post('/decisions/:admissionId/authorize',auth(),query([]),body([]),wrap((req,res,next)=>{if(!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(req.params.admissionId))bad();return attemptHandlers.authorizeDecision(req,res,next);}));
+ for(const [route,param,handler] of [['operations','operationId','recoverOperation'],['decisions','admissionId','recoverDecision'],['publications','decisionId','publishDecision'],['blocked-publications','runId','publishBlocked'],['predefense','runId','recoverPredefense']])router.get('/'+route+'/:'+param,auth(),query([]),wrap((req,res,next)=>{if(!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(req.params[param]))bad();return attemptHandlers[handler](req,res,next);}));
+ router.use((error,req,res,next)=>{if(res.headersSent)return next(error);let status=error.statusCode;if(error.name==='AccountLocked'||error.code==='ACCOUNT_LOCKED')status=423;if(['TokenExpiredError','JsonWebTokenError','NotBeforeError'].includes(error.name)||['SESSION_REVOKED','28000'].includes(error.code))status=401;if(error instanceof TypeError)status=400;if(![400,401,403,404,409,423,429,503].includes(status))status=503;const message=status===409&&error.code==='CTF_HINT_STALE'?'Hint availability changed; refresh stage status':({400:'Invalid CTF request',401:'Authentication required',403:'Administrator access or CTF access denied',404:'CTF resource unavailable',409:'CTF state changed; recover the operation',423:'Account locked',429:'Too many requests',503:'CTF temporarily unavailable'})[status];res.status(status).json({error:message});});
+ return router;
+}
+module.exports={createCtfAuthorityRouter};
