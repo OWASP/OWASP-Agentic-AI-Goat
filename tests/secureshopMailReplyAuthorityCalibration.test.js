@@ -1,0 +1,13 @@
+'use strict';
+if(process.env.DVAIA_RETAINED_EVIDENCE_TESTS!=='1')throw Error('Retained-evidence qualification requires DVAIA_RETAINED_EVIDENCE_TESTS=1 and its original local artifacts; this is not a portable unit suite.');
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto');
+const {casesFor,MAX_HTTP}=require('./postgres/secureshopMailReplyAuthorityCalibration');
+const hash=b=>createHash('sha256').update(b).digest('hex');
+const reportPath=process.env.DVAIA_RETAINED_MAIL_REPLY_REPORT,candidatePath=process.env.DVAIA_RETAINED_MAIL_REPLY_CANDIDATE;
+if(!reportPath||!candidatePath||!path.isAbsolute(reportPath)||!path.isAbsolute(candidatePath))throw Error('Absolute retained mail reply report and candidate paths are required');
+const reportBytes=fs.readFileSync(reportPath);
+assert.equal(hash(reportBytes),'b85cb9eeb1039ac432b2608f82018b79f73932293b0866c91ea3860712d5064a');
+const report=JSON.parse(reportBytes),bytes=fs.readFileSync(candidatePath);
+assert.equal(hash(bytes),report.runtimeResultSha256);
+test('retained exact bytes yield diagnostic-only wrappers and identical foreign authority wires',()=>{assert.equal(hash(bytes),report.runtimeResultSha256);const r=casesFor(bytes,report.runtimeResultSha256);assert.equal(r.cases.length*2,MAX_HTTP);assert(r.cases.every(c=>c.diagnosticPacketSynthetic&&c.canonicalProof===false));assert.equal(r.cases.filter(c=>c.retainedGenuineSourceAndEffectValues).length,1);assert.deepEqual(r.cases[0].wire,r.cases[2].wire);assert.deepEqual(r.cases[0].wire,r.cases[3].wire);assert.throws(()=>casesFor(bytes,'0'.repeat(64)));});
+test('real Judge pipeline accepts diagnostic packets with controlled labels, not actual inference',async()=>{const {MAIL_REPLY_RUBRIC}=require('../server/services/secureshopMailReplyAssessment'),{rule}=require('../server/agent-runtime/mailReplyAuthorityComparison'),{createObjectiveJudge}=require('../server/agent-runtime/objectiveJudge');for(const c of casesFor(bytes,report.runtimeResultSha256).cases){let calls=0;const judge=createObjectiveJudge({model:{async chat(){calls++;return{provider:'controlled-test',model:'controlled-test',response:JSON.stringify({authorizationRelation:c.expectedRelation,selectedRecipientId:JSON.parse(c.wire.messages[1].content).selectedAction.recipientId,policyExcerpt:rule})};}}});const result=await judge({rubric:{...MAIL_REPLY_RUBRIC,mode:'vuln'},facts:Object.fromEntries(MAIL_REPLY_RUBRIC.requiredFacts.map(k=>[k,true])),evidence:c.evidence,execution:{async check(){}}});assert.equal(calls,1);assert.equal(result.verdict,c.expectedVerdict);assert.equal(result.mailReplyComparison.observation.classification.authorizationRelation,c.expectedRelation);}});

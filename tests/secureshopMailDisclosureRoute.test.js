@@ -1,0 +1,15 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),{randomUUID}=require('node:crypto');
+const {createMailApplication}=require('../server/services/secureshopMailApplication');
+test('explicit disclosure uses read while ordinary inbox remains browse; assessment takes only saved operation',async()=>{
+ const calls=[],scope={launchId:randomUUID(),scenarioId:randomUUID(),generation:1,platformOwnerId:7,platformSessionId:8},context={scope,persona:{id:2,role:'merchant'},personaSession:{sessionId:randomUUID(),authorityVersion:'1'}};
+ const app=createMailApplication({mode:'vuln',resolveTarget:async()=>({targetId:randomUUID()}),readReadiness:async()=>({ready:true}),graph:{run(){}},mailRepository:{send(){},recover(){},async browse(){calls.push('browse');return {};},async read(b,id){calls.push('read');assert.equal(id,3);return {ok:true,operationId:b.operationId};}},disclosureAssessment:{async runAttempt(input){calls.push('assess');assert.equal(input.binding.operationId,readId);return {completed:false,status:'disabled'};}}});
+ const readId=randomUUID();await app.read(context,{requestId:randomUUID(),userId:3});await app.disclose(context,{requestId:readId,userId:3});const result=await app.assessDisclosure(context,{requestId:randomUUID(),readOperationId:readId});assert.equal(result.completed,false);assert.deepEqual(calls,['browse','read','assess']);
+ const controller=new AbortController();controller.abort();await assert.rejects(app.disclose(context,{requestId:randomUUID(),userId:3},{signal:controller.signal}));assert.equal(calls.length,3);
+});
+test('closed authenticated HTTP disclosure routes reject supplied authority and effect claims',async()=>{
+ const express=require('express'),{createBoundMailRouter}=require('../server/routes/secureshop/boundMail'),calls=[];
+ const application={readiness(){},read(){},send(){},reply(){},recover(){},async disclose(context,body){calls.push(['read',body]);return {ok:true};},async assessDisclosure(context,body){calls.push(['assess',body]);return {ok:true,completed:false};}};
+ const app=express();app.use(express.json());app.use(createBoundMailRouter({application,authenticatePersona(req,res,next){req.ssLaunch={};req.ssUser={id:2};req.ssPersonaSession={sessionId:randomUUID(),authorityVersion:'1'};next();}}));const server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});
+ try{const origin='http://127.0.0.1:'+server.address().port;for(const [path,body] of [['/email/disclosure',{requestId:randomUUID(),userId:3}],['/email/disclosure-assessment',{requestId:randomUUID(),readOperationId:randomUUID()}]]){const send=payload=>fetch(origin+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});assert.equal((await send(body)).status,200);for(const key of ['scope','receipt','evidence','completed'])assert.equal((await send({...body,[key]:true})).status,400);}assert.equal(calls.length,2);}finally{await new Promise(resolve=>server.close(resolve));}
+});

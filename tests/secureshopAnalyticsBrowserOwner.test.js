@@ -1,0 +1,12 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),{EventEmitter}=require('node:events');
+const {bounded,retireChild}=require('./fixtures/secureshopAnalyticsBrowserOwner');
+test('nonsettling close is bounded and retained as failure',async()=>{await assert.rejects(bounded(new Promise(()=>{}),5,'close deadline'),/close deadline/);});
+test('physical join escalates then waits for actual exit',async()=>{const child=new EventEmitter();child.exitCode=null;child.signalCode=null;const calls=[];child.kill=signal=>{calls.push(signal);if(signal==='SIGKILL')setImmediate(()=>{child.signalCode=signal;child.emit('exit',null,signal);});};await retireChild(child,{timeoutMs:5});assert.deepEqual(calls,['SIGTERM','SIGKILL']);assert.equal(child.signalCode,'SIGKILL');});
+test('unknown physical exit remains failure',async()=>{const child=new EventEmitter();child.exitCode=null;child.signalCode=null;child.kill=()=>{};await assert.rejects(retireChild(child,{timeoutMs:5}),/physical exit unavailable/);});
+test('already reaped child is not signaled',async()=>{const child=new EventEmitter();child.exitCode=0;child.signalCode=null;child.kill=()=>assert.fail('unexpected signal');await retireChild(child);});
+
+test('one cleanup rejection cannot skip child or pool drain',async()=>{const {settleOwnership}=require('./fixtures/secureshopAnalyticsBrowserOwner');const calls=[];const results=await settleOwnership([['browser',()=>{throw Error('private');}],['children',async()=>calls.push('children')],['pool',async()=>calls.push('pool')]],10);assert.deepEqual(calls,['children','pool']);assert.equal(results[0].status,'rejected');assert(!JSON.stringify(results).includes('private'));});
+test('owned cooperative subprocess is physically reaped before success',async()=>{const {spawn}=require('node:child_process'),{once}=require('node:events');const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});await once(child,'spawn');await retireChild(child,{timeoutMs:500});assert.notEqual(child.signalCode,null);assert.throws(()=>process.kill(child.pid,0),{code:'ESRCH'});});
+
+test('reaped leader never claims descendant absence or permits profile deletion',()=>{const {profileDisposition}=require('./fixtures/secureshopAnalyticsBrowserOwner');const record=profileDisposition(123,{pgid:99});assert.equal(record.leaderReaped,true);assert.equal(record.descendantAbsence,'unverified');assert.equal(record.profileAbsent,false);assert.equal(record.pgid,99);assert.equal(record.cleanupOwner,'outer-all-owned-groups');});

@@ -1,0 +1,7 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
+const curriculum=require('../server/config/secureshopCurriculum'),helper=require('./fixtures/secureshopInventoryCandidateCatalog'),id='ss_inventory_cross_merchant_stock';
+test('inventory source is instructor eligible but default disabled with actionable owned task and exact no-op staging',()=>{
+ const source=fs.readFileSync('server/config/secureshopCurriculum.js','utf8');assert.equal(helper.stageInventoryCandidateCatalog(source),source);assert.equal(curriculum.isQualifiedObjective(id),true);assert.equal(curriculum.OBJECTIVES.find(row=>row.id===id).defaultEnabled,false);assert.equal(curriculum.CHALLENGE.defaultVisible,false);assert.match(curriculum.HINTS[id].hints[0],/merchant.*Overview.*Ask about stock/);assert.doesNotMatch(curriculum.HINTS[id].hints.join(' '),/Pending qualification/);assert.match(curriculum.SOLUTIONS[id].examples[0].explanation,/fixed mode denies.*genuine model-selected.*before\/after receipt.*canonical Judge/i);assert.equal(require('../server/services/secureshopInventoryProduction').PRODUCTION_QUALIFIED,true);
+ for(const changed of[source.replace(helper.HINT,'Unreviewed hint'),source.replace('Compare your merchant identity','Unreviewed merchant identity'),source.replace('Cause the inventory agent to change','Unreviewed agent to change'),source.replace('As the merchant, use Inventory to ask the assistant','Unreviewed instruction to ask the assistant')])assert.throws(()=>helper.stageInventoryCandidateCatalog(changed));
+});

@@ -1,0 +1,6 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const {heldJudge}=require('./postgres/secureshopMailHeaderLifecycle.cohort');
+test('held Judge reset abort settles without invoking late delegate',async()=>{const controller=new AbortController();let calls=0;const hold=heldJudge(async()=>{calls++;});const pending=hold.judge({execution:{signal:controller.signal,check:async()=>controller.signal.throwIfAborted()}});await hold.entered;controller.abort(Error('owned reset'));await assert.rejects(pending,/owned reset/);hold.release();assert.equal(calls,0);});
+test('release checks canonical authority before invoking Judge',async()=>{let calls=0;const hold=heldJudge(async()=>{calls++;return 'pass';});const pending=hold.judge({execution:{signal:new AbortController().signal,check:async()=>{throw Error('stale generation');}}});await hold.entered;hold.release();await assert.rejects(pending,/stale generation/);assert.equal(calls,0);});
+test('released current boundary delegates exactly once',async()=>{let calls=0;const hold=heldJudge(async()=>{calls++;return 'pass';});const pending=hold.judge({execution:{signal:new AbortController().signal,check:async()=>{}}});await hold.entered;hold.release();assert.equal(await pending,'pass');assert.equal(calls,1);});
