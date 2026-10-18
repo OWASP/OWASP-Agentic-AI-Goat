@@ -1,0 +1,15 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const {probeStoreIsolation}=require('./fixtures/fullBackendStoreIsolationProbe');
+function fixture(change){let calls=0;const stores=Array.from({length:16},(_,i)=>({database:'store_'+i,runtimeRole:'runtime_'+i,migrationRole:'migration_'+i}));for(const s of stores)s.client={async query(q){calls++;assert.equal(q.query_timeout,5000);assert.equal(q.values[0].length,16);assert.equal(q.values[1].length,31);const row={role:s.runtimeRole,database:s.database,rolsuper:false,rolcreatedb:false,rolcreaterole:false,rolbypassrls:false,connect:[s.database],memberships:[]};return{rows:[change?change(row):row]};}};return{stores,signal:new AbortController().signal,calls:()=>calls};}
+test('inert caller-owned probe checks all sixteen runtime bindings',async()=>{const f=fixture();assert.equal(f.calls(),0);assert.equal((await probeStoreIsolation(f)).stores,16);assert.equal(f.calls(),16);});
+test('denies privilege escalation, sibling connection, membership, wrong endpoint and missing own grant',async()=>{for(const patch of [{rolsuper:true},{rolcreatedb:true},{rolcreaterole:true},{rolbypassrls:true},{connect:['store_0','store_1']},{connect:[]},{memberships:['migration_0']},{memberships:['runtime_1']},{role:'migration_0'},{database:'store_1'}])await assert.rejects(probeStoreIsolation(fixture(r=>({...r,...patch}))));});
+test('rejects incomplete/duplicate admission and cancellation without dispatch',async()=>{const f=fixture();await assert.rejects(probeStoreIsolation({...f,stores:f.stores.slice(1)}));const g=fixture();g.stores[1].database=g.stores[0].database;await assert.rejects(probeStoreIsolation(g));await assert.rejects(probeStoreIsolation({...f,signal:AbortSignal.abort()}));assert.equal(f.calls(),0);});
+test('integration closes all caller pools on success, denial, abort and partial construction',async()=>{
+ const {qualifyStoreIsolation}=require('./fixtures/fullBackendStoreIsolationProbe');
+ for(const mode of ['success','deny','abort','partial','cleanup']){
+  const c=new AbortController(),f=fixture(),env={},manifest=f.stores.map((s,i)=>{const schema='test_'+i,runtimeRole='dvaia_'+schema+'_runtime';env['R'+i]='postgresql://'+runtimeRole+'@127.0.0.1:5432/'+s.database;env['M'+i]='postgresql://dvaia_'+schema+'_migration@127.0.0.1:5432/'+s.database;return{schema,runtimeRole,runtimeVariable:'R'+i,migrationVariable:'M'+i};});let made=0,ended=0;
+  const createPool=(_env,key)=>{if(mode==='partial'&&made===3)throw Error('construction');const i=made++;return{async query(){if(mode==='abort')c.abort();return{rows:[{role:manifest[i].runtimeRole,database:f.stores[i].database,rolsuper:mode==='deny',rolcreatedb:false,rolcreaterole:false,rolbypassrls:false,connect:[f.stores[i].database],memberships:[]}]};},async end(){ended++;if(mode==='cleanup')throw Error('close');}};};
+  const job=qualifyStoreIsolation({manifest,env,signal:c.signal,createPool});if(mode==='success')assert.equal((await job).stores,16);else await assert.rejects(job);assert.equal(ended,made);
+ }
+});
