@@ -1,0 +1,5 @@
+{
+  "trace_to_stdout": false,
+  "log_file": "server/logs/agent-host.log",
+  "redact_patterns": []
+}
