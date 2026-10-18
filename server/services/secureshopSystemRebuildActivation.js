@@ -1,0 +1,6 @@
+'use strict';
+const FLAG='SS_BOUND_SYSTEM_REBUILD_ENABLED';
+const invalid=()=>Object.assign(new Error('Bound System rebuild activation is invalid'),{code:'INVALID_CONFIGURATION'});
+function activationPolicy(env=process.env){const value=env[FLAG];if(value!==undefined&&!['true','false'].includes(value))throw invalid();if(value!=='true')return Object.freeze({requested:false});if(env.SS_ENABLE!=='true'||env.SS_BOUND_REVIEWS_ENABLED!=='true'||env.PLATFORM_DATABASE_ENGINE!=='postgres'||env.WORKSHOP_DATABASE_ENGINE!=='postgres')throw invalid();return Object.freeze({requested:true});}
+async function prepareSystemRebuild({env=process.env,workshopRagProduction}={}){const policy=activationPolicy(env);if(!policy.requested)return false;let stage='runtime';try{stage='warm-interface';if(typeof workshopRagProduction?.warmEmbedding!=='function')throw invalid();stage='status-interface';if(typeof workshopRagProduction?.embeddingStatus!=='function')throw invalid();stage='warm';if(await workshopRagProduction.warmEmbedding()!==true)throw invalid();stage='status';if(workshopRagProduction.embeddingStatus()!=='ready')throw invalid();return true;}catch{throw Object.assign(new Error(`Requested bound System rebuild runtime is unavailable (${stage})`),{code:'SYSTEM_REBUILD_UNAVAILABLE'});}}
+module.exports={SYSTEM_REBUILD_FLAG:FLAG,activationPolicy,prepareSystemRebuild};

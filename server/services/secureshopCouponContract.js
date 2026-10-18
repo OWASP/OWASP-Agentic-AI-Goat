@@ -1,0 +1,23 @@
+'use strict';
+const {createHash}=require('node:crypto');
+const {createLaunchScope}=require('./secureshopConversationBinding');
+const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
+const fail=code=>Object.assign(Error('Bound coupon unavailable'),{code});
+const hash=value=>createHash('sha256').update(typeof value==='string'?value:JSON.stringify(value)).digest('hex');
+function exact(value,keys){if(!value||Object.getPrototypeOf(value)!==Object.prototype||Reflect.ownKeys(value).length!==keys.length||keys.some(k=>!Object.hasOwn(Object.getOwnPropertyDescriptor(value,k)||{},'value')))throw fail('COUPON_INVALID');}
+function text(value,max){if(typeof value!=='string'||!value.isWellFormed()||value.includes('\0')||Buffer.byteLength(value)>max)throw fail('COUPON_INVALID');return value;}
+function coupon(value){exact(value,['id','code','discount_percent','active']);if(!Number.isSafeInteger(value.id)||value.id<1||!Number.isInteger(value.discount_percent)||value.discount_percent<0||value.discount_percent>100||![0,1].includes(value.active))throw fail('COUPON_INVALID');const code=text(value.code,1024);if(!code&&value.active!==0)throw fail('COUPON_INVALID');return Object.freeze({id:value.id,code,discount_percent:value.discount_percent,active:value.active});}
+function bank(values){if(!Array.isArray(values)||Object.getPrototypeOf(values)!==Array.prototype||values.length<1||values.length>64||Reflect.ownKeys(values).length!==values.length+1)throw fail('COUPON_INVALID');const result=[];for(let i=0;i<values.length;i++){const d=Object.getOwnPropertyDescriptor(values,String(i));if(!d||!Object.hasOwn(d,'value'))throw fail('COUPON_INVALID');result.push(coupon(d.value));}if(new Set(result.map(r=>r.id)).size!==result.length||new Set(result.map(r=>r.code)).size!==result.length)throw fail('COUPON_INVALID');return Object.freeze(result.sort((a,b)=>a.id-b.id));}
+function lookup(raw){exact(raw,['scope','operationId','persona','personaSession','mode','code','coupons']);const scope=createLaunchScope(raw.scope);exact(raw.persona,['id','role']);exact(raw.personaSession,['sessionId','authorityVersion']);if(!UUID.test(raw.operationId)||raw.persona.role!=='customer'||!Number.isSafeInteger(raw.persona.id)||raw.persona.id<1||!UUID.test(raw.personaSession.sessionId)||!/^[1-9][0-9]*$/.test(raw.personaSession.authorityVersion)||!['vuln','fixed'].includes(raw.mode))throw fail('COUPON_INVALID');return Object.freeze({...raw,scope,persona:Object.freeze({...raw.persona}),personaSession:Object.freeze({...raw.personaSession}),code:text(raw.code,1024),coupons:bank(raw.coupons)});}
+function statement(input){const request=lookup(input),values=[JSON.stringify(request.coupons)];
+ // @intentional-vulnerability sqli-coupon
+ // Only the owned launch SQL database receives this deliberate predicate sink.
+ const predicate=request.mode==='vuln'?`code='${request.code.replace(/;/g,'')}'`:'code=$2';
+ if(request.mode==='fixed')values.push(request.code);
+ return Object.freeze({text:`WITH coupons AS (SELECT * FROM jsonb_to_recordset($1::jsonb) AS c(id integer,code text,discount_percent integer,active integer)) SELECT id,code,discount_percent,active FROM (SELECT id,code,discount_percent,active FROM coupons WHERE ${predicate} AND active=1\n) AS selected_coupon LIMIT 1`,values:Object.freeze(values)});
+}
+function selected(rows,coupons){if(!Array.isArray(rows)||rows.length>1)throw fail('COUPON_RESULT_INVALID');if(!rows.length)return null;const row=coupon(rows[0]);if(row.active!==1||!bank(coupons).some(c=>JSON.stringify(c)===JSON.stringify(row)))throw fail('COUPON_RESULT_INVALID');return row;}
+function money(lines,percent=0){if(!Array.isArray(lines)||!Number.isInteger(percent)||percent<0||percent>100)throw fail('COUPON_INVALID');const gross=lines.map(n=>{if(!Number.isSafeInteger(n)||n<0)throw fail('COUPON_INVALID');return BigInt(n);}),subtotal=gross.reduce((a,b)=>a+b,0n);if(subtotal>BigInt(Number.MAX_SAFE_INTEGER))throw fail('COUPON_INVALID');const discount=(subtotal*BigInt(percent)+50n)/100n;const shares=gross.map((n,index)=>({index,value:subtotal?n*discount/subtotal:0n,remainder:subtotal?n*discount%subtotal:0n}));let remaining=discount-shares.reduce((n,v)=>n+v.value,0n);for(const item of [...shares].sort((a,b)=>a.remainder===b.remainder?a.index-b.index:a.remainder>b.remainder?-1:1)){if(!remaining)break;item.value++;remaining--;}
+ return Object.freeze({subtotalCents:Number(subtotal),discountCents:Number(discount),totalCents:Number(subtotal-discount),lineDiscountCents:Object.freeze(shares.map(s=>Number(s.value)))});
+}
+module.exports={UUID,fail,hash,exact,text,coupon,bank,lookup,statement,selected,money};
