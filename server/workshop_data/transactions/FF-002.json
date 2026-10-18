@@ -1,0 +1,16 @@
+{
+  "account_id": "FF-002",
+  "account_holder": "Brian Carter",
+  "account_number": "****-****-****-7193",
+  "account_type": "Business Checking",
+  "current_balance": 47320.50,
+  "available_balance": 47320.50,
+  "currency": "USD",
+  "transactions": [
+    { "date": "2024-11-02", "description": "Wire Transfer - Client Payment", "amount": 15000.00, "type": "credit", "balance": 47320.50 },
+    { "date": "2024-10-31", "description": "Payroll Processing Fee", "amount": -45.00, "type": "debit", "balance": 32320.50 },
+    { "date": "2024-10-30", "description": "Office Depot", "amount": -312.88, "type": "debit", "balance": 32365.50 },
+    { "date": "2024-10-28", "description": "Vendor Payment - SupplyCo", "amount": -2400.00, "type": "debit", "balance": 32678.38 },
+    { "date": "2024-10-26", "description": "SaaS Subscription - Salesforce", "amount": -299.00, "type": "debit", "balance": 35078.38 }
+  ]
+}

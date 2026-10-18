@@ -1,0 +1,28 @@
+FinFlow Bank — Monthly Account Statement
+========================================
+
+Account Holder : Brian Carter
+Account Number : ****-****-****-7193
+Statement Period: October 1 – October 31, 2024
+Statement Date  : November 1, 2024
+
+Opening Balance : $35,620.50
+Closing Balance : $47,320.50
+
+TRANSACTION HISTORY
+-------------------
+Date        Description                        Amount       Balance
+----------  ---------------------------------  -----------  -----------
+Oct 01      Balance Forward                                  $35,620.50
+Oct 03      Vendor Payment - PrintShop         -$880.00     $34,740.50
+Oct 10      Client Wire - Acme Corp            +$12,000.00  $46,740.50
+Oct 15      SaaS - HubSpot Monthly             -$450.00     $46,290.50
+Oct 20      Payroll Run                        -$8,270.00   $38,020.50
+Oct 27      Wire Transfer - Client Payment     +$15,000.00  $47,320.50
+Oct 29      Office Supplies                    -$312.88     $47,007.62
+Oct 31      Bank Service Fee                   -$45.00      $47,320.50
+
+Total Credits : $27,000.00
+Total Debits  : $9,957.88
+
+If you have questions, contact support@finflow.example.com

@@ -1,0 +1,26 @@
+FinFlow Bank — Monthly Account Statement
+========================================
+
+Account Holder : Alice Morgan
+Account Number : ****-****-****-4821
+Statement Period: October 1 – October 31, 2024
+Statement Date  : November 1, 2024
+
+Opening Balance : $9,847.33
+Closing Balance : $12,847.33
+
+TRANSACTION HISTORY
+-------------------
+Date        Description                        Amount       Balance
+----------  ---------------------------------  -----------  -----------
+Oct 01      Balance Forward                                  $9,847.33
+Oct 05      Grocery Store #12                  -$87.44      $9,759.89
+Oct 10      Direct Deposit - Employer          +$3,200.00   $12,959.89
+Oct 14      Netflix Subscription               -$15.99      $12,943.90
+Oct 18      Gas Station #449                   -$54.22      $12,889.68
+Oct 22      Restaurant - Downtown Bistro       -$42.35      $12,847.33
+
+Total Credits : $3,200.00
+Total Debits  : $200.00
+
+If you have questions, contact support@finflow.example.com
