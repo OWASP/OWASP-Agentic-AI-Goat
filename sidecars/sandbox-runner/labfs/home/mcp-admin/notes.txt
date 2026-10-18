@@ -1,0 +1,6 @@
+Ops meeting 2026-01-15:
+- MCP server deployed to prod cluster
+- Database creds in /opt/app/config/database.yml
+- Master keys moved to /var/secrets/ (restricted access)
+- Command allowlist enforced at tool-call boundary
+- TODO: fix injection vuln in command parser (low priority?)

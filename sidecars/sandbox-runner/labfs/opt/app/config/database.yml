@@ -1,0 +1,10 @@
+# Production Database Configuration
+host: 10.0.1.50
+port: 5432
+database: acme_production
+username: mcp_service
+password: McP#Pr0d!2026
+ssl_mode: require
+pool_size: 25
+
+# Do not commit this file to version control!

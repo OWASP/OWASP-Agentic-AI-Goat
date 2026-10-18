@@ -1,0 +1,4 @@
+127.0.0.1   localhost
+10.0.1.50   db.acme-corp.internal
+10.0.1.100  api.acme-corp.internal
+10.0.2.10   monitoring.internal
