@@ -1,0 +1,84 @@
+# SPDX-FileCopyrightText: Copyright The Moby Authors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Derived from the Moby default container profile at:
+# https://github.com/moby/profiles/blob/61eaf32614c7c71b60bd8927d3e6a4ffc8ff1f31/apparmor/template.go
+#
+# @@SUPERVISOR_PROFILE@@ is replaced by the application-owned renderer. The
+# parent deliberately has no `userns` rule. Only an exec of the packaged
+# /usr/bin/bwrap enters the local child profile that can construct namespaces.
+
+abi <abi/4.0>,
+include <tunables/global>
+
+profile "@@SUPERVISOR_PROFILE@@" flags=(attach_disconnected,mediate_deleted) {
+  network,
+  network unix,
+  deny network alg,
+  deny network vsock,
+  capability,
+  file,
+  umount,
+
+  signal (receive) peer=unconfined,
+  signal (receive) peer=runc,
+  signal (receive) peer=crun,
+  signal (send,receive) peer="@@SUPERVISOR_PROFILE@@",
+  signal (send) peer="@@SUPERVISOR_PROFILE@@//bwrap",
+
+  deny @{PROC}/* w,
+  deny @{PROC}/{[^1-9/],[^1-9/][^0-9/],[^1-9s/][^0-9y/][^0-9s/],[^1-9/][^0-9/][^0-9/][^0-9/]*}/** w,
+  deny @{PROC}/sys/[^k]** w,
+  deny @{PROC}/sys/kernel/{?,??,[^s][^h][^m]**} w,
+  deny @{PROC}/sysrq-trigger rwklx,
+  deny @{PROC}/kcore rwklx,
+  deny mount,
+  deny /sys/[^f]*/** wklx,
+  deny /sys/f[^s]*/** wklx,
+  deny /sys/fs/[^c]*/** wklx,
+  deny /sys/fs/c[^g]*/** wklx,
+  deny /sys/firmware/** rwklx,
+  deny /sys/devices/virtual/powercap/** rwklx,
+  deny /sys/kernel/security/** rwklx,
+
+  ptrace (trace,tracedby,read,readby) peer="@@SUPERVISOR_PROFILE@@",
+  # The same-uid supervisor reads only the spawned bwrap process label during
+  # readiness qualification; it cannot trace or mutate the learner process.
+  ptrace (read) peer="@@SUPERVISOR_PROFILE@@//bwrap",
+
+  /usr/bin/bwrap Cx -> bwrap,
+
+  profile bwrap flags=(attach_disconnected,mediate_deleted) {
+    # These rules permit bubblewrap to construct its child user, mount,
+    # network, PID, UTS and IPC namespaces. Rules do not grant Linux
+    # capabilities absent from the user namespace, and bubblewrap drops its
+    # setup capabilities before executing the learner command.
+    userns,
+    network,
+    network unix,
+    deny network alg,
+    deny network vsock,
+    capability sys_admin,
+    capability sys_chroot,
+    capability net_admin,
+    capability setuid,
+    capability setgid,
+    capability setpcap,
+    capability sys_ptrace,
+    file,
+    mount,
+    umount,
+    pivot_root,
+
+    # Container stop/kill can originate from the VM runtime after the Node
+    # supervisor has exited, so the setup/learner child must accept those
+    # narrow lifecycle signals directly as well as its parent's timeout.
+    signal (receive) peer=unconfined,
+    signal (receive) peer=runc,
+    signal (receive) peer=crun,
+    signal (receive) peer="@@SUPERVISOR_PROFILE@@",
+    signal (send,receive) peer="@@SUPERVISOR_PROFILE@@//bwrap",
+    ptrace (trace,tracedby,read,readby) peer="@@SUPERVISOR_PROFILE@@//bwrap",
+    ptrace (readby) peer="@@SUPERVISOR_PROFILE@@",
+  }
+}
