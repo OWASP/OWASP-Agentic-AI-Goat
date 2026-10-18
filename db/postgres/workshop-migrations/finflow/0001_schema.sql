@@ -1,0 +1,10 @@
+CREATE SCHEMA finflow;
+REVOKE ALL ON SCHEMA finflow FROM PUBLIC;
+CREATE TABLE finflow.objectives(objective_id text PRIMARY KEY,ordinal integer NOT NULL);
+CREATE TABLE finflow.progress(user_id text NOT NULL,objective_id text NOT NULL REFERENCES finflow.objectives(objective_id),completed boolean NOT NULL DEFAULT false,completed_at timestamptz,PRIMARY KEY(user_id,objective_id));
+CREATE TABLE finflow.tool_log(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,user_id text NOT NULL,tool_name text NOT NULL,params text,result_summary text,security_flag text,mode text,timestamp timestamptz NOT NULL DEFAULT now());
+CREATE INDEX finflow_tool_owner ON finflow.tool_log(user_id,id);
+GRANT USAGE ON SCHEMA finflow TO dvaia_finflow_runtime;
+GRANT SELECT ON finflow.objectives TO dvaia_finflow_runtime;
+GRANT SELECT,INSERT,UPDATE,DELETE ON finflow.progress,finflow.tool_log TO dvaia_finflow_runtime;
+GRANT USAGE,SELECT ON SEQUENCE finflow.tool_log_id_seq TO dvaia_finflow_runtime;

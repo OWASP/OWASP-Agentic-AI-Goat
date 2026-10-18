@@ -1,0 +1,13 @@
+CREATE SCHEMA legacy_sensitive;
+REVOKE ALL ON SCHEMA legacy_sensitive FROM PUBLIC;
+CREATE TABLE legacy_sensitive.documents(id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,filename text NOT NULL UNIQUE,file_path text NOT NULL,category text NOT NULL,description text);
+INSERT INTO legacy_sensitive.documents(filename,file_path,category,description) VALUES('welcome.txt','/public/welcome.txt','public','Welcome message for all users'),('info.html','/public/info.html','public','Public information page'),('readme.md','/public/readme.md','public','Public documentation');
+CREATE TABLE legacy_sensitive.owner_state(user_id bigint PRIMARY KEY,generation integer NOT NULL DEFAULT 0);
+CREATE TABLE legacy_sensitive.access_logs(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,user_id bigint NOT NULL,file_path text NOT NULL,access_type text,status text,ip_address text,user_agent text,timestamp timestamptz NOT NULL DEFAULT now());
+CREATE TABLE legacy_sensitive.judgments(id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,user_id bigint NOT NULL,generation integer NOT NULL,challenge_type text NOT NULL CHECK(challenge_type IN('path_traversal','ssi_injection','combined_traversal_ssi','ai_assisted_path_traversal','ai_assisted_ssi')),flag_found text,exploit_used text,success integer NOT NULL CHECK(success IN(0,1)),run_id uuid NOT NULL,judgment jsonb NOT NULL,timestamp timestamptz NOT NULL DEFAULT now(),UNIQUE(user_id,run_id,challenge_type));
+GRANT USAGE ON SCHEMA legacy_sensitive TO dvaia_finflow_runtime;
+GRANT SELECT ON legacy_sensitive.documents TO dvaia_finflow_runtime;
+GRANT SELECT,INSERT,UPDATE ON legacy_sensitive.owner_state TO dvaia_finflow_runtime;
+GRANT SELECT,INSERT,DELETE ON legacy_sensitive.access_logs TO dvaia_finflow_runtime;
+GRANT SELECT,INSERT ON legacy_sensitive.judgments TO dvaia_finflow_runtime;
+GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA legacy_sensitive TO dvaia_finflow_runtime;
