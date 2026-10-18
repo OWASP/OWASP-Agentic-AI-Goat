@@ -1,0 +1,3 @@
+[AUDIT] 2024-01-15T10:23:45Z principal=student action=login result=success request_id=fixture-audit-001
+[AUDIT] 2024-01-15T10:24:12Z principal=student action=config_read resource=/config/database.yml result=denied request_id=fixture-audit-002
+[AUDIT] 2024-01-15T10:26:15Z principal=admin action=panel_view result=success request_id=fixture-audit-003

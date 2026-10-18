@@ -1,0 +1,13 @@
+Congratulations! You've completed Level 1: Path Traversal - Basic
+
+You successfully bypassed the extension whitelist filter and accessed 
+restricted configuration files using path traversal techniques.
+
+FLAG{LEVEL_1_PATH_TRAVERSAL_MASTER}
+
+Techniques Mastered:
+- Directory traversal with ../
+- Extension bypass (.txt appending)
+- Path manipulation
+
+Next Challenge: Level 2 - Server-Side Includes Injection

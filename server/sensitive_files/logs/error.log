@@ -1,0 +1,8 @@
+[ERROR] 2024-01-15 11:15:22 - Failed to connect to database
+Connection string: postgresql://dbadmin:dbP@ssw0rd_2024_Secure!@db.fileserve.internal:5432/fileserve_prod
+
+[ERROR] 2024-01-15 11:16:05 - Authentication failed for user 'guest'
+
+FLAG{LOG_002_ERROR_TRACES}
+
+[ERROR] 2024-01-15 11:17:33 - File not found: /admin/backup_keys.pem

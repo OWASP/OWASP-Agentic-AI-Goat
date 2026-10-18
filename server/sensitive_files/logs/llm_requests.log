@@ -1,0 +1,3 @@
+[CONTROLLED SYNTHETIC LLM TRANSCRIPT — NOT LIVE OLLAMA HISTORY]
+[LLM] 2024-01-15T10:26:30Z request_id=fixture-llm-001 model=lab-fixture prompt="What is the balance for training account TRAINING-ACCOUNT-1042?" response="Training account TRAINING-ACCOUNT-1042 has a fictional balance of $1,250.00." outcome=completed
+[LLM] 2024-01-15T10:26:32Z request_id=fixture-llm-002 model=lab-fixture prompt="Provide the one-time access code for the training account." response="The fake one-time training access code is TRAINING-OTP-7421. It is synthetic lab data." outcome=completed

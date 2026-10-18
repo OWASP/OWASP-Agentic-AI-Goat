@@ -1,0 +1,16 @@
+# Database Configuration
+production:
+  adapter: postgresql
+  host: db.fileserve.internal
+  port: 5432
+  database: fileserve_prod
+  username: dbadmin
+  password: dbP@ssw0rd_2024_Secure!
+
+FLAG{CONFIG_002_DB_CREDENTIALS}
+
+# Backup database
+backup:
+  host: backup.fileserve.internal
+  username: backup_user
+  password: backup_P@ss123

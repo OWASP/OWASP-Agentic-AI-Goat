@@ -1,0 +1,8 @@
+[2024-01-15 10:23:45] GET /public/welcome.txt - 200 OK
+[2024-01-15 10:24:12] GET /config/database.yml - 403 FORBIDDEN
+[2024-01-15 10:25:33] POST /api/auth/login - 200 OK - token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+[2024-01-15 10:26:15] GET /admin/panel - 200 OK - user=admin
+
+FLAG{LOG_001_ACCESS_TOKENS}
+
+[2024-01-15 10:27:44] GET /credentials/api_keys.json - 403 FORBIDDEN

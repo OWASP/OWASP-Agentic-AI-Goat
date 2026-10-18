@@ -1,0 +1,8 @@
+# DVAIA CONTROLLED SYNTHETIC TRAVERSAL FIXTURE — NOT LIVE PROVIDER CONFIG
+llm:
+  provider: ollama
+  endpoint: http://localhost:11434
+  model: llama3.1:8b
+  fixture_mode: true
+logging:
+  log_prompts: false
