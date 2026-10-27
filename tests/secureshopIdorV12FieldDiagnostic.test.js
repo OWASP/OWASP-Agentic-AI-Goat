@@ -480,6 +480,27 @@ test('V7 outgoing comparison schema requires positive grounding and preserves bo
 // They replay private retained artifacts and therefore stay outside the
 // portable aggregate unless the standard retained-evidence opt-in is explicit.
 const retainedV8Test = process.env.DVAIA_RETAINED_EVIDENCE_TESTS === '1' ? test : test.skip;
+test('V8 retained lookup dependency is lazy and fails closed before retained-wire access when unavailable', () => {
+  const Module = require('node:module');
+  const resolve = Module._resolveFilename;
+  Module._resolveFilename = function(request, parent, ...rest) {
+    if (request === '../../tasks/secureshop-v36-grounding-v2-diagnostic' &&
+      parent?.filename === require.resolve('./fixtures/secureshopIdorV12FieldDiagnostic')) {
+      const error = new Error(`Cannot find module '${request}'`);
+      error.code = 'MODULE_NOT_FOUND';
+      throw error;
+    }
+    return resolve.call(this, request, parent, ...rest);
+  };
+  try {
+    assert.equal(typeof D.v8ReadSources, 'function');
+    assert.throws(() => D.v8SourcePins(), { code: 'V8_RETAINED_LOOKUP_DIAGNOSTIC_UNAVAILABLE' });
+    assert.throws(() => D.v8ReadSources({ v12WirePath: '/missing/retained-wire.json' }),
+      { code: 'V8_RETAINED_LOOKUP_DIAGNOSTIC_UNAVAILABLE' });
+  } finally {
+    Module._resolveFilename = resolve;
+  }
+});
 const V8_V12_WIRE='/Users/averma5/.dvaia/recovery/secureshop-idor-browser-2026-10-12/run-3m4cqits/idor-lesson-original-wire.json';
 const v8Sources=()=>D.v8ReadSources({v12WirePath:V8_V12_WIRE});
 function v8ControlledAnswer(item,sources){

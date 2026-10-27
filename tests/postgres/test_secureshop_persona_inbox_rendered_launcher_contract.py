@@ -209,7 +209,8 @@ class PersonaInboxRenderedLauncherContract(unittest.TestCase):
             sibling = evidence / 'sibling-profile'
             sibling.mkdir()
             self.assertNotEqual(identity['workerPid'], pgid)
-            with patch.object(LAUNCHER.subprocess, 'run', return_value=SimpleNamespace(stdout='')) as roster:
+            with patch.object(LAUNCHER.sys, 'platform', 'linux'), \
+                    patch.object(LAUNCHER.subprocess, 'run', return_value=SimpleNamespace(stdout='')) as roster:
                 self.assertTrue(LAUNCHER.c31_browser_profile_cleanup(evidence, pgid, 'a' * 64))
             self.assertEqual(roster.call_count, 1)
             self.assertFalse(profile.exists())
@@ -222,7 +223,26 @@ class PersonaInboxRenderedLauncherContract(unittest.TestCase):
                 pgid, profile, _identity = self.browser_fixture(evidence)
                 text = (f'123499 {pgid} {os.getuid()} owned-child\n' if kind == 'group'
                         else f'123499 987654 {os.getuid()} browser --user-data-dir={profile}\n')
-                with patch.object(LAUNCHER.subprocess, 'run', return_value=SimpleNamespace(stdout=text)):
+                with patch.object(LAUNCHER.sys, 'platform', 'linux'), \
+                        patch.object(LAUNCHER.subprocess, 'run', return_value=SimpleNamespace(stdout=text)):
+                    with self.assertRaises(RuntimeError):
+                        LAUNCHER.c31_browser_profile_cleanup(evidence, pgid, 'a' * 64)
+                self.assertTrue((profile / 'owned-data').is_file())
+
+    def test_darwin_cleanup_rejects_escaped_profile_and_reused_journal_identity(self):
+        for kind in ('pid', 'group', 'session', 'profile', 'unreadable'):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as temporary:
+                evidence = Path(temporary).resolve()
+                pgid, profile, identity = self.browser_fixture(evidence)
+                record = {'pid': identity['pid'] if kind == 'pid' else 987651,
+                          'pgid': pgid if kind == 'group' else 987652,
+                          'sessionId': pgid if kind == 'session' else 987653,
+                          'uid': os.getuid() + 1 if kind == 'pid' else os.getuid(),
+                          'arguments': ('browser', '--user-data-dir=' + str(profile))
+                                       if kind == 'profile' else None}
+                with patch.object(LAUNCHER.sys, 'platform', 'darwin'), \
+                        patch('darwin_process_inventory.process_records', return_value=[record],
+                              side_effect=RuntimeError('unavailable') if kind == 'unreadable' else None):
                     with self.assertRaises(RuntimeError):
                         LAUNCHER.c31_browser_profile_cleanup(evidence, pgid, 'a' * 64)
                 self.assertTrue((profile / 'owned-data').is_file())

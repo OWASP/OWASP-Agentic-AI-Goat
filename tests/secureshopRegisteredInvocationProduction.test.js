@@ -43,7 +43,7 @@ test('composition opens migration pool only for enabled qualified serving and cl
  for(const qualified of [false,true])for(const enabled of [false,true])for(const failed of [false,true]){
   let opens=0,closes=0;const pool={async end(){closes++;}};
   const module={REGISTERED_INVOCATION_QUALIFIED:qualified,async createRegisteredInvocationProduction(opts){assert.equal(opts.migrationPool,qualified&&enabled?pool:undefined);if(failed)throw Error('readiness denied');return{ready:false};}};
-  const work=vm.runInNewContext('(async()=>{let createdRegisteredInvocation;'+source.slice(start,end)+'})()',{identityPool:{},preparedGrading:undefined,featureModeAuthority:null,require:()=>module,resetComposition:{registeredInvocation:{configuration:{enabled}}},createPool:()=>{opens++;return pool;},process:{env:{}},snapshot:{configured:{}},value:{}});
+  const work=vm.runInNewContext('(async()=>{let createdRegisteredInvocation;'+source.slice(start,end)+'})()',{identityPool:{},preparedGrading:undefined,assessmentReleaseAdmission:undefined,featureModeAuthority:null,require:()=>module,resetComposition:{registeredInvocation:{configuration:{enabled}}},createPool:()=>{opens++;return pool;},process:{env:{}},snapshot:{configured:{}},value:{}});
   if(failed)await assert.rejects(work,/readiness denied/);else await work;
   assert.equal(opens,Number(qualified&&enabled));assert.equal(closes,Number(qualified&&enabled));
  }
@@ -63,7 +63,7 @@ test('registered production constructs separate V43 and description assessment f
  let captured,descriptionCaptured,routeRuntime,resolveRead,readStarted; const descriptionAssessment={},publicationModes={};
  const activeRead=new Promise(resolve=>{resolveRead=resolve;}),began=new Promise(resolve=>{readStarted=resolve;});
  const overrides={
-  './secureshopGradingBootstrap':{resolveSecureShopGradingBootstrap(token,inputs){assert.equal(token,gradingBootstrap);assert.deepEqual(inputs,{identityPool,agentsPool,resetComposition});return {...dependencies,assessmentDependencies:dependencies};}},
+  './secureshopGradingBootstrap':{resolveSecureShopGradingBootstrap(token,inputs){assert.equal(token,gradingBootstrap);assert.deepEqual(inputs,{identityPool,agentsPool,resetComposition,assessmentReleaseAdmission:undefined});return {...dependencies,assessmentDependencies:dependencies};}},
   '../database/postgres/secureshopModeRepository':{createSecureShopModeRepository(pool){assert.equal(pool,identityPool);return publicationModes;}},
   '../database/postgres/secureshopMcpDescriptionEvidenceRepository':{createMcpDescriptionEvidenceRepository(input){assert.equal(input.identityPool,identityPool);assert.equal(input.journal,resetComposition.journal);assert.equal(typeof input.current,'function');return{readSource:async()=>{}};}},
   './secureshopMcpDescriptionAssessment':{createMcpDescriptionAssessment(input){descriptionCaptured=input;return descriptionAssessment;}},

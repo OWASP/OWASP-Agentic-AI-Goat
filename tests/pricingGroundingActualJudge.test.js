@@ -3,7 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const {declarations,packet}=require('./fixtures/pricingGroundingActualJudge');
 const {transport}=require('./fixtures/pricingDirectiveGroupsActualJudge');
-const {PRICING_RUBRICS}=require('../server/services/secureshopPricingAssessment');
+const {LEGACY_PRICING_RUBRICS:PRICING_RUBRICS}=require('../server/services/secureshopPricingAssessment');
 
 test('five fixed responses bind one recorded unverified observation and exclude expected labels from model packet',()=>{
  const set=declarations(process.cwd());assert.equal(set.cases.length,5);

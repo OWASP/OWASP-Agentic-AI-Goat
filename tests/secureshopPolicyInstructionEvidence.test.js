@@ -79,6 +79,40 @@ test('V24 candidate joins original physical publication, saved run snapshot, neu
  assert.equal(candidate.evidence[2].content,'System health');
 });
 
+test('V24 accepts JSONB-reordered saved typed source while binding original raw tool-result text',async()=>{
+ const {args}=fixture();
+ const raw=structuredClone(args.turn.hops[0].result);
+ const source=args.turn.taskMetadata.roleChat.systemConfigRead;
+ const reorder=value=>Array.isArray(value)?value.map(reorder):value&&typeof value==='object'
+  ?Object.fromEntries(Object.entries(value).sort(([left],[right])=>right.localeCompare(left))
+   .map(([key,item])=>[key,reorder(item)])):value;
+ args.turn.taskMetadata.roleChat.systemConfigRead=reorder(source);
+ assert.notEqual(raw.content[0].text,JSON.stringify(args.turn.taskMetadata.roleChat.systemConfigRead));
+ const candidate=buildPolicyInstructionCandidate(args);
+ assert.equal(candidate?.objectiveId,RUBRIC.objectiveId);
+ assert.deepEqual(candidate.evidence[1].content.traceChain[2].result,raw);
+ let calls=0;const guard=createPolicyInstructionJudgeGuard(async()=>{calls++;return {verdict:'pass'};});
+ const input={rubric:{...RUBRIC,mode:'vuln'},facts:candidate.facts,evidence:candidate.evidence};
+ assert.equal((await guard(input)).verdict,'pass');assert.equal(calls,1);
+});
+
+test('V24 rejects changed typed read, malformed/extra tool blocks and trace raw mismatch',()=>{
+ const changes=[
+  a=>{a.turn.hops[0].result.content[0].text='not-json';},
+  a=>{a.turn.hops[0].result.content[0].text=JSON.stringify({different:true});},
+  a=>{const value=JSON.parse(a.turn.hops[0].result.content[0].text);
+   value.result.content='changed';a.turn.hops[0].result.content[0].text=JSON.stringify(value);},
+  a=>{a.turn.taskMetadata.roleChat.systemConfigRead.result.content='changed';},
+  a=>{a.turn.hops[0].result.content.push({type:'text',text:'extra'});},
+  a=>{a.turn.hops[0].result.content[0].type='image';},
+  a=>{a.turn.hops[0].result.content[0].text='x'.repeat(16385);},
+  a=>{a.traces[2].result_json=JSON.stringify({content:[{type:'text',
+   text:JSON.stringify(Object.fromEntries(Object.entries(a.turn.taskMetadata.roleChat.systemConfigRead).reverse()))}]});},
+ ];
+ for(const change of changes){const {args}=fixture();change(args);
+  assert.equal(buildPolicyInstructionCandidate(args),null);}
+});
+
 test('V24 rejects mutable-head substitution, a requested path, forged original binding, and changed receipt',()=>{
  for(const change of [
   a=>{a.snapshotRecord={...a.snapshotRecord,snapshot:{...a.snapshotRecord.snapshot,policyVersion:'3'}};},

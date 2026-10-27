@@ -1,5 +1,5 @@
 'use strict';
-const {isAssessmentReleaseAllowed}=require('../config/secureshopCurriculum');
+const {resolveAssessmentReleaseAdmission}=require('./secureshopAssessmentReleaseAdmission');
 const {isDeepStrictEqual}=require('node:util');
 const {assertSecureShopStandalonePrincipal}=require('./secureshopStandaloneAuth');
 const {createLaunchScope,createConversationBinding}=require('./secureshopConversationBinding');
@@ -43,11 +43,12 @@ async function assertIdorRecoveryPacket({row,prepared,modeAuthority,scenes,quali
   await token.assertCurrent();}};
 }
 function createSecureShopAssessmentRecovery({identityPool,authService,bootstrap,launches,personaAuth,personaAuthority,
- modeAuthority,scenes,systemConfigAssessment,analyticsNlSqlAssessment,qualifyAnalyticsModel,mcpDescriptionAssessment,qualifyIdorModel,couponAssessment,couponBlindAssessment,v01AuditAssessment,uploadAssessment,polyglotUploadAssessment,traversalAssessment,svgUploadAssessment,fileSummaryAssessment,filePathSummaryAssessment,mailAgentReadAssessment,productUnionAssessment,orderStatusErrorAssessment,qualifyCouponModel,ticketAssessment,mcpManifestAssessment,mcpRegistrySsrfAssessment,userLookupAssessment,searchEchoAssessment,manualRagAssessment,productSummaryAssessment,agencyRoleAssessment,systemDiagnosticAssessment,systemRestartInjectionAssessment,mailInlineAssessment,mailHtmlInjectionAssessment,coordinatorFactory=family=>require('../agent-runtime/runCoordinator').createRunCoordinator({family}),judge}={}){
+ modeAuthority,scenes,systemConfigAssessment,analyticsNlSqlAssessment,qualifyAnalyticsModel,mcpDescriptionAssessment,qualifyIdorModel,couponAssessment,couponBlindAssessment,v01AuditAssessment,uploadAssessment,polyglotUploadAssessment,traversalAssessment,svgUploadAssessment,fileSummaryAssessment,filePathSummaryAssessment,mailAgentReadAssessment,productUnionAssessment,orderStatusErrorAssessment,qualifyCouponModel,ticketAssessment,mcpManifestAssessment,mcpRegistrySsrfAssessment,userLookupAssessment,searchEchoAssessment,manualRagAssessment,productSummaryAssessment,agencyRoleAssessment,systemDiagnosticAssessment,systemRestartInjectionAssessment,mailInlineAssessment,mailHtmlInjectionAssessment,assessmentReleaseAdmission,coordinatorFactory=family=>require('../agent-runtime/runCoordinator').createRunCoordinator({family}),judge}={}){
  if(typeof identityPool?.query!=='function'||typeof authService?.establishTenantContext!=='function'
   ||typeof bootstrap!=='function'||typeof launches?.resolveCapability!=='function'
   ||typeof personaAuth?.authenticateBoundToken!=='function'||typeof personaAuthority?.capture!=='function'
   ||typeof coordinatorFactory!=='function'||(judge!==undefined&&typeof judge!=='function'))throw TypeError('Shop recovery dependencies required');
+ const release=resolveAssessmentReleaseAdmission(assessmentReleaseAdmission,{identityPool});
  const coordinators=new Map(),subjects=createSecureShopAssessmentSubjects({identityPool,launches,personaAuthority});
  async function prepare(base){
   const context=assertSecureShopStandalonePrincipal(await authService.establishTenantContext(base));
@@ -57,6 +58,7 @@ function createSecureShopAssessmentRecovery({identityPool,authService,bootstrap,
   if(actor?.user?.id!==context.shopUserId)throw fail('SHOP_ASSESSMENT_STALE');
   const input={scope,personaId:actor.user.id,role:actor.user.role,sessionId:actor.sessionId,authorityVersion:actor.authorityVersion};
   const fence=personaAuthority.capture(input);await fence.assertRemoteAdmission();
+  await release.assertScope(scope);
   return {context,input,fence};
  }
  function originalAuthority(row,prepared){
@@ -540,7 +542,7 @@ function createSecureShopAssessmentRecovery({identityPool,authService,bootstrap,
  function eligible(row,prepared){
   const stamp=createHash('sha256').update(JSON.stringify(['shop-tenant-mode-v1',prepared.context.tenantId,
    prepared.context.principalId,row.live_generation,row.live_revision,row.live_mode])).digest('hex');
-  return Boolean(isAssessmentReleaseAllowed(row.objective_id)&&originalAuthority(row,prepared)&&!row.is_child&&row.verdict==='unavailable'&&row.disposition==='not_pass'
+  return Boolean(release.isAllowed(row.objective_id)&&originalAuthority(row,prepared)&&!row.is_child&&row.verdict==='unavailable'&&row.disposition==='not_pass'
    &&(row.objective_id!=='ss_customer_role_escalation'
     ||row.rubric_version===require('./secureshopAgencyRoleEvidence').VERSION)
    &&(row.objective_id!=='ss_idor_order_status_disclosure'
@@ -568,7 +570,7 @@ function createSecureShopAssessmentRecovery({identityPool,authService,bootstrap,
    const prepared=await prepare(base),id=input.evaluationId.toLowerCase(),original=(await rows(prepared,id))[0];
    if(!original)throw fail('SHOP_ASSESSMENT_NOT_FOUND');
    if(!originalAuthority(original,prepared))throw fail('SHOP_ASSESSMENT_STALE');
-   if(!isAssessmentReleaseAllowed(original.objective_id))throw fail('RETRY_NOT_ALLOWED');
+   if(!release.isAllowed(original.objective_id))throw fail('RETRY_NOT_ALLOWED');
    const feature=await featureFence(original,prepared);
    let owner;try{owner=JSON.parse(original.owner_key);}catch{throw fail('RETRY_NOT_ALLOWED');}
    if(!Array.isArray(owner)||owner.length!==2||owner.some(value=>typeof value!=='string'||!value||value.length>512))throw fail('RETRY_NOT_ALLOWED');
@@ -576,9 +578,9 @@ function createSecureShopAssessmentRecovery({identityPool,authService,bootstrap,
    const audit=original.scenario==='bound_audit_summary'&&original.objective_id==='ss_audit_instruction_followed';
    const timing=audit?require('./secureshopAuditTiming').createSecureShopAuditTiming():null;
    return coordinators.get(owner[0]).run(owner[1],timing?{timeoutMs:timing.runTimeoutMs}:{},async execution=>{
-    const bounded=Object.freeze({...execution,...(timing?{auditDeadline:timing.deadline()}:{}),async check(){await execution.check();await feature?.assertCurrent();await launches.assertCurrent(prepared.input.scope);await prepared.fence.assertRemoteAdmission();await feature?.assertCurrent();await execution.check();}});
+    const bounded=Object.freeze({...execution,...(timing?{auditDeadline:timing.deadline()}:{}),async check(){await execution.check();await feature?.assertCurrent();await launches.assertCurrent(prepared.input.scope);await prepared.fence.assertRemoteAdmission();await release.assertScope(prepared.input.scope);await feature?.assertCurrent();await execution.check();}});
     const subject=await subjects.capture(prepared.input,bounded);if(!subject)throw fail('SHOP_ASSESSMENT_STALE');
-    const store=createSecureShopAssessmentStore({pool:identityPool,subject});
+    const store=createSecureShopAssessmentStore({pool:identityPool,subject,assessmentReleaseAdmission});
     const selectedJudge=judge||(timing?require('./secureshopAuditTiming').createSecureShopAuditJudge(timing):createObjectiveJudge());
     // Recovery reuses the exact persisted packet, but the policy-template
     // objective also has a structural evidence guard. Reconstruct it here so

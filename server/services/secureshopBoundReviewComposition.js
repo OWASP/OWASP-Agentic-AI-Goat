@@ -40,7 +40,8 @@ const { withSceneLease } = require('./secureshopSceneBinding');
 const { createTurnRequest } = require('./secureshopTurnRequest');
 const { SECURESHOP_CONVERSATION_PURPOSES } = require('./secureshopConversationPurpose');
 const { createBoundCustomerChatRouter } = require('../routes/secureshop/boundCustomerChat');
-const { createSecureShopBoundRoleChat, TOOLS: ROLE_CHAT_TOOLS } = require('./secureshopBoundRoleChat');
+const { createSecureShopBoundRoleChat, TOOLS: ROLE_CHAT_TOOLS, ORIGINAL_REGISTER_TOOL } = require('./secureshopBoundRoleChat');
+const { ORIGINAL_DESCRIBE_TOOL, ORIGINAL_LIST_TOOL } = require('./secureshopOriginalRegistrationRuntime');
 const { createRoleChatBindingRepository } = require('../database/postgres/secureshopRoleChatBindingRepository');
 const { createBoundRoleChatRouter } = require('../routes/secureshop/boundRoleChat');
 const { createSecureShopBoundAccount } = require('./secureshopBoundAccount');
@@ -451,7 +452,7 @@ function createAgencyRoleSourceReader({identityPool,agentsPool,conversations,cus
  }});
 }
 
-function createSecureShopBoundReviewComposition({ identityPool, agentsPool, reviewPool, commercePool, leasePool, gradingCore, gradingBootstrap,
+function createSecureShopBoundReviewComposition({ identityPool, agentsPool, reviewPool, commercePool, leasePool, gradingCore, gradingBootstrap, assessmentReleaseAdmission,
   agentRuntime, authenticatePersona, personaAuth, personaRepository, catalog, productRepository, modeAuthority, scenes,
   productAssist, toolPolicyRepository, promptPolicyRepository, promptPolicyRenderer, uploadAssetOrigin, uploadAssetCapability, uploadPreviewClient, taskPoliciesEnabled = false, couponDependencies, couponProbeDependencies, productSearchDependencies, orderStatusDependencies,
   inventoryApplication, pricingApplication, rawListingAssessment,
@@ -461,7 +462,7 @@ function createSecureShopBoundReviewComposition({ identityPool, agentsPool, revi
   conversationRepository, journal, reviewRepository, runCoordinator, judge,
   browserLifecycleObserver, searchEchoEvidenceVersion = 2, checkoutAuditLessonFeature = false, fileSummaryFeature = false, filePathSummaryFeature = false,
   reviewCardRenderer, browserQualification, policyOutputBrowserQualification, resetComposition, personaInboxFeature = false,
-  ownedMcpRegistryReads = false, mcpRegistryApplication = () => null,
+  ownedMcpRegistryReads = false, mcpRegistryApplication = () => null, mcpRegistrationApplication,
   registeredInvocationApplication = () => null,
   getAuditSearch = () => null, getAuditSummary = () => null, getAuditAgentReady = () => false,
   getSystemConfig = async () => null,
@@ -488,9 +489,13 @@ function createSecureShopBoundReviewComposition({ identityPool, agentsPool, revi
       || (!resetComposition && !callable(leasePool, ['query', 'connect']))
       || !callable(provider, ['chat'])) throw unavailable();
   if(gradingBootstrap!==undefined&&gradingCore!==undefined)throw unavailable('Prepared persona grading bootstrap required');
+  require('./secureshopAssessmentReleaseAdmission').resolveAssessmentReleaseAdmission(
+    assessmentReleaseAdmission,{identityPool,agentsPool,reviewPool,commercePool});
+  if(assessmentReleaseAdmission!==undefined&&gradingBootstrap===undefined)
+    throw unavailable('Disposable candidate requires prepared persona grading');
   let prepared;
   if(gradingBootstrap!==undefined){try{prepared=require('./secureshopGradingBootstrap').resolveSecureShopGradingBootstrap(
-    gradingBootstrap,{identityPool,agentsPool,resetComposition});}catch{throw unavailable('Prepared persona grading bootstrap required');}}
+    gradingBootstrap,{identityPool,agentsPool,resetComposition,assessmentReleaseAdmission});}catch{throw unavailable('Prepared persona grading bootstrap required');}}
   const selectedCore=prepared?.gradingCore||gradingCore;
   const personaAuthority=prepared?.personaAuthority;
   const personaBindings=prepared?.personaBindings;
@@ -720,17 +725,22 @@ function createSecureShopBoundReviewComposition({ identityPool, agentsPool, revi
       publicationModes: require('../database/postgres/secureshopModeRepository').createSecureShopModeRepository(identityPool),
       judge: judge || require('../agent-runtime/objectiveJudge').createObjectiveJudge(),
       qualifyModel: createSecureShopModelQualifier(provider) }) : undefined;
-  let avatarUpload;
-  if (uploadAssetOrigin !== undefined || uploadAssetCapability !== undefined) {
-    if (uploadAssetOrigin === undefined || uploadAssetCapability === undefined) throw unavailable('Bound avatar upload asset configuration incomplete');
-    if (!personaAuthority || !toolPolicyRepository || typeof scenes?.readRetained !== 'function' || typeof authenticatePersona !== 'function') throw unavailable('Bound avatar upload authority unavailable');
+  let avatarUpload, accountAvatar, uploadRepository, uploadEffectReader, uploadWriter, uploadTraversalWriter;
+  if (personaAuthority && modeAuthority && typeof scenes?.readRetained === 'function') {
     const {withTransaction}=require('../database/postgres');
     const sceneCheck=async scope=>{const target=await scenes.readRetained(scope);if(!target?.scene||target.targetId!==scope.targetId||target.scene.sceneId!==scope.sceneId||target.scene.sceneGeneration!==scope.sceneGeneration||target.scene.grantId!==scope.grantId)throw unavailable('Upload scene changed');return withTransaction(reviewPool,client=>require('./secureshopSceneBinding').assertSceneGrant(client,target));};
     const checkCurrent=scope=>launches.assertCurrent(scope);
-    const repository=require('../database/postgres/secureshopBoundUploadRepository').createSecureShopBoundUploadRepository(reviewPool,{checkCurrent,assertSceneGrant:sceneCheck,checkCleanupAuthority:(scope,operationId)=>resetComposition.cleanupAuthority.checkTarget({...scope,targetKind:'products',fromGeneration:scope.generation,operationId})});
-    const effectReader=require('../database/postgres/secureshopBoundUploadEffectReader').createSecureShopBoundUploadEffectReader(reviewPool,{checkCurrent,assertSceneGrant:sceneCheck});
+    uploadRepository=require('../database/postgres/secureshopBoundUploadRepository').createSecureShopBoundUploadRepository(reviewPool,{checkCurrent,assertSceneGrant:sceneCheck,checkCleanupAuthority:(scope,operationId)=>resetComposition.cleanupAuthority.checkTarget({...scope,targetKind:'products',fromGeneration:scope.generation,operationId})});
+    uploadEffectReader=require('../database/postgres/secureshopBoundUploadEffectReader').createSecureShopBoundUploadEffectReader(reviewPool,{checkCurrent,assertSceneGrant:sceneCheck});
+    uploadWriter=require('./secureshopUploadWriter').createSecureShopUploadWriter();
+    uploadTraversalWriter=require('./secureshopV46TraversalWriter').createSecureShopV46TraversalWriter();
+    accountAvatar=require('./secureshopBoundAccountAvatar').createSecureShopBoundAccountAvatar({pool:reviewPool,launches,resolveTarget:scope=>scenes.readRetained(scope),personaAuthority,modeAuthority,journal:uploadRepository,effects:uploadEffectReader,writer:uploadWriter,traversalWriter:uploadTraversalWriter});
+  }
+  if (uploadAssetOrigin !== undefined || uploadAssetCapability !== undefined) {
+    if (uploadAssetOrigin === undefined || uploadAssetCapability === undefined) throw unavailable('Bound avatar upload asset configuration incomplete');
+    if (!uploadRepository || !toolPolicyRepository || typeof authenticatePersona !== 'function') throw unavailable('Bound avatar upload authority unavailable');
     const assetRepository=require('../database/postgres/secureshopBoundUploadAssetRepository').createSecureShopBoundUploadAssetRepository(reviewPool);
-    avatarUpload=require('./secureshopBoundUploadComposition').createSecureShopBoundUploadComposition({identityPool,agentsPool,reviewPool,launches,conversationRepository:conversations,journal:turnsJournal,coordinator,provider,personaAuthority,modeAuthority,toolPolicyRepository,authenticatePersona,assetOrigin:uploadAssetOrigin,assetCapability:uploadAssetCapability,uploadPreviewClient,uploadRepository:repository,effectReader,assetRepository,resolveTarget:scope=>scenes.readRetained(scope),writer:require('./secureshopUploadWriter').createSecureShopUploadWriter(),traversalWriter:require('./secureshopV46TraversalWriter').createSecureShopV46TraversalWriter(),personaBindings,scenes,receipts:objectiveReceipts,progress:workshopProgress,publicationModes:require('../database/postgres/secureshopModeRepository').createSecureShopModeRepository(identityPool),judge:judge||require('../agent-runtime/objectiveJudge').createObjectiveJudge(),qualifyModel:createSecureShopModelQualifier(provider)});
+    avatarUpload=require('./secureshopBoundUploadComposition').createSecureShopBoundUploadComposition({identityPool,agentsPool,reviewPool,launches,conversationRepository:conversations,journal:turnsJournal,coordinator,provider,personaAuthority,modeAuthority,toolPolicyRepository,authenticatePersona,assetOrigin:uploadAssetOrigin,assetCapability:uploadAssetCapability,uploadPreviewClient,uploadRepository:uploadRepository,effectReader:uploadEffectReader,assetRepository,resolveTarget:scope=>scenes.readRetained(scope),writer:uploadWriter,traversalWriter:uploadTraversalWriter,personaBindings,scenes,receipts:objectiveReceipts,progress:workshopProgress,publicationModes:require('../database/postgres/secureshopModeRepository').createSecureShopModeRepository(identityPool),judge:judge||require('../agent-runtime/objectiveJudge').createObjectiveJudge(),qualifyModel:createSecureShopModelQualifier(provider)});
   }
   let productSearch;
   if (productSearchDependencies !== undefined) {
@@ -902,7 +912,7 @@ function createSecureShopBoundReviewComposition({ identityPool, agentsPool, revi
         .createSecureShopIdorLessonTurnReader({ pool: agentsPool }),
     });
     const assessment = require('./secureshopIdorLessonAssessment').createIdorLessonAssessment({
-      identityPool, launches, conversationRepository: conversations, coordinator,
+      identityPool, assessmentReleaseAdmission, launches, conversationRepository: conversations, coordinator,
       journal: lessonJournal, personaAuthority, personaBindings, scenes,
       lessonRepository, receipts: objectiveReceipts, progress: workshopProgress,
       judge: judge || require('../agent-runtime/objectiveJudge').createObjectiveJudge(),
@@ -1144,22 +1154,23 @@ function createSecureShopBoundReviewComposition({ identityPool, agentsPool, revi
     for (const role of ['merchant','admin']) {
       if (role === 'admin' && typeof admin?.audit !== 'function') continue;
       const toolPolicyAdmission = admission({repository:toolPolicyRepository,
-        workflow:`${role}-assistant`,declaredTools:ROLE_CHAT_TOOLS[role]});
+        workflow:role==='admin'&&typeof mcpRegistrationApplication==='function'?'admin-registration-assistant':`${role}-assistant`,
+        declaredTools:role==='admin'&&typeof mcpRegistrationApplication==='function'?[...ROLE_CHAT_TOOLS[role],ORIGINAL_REGISTER_TOOL,ORIGINAL_DESCRIBE_TOOL,ORIGINAL_LIST_TOOL]:ROLE_CHAT_TOOLS[role]});
       const roleChat = createSecureShopBoundRoleChat({role,launches,personaAuthority,modeAuthority,
         conversations,journal:turnsJournal,coordinator,provider,catalog,scenes,bindingRepository,
         toolPolicyAdmission,...(promptPolicyRepository?{promptPolicyRepository}:{}),
         ...(role==='admin'&&policyChat?{policyChat,policyTaskTargets:taskPoliciesEnabled?['summarizer','review-moderator']:[],policyTemplateAssessment}:{}),
-        ...(role==='admin'?{mcpRegistryChat,registeredInvocationApplication,auditChat,auditJobs,
+        ...(role==='admin'?{mcpRegistryChat,mcpRegistrationApplication,registeredInvocationApplication,auditChat,auditJobs,
           auditAgentApplication:getAuditAgentReady,auditSummaryApplication:getAuditSummary,systemReads,systemConfigAssessment,policyInstructionAssessment,
           systemRestartChat,systemRestartApplication:getSystemRestart,systemDiagnosticChat,systemDiagnosticApplication:getSystemDiagnostic,systemDiagnosticAssessment,systemRestartInjectionAssessment,identityPool,aclChat}:{}),
         commerce,admin,productRetrieval:roleProductRetrieval,
-        ...(role==='admin'?{userAdministration,userLookupAssessmentReady:async binding=>(await require('./secureshopAssessmentEligibility').readSecureShopAssessmentEligibility(identityPool,binding,['ss_user_lookup_sensitive_disclosure'])).includes('ss_user_lookup_sensitive_disclosure')}:{}),
+        ...(role==='admin'?{userAdministration,userLookupAssessmentReady:async binding=>(await require('./secureshopAssessmentEligibility').readSecureShopAssessmentEligibility(identityPool,binding,['ss_user_lookup_sensitive_disclosure'],assessmentReleaseAdmission)).includes('ss_user_lookup_sensitive_disclosure')}:{}),
         inventoryApplication,pricingApplication,reviewApplication:()=>roleReviewService,
         ...(role==='merchant'?{listingsSetup}:{}),
         ...(role==='merchant'&&mailChat?{mailChat,mailActions,assertMailActionAllowed}:{})});
       const userLookupAssessment = role==='admin'&&personaBindings&&typeof userAdministration?.readAgentLookup==='function'
         ?require('./secureshopUserLookupAssessment').createUserLookupAssessment({
-          identityPool,agentsPool,launches,conversationRepository:conversations,coordinator,
+          identityPool,assessmentReleaseAdmission,agentsPool,launches,conversationRepository:conversations,coordinator,
           turnJournal:turnsJournal,bindingRepository,scenes,userAdministration,personaAuthority,personaBindings,
           receipts:objectiveReceipts,progress:workshopProgress,modeAuthority,
           publicationModes:require('../database/postgres/secureshopModeRepository').createSecureShopModeRepository(identityPool),
@@ -1267,6 +1278,18 @@ function createSecureShopBoundReviewComposition({ identityPool, agentsPool, revi
   });
   const refundRouter = createBoundRefundRouter({ launches, authenticatePersona, runtime: refundRuntime });
   const runtime = createBoundReviewRuntime({ launches, modeAuthority, taskPoliciesEnabled, reviewRepository: reviews, ...(toolPolicyRepository===undefined?{}:{toolPolicyRepository}), ...(promptPolicyRepository===undefined?{}:{promptPolicyRepository}),
+    ...(scenes && personaAuthority ? {
+      readRetainedReviewTarget: async scope => {
+        const scene = await scenes.readRetained(scope);
+        if (!scene) throw Object.assign(Error('Review scene unavailable'),{code:'SHOP_SCENE_STALE'});
+        return reviews.readRetainedSceneTarget(scene);
+      },
+      // The at-effect reader is SELECT-only in both shop and platform realms;
+      // ordinary platform mode capture may initialize workshop user state.
+      readRecoveryMode: scope => require('../database/postgres/secureshopModeRepository')
+        .createSecureShopModeRepository(identityPool)
+        .getEvaluationScopeAtEffect(scope.platformOwnerId,'secureshop_agent_security',scope),
+    } : {}),
     conversationRepository: conversations, journal: turnsJournal, coordinator,
     authenticatePersona, buildBasePrompt: executionConfig.buildBasePrompt,
     buildPolicyBlock: executionConfig.buildPolicyBlock, checkToolAcl: executionConfig.checkToolAcl,
@@ -1339,6 +1362,7 @@ function createSecureShopBoundReviewComposition({ identityPool, agentsPool, revi
     ...(couponAgent ? { couponAgent } : {}),
     ...(couponProbe ? { couponProbe } : {}),
     ...(avatarUpload ? { avatarUpload } : {}),
+    ...(accountAvatar ? { accountAvatar } : {}),
     ...(fileSummary ? { fileSummary } : {}),
     ...(filePathSummary ? { filePathSummary } : {}),
     ...(productSearch ? { productSearch } : {}),
@@ -1371,7 +1395,7 @@ let retained;
 let retainedInputs;
 let pending;
 let closing;
-const OPTION_KEYS = Object.freeze(['gradingCore', 'gradingBootstrap', 'agentRuntime', 'files', 'fixtures', 'compatibleFixtures', 'productAssist',
+const OPTION_KEYS = Object.freeze(['gradingCore', 'gradingBootstrap', 'assessmentReleaseAdmission', 'agentRuntime', 'files', 'fixtures', 'compatibleFixtures', 'productAssist',
   'requiredObjectives', 'judge', 'policyOutputBrowserQualification', 'promptPolicyRenderer', 'uploadAssetOrigin', 'uploadAssetCapability', 'uploadPreviewClient', 'systemConfigClient', 'systemDiagnosticClient', 'systemRestartClient', 'pricingHttpClient', 'listingTemplateClient', 'systemRebuildEnabled', 'auditSummaryFeature', 'personaInboxFeature', 'mcpTrustFeature', 'mcpTrustFixtureRoot', 'ssrfFeature', 'ssrfFixtureRoot', 'checkoutAuditLessonFeature', 'fileSummaryFeature', 'filePathSummaryFeature']);
 function sameInputs(left, right) {
   return left && right && OPTION_KEYS.every(key => left[key] === right[key]);
@@ -1385,6 +1409,7 @@ function snapshotProductionOptions(options) {
       providerRouter: runtime.providerRouter, pool: runtime.pool }),
     gradingCore: options.gradingCore,
     gradingBootstrap: options.gradingBootstrap,
+    assessmentReleaseAdmission: options.assessmentReleaseAdmission,
     files: options.files,
     fixtures: snapshotFixtures(options.fixtures === undefined ? PREFERRED_REVIEW_FIXTURES : options.fixtures),
     compatibleFixtures: snapshotFixtureProfiles(options.compatibleFixtures === undefined
@@ -1524,7 +1549,8 @@ async function getSecureShopBoundReviewComposition(options = {}) {
   retainedInputs = snapshot.identity;
   pending = (async () => {
     let createdListings;
-    let createdOwnedMcpRegistry,createdRegisteredInvocation;
+    let createdOwnedMcpRegistry,createdRegisteredInvocation,createdOriginalRegistration,registrationShutdown;
+    const registrationAdapters=new Set();
     let createdMail,createdAuditSummary,createdAuditUnbounded;
     let createdInventory;
     let createdPricing;
@@ -1532,6 +1558,10 @@ async function getSecureShopBoundReviewComposition(options = {}) {
     const agentsPool = require('../database/postgres/secureshopPools').getAgentsPool();
     const commercePool = require('../database/postgres/secureshopPools').getCommercePool();
     const reviewPool = require('../database/postgres/secureshopReviewDb').getSecureShopReviewPool();
+    const assessmentReleaseAdmission = snapshot.configured.assessmentReleaseAdmission;
+    const releaseAdmission = require('./secureshopAssessmentReleaseAdmission').resolveAssessmentReleaseAdmission(
+      assessmentReleaseAdmission,{identityPool,agentsPool,reviewPool,commercePool});
+    await releaseAdmission.assertCurrent();
     const migrationPools = {};
     try {
       for (const [store, key] of Object.entries(MIGRATION_ENV)) {
@@ -1618,6 +1648,7 @@ async function getSecureShopBoundReviewComposition(options = {}) {
         uploadPreviewClient:snapshot.configured.uploadPreviewClient ?? require('./secureshopSystemManagedEnvironment').getUploadPreviewClient() ?? undefined, scenes, ownedMcpRegistryReads:registryEnabled,
         mcpRegistryApplication:()=>createdOwnedMcpRegistry?.ready===true
           ?{service:createdOwnedMcpRegistry.service,mode:registryConfiguration.mode}:null,
+        ...(registryEnabled?{mcpRegistrationApplication:()=>createdOriginalRegistration}:{}),
         registeredInvocationApplication:()=>createdRegisteredInvocation?.ready===true?createdRegisteredInvocation:null,
         getAuditSearch:()=>value?.auditSearch,getAuditSummary:()=>value?.auditSummary,
         getAuditAgentReady:()=>value?.auditAgentReady===true,
@@ -1672,17 +1703,31 @@ async function getSecureShopBoundReviewComposition(options = {}) {
         }) : undefined;
       const registeredAdminReset = await require('./secureshopPasswordResetComposition')
         .prepareRegisteredAdminResetService({ filePath: process.env.SS_PASSWORD_RESET_KEY_PATH, pool: identityPool });
+      const externalMailTransportModule = require('./secureshopExternalMailTransport');
+      const externalMailConfig = externalMailTransportModule.readExternalMailConfiguration();
+      const externalMailTransport = externalMailTransportModule.createExternalMailTransport({config:externalMailConfig});
+      const externalMail = preparedGrading?.personaAuthority ? Object.freeze({
+        launches:value.launches,personaAuth:value.personaAuth,
+        application:require('./secureshopExternalMail').createExternalMailApplication({
+          repository:require('../database/postgres/secureshopExternalMailRepository')
+            .createExternalMailRepository({pool:identityPool}),
+          authority:require('../database/postgres/secureshopExternalMailAuthority')
+            .createExternalMailAuthority({pool:identityPool,personaAuthority:preparedGrading.personaAuthority,
+              sender:externalMailConfig.sender}),
+          transport:externalMailTransport,sender:externalMailConfig.sender,
+        }),
+      }) : undefined;
       value = Object.freeze({ ...value, standaloneAuth: Object.freeze({ service: standaloneService,
-        registeredAdminReset,
+        registeredAdminReset, ...(externalMail ? {externalMail} : {}),
         practices: require('./secureshopPracticeAdmission').createSecureShopPracticeAdmission({
           repository: require('../database/postgres/secureshopPracticeAdmissionRepository')
             .createSecureShopPracticeAdmissionRepository({ pool: identityPool }), catalog: value.catalog }),
         ...(standaloneReset ? { reset: standaloneReset } : {}),
         assessmentProgress: require('./secureshopAssessmentProgress').createSecureShopAssessmentProgress({
           repository: require('../database/postgres/secureshopAssessmentProgressRepository')
-            .createSecureShopAssessmentProgressRepository({ pool: identityPool }),
+            .createSecureShopAssessmentProgressRepository({ pool: identityPool, assessmentReleaseAdmission }),
         }),
-        assessmentObjectives: require('./secureshopAssessmentCatalog').createSecureShopAssessmentCatalog({pool:identityPool,authService:standaloneService}),
+        assessmentObjectives: require('./secureshopAssessmentCatalog').createSecureShopAssessmentCatalog({pool:identityPool,authService:standaloneService,assessmentReleaseAdmission}),
         mode: require('./secureshopStandaloneMode').createSecureShopStandaloneMode({
           authService: standaloneService, repository: require('../database/postgres/secureshopModeRepository')
             .createSecureShopModeRepository(identityPool) }),
@@ -1690,7 +1735,7 @@ async function getSecureShopBoundReviewComposition(options = {}) {
           launches: value.launches, personaAuth: value.personaAuth, authService: standaloneService }),
       }) });
       if(preparedGrading){value=Object.freeze({...value,standaloneAuth:Object.freeze({...value.standaloneAuth,
-        assessmentRecovery:require('./secureshopAssessmentRecovery').createSecureShopAssessmentRecovery({identityPool,
+        assessmentRecovery:require('./secureshopAssessmentRecovery').createSecureShopAssessmentRecovery({identityPool,assessmentReleaseAdmission,
           authService:standaloneService,bootstrap:value.standaloneAuth.bootstrap,launches:value.launches,
           personaAuth:value.personaAuth,personaAuthority:preparedGrading.personaAuthority,modeAuthority:featureModeAuthority,
           scenes:value.scenes,couponAssessment:value.couponAgent?.assessment,
@@ -1754,13 +1799,39 @@ async function getSecureShopBoundReviewComposition(options = {}) {
       }
       if(registryEnabled){
         if(!preparedGrading)throw unavailable('Owned registry persona authority unavailable');
-        createdOwnedMcpRegistry=await registryModule.createOwnedMcpRegistryProduction({configuration:registryConfiguration,agentsPool,personaAuthority:preparedGrading.personaAuthority,authenticatePersona:value.personaAuth.authenticatePersona,expectedDatabase:new URL(process.env.SECURESHOP_AGENTS_DATABASE_URL).pathname.slice(1)});
+        const registryProduction=await registryModule.createOwnedMcpRegistryProduction({configuration:registryConfiguration,agentsPool,personaAuthority:preparedGrading.personaAuthority,authenticatePersona:value.personaAuth.authenticatePersona,expectedDatabase:new URL(process.env.SECURESHOP_AGENTS_DATABASE_URL).pathname.slice(1)});
+        createdOwnedMcpRegistry=Object.freeze({...registryProduction,async close(){
+          const results=await Promise.allSettled([registryProduction.close(),...[...registrationAdapters].map(adapter=>adapter.close())]);
+          const failed=results.filter(result=>result.status==='rejected').map(result=>result.reason);
+          try{await registrationShutdown?.shutdown();}catch(error){failed.push(error);}
+          if(failed.length)throw new AggregateError(failed,'Owned registration shutdown drain incomplete');
+        }});
         value=Object.freeze({...value,ownedMcpRegistry:createdOwnedMcpRegistry});
+        const infrastructure=resetComposition.registeredInvocation;
+        if(infrastructure?.registrationJournal&&infrastructure?.client?.registrationHealth){
+          registrationShutdown=require('./secureshopOwnedMcpRegistrationLifecycle').createOwnedMcpRegistrationLifecycle({
+            journal:infrastructure.registrationJournal,client:infrastructure.client});
+          // An older installed executor cannot advertise the original command
+          // path merely because generic registry administration is available.
+          try{
+            await infrastructure.client.registrationHealth();
+            createdOriginalRegistration=Object.freeze({ready:true,mode:registryConfiguration.mode,
+              create:context=>{
+                const adapter=require('./secureshopV23RegisterAdapter').createV23RegisterAdapter({...context,
+                  registrationJournal:infrastructure.registrationJournal,launches:infrastructure.launches,
+                  ownedMcpRegistry:createdOwnedMcpRegistry.service,client:infrastructure.client});
+                registrationAdapters.add(adapter);
+                return Object.freeze({...adapter,async close(){await adapter.close();registrationAdapters.delete(adapter);}});
+              }});
+          }catch(error){
+            if(error?.code!=='MCP_REGISTRY_EXECUTOR_UNAVAILABLE')throw error;
+          }
+        }
       }
       const invocationModule=require('./secureshopRegisteredInvocationProduction');
       const invocationMigrationPool=invocationModule.REGISTERED_INVOCATION_QUALIFIED&&resetComposition.registeredInvocation?.configuration.enabled===true
         ? createPool(process.env,'SECURESHOP_AGENTS_MIGRATION_DATABASE_URL'):undefined;
-      try{createdRegisteredInvocation=await invocationModule.createRegisteredInvocationProduction({identityPool,gradingBootstrap:preparedGrading,...(snapshot.configured.judge?{judge:snapshot.configured.judge}:{}),modeAuthority:featureModeAuthority,infrastructure:resetComposition.registeredInvocation,resetComposition,provider:snapshot.configured.agentRuntime?.provider||snapshot.configured.agentRuntime?.providerRouter,authenticatePersona:value.personaAuth?.authenticatePersona,migrationPool:invocationMigrationPool});}
+      try{createdRegisteredInvocation=await invocationModule.createRegisteredInvocationProduction({identityPool,assessmentReleaseAdmission,gradingBootstrap:preparedGrading,...(snapshot.configured.judge?{judge:snapshot.configured.judge}:{}),modeAuthority:featureModeAuthority,infrastructure:resetComposition.registeredInvocation,resetComposition,provider:snapshot.configured.agentRuntime?.provider||snapshot.configured.agentRuntime?.providerRouter,authenticatePersona:value.personaAuth?.authenticatePersona,migrationPool:invocationMigrationPool});}
       finally{await invocationMigrationPool?.end();}
       if(createdRegisteredInvocation.ready)value=Object.freeze({...value,registeredInvocation:createdRegisteredInvocation});
       const selectedGradingCore=preparedGrading?.gradingCore||snapshot.configured.gradingCore;
@@ -1813,9 +1884,9 @@ async function getSecureShopBoundReviewComposition(options = {}) {
           provider:pricingProvider,promptPolicyRepository,toolPolicyRepository,
           client:snapshot.configured.pricingHttpClient,authenticatePersona:value.personaAuth.authenticatePersona,
           createAssessmentFactory:async ({publishAndRead,scope})=>{
-            const ids=require('./secureshopPricingEvidence').OBJECTIVES.filter(id=>require('../config/secureshopCurriculum').isQualifiedObjective(id));
+            const ids=require('./secureshopPricingEvidence').OBJECTIVES.filter(id=>require('../config/secureshopCurriculum').isQualifiedObjective(id)||releaseAdmission.isCandidate(id));
             if(!ids.length)return undefined;
-            const enabled=await require('./secureshopAssessmentEligibility').readSecureShopAssessmentEligibility(identityPool,scope,ids);
+            const enabled=await require('./secureshopAssessmentEligibility').readSecureShopAssessmentEligibility(identityPool,scope,ids,assessmentReleaseAdmission);
             return require('./secureshopPricingAssessment').createPricingAssessmentCollection({...preparedGrading.assessmentDependencies,
               qualifyModel:createSecureShopModelQualifier(pricingProvider),judge:snapshot.configured.judge||require('../agent-runtime/objectiveJudge').createObjectiveJudge()},
               {objectiveIds:enabled,publishAndRead});
@@ -1886,7 +1957,7 @@ async function getSecureShopBoundReviewComposition(options = {}) {
       const auditSqlRuntime=await require('./secureshopOwnedAuditProduction').getOwnedAuditProduction();
       if(auditSqlRuntime?.agentAdmissions&&!require('../config/secureshopCurriculum').isQualifiedObjective('ss_audit_sql_extraction'))throw unavailable('Audit SQL model objective is not qualified');
       if(auditSqlRuntime?.admissions){
-        const ownedAudit=require('./secureshopOwnedAuditComposition').createOwnedAuditComposition({modeAuthority:featureModeAuthority,identityPool,launches:value.launches,...(toolPolicyRepository===undefined?{}:{toolPolicyRepository}),...(promptPolicyRepository===undefined?{}:{promptPolicyRepository}),personaAuth:value.personaAuth,auditReader:resetComposition.audit.reader,cleanupAuthority:resetComposition.cleanupAuthority,turns:resetComposition.turns,journal:resetComposition.journal,conversations:resetComposition.conversationService,conversationRepository:resetComposition.conversations,client:auditSqlRuntime.client,...(preparedGrading?{gradingBootstrap:preparedGrading,agentsPool,resetComposition}:{}),...(auditSqlRuntime.agentAdmissions?{agentEnabled:true,provider:snapshot.configured.agentRuntime?.provider||snapshot.configured.agentRuntime?.providerRouter,receipts:sharedGrading?.receipts||require('../database/postgres/objectiveJudgmentRepository').createObjectiveJudgmentRepository(identityPool),progress:sharedGrading?.progress||require('../database/postgres/workshopProgressRepository').createWorkshopProgressRepository(identityPool),...(snapshot.configured.judge?{judge:snapshot.configured.judge}:{})}:{})});
+        const ownedAudit=require('./secureshopOwnedAuditComposition').createOwnedAuditComposition({assessmentReleaseAdmission,modeAuthority:featureModeAuthority,identityPool,launches:value.launches,...(toolPolicyRepository===undefined?{}:{toolPolicyRepository}),...(promptPolicyRepository===undefined?{}:{promptPolicyRepository}),personaAuth:value.personaAuth,auditReader:resetComposition.audit.reader,cleanupAuthority:resetComposition.cleanupAuthority,turns:resetComposition.turns,journal:resetComposition.journal,conversations:resetComposition.conversationService,conversationRepository:resetComposition.conversations,client:auditSqlRuntime.client,...(preparedGrading?{gradingBootstrap:preparedGrading,agentsPool,resetComposition}:{}),...(auditSqlRuntime.agentAdmissions?{agentEnabled:true,provider:snapshot.configured.agentRuntime?.provider||snapshot.configured.agentRuntime?.providerRouter,receipts:sharedGrading?.receipts||require('../database/postgres/objectiveJudgmentRepository').createObjectiveJudgmentRepository(identityPool),progress:sharedGrading?.progress||require('../database/postgres/workshopProgressRepository').createWorkshopProgressRepository(identityPool),...(snapshot.configured.judge?{judge:snapshot.configured.judge}:{})}:{})});
         await ownedAudit.checkReadiness();value=Object.freeze({...value,auditSearch:ownedAudit.application,
           auditAgentReady:auditSqlRuntime.agentAdmissions===true,auditTimingReady:auditSqlRuntime.agentAdmissions===true});
       }

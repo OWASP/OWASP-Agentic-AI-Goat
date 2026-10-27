@@ -5,7 +5,10 @@ const preparedBootstraps = new WeakMap();
 // publication; this module never discovers stores or installs a singleton.
 async function createSecureShopGradingBootstrap({ identityPool, agentsPool, progress,
   resetComposition, assertAuthorityReady, expectedIdentityDatabase, expectedAgentsDatabase,
-  judge, coordinatorFactory } = {}, factories = {}) {
+  judge, coordinatorFactory, assessmentReleaseAdmission } = {}, factories = {}) {
+  const releaseAdmission = require('./secureshopAssessmentReleaseAdmission')
+    .resolveAssessmentReleaseAdmission(assessmentReleaseAdmission, { identityPool, agentsPool });
+  await releaseAdmission.assertCurrent();
   const explicitStoreNames = typeof expectedIdentityDatabase === 'string' && expectedIdentityDatabase.length > 0
     && typeof expectedAgentsDatabase === 'string' && expectedAgentsDatabase.length > 0
     && expectedIdentityDatabase !== expectedAgentsDatabase;
@@ -48,7 +51,7 @@ async function createSecureShopGradingBootstrap({ identityPool, agentsPool, prog
   const subjects=require('./secureshopAssessmentSubject').createSecureShopAssessmentSubjects({identityPool,launches,personaAuthority});
   const personaBindings=Object.freeze({...legacyBindings,async resolveStores(input,execution){
     const subject=await subjects.capture(input,execution);
-    return subject===null?null:require('../database/postgres/secureshopAssessmentStore').createSecureShopAssessmentStore({pool:identityPool,subject});
+    return subject===null?null:require('../database/postgres/secureshopAssessmentStore').createSecureShopAssessmentStore({pool:identityPool,subject,assessmentReleaseAdmission});
   }});
   const gradingCore = createCore({ identityPool, progress, personaBindings,
     ...(judge === undefined ? {} : { judge }),
@@ -56,14 +59,15 @@ async function createSecureShopGradingBootstrap({ identityPool, agentsPool, prog
   const assessmentDependencies = require('./objectiveGradingCore')
     .resolveObjectiveGradingDependencies(gradingCore, { identityPool, personaBindings });
   const prepared = Object.freeze({ gradingCore, assessmentDependencies, personaAuthority, personaBindings, resetComposition });
-  preparedBootstraps.set(prepared, { identityPool, agentsPool, resetComposition });
+  preparedBootstraps.set(prepared, { identityPool, agentsPool, resetComposition, assessmentReleaseAdmission });
   return prepared;
 }
 
-function resolveSecureShopGradingBootstrap(prepared, { identityPool, agentsPool, resetComposition } = {}) {
+function resolveSecureShopGradingBootstrap(prepared, { identityPool, agentsPool, resetComposition, assessmentReleaseAdmission } = {}) {
   const metadata = preparedBootstraps.get(prepared);
   if (!metadata || metadata.identityPool !== identityPool || metadata.agentsPool !== agentsPool
-      || metadata.resetComposition !== resetComposition || prepared.resetComposition !== resetComposition) {
+      || metadata.resetComposition !== resetComposition || prepared.resetComposition !== resetComposition
+      || metadata.assessmentReleaseAdmission !== assessmentReleaseAdmission) {
     throw new TypeError('Matching prepared SecureShop grading bootstrap required');
   }
   require('./objectiveGradingCore').resolveObjectiveGradingDependencies(prepared.gradingCore,

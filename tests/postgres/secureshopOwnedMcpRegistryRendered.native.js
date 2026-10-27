@@ -9,7 +9,7 @@ const fs = require('node:fs/promises');
 const fsSync = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { randomUUID } = require('node:crypto');
+const { randomUUID, createHash } = require('node:crypto');
 const { Pool } = require('pg');
 const { migrate } = require('../../db/postgres/migrate');
 
@@ -30,12 +30,29 @@ const V43_ENABLED = process.env.MCP_IMPERSONATION_V43_NATIVE === '1';
 const V42_ENABLED = process.env.MCP_REGISTRY_SSRF_V42_NATIVE === '1';
 const V66_ENABLED = process.env.MCP_MANIFEST_V66_NATIVE === '1';
 const V39_ENABLED = process.env.MCP_DESCRIPTION_V39_NATIVE === '1';
-const MODEL_REGISTRY_ENABLED = V43_ENABLED || V66_ENABLED || V39_ENABLED || V42_ENABLED;
+const Q05_HANDOFF_ENABLED = process.env.MCP_REGISTERED_HANDOFF_Q05_NATIVE === '1';
+const V39_PAIR_ENABLED = process.env.MCP_DESCRIPTION_V39_ATOMIC_PAIR_NATIVE === '1';
+const V39_CURRENT_HOST_EVIDENCE = V39_ENABLED
+  && process.env.MCP_DESCRIPTION_V39_CURRENT_HOST_EVIDENCE === '1';
+const Q05_CURRENT_HOST_EVIDENCE = Q05_HANDOFF_ENABLED
+  && process.env.MCP_REGISTERED_HANDOFF_Q05_CURRENT_HOST_EVIDENCE === '1';
+const MODEL_REGISTRY_ENABLED = V43_ENABLED || V66_ENABLED || V39_ENABLED || V42_ENABLED || Q05_HANDOFF_ENABLED;
+if (Q05_HANDOFF_ENABLED) {
+  assert.equal(V43_ENABLED || V66_ENABLED || V39_ENABLED || V42_ENABLED || V39_PAIR_ENABLED, false,
+    'Q05 handoff is an exclusive ungraded rendered cohort');
+  assert.equal(ENABLED, true);
+  assert.equal(process.env.LIVE_OLLAMA_TEST, '1');
+}
 if(V42_ENABLED){assert.equal(V43_ENABLED||V66_ENABLED||V39_ENABLED,false,'V42 is a closed distinct registry cohort');assert.equal(ENABLED,true);assert.equal(process.env.LIVE_OLLAMA_TEST,'1');}
 if (V39_ENABLED) {
   assert.equal(V43_ENABLED || V66_ENABLED, false, 'V39 has its own rendered objective');
   assert.equal(ENABLED, true);
   assert.equal(process.env.LIVE_OLLAMA_TEST, '1');
+}
+if (V39_PAIR_ENABLED) {
+  assert.equal(V39_ENABLED, true, 'atomic pair is an explicit V39 rendered variant');
+  assert.equal(V42_ENABLED || V43_ENABLED || V66_ENABLED, false);
+  assert.equal(process.env.MCP_DESCRIPTION_V39_CURRENT_HOST_EVIDENCE, '1');
 }
 if (V66_ENABLED) {
   assert.equal(V43_ENABLED, false, 'V66 is a distinct owned MCP cohort');
@@ -96,6 +113,447 @@ async function frameOn(page) {
 }
 async function closeServer(server) {
   if (server) await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+}
+function switchV39AtomicProvider(current, next) {
+  const { OllamaProvider } = require('../../server/services/secureshop/providers/ollamaProvider');
+  assert.equal(Object.getPrototypeOf(current), OllamaProvider.prototype);
+  assert.equal(Object.getPrototypeOf(next), OllamaProvider.prototype);
+  assert.equal(current.model, next.model);
+  assert.equal(current.model, 'llama3.1:8b');
+  const previous = new URL(current.baseUrl), successor = new URL(next.baseUrl);
+  for (const url of [previous, successor]) {
+    assert.equal(url.protocol, 'http:'); assert.equal(url.hostname, '127.0.0.1');
+    assert.equal(url.pathname, '/'); assert.equal(url.search, '');
+  }
+  assert.notEqual(previous.origin, successor.origin, 'the treatment must use a new physical relay');
+  current.baseUrl = next.baseUrl;
+  current.transport = next.transport;
+  for (const method of ['chat', 'finalResponse', 'routeWorkflow', 'isReachable']) {
+    assert.equal(typeof next[method], 'function');
+    current[method] = (...args) => next[method](...args);
+  }
+  return current;
+}
+function q05RegisteredInvocationCompositionOptions(enabled, readInvocation) {
+  if (!enabled) return {};
+  assert.equal(typeof readInvocation, 'function');
+  return { registeredInvocationApplication: () => {
+    const invocation = readInvocation();
+    return invocation?.ready === true ? invocation : null;
+  } };
+}
+function admitPrivateCurrentHostEvidence({ env, source, evidencePath, enabled, marker, rootName, label }) {
+  assert.equal(enabled, true, `only the original ${label} rendered cohort admits current-host evidence`);
+  assert.equal(env[marker], '1');
+  assert.equal(fsSync.realpathSync(source), source, 'canonical current-main source required');
+  const parent = path.join(source, 'tasks', 'qualification');
+  const run = env[rootName];
+  assert.equal(typeof run, 'string');
+  assert.match(path.basename(run), /^dvaia-mcp-assembly-[a-z0-9_]{8}$/);
+  assert.equal(path.dirname(run), parent);
+  assert.equal(evidencePath, path.join(run, 'candidate-result.json'));
+  assert.equal(env.TMPDIR, path.join(run, 'tmp'));
+  assert.equal(env.MAC_CHROMIUM_TMPDIR, path.join(run, 'tmp'));
+  for (const directory of [source, path.join(source, 'tasks'), parent, run, path.join(run, 'tmp')]) {
+    const info = fsSync.lstatSync(directory);
+    assert.equal(info.isDirectory(), true);
+    assert.equal(info.isSymbolicLink(), false);
+    assert.equal(info.uid, process.getuid());
+    assert.equal(fsSync.realpathSync(directory), directory);
+    if (directory === parent || directory === run || directory === path.join(run, 'tmp'))
+      assert.equal(info.mode & 0o777, 0o700);
+  }
+  assert.equal(fsSync.existsSync(evidencePath), false, `${label} result must be fresh`);
+  return run;
+}
+function admitV39CurrentHostEvidence({ env, source, evidencePath, enabled }) {
+  assert.notEqual(env.MCP_REGISTERED_HANDOFF_Q05_CURRENT_HOST_EVIDENCE, '1');
+  return admitPrivateCurrentHostEvidence({ env, source, evidencePath, enabled,
+    marker: 'MCP_DESCRIPTION_V39_CURRENT_HOST_EVIDENCE',
+    rootName: 'MCP_DESCRIPTION_V39_EVIDENCE_ROOT', label: 'V39' });
+}
+function admitQ05CurrentHostEvidence({ env, source, evidencePath, enabled }) {
+  assert.notEqual(env.MCP_DESCRIPTION_V39_CURRENT_HOST_EVIDENCE, '1');
+  return admitPrivateCurrentHostEvidence({ env, source, evidencePath, enabled,
+    marker: 'MCP_REGISTERED_HANDOFF_Q05_CURRENT_HOST_EVIDENCE',
+    rootName: 'MCP_REGISTERED_HANDOFF_Q05_EVIDENCE_ROOT', label: 'Q05' });
+}
+function createPrivateWriter(directory, { allowed, label, atomicPair = false } = {}) {
+  assert.equal(typeof atomicPair, 'boolean');
+  const open = new Map();
+  function write(name, bytes) {
+    assert(allowed.has(name), `closed ${label} private artifact name required`);
+    if (label === 'Q05') {
+      const owner = fsSync.lstatSync(directory);
+      assert.ok(owner.isDirectory() && !owner.isSymbolicLink()
+        && owner.uid === process.getuid() && (owner.mode & 0o777) === 0o700,
+      'Q05 private evidence owner changed');
+    }
+    assert.equal(fsSync.realpathSync(directory), directory);
+    const file = path.join(directory, name);
+    let descriptor = open.get(name);
+    if (descriptor === undefined) {
+      descriptor = fsSync.openSync(file, fsSync.constants.O_WRONLY | fsSync.constants.O_CREAT
+        | fsSync.constants.O_EXCL | fsSync.constants.O_NOFOLLOW, 0o600);
+      open.set(name, descriptor);
+    }
+    const initial = fsSync.fstatSync(descriptor), linked = fsSync.lstatSync(file);
+    assert(initial.isFile() && linked.isFile() && initial.nlink === 1 && linked.nlink === 1
+      && initial.uid === process.getuid() && linked.uid === process.getuid()
+      && (initial.mode & 0o777) === 0o600 && (linked.mode & 0o777) === 0o600
+      && initial.dev === linked.dev && initial.ino === linked.ino, 'V39 private artifact replaced');
+    const body = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
+    if (name.startsWith('mcp-description-atomic-')) {
+      const maximum = name.endsWith('-wire.json') ? 128 * 1024 * 1024
+        : name.endsWith('-model.json') ? 32 * 1024 * 1024
+        : name.endsWith('-qualification.json') ? 8 * 1024 * 1024 : 8192;
+      assert.ok(body.length > 0 && body.length <= maximum, 'bounded atomic pair artifact required');
+    } else if (label === 'Q05') {
+      const maximum = name.endsWith('-wire.json') ? 128 * 1024 * 1024
+        : name.endsWith('-model.json') ? 32 * 1024 * 1024
+        : name.endsWith('-qualification.json') ? 8 * 1024 * 1024 : 16384;
+      assert.ok(body.length > 0 && body.length <= maximum, 'bounded Q05 artifact required');
+    }
+    fsSync.ftruncateSync(descriptor, 0);
+    for (let offset = 0; offset < body.length;) {
+      const written = fsSync.writeSync(descriptor, body, offset, body.length - offset, offset);
+      assert(written > 0, 'V39 private artifact short write'); offset += written;
+    }
+    fsSync.fsyncSync(descriptor);
+    const after = fsSync.lstatSync(file);
+    assert.equal(after.dev, initial.dev); assert.equal(after.ino, initial.ino);
+  }
+  return { write, close() {
+    let firstError;
+    for (const descriptor of open.values()) try { fsSync.closeSync(descriptor); }
+    catch (error) { firstError ||= error; }
+    open.clear();
+    if (firstError) throw firstError;
+  } };
+}
+function createV39PrivateWriter(directory, { atomicPair = false } = {}) {
+  const allowed = new Set(['candidate-result.json', 'mcp-description-model.json',
+    'mcp-description-wire.json', 'mcp-description-qualification.json',
+    'mcp-description-receipt.json', 'v39-browser-diagnostic.json']);
+  if (atomicPair) for (const name of [
+    'mcp-description-atomic-control-model.json', 'mcp-description-atomic-control-wire.json',
+    'mcp-description-atomic-control-qualification.json',
+    'mcp-description-atomic-treatment-model.json', 'mcp-description-atomic-treatment-wire.json',
+    'mcp-description-atomic-treatment-qualification.json',
+    'mcp-description-atomic-pair-receipt.json']) allowed.add(name);
+  return createPrivateWriter(directory, { allowed, label: 'V39', atomicPair });
+}
+function createQ05PrivateWriter(directory) {
+  return createPrivateWriter(directory, { label: 'Q05', allowed: new Set([
+    'candidate-result.json', 'registered-handoff-model.json', 'registered-handoff-wire.json',
+    'registered-handoff-committed-loss.json', 'registered-handoff-qualification.json',
+    'registered-handoff-receipt.json']) });
+}
+async function q05InitialPrivateSave(save, writer) {
+  try { await save(); }
+  catch (primary) {
+    try { writer.close(); }
+    catch (error) {
+      try { primary.q05WriterCloseCode = typeof error?.code === 'string' ? error.code : 'Q05_CLOSE_FAILED'; }
+      catch { /* A frozen primary still outranks a retirement diagnostic. */ }
+    }
+    throw primary;
+  }
+}
+async function q05FinalPrivateSave({ writer, receiptBytes, save, status, receipt, primary }) {
+  let failure = primary;
+  const record = error => {
+    const code = typeof error?.code === 'string' && /^[A-Z0-9_]{1,64}$/.test(error.code)
+      ? error.code : 'Q05_PRIVATE_EVIDENCE_ERROR';
+    failure ||= error;
+    status.status = 'failed'; status.cleanupComplete = false;
+    status.cleanupErrors.push(code);
+    status.error ||= { code, message: 'Q05 private evidence publication failed' };
+    receipt.passed = false;
+  };
+  try {
+    let resultSaved = false;
+    try { await save(); resultSaved = true; }
+    catch (error) { record(error); }
+    if (resultSaved) {
+      try { writer.write('registered-handoff-receipt.json', receiptBytes); }
+      catch (error) {
+        record(error);
+        try { await save(); }
+        catch (saveError) { record(saveError); }
+      }
+    }
+  } finally {
+    try { writer.close(); }
+    catch (error) { record(error); }
+  }
+  return failure;
+}
+function publishV39AtomicFinalReceipt(directory, receipt) {
+  require('../fixtures/secureshopMcpDescriptionAtomicPairRenderedQualification')
+    .assertPairReceipt(receipt);
+  const parent = fsSync.lstatSync(directory);
+  assert.ok(parent.isDirectory() && !parent.isSymbolicLink()
+    && parent.uid === process.getuid() && (parent.mode & 0o777) === 0o700
+    && fsSync.realpathSync(directory) === directory);
+  const file = path.join(directory, 'mcp-description-atomic-pair-receipt.json');
+  const candidate = path.join(directory, `.mcp-description-atomic-pair-receipt-${randomUUID()}.tmp`);
+  const bytes = Buffer.from(JSON.stringify(receipt, null, 2) + '\n');
+  assert.ok(bytes.length > 0 && bytes.length <= 8192);
+  const descriptor = fsSync.openSync(candidate, fsSync.constants.O_WRONLY | fsSync.constants.O_CREAT
+    | fsSync.constants.O_EXCL | fsSync.constants.O_NOFOLLOW, 0o600);
+  let candidateIdentity, linked = false, closed = false;
+  try {
+    candidateIdentity = fsSync.fstatSync(descriptor);
+    assert.ok(candidateIdentity.isFile() && candidateIdentity.nlink === 1
+      && candidateIdentity.uid === process.getuid()
+      && (candidateIdentity.mode & 0o777) === 0o600);
+    for (let offset = 0; offset < bytes.length;) {
+      const written = fsSync.writeSync(descriptor, bytes, offset, bytes.length - offset, offset);
+      assert.ok(written > 0); offset += written;
+    }
+    fsSync.fsyncSync(descriptor);
+    fsSync.closeSync(descriptor); closed = true;
+    const candidateOnDisk = fsSync.lstatSync(candidate);
+    assert.ok(candidateOnDisk.isFile() && !candidateOnDisk.isSymbolicLink()
+      && candidateOnDisk.nlink === 1 && candidateOnDisk.uid === process.getuid()
+      && (candidateOnDisk.mode & 0o777) === 0o600
+      && candidateOnDisk.dev === candidateIdentity.dev
+      && candidateOnDisk.ino === candidateIdentity.ino);
+    fsSync.linkSync(candidate, file); linked = true;
+    fsSync.unlinkSync(candidate);
+    const published = fsSync.lstatSync(file);
+    assert.ok(published.isFile() && published.nlink === 1
+      && published.dev === candidateIdentity.dev && published.ino === candidateIdentity.ino);
+    const dirDescriptor = fsSync.openSync(directory, fsSync.constants.O_RDONLY);
+    try { fsSync.fsyncSync(dirDescriptor); } finally { fsSync.closeSync(dirDescriptor); }
+  } catch (error) {
+    const cleanupErrors = [];
+    if (!closed) try { fsSync.closeSync(descriptor); } catch (closeError) { cleanupErrors.push(closeError); }
+    if (!candidateIdentity) cleanupErrors.push(Error('V39 receipt candidate identity unavailable; retained'));
+    else for (const target of linked ? [file, candidate] : [candidate]) try {
+      const current = fsSync.lstatSync(target);
+      if (current.dev !== candidateIdentity.dev || current.ino !== candidateIdentity.ino)
+        throw Error('V39 receipt candidate changed; retained');
+      fsSync.unlinkSync(target);
+    } catch (cleanupError) {
+      if (cleanupError.code !== 'ENOENT') cleanupErrors.push(cleanupError);
+    }
+    if (cleanupErrors.length) throw new AggregateError([error, ...cleanupErrors],
+      'V39 receipt publication failed with cleanup debt');
+    throw error;
+  }
+}
+const V39_ATOMIC_BROWSER_FIXED = new Set([
+  'GET /api/secureshop/admin/policies',
+  'GET /api/secureshop/admin/system/restart',
+  'GET /api/secureshop/admin/system/diagnostic',
+  'GET /api/secureshop/admin/access-control',
+  'GET /api/secureshop/v2/auth/whoami',
+  'GET /api/secureshop/auth/reset-readiness',
+  'POST /api/secureshop/agents/admin/assistant/mcp/confirm',
+  'POST /api/secureshop/agents/admin/session',
+  'POST /api/secureshop/auth/login', 'POST /api/secureshop/auth/bootstrap',
+  'GET /api/secureshop/auth/session', 'GET /api/secureshop/auth/reset-recovery',
+  'GET /api/secureshop/auth/mode', 'POST /api/secureshop/auth/mode',
+  'GET /api/secureshop/auth/progress', 'GET /api/secureshop/auth/assessment-objectives',
+  'GET /api/secureshop/auth/assessments', 'GET /api/secureshop/v2/scenes',
+  'GET /api/secureshop/v2/mcp-trust/readiness',
+  'GET /api/secureshop/admin/mcp/servers', 'GET /api/secureshop/admin/mcp/schema-history',
+  'POST /api/secureshop/agents/admin/assistant/session',
+  'POST /api/secureshop/agents/admin/assistant/chat',
+  'POST /api/secureshop/agents/admin/chat',
+  'POST /api/secureshop/agents/admin/chat/description-assessment',
+  'GET /api/changes/revisions',
+]);
+const v39AdmissionWitnesses = new WeakSet();
+function retainV39Admission(objective, admitted, qualification, enabled) {
+  assert.equal(objective.objectiveId, 'ss_mcp_description_instruction_adoption');
+  assert.equal(objective.qualification, 'pending'); assert.equal(objective.enabled, false);
+  assert.equal(admitted.rowCount, 1);
+  assert.deepEqual(admitted.rows, [{ objective_id: objective.objectiveId, qualification: 'native-model', is_enabled: false }]);
+  assert.equal(qualification, 'native-model'); assert.equal(enabled.enabled, true);
+  const witness = Object.freeze({ objectiveId: objective.objectiveId,
+    fixtureLocalCandidateAdmission: true, canonicalObjectiveEnabled: true });
+  v39AdmissionWitnesses.add(witness); return witness;
+}
+function initializeV39Receipt(contract, witness, receipt = contract.createReceipt()) {
+  assert.ok(v39AdmissionWitnesses.has(witness), 'observed V39 catalog admission required');
+  assert.ok(receipt && typeof receipt === 'object');
+  receipt.fixtureLocalCandidateAdmission = witness.fixtureLocalCandidateAdmission;
+  receipt.canonicalObjectiveEnabled = witness.canonicalObjectiveEnabled;
+  return receipt;
+}
+async function initializeObservedV39Receipt({ contract, witness, receipt, admission, pools, scope, actor, issued }) {
+  const authority = require('../../server/services/secureshopAssessmentReleaseAdmission')
+    .resolveAssessmentReleaseAdmission(admission, { identityPool: pools.IDENTITY_RUNTIME,
+      agentsPool: pools.AGENTS_RUNTIME, reviewPool: pools.REVIEW_RUNTIME, commercePool: pools.COMMERCE_RUNTIME });
+  assert.equal(authority.isCandidate('ss_mcp_description_instruction_adoption'), true);
+  // Rechecks all eight actual database identities and current launch/session.
+  await authority.assertScope(scope);
+  assert.equal(issued.persona.user.username, 'student_admin');
+  assert.equal(actor.user.role, 'admin');
+  assert.ok(actor.sessionId && actor.authorityVersion != null);
+  const value = initializeV39Receipt(contract, witness, receipt);
+  value.isolatedStores = true; value.registeredAdminAuthority = true;
+  return value;
+}
+function registryBrowserLoginUrl(origin, atomicPair = false) {
+  return `${origin}/secureshop/login${atomicPair ? '?next=%2Fsecureshop%2Fadmin%2Fmcp' : ''}`;
+}
+function v39AtomicBrowserRequestAllowed({ origin, build, url, method }) {
+  let target;
+  try { target = new URL(url); } catch { return false; }
+  if (target.origin !== origin || target.username || target.password
+    || target.pathname.includes('%')) return false;
+  const pathname = target.pathname;
+  if (target.hash && (pathname !== '/secureshop-frame.html'
+    || !/^#[a-f0-9]{64}$/.test(target.hash))) return false;
+  if (pathname.startsWith('/api/')) {
+    if (pathname === '/api/secureshop/auth/admin/progress/learners') {
+      return method === 'GET' && target.search === '?limit=25';
+    }
+    if (target.search) return false;
+    if (V39_ATOMIC_BROWSER_FIXED.has(`${method} ${pathname}`)) return true;
+    const U = '[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
+    return method === 'GET' && [
+      new RegExp(`^/api/secureshop/agents/admin/assistant/operations/${U}/${U}$`),
+      new RegExp(`^/api/secureshop/agents/admin/chat/requests/${U}/${U}$`),
+      new RegExp(`^/api/secureshop/agents/admin/chat/description-assessment/${U}/${U}$`),
+      new RegExp(`^/api/secureshop/admin/mcp/operations/${U}$`),
+      /^\/api\/secureshop\/admin\/mcp\/servers\/[a-z0-9][a-z0-9_-]{0,63}\/tools$/,
+    ].some(pattern => pattern.test(pathname));
+  }
+  if (method !== 'GET') return false;
+  if (pathname === '/secureshop/login'
+    && target.search === '?next=%2Fsecureshop%2Fadmin%2Fmcp') return true;
+  if ((pathname === '/secureshop/login' || pathname === '/secureshop/admin/mcp')
+    && target.search === '') return true;
+  if (pathname === '/secureshop-frame.html') {
+    const params = target.searchParams;
+    return [...params.keys()].sort().join(',') === 'entry,standalone'
+      && params.get('entry') === '/secureshop/admin/mcp' && params.get('standalone') === '1';
+  }
+  if (target.search || !(/^\/assets\/[A-Za-z0-9_.-]+\.(?:js|css|woff2|svg|png|webp)$/
+    .test(pathname) || pathname === '/favicon.svg')) return false;
+  try { const file = path.join(fsSync.realpathSync(build), pathname.slice(1));
+    const entry = fsSync.lstatSync(file);
+    return entry.isFile() && !entry.isSymbolicLink() && fsSync.realpathSync(file) === file;
+  } catch { return false; }
+}
+function createV39AtomicBrowserAudit({ origin, build, maximumRequests = 1200 }) {
+  assert.ok(Number.isSafeInteger(maximumRequests) && maximumRequests > 0 && maximumRequests <= 1200);
+  const pending = new Set(), denied = [];
+  let total = 0, apiRequests = 0, interceptionErrors = 0;
+  const snapshot = () => ({ total, apiRequests, denied: structuredClone(denied), interceptionErrors });
+  return Object.freeze({
+    intercept(request) {
+      total += 1;
+      const url = request.url(), method = request.method();
+      let pathname = 'invalid';
+      try { const parsed = new URL(url); pathname = parsed.pathname;
+        if (parsed.origin === origin && pathname.startsWith('/api/')) apiRequests += 1;
+      } catch { /* Invalid URLs are denied without retaining their bytes. */ }
+      const allowed = total <= maximumRequests && apiRequests <= maximumRequests
+        && v39AtomicBrowserRequestAllowed({ origin, build, url, method });
+      if (!allowed && denied.length < 16) {
+        // Retain only source-declared static paths, never arbitrary URL/path
+        // segments, credentials, query values, fragment bytes or bodies.
+        const known = ['/secureshop/login', '/secureshop/admin', '/secureshop/admin/mcp',
+          '/secureshop-frame.html', ...[...V39_ATOMIC_BROWSER_FIXED].map(row => row.split(' ')[1])];
+        denied.push({ method: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'].includes(method) ? method : 'OTHER',
+          path: known.includes(pathname) ? pathname : '[unrecognized-path]',
+          pathSha256: createHash('sha256').update(pathname).digest('hex') });
+      }
+      let task;
+      try { task = allowed ? request.continue() : request.abort(); }
+      catch { interceptionErrors += 1; return; }
+      const observed = Promise.resolve(task).then(() => {}, () => { interceptionErrors += 1; });
+      pending.add(observed);
+      void observed.then(() => pending.delete(observed));
+    },
+    async finish(retain = async () => {}) {
+      await Promise.all([...pending]);
+      await retain(snapshot()); // Failure evidence precedes admission assertions.
+      assert.equal(denied.length, 0, 'atomic pair browser requested an unowned route or exceeded its cap');
+      assert.equal(interceptionErrors, 0, 'atomic pair browser interception did not settle cleanly');
+      return snapshot();
+    }, snapshot,
+  });
+}
+function privateCurrentHostBrowserOptions({ directory, origin, profile, executablePath }) {
+  const ordinary = { headless: true, userDataDir: profile, executablePath };
+  if (!directory) return ordinary;
+  const target = new URL(origin);
+  assert.equal(target.origin, origin);
+  assert.equal(target.protocol, 'http:'); assert.equal(target.hostname, '127.0.0.1');
+  assert.match(target.port, /^[1-9][0-9]{0,4}$/);
+  assert.equal(target.pathname, '/'); assert.equal(target.search, ''); assert.equal(target.hash, '');
+  assert.equal(path.dirname(profile), path.join(directory, 'tmp'));
+  assert.match(path.basename(profile), /^dvaia-mcp-registry-rendered-[A-Za-z0-9_-]+$/);
+  const info = fsSync.lstatSync(profile);
+  assert.ok(info.isDirectory() && !info.isSymbolicLink());
+  assert.equal(info.uid, process.getuid()); assert.equal(info.mode & 0o777, 0o700);
+  assert.equal(fsSync.realpathSync(profile), profile);
+  return { ...ordinary, args: ['--no-sandbox', '--disable-background-networking',
+    '--disable-component-update', '--disable-domain-reliability', '--disable-quic',
+    '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
+    '--proxy-server=http://blocked.invalid:9',
+    '--proxy-bypass-list=127.0.0.1;localhost;[::1]',
+    '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost, EXCLUDE [::1]'] };
+}
+function v39CurrentHostBrowserOptions(options) {
+  return privateCurrentHostBrowserOptions(options);
+}
+function q05CurrentHostBrowserOptions(options) {
+  assert.equal(typeof options?.directory, 'string', 'Q05 private browser requires admitted evidence');
+  for (const directory of [options.directory, path.join(options.directory, 'tmp')]) {
+    const owner = fsSync.lstatSync(directory);
+    assert.ok(owner.isDirectory() && !owner.isSymbolicLink()
+      && owner.uid === process.getuid() && (owner.mode & 0o777) === 0o700
+      && fsSync.realpathSync(directory) === directory,
+    'Q05 private browser owner changed');
+  }
+  return privateCurrentHostBrowserOptions(options);
+}
+function createV39BrowserDiagnostic({ origin, write }) {
+  const target = new URL(origin);
+  assert.equal(target.origin, origin); assert.equal(target.hostname, '127.0.0.1');
+  let phase = 'launch-requested', child, recorded = false;
+  let stderr = Buffer.alloc(0), observed = 0;
+  const onData = chunk => {
+    const bytes = Buffer.from(chunk);
+    observed = Math.min(16385, observed + bytes.length);
+    if (stderr.length < 16384) stderr = Buffer.concat([stderr, bytes.subarray(0, 16384 - stderr.length)]);
+  };
+  const attach = browser => {
+    assert.equal(phase, 'launch-requested');
+    child = browser.process();
+    assert.ok(Number.isSafeInteger(child?.pid) && child.pid > 1);
+    child.stderr?.on('data', onData);
+    phase = 'launch-returned';
+  };
+  const advance = next => {
+    const stages = ['launch-requested', 'launch-returned', 'page-created',
+      'viewport-ready', 'target-guard-ready'];
+    assert.equal(stages.indexOf(next), stages.indexOf(phase) + 1);
+    phase = next;
+  };
+  const record = error => {
+    if (recorded) return;
+    child?.stderr?.off('data', onData);
+    write('v39-browser-diagnostic.json', JSON.stringify({ version: 1,
+      scope: 'V39-current-host-pre-model-browser-v1', origin, phase,
+      browserPid: child?.pid ?? null, browserExitCodeAtRecord: child?.exitCode ?? null,
+      browserSignalCodeAtRecord: child?.signalCode ?? null,
+      stderrCapture: 'post-launch-through-target-guard',
+      stderrObservedBytes: observed, stderrTruncated: observed > stderr.length,
+      stderr: stderr.toString('utf8'),
+      failure: error ? { name: String(error.name).slice(0, 80),
+        message: String(error.message).slice(0, 1024) } : null }, null, 2) + '\n');
+    recorded = true;
+  };
+  return { attach, advance, record };
 }
 async function clickRendered(frame, { label, selector, diagnosticPath } = {}) {
   let button;
@@ -189,8 +647,12 @@ async function dropOneCommittedRegistration(page, endpoint, kind = 'registration
 
 if (!D16_ENABLED) test(V42_ENABLED
   ? 'standalone admin confirms model-selected owned internal MCP discovery with canonical Judge evidence and fixed isolation'
+  : V39_PAIR_ENABLED
+  ? 'standalone admin compares clean and treatment registered descriptions with independent physical Judge evidence'
   : V39_ENABLED
   ? 'standalone admin adopts a registered tool description after original competing catalog and canonical Judge evidence'
+  : Q05_HANDOFF_ENABLED
+  ? 'standalone admin completes saved registered handoff by physical Ask, one owned invocation, and exact GET recovery'
   : V66_ENABLED
   ? 'standalone admin confirms model-selected owned MCP manifest import with canonical Judge evidence'
   : V43_ENABLED
@@ -199,11 +661,20 @@ if (!D16_ENABLED) test(V42_ENABLED
   { skip: !ENABLED, timeout: 240000 }, async () => {
     const root = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
     assert.equal(root, process.cwd(), 'reviewed current-main source required');
-    const evidencePath = V42_ENABLED ? process.env.MCP_REGISTRY_SSRF_V42_RESULT || ''
+    const evidencePath = Q05_HANDOFF_ENABLED ? process.env.MCP_REGISTERED_HANDOFF_Q05_RESULT || ''
+      : V42_ENABLED ? process.env.MCP_REGISTRY_SSRF_V42_RESULT || ''
       : V39_ENABLED ? process.env.MCP_DESCRIPTION_V39_RESULT || ''
       : V66_ENABLED ? process.env.MCP_MANIFEST_V66_RESULT || ''
       : process.env.MCP_REGISTRY_RENDERED_RESULT || '';
-    assert.ok(path.isAbsolute(evidencePath) && !path.resolve(evidencePath).startsWith(`${root}${path.sep}`));
+    const v39Directory = V39_CURRENT_HOST_EVIDENCE
+      ? admitV39CurrentHostEvidence({ env: process.env, source: root,
+        evidencePath, enabled: V39_ENABLED && ENABLED }) : null;
+    const q05Directory = Q05_CURRENT_HOST_EVIDENCE
+      ? admitQ05CurrentHostEvidence({ env: process.env, source: root,
+        evidencePath, enabled: Q05_HANDOFF_ENABLED && ENABLED }) : null;
+    assert.ok(!v39Directory || !q05Directory, 'rendered evidence cohorts are exclusive');
+    if (!v39Directory && !q05Directory) assert.ok(path.isAbsolute(evidencePath)
+      && !path.resolve(evidencePath).startsWith(`${root}${path.sep}`));
     const build = path.resolve(process.env.MCP_REGISTRY_RENDERED_BUILD || '/');
     assert.equal(build, path.join(root, 'client/build'));
     await fs.access(path.join(build, 'index.html')); await fs.access(path.join(build, 'secureshop-frame.html'));
@@ -222,7 +693,9 @@ if (!D16_ENABLED) test(V42_ENABLED
     })));
     const leasePool = new Pool({ connectionString: urls.IDENTITY_RUNTIME, max: 4,
       connectionTimeoutMillis: 5000, statement_timeout: 10000 });
-    const status = { status: 'running', scope: V42_ENABLED ? 'V42-standalone' : V39_ENABLED ? 'V39-standalone'
+    const status = { status: 'running', scope: Q05_HANDOFF_ENABLED ? 'Q05-registered-handoff-standalone'
+      : V42_ENABLED ? 'V42-standalone'
+      : V39_PAIR_ENABLED ? 'V39-atomic-pair-standalone' : V39_ENABLED ? 'V39-standalone'
       : V66_ENABLED ? 'V66-standalone' : 'standalone-registry-rendered',
       modelCalls: 0, browserCalls: 0,
       standaloneAdminRendered: false, ownedNamespaceRegistration: false,
@@ -230,19 +703,31 @@ if (!D16_ENABLED) test(V42_ENABLED
       renderedManifestImportSaved: false,
       renderedRemovalHistoryRetained: false, siblingDenied: false,
       cleanupComplete: false, cleanupErrors: [] };
-    const save = () => fs.writeFile(evidencePath, JSON.stringify(status, null, 2) + '\n', { mode: 0o600 });
+    const v39Writer = v39Directory
+      ? createV39PrivateWriter(v39Directory, { atomicPair: V39_PAIR_ENABLED }) : null;
+    const q05Writer = q05Directory ? createQ05PrivateWriter(q05Directory) : null;
+    const privateWriter = v39Writer || q05Writer;
+    let v39BrowserDiagnostic, v39AtomicBrowserAudit;
+    const save = () => privateWriter
+      ? Promise.resolve(privateWriter.write('candidate-result.json', JSON.stringify(status, null, 2) + '\n'))
+      : fs.writeFile(evidencePath, JSON.stringify(status, null, 2) + '\n', { mode: 0o600 });
     const v43Contract = require('../fixtures/secureshopMcpRegistryExploitQualification');
-    const v39Contract = V39_ENABLED ? require('../fixtures/secureshopMcpDescriptionRenderedQualification') : null;
-    const v39Receipt = v39Contract ? v39Contract.createReceipt() : null;
+    const v39Contract = V39_ENABLED || Q05_HANDOFF_ENABLED
+      ? require('../fixtures/secureshopMcpDescriptionRenderedQualification') : null;
+    const v39Receipt = V39_ENABLED && !V39_PAIR_ENABLED ? v39Contract.createReceipt() : null;
+    const handoffReceipt = Q05_HANDOFF_ENABLED ? v39Contract.createHandoffReceipt() : null;
     const v66Contract = V66_ENABLED || V42_ENABLED ? require('../fixtures/secureshopMcpManifestQualification') : null;
     const v66Receipt = V66_ENABLED ? v66Contract.createV66Receipt() : null;
     const v42Receipt = V42_ENABLED ? v66Contract.createV42Receipt() : null;
     const v43Receipt = V43_ENABLED ? Object.fromEntries(v43Contract.V43_FLAGS.map(key => [key, false])) : null;
     if (v43Receipt) Object.assign(v43Receipt, { scope: v43Contract.V43_SCOPE,
       actorCalls: 0, judgeCalls: 0, actualTurns: 0, genuineCredit: 0, errors: [] });
-    await save();
+    if (q05Writer) await q05InitialPrivateSave(save, q05Writer);
+    else await save();
     let composition, registry, server, browser, profile, dropper, failure;
-    let v43Transport, v43Recorder, registeredInvocation;
+    let v43Transport, v43Recorder, registeredInvocation, v39PairTransport, v39PairReceipt, handoffLoss;
+    let v39PairArm, v39PairIds, v39ActiveArm = 'control';
+    let captureV39Model, recordV39Wire;
     let executorCalls = 0;
     const executorObservations=[];
     try {
@@ -266,8 +751,18 @@ if (!D16_ENABLED) test(V42_ENABLED
       finally { seedClient.release(); }
       if (v43Receipt) v43Receipt.isolatedStores = true;
       if (v39Receipt) v39Receipt.isolatedStores = true;
+      if (handoffReceipt) handoffReceipt.isolatedStores = true;
       const identity = pools.IDENTITY_RUNTIME, agents = pools.AGENTS_RUNTIME;
       const review = pools.REVIEW_RUNTIME, commerce = pools.COMMERCE_RUNTIME;
+      const assessmentReleaseAdmission = V39_ENABLED
+        ? await require('../../server/services/secureshopAssessmentReleaseAdmission')
+          .createDisposableAssessmentReleaseAdmission({
+            stores: Object.fromEntries(Object.keys(STORES).map(store => [store.toLowerCase(), {
+              runtimePool: pools[`${store}_RUNTIME`], migrationPool: pools[`${store}_MIGRATION`],
+              runtimeUrl: urls[`${store}_RUNTIME`], migrationUrl: urls[`${store}_MIGRATION`],
+            }])),
+            objectiveIds: ['ss_mcp_description_instruction_adoption'],
+          }) : undefined;
       const platformBefore = (await identity.query(`SELECT
         (SELECT count(*)::integer FROM identity.users) AS users,
         (SELECT count(*)::integer FROM identity.user_sessions) AS sessions`)).rows[0];
@@ -296,23 +791,52 @@ if (!D16_ENABLED) test(V42_ENABLED
       const noJudge = async () => { status.modelCalls++; throw Error('No Judge admitted in MCP registry cohort'); };
       if (MODEL_REGISTRY_ENABLED) {
         const evidenceDirectory = path.dirname(evidencePath);
-        const captureModel = value => fsSync.writeFileSync(path.join(evidenceDirectory,
-          V42_ENABLED ? 'mcp-discovery-model.json' : V39_ENABLED ? 'mcp-description-model.json'
-            : V66_ENABLED ? 'mcp-manifest-model.json' : 'mcp-impersonation-model.json'),
-          JSON.stringify(value, null, 2) + '\n', { mode: 0o600 });
-        v43Transport = await require('./secureshopMailActualTransport').createMailActualTransport({
-          maxHttpCalls: V42_ENABLED ? 5 : V66_ENABLED ? v66Contract.V66_MAX_HTTP_CALLS : 14, allowMetadata: true,
-          record: value => fsSync.writeFileSync(path.join(evidenceDirectory,
-            V42_ENABLED ? 'mcp-discovery-wire.json' : V39_ENABLED ? 'mcp-description-wire.json'
-              : V66_ENABLED ? 'mcp-manifest-wire.json' : 'mcp-impersonation-wire.json'),
-            JSON.stringify(value, null, 2) + '\n', { mode: 0o600 }),
+        const captureModel = value => {
+          const name = Q05_HANDOFF_ENABLED ? 'registered-handoff-model.json'
+            : V42_ENABLED ? 'mcp-discovery-model.json'
+            : V39_PAIR_ENABLED ? `mcp-description-atomic-${v39ActiveArm}-model.json`
+            : V39_ENABLED ? 'mcp-description-model.json'
+            : V66_ENABLED ? 'mcp-manifest-model.json' : 'mcp-impersonation-model.json';
+          const bytes = JSON.stringify(value, null, 2) + '\n';
+          if (privateWriter) privateWriter.write(name, bytes);
+          else fsSync.writeFileSync(path.join(evidenceDirectory, name), bytes, { mode: 0o600 });
+        };
+        if (V39_PAIR_ENABLED) captureV39Model = captureModel;
+        const recordWire = value => {
+            const name = V42_ENABLED ? 'mcp-discovery-wire.json'
+              : Q05_HANDOFF_ENABLED ? 'registered-handoff-wire.json'
+              : V39_PAIR_ENABLED ? `mcp-description-atomic-${v39ActiveArm}-wire.json`
+              : V39_ENABLED ? 'mcp-description-wire.json'
+              : V66_ENABLED ? 'mcp-manifest-wire.json' : 'mcp-impersonation-wire.json';
+            const bytes = JSON.stringify(value, null, 2) + '\n';
+            if (privateWriter) privateWriter.write(name, bytes);
+            else fsSync.writeFileSync(path.join(evidenceDirectory, name), bytes, { mode: 0o600 });
+        };
+        if (V39_PAIR_ENABLED) recordV39Wire = recordWire;
+        if (V39_PAIR_ENABLED) {
+          const ids = { control: randomUUID().replaceAll('-', ''),
+            treatment: randomUUID().replaceAll('-', '') };
+          v39PairIds = ids;
+          v39PairTransport = require('./secureshopMailActualTransport')
+            .createMcpDescriptionAtomicPairTransport({ controlRunId: ids.control,
+              treatmentRunId: ids.treatment, record: (arm, value) => {
+                assert.equal(arm, v39ActiveArm, 'retired arm cannot write the next arm artifact');
+                recordWire(value);
+              } });
+          v39PairArm = await v39PairTransport.beginArm('control', ids.control);
+          v43Transport = v39PairArm.transport;
+        } else v43Transport = await require('./secureshopMailActualTransport').createMailActualTransport({
+          maxHttpCalls: Q05_HANDOFF_ENABLED ? 12 : V42_ENABLED ? 5 : V66_ENABLED ? v66Contract.V66_MAX_HTTP_CALLS : 14,
+          allowMetadata: true, record: recordWire,
         });
         v43Recorder = require('../fixtures/secureshopMcpRegistryExploitQualification')
           .createV43ModelRecorder({ transport: v43Transport, record: captureModel });
       }
+      const pairJudge = V39_PAIR_ENABLED ? (...args) => v43Recorder.judge(...args) : null;
       const grading = await require('../../server/services/secureshopGradingBootstrap')
         .createSecureShopGradingBootstrap({ identityPool: identity, agentsPool: agents,
-          progress, resetComposition: reset, judge: MODEL_REGISTRY_ENABLED ? v43Recorder.judge : noJudge,
+          progress, resetComposition: reset, assessmentReleaseAdmission,
+          judge: MODEL_REGISTRY_ENABLED ? pairJudge || v43Recorder.judge : noJudge,
           expectedIdentityDatabase: new URL(urls.IDENTITY_RUNTIME).pathname.slice(1),
           expectedAgentsDatabase: new URL(urls.AGENTS_RUNTIME).pathname.slice(1) });
       const scenes = require('../../server/services/secureshopScenes').createSecureShopScenes({
@@ -332,12 +856,14 @@ if (!D16_ENABLED) test(V42_ENABLED
       composition = require('../../server/services/secureshopBoundReviewComposition')
         .createSecureShopBoundReviewComposition({ identityPool: identity, agentsPool: agents,
           reviewPool: review, commercePool: commerce, resetComposition: reset,
-          gradingBootstrap: grading, scenes, modeAuthority, ownedMcpRegistryReads: true,
-          ...(MODEL_REGISTRY_ENABLED ? { toolPolicyRepository, judge: v43Recorder.judge,
+          gradingBootstrap: grading, assessmentReleaseAdmission, scenes, modeAuthority, ownedMcpRegistryReads: true,
+          ...(MODEL_REGISTRY_ENABLED ? { toolPolicyRepository, judge: pairJudge || v43Recorder.judge,
             personaInboxFeature: require('../../server/services/secureshopPersonaInboxActivationPolicy')
               .activationPolicy(process.env).requested,
             mcpRegistryApplication: () => registry ? { mode: registryConfiguration.mode,
-              service: registry.service } : null } : {}),
+              service: registry.service } : null,
+            ...q05RegisteredInvocationCompositionOptions(Q05_HANDOFF_ENABLED,
+              () => registeredInvocation) } : {}),
           fixtures: [], requiredObjectives: ['ss_stored_browser_execution'],
           jwtSecret: 'disposable-mcp-registry-persona-secret-at-least-32-bytes',
           agentRuntime: { provider } });
@@ -370,7 +896,7 @@ if (!D16_ENABLED) test(V42_ENABLED
           .createRegisteredInvocationProduction({ infrastructure: invocationInfrastructure,
             resetComposition: reset, provider, authenticatePersona: composition.personaAuth.authenticatePersona,
             migrationPool: pools.AGENTS_MIGRATION, modeAuthority, identityPool: identity,
-            gradingBootstrap: grading, judge: v43Recorder.judge });
+            gradingBootstrap: grading, judge: pairJudge || v43Recorder.judge, assessmentReleaseAdmission });
         assert.equal(registeredInvocation.ready, true);
       }
       const mountedRegistry = V42_ENABLED ? v66Contract.currentRegistryMount(() => registry) : registry;
@@ -388,17 +914,22 @@ if (!D16_ENABLED) test(V42_ENABLED
           .createSecureShopStorePublicCatalogRepository({ identityPool: identity,
             reviewPool: review, commercePool: commerce });
         Object.assign(mounted.standaloneAuth, {
-          ...(V42_ENABLED?{assessmentProgress:require('../../server/services/secureshopAssessmentProgress').createSecureShopAssessmentProgress({repository:require('../../server/database/postgres/secureshopAssessmentProgressRepository').createSecureShopAssessmentProgressRepository({pool:identity})})}:{}),
+          ...(V42_ENABLED || V39_ENABLED ? { assessmentProgress:
+            require('../../server/services/secureshopAssessmentProgress').createSecureShopAssessmentProgress({
+              repository: require('../../server/database/postgres/secureshopAssessmentProgressRepository')
+                .createSecureShopAssessmentProgressRepository({ pool: identity, assessmentReleaseAdmission }),
+            }) } : {}),
           registeredAdminReset: require('../../server/services/secureshopRegisteredAdminReset')
             .createRegisteredAdminResetService({ repository: resetRepository }),
           mode: require('../../server/services/secureshopStandaloneMode')
             .createSecureShopStandaloneMode({ authService: auth, repository: modeRepository }),
           assessmentObjectives: require('../../server/services/secureshopAssessmentCatalog')
-            .createSecureShopAssessmentCatalog({ pool: identity, authService: auth }),
+            .createSecureShopAssessmentCatalog({ pool: identity, authService: auth, assessmentReleaseAdmission }),
           assessmentRecovery: require('../../server/services/secureshopAssessmentRecovery')
             .createSecureShopAssessmentRecovery({ identityPool: identity, authService: auth,
               bootstrap, launches: composition.launches, personaAuth: composition.personaAuth,
-              personaAuthority: grading.personaAuthority, judge: v43Recorder.judge }),
+              personaAuthority: grading.personaAuthority, judge: pairJudge || v43Recorder.judge,
+              assessmentReleaseAdmission }),
           cartImport: require('../../server/services/secureshopStandaloneCartImport')
             .createSecureShopStandaloneCartImport({ bootstrap, launches: composition.launches,
               personaAuth: composition.personaAuth, commerce: composition.commerce }),
@@ -424,6 +955,24 @@ if (!D16_ENABLED) test(V42_ENABLED
           if (V39_ENABLED) v39Contract.captureBody(request, response, bytes);
         },
       } : {}));
+      let handoffBinding;
+      if (Q05_HANDOFF_ENABLED) {
+        handoffLoss = v39Contract.createCommittedRegisteredSseLoss({
+          readCompleted: async ({ sessionId, requestId }) => {
+            assert.ok(handoffBinding, 'physical owner binding required before interception');
+            const row = await reset.journal.readRegisteredAdminRequest({ binding: handoffBinding,
+              sessionId, requestId });
+            assert.equal(row?.status, 'completed');
+            return { status: row.status, replayed: true, result: row.result_json };
+          },
+          record: value => q05Writer
+            ? q05Writer.write('registered-handoff-committed-loss.json', JSON.stringify(value, null, 2) + '\n')
+            : fsSync.writeFileSync(path.join(path.dirname(evidencePath),
+              'registered-handoff-committed-loss.json'), JSON.stringify(value, null, 2) + '\n',
+            { mode: 0o600, flag: 'wx' }),
+        });
+        app.use(handoffLoss.middleware);
+      }
       if (MODEL_REGISTRY_ENABLED) app.use((request, response, next) => {
         if (!V66_ENABLED && !V42_ENABLED) v43Json.observeOriginalV43Json(request, response, v43JsonCaptures);
         if (V39_ENABLED) v39Contract.observeJson(request, response, v43JsonCaptures);
@@ -459,6 +1008,8 @@ if (!D16_ENABLED) test(V42_ENABLED
       });
       server = await new Promise(resolve => { const opened = app.listen(0, '127.0.0.1', () => resolve(opened)); });
       const origin = `http://127.0.0.1:${server.address().port}`;
+      if (v39Writer) v39BrowserDiagnostic = createV39BrowserDiagnostic({ origin,
+        write: (name, body) => v39Writer.write(name, body) });
       const bound = await require('../../server/services/secureshopBoundApplication')
         .createSecureShopBoundApplication({ engine: 'postgres', shopEnabled: true,
           ...(MODEL_REGISTRY_ENABLED ? { applicationMode: 'standalone' } : {}),
@@ -480,19 +1031,29 @@ if (!D16_ENABLED) test(V42_ENABLED
       app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
       profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mcp-registry-rendered-'));
       assert.ok(profile.startsWith(`${path.resolve(process.env.TMPDIR || os.tmpdir())}${path.sep}`));
-      browser = await require('puppeteer').launch({ headless: true, userDataDir: profile, executablePath });
       status.browserCalls = 1;
-      const page = await browser.newPage(); await page.setViewport({ width: 1280, height: 900 });
+      browser = await require('puppeteer').launch(q05Directory
+        ? q05CurrentHostBrowserOptions({ directory: q05Directory, origin, profile, executablePath })
+        : v39CurrentHostBrowserOptions({ directory: v39Directory, origin, profile, executablePath }));
+      v39BrowserDiagnostic?.attach(browser);
+      const page = await browser.newPage(); v39BrowserDiagnostic?.advance('page-created');
+      await page.setViewport({ width: 1280, height: 900 });
+      v39BrowserDiagnostic?.advance('viewport-ready');
       await page.setRequestInterception(true);
-      page.on('request', request => request.url().startsWith(`${origin}/`)
-        ? request.continue() : request.abort());
+      if (V39_PAIR_ENABLED) v39AtomicBrowserAudit = createV39AtomicBrowserAudit({ origin, build });
+      page.on('request', request => V39_PAIR_ENABLED
+        ? v39AtomicBrowserAudit.intercept(request)
+        : request.url().startsWith(`${origin}/`)
+          ? request.continue() : request.abort());
+      v39BrowserDiagnostic?.advance('target-guard-ready');
+      v39BrowserDiagnostic?.record(null);
       const apiStatuses = [];
       page.on('response', response => {
         const pathname = new URL(response.url()).pathname;
         if (pathname.startsWith('/api/secureshop/')) apiStatuses.push({
           method: response.request().method(), path: pathname, status: response.status() });
       });
-      assert.ok([200, 304].includes((await page.goto(`${origin}/secureshop/login`)).status()));
+      assert.ok([200, 304].includes((await page.goto(registryBrowserLoginUrl(origin, V39_PAIR_ENABLED))).status()));
       await page.waitForSelector('#ss-login-user');
       await page.type('#ss-login-user', 'student_admin');
       await page.type('#ss-login-pw', 'student123');
@@ -521,35 +1082,56 @@ if (!D16_ENABLED) test(V42_ENABLED
         const principal = await auth.establishTenantContext(ownerBase);
         if (v43Receipt) v43Receipt.registeredAdminAuthority = true;
         if (v39Receipt) v39Receipt.registeredAdminAuthority = true;
+        if (handoffReceipt) handoffReceipt.registeredAdminAuthority = true;
         const catalog = mounted.standaloneAuth.assessmentObjectives;
-        const objective = (await catalog.list(ownerBase)).objectives
+        const objective = Q05_HANDOFF_ENABLED ? null : (await catalog.list(ownerBase)).objectives
           .find(value => value.objectiveId === (V42_ENABLED ? 'ss_mcp_registry_internal_discovery' : V39_ENABLED ? 'ss_mcp_description_instruction_adoption'
             : V66_ENABLED ? 'ss_mcp_manifest_disclosure' : 'ss_mcp_server_impersonation'));
-        assert.ok(objective);
-        assert.equal(objective.enabled, false, 'the fresh objective is naturally disabled before qualification');
-        let v42Admission;
-        if(V42_ENABLED){
+        if (!Q05_HANDOFF_ENABLED) {
+          assert.ok(objective);
+          assert.equal(objective.enabled, false, 'the fresh objective is naturally disabled before qualification');
+        }
+        let v42Admission, v39Admission, v39Admitted, v39Qualification;
+        if (Q05_HANDOFF_ENABLED) {
+          assert.equal(assessmentReleaseAdmission, undefined, 'no objective admission or Judge in Q05 handoff');
+        } else if(V42_ENABLED){
           v42Admission=await v66Contract.admitV42DisposableCandidate({migration:pools.IDENTITY_MIGRATION,catalog,administratorContext:ownerBase,curriculum:require('../../server/config/secureshopCurriculum')});
         }else if (V39_ENABLED) {
           assert.equal(objective.qualification, 'pending');
           await assert.rejects(catalog.set(ownerBase, { objectiveId: objective.objectiveId,
             enabled: true, expectedRevision: objective.revision }), { code: 'SHOP_OBJECTIVE_UNQUALIFIED' });
+          const defaultObjective = require('../../server/config/secureshopCurriculum').OBJECTIVES
+            .find(value => value.id === objective.objectiveId);
+          assert.ok(defaultObjective);
+          const sourceDocument = JSON.stringify({ version: 1, id: defaultObjective.id,
+            label: defaultObjective.text, defaultEnabled: defaultObjective.defaultEnabled,
+            qualification: defaultObjective.qualification });
+          const sourceSha256 = require('node:crypto').createHash('sha256')
+            .update(sourceDocument).digest('hex');
           const admitted = await pools.IDENTITY_MIGRATION.query(`UPDATE secureshop_auth.assessment_objectives
             SET qualification='native-model' WHERE objective_id=$1 AND qualification='pending'
               AND is_enabled=false AND catalog_active=true
               AND configuration_source='checked_in_default'
-              AND source_document->>'qualification'='pending'
-            RETURNING objective_id,qualification,is_enabled`, [objective.objectiveId]);
+              AND source_sha256=$2 AND source_document=$3::jsonb
+            RETURNING objective_id,qualification,is_enabled`,
+          [objective.objectiveId, sourceSha256, sourceDocument]);
           assert.deepEqual(admitted.rows, [{ objective_id: objective.objectiveId,
             qualification: 'native-model', is_enabled: false }]);
           assert.equal(admitted.rowCount, 1);
-          v39Receipt.fixtureLocalCandidateAdmission = true;
-          assert.equal((await catalog.list(ownerBase)).objectives
-            .find(value => value.objectiveId === objective.objectiveId).qualification, 'native-model');
+          v39Admitted = admitted;
+          v39Qualification = (await catalog.list(ownerBase)).objectives
+            .find(value => value.objectiveId === objective.objectiveId).qualification;
+          assert.equal(v39Qualification, 'native-model');
         } else assert.equal(objective.qualification, 'native-model');
-        if(!V42_ENABLED)assert.equal((await catalog.set(ownerBase, { objectiveId: objective.objectiveId,
-          enabled: true, expectedRevision: objective.revision })).enabled, true);
-        if (v39Receipt) v39Receipt.canonicalObjectiveEnabled = true;
+        if(!V42_ENABLED && !Q05_HANDOFF_ENABLED) {
+          const enabled = await catalog.set(ownerBase, { objectiveId: objective.objectiveId,
+            enabled: true, expectedRevision: objective.revision });
+          assert.equal(enabled.enabled, true);
+          if (V39_ENABLED) {
+            v39Admission = retainV39Admission(objective, v39Admitted, v39Qualification, enabled);
+            if (!V39_PAIR_ENABLED) initializeV39Receipt(v39Contract, v39Admission, v39Receipt);
+          }
+        }
         if (V66_ENABLED) {
           const enabled = (await catalog.list(ownerBase)).objectives
             .find(value => value.objectiveId === objective.objectiveId);
@@ -583,7 +1165,7 @@ if (!D16_ENABLED) test(V42_ENABLED
           Object.assign(V42_ENABLED?v42Receipt:v66Receipt, qualified);
           if(V42_ENABLED)status.discoveryQualification=true;else status.manifestQualification = true;
           await save();
-        } else if (V39_ENABLED) {
+        } else if (V39_ENABLED || Q05_HANDOFF_ENABLED) {
           const readRegistryFor = async requestedScope => {
             const where = `platform_launch_id=$1 AND platform_scenario_id=$2
               AND platform_launch_generation=$3 AND original_platform_owner_id=$4
@@ -650,16 +1232,35 @@ if (!D16_ENABLED) test(V42_ENABLED
           const peerBefore = await readRegistryFor(peerScope);
           assert.equal(peerBefore.entries.length, 1);
           assert.equal(peerBefore.operations.length, 1);
-          await v39Contract.qualify({ page, frame, frameFor: frameOn, click: clickRendered,
-            origin, binding, personaSession, headers, agents, identity,
+          const qualifyV39Arm = (context, atomicArm, armReceipt) => v39Contract.qualify({
+            page, frame: context.frame, frameFor: frameOn, click: clickRendered,
+            origin, binding: context.binding, personaSession: context.personaSession,
+            headers: context.headers, agents, identity,
             conversationRepository: reset.conversations, turnJournal: reset.journal,
             invocationJournal: invocationInfrastructure.journal,
             registryRepository: require('../../server/database/postgres/secureshopOwnedMcpRegistryRepository')
               .createOwnedMcpRegistryRepository({ pool: agents, personaAuthority: grading.personaAuthority }),
-            provider, recorder: v43Recorder, transport: v43Transport, principal, readRegistry,
-            originalJsonCaptures: v43JsonCaptures, receipt: v39Receipt, scope, ownerBase,
+            provider, recorder: v43Recorder, transport: v43Transport,
+            principal: context.principal, readRegistry: () => readRegistryFor(context.scope),
+            originalJsonCaptures: v43JsonCaptures, receipt: armReceipt,
+            scope: context.scope, ownerBase: context.ownerBase,
             bootstrap, composition, reset, peerHeaders, peerScope, peerBefore,
             readPeerRegistry: () => readRegistryFor(peerScope),
+            readPublicProgress: async completed => {
+              const response = await page.evaluate(async () => {
+                const result = await fetch('/api/secureshop/auth/progress', { credentials: 'same-origin' });
+                return { status: result.status, body: await result.json() };
+              });
+              assert.equal(response.status, 200, JSON.stringify(response));
+              const rows = response.body.objectives.filter(row =>
+                row.objectiveId === 'ss_mcp_description_instruction_adoption');
+              assert.equal(rows.length, 1);
+              assert.equal(rows[0].completed, completed);
+              assert.equal(response.body.totalObjectives, response.body.objectives.length);
+              assert.equal(response.body.completedObjectives,
+                response.body.objectives.filter(row => row.completed).length);
+              return response;
+            },
             recordComposerDiagnostic: async ({ state, screenshot }) => {
               const directory = path.dirname(evidencePath);
               await fs.writeFile(path.join(directory, 'mcp-description-composer-timeout.json'),
@@ -669,10 +1270,126 @@ if (!D16_ENABLED) test(V42_ENABLED
                 'mcp-description-composer-timeout.png'), screenshot,
               { mode: 0o600, flag: 'wx' });
             },
-            authenticateObservedBearer: token => composition.personaAuth.authenticateBoundToken({ scope, token }),
-            savePrivate: value => fsSync.writeFileSync(path.join(path.dirname(evidencePath),
-              'mcp-description-qualification.json'), JSON.stringify(value, null, 2) + '\n', { mode: 0o600 }) });
-          status.descriptionQualification = true;
+            authenticateObservedBearer: token => composition.personaAuth.authenticateBoundToken({
+              scope: context.scope, token }),
+            atomicArm,
+            retirePhysicalArm: atomicArm === 'control' ? async () => {
+              v43Recorder.close();
+              await v39PairArm.finish();
+              assert.equal(v39PairTransport.snapshot().arms.control.state, 'finished');
+            } : null,
+            savePrivate: value => v39Writer
+              ? v39Writer.write(atomicArm
+                ? `mcp-description-atomic-${atomicArm}-qualification.json`
+                : 'mcp-description-qualification.json', JSON.stringify(value, null, 2) + '\n')
+              : fsSync.writeFileSync(path.join(path.dirname(evidencePath),
+                atomicArm ? `mcp-description-atomic-${atomicArm}-qualification.json`
+                  : 'mcp-description-qualification.json'), JSON.stringify(value, null, 2) + '\n',
+              { mode: 0o600 }) });
+          const firstContext = { frame, binding, personaSession, headers, principal, scope, ownerBase };
+          if (Q05_HANDOFF_ENABLED) handoffBinding = binding;
+          const controlReceipt = V39_PAIR_ENABLED ? await initializeObservedV39Receipt({ contract: v39Contract,
+            witness: v39Admission, admission: assessmentReleaseAdmission, pools, scope, actor, issued }) : v39Receipt;
+          const control = Q05_HANDOFF_ENABLED
+            ? await v39Contract.qualify({ page, frame, frameFor: frameOn, click: clickRendered,
+              origin, binding, personaSession, headers, agents, identity,
+              conversationRepository: reset.conversations, turnJournal: reset.journal,
+              invocationJournal: invocationInfrastructure.journal,
+              registryRepository: require('../../server/database/postgres/secureshopOwnedMcpRegistryRepository')
+                .createOwnedMcpRegistryRepository({ pool: agents, personaAuthority: grading.personaAuthority }),
+              provider, recorder: v43Recorder, transport: v43Transport, principal,
+              readRegistry, originalJsonCaptures: v43JsonCaptures, receipt: handoffReceipt,
+              scope, ownerBase, bootstrap, composition, reset, peerHeaders, peerScope, peerBefore,
+              readPeerRegistry: () => readRegistryFor(peerScope),
+              authenticateObservedBearer: token => composition.personaAuth.authenticateBoundToken({ scope, token }),
+              handoffOnly: true, handoffLoss,
+              savePrivate: value => q05Writer
+                ? q05Writer.write('registered-handoff-qualification.json', JSON.stringify(value, null, 2) + '\n')
+                : fsSync.writeFileSync(path.join(path.dirname(evidencePath),
+                  'registered-handoff-qualification.json'), JSON.stringify(value, null, 2) + '\n',
+                { mode: 0o600 }) })
+            : await qualifyV39Arm(firstContext,
+              V39_PAIR_ENABLED ? 'control' : null, controlReceipt);
+          if (V39_PAIR_ENABLED) {
+            const controlCalls = structuredClone(v43Transport.calls);
+            assert.equal(v39PairTransport.snapshot().arms.control.state, 'finished');
+            const resetRows = (await identity.query(`SELECT reset_id,launch_id,from_generation,
+              to_generation,status,reconciliation_required,conversation_reconciliation_required,
+              progress_reconciliation_required,committed_at
+              FROM identity.secureshop_launch_resets WHERE reset_id=$1`,
+            [control.fences.resetId])).rows;
+            assert.equal(resetRows.length, 1);
+            v43Contract.assertV43ResetCheckpoint(control.fences.reset, scope, resetRows[0]);
+            v39ActiveArm = 'treatment';
+            v39PairArm = await v39PairTransport.beginArm('treatment', v39PairIds.treatment);
+            v43Transport = v39PairArm.transport;
+            v43Recorder = require('../fixtures/secureshopMcpRegistryExploitQualification')
+              .createV43ModelRecorder({ transport: v43Transport, record: captureV39Model });
+            // Composition retains the original exact OllamaProvider instance. Switch only
+            // its fixture-owned dispatch to a second exact OllamaProvider after the first
+            // physical relay is retired; no response, trace or identity is synthesized.
+            switchV39AtomicProvider(provider, v43Recorder.provider);
+            const oldBootstraps = v43Bootstraps.length;
+            const reloaded = await page.goto(`${origin}/secureshop/admin/mcp`);
+            assert.ok([200, 304].includes(reloaded.status()));
+            const newFrame = await frameOn(page);
+            const nextIssued = await waitFor(() => v43Bootstraps.length > oldBootstraps
+              ? v43Bootstraps.at(-1) : null, 'fresh treatment browser bootstrap');
+            assert.notEqual(nextIssued.bearer, issued.bearer);
+            assert.notEqual(nextIssued.persona.token, issued.persona.token);
+            const nextScope = await composition.launches.resolveCapability(nextIssued.bearer);
+            assert.ok(nextScope.launchId !== scope.launchId ||
+              BigInt(nextScope.generation) > BigInt(scope.generation));
+            if (nextScope.launchId === scope.launchId)
+              assert.equal(String(nextScope.generation), String(resetRows[0].to_generation));
+            const nextActor = await composition.personaAuth.authenticateBoundToken({
+              scope: nextScope, token: nextIssued.persona.token });
+            assert.equal(nextActor.user.id, actor.user.id);
+            assert.notEqual(nextActor.sessionId, actor.sessionId);
+            const nextBinding = require('../../server/services/secureshopConversationBinding')
+              .createConversationBinding(nextScope, { role: 'admin', id: nextActor.user.id });
+            const nextSession = { sessionId: nextActor.sessionId,
+              authorityVersion: nextActor.authorityVersion };
+            const nextHeaders = { authorization: `Bearer ${nextIssued.persona.token}`,
+              'x-dvaia-secureshop-launch': nextIssued.bearer };
+            const nextCookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
+              .find(value => value.name === 'dvaia_shop_session');
+            assert.ok(nextCookie?.httpOnly);
+            const nextOwnerBase = await auth.authenticate(nextCookie.value);
+            const nextPrincipal = await auth.establishTenantContext(nextOwnerBase);
+            assert.equal(nextPrincipal.principalId, principal.principalId);
+            assert.deepEqual(await readRegistryFor(peerScope), peerBefore);
+            await clickRendered(newFrame, { label: 'Shop settings' });
+            await page.waitForSelector('aside[aria-label="Shop settings"]');
+            await newFrame.waitForFunction(() => document.querySelector('[aria-label="Shop feature mode"]')
+              ?.textContent.includes('Current: '), { timeout: 20000 });
+            const treatmentMode = await newFrame.$eval('[aria-label="Shop feature mode"]',
+              node => node.textContent.includes('Current: Fixed') ? 'fixed'
+                : node.textContent.includes('Current: Vulnerable') ? 'vuln' : null);
+            assert.ok(treatmentMode === 'fixed' || treatmentMode === 'vuln');
+            if (treatmentMode === 'fixed') await clickRendered(newFrame, { label: 'Vulnerable' });
+            await newFrame.waitForFunction(() => document.querySelector('[aria-label="Shop feature mode"]')
+              ?.textContent.includes('Current: Vulnerable'), { timeout: 20000 });
+            await clickRendered(newFrame, { label: 'Shop settings' });
+            await page.waitForSelector('aside[aria-label="Shop settings"]', { hidden: true });
+            const treatmentReceipt = await initializeObservedV39Receipt({ contract: v39Contract,
+              witness: v39Admission, admission: assessmentReleaseAdmission, pools,
+              scope: nextScope, actor: nextActor, issued: nextIssued });
+            const treatment = await qualifyV39Arm({ frame: newFrame, binding: nextBinding,
+              personaSession: nextSession, headers: nextHeaders, principal: nextPrincipal,
+              scope: nextScope, ownerBase: nextOwnerBase }, 'treatment', treatmentReceipt);
+            const treatmentCalls = structuredClone(v43Transport.calls);
+            v43Recorder.close();
+            await v39PairArm.finish();
+            assert.equal(v39PairTransport.snapshot().arms.treatment.state, 'finished');
+            const qualifyModelTrace = require('../../server/services/secureshopModelQualification')
+              .createSecureShopModelQualifier(provider);
+            v39PairReceipt = require('../fixtures/secureshopMcpDescriptionAtomicPairRenderedQualification')
+              .assertPairCaptured({ control, treatment, controlCalls, treatmentCalls,
+                qualifyModelTrace });
+          }
+          if (Q05_HANDOFF_ENABLED) status.registeredHandoff = true;
+          else status.descriptionQualification = true;
           await save();
         } else {
         // Controlled authority/setup only: genuine registered peer membership,
@@ -1117,15 +1834,22 @@ if (!D16_ENABLED) test(V42_ENABLED
       assert.equal(status.modelCalls, 0);
       }
     } catch (error) { failure = error; status.status = 'failed'; status.error = {
-      code: error.code || null, message: error.message.slice(0, 300) }; await save(); }
+      code: error.code || null, message: error.message.slice(0, 300) };
+      if (v39AtomicBrowserAudit) status.browserApi = v39AtomicBrowserAudit.snapshot();
+      v39BrowserDiagnostic?.record(error); await save(); }
     finally {
       for (const close of [() => registeredInvocation?.close(), () => v43Recorder?.close(),
+        () => v39PairTransport?.close(),
         async () => { await v43Transport?.close();
           if (v43Receipt && v43Transport) v43Receipt.wireClosed = true;
           if (v39Receipt && v43Transport) v39Receipt.wireClosed = true;
+          if (handoffReceipt && v43Transport) handoffReceipt.wireClosed = true;
           if (v66Receipt && v43Transport) v66Receipt.wireClosed = true;
           if (v42Receipt && v43Transport) v42Receipt.wireClosed = true; },
         () => dropper?.close(), () => browser?.close(),
+        async () => { if (v39AtomicBrowserAudit)
+          status.browserApi = await v39AtomicBrowserAudit.finish(async snapshot => {
+            status.browserApi = snapshot; await save(); }); },
         () => closeServer(server), () => registry?.close(),
         () => composition?.closeBrowserAssessment?.(),
         () => profile ? fs.rm(profile, { recursive: true, force: true }) : undefined,
@@ -1135,15 +1859,36 @@ if (!D16_ENABLED) test(V42_ENABLED
       }
       status.cleanupComplete = status.cleanupErrors.length === 0;
       if (MODEL_REGISTRY_ENABLED && v43Transport) {
-        status.actorCalls = v43Transport.calls.filter(row => row.kind === 'actor').length;
-        status.judgeCalls = v43Transport.calls.filter(row => row.kind === 'judge').length;
+        const pairSnapshot = V39_PAIR_ENABLED ? v39PairTransport?.snapshot() : null;
+        status.actorCalls = pairSnapshot ? pairSnapshot.arms.control.actor + pairSnapshot.arms.treatment.actor
+          : v43Transport.calls.filter(row => row.kind === 'actor').length;
+        status.judgeCalls = pairSnapshot ? pairSnapshot.arms.control.judge + pairSnapshot.arms.treatment.judge
+          : v43Transport.calls.filter(row => row.kind === 'judge').length;
         status.modelCalls = status.actorCalls + status.judgeCalls;
         if (v43Receipt) { v43Receipt.actorCalls = status.actorCalls; v43Receipt.judgeCalls = status.judgeCalls; }
         if (v39Receipt) { v39Receipt.actorCalls = status.actorCalls; v39Receipt.judgeCalls = status.judgeCalls; }
+        if (handoffReceipt) { handoffReceipt.actorCalls = status.actorCalls;
+          handoffReceipt.judgeCalls = status.judgeCalls; }
         if (v66Receipt) { v66Receipt.actorCalls = status.actorCalls; v66Receipt.judgeCalls = status.judgeCalls; }
         if(v42Receipt){v42Receipt.actorCalls=status.actorCalls;v42Receipt.judgeCalls=status.judgeCalls;}
       }
       if (status.cleanupComplete && !failure) status.status = 'passed';
+      if (V39_PAIR_ENABLED) {
+        if (!failure) try {
+          assert.ok(v39PairReceipt, 'both original rendered arms must complete');
+          const pairSnapshot = v39PairTransport.snapshot();
+          v39PairReceipt = require('../fixtures/secureshopMcpDescriptionAtomicPairRenderedQualification')
+            .finalizePairReceipt(v39PairReceipt, {
+              cleanupComplete: status.cleanupComplete,
+              relayRetired: !pairSnapshot.failed && pairSnapshot.arms.control.state === 'finished'
+                && pairSnapshot.arms.treatment.state === 'finished',
+              browserApi: status.browserApi,
+            });
+          assert.equal(status.actorCalls, v39PairReceipt.control.actorCalls + v39PairReceipt.treatment.actorCalls);
+          assert.equal(status.judgeCalls, v39PairReceipt.control.judgeCalls + v39PairReceipt.treatment.judgeCalls);
+        } catch (error) { failure = error; status.status = 'failed'; status.error = {
+          code: error.code || null, message: error.message.slice(0, 300) }; }
+      }
       if (v43Receipt) {
         v43Receipt.fixtureCleaned = status.cleanupComplete;
         v43Receipt.passed = status.status === 'passed';
@@ -1158,8 +1903,21 @@ if (!D16_ENABLED) test(V42_ENABLED
         if (!failure) try { v39Contract.assertReceipt(v39Receipt); }
         catch (error) { failure = error; status.status = 'failed'; v39Receipt.passed = false;
           status.error = { code: error.code || null, message: error.message.slice(0, 300) }; }
-        await fs.writeFile(path.join(path.dirname(evidencePath), 'mcp-description-receipt.json'),
+        if (v39Writer) v39Writer.write('mcp-description-receipt.json', JSON.stringify(v39Receipt, null, 2) + '\n');
+        else await fs.writeFile(path.join(path.dirname(evidencePath), 'mcp-description-receipt.json'),
           JSON.stringify(v39Receipt, null, 2) + '\n', { mode: 0o600 });
+      }
+      let q05ReceiptBytes;
+      if (handoffReceipt) {
+        handoffReceipt.fixtureCleaned = status.cleanupComplete;
+        handoffReceipt.passed = status.status === 'passed';
+        handoffReceipt.errors = status.cleanupErrors;
+        if (!failure) try { v39Contract.assertHandoffReceipt(handoffReceipt); }
+        catch (error) { failure = error; status.status = 'failed'; handoffReceipt.passed = false;
+          status.error = { code: error.code || null, message: error.message.slice(0, 300) }; }
+        if (q05Writer) q05ReceiptBytes = JSON.stringify(handoffReceipt, null, 2) + '\n';
+        else await fs.writeFile(path.join(path.dirname(evidencePath), 'registered-handoff-receipt.json'),
+          JSON.stringify(handoffReceipt, null, 2) + '\n', { mode: 0o600 });
       }
       if (v66Receipt) {
         v66Receipt.fixtureCleaned = status.cleanupComplete;
@@ -1175,14 +1933,25 @@ if (!D16_ENABLED) test(V42_ENABLED
       if(v42Receipt){v42Receipt.fixtureCleaned=status.cleanupComplete;v42Receipt.passed=status.status==='passed';v42Receipt.errors=status.cleanupErrors;
         if(!failure)try{v66Contract.assertV42Receipt(v42Receipt);}catch(error){failure=error;status.status='failed';v42Receipt.passed=false;status.error={code:error.code||null,message:error.message.slice(0,300)};}
         await fs.writeFile(path.join(path.dirname(evidencePath),'mcp-discovery-receipt.json'),JSON.stringify(v42Receipt,null,2)+'\n',{mode:0o600});}
-      await save();
+      if (q05Writer) failure = await q05FinalPrivateSave({ writer: q05Writer,
+        receiptBytes: q05ReceiptBytes, save, status, receipt: handoffReceipt, primary: failure });
+      else try { await save(); } finally { v39Writer?.close(); }
     }
     if (failure) throw failure;
     assert.equal(status.cleanupComplete, true, 'all fixture-local resources must close');
+    if (V39_PAIR_ENABLED) publishV39AtomicFinalReceipt(v39Directory, v39PairReceipt);
     if (v43Receipt) v43Contract.assertV43Receipt(v43Receipt);
     if (v66Receipt) v66Contract.assertV66Receipt(v66Receipt);
     if(v42Receipt)v66Contract.assertV42Receipt(v42Receipt);
   });
+
+module.exports = { admitV39CurrentHostEvidence, createV39PrivateWriter,
+  admitQ05CurrentHostEvidence, createQ05PrivateWriter, q05CurrentHostBrowserOptions,
+  q05RegisteredInvocationCompositionOptions,
+  q05InitialPrivateSave, q05FinalPrivateSave,
+  retainV39Admission, initializeV39Receipt, initializeObservedV39Receipt,
+  v39CurrentHostBrowserOptions, createV39BrowserDiagnostic, switchV39AtomicProvider,
+  registryBrowserLoginUrl, v39AtomicBrowserRequestAllowed, createV39AtomicBrowserAudit, publishV39AtomicFinalReceipt };
 
 if (D16_ENABLED) test('standalone MCP trust physically selects rogue and changed tools with registered Judge evidence and reset isolation',
   { timeout: 360000 }, async () => {

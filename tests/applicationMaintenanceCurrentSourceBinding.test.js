@@ -4241,7 +4241,7 @@ test('v338 historical source binds the qualified Listings package candidate',()=
  denied(()=>bindingWith({},previous)(ROOT));
 });
 
-test('v339 active source binds hardened inventory references and owned local package candidate',()=>{
+test('v339 historical source binds hardened inventory references and owned local package candidate',()=>{
  const previous=realRequire('./applicationMaintenanceInprocessSources-v338.json');
  const current=realRequire('./applicationMaintenanceInprocessSources-v339.json');
  const changed=['client/src/pages/secureshop/pages/merchant/inventoryReference.mjs',
@@ -4250,10 +4250,27 @@ test('v339 active source binds hardened inventory references and owned local pac
  assert.deepEqual(Object.keys(previous.files).filter(name=>previous.files[name]!==current.files[name]).sort(),changed);
  assert.deepEqual(Object.keys(current.files),Object.keys(previous.files));
  assert.deepEqual(current.recoveryFiles,previous.recoveryFiles);
- const source=realRequire(file).sourceBinding(ROOT);
- assert.equal(source,'36585449ef212b5ae002b31237ba4bcc538b3c64f8e1fc6820b131297e853831');
- assert.equal(realRequire(file).recoverySourceBinding(ROOT,source),
+ assertHistoricalBinding(339,current,'36585449ef212b5ae002b31237ba4bcc538b3c64f8e1fc6820b131297e853831',
   'dc0b75602d749c09e4d15708246d69e08ab2fe1479d67a65f622c6bf4f0927b3');
  for(const name of changed)rejectsSimulatedSourceDrift(name);
  denied(()=>bindingWith({},previous)(ROOT));
+});
+
+test('v340 historical declared inventory remains immutable',()=>{
+ const current=realRequire('./applicationMaintenanceInprocessSources-v340.json');
+ assertHistoricalBinding(340,current,'b0709d3b4ca86a63e403c308f5d52f5f4e8c3a8f2fba91bdc009d49e38bee436','827a55e2b88c05c27c941b2e88570c42e04e00d423318a73c1e84fcf62246bfc');
+});
+
+test('v341 historical declared inventory remains immutable',()=>{
+ const previous=realRequire('./applicationMaintenanceInprocessSources-v341.json');
+ assertHistoricalBinding(341,previous,'99781d32267b5a4a19e887f2e1563c5f7aae878233e70b5d7d10b3ac9d3c006c','325fb9054a737aba403b494bc9e9ef8e10cb94bf8826db5f9b5cfe650f2bda6b');
+});
+
+test('v342 current inventory binds and stale v341 denies',()=>{
+ const current=realRequire('./applicationMaintenanceInprocessSources-v342.json');
+ const source=realRequire(file).sourceBinding(ROOT);
+ assert.match(source,/^[a-f0-9]{64}$/);
+ assert.match(realRequire(file).recoverySourceBinding(ROOT,source),/^[a-f0-9]{64}$/);
+ for(const name of ['server/services/secureshopBoundRoleChat.js','server/services/applicationMaintenanceInprocessAdmission.js']){assert.ok(Object.hasOwn(current.files,name));rejectsSimulatedSourceDrift(name);}
+ denied(()=>bindingWith({},realRequire('./applicationMaintenanceInprocessSources-v341.json'))(ROOT));
 });

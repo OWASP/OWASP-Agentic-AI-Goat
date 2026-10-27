@@ -117,6 +117,7 @@ const performanceMonitor = require('./middleware/performanceMonitor');
 sessionManager = require('./middleware/sessionManager');
 const { eventGate, loginHandler } = require('./middleware/eventGate');
 const { requestId, httpLogger } = require('./middleware/requestLogger');
+const { requestLogUrl } = require('./utils/requestLogUrl');
 const logger = require('./utils/logger');
 const { requestContextMiddleware } = require('./utils/requestContext');
 
@@ -414,7 +415,7 @@ if (require('fs').existsSync(path.join(clientBuild, 'index.html'))) {
 
 // 404 handler: log so we can debug "404" from chat (e.g. prompt-injection route not matched)
 app.use((req, res) => {
-  console.warn('[Server] 404 - no route matched:', req.method, req.originalUrl);
+  console.warn('[Server] 404 - no route matched:', req.method, requestLogUrl(req));
   res.status(404).json({
     error: 'Not found',
     method: req.method,
@@ -682,6 +683,7 @@ if (process.env.SS_ENABLE === 'true') {
               assessmentRecovery: bound.standaloneAuth.assessmentRecovery,
               assessmentProgress: bound.standaloneAuth.assessmentProgress,
               registeredAdminReset: bound.standaloneAuth.registeredAdminReset,
+              externalMail: bound.standaloneAuth.externalMail,
               reset: bound.standaloneAuth.reset, practices: bound.standaloneAuth.practices, allowedOrigins: ssV2AllowedOrigins,
               secureCookies: ssV2AllowedOrigins.every(origin => origin.startsWith('https://')) });
         }

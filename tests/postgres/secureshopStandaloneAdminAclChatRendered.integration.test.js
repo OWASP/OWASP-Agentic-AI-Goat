@@ -37,7 +37,8 @@ function admission() {
   assert.equal(build, path.join(workspace, 'client/build'));
   const evidence = path.resolve(process.env[`${BASE}EVIDENCE_PATH`] || '/');
   assert.notEqual(evidence, '/');
-  assert.ok(!evidence.startsWith(`${workspace}${path.sep}`), 'receipt outside checkout');
+  require('../fixtures/secureshopNativeEvidencePath').assertNativeEvidencePath(evidence,
+    { root: workspace, dockerHost: process.env.DOCKER_HOST, basename: 'admin-acl-chat-browser.json' });
   const browser = path.resolve(process.env.PUPPETEER_EXECUTABLE_PATH || '/');
   assert.notEqual(browser, '/');
   const urls = {}; let nonce, port;
@@ -192,7 +193,7 @@ test(ASSERTION, { skip: process.env[GATE] !== '1', timeout: 540000 }, async t =>
   const controlConfig = { host: a.auditUrl.hostname, port: Number(a.auditUrl.port),
     user: a.auditUrl.username, database: a.auditUrl.pathname.slice(1) };
   const control = new Pool({ ...controlConfig, max: 2 });
-  let browser, profile, server, auditHttp, targetService, auditBackend, rawAuditClient;
+  let browser, earlyBrowserDiagnostic, profile, server, auditHttp, targetService, auditBackend, rawAuditClient;
     let actorCalls = 0, judgeCalls = 0;
   const modelDecisions = [], cleanupErrors = [], ownedScopes = [];
   try {
@@ -388,8 +389,17 @@ test(ASSERTION, { skip: process.env[GATE] !== '1', timeout: 540000 }, async t =>
     app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: a.build }));
     profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-q64-admin-acl-'));
     browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
-      executablePath: a.browser });
-    const page = await browser.newPage(); await page.setViewport({ width: 1280, height: 900 });
+      executablePath: a.browser, args: await require('../fixtures/secureshopAdminOwnedBrowserAdmission')
+        .browserArgs({ cohort: 'admin-acl-chat-browser', root: a.workspace, evidencePath: a.evidence,
+          profile, executablePath: a.browser, origin }) });
+    earlyBrowserDiagnostic = require('../fixtures/secureshopEarlyBrowserDiagnostic').observeEarlyBrowser(browser);
+    if (process.env.SECURESHOP_ROLECHOICES_BROWSER_RECORD_PATH)
+      await require('../fixtures/secureshopRoleChoicesBrowserBirth').acknowledge({ root: a.workspace, evidencePath: a.evidence, profile, browser });
+    earlyBrowserDiagnostic.stage('new-page');
+    const page = await browser.newPage();
+    earlyBrowserDiagnostic.stage('viewport');
+    await page.setViewport({ width: 1280, height: 900 });
+    earlyBrowserDiagnostic.stage('ready'); earlyBrowserDiagnostic.detach();
     const pageErrors = []; page.on('pageerror', error => pageErrors.push(error.message.slice(0, 160)));
     await page.setRequestInterception(true);
     page.on('request', request => request.url().startsWith(`${origin}/`)
@@ -654,9 +664,11 @@ test(ASSERTION, { skip: process.env[GATE] !== '1', timeout: 540000 }, async t =>
   } catch (error) {
     status.errors.push(String(error.code || error.name || 'Error'));
     t.diagnostic(JSON.stringify({ phase: 'q64-qualification', modelDecisions,
+      earlyBrowser: earlyBrowserDiagnostic?.snapshot() || { stage: 'launch', attached: false },
       actorCalls, judgeCalls, errorCode: error.code || error.name || 'Error' }));
     throw error;
   } finally {
+    earlyBrowserDiagnostic?.detach();
     status.actorCalls = actorCalls; status.judgeCalls = judgeCalls;
     for (const [label, close] of [
       ['browser', async () => browser?.close()],

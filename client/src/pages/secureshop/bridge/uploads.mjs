@@ -13,7 +13,9 @@ const exact = (value, keys) => {
 
 export function compileUpload(input) {
   exact(input, ['file', 'filename', 'fields']);
-  exact(input.fields, fieldNames);
+  const scopedManual = Object.getOwnPropertyDescriptor(input.fields ?? {}, 'kind')?.value === 'product_manual'
+    && Object.hasOwn(input.fields, 'recoveryScopeKey');
+  exact(input.fields, scopedManual ? [...fieldNames, 'recoveryScopeKey'] : fieldNames);
   if (!(input.file instanceof Blob) || input.file.size > MAX_UPLOAD_BYTES) fail();
   if (input.file.type.length > 1024) fail();
   if (typeof input.filename !== 'string' || input.filename.length > 4096) fail();
@@ -23,6 +25,12 @@ export function compileUpload(input) {
     if (typeof input.fields[key] !== 'string' || input.fields[key].length > 4096) fail();
     metadataBytes += encoder.encode(input.fields[key]).byteLength;
     fields[key] = input.fields[key];
+  }
+  if (scopedManual) {
+    const key = input.fields.recoveryScopeKey;
+    if (typeof key !== 'string' || !/^[a-f0-9]{64}$/.test(key)) fail();
+    metadataBytes += encoder.encode(key).byteLength;
+    fields.recoveryScopeKey = key;
   }
   if (metadataBytes > MAX_METADATA_BYTES) fail();
   return Object.freeze({ path: '/api/secureshop/uploads', method: 'POST', responseKind: 'json',
@@ -34,7 +42,7 @@ export function encodeUploadFormData(form) {
   let file;const fields = Object.create(null);
   for (const [key, value] of form) {
     if (key === 'file' && file === undefined && value instanceof Blob) file = value;
-    else if (fieldNames.includes(key) && !Object.hasOwn(fields, key) && typeof value === 'string') fields[key] = value;
+    else if ([...fieldNames, 'recoveryScopeKey'].includes(key) && !Object.hasOwn(fields, key) && typeof value === 'string') fields[key] = value;
     else fail();
   }
   return compileUpload({ file, filename: file?.name, fields }).body;
@@ -44,7 +52,50 @@ export function buildUploadFormData(input) {
   const { body } = compileUpload(input);
   const form = new FormData();
   form.append('file', body.file, body.filename);
-  for (const key of fieldNames) form.append(key, body.fields[key]);
+  for (const key of Object.keys(body.fields)) form.append(key, body.fields[key]);
+  return form;
+}
+
+// Account avatar is a direct owner-bound upload, not the customer avatar agent lesson.
+const accountAvatarFields = [...fieldNames, 'requestId'];
+const accountAvatarUuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
+export function compileAccountAvatarUpload(input) {
+  exact(input, ['file', 'filename', 'fields']);
+  exact(input.fields, accountAvatarFields);
+  if (!(input.file instanceof Blob) || input.file.size < 1 || input.file.size > MAX_UPLOAD_BYTES
+    || typeof input.filename !== 'string' || !input.filename || !input.filename.isWellFormed()
+    || input.filename.length > 4096 || /[\0\r\n]/.test(input.filename)) fail();
+  const fields = Object.create(null);
+  let metadataBytes = encoder.encode(input.filename).byteLength + encoder.encode(input.file.type).byteLength;
+  for (const key of accountAvatarFields) {
+    const value = input.fields[key];
+    if (typeof value !== 'string' || !value.isWellFormed() || value.length > 4096 || /[\0\r\n]/.test(value)) fail();
+    metadataBytes += encoder.encode(value).byteLength;
+    fields[key] = value;
+  }
+  if (fields.kind !== 'avatar' || !/^[1-9][0-9]*$/.test(fields.scope_id)
+    || !Number.isSafeInteger(Number(fields.scope_id)) || Number(fields.scope_id) > 2147483647
+    || !['true', 'false'].includes(fields.public) || !accountAvatarUuid.test(fields.requestId)
+    || !fields.mime || metadataBytes > MAX_METADATA_BYTES) fail();
+  return Object.freeze({ path: '/api/secureshop/uploads/avatar', method: 'POST', responseKind: 'json',
+    bodyKind: 'multipart', body: Object.freeze({ file: input.file, filename: input.filename,
+      fields: Object.freeze(fields) }) });
+}
+export function encodeAccountAvatarFormData(form) {
+  if (!(form instanceof FormData)) fail();
+  let file; const fields = Object.create(null);
+  for (const [key, value] of form) {
+    if (key === 'file' && file === undefined && value instanceof Blob) file = value;
+    else if (accountAvatarFields.includes(key) && !Object.hasOwn(fields, key) && typeof value === 'string') fields[key] = value;
+    else fail();
+  }
+  return compileAccountAvatarUpload({ file, filename: file?.name, fields }).body;
+}
+export function buildAccountAvatarFormData(input) {
+  const { body } = compileAccountAvatarUpload(input);
+  const form = new FormData();
+  form.append('file', body.file, body.filename);
+  for (const key of accountAvatarFields) form.append(key, body.fields[key]);
   return form;
 }
 

@@ -3,10 +3,32 @@ import hashlib, http.client, json, os, secrets, shutil, signal, subprocess, time
 from pathlib import Path
 from types import SimpleNamespace
 from listings_package_candidate import buildx_identity
+from system_diagnostic_owned_executor import (
+ BASE, ARM64_MANIFEST, ARM64_CONFIG, BASE_AUDIT_PATH, BASE_AUDIT_SHA256,
+ admit_original_base_identity,
+)
 
-BASE='sha256:3a771f83944bb763050c23c0225c260638c4b7899e7a72485ef75e5e570499e5'
 RESTART_BASE='sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1'
 RESTART_CACHE_PREFIX='dvaia-system-restart-content:'
+def original_system_dockerfile():
+ # One original recipe, shared by the historical fenced caller and future
+ # private builder. Exporting bytes grants no build or runtime authority.
+ return OwnedSystemExecutor.original_dockerfile()
+
+def original_system_build_recipe():
+ dockerfile=original_system_dockerfile()
+ return {'version':1,'target':'v24-system','base':BASE,'platform':'linux/arm64',
+         'sourceRoot':'sidecars/sandbox-runner/owned-system',
+         'dockerfile':dockerfile,'dockerfileSha256':hashlib.sha256(dockerfile.encode()).hexdigest(),
+         'packages':['gcc','libc6-dev','bubblewrap'],'user':'10001:10001',
+         'entrypoint':['/usr/local/bin/node','/qualification/owned-system/http-listener.js']}
+
+def require_private_system_runtime_admission():
+ # Identity validation is not permission to use the historical shared daemon.
+ # The original config listener needs a reviewed private build/runtime handoff.
+ # No caller argument or environment flag can bypass this fence.
+ raise RuntimeError('V24_PRIVATE_RUNTIME_NOT_ADMITTED')
+
 def restart_content_digest(root):
  h=hashlib.sha256()
  for entry in sorted(root.rglob('*'),key=lambda value:value.relative_to(root).as_posix()):
@@ -41,6 +63,16 @@ def upload_preview_build_environment(root,docker,environment):
  if not version.stdout.strip() or len(version.stdout.encode())>4096 or version.stderr.strip():raise RuntimeError('Bounded pinned Buildx version required')
  return build_env,{'plugin':plugin,'configSha256':hashlib.sha256(target.read_bytes()).hexdigest(),'version':version.stdout.strip()}
 class OwnedSystemExecutor:
+ @staticmethod
+ def original_dockerfile():
+  return '''FROM node@'''+BASE+'''
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev bubblewrap && rm -rf /var/lib/apt/lists/*
+COPY . /qualification/owned-system
+RUN mkdir -p /usr/local/libexec && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/system-init.c -o /usr/local/libexec/dvaia-system-config-init && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/process-supervisor.c -o /usr/local/libexec/dvaia-system-config-supervisor && chmod 0555 /usr/local/libexec/dvaia-system-config-* /usr/bin/bwrap && dpkg-query -W > /qualification/packages.txt
+USER 10001:10001
+ENTRYPOINT ["/usr/local/bin/node","/qualification/owned-system/http-listener.js"]
+'''
+
  def __init__(self, root, workspace, docker, env, owner, persist):
   self.root,self.workspace,self.docker,self.env,self.owner,self.persist=root,workspace,docker,env,owner,persist
   self.name='dvaia-system-http-'+owner[:12];self.tag=self.name+':owned';self.network=self.name+'-bridge'
@@ -75,27 +107,27 @@ class OwnedSystemExecutor:
   if self.build:self.build.wait(timeout=5)
   if self.groups():raise RuntimeError('Build process group remains')
  def start(self):
+  require_private_system_runtime_admission()
   info=self.inspect('image',BASE)
-  if info['Id']!=BASE or info['Architecture']!='arm64':raise RuntimeError('Reviewed ARM64 base required')
+  self.state['baseIdentity']=admit_original_base_identity(info,BASE_AUDIT_PATH.read_bytes(),identity_kind='config')
   for kind,name in [('container',self.name),('network',self.network),('image',self.tag)]:
    if not self.absent(kind,name):raise RuntimeError('Owned executor identity collision')
   context=self.root/'executor-build';context.mkdir(mode=0o700)
-  shutil.copytree(self.workspace/'sidecars/sandbox-runner/owned-system',context/'owned-system')
-  dockerfile='''FROM node@'''+BASE+'''
-RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev bubblewrap && rm -rf /var/lib/apt/lists/*
-COPY owned-system /qualification/owned-system
-RUN mkdir -p /usr/local/libexec && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/system-init.c -o /usr/local/libexec/dvaia-system-config-init && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/process-supervisor.c -o /usr/local/libexec/dvaia-system-config-supervisor && chmod 0555 /usr/local/libexec/dvaia-system-config-* /usr/bin/bwrap && dpkg-query -W > /qualification/packages.txt
-USER 10001:10001
-ENTRYPOINT ["/usr/local/bin/node","/qualification/owned-system/http-listener.js"]
-'''
-  (context/'Dockerfile').write_text(dockerfile);self.state['dockerfileSha256']=hashlib.sha256(dockerfile.encode()).hexdigest()
+  source=self.workspace/'sidecars/sandbox-runner/owned-system'
+  if not source.is_dir() or source.resolve(strict=True)!=self.workspace.resolve(strict=True)/'sidecars/sandbox-runner/owned-system':raise RuntimeError('Original owned System source required')
+  source_digest=restart_content_digest(source)
+  self.state['sourceContext']=str(source);self.state['sourceSha256']=source_digest;self.persist()
+  dockerfile=original_system_dockerfile()
+  build_file=context/'Dockerfile';build_file.write_text(dockerfile)
+  self.state['dockerfileSha256']=hashlib.sha256(dockerfile.encode()).hexdigest()
   self.state['imageBuildAttempted']=True;self.persist()
   with (self.root/'executor-build.log').open('w') as log:
-   self.build=subprocess.Popen(self.docker+['build','--pull=false','--network=default','--label','dvaia.test.owner='+self.owner,'-t',self.tag,str(context)],env=self.env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+   self.build=subprocess.Popen(self.docker+['build','--pull=false','--network=default','-f',str(build_file),'--label','dvaia.test.owner='+self.owner,'-t',self.tag,str(source)],env=self.env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
    self.state['buildPgid']=self.build.pid;self.persist()
    try:code=self.build.wait(timeout=300)
    except BaseException:self.stop_build();raise
    if code:raise RuntimeError('Owned executor image build failed')
+  if restart_content_digest(source)!=source_digest:raise RuntimeError('Original owned System source changed during build')
   image=self.inspect('image',self.tag)
   if image['Config']['Labels'].get('dvaia.test.owner')!=self.owner:raise RuntimeError('Executor image owner mismatch')
   self.state['imageId']=image['Id'];self.state['networkAttempted']=True;self.persist()

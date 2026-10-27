@@ -74,7 +74,7 @@ test('Actual HTTP handler spends V19 origin budgets before every upstream dispat
  });
  const transport=await module.exports.createMailActualTransport({protocol:'v19-file-summary-v1',maxHttpCalls:26});
  async function post(index) {
-  const req={method:'POST',url:'/api/chat',async *[Symbol.asyncIterator](){yield Buffer.from(JSON.stringify({model:'llama3.1:8b',messages:[]}));}};
+  const req=Object.assign(new EventEmitter(),{method:'POST',url:'/api/chat',async *[Symbol.asyncIterator](){yield Buffer.from(JSON.stringify({model:'llama3.1:8b',messages:[]}));}});
   const res=new EventEmitter();res.writeHead=status=>{res.status=status;};res.end=()=>{};
   await handlers[index](req,res);return res.status;
  }
@@ -105,7 +105,7 @@ test('Actual HTTP handler rejects V29 Judge repair before upstream dispatch',asy
  });
  const transport=await module.exports.createMailActualTransport({protocol:'v29-agency-browser-v1',maxHttpCalls:9});
  async function post(index) {
-  const req={method:'POST',url:'/api/chat',async *[Symbol.asyncIterator](){yield Buffer.from(JSON.stringify({model:'llama3.1:8b',messages:[]}));}};
+  const req=Object.assign(new EventEmitter(),{method:'POST',url:'/api/chat',async *[Symbol.asyncIterator](){yield Buffer.from(JSON.stringify({model:'llama3.1:8b',messages:[]}));}});
   const res=new EventEmitter();res.writeHead=status=>{res.status=status;};res.end=()=>{};
   await handlers[index](req,res);return res.status;
  }

@@ -585,6 +585,16 @@ def current_profile_arguments(argv):
     return None
 
 def main(argv=None):
+    # New direct-source profile has independent closed admission. Historical
+    # package/current-main cohorts retain their exact existing code paths.
+    selected = list(sys.argv[1:] if argv is None else argv)
+    if '--cohort' in selected and selected[selected.index('--cohort') + 1:
+            selected.index('--cohort') + 2] in (
+                ['admin-q05-current-host'], ['admin-student-reset-current-host']):
+        from admin_q05_current_host import main as run_q05
+        if run_q05(selected):
+            raise RuntimeError('Current-host admin Q05 qualification failed')
+        return
     current = current_profile_arguments(argv)
     if current is not None:
         if not current:return

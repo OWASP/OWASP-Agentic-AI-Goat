@@ -24,7 +24,7 @@ const getWithBody = (url, headers, body) => new Promise((resolve, reject) => {
 function summaryResult(productId,sessionId,requestId){return {product_id:productId,name:'Owned',price:10,category:'Home',stock_quantity:1,
  description:'untrusted original',description_html:null,summary:'Original model answer',provider:'ollama',model:'controlled',sessionId,requestId,privateTrace:'omit'};}
 
-async function fixture(t, productAssist) {
+async function fixture(t, productAssist, catalogOverrides={}) {
   const calls = []; let legacyCalls = 0;
   const record = (name, value) => { calls.push([name, value]); return value; };
   const personaAuth = {
@@ -36,7 +36,7 @@ async function fixture(t, productAssist) {
     listProducts:async()=>({products:[],count:0,total:0}),getProduct:async()=>({}),
     listMerchantProducts:async()=>({products:[],total:0,categories:[]}),
     createMerchantProduct:async()=>({productId:1}),updateMerchantProduct:async()=>({productId:1}),
-    archiveMerchantProduct:async()=>true,categories:async()=>({categories:[]}),
+    archiveMerchantProduct:async()=>true,categories:async()=>({categories:[]}),...catalogOverrides,
   };
   const commerce = Object.fromEntries(['cart','add','update','remove','summary','checkout','orders','order']
     .map(name=>[name,async()=>name==='orders'?[]:{}]));
@@ -59,6 +59,23 @@ async function fixture(t, productAssist) {
     legacyCalls:()=>legacyCalls};
 }
 
+test('retired scene product absence is exact 404 for live authority; revoked launch is 401 before catalog',async t=>{
+ let reads=0;const f=await fixture(t,{summary:async()=>{},similar:async()=>{}},{getProduct:async()=>{reads++;return null;}});
+ const live=await fetch(`${f.base}/products/126`,{headers:authHeaders()});
+ assert.equal(live.status,404);assert.deepEqual(await live.json(),{error:'not found'});assert.equal(reads,1);
+ const revoked=await fetch(`${f.base}/products/126`,{headers:{...authHeaders(),'x-dvaia-secureshop-launch':'r'.repeat(43)}});
+ assert.equal(revoked.status,401);assert.deepEqual(await revoked.json(),{error:'SecureShop launch unavailable'});
+ assert.equal(reads,1);assert.equal(f.legacyCalls(),0);
+});
+test('saved summary conceals a foreign conversation with exact 404 and no source or legacy response',async t=>{
+ let reads=0;
+ const f=await fixture(t,{summary:async()=>{},similar:async()=>{},readSummary:async()=>{
+  reads++;throw Object.assign(Error('private foreign-owner source'),{code:'CONVERSATION_UNAVAILABLE'});
+ }});
+ const response=await fetch(`${f.base}/products/7/summary/sessions/${randomUUID()}/requests/${randomUUID()}`,{headers:authHeaders()});
+ assert.equal(response.status,404);assert.deepEqual(await response.json(),{error:'Conversation unavailable'});
+ assert.equal(reads,1);assert.equal(f.legacyCalls(),0);
+});
 test('summary session/run/saved routes preserve exact original identity and expose no private provenance',async t=>{
  const sessionId=randomUUID(),requestId=randomUUID();let status='completed';
  const f=await fixture(t,{summary:async input=>summaryResult(input.productId),similar:async()=>{},

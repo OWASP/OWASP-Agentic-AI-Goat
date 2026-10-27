@@ -14,7 +14,15 @@ const { createBoundConversationService } = require('./secureshopBoundConversatio
 const { createBoundTurns } = require('./secureshopBoundTurns');
 const { createBoundAgentRunner } = require('./secureshopBoundAgentRunner');
 const { createLaunchScope } = require('./secureshopConversationBinding');
-const { createSecureShopProductExecutionConfig, PRODUCT_RETRIEVAL_MODES } = require('./secureshopProductExecutionConfig');
+const { createSecureShopProductExecutionConfig, PRODUCT_RETRIEVAL_MODES, FIXED_SUMMARY_POLICY } = require('./secureshopProductExecutionConfig');
+
+// Specialize only an already-authorized token. Preserve its live authority
+// checks; never take the policy from a request or model response. Other product
+// operations retain their existing histories and saved-result namespace.
+function summaryMode(token, summary) {
+  return summary && token.snapshot.mode === 'fixed' ? Object.freeze({ ...token,
+    snapshot: Object.freeze({ ...token.snapshot, policyVersion: FIXED_SUMMARY_POLICY }) }) : token;
+}
 
 const OPERATIONS = Object.freeze({
   summary: 'summarizer.summarize_product',
@@ -24,6 +32,9 @@ const DENIED_MODEL_IDENTITIES = /^(mock|fixture|scripted|fallback|unavailable)$/
 
 function unavailable(message = 'Bound product model unavailable') {
   return Object.assign(new Error(message), { code: 'PRODUCT_MODEL_UNAVAILABLE' });
+}
+function savedSceneStale() {
+  return Object.assign(new Error('Saved product scene is no longer current'), { code: 'SHOP_SCENE_STALE' });
 }
 
 function interrupted(signal) {
@@ -187,7 +198,7 @@ function createSecureShopBoundProductAssist({ launches, conversationRepository, 
     const scope = createLaunchScope(input.scope);
     const persona = customerPersona(input.persona);
     const selectedProductId = productId(input.productId);
-    const modeToken=await captureFeatureMode(modeAuthority,scope,'product_assist');
+    const modeToken=summaryMode(await captureFeatureMode(modeAuthority,scope,'product_assist'),operation==='summary'&&!answerQuestion);
     const capturedFence=await personaAuthority?.capture({scope,personaId:persona.id,role:persona.role,sessionId:trustedPersonaSession?.sessionId,authorityVersion:trustedPersonaSession?.authorityVersion});
     const fence=capturedFence?guardFeatureFence(capturedFence,modeToken):undefined;
     const personaEffect=fence?require('./secureshopPersonaProductEffect').createPersonaProductEffect(fence):undefined;
@@ -276,7 +287,7 @@ function createSecureShopBoundProductAssist({ launches, conversationRepository, 
           throw new TypeError('Bound product tool authority required');
         }
         const tools = await createProductTools({ scope, persona, productId: selectedProductId,
-          operation, signal: input.signal, checkCurrent, personaEffect, mode:modeToken.snapshot.mode,
+          operation, answerQuestion, signal: input.signal, checkCurrent, personaEffect, mode:modeToken.snapshot.mode,
           ...(operation === 'similar' ? { captureManualRagSource: value => {
             sourceCount++; capturedSource = structuredClone(value);
           } } : {}) });
@@ -346,6 +357,13 @@ function createSecureShopBoundProductAssist({ launches, conversationRepository, 
             origin.lineage = { eligible: false, reason: 'metadata_limit' };
             if (Buffer.byteLength(JSON.stringify(metadata)) > 65536) origin.traceEventIds = [];
             if (Buffer.byteLength(JSON.stringify(metadata)) > 65536 && !ownedSimilar) delete metadata.manualRagConsumerOrigin;
+          }
+          // Additive private provenance only. Never evict or rewrite V26/public
+          // metadata, the original observation, actor input, or final answer.
+          if (sourceCount === 1 && capturedSource.protectedLineage?.eligible === true) {
+            const protectedOrigin = {...origin, lineage:capturedSource.protectedLineage, query:capturedSource.query};
+            if (Buffer.byteLength(JSON.stringify({...metadata,protectedManualConsumerOrigin:protectedOrigin})) <= 65536)
+              metadata.protectedManualConsumerOrigin = protectedOrigin;
           }
         }
         return Object.freeze(metadata);
@@ -420,11 +438,11 @@ function createSecureShopBoundProductAssist({ launches, conversationRepository, 
       throw Object.assign(TypeError('Product persona session required'), { code: 'INVALID_ARGUMENT' });
     return { sessionId: value.sessionId, authorityVersion: value.authorityVersion };
   }
-  async function savedAuthority(input) {
+  async function savedAuthority(input, summary = false) {
     const scope = createLaunchScope(input.scope), persona = customerPersona(input.persona), selected = productId(input.productId);
     const personaSession = credential(input.personaSession);
     if (!scenes || !personaAuthority) throw unavailable('Saved product authority unavailable');
-    const mode = await captureFeatureMode(modeAuthority, scope, 'product_assist');
+    const mode = summaryMode(await captureFeatureMode(modeAuthority, scope, 'product_assist'), summary);
     const fence = guardFeatureFence(await personaAuthority.capture({ scope, personaId: persona.id, role: persona.role,
       sessionId: personaSession.sessionId, authorityVersion: personaSession.authorityVersion }), mode);
     const effect = require('./secureshopPersonaProductEffect').createPersonaProductEffect(fence);
@@ -435,7 +453,7 @@ function createSecureShopBoundProductAssist({ launches, conversationRepository, 
   }
   async function createSimilarSession(input = {}, summaryRecovery = false) {
     if (!catalog) throw unavailable('Owned product catalog unavailable');
-    const a = await savedAuthority(input);
+    const a = await savedAuthority(input, summaryRecovery);
     const found = await catalog.getProduct({ scope: a.scope, persona: a.persona, productId: a.selected, personaEffect: a.effect });
     await a.check();
     if (!found || found.product?.id !== a.selected) throw Object.assign(Error('Product not found'), { code: 'NOT_FOUND' });
@@ -456,11 +474,11 @@ function createSecureShopBoundProductAssist({ launches, conversationRepository, 
     const a = await savedAuthority(input), binding = createConversationBinding(a.scope, a.persona);
     await conversations.assertOwned(input.sessionId, a.scope, a.persona, PURPOSES.productAssist); await a.check();
     const target = await scenes.readRetained(a.scope); await a.check();
-    if (!target?.scene || !equal(sceneExecution(target), a.scope)) throw unavailable('Saved product scene unavailable');
+    if (!target?.scene || !equal(sceneExecution(target), a.scope)) throw savedSceneStale();
     const row = await journal.readBoundRequest({ sessionId: input.sessionId, requestId: input.requestId, binding, purpose: PURPOSES.productAssist });
     await a.check();
     const again = await scenes.readRetained(a.scope); await a.check();
-    if (!equal(target, again)) throw unavailable('Saved product scene changed');
+    if (!equal(target, again)) throw savedSceneStale();
     const identity = { sessionId: input.sessionId, requestId: input.requestId };
     if (!row) return Object.freeze({ status: 'not_found', ...identity });
     const request = createTurnRequest({ ...identity, binding, message: `Find products similar to product ${a.selected}.` });
@@ -485,14 +503,14 @@ function createSecureShopBoundProductAssist({ launches, conversationRepository, 
   async function readSummary(input = {}) {
     savedIds(input);
     if (typeof journal.readBoundRequest !== 'function') throw unavailable('Saved product reader unavailable');
-    const a = await savedAuthority(input), binding = createConversationBinding(a.scope, a.persona);
+    const a = await savedAuthority(input, true), binding = createConversationBinding(a.scope, a.persona);
     await conversations.assertOwned(input.sessionId, a.scope, a.persona, PURPOSES.productAssist); await a.check();
     const target = await scenes.readRetained(a.scope); await a.check();
-    if (!target?.scene || !equal(sceneExecution(target), a.scope)) throw unavailable('Saved product scene unavailable');
+    if (!target?.scene || !equal(sceneExecution(target), a.scope)) throw savedSceneStale();
     const row = await journal.readBoundRequest({ sessionId: input.sessionId, requestId: input.requestId, binding, purpose: PURPOSES.productAssist });
     await a.check();
     const again = await scenes.readRetained(a.scope); await a.check();
-    if (!equal(target, again)) throw unavailable('Saved product scene changed');
+    if (!equal(target, again)) throw savedSceneStale();
     const identity = { sessionId: input.sessionId, requestId: input.requestId };
     if (!row) return Object.freeze({ status: 'not_found', ...identity });
     const request = createTurnRequest({ ...identity, binding, message: `Summarize product ${a.selected}.` });

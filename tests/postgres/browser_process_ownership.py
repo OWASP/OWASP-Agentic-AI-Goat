@@ -4,6 +4,7 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 BASE_ENV = {"PATH": os.environ.get("PATH", "/usr/bin:/bin")}
@@ -40,6 +41,10 @@ def read_private_json(path):
 
 
 def process_rows():
+    if sys.platform == 'darwin':
+        from darwin_process_inventory import process_records
+        return [(row['pid'], row['pgid'], row['sessionId'], row['uid'])
+                for row in process_records()]
     result = subprocess.run(
         ['/bin/ps', '-axo', 'pid=,pgid=,uid='], env=BASE_ENV,
         capture_output=True, text=True, check=True, timeout=2)

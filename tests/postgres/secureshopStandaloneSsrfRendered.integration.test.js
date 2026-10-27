@@ -11,6 +11,7 @@ const NATIVE = 'SECURESHOP_STANDALONE_SSRF_RENDERED_NATIVE',
   BUILD = 'SECURESHOP_STANDALONE_SSRF_RENDERED_BUILD',
   EVIDENCE = 'SECURESHOP_STANDALONE_SSRF_RENDERED_EVIDENCE_PATH';
 const POLICY_OUTPUT_NATIVE='SECURESHOP_POLICY_OUTPUT_BROWSER_NATIVE';
+const REPOSITORY_EVIDENCE='SECURESHOP_POLICY_OUTPUT_REPOSITORY_EVIDENCE';
 const POLICY_OUTPUT=process.env[POLICY_OUTPUT_NATIVE]==='1';
 const POLICY_OUTPUT_TITLE='registered standalone customer renders genuine final policy HTML with canonical Judge, saved recovery and launch reset';
 const POLICY_OUTPUT_SCOPE='V27 launch-owned policy HTTP and genuine final model HTML; isolated attributed execution, two independent Judge criteria, cookie progress, GET recovery and owner/persona/mode/reset/sibling fences';
@@ -57,12 +58,54 @@ function nativeConfig(env = process.env) {
   assert.equal(env[BUILD], path.join(ROOT, 'client/build'));
   assert(path.isAbsolute(env[EVIDENCE] || ''));
   assert.notEqual(path.resolve(env[EVIDENCE]), ROOT);
-  assert(!path.resolve(env[EVIDENCE]).startsWith(ROOT + path.sep));
+  assert.equal(env[EVIDENCE],path.resolve(env[EVIDENCE]));
+  const repositoryEvidence=env[REPOSITORY_EVIDENCE]==='1';
+  assert(env[REPOSITORY_EVIDENCE]===undefined || repositoryEvidence);
+  if(repositoryEvidence){
+    assert.equal(env[POLICY_OUTPUT_NATIVE],'1','Repository evidence is exclusive to V27 policy output');
+    const parent=path.join(ROOT,'tasks/qualification'),directory=path.dirname(env[EVIDENCE]),run=path.dirname(directory);
+    assert.equal(path.dirname(run),parent);
+    assert.match(path.basename(run),/^run-[a-z0-9_]{8}$/);
+    assert.equal(path.basename(directory),'standalone-ssrf-rendered');
+    assert.equal(path.basename(env[EVIDENCE]),'result.json');
+    for(const item of [path.join(ROOT,'tasks'),parent,run,directory]){
+      const stat=fs.lstatSync(item);
+      assert(stat.isDirectory()&&!stat.isSymbolicLink()&&stat.uid===process.getuid());
+      assert.equal(fs.realpathSync(item),item);
+      if(item!==path.join(ROOT,'tasks'))assert.equal(stat.mode&0o777,0o700);
+    }
+    for(const item of [env[EVIDENCE],path.join(directory,'standalone-ssrf-capture.json')]){
+      assert.throws(()=>fs.lstatSync(item),error=>error.code==='ENOENT');
+    }
+  }else assert(!env[EVIDENCE].startsWith(ROOT + path.sep));
   return {
     urls,
     build: env[BUILD],
     evidencePath: env[EVIDENCE],
-    directory: path.dirname(env[EVIDENCE])
+    directory: path.dirname(env[EVIDENCE]),
+    repositoryEvidence
+  };
+}
+function createPrivateEvidenceWriter(){
+  const pins=new Map();
+  return (file,bytes)=>{
+    const previous=pins.get(file),flags=previous
+      ? fs.constants.O_RDWR|fs.constants.O_NOFOLLOW
+      : fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_WRONLY|fs.constants.O_NOFOLLOW;
+    const fd=fs.openSync(file,flags,0o600);
+    try{
+      const stat=fs.fstatSync(fd);
+      assert(stat.isFile()&&stat.uid===process.getuid()&&(stat.mode&0o777)===0o600&&stat.nlink===1);
+      if(previous)assert.deepEqual([stat.dev,stat.ino],[previous.dev,previous.ino]);
+      else pins.set(file,{dev:stat.dev,ino:stat.ino});
+      const buffer=Buffer.from(bytes);
+      fs.ftruncateSync(fd,0);
+      for(let offset=0;offset<buffer.length;){
+        const written=fs.writeSync(fd,buffer,offset,buffer.length-offset,offset);
+        assert(written>0,'Evidence write made no progress');offset+=written;
+      }
+      fs.fsyncSync(fd);
+    }finally{fs.closeSync(fd);}
   };
 }
 function assertPolicyOutputReceipt(value) {
@@ -337,15 +380,13 @@ test(POLICY_OUTPUT?POLICY_OUTPUT_TITLE:TITLE, {
     lifecycle: {},
     rendered: null
   };
+  const privateWrite=cfg.repositoryEvidence?createPrivateEvidenceWriter():null;
   const save = () => {
     const bytes = JSON.stringify(retained, null, 2);
     assert(Buffer.byteLength(bytes) <= 16 * 1024 * 1024);
-    fs.writeFileSync(path.join(cfg.directory, 'standalone-ssrf-capture.json'), bytes, {
-      mode: 0o600
-    });
-    fs.writeFileSync(cfg.evidencePath, JSON.stringify(status, null, 2), {
-      mode: 0o600
-    });
+    const capture=path.join(cfg.directory,'standalone-ssrf-capture.json'),result=JSON.stringify(status,null,2);
+    if(privateWrite){privateWrite(capture,bytes);privateWrite(cfg.evidencePath,result);}
+    else{fs.writeFileSync(capture,bytes,{mode:0o600});fs.writeFileSync(cfg.evidencePath,result,{mode:0o600});}
   };
   const pinned = ['tests/postgres/secureshopStandaloneSsrfRendered.integration.test.js', 'tests/fixtures/secureshopStandaloneSsrfQualification.js', 'tests/fixtures/secureshopStandaloneSsrfRenderedQualification.js', 'tests/fixtures/secureshopAnalyticsBrowserOwner.js', 'tests/fixtures/browserProcessOwnership.js', 'tests/postgres/secureshopMailActualTransport.js', 'server/routes/secureshopStandaloneAuth.js', 'server/routes/secureshop/boundSsrf.js', 'server/services/secureshopStandaloneBootstrap.js', 'server/services/secureshopSsrfComposition.js', 'server/services/secureshopSsrfExternalAdapter.js', 'server/services/secureshopSsrfEvidence.js', 'server/database/postgres/secureshopAssessmentStore.js', 'server/agent-runtime/objectiveJudge.js', 'client/src/pages/secureshop/components/ControlledSsrfLab.jsx', 'client/src/pages/secureshop/SecureShopStandaloneBound.jsx', 'client/src/pages/secureshop/SecureShopStandaloneModeControl.jsx'];
   if(POLICY_OUTPUT)pinned.push(...['server/services/secureshopPolicyFinalHtmlContract.js','server/services/secureshopPolicyFinalHtmlOriginal.js',
@@ -354,6 +395,8 @@ test(POLICY_OUTPUT?POLICY_OUTPUT_TITLE:TITLE, {
     'client/src/pages/secureshop/components/PolicyFinalHtmlLab.jsx','client/src/pages/secureshop/utils/policyFinalHtmlReference.mjs',
     'client/src/pages/secureshop/components/AgentLane/Turn.jsx','client/vite.policy-output-renderer.config.mjs',
     'db/postgres/workshop-migrations/secureshop_agents/0110_policy_final_html.sql','client/src/pages/secureshop/bridge/handshake.mjs']);
+  if(POLICY_OUTPUT&&process.env.SECURESHOP_POLICY_OUTPUT_TEST_NO_SANDBOX==='1')
+    pinned.push('tests/fixtures/secureshopPolicyOutputBrowserAdmission.js');
   for (const file of pinned) retained.sourcePins.before[file] = sha(fs.readFileSync(path.join(ROOT, file)));
   save();
   const pools = [],
@@ -665,7 +708,7 @@ test(POLICY_OUTPUT?POLICY_OUTPUT_TITLE:TITLE, {
     resources.push(['ssrf-targets', () => lifecycle.ssrf.close()]);
     if(POLICY_OUTPUT){
       fs.mkdirSync(runtime,{mode:0o700});
-      browser=await require('../fixtures/secureshopAnalyticsBrowserOwner').launchOwnedAnalyticsBrowser(runtime,'browser');
+      browser=await require('../fixtures/secureshopPolicyOutputBrowserAdmission').launchPolicyOutputBrowser(runtime,'browser');
       resources.push(['browser-process',()=>browser.close()]);
       retained.rendererPreflight=await qualifyCompiledPolicyRenderer({browser,onCapture:async value=>{retained.rendererPreflight=value;save();}});
       assert.equal(transport,undefined);status.compiledRendererPreflight=true;save();
@@ -1043,7 +1086,7 @@ test(POLICY_OUTPUT?POLICY_OUTPUT_TITLE:TITLE, {
     if(POLICY_OUTPUT){
       retained.browser={executableSha256:process.env.ANALYTICS_BROWSER_SHA256,pid:JSON.parse(fs.readFileSync(path.join(runtime,'browser-process.json'))).pid,owned:true,closed:false};save();
       const H=require('../fixtures/secureshopStandaloneSsrfQualification');
-      const originals=new Map();
+      const originals=new Map();let policySemanticPassed=null;
       const originalReader=require('../../server/services/secureshopPolicyFinalHtmlOriginal').createPolicyFinalHtmlOriginalReader({
         repository:composition.ssrf.repository,conversations:lifecycle.conversations,agentsPool:agents,identityPool:identity,
         resolveTarget:composition.ssrf.application.resolveExistingTarget,
@@ -1077,12 +1120,14 @@ test(POLICY_OUTPUT?POLICY_OUTPUT_TITLE:TITLE, {
         assert.equal(response.status,200);
         if(id!=='attack'){
           assert.deepEqual(outcome,{completed:false,status:'ineligible',modelEvaluated:false,...(id==='baseline'?{replayed:false}:{})});
-          const counts=await counters();assert.equal(counts.judgments,id==='baseline'?0:1);assert.equal(counts.contributions,id==='baseline'?0:1);
+          const counts=await counters();assert.equal(counts.judgments,id==='baseline'?0:1);assert.equal(counts.contributions,id==='baseline'?0:Number(policySemanticPassed));
           if(id==='baseline'){assert.equal(counts.judge,0);status.baselineNoCredit=true;}
           else {assert.equal(counts.judge,2);status.fixedSameSourceInertNoCredit=true;}
           return outcome;
         }
-        assert.equal(outcome.completed,true);assert.equal(outcome.judgment.verdict,'pass');
+        const semanticPassed=outcome.judgment?.verdict==='pass';
+        assert(['pass','fail'].includes(outcome.judgment?.verdict),'Only an actual canonical semantic failure may continue');
+        assert.equal(outcome.completed,semanticPassed);
         const rows=(await identity.query('SELECT * FROM secureshop_auth.assessment_judgments WHERE evaluation_id=$1 AND tenant_id=$2 AND principal_id=$3',
           [outcome.judgment.evaluationId,ownerPrincipal.tenantId,ownerPrincipal.principalId])).rows;
         assert.equal(rows.length,1);const stored=rows[0],result=judgeByRun.get(stored.run_id);assert(result);
@@ -1092,13 +1137,22 @@ test(POLICY_OUTPUT?POLICY_OUTPUT_TITLE:TITLE, {
         assert.equal(stored.execution_json.personaAuthorityVersion,owner.personaSession.authorityVersion);
         assert.equal(stored.tenant_id,ownerPrincipal.tenantId);assert.equal(stored.principal_id,ownerPrincipal.principalId);
         H.assertPolicyOutputJudgment({original:originals.get('attack'),stored,result,
-          wire:retained.wire.filter(row=>row.role==='judge'),transcript:retained.transcripts.find(row=>row.header.runId===stored.run_id)});
+          wire:retained.wire.filter(row=>row.role==='judge'),transcript:retained.transcripts.find(row=>row.header.runId===stored.run_id)},
+          {expectedVerdict:semanticPassed?'pass':'fail'});
+        retained.creditAtAssessment={};
         for(const table of ['active_assessment_contributions','assessment_completions']){
           const credit=(await identity.query(`SELECT evaluation_id::text FROM secureshop_auth.${table} WHERE tenant_id=$1 AND principal_id=$2 AND objective_id=$3`,
             [ownerPrincipal.tenantId,ownerPrincipal.principalId,objective])).rows;
-          assert.deepEqual(credit,[{evaluation_id:stored.evaluation_id}]);
+          retained.creditAtAssessment[table]=credit;save();
+          assert.deepEqual(credit,semanticPassed?[{evaluation_id:stored.evaluation_id}]:[]);
         }
-        status.canonicalJudgeEvidence=true;status.canonicalTenantCredit=true;return stored;
+        const baseContributions=(await identity.query(`SELECT c.evaluation_id::text FROM secureshop_auth.assessment_contributions c
+          JOIN secureshop_auth.assessment_judgments j USING(tenant_id,principal_id,evaluation_id)
+          WHERE c.tenant_id=$1 AND c.principal_id=$2 AND j.objective_id=$3`,
+          [ownerPrincipal.tenantId,ownerPrincipal.principalId,objective])).rows;
+        retained.creditAtAssessment.assessment_contributions=baseContributions;save();
+        H.assertPolicyOutputTerminal({outcome,stored,credit:retained.creditAtAssessment});
+        policySemanticPassed=semanticPassed;status.canonicalJudgeEvidence=true;status.canonicalTenantCredit=semanticPassed;return stored;
       }
       async function readPublicProgress({page,completed}){
         const value=await page.evaluate(async()=>{const response=await fetch('/api/secureshop/auth/progress',{credentials:'same-origin'});
@@ -1174,10 +1228,11 @@ test(POLICY_OUTPUT?POLICY_OUTPUT_TITLE:TITLE, {
         },onCapture:async value=>{retained.rendered=value;save();}});
       retained.rendered=rendered.evidence;assert.equal(rendered.renderedControlsVerified,true);
       status.savedRunRecovery=true;status.savedAssessmentRecovery=true;
-      Object.assign(status,{actionCount:3,freshPosts:3,retryPosts:0,httpEffects:3,genuineCredit:1});
+      Object.assign(status,{actionCount:3,freshPosts:3,retryPosts:0,httpEffects:3,genuineCredit:Number(policySemanticPassed)});
       assert.equal(transport.calls.filter(row=>row.kind==='actor').length,6);assert.equal(transport.calls.filter(row=>row.kind==='judge').length,2);
       for(const file of pinned)retained.sourcePins.after[file]=sha(fs.readFileSync(path.join(ROOT,file)));
       assert.deepEqual(retained.sourcePins.after,retained.sourcePins.before);retained.phase='actual-evidence-verified';save();
+      H.finishPolicyOutputSemantics({semanticPassed:policySemanticPassed,status,retained,save});
     }else{
     const rendered = await flow.qualifyStandaloneSsrfRendered({
       browser,
@@ -1501,6 +1556,7 @@ module.exports = {
   createSsrfCore,
   createStandaloneSsrfMount,
   nativeConfig,
+  createPrivateEvidenceWriter,
   assertReceipt,
   FLAGS,
   SCOPE,

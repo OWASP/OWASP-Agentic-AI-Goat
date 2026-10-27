@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 import secureshop_standalone_ssrf_launcher_contract as c
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -229,10 +230,13 @@ const retained={normalizedCapture:{cases:[{}, {judgments:[{judge_observations:pr
                       for role in ('RUNTIME', 'MIGRATION')} for key, name in c.STORES.items()}
 
     def test_environment_exact_four_store_no_copy_mapping(self):
-        env = c.child_environment(ROOT, self.directory, self.stores())
+        # Exercise the historical external-path default without creating any
+        # artifact outside the checkout.
+        external = ROOT.parent / 'v27-external-contract-placeholder-no-write'
+        env = c.child_environment(ROOT, external, self.stores())
         self.assertEqual(len(env), 13)
         self.assertEqual(env['DVAIA_CURRENT_MAIN_WORKSPACE'], str(ROOT))
-        self.assertEqual(env['SECURESHOP_STANDALONE_SSRF_RENDERED_EVIDENCE_PATH'], str(self.result_path))
+        self.assertEqual(env['SECURESHOP_STANDALONE_SSRF_RENDERED_EVIDENCE_PATH'], str(external / 'result.json'))
         self.assertEqual(sum(key.startswith(c.PREFIX) for key in env), 8)
         self.assertNotIn('DVAIA_ISOLATED_TEST_WORKSPACE', env)
 
@@ -246,6 +250,100 @@ const retained={normalizedCapture:{cases:[{}, {judgments:[{judge_observations:pr
         for value in cases:
             with self.assertRaises(RuntimeError): c.child_environment(ROOT, self.directory, value)
         with self.assertRaises(RuntimeError): c.child_environment(ROOT, ROOT / 'tests', self.stores())
+
+    def test_v27_repository_evidence_requires_exact_fresh_private_owned_run(self):
+        parent = ROOT / 'tasks/qualification'
+        with tempfile.TemporaryDirectory(prefix='run-', dir=parent) as raw:
+            run = Path(raw)
+            evidence = run / 'standalone-ssrf-rendered'
+            evidence.mkdir(mode=0o700)
+            with self.assertRaises(RuntimeError): c.child_environment(ROOT, evidence, self.stores(), policy_output=True)
+            env = c.child_environment(ROOT, evidence, self.stores(), policy_output=True,
+                                      repository_evidence=True)
+            self.assertEqual(env['SECURESHOP_POLICY_OUTPUT_REPOSITORY_EVIDENCE'], '1')
+            self.assertEqual(env['SECURESHOP_STANDALONE_SSRF_RENDERED_EVIDENCE_PATH'], str(evidence / 'result.json'))
+            with self.assertRaises(RuntimeError):
+                c.child_environment(ROOT, evidence, self.stores(), repository_evidence=True)
+            with self.assertRaises(RuntimeError):
+                c.child_environment(ROOT, evidence, self.stores(), policy_output=True,
+                                    repository_evidence='true')
+            wrong = run / 'wrong-child'
+            wrong.mkdir(mode=0o700)
+            with self.assertRaises(RuntimeError):
+                c.child_environment(ROOT, wrong, self.stores(), policy_output=True,
+                                    repository_evidence=True)
+            evidence.chmod(0o755)
+            with self.assertRaises(RuntimeError):
+                c.child_environment(ROOT, evidence, self.stores(), policy_output=True,
+                                    repository_evidence=True)
+            evidence.chmod(0o700)
+            with patch.object(c.os, 'getuid', return_value=os.getuid() + 1):
+                with self.assertRaises(RuntimeError):
+                    c.child_environment(ROOT, evidence, self.stores(), policy_output=True,
+                                        repository_evidence=True)
+            evidence.rmdir()
+            target = run / 'real-child'
+            target.mkdir(mode=0o700)
+            evidence.symlink_to(target, target_is_directory=True)
+            with self.assertRaises(RuntimeError):
+                c.child_environment(ROOT, evidence, self.stores(), policy_output=True,
+                                    repository_evidence=True)
+            evidence.unlink()
+
+    def test_v27_repository_admission_does_not_admit_other_source_descendants(self):
+        for evidence in (ROOT / 'tests', ROOT / 'tasks/tmp', ROOT / 'tasks/qualification'):
+            with self.subTest(evidence=evidence), self.assertRaises(RuntimeError):
+                c.child_environment(ROOT, evidence, self.stores(), policy_output=True,
+                                    repository_evidence=True)
+
+    def test_v27_child_native_gate_and_exclusive_evidence_writes(self):
+        parent = ROOT / 'tasks/qualification'
+        with tempfile.TemporaryDirectory(prefix='run-', dir=parent) as raw:
+            directory = Path(raw) / 'standalone-ssrf-rendered'
+            directory.mkdir(mode=0o700)
+            env = c.child_environment(ROOT, directory, self.stores(), policy_output=True,
+                                      repository_evidence=True)
+            script = r"""
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const fixture=require('./tests/postgres/secureshopStandaloneSsrfRendered.integration.test.js');
+const env=JSON.parse(process.argv[1]),kind=process.argv[2],file=env.SECURESHOP_STANDALONE_SSRF_RENDERED_EVIDENCE_PATH;
+const capture=path.join(path.dirname(file),'standalone-ssrf-capture.json');
+if(kind==='collision'){
+  assert.throws(()=>fixture.nativeConfig(env));
+  assert.equal(fs.readFileSync(process.argv[3],'utf8'),'sentinel');
+}else{
+  const admitted=fixture.nativeConfig(env);assert.equal(admitted.repositoryEvidence,true);
+  const write=fixture.createPrivateEvidenceWriter();
+  write(capture,'capture-1');write(file,'result-1');
+  const first=fs.statSync(file);write(capture,'capture-2');write(file,'result-2');
+  const second=fs.statSync(file);assert.equal(first.ino,second.ino);
+  assert.equal(fs.readFileSync(capture,'utf8'),'capture-2');
+  assert.equal(fs.readFileSync(file,'utf8'),'result-2');
+  fs.unlinkSync(file);fs.symlinkSync(capture,file);
+  assert.throws(()=>write(file,'must-not-overwrite'));
+  assert.equal(fs.readFileSync(capture,'utf8'),'capture-2');
+}
+process.exit(0);
+"""
+            def run(kind, existing=None):
+                result = subprocess.run(['node', '-e', script, json.dumps(env), kind,
+                                         str(existing) if existing else ''], cwd=ROOT,
+                                        capture_output=True, text=True, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stderr)
+            result = directory / 'result.json'
+            capture = directory / 'standalone-ssrf-capture.json'
+            for existing in (result, capture):
+                existing.write_text('sentinel')
+                existing.chmod(0o600)
+                run('collision', existing)
+                existing.unlink()
+            run('writer')
+
+    def test_v27_native_source_gate_requires_new_output_paths(self):
+        source = (ROOT / c.TEST).read_text()
+        self.assertIn('fs.constants.O_EXCL', source)
+        self.assertIn('fs.constants.O_NOFOLLOW', source)
+        self.assertIn('createPrivateEvidenceWriter', source)
 
     def test_frozen_source_exports_are_real_and_complete(self):
         for file in c.source_files(): self.assertTrue((ROOT / file).is_file(), file)

@@ -9,6 +9,7 @@ const { isQualifiedSecureShopModelTrace } = require('./secureshopRealModelTrace'
 const { canonicalDigest } = require('./mcp/protocolContext');
 
 const VERSION = 'secureshop-manual-rag-source-v1';
+const PROTECTED_VERSION = 'secureshop-protected-manual-source-v1';
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const SHA = /^[a-f0-9]{64}$/;
 const SCOPE = ['launchId','scenarioId','generation','platformOwnerId','platformSessionId'];
@@ -118,12 +119,13 @@ function resolveProductSimilarObservation(metadata, result) {
 // or credit. The protected reader must independently fetch these exact original
 // rows and perform current scene/session/mode checks before and after every read.
 // JSON strings below are PostgreSQL jsonb::text projections, not JS re-encodings.
-function validateManualRagSourceContract({ target, proof, qualifyModel } = {}) {
+function validateSource({ target, proof, qualifyModel } = {}, protectedSource = false) {
   try {
     need(target?.scene && typeof qualifyModel === 'function');
     const current = executionScope(target); // Reject spread/JSON forged capabilities.
     need(exact(proof, ['version','birth','uploader','consumer','receipt','revision','selected',
-      'documentsJson','normalizedChunkJson','integrity']) && proof.version === VERSION);
+      'documentsJson','normalizedChunkJson','integrity', ...(protectedSource ? ['query'] : [])])
+      && proof.version === (protectedSource ? PROTECTED_VERSION : VERSION));
     const { birth, uploader, consumer, receipt: r, revision, selected: selectedRow } = proof;
     scope(birth); need(SCOPE.every(k => birth[k] === target[k]));
     for (const [side, role] of [[uploader, 'merchant'], [consumer, 'customer']]) {
@@ -149,7 +151,7 @@ function validateManualRagSourceContract({ target, proof, qualifyModel } = {}) {
       && r.sceneId === target.scene.sceneId && r.sceneGeneration === target.scene.sceneGeneration
       && r.sceneGrantId === uploader.grantId && equal(r.execution, createLaunchScope(uploader.binding))
       && UUID.test(r.operationId || '') && positive(r.manualSourceId) && positive(r.productId)
-      && r.productId <= 2147483647 && r.merchantId === uploader.binding.shopUserId && r.isPublic === true
+      && r.productId <= 2147483647 && r.merchantId === uploader.binding.shopUserId && r.isPublic === !protectedSource
       && ['runtimeFingerprint','extractionSha256','documentDigest','receiptSha256'].every(k => SHA.test(r[k] || ''))
       && text(r.filename, 4096) && text(r.mime, 1024) && text(r.extractor, 128) && text(r.embeddingModel, 256)
       && positive(r.embeddingDimension) && r.embeddingDimension <= 4096 && positive(r.documentCount)
@@ -246,10 +248,21 @@ function validateManualRagSourceContract({ target, proof, qualifyModel } = {}) {
       && c.sourceId === selectedRow.sourceId && c.chunkIndex === selectedRow.chunkIndex);
     need(context.length === 1 && equal(context[0], {sourceKind:'manual',sourceId:selectedRow.sourceId,
       chunkIndex:selectedRow.chunkIndex,text:selectedRow.text,score:selectedRow.score}));
-    const lineage = { version:VERSION, birth, scene:{sceneId:r.sceneId,sceneGeneration:r.sceneGeneration,targetId:r.targetId},
+    if (protectedSource) {
+      const q = proof.query;
+      need(exact(q, ['version','kind','productId','name','description','text','sha256','runtimeFingerprint'])
+        && q.version === 1 && q.kind === 'product_name_description' && q.productId === r.productId
+        && text(q.name,32768) && typeof q.description === 'string'
+        && text(q.text,32768) && q.text === `${q.name}\n${q.description}` && sha(q.text) === q.sha256
+        && q.runtimeFingerprint === revision.runtimeFingerprint
+        && read.value.seed.name === q.name
+        && equal(consumer.original.result.taskMetadata?.protectedManualConsumerOrigin?.query, q));
+    }
+    const lineage = { version:protectedSource ? PROTECTED_VERSION : VERSION, birth, scene:{sceneId:r.sceneId,sceneGeneration:r.sceneGeneration,targetId:r.targetId},
       uploader:{binding:uploader.binding,personaSession:uploader.personaSession,grantId:uploader.grantId,original:upload.reference},
       consumer:{binding:consumer.binding,personaSession:consumer.personaSession,grantId:consumer.grantId,
-        execution:mode,original:read.reference}, receipt:r, revision, selected:selectedRow };
+        execution:mode,original:read.reference}, receipt:r, revision, selected:selectedRow,
+      ...(protectedSource ? {query:proof.query} : {}) };
     need(Buffer.byteLength(JSON.stringify(lineage)) <= 65536);
     // Derived solely from the same already-verified original turn/hop; neither
     // a latest query nor a supplied response can enter this semantic bundle.
@@ -261,4 +274,8 @@ function validateManualRagSourceContract({ target, proof, qualifyModel } = {}) {
     return freeze(output);
   } catch { throw failure(); }
 }
-module.exports = { VERSION, validateManualRagSourceContract, resolveProductSimilarObservation };
+// Closed entrypoints: callers cannot relax V26's public-source requirement.
+const validateManualRagSourceContract = input => validateSource(input, false);
+const validateProtectedManualSourceContract = input => validateSource(input, true);
+module.exports = { VERSION, PROTECTED_VERSION, validateManualRagSourceContract,
+  validateProtectedManualSourceContract, resolveProductSimilarObservation };

@@ -40,8 +40,8 @@ function scopeColumns(row, prefix='') {
     generation: number(row[`${prefix}generation`]), platformOwnerId: number(row[`${prefix}platform_owner_id`]),
     platformSessionId: number(row[`${prefix}platform_session_id`]) };
 }
-function receiptDto(row) {
-  need(row?.receipt_valid===true && row.runtime_valid===true && row.receipt_version===2 && row.is_public===true);
+function receiptDto(row, protectedSource) {
+  need(row?.receipt_valid===true && row.runtime_valid===true && row.receipt_version===2 && row.is_public===!protectedSource);
   const count = number(row.document_count), sourceId = number(row.manual_source_id);
   need(count<=129);
   const completed = new Date(row.completed_at); need(Number.isFinite(completed.getTime()));
@@ -60,7 +60,7 @@ function receiptDto(row) {
     chunkIds:Array.from({length:count},(_,index)=>`manual:${sourceId}:${index}`) });
 }
 
-function createManualRagSourceAdapter({ agentsPool, reviewPool, identityPool } = {}) {
+function createSourceAdapter({ agentsPool, reviewPool, identityPool } = {}, protectedSource = false) {
   if (typeof agentsPool?.query!=='function' || typeof identityPool?.query!=='function'
       || typeof reviewPool?.connect!=='function') throw new TypeError('Manual RAG source pools required');
   async function query(state, pool, sql, params) {
@@ -85,8 +85,9 @@ function createManualRagSourceAdapter({ agentsPool, reviewPool, identityPool } =
   }
   async function receipt(state,client,operationId) {
     need(UUID.test(operationId||''));const t=state.target;
-    const rows=(await query(state,client,RECEIPT_SQL,[operationId,...BIRTH.map(key=>t[key]),t.scene.sceneId,t.scene.sceneGeneration])).rows;
-    need(rows.length===1);return receiptDto(rows[0]);
+    const sql = protectedSource ? RECEIPT_SQL.replace('AND i.is_public', 'AND NOT i.is_public') : RECEIPT_SQL;
+    const rows=(await query(state,client,sql,[operationId,...BIRTH.map(key=>t[key]),t.scene.sceneId,t.scene.sceneGeneration])).rows;
+    need(rows.length===1);return receiptDto(rows[0], protectedSource);
   }
   async function original(state,row,purpose,kind,expectedBinding) {
     need(row?.status==='completed' && row.request_version===1 && UUID.test(row.session_id||'') && UUID.test(row.request_id||'')
@@ -95,7 +96,9 @@ function createManualRagSourceAdapter({ agentsPool, reviewPool, identityPool } =
       generation:number(row.platform_launch_generation),platformOwnerId:number(row.original_platform_owner_id),
       platformSessionId:number(row.original_platform_session_id)},{id:number(row.user_id),role:row.role});
     need(equal(binding,expectedBinding));
-    const result=row.result_json,origin=result.taskMetadata?.[kind==='upload'?'manualRagUploadOrigin':'manualRagConsumerOrigin'];
+    const result=row.result_json,origin=result.taskMetadata?.[kind==='upload'?
+      (protectedSource?'protectedManualUploadOrigin':'manualRagUploadOrigin'):
+      protectedSource?'protectedManualConsumerOrigin':'manualRagConsumerOrigin'];
     need(origin?.version===1 && equal(origin.binding,binding) && origin.source?.sessionId===row.session_id
       && origin.source?.requestId===row.request_id && UUID.test(origin.runId||'')
       && UUID.test(origin.personaSession?.sessionId||'') && /^[1-9]\d*$/.test(origin.personaSession?.authorityVersion||''));
@@ -167,8 +170,8 @@ function createManualRagSourceAdapter({ agentsPool, reviewPool, identityPool } =
           FROM secureshop_agents.turn_requests tr JOIN secureshop_agents.agent_sessions s ON s.id=tr.session_id
           WHERE tr.status='completed' AND s.conversation_purpose=$1 AND s.authority_mode='launch_bound'
            AND ${predicate('s',2)}
-           AND tr.result_json#>>'{taskMetadata,manualRagUploadOrigin,receipt,operationId}'=$9
-           AND tr.result_json#>>'{taskMetadata,manualRagUploadOrigin,target,targetId}'=$10 LIMIT 2`,
+           AND tr.result_json#>>'{taskMetadata,${protectedSource?'protectedManualUploadOrigin':'manualRagUploadOrigin'},receipt,operationId}'=$9
+           AND tr.result_json#>>'{taskMetadata,${protectedSource?'protectedManualUploadOrigin':'manualRagUploadOrigin'},target,targetId}'=$10 LIMIT 2`,
         [purpose,...coordinates(binding),operationId,state.target.targetId])).rows;
         need(rows.length===1);
         const value=await original(state,rows[0],purpose,'upload',binding);
@@ -189,7 +192,7 @@ function createManualRagSourceAdapter({ agentsPool, reviewPool, identityPool } =
           JOIN secureshop_review.product_target_manual_runtime_receipts r ON r.operation_id=i.operation_id
           WHERE i.operation_id=$1 AND i.target_id=$2 AND i.launch_id=$3 AND i.scenario_id=$4
            AND i.generation=$5 AND i.original_platform_owner_id=$6 AND i.original_platform_session_id=$7
-           AND i.scene_id=$8 AND i.scene_generation=$9 AND i.receipt_version=2 AND i.is_public
+           AND i.scene_id=$8 AND i.scene_generation=$9 AND i.receipt_version=2 AND ${protectedSource ? 'NOT i.is_public' : 'i.is_public'}
         ), fields AS (
           SELECT i.*,jsonb_build_object(
            'version',1,'kind','product_manual_ingest','operationId',i.operation_id,'manualSourceId',i.manual_source_id,
@@ -291,4 +294,6 @@ function createManualRagSourceAdapter({ agentsPool, reviewPool, identityPool } =
     },
   });
 }
-module.exports={createManualRagSourceAdapter};
+const createManualRagSourceAdapter = deps => createSourceAdapter(deps, false);
+const createProtectedManualSourceAdapter = deps => createSourceAdapter(deps, true);
+module.exports={createManualRagSourceAdapter,createProtectedManualSourceAdapter};

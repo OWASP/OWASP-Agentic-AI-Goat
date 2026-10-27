@@ -12,3 +12,11 @@ test('explicit setup forwards closed port and effective persistent prerequisites
  for(const port of ['0','008093','65536','8093x'])await assert.rejects(setupOwnedPricing({...options,environment:{DVAIA_OWNED_PRICING_PORT:port}}),{code:'PRICING_INSTALL_PORT_INVALID'});
  assert.equal(calls,1);
 });
+test('explicit repository-only setup forwards the storage admission without changing ordinary defaults',async()=>{
+ const admission=async()=>true;let called=0;
+ const provision=async input=>{called++;assert.equal(input.repositoryOnlyStorage,true);assert.equal(input.admitRepositoryStorage,admission);return{enabled:true,workspaceId:'abc'};};
+ const options={requested:true,root:'/owned',homeDirectory:'/private',platform:'darwin',applicationEnvironment:prerequisites,repositoryOnlyStorage:true,admitRepositoryStorage:admission,provision};
+ assert.equal((await setupOwnedPricing(options)).activationEnabled,true);
+ assert.equal(called,1);
+ await setupOwnedPricing({...options,repositoryOnlyStorage:false,admitRepositoryStorage:undefined,provision:async input=>{assert.equal(input.repositoryOnlyStorage,false);assert.equal(input.admitRepositoryStorage,undefined);return{enabled:true,workspaceId:'abc'};}});
+});

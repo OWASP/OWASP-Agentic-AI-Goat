@@ -262,12 +262,13 @@ async function absentPolicyMarker(frame){
  const result=await frame.$eval('#policy-final-html-title',title=>({markers:title.closest('section').querySelectorAll('[data-v27-owned-canary]').length}));
  assert.deepEqual(result,{markers:0});return result;
 }
-function assertPolicyAssessment(value,kind){
+function assertPolicyAssessment(value,kind,expectedVerdict='pass'){
  assert(['baseline','fixed','attack','recovered-attack'].includes(kind));
+ assert(['pass','fail'].includes(expectedVerdict));
  if(kind==='baseline'||kind==='fixed'){
   assert.deepEqual(value,{completed:false,status:'ineligible',modelEvaluated:false,...(kind==='baseline'?{replayed:false}:{})});return value;
  }
- assert.equal(value?.completed,true);assert.equal(value.replayed,kind==='recovered-attack');assert.equal(value.judgment?.verdict,'pass');assert.match(value.judgment.evaluationId,UUID);return value;
+ assert.equal(value?.completed,expectedVerdict==='pass');assert.equal(value.replayed,kind==='recovered-attack');assert.equal(value.judgment?.verdict,expectedVerdict);assert.match(value.judgment.evaluationId,UUID);return value;
 }
 async function qualifyPolicyOutputRendered({browser,origin,credentials,evidenceDirectory,ackLoss,
  bindBootstrap,readOriginal,readAssessment,readCounters,readPublicProgress,verifyLifecycle,onCapture=async()=>{}}={}){
@@ -331,19 +332,20 @@ async function qualifyPolicyOutputRendered({browser,origin,credentials,evidenceD
    row.physical.rendered=await policyReply(frame,response.body,mode,id==='attack');if(mode==='fixed'){assert.equal(row.physical.rendered.text,response.body.response);assert.equal(row.physical.rendered.activeElements,0);}
    await page.screenshot({path:path.join(evidenceDirectory,'policy-output-'+id+'.png'),fullPage:true});await publish();return row;
   }
-  async function assess(row,completed){
+  async function assess(row){
    const before=assessPosts.length,watch=watchPath('POST',HTML_BASE+'/assess'),hit=await physicalButton(frame,'Check policy output');
    const actual=await watch.read(),body=await actual.json().catch(()=>null),reference={sessionId:row.physical.response.body.sessionId,requestId:row.physical.response.body.requestId};
    row.assessment={hit,request:assessPosts[before],response:packet(actual,body),stored:null};await publish();
-   assert.equal(actual.status(),200);assert.equal(assessPosts.length,before+1);assert.deepEqual(assessPosts[before],{session_id:reference.sessionId,request_id:reference.requestId});assertPolicyAssessment(body,row.id);
+   assert.equal(actual.status(),200);assert.equal(assessPosts.length,before+1);assert.deepEqual(assessPosts[before],{session_id:reference.sessionId,request_id:reference.requestId});assertPolicyAssessment(body,row.id,row.id==='attack'?body?.judgment?.verdict:'pass');
    row.assessment.stored=await readAssessment({id:row.id,reference,response:row.assessment.response,authority});assert(row.assessment.stored&&typeof row.assessment.stored==='object');await publish();
-   await frame.waitForFunction(done=>[...document.querySelector('#policy-final-html-title').closest('section').querySelectorAll('[role="status"]')].some(e=>e.textContent.startsWith('Policy output assessment:')&&e.textContent.includes(done?'Objective completed':'ineligible')),{timeout:30000},completed);return body;
+   await frame.waitForFunction(expected=>[...document.querySelector('#policy-final-html-title').closest('section').querySelectorAll('[role="status"]')].some(e=>e.textContent.startsWith('Policy output assessment:')&&e.textContent.includes(expected)),{timeout:30000},row.id==='attack'?(body.completed?'Objective completed':'fail'):'ineligible');return body;
   }
-  const baseline=await action('baseline',POLICY_OUTPUT_BASELINE,'vuln');await assess(baseline,false);
+  const baseline=await action('baseline',POLICY_OUTPUT_BASELINE,'vuln');await assess(baseline);
   const baselineCounts=await measured();assert.equal(baselineCounts.actor,2);assert.equal(baselineCounts.http,1);assert.equal(baselineCounts.judge,0);assert.equal(baselineCounts.contributions,0);assert.deepEqual(evidence.dialogs,[]);await progress(false);
   await physicalButton(frame,'New policy request');
   const attack=await action('attack',POLICY_OUTPUT_ATTACK,'vuln',true);
-  await assess(attack,true);await progress(true);
+  const attackAssessment=await assess(attack),semanticPassed=attackAssessment.completed;
+  evidence.semanticOutcome={originalVerdict:attackAssessment.judgment.verdict,semanticPassed,genuineCredit:Number(semanticPassed),coverageCompleted:false};await publish();await progress(semanticPassed);
   const countsBefore=await measured(),postsBefore={run:requests.length,assess:assessPosts.length};
   const originalGet=watchPath('GET',HTML_RUN_PATH+'/'+attack.physical.response.body.requestId),assessmentGet=watchPath('GET',HTML_BASE+'/assessment/'+attack.physical.response.body.sessionId+'/'+attack.physical.response.body.requestId);
   const held=new Promise((resolve,reject)=>{reloadHold={path:HTML_RUN_PATH+'/'+attack.physical.response.body.requestId,resolve,request:null};
@@ -355,18 +357,18 @@ async function qualifyPolicyOutputRendered({browser,origin,credentials,evidenceD
   const original=await originalGet.read(),outcome=await assessmentGet.read();
   evidence.reload={markerBefore,original:packet(original,await original.json().catch(()=>null)),assessment:packet(outcome,await outcome.json().catch(()=>null)),countsBefore,countsAfter:null};await publish();
   assert.equal(original.status(),200);assert.equal(outcome.status(),200);assert.deepEqual(evidence.reload.original.body,{...attack.physical.response.body,replayed:true});
-  assertPolicyAssessment(evidence.reload.assessment.body,'recovered-attack');assert.deepEqual(evidence.reload.assessment.body,{...attack.assessment.response.body,replayed:true});
+  assertPolicyAssessment(evidence.reload.assessment.body,'recovered-attack',attackAssessment.judgment.verdict);assert.deepEqual(evidence.reload.assessment.body,{...attack.assessment.response.body,replayed:true});
   frame=await frameFor(page);await frame.waitForSelector('#policy-final-html-title',{visible:true});evidence.reload.rendered=await policyReply(frame,attack.physical.response.body,'vuln',true);
-  evidence.reload.countsAfter=await measured();assert.deepEqual(evidence.reload.countsAfter,countsBefore);assert.deepEqual({run:requests.length,assess:assessPosts.length},postsBefore);await progress(true);
+  evidence.reload.countsAfter=await measured();assert.deepEqual(evidence.reload.countsAfter,countsBefore);assert.deepEqual({run:requests.length,assess:assessPosts.length},postsBefore);await progress(semanticPassed);
   await physicalButton(frame,'New policy request');evidence.mode=await selectFixedThroughSettings(page,{observe,onCapture:async value=>{evidence.mode=value;await publish();}});
   frame=await frameFor(page);await frame.waitForSelector('#policy-final-html-title',{visible:true});
   const fixedBefore=await measured(),dialogsBefore=evidence.dialogs.length;
-  const fixed=await action('fixed',POLICY_OUTPUT_ATTACK,'fixed');await assess(fixed,false);const fixedAfter=await measured();
-  assert.equal(fixedAfter.actor,fixedBefore.actor+2);assert.equal(fixedAfter.http,fixedBefore.http+1);for(const key of ['judge','judgments','contributions'])assert.equal(fixedAfter[key],fixedBefore[key]);assert.equal(evidence.dialogs.length,dialogsBefore);await progress(true);
+  const fixed=await action('fixed',POLICY_OUTPUT_ATTACK,'fixed');await assess(fixed);const fixedAfter=await measured();
+  assert.equal(fixedAfter.actor,fixedBefore.actor+2);assert.equal(fixedAfter.http,fixedBefore.http+1);for(const key of ['judge','judgments','contributions'])assert.equal(fixedAfter[key],fixedBefore[key]);assert.equal(evidence.dialogs.length,dialogsBefore);await progress(semanticPassed);
   assert.equal(requests.length,3);assert.equal(assessPosts.length,3);assertCounters(fixedAfter,{complete:true});assert.deepEqual(evidence.browserErrors,[]);
   evidence.phase='lifecycle';const lifecycleBefore=await measured();evidence.lifecycle=await verifyLifecycle({page,authority,cases});assert(evidence.lifecycle&&typeof evidence.lifecycle==='object');
   evidence.lifecycleCounters={before:lifecycleBefore,after:await measured()};assert.deepEqual(evidence.lifecycleCounters.after,lifecycleBefore);await publish();
-  evidence.phase='rendered-actions-complete';await publish();
+  evidence.semanticOutcome.coverageCompleted=true;evidence.phase='rendered-actions-complete';await publish();
  }catch(error){failure=error;evidence.phase='failed';evidence.failure={name:error.name,code:error.code||null,message:String(error.message).slice(0,4096)};
   try{evidence.ackLoss=ackLoss.snapshot();}catch{}try{evidence.modelCounters=await readCounters();}catch{}try{await publish();}catch{}try{await page?.screenshot({path:path.join(evidenceDirectory,'policy-output-failure.png'),fullPage:true});}catch{}
  }finally{

@@ -6,6 +6,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { createSecureShopBoundPersonaAuth, ISSUER, AUDIENCE } = require(
   '../server/services/secureshopBoundPersonaAuth');
+const { createSecureShopStandaloneAuthService } = require(
+  '../server/services/secureshopStandaloneAuth');
 
 const scope = Object.freeze({ launchId: '10000000-0000-4000-8000-000000000082',
   scenarioId: '20000000-0000-4000-8000-000000000082', generation: 5,
@@ -17,6 +19,77 @@ const sessionManagement = Object.freeze({
   async readApiKey() { return null; },
   async rotateApiKey() { return null; },
   async authenticateApiKey() { return null; },
+});
+
+test('standalone bootstrap reuses the persona JTI while re-signing a valid JWT at a later clock', async () => {
+  const originalNow = Date.now;
+  let clock = 1792750000000;
+  Date.now = () => clock;
+  try {
+    const expiry = new Date(clock + 3600000).toISOString();
+    const authRepository = {
+      registerWithSession: async input => ({ principalId: input.principalId, ownerId: 82,
+        shopUserId: 1000000001, username: input.username, email: input.email,
+        role: input.role, credentialVersion: '1', authorityVersion: '1',
+        sessionId: 802, expiresAt: input.expiresAt }),
+      async readOrCreateDefaultExecutionSession(input) { return {
+        principalId: input.principalId, principalOwnerId: 82, ownerId: 82,
+        authSessionId: 802, sessionId: 802, tenantId: scope.launchId,
+        membershipVersion: '1', shopUserId: 1000000001,
+        username: 'avatar_customer', email: 'avatar@example.invalid', role: 'customer',
+        credentialVersion: '1', authorityVersion: '1', expiresAt: expiry,
+      }; },
+    };
+    for (const name of ['findCredential', 'recordFailedLogin', 'createSession',
+      'readCurrentSession', 'rotateSession', 'revokeSession', 'readCredentialForSession',
+      'changePassword', 'revokeAll']) authRepository[name] = async () => null;
+    const standalone = createSecureShopStandaloneAuthService({ repository: authRepository,
+      now: () => clock, randomBytes: () => Buffer.alloc(32, 0x41),
+      hashPassword: async () => 'controlled-hash' });
+    const registered = await standalone.register({ username: 'avatar_customer',
+      email: 'avatar@example.invalid', password: 'controlled-password', role: 'customer' });
+    assert.match(registered.context.principalId, /^[a-f0-9-]{36}$/);
+    const principal = await standalone.establishTenantContext(registered.context);
+    const actor = { id: 1000000001, username: 'avatar_customer',
+      email: 'avatar@example.invalid', role: 'customer', full_name: null, phone: null };
+    const sessionId = '40000000-0000-4000-8000-000000000082';
+    const jti = '50000000-0000-4000-8000-000000000082';
+    let creates = 0;
+    const authority = { async read() { return { role: 'customer', authority_version: '1' }; } };
+    const repository = {
+      ...sessionManagement,
+      candidatePersonaAuthority: authority,
+      async findCredential() { return null; },
+      async findCredentialById() { return actor; },
+      async ensureStandaloneActor() { return actor; },
+      async createSession() { creates++; return { sessionId, jti, expiresAt: expiry,
+        reused: creates > 1 }; },
+      async readSession() { return { session_id: sessionId, shop_user_id: actor.id,
+        username: actor.username, email: actor.email, role: actor.role,
+        full_name: null, phone: null, expires_at: expiry }; },
+      async extendSession() { return null; }, async revokeSession() { return true; },
+    };
+    const persona = createSecureShopBoundPersonaAuth({ repository, personaAuthority: authority,
+      launches: { async assertCurrent() { return { expiresAt: expiry }; } },
+      jwtSecret: 'owned-bound-persona-secret-at-least-32-bytes', now: () => clock });
+    const first = await persona.establishSession({ scope, shopPrincipal: principal });
+    clock += 2000;
+    const second = await persona.establishSession({ scope, shopPrincipal: principal });
+    assert.equal(creates, 2);
+    assert.notEqual(first.token, second.token, 'a re-signed JWT need not retain its bytes');
+    const firstClaims = jwt.verify(first.token, 'owned-bound-persona-secret-at-least-32-bytes',
+      { issuer: ISSUER, audience: AUDIENCE });
+    const secondClaims = jwt.verify(second.token, 'owned-bound-persona-secret-at-least-32-bytes',
+      { issuer: ISSUER, audience: AUDIENCE });
+    assert.equal(firstClaims.jti, secondClaims.jti);
+    assert.equal(firstClaims.ss_launch_id, secondClaims.ss_launch_id);
+    assert.equal(firstClaims.ss_platform_session_id, secondClaims.ss_platform_session_id);
+    assert.notEqual(firstClaims.iat, secondClaims.iat);
+    assert.equal((await persona.authenticateBoundToken({ scope, token: first.token })).sessionId,
+      sessionId);
+    assert.equal((await persona.authenticateBoundToken({ scope, token: second.token })).sessionId,
+      sessionId);
+  } finally { Date.now = originalNow; }
 });
 
 test('real credential verification issues a launch-bound durable persona token', async () => {

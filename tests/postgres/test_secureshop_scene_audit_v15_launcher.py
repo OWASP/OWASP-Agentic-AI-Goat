@@ -20,6 +20,11 @@ ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 SPEC = importlib.util.spec_from_file_location('v15_launcher', HERE / 'run-secureshop-agent-host-transport-main.py')
 L = importlib.util.module_from_spec(SPEC); SPEC.loader.exec_module(L)
+ADMISSION_SPEC = importlib.util.spec_from_file_location('v15_closed_admission', HERE / 'run-secureshop-scene-audit-browser.py')
+A = importlib.util.module_from_spec(ADMISSION_SPEC); ADMISSION_SPEC.loader.exec_module(A)
+L.SCENE_AUDIT_TEST_SHA256 = A.PINS[A.TEST]
+L.SCENE_AUDIT_HELPER_SHA256 = A.PINS[A.HELPER]
+L.SCENE_AUDIT_CONTRACT_SHA256 = A.PINS[A.CONTRACT]
 COHORT = L.SCENE_AUDIT_BROWSER
 UUID = '11111111-1111-4111-8111-111111111111'
 
@@ -145,7 +150,10 @@ class SceneAuditLauncher(unittest.TestCase):
         assignment = next(n for n in ast.walk(tree) if isinstance(n, ast.Assign)
                           and any(isinstance(t, ast.Name) and t.id == 'clean_cleanup' for t in n.targets))
         expression = compile(ast.Expression(assignment.value), '<cleanup>', 'eval')
-        ns.update(cleanup=cleanup, cleanup_errors=[])
+        ns.update(cleanup=cleanup, cleanup_errors=[], pg_network=None,
+                  v24_owner_attempted=False, v24_owner_quiescent=False, v24_owner_result=None,
+                  v23_owner_attempted=False, v23_child_quiescent=False, v23_owner_result=None,
+                  v34_owner_state={"attempted": False}, mail_inline_source_after=False, v30_v2=False)
         self.assertTrue(eval(expression, ns))
         cleanup['auditControlContainerIdAbsent'] = False; self.assertFalse(eval(expression, ns))
 
@@ -155,7 +163,7 @@ class SceneAuditLauncher(unittest.TestCase):
                       and ast.unparse(n.test) == 'args.cohort == SCENE_AUDIT_BROWSER'
                       and any('run_node(' in ast.unparse(v) for v in n.body))
         with tempfile.TemporaryDirectory() as directory:
-            evidence = Path(directory); calls = []; checked = []
+            evidence = Path(directory); calls = []; checked = []; node_checks = []
             def run_node(label, command, timeout):
                 calls.append((label, command, timeout))
                 self.write(Path(ns['env']['SECURESHOP_ADMIN_AUDIT_JOBS_BROWSER_EVIDENCE_PATH']), self.receipt())
@@ -167,16 +175,22 @@ class SceneAuditLauncher(unittest.TestCase):
             def digest(path):
                 checked.append(str(path))
                 return L.NODE_SHA256 if str(path) == '/pinned/node' else 'a' * 64
+            def node_pin_matches(path, pin):
+                node_checks.append((path, pin))
+                return path == '/pinned/node' and pin == L.NODE_SHA256
             ns = dict(vars(L), args=SimpleNamespace(cohort=COHORT, node='/pinned/node', browser='/pinned/browser',
                       browser_sha256='a' * 64, ollama_model_sha256='b' * 64), env={}, evidence=evidence,
                       runtime=evidence, run_node=run_node, tap_paths={}, effect_counts={}, digest=digest,
+                      admitted_node_sha256=L.NODE_SHA256,
+                      node_pin_matches=node_pin_matches,
                       model_pin={'digest': 'b' * 64}, verify_ollama_model=lambda pin: {'digest': pin},
                       standalone_browser_cleanup_state=lambda path: {'profilesAbsent': True, 'processesAbsent': True})
             exec(compile(ast.fix_missing_locations(ast.Module(body=branch.body, type_ignores=[])), '<child>', 'exec'), ns)
             self.assertEqual(calls, [(COHORT, ['/pinned/node', '--test', '--test-reporter=tap', '--test-concurrency=1', L.ADMIN_AUDIT_JOBS_TEST], 900)])
             self.assertEqual(ns['scene_audit_result'], self.receipt())
             self.assertEqual(ns['scene_audit_capture']['sha256'], L.digest(evidence / L.SCENE_AUDIT_CAPTURE))
-            self.assertEqual(checked.count('/pinned/browser'), 2); self.assertEqual(checked.count('/pinned/node'), 2)
+            self.assertEqual(checked.count('/pinned/browser'), 2)
+            self.assertEqual(node_checks, [('/pinned/node', L.NODE_SHA256)] * 2)
             self.assertTrue((evidence / 'local-model-after.json').is_file())
 
     def test_exact_tap_rejects_old_jobs_or_skipped_proof(self):

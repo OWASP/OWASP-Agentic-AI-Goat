@@ -2,11 +2,14 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import ComprehensiveAdminDashboard from './ComprehensiveAdminDashboard';
 
 jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() }));
 let mockUser;
-jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: mockUser, logout: jest.fn() }) }));
+let mockAuthRevision;
+jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: mockUser, logout: jest.fn(),
+  getAuthRevision: () => mockAuthRevision }) }));
 jest.mock('../context/WorkshopConfigContext', () => ({ useWorkshopConfig: () => ({ registerReconciler: () => () => {} }) }));
 jest.mock('react-toastify', () => ({ toast: { error: jest.fn(), success: jest.fn() } }));
 jest.mock('./admin/CTFAdminPanel', () => () => null);
@@ -40,6 +43,7 @@ async function mount(path) {
 beforeEach(() => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   mockUser = { id: 1, username: 'admin', isAdmin: true, adminLevel: 2, permissions: ['manage_progress', 'manage_challenges'] };
+  mockAuthRevision = 0;
   sessionStorage.clear();
   localStorage.setItem('token', 'fixture');
   axios.get.mockImplementation(genericGet);
@@ -53,6 +57,7 @@ afterEach(() => { jest.restoreAllMocks(); jest.clearAllMocks(); document.body.re
 
 
 async function click(view,label){const button=[...document.querySelectorAll('button')].find(el=>el.textContent.trim()===label);expect(button).toBeTruthy();await act(async()=>button.click());await flush();}
+function resetConfirmHandler(view){const button=[...view.node.querySelectorAll('button')].find(el=>el.textContent.trim()==='Reset Progress');expect(button).toBeTruthy();const props=button[Object.keys(button).find(key=>key.startsWith('__reactProps$'))];expect(typeof props?.onClick).toBe('function');return props.onClick;}
 async function confirm(view){await click(view,'Reset');await click(view,'Reset Progress');}
 const key='dvaia:admin-reset:1:workshop:csrf_workshop';
 test('mounted workshop reset retains operation across lost success and remount, then confirms exact original operation',async()=>{
@@ -69,6 +74,68 @@ test('mounted reset cannot mutate after administrator token changes during disco
  const pending=deferred(),normal=axios.get.getMockImplementation();axios.get.mockImplementation(url=>url==='/api/admin/workshops/reset-operations'?pending.promise:normal(url));
  const view=await mount('/admin/challenges');await confirm(view);localStorage.setItem('token','replacement');
  await act(async()=>pending.resolve({data:{success:true,operations:[]}}));await flush();expect(axios.post).not.toHaveBeenCalled();act(()=>view.root.unmount());
+});
+test('workshop bulk reset staged by one administrator cannot be confirmed by another administrator',async()=>{
+ const view=await mount('/admin/challenges');
+ await click(view,'Reset');
+ expect(view.node.textContent).toContain('Reset ALL student progress for');
+ expect(axios.post).not.toHaveBeenCalled();
+ const retainedConfirm=resetConfirmHandler(view);
+
+ mockUser={id:2,username:'other-admin',isAdmin:true,adminLevel:2,permissions:['manage_progress','manage_challenges']};
+ localStorage.setItem('token','other-admin-token');
+ await act(async()=>view.root.render(<MemoryRouter initialEntries={['/admin/challenges']}><ComprehensiveAdminDashboard /></MemoryRouter>));
+ await flush();
+ expect(view.node.textContent).not.toContain('Reset ALL student progress for');
+
+ await act(async()=>retainedConfirm());
+ await flush();
+ expect(axios.post).not.toHaveBeenCalled();
+ act(()=>view.root.unmount());
+});
+test('workshop bulk reset rejects an ABA session revision after the token is restored',async()=>{
+ const view=await mount('/admin/challenges');await click(view,'Reset');
+ const retainedConfirm=resetConfirmHandler(view);
+ localStorage.setItem('token','temporary-session');
+ localStorage.setItem('token','fixture');
+ mockAuthRevision+=1;
+ await act(async()=>view.root.render(<MemoryRouter initialEntries={['/admin/challenges']}><ComprehensiveAdminDashboard /></MemoryRouter>));
+ await flush();
+ expect(view.node.textContent).not.toContain('Reset ALL student progress for');
+ await act(async()=>retainedConfirm());await flush();
+ expect(axios.post).not.toHaveBeenCalled();
+ act(()=>view.root.unmount());
+});
+test('cross-tab token storage event retires a staged reset even when the token string matches',async()=>{
+ const view=await mount('/admin/challenges');await click(view,'Reset');
+ const retainedConfirm=resetConfirmHandler(view);
+ await act(async()=>window.dispatchEvent(new StorageEvent('storage',{
+  key:'token',oldValue:'other-session',newValue:'fixture',storageArea:localStorage,
+ })));
+ await flush();
+ expect(view.node.textContent).not.toContain('Reset ALL student progress for');
+ await act(async()=>retainedConfirm());await flush();
+ expect(axios.get.mock.calls.some(([url])=>url==='/api/admin/workshops/reset-operations')).toBe(false);
+ expect(axios.post).not.toHaveBeenCalled();
+ act(()=>view.root.unmount());
+});
+test('canceled workshop reset cannot confirm a later staging through its retained handler',async()=>{
+ const view=await mount('/admin/challenges');await click(view,'Reset');
+ const oldConfirm=resetConfirmHandler(view);
+ await click(view,'Cancel');await click(view,'Reset');
+ await act(async()=>oldConfirm());await flush();
+ expect(axios.post).not.toHaveBeenCalled();
+ expect(view.node.textContent).toContain('Reset ALL student progress for');
+ await click(view,'Reset Progress');
+ expect(axios.post).toHaveBeenCalledTimes(1);
+ act(()=>view.root.unmount());
+});
+test('double confirmation issues one workshop reset request',async()=>{
+ const view=await mount('/admin/challenges');await click(view,'Reset');
+ const confirmOnce=resetConfirmHandler(view);
+ await act(async()=>{confirmOnce();confirmOnce();});await flush();
+ expect(axios.post).toHaveBeenCalledTimes(1);
+ act(()=>view.root.unmount());
 });
 test('mounted password-confirmed all reset resumes server-discovered original operation',async()=>{
  const id='11111111-1111-4111-8111-111111111111',normal=axios.get.getMockImplementation();
@@ -96,4 +163,18 @@ test('authority changes during count refresh prevent stale dashboard commit and 
  axios.post.mockImplementation(async()=>{refreshing=true;return{data:{success:true}};});
  axios.get.mockImplementation((url,config)=>url==='/api/admin/challenges'&&refreshing&&config?.headers?.Authorization!=='Bearer changed'?pending.promise:normal(url));
  const view=await mount('/admin/challenges');await confirm(view);const id=sessionStorage.getItem(key);localStorage.setItem('token','changed');await act(async()=>pending.resolve({data:{success:true,challenges:[{id:'foreign',name:'SHOULD_NOT_RENDER',completions:99}]}}));await flush();expect(view.node.textContent).not.toContain('SHOULD_NOT_RENDER');expect(sessionStorage.getItem(key)).toBe(id);act(()=>view.root.unmount());
+});
+test('revision change during count refresh retains recovery without stale counts or success',async()=>{
+ const normal=axios.get.getMockImplementation(),pending=deferred();let refreshing=false;
+ axios.post.mockImplementation(async()=>{refreshing=true;return{data:{success:true}};});
+ axios.get.mockImplementation((url,config)=>url==='/api/admin/challenges'&&refreshing?pending.promise:normal(url));
+ const view=await mount('/admin/challenges');await confirm(view);
+ const id=sessionStorage.getItem(key);expect(id).toMatch(/^[a-f0-9-]{36}$/);
+ mockAuthRevision+=1;
+ await act(async()=>pending.resolve({data:{success:true,challenges:[{id:'foreign',name:'SHOULD_NOT_RENDER',completions:99}]}}));
+ await flush();
+ expect(view.node.textContent).not.toContain('SHOULD_NOT_RENDER');
+ expect(sessionStorage.getItem(key)).toBe(id);
+ expect(toast.success).not.toHaveBeenCalled();
+ act(()=>view.root.unmount());
 });

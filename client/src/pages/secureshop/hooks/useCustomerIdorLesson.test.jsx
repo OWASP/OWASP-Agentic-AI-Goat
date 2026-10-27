@@ -199,3 +199,49 @@ test('late saved GET from a previous authority cannot restore its result', async
   expect(current.savedText).toBeNull();
   expect(current.status).toBe('unconfirmed');
 });
+
+test.each(['completed', 'failed'])('automatic saved GET exposes busy until %s, then explicit recovery is reachable', async outcome => {
+  const referenceStore = memoryStore();
+  await referenceStore.save({ shopUserId: 7, sessionId: sid, requestId: rid, startedAt: 100 });
+  let settle;
+  const pending = new Promise(resolve => { settle = resolve; });
+  const value = { sessionId: sid, requestId: rid, status: 'completed',
+    text: 'Retained result', result: null, modeCapability };
+  const transport = jest.fn().mockImplementationOnce(() => pending)
+    .mockImplementation(async () => json(value));
+  mount({ shopUserId: 7, authorityKey: 'token', transport, referenceStore });
+  // BoundAgentLane disables Check saved request using this public busy state.
+  // A visible enabled control must not silently lose a click to activeRef.
+  expect(current.busy).toBe(true);
+  expect(await current.recover()).toBe(false);
+  expect(transport).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    settle(outcome === 'completed' ? json(value) : { ok: false, status: 503,
+      headers: { get: () => 'application/json' }, json: async () => ({ error: 'unavailable' }) });
+  });
+  expect(current.busy).toBe(false);
+  await act(async () => { expect(await current.recover()).toBe(true); });
+  expect(transport).toHaveBeenCalledTimes(2);
+  expect(transport.mock.calls.every(([url, options]) =>
+    url.endsWith(`/operations/${sid}/${rid}`) && options.method === 'GET')).toBe(true);
+});
+
+test('settling an old automatic GET cannot clear the new authority busy state', async () => {
+  const referenceStore = memoryStore();
+  await referenceStore.save({ shopUserId: 7, sessionId: sid, requestId: rid, startedAt: 100 });
+  let settleOld, settleNew;
+  const old = new Promise(resolve => { settleOld = resolve; });
+  const next = new Promise(resolve => { settleNew = resolve; });
+  const transport = jest.fn().mockImplementationOnce(() => old).mockImplementationOnce(() => next);
+  const props = { shopUserId: 7, authorityKey: 'old', transport, referenceStore };
+  const view = mount(props);
+  view.rerender({ ...props, authorityKey: 'new' });
+  await act(async () => { settleOld(json({ sessionId: sid, requestId: rid,
+    status: 'completed', text: 'stale', result: null, modeCapability })); });
+  expect(current.busy).toBe(true);
+  expect(current.savedText).toBeNull();
+  await act(async () => { settleNew(json({ sessionId: sid, requestId: rid,
+    status: 'completed', text: 'current', result: null, modeCapability })); });
+  expect(current.busy).toBe(false);
+  expect(current.savedText).toBe('current');
+});

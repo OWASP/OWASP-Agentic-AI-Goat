@@ -25,7 +25,81 @@ function projectStartupDiagnostic(error){
  }
  return Object.freeze({code:'APPLICATION_START_FAILED',category:'unknown',reason:'UNCLASSIFIED_STARTUP_ERROR'});
 }
+
+const diagnosticFrames=Object.freeze(['server/index.js','server/applicationServer.js','server/services/ctfAuthorityProduction.js','server/services/applicationMaintenanceLease.js','server/database/postgres/applicationMaintenanceControl.js','server/database/postgres/ctfDeliveryActivation.js','server/database/postgres/ctfDeliveryPool.js']);
+const diagnosticCodes=new Set(['MODULE_NOT_FOUND','ERR_MODULE_NOT_FOUND','ERR_INVALID_ARG_TYPE','ERR_INVALID_ARG_VALUE','ERR_ASSERTION','ENOENT','EACCES','EPERM','ECONNREFUSED','ECONNRESET','ETIMEDOUT','42P01','42703','42501','28P01','53300','23505','23503']);
+
+const nativeErrorTypes=require('node:util').types;
+const nativeStackGetter=Object.getOwnPropertyDescriptor(new Error(),'stack').get;
+const nativeErrorNames=new Map([[Error.prototype,'Error'],[TypeError.prototype,'TypeError'],[ReferenceError.prototype,'ReferenceError'],[SyntaxError.prototype,'SyntaxError'],[RangeError.prototype,'RangeError'],[EvalError.prototype,'EvalError'],[URIError.prototype,'URIError'],[AggregateError.prototype,'AggregateError']]);
+function nativeErrorFields(error){
+ try{
+  if(!nativeErrorTypes.isNativeError(error))return {};
+  const prototype=Object.getPrototypeOf(error),name=nativeErrorNames.get(prototype);
+  if(!name)return {};
+  if(prototype!==Error.prototype&&Object.getPrototypeOf(prototype)!==Error.prototype)return {};
+  for(const key of ['name','message']){
+   const own=Object.getOwnPropertyDescriptor(error,key);
+   if(own&&(!Object.hasOwn(own,'value')||typeof own.value!=='string'||own.value.length>4096))return {};
+   for(const p of [prototype,Error.prototype]){
+    const value=Object.getOwnPropertyDescriptor(p,key);
+    if(value&&(!Object.hasOwn(value,'value')||typeof value.value!=='string'||value.value.length>4096))return {};
+   }
+  }
+  const descriptor=Object.getOwnPropertyDescriptor(error,'stack');
+  if(!descriptor||descriptor.get!==nativeStackGetter)return {name};
+  const formatter=Object.getOwnPropertyDescriptor(Error,'prepareStackTrace');
+  for(let p=Object.getPrototypeOf(Error);p;p=Object.getPrototypeOf(p))if(Object.getOwnPropertyDescriptor(p,'prepareStackTrace'))return {name};
+  // Synchronous intrinsic formatting only. Never execute an installed formatter,
+  // including the Node default hook, or an accessor supplied by application code.
+  if(formatter&&!formatter.configurable)return {name};
+  let stack;
+  try{
+   if(formatter)delete Error.prepareStackTrace;
+   stack=Reflect.apply(nativeStackGetter,error,[]);
+  }finally{
+   if(formatter)Object.defineProperty(Error,'prepareStackTrace',formatter);
+  }
+  return {name,stack:typeof stack==='string'&&stack.length<=16384?stack:undefined};
+ }catch{return {};}
+}
+
+function projectStartupDetail(error){
+ if(nativeErrorTypes.isProxy(error))return {version:1,code:'OTHER',name:'OTHER',frames:[]};
+ const native=nativeErrorFields(error);
+ const code=ownData(error,'code'),name=ownData(error,'name')??native.name,stack=ownData(error,'stack')??native.stack;
+ const result={version:1,code:diagnosticCodes.has(code)?code:'OTHER',name:['Error','TypeError','ReferenceError','SyntaxError','RangeError','AssertionError','AggregateError'].includes(name)?name:'OTHER',frames:[]};
+ if(typeof stack==='string'&&stack.length<=16384){
+  for(const line of stack.split('\n').slice(1,17)){
+   if(!/^\s+at /.test(line))continue;
+   const match=line.match(/(?:\(| )(?:[^\s]*\/)?(server\/[A-Za-z0-9_\/-]+\.js):(\d{1,6}):(\d{1,6})\)?$/);
+   if(match&&diagnosticFrames.includes(match[1]))result.frames.push({file:match[1],line:Number(match[2]),column:Number(match[3])});
+   if(result.frames.length===3)break;
+  }
+ }
+ return result;
+}
+
+
+function projectStartupShape(error){
+ const result={version:1,kind:'primitive',prototype:'none',code:'absent',name:'absent',stack:'absent',cause:'absent'};
+ if(!error||(typeof error!=='object'&&typeof error!=='function'))return result;
+ if(nativeErrorTypes.isProxy(error)){result.kind='proxy';return result;}
+ result.kind=nativeErrorTypes.isNativeError(error)?'native':'object';
+ try{
+  const prototype=Object.getPrototypeOf(error);
+  result.prototype=nativeErrorNames.has(prototype)?'builtin':'other';
+  for(const key of ['code','name','stack','cause']){
+   const descriptor=Object.getOwnPropertyDescriptor(error,key);
+   result[key]=!descriptor?'absent':!Object.hasOwn(descriptor,'value')?'accessor':'data';
+  }
+ }catch{result.prototype='unavailable';}
+ return result;
+}
+
 function reportStartupDiagnostic(error,emit){
  try{emit('application_start_failed',projectStartupDiagnostic(error));}catch{/* Diagnostics must not interfere with shutdown or rejection. */}
+ try{emit('application_start_detail '+JSON.stringify(projectStartupDetail(error)));}catch{/* Primary failure unchanged. */}
+ try{emit('application_start_shape '+JSON.stringify(projectStartupShape(error)));}catch{/* Primary failure unchanged. */}
 }
-module.exports={projectStartupDiagnostic,reportStartupDiagnostic};
+module.exports={projectStartupDiagnostic,projectStartupDetail,projectStartupShape,reportStartupDiagnostic};

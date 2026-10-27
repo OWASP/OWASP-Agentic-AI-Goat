@@ -310,8 +310,31 @@ test('admin MCP search, annotated detail, retirement proposal and setup stay dis
  const setupId='74444444-4444-4444-8444-444444444444';
  await f.runtime.run({...base,requestId:setupId,message:'Ask registered tools to inspect practice data'});
  const setup=await f.runtime.readRequest(launch,f.actor,session,created.id,setupId);
+ assert.deepEqual(Object.keys(setup.registeredMcpSetup).sort(),['kind','message',
+  'registeredModeCapability','requestId','scopeKey','sessionId','version'].sort());
+ assert.equal(Object.hasOwn(setup.registeredMcpSetup,'origin'),false);
  assert.equal(setup.registeredMcpSetup.kind,'registered_mcp_setup');
  assert.equal(setup.registeredMcpSetup.message,'Ask registered tools to inspect practice data');
+ const originalSetup=f.savedTurn(setupId);
+ const privateSetup=originalSetup.taskMetadata.roleChat.registeredMcpSetup;
+ assert.deepEqual(Object.keys(privateSetup).sort(),['kind','message','origin',
+  'registeredModeCapability','requestId','scopeKey','sessionId','version'].sort());
+ const {origin:privateOrigin,...publicSetup}=privateSetup;
+ assert.deepEqual(setup.registeredMcpSetup,publicSetup);
+ assert.equal(typeof privateOrigin.callId,'string');assert.ok(privateOrigin.callId.length>0);
+ assert.equal(originalSetup.hops.filter(hop=>hop.tool==='admin.mcp_invocation_setup'
+  &&hop.step===privateOrigin.step&&!hop.error&&hop.result?.isError!==true).length,1);
+ const setupModelCalls=f.modelCalls;
+ for(const mutate of [r=>{delete r.taskMetadata.roleChat.registeredMcpSetup.origin;},
+  r=>{r.taskMetadata.roleChat.registeredMcpSetup.origin.callId='';},
+  r=>{r.taskMetadata.roleChat.registeredMcpSetup.origin.step=privateOrigin.step===1?2:1;}]){
+  f.alterSaved(setupId,r=>{Object.assign(r,structuredClone(originalSetup));mutate(r)});
+  await assert.rejects(f.runtime.readRequest(launch,f.actor,session,created.id,setupId),
+   {code:'TURN_REQUEST_CONFLICT'});
+ }
+ f.alterSaved(setupId,r=>Object.assign(r,structuredClone(originalSetup)));
+ assert.deepEqual(await f.runtime.readRequest(launch,f.actor,session,created.id,setupId),setup);
+ assert.equal(f.modelCalls,setupModelCalls,'saved-read controls must not call the model');
  assert.equal(calls.confirm,1);f.route('management');
  f.decide('admin.mcp_register_prepare',{name:server.name,transport:'sse',url:server.url,stdio_cmd:''});
  const registerId='75555555-5555-4555-8555-555555555555';
@@ -391,10 +414,10 @@ test('review proposal preserves original digest across jsonb nested key order an
   const invalid=structuredClone(persisted);mutate(invalid);assert.throws(()=>projectRoleReviewProposal(invalid,source),{code:'ROLE_REVIEW_PROPOSAL_INVALID'});
  }
 });
-function fixture(role,{changeSceneAfterCommit=false,jsonbResults=false,decision,policyAllowed=true,repeatTool=false,adminSearchTotal=1,adminUserId=17,adminIdentityKind='registered_account',resetAvailable=true,revokeAfterAdminWrite=false,
+function fixture(role,{providerOverride,changeSceneAfterCommit=false,jsonbResults=false,decision,policyAllowed=true,repeatTool=false,adminSearchTotal=1,adminUserId=17,adminIdentityKind='registered_account',resetAvailable=true,revokeAfterAdminWrite=false,
  repeatPrepareOnly=false,reviewService,initialReviewMode='vuln',adminSearchEmpty=false,adminSearchUnavailable=false,finalResponseUnavailable=false,
  inventoryReady=true,pricingReady=true,lease,nestedInventory=false,nestedPricing=false,nestedListing=false,enableModeAuthority=false,nativeModeEpochs=false,enablePolicyChat=false,
- mcpRegistryChat,registeredReady=false,auditResult={events:[],count:0,hasMore:false,nextCursor:null},
+ mcpRegistryChat,mcpRegistrationApplication,registeredReady=false,registeredInvocationApplication,auditResult={events:[],count:0,hasMore:false,nextCursor:null},
  auditChatAdapter,auditJobsAdapter,auditAgentAvailable=false,auditSummaryAvailable=false,
  aclChatAdapter,systemReadsAdapter,systemConfigAssessment,policyInstructionAssessment,promptPolicyRepository,systemRestartChatAdapter,systemRestartAvailable=false,systemRestartService,systemDiagnosticChatAdapter,systemDiagnosticAvailable=false,identityPool,systemDiagnosticAssessment,initialAdminMode='vuln',
  userAdministrationFactory,userLookupAssessmentReady,finalResponseText,coordinatorFactory,catalogEmpty=false,catalogSearch,wouldInventChoiceAfterCatalog=false,productRetrievalAdapter,mailChatAdapter,mailActionsAdapter,listingsSetupReady=false,assertMailActionAllowed,initialMailMode='vuln',onFinalResponse,policyTemplateAssessment}={}){
@@ -530,7 +553,7 @@ function fixture(role,{changeSceneAfterCommit=false,jsonbResults=false,decision,
   modeAuthority,async prepareChatSetup({action}){return{product:['rewrite','optimize'].includes(action)?listingProduct():null}}
  })}):undefined;
  const runtime=createSecureShopBoundRoleChat({role,launches:{async assertCurrent(){}},personaAuthority:authority,modeAuthority,
-  conversations,journal,coordinator,provider,catalog:{prepareTarget,
+  conversations,journal,coordinator,provider:providerOverride||provider,catalog:{prepareTarget,
    async previewMerchantListingCreate({listing,preparation}){const normalized=createContract.normalizeListingCreateInput(listing);
     const raw=normalized.presentation==='html';
     if(raw){assert.equal(typeof preparation?.message,'string');assert.ok(preparation.message.includes(normalized.description))}
@@ -592,14 +615,14 @@ function fixture(role,{changeSceneAfterCommit=false,jsonbResults=false,decision,
   productRetrieval:productRetrievalAdapter,mailChat:mailChatAdapter,mailActions:mailActionsAdapter,listingsSetup,assertMailActionAllowed,
   ...(policyChat?{policyChat}:{}),
   ...(policyTemplateAssessment?{policyTemplateAssessment}:{}),
-  ...(mcpRegistryChat?{mcpRegistryChat}:{}),auditChat:auditChatAdapter||auditChat,
+  ...(mcpRegistryChat?{mcpRegistryChat}:{}),...(mcpRegistrationApplication?{mcpRegistrationApplication}:{}),auditChat:auditChatAdapter||auditChat,
   auditJobs:auditJobsAdapter,auditAgentApplication:()=>auditAgentAvailable,
   auditSummaryApplication:()=>auditSummaryAvailable?{run(){}}:null,aclChat:aclChatAdapter,
   systemReads:systemReadsAdapter||systemReads,systemConfigAssessment,policyInstructionAssessment,promptPolicyRepository,systemRestartChat:systemRestartChatAdapter,
   systemRestartApplication:()=>systemRestartAvailable?{ready:true,service:systemRestartService}:null,
   systemDiagnosticChat:systemDiagnosticChatAdapter,systemDiagnosticApplication:()=>systemDiagnosticAvailable?{ready:true}:null,
   identityPool,systemDiagnosticAssessment,
-  registeredInvocationApplication:()=>registeredReady?{ready:true}:null,
+  registeredInvocationApplication:registeredInvocationApplication||(()=>registeredReady?{ready:true}:null),
   toolPolicyAdmission:async input=>{policyCalls++;return{admissionId:'90000000-0000-4000-8000-000000000001',
    runId:input.runId,invocationId:input.invocationId,toolKey:`${input.agent}.${input.tool}`,
    policyVersion:'1',registrySha256:'a'.repeat(64),allowed:policyAllowed,
@@ -1504,6 +1527,123 @@ test('unselected admin routing genuinely selects only the registered handoff and
  await f.runtime.run(input);
  assert.equal(f.routeCalls.length,1);assert.equal(f.modelCalls,1);
 });
+test('admin route prompt distinguishes original server registration from invoking an existing tool',async()=>{
+ const scopeKey=sha(createLaunchScope(launch)),registryVersion='3';
+ let preparations=0;
+ const mcpRegistryChat={
+  async snapshot(){return{version:1,scopeKey,registryVersion,registryReady:true,registryMode:'vuln',servers:[]}},
+  async prepare(input){preparations++;return createRoleMcpRegistryProposal({...input,before:null,
+   expectedVersion:registryVersion,scopeKey,registryMode:'vuln'})},
+ };
+ const f=fixture('admin',{mcpRegistryChat,registeredReady:true});
+ const created=await f.runtime.createSession(launch,f.actor,session);
+ const base={scope:launch,persona:f.actor,personaSession:session,sessionId:created.id,stream:{send(){}}};
+ const message='Prepare registration of this exact MCP server using these JSON values: '
+  +'{"name":"benign-catalog","transport":"streamable-http","url":"http://benign.training/mcp","stdio_cmd":""}';
+ const params={name:'benign-catalog',transport:'streamable-http',url:'http://benign.training/mcp',stdio_cmd:''};
+ f.route('management');f.decide('admin.mcp_register_prepare',params);
+ await f.runtime.run({...base,requestId,message});
+ const saved=await f.runtime.readRequest(launch,f.actor,session,created.id,requestId);
+ assert.equal(f.routeCalls.length,1);
+ const route=f.routeCalls[0];
+ assert.equal(route.role,'admin');assert.equal(route.max_tokens,256);
+ assert.match(route.system,/JSON envelope's message field/);
+ assert.match(route.system,/preparing or registering servers/);
+ assert.match(route.system,/name, transport, url, and stdio_cmd/);
+ assert.match(route.system,/already registered MCP server/);
+ assert.match(route.system,/choose clarification/i);
+ assert.deepEqual(route.messages,[{role:'user',content:JSON.stringify({version:1,role:'admin',
+  sceneId:target.scene.sceneId,sceneGeneration:target.scene.sceneGeneration,targetId:target.targetId,
+  message})}]);
+ assert.deepEqual(f.offers[0].map(tool=>`${tool.agent}.${tool.tool}`).includes('admin.mcp_invocation_setup'),false);
+ assert.equal(saved.hops.filter(hop=>hop.tool==='admin.mcp_register_prepare').length,1);
+ assert.deepEqual(saved.hops[0].params,params);
+ assert.equal(saved.mcpRegistryProposal.action,'register');assert.equal(preparations,1);
+
+ const ask='Use the already registered benign-catalog search_catalog tool to find shoes';
+ const askId='70000000-0000-4000-8000-000000000002';
+ f.route('registered_tools');f.decide('admin.mcp_invocation_setup',{});
+ await f.runtime.run({...base,requestId:askId,message:ask});
+ const handoff=await f.runtime.readRequest(launch,f.actor,session,created.id,askId);
+ assert.equal(f.routeCalls.length,2);assert.equal(f.routeCalls[1].messages.length,1);
+ assert.deepEqual(f.offers[1].map(tool=>`${tool.agent}.${tool.tool}`),['admin.mcp_invocation_setup']);
+ assert.equal(handoff.registeredMcpSetup.message,ask);assert.equal(preparations,1);
+
+ const unclearId='70000000-0000-4000-8000-000000000003';
+ f.route({route:'clarification',message:'Which MCP action do you mean?'});
+ await f.runtime.run({...base,requestId:unclearId,message:'Help me with MCP tools'});
+ const unclear=await f.runtime.readRequest(launch,f.actor,session,created.id,unclearId);
+ assert.deepEqual(unclear.hops,[]);assert.equal(unclear.registeredMcpSetup,null);
+ assert.equal(unclear.text,'Which MCP action do you mean?');assert.equal(preparations,1);
+
+ const wrongId='70000000-0000-4000-8000-000000000004';
+ f.route('registered_tools');f.decide('admin.mcp_register_prepare',params);
+ await f.runtime.run({...base,requestId:wrongId,message});
+ assert.equal(preparations,1,'a wrong-family model tool cannot prepare registration');
+ const wrong=await f.runtime.readRequest(launch,f.actor,session,created.id,wrongId);
+ assert.equal(wrong.mcpRegistryProposal,null);
+ assert.ok(wrong.hops.every(hop=>hop.tool!=='admin.mcp_register_prepare'||hop.error),
+  'a wrong-family tool cannot yield a successful registration hop');
+});
+test('capturing the actual admin route input stops before any tool effect',async()=>{
+ const sentinel=Object.assign(Error('route input captured'),{code:'ROUTE_CAPTURE_STOP'});
+ let captured=null;
+ const providerOverride={
+  async routeWorkflow(input){assert.equal(captured,null);captured=structuredClone(input);throw sentinel},
+  async chat(){assert.fail('capture must stop before tool-model dispatch')},
+  async finalResponse(){assert.fail('capture must stop before final model dispatch')},
+ };
+ const f=fixture('admin',{registeredReady:true,providerOverride});
+ const created=await f.runtime.createSession(launch,f.actor,session);
+ const message='Use the already registered benign-catalog search_catalog tool to find shoes';
+ await assert.rejects(f.runtime.run({scope:launch,persona:f.actor,personaSession:session,
+  sessionId:created.id,requestId,message,stream:{send(){}}}),error=>error===sentinel);
+ assert.equal(captured.max_tokens,256);
+ assert.equal(JSON.parse(captured.messages[0].content).message,message);
+ assert.match(captured.system,/already registered MCP server/);
+ assert.equal(f.modelCalls,0);assert.equal(f.finalCalls,0);
+ assert.deepEqual(f.offers,[]);
+ assert.deepEqual(f.originalDependencies.graphEffects,[]);
+ assert.equal(f.originalDependencies.graphRuns.length,1);
+ assert.equal(f.originalDependencies.graphRuns[0].status,'failed');
+ const saved=await f.runtime.readRequest(launch,f.actor,session,created.id,requestId);
+ assert.equal(saved.status,'unconfirmed');
+});
+test('deferred registered invocation changes the actual admin tool schema only while ready',async()=>{
+ let invocation=null;
+ const {q05RegisteredInvocationCompositionOptions}=require('./postgres/secureshopOwnedMcpRegistryRendered.native');
+ const options=q05RegisteredInvocationCompositionOptions(true,()=>invocation);
+ assert.deepEqual(q05RegisteredInvocationCompositionOptions(false,()=>invocation),{});
+ const nativeSource=require('node:fs').readFileSync(require('node:path').join(__dirname,
+  'postgres/secureshopOwnedMcpRegistryRendered.native.js'),'utf8');
+ assert.match(nativeSource,/\.\.\.q05RegisteredInvocationCompositionOptions\(Q05_HANDOFF_ENABLED,\s*\(\) => registeredInvocation\)/);
+ const f=fixture('admin',{adminSearchEmpty:true,...options});
+ const created=await f.runtime.createSession(launch,f.actor,session);
+ const base={scope:launch,persona:f.actor,personaSession:session,sessionId:created.id,
+  message:'Use a registered tool to find products.',stream:{send(){}}};
+ f.decide('admin.users_search',{search:'products'});
+ await f.runtime.run({...base,requestId});
+ assert.equal(f.offers[0].some(tool=>tool.tool==='mcp_invocation_setup'),false);
+ assert.equal(f.routeCalls.length,0);
+
+ invocation={ready:true};
+ f.route('registered_tools');f.decide('admin.mcp_invocation_setup',{});
+ const readyId='70000000-0000-4000-8000-000000000002';
+ await f.runtime.run({...base,requestId:readyId});
+ assert.deepEqual(f.offers[1].map(tool=>`${tool.agent}.${tool.tool}`),['admin.mcp_invocation_setup']);
+ assert.equal(f.routeCalls.length,1);
+ const ready=await f.runtime.readRequest(launch,f.actor,session,created.id,readyId);
+ assert.equal(ready.registeredMcpSetup.message,base.message);
+
+ invocation={ready:false};
+ f.decide('admin.users_search',{search:'products'});
+ const closedId='70000000-0000-4000-8000-000000000003';
+ await f.runtime.run({...base,requestId:closedId});
+ assert.equal(f.offers[2].some(tool=>tool.tool==='mcp_invocation_setup'),false);
+ assert.equal(f.routeCalls.length,1);
+ const closed=await f.runtime.readRequest(launch,f.actor,session,created.id,closedId);
+ assert.equal(closed.registeredMcpSetup,null);
+});
 test('admin routing clarification is a model answer without a local tool or handoff',async()=>{
  const f=fixture('admin',{registeredReady:true}),created=await f.runtime.createSession(launch,f.actor,session);
  f.route({route:'clarification',message:'Which registered tool would you like to use?'});
@@ -1998,6 +2138,116 @@ for(const action of ['suggest','experiment'])test(`merchant ${action} Pricing pr
  assert.equal(f.pricingRuns[0].message,saved.pricingProposal.message);
  assert.deepEqual(f.pricingRuns[0].experiment,saved.pricingProposal.experiment);
  assert.equal(f.modelCalls,2,'confirm never calls the role model again');
+});
+for(const mode of ['vuln','fixed'])test(`actual Ollama merchant history clarifies only selected no-intent decisions and saves a no-effect proposal (${mode})`,async()=>{
+ const p=new OllamaProvider(),wire=[],inputs=[];let selectedChoice=null,actorCalls=0;
+ const chat=p.chat.bind(p);p.chat=async input=>{inputs.push(structuredClone(input));return chat(input)};
+ p.transport={async chat(messages,_tools,options){wire.push(structuredClone({messages,options}));
+  if(options.format?.properties?.answer)return{response:'{"answer":"A proposal was prepared; confirmation is still required."}'};
+  actorCalls++;
+  const call=!selectedChoice?{agent:'merchant',tool:'catalog_search',args:{search:'shop'}}
+   :actorCalls===2?{agent:'merchant',tool:'catalog_search',args:{choiceId:selectedChoice}}
+   :{agent:'merchant',tool:'pricing_experiment_prepare',args:{choiceId:selectedChoice,strategy:'premium',durationDays:14}};
+  return{response:JSON.stringify({tool_calls:[call]})};
+ }};
+ const f=fixture('merchant',{providerOverride:p,jsonbResults:true,enableModeAuthority:true});f.setPricingMode(mode);
+ const created=await f.runtime.createSession(launch,f.actor,session),base={scope:launch,persona:f.actor,personaSession:session,sessionId:created.id};
+ await f.runtime.run({...base,requestId,message:'Find shop notebook'});
+ const found=await f.runtime.readRequest(launch,f.actor,session,created.id,requestId);selectedChoice=found.cards[0].choiceId;
+ const id='70000000-0000-4000-8000-000000000002',message='Read this product, then prepare a premium experiment for14days.';
+ const input={...base,requestId:id,message,selection:{choiceId:selectedChoice}};
+ await f.runtime.run(input);const saved=await f.runtime.readRequest(launch,f.actor,session,created.id,id);
+ assert.equal(saved.status,'completed');assert.equal(saved.pricingProposal.action,'experiment');assert.equal(saved.pricingProposal.message,message);
+ assert.deepEqual(saved.pricingProposal.experiment,{strategy:'premium',durationDays:14});assert.deepEqual(f.pricingRuns,[]);
+ assert.equal(inputs[0].merchantProductHistory,undefined);assert.equal(inputs[0].maxToolCalls,undefined);
+ assert(inputs.slice(1).every(input=>input.maxToolCalls===1));
+ assert(wire.filter(row=>row.options.format?.oneOf).slice(1).every(row=>row.options.format.oneOf[1].properties.tool_calls.maxItems===1));
+ assert.equal(inputs.length,3);for(const i of inputs.slice(1))assert.deepEqual(i.merchantProductHistory,{version:'selected-merchant-product-v1',choiceId:selectedChoice});
+ const text='Historical tool_calls records include id only to link already-recorded calls to their observations. They are not templates for a new decision. A new tool call has exactly agent, tool, and args; do not emit, copy, or invent an id. The runtime assigns the new call identifier.';
+ assert.equal(wire.filter(row=>row.messages[0].content.endsWith(text)).length,1);
+ const clarified=wire.find(row=>row.messages[0].content.endsWith(text));
+ const history=inputs[2].messages,serialize=require('../server/services/secureshop/providers/ollamaProvider').serializeMessage;
+ assert.deepEqual(clarified.messages.slice(1),history.map(serialize));
+ assert.equal(new Set(inputs[2].tools.map(t=>t.tool)).size,10);assert.equal(clarified.options.format.oneOf[1].properties.tool_calls.items.oneOf.length,10);
+ const before=wire.length;await f.runtime.run(input);assert.deepEqual(await f.runtime.readRequest(launch,f.actor,session,created.id,id),saved);
+ assert.equal(wire.length,before);assert.deepEqual(f.pricingRuns,[]);
+ await assert.rejects(f.runtime.run({...input,message:'changed'}));assert.equal(wire.length,before);
+ f.switchScene();await assert.rejects(f.runtime.run({...input,requestId:'70000000-0000-4000-8000-000000000003'}));
+ assert.equal(wire.length,before);assert.deepEqual(f.pricingRuns,[]);
+});
+test('actual merchant graph keeps invalid extra-id decisions failed and never saves a proposal',async()=>{
+ const p=new OllamaProvider(),wire=[];let choiceId;
+ p.transport={async chat(messages,_tools,options){wire.push(structuredClone({messages,options}));
+  if(options.format?.properties?.answer)return{response:'{"answer":"Choose an owned product."}'};
+  return{response:JSON.stringify({tool_calls:[choiceId?{id:'must-not-be-stripped',agent:'merchant',tool:'pricing_experiment_prepare',args:{choiceId,strategy:'premium',durationDays:14}}
+   :{agent:'merchant',tool:'catalog_search',args:{search:'shop'}}]})};}};
+ const f=fixture('merchant',{providerOverride:p}),created=await f.runtime.createSession(launch,f.actor,session),base={scope:launch,persona:f.actor,personaSession:session,sessionId:created.id};
+ await f.runtime.run({...base,requestId,message:'Find shop notebook'});
+ choiceId=(await f.runtime.readRequest(launch,f.actor,session,created.id,requestId)).cards[0].choiceId;
+ const before=wire.length,id='70000000-0000-4000-8000-000000000002';
+ const failed=await f.runtime.run({...base,requestId:id,message:'Prepare premium14days',selection:{choiceId}});
+ const saved=await f.runtime.readRequest(launch,f.actor,session,created.id,id);
+ assert.equal(saved.pricingProposal??null,null);assert.deepEqual(f.pricingRuns,[]);assert.equal(wire.length-before,2);
+ assert.equal(failed.stopReason,'error');assert.equal(saved.hops.length,0);
+});
+test('explicit product details intent and generic providers do not opt into history clarification',async()=>{
+ for(const capable of [false,true]){
+  const seen=[],p={capabilities:{merchantProductHistoryV1:capable},async chat(input){seen.push(input);
+   return{provider:'controlled',model:'controlled',mocked:false,stop_reason:'tool_use',tool_uses:[{id:'read-'+seen.length,name:'merchant.catalog_search',args:input.tools.find(t=>t.tool==='catalog_search').inputSchema.properties.choiceId.enum
+    ?{choiceId:input.tools.find(t=>t.tool==='catalog_search').inputSchema.properties.choiceId.enum[0]}:{search:'shop'}}]};},
+   async finalResponse(){return{provider:'controlled',model:'controlled',mocked:false,stop_reason:'end_turn',text:'Owned data.',responseMode:'structured_final'}}};
+  const f=fixture('merchant',{providerOverride:p}),created=await f.runtime.createSession(launch,f.actor,session),base={scope:launch,persona:f.actor,personaSession:session,sessionId:created.id};
+  await f.runtime.run({...base,requestId,message:'Find shop'});const choiceId=(await f.runtime.readRequest(launch,f.actor,session,created.id,requestId)).cards[0].choiceId;
+  await f.runtime.run({...base,requestId:'70000000-0000-4000-8000-000000000002',message:'Details',selection:{choiceId,...(capable?{intent:'product_details'}:{})}});
+  assert(seen.every(input=>input.merchantProductHistory===undefined));
+  assert.equal(seen[0].maxToolCalls,undefined);
+  assert.equal(seen[1].maxToolCalls,capable?undefined:1);
+ }
+});
+for(const outcome of ['reviews','proposal','both','reply'])test(`selected merchant product enforces the actual single-dispatch contract: ${outcome}`,async()=>{
+ const inputs=[];let choiceId;
+ const p={async chat(input){inputs.push(structuredClone(input));
+  const call=(name,args)=>({id:`call-${name}`,name,args});
+  if(!choiceId)return{stop_reason:'tool_use',tool_uses:[call('merchant.catalog_search',{search:'shop'})]};
+  if(outcome==='reply')return{stop_reason:'end_turn',text:'Please clarify the requested action.'};
+  const reviews=call('merchant.reviews_list',{choiceId,status:'approved'});
+  const proposal=call('merchant.pricing_experiment_prepare',{choiceId,strategy:'premium',durationDays:14});
+  return{stop_reason:'tool_use',tool_uses:outcome==='both'?[reviews,proposal]:[outcome==='reviews'?reviews:proposal]};
+ },async finalResponse(){return{stop_reason:'end_turn',text:'Observed result only.',responseMode:'structured_final'}}};
+ const f=reviewFixture({providerOverride:p}),created=await f.runtime.createSession(launch,f.actor,session);
+ const base={scope:launch,persona:f.actor,personaSession:session,sessionId:created.id};
+ await f.runtime.run({...base,requestId,message:'Find shop'});
+ choiceId=(await f.runtime.readRequest(launch,f.actor,session,created.id,requestId)).cards[0].choiceId;
+ const beforeReads=f.listInputs.length,id='70000000-0000-4000-8000-000000000002';
+ const result=await f.runtime.run({...base,requestId:id,message:'Review the selected product request',selection:{choiceId}});
+ const saved=await f.runtime.readRequest(launch,f.actor,session,created.id,id);
+ assert.equal(inputs[0].maxToolCalls,undefined);assert.equal(inputs[1].maxToolCalls,1);
+ assert.equal(inputs.length,2,'no new decision or repair is launched by the guard');
+ assert.equal(inputs[1].tools.length,10);assert(inputs[1].tools.some(t=>t.tool==='reviews_list'));
+ assert(inputs[1].tools.some(t=>t.tool==='pricing_experiment_prepare'));assert.deepEqual(f.pricingRuns,[]);
+ assert.equal(f.listInputs.length-beforeReads,outcome==='reviews'?1:0);
+ if(outcome==='both'){assert.equal(result.stopReason,'error');assert.equal(saved.hops.length,0);}
+ if(outcome==='proposal')assert.equal(saved.pricingProposal.action,'experiment');
+ else assert.equal(saved.pricingProposal??null,null);
+});
+test('read-only merchant product and administrator retain their legacy decision request',async()=>{
+ for(const role of ['merchant','admin']){
+  const inputs=[];let choiceId;
+  const p={async chat(input){inputs.push(structuredClone(input));
+   if(choiceId||role==='admin')return{stop_reason:'end_turn',text:'No action requested.'};
+   return{stop_reason:'tool_use',tool_uses:[{id:'catalog',name:'merchant.catalog_search',args:{search:'inactive'}}]};
+  },async finalResponse(){return{stop_reason:'end_turn',text:'Select an owned product.',responseMode:'structured_final'}}};
+  const f=fixture(role,{providerOverride:p,catalogSearch:()=>({products:[{id:11,name:'Inactive product',description:'Paper',
+   description_html:null,price:5,category:null,status:'inactive',stock_quantity:3,images:[],template_source:null}],total:1,nextProductId:null})});
+  const created=await f.runtime.createSession(launch,f.actor,session),base={scope:launch,persona:f.actor,personaSession:session,sessionId:created.id};
+  await f.runtime.run({...base,requestId,message:'Read only'});
+  if(role==='merchant'){
+   const saved=await f.runtime.readRequest(launch,f.actor,session,created.id,requestId);
+   assert.equal(saved.cards[0].readOnly,true);choiceId=saved.cards[0].choiceId;
+   await f.runtime.run({...base,requestId:'70000000-0000-4000-8000-000000000002',message:'Read only',selection:{choiceId}});
+  }
+  assert(inputs.length>0);assert(inputs.every(input=>input.maxToolCalls===undefined));
+ }
 });
 test('experiment proposal preserves the exact authored request through saved read and confirmation',async()=>{
  const f=fixture('merchant',{repeatPrepareOnly:true,jsonbResults:true}),created=await f.runtime.createSession(launch,f.actor,session);
@@ -3014,7 +3264,7 @@ for(const reason of ['scene','mode','failed hop','mismatched cursor'])test(`merc
  assert.equal(f.systems.at(-1).includes(cursor),false);assert.equal(f.orderReads,2);
 });
 
-function reviewFixture({mode='vuln',body='This product works well.',status='pending'}={}){
+function reviewFixture({mode='vuln',body='This product works well.',status='pending',providerOverride}={}){
  const row={id:41,productId:11,authorId:19,body,rating:4,status,productName:'Shop notebook',moderatorKind:null,moderatorNotes:null,createdAt:'2026-10-10T00:00:00.000Z',moderatedAt:null};
  const modeCapability={version:1,featureId:'review',policyVersion:'product-feedback-enforced-decision-v1',effectiveMode:mode,scope:{kind:'launch_feature',id:'review'}};
  const writes=[],prepares=[],listInputs=[];
@@ -3022,7 +3272,7 @@ function reviewFixture({mode='vuln',body='This product works well.',status='pend
  const service={async prepare(){prepares.push('scene')},async list(input){listInputs.push(input);return{rows:[{row,snapshotSha256:snapshot()}],total:1,modeCapability}},
  async detail(){return{row,snapshotSha256:snapshot(),scopeKey:'manual-scope',modeCapability,observation:require('../server/services/secureshopBoundReviewTools').projectReviewForMode({reviewId:row.id,productId:row.productId,rating:row.rating,status:row.status,body:row.body},mode)}},
  async confirm(input){writes.push(input);return{ok:true,applied:true,receipt:{operationId:input.operationId,expectedSnapshotSha256:input.expectedSnapshotSha256},executionScopeKey:'manual-scope'}}};
- return Object.assign(fixture('merchant',{reviewService:service,repeatTool:true,enableModeAuthority:true,initialReviewMode:mode,jsonbResults:true}),{writes,prepares,listInputs,row});
+ return Object.assign(fixture('merchant',{providerOverride,reviewService:service,repeatTool:true,enableModeAuthority:true,initialReviewMode:mode,jsonbResults:true}),{writes,prepares,listInputs,row});
 }
 test('selected product review list uses opaque product choice and database product label',async()=>{
  const f=reviewFixture(),created=await f.runtime.createSession(launch,f.actor,session);
@@ -3549,4 +3799,69 @@ test('V11 original reader consumes actual saved RoleChat detail and denies reset
  assert.deepEqual({models:f.modelCalls,finals:f.finalCalls,lists:mail.calls.list,details:mail.calls.detail},before);
  f.switchScene();await assert.rejects(reader.read({...base,requestId:detailId,check:async()=>{}}),{code:'MAIL_AGENT_READ_ORIGINAL_UNAVAILABLE'});
  assert.deepEqual({models:f.modelCalls,finals:f.finalCalls,lists:mail.calls.list,details:mail.calls.detail},before);
+});
+
+test('V34 guidance selected product advertises explicit no-effect preparation without forced dispatch',async()=>{
+ const systems=[],inputs=[];
+ let choice=null;
+ const provider={async chat(input){systems.push(input.system);inputs.push(structuredClone(input));
+  return choice?{provider:'controlled',model:'controlled',mocked:false,stop_reason:'end_turn',text:'Ask for confirmation.',tool_uses:[]}
+   :{provider:'controlled',model:'controlled',mocked:false,stop_reason:'tool_use',tool_uses:[{id:'catalog',name:'merchant.catalog_search',args:{search:'shop'}}]};},
+  async finalResponse(){return{provider:'controlled',model:'controlled',mocked:false,stop_reason:'end_turn',text:'Owned data.',responseMode:'structured_final'}}};
+ const f=fixture('merchant',{providerOverride:provider});
+ const created=await f.runtime.createSession(launch,f.actor,session);
+ const base={scope:launch,persona:f.actor,personaSession:session,sessionId:created.id};
+ await f.runtime.run({...base,requestId,message:'Find shop notebook'});
+ choice=(await f.runtime.readRequest(launch,f.actor,session,created.id,requestId)).cards[0].choiceId;
+ const id='70000000-0000-4000-8000-000000000002';
+ await f.runtime.run({...base,requestId:id,message:'Evaluate a 14-day premium pricing experiment for this selected product.',selection:{choiceId:choice}});
+ const prompt=systems.at(-1),offered=inputs.at(-1).tools.map(tool=>tool.tool);
+ assert.match(prompt,/For an explicit absolute stock quantity request, call merchant\.inventory_prepare/);
+ assert.match(prompt,/For a price suggestion call merchant\.pricing_suggest_prepare/);
+ assert.match(prompt,/For an experiment call merchant\.pricing_experiment_prepare with exactly the selected choiceId, a requested strategy, and durationDays/);
+ assert.match(prompt,/For an explicit listing edit call merchant\.listing_edit_prepare/);
+ assert.match(prompt,/ask if those terms are missing/);
+ assert.match(prompt,/no stock, price, experiment, or listing effect before separate trusted confirmation/);
+ assert.match(prompt,/For product details or a generic request to use the selected option when no explicit preparation action is requested/);
+ assert.doesNotMatch(prompt,/For a generic request to use the selected option, first read/);
+ assert.match(prompt,new RegExp(choice));
+ for(const name of ['inventory_prepare','pricing_suggest_prepare','pricing_experiment_prepare','listing_edit_prepare','catalog_search'])assert(offered.includes(name));
+ assert.match(choice,new RegExp(inputs.at(-1).tools.find(tool=>tool.tool==='pricing_experiment_prepare').inputSchema.properties.choiceId.pattern));
+ assert.equal(inputs.at(-1).maxToolCalls,1);
+ assert.equal((await f.runtime.readRequest(launch,f.actor,session,created.id,id)).pricingProposal??null,null);
+ assert.deepEqual(f.pricingRuns,[],'prompt wording must not dispatch or create a proposal');
+});
+test('V34 guidance typed product detail retains catalog-only tool scope',async()=>{
+ const systems=[],inputs=[];
+ let choice=null;
+ const provider={async chat(input){systems.push(input.system);inputs.push(structuredClone(input));
+  return choice?{provider:'controlled',model:'controlled',mocked:false,stop_reason:'end_turn',text:'Details.',tool_uses:[]}
+   :{provider:'controlled',model:'controlled',mocked:false,stop_reason:'tool_use',tool_uses:[{id:'catalog',name:'merchant.catalog_search',args:{search:'shop'}}]};},
+  async finalResponse(){return{provider:'controlled',model:'controlled',mocked:false,stop_reason:'end_turn',text:'Owned data.',responseMode:'structured_final'}}};
+ const f=fixture('merchant',{providerOverride:provider});
+ const created=await f.runtime.createSession(launch,f.actor,session);
+ const base={scope:launch,persona:f.actor,personaSession:session,sessionId:created.id};
+ await f.runtime.run({...base,requestId,message:'Find shop notebook'});
+ choice=(await f.runtime.readRequest(launch,f.actor,session,created.id,requestId)).cards[0].choiceId;
+ await f.runtime.run({...base,requestId:'70000000-0000-4000-8000-000000000002',message:'Product details',selection:{choiceId:choice,intent:'product_details'}});
+ assert.deepEqual(inputs.at(-1).tools.map(tool=>tool.tool),['catalog_search']);
+ assert.doesNotMatch(systems.at(-1),/For an experiment call merchant\.pricing_experiment_prepare/);
+ assert.deepEqual(f.pricingRuns,[]);
+});
+test('V34 guidance read-only selected product does not advertise preparation',async()=>{
+ const systems=[],inputs=[];let choice=null;
+ const provider={async chat(input){systems.push(input.system);inputs.push(structuredClone(input));
+  return choice?{provider:'controlled',model:'controlled',mocked:false,stop_reason:'end_turn',text:'Read only.',tool_uses:[]}
+   :{provider:'controlled',model:'controlled',mocked:false,stop_reason:'tool_use',tool_uses:[{id:'catalog',name:'merchant.catalog_search',args:{search:'inactive'}}]};},
+  async finalResponse(){return{provider:'controlled',model:'controlled',mocked:false,stop_reason:'end_turn',text:'Owned data.',responseMode:'structured_final'}}};
+ const f=fixture('merchant',{providerOverride:provider,catalogSearch:()=>({products:[{id:11,name:'Inactive product',description:'Paper',description_html:null,price:5,category:null,status:'inactive',stock_quantity:3,images:[],template_source:null}],total:1,nextProductId:null})});
+ const created=await f.runtime.createSession(launch,f.actor,session);
+ const base={scope:launch,persona:f.actor,personaSession:session,sessionId:created.id};
+ await f.runtime.run({...base,requestId,message:'Find inactive product'});
+ const card=(await f.runtime.readRequest(launch,f.actor,session,created.id,requestId)).cards[0];
+ assert.equal(card.readOnly,true);choice=card.choiceId;
+ await f.runtime.run({...base,requestId:'70000000-0000-4000-8000-000000000002',message:'Read only',selection:{choiceId:choice}});
+ assert.deepEqual(inputs.at(-1).tools.map(tool=>tool.tool),['catalog_search']);
+ assert.doesNotMatch(systems.at(-1),/For an experiment call merchant\.pricing_experiment_prepare/);
+ assert.deepEqual(f.pricingRuns,[]);
 });

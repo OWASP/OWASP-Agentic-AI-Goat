@@ -6,14 +6,16 @@ const path = require('node:path');
 const vm = require('node:vm');
 const { EventEmitter } = require('node:events');
 
-async function boot({ listenError, address = { port: 8082 }, flushError } = {}) {
+async function boot({ listenError, address = { port: 8082 }, flushError, bindHost } = {}) {
   const entry = path.resolve(__dirname, '../agent-host/index.js');
-  const calls = [], stdout = [], stderr = [], exits = [], signals = new Map();
+  const calls = [], listenArguments = [], stdout = [], stderr = [], exits = [], signals = new Map();
   const server = new EventEmitter();
   server.address = () => { calls.push('address'); return listenError ? null : address; };
   server.close = callback => { calls.push('close'); callback(listenError ?
     Object.assign(new Error('not listening'), { code: 'ERR_SERVER_NOT_RUNNING' }) : undefined); };
-  const app = { use() {}, get() {}, post() {}, listen(_port, callback) {
+  const app = { use() {}, get() {}, post() {}, listen(...argumentsList) {
+    listenArguments.push(argumentsList.slice(0, -1));
+    const callback = argumentsList.at(-1);
     queueMicrotask(() => callback(listenError)); return server;
   } };
   const express = () => app; express.json = () => () => {};
@@ -31,12 +33,37 @@ async function boot({ listenError, address = { port: 8082 }, flushError } = {}) 
       if (name === '../server/database/postgres/secureshopPools') return { async closeSecureShopPools() { calls.push('pools'); } };
       throw new Error('Unexpected import: ' + name);
     },
-    process: { env: {}, stdout: { write: value => stdout.push(value) }, stderr: { write: value => stderr.push(value) },
+    process: { env: bindHost === undefined ? {} : { SS_AGENT_HOST_BIND_HOST: bindHost }, stdout: { write: value => stdout.push(value) }, stderr: { write: value => stderr.push(value) },
       exit: code => exits.push(code), on: (name, callback) => signals.set(name, callback) },
   }, { filename: entry });
   await new Promise(resolve => setImmediate(resolve));
-  return { calls, stdout, stderr, exits, signals, server };
+  return { calls, listenArguments, stdout, stderr, exits, signals, server };
 }
+
+test('default listener keeps the single-port Express invocation', async () => {
+  const f = await boot();
+  assert.deepEqual(f.listenArguments, [[8082]]);
+});
+
+test('explicit loopback host uses the two-argument bind overload', async () => {
+  const f = await boot({ bindHost: '127.0.0.1' });
+  assert.deepEqual(f.listenArguments, [[8082, '127.0.0.1']]);
+});
+
+test('invalid explicit listener hosts fail before runtime verification or bind', async () => {
+  for (const bindHost of ['0.0.0.0', 'localhost', '::1', '127.0.0.2']) {
+    const f = await boot({ bindHost });
+    assert.deepEqual(f.listenArguments, []);
+    assert.deepEqual(f.calls, []);
+    assert.deepEqual(f.exits, [1]);
+    assert.match(f.stderr.join(''), /SS_AGENT_HOST_BIND_HOST must be exactly 127\.0\.0\.1/);
+  }
+});
+
+test('an empty optional host keeps default bind behavior', async () => {
+  const f = await boot({ bindHost: '' });
+  assert.deepEqual(f.listenArguments, [[8082]]);
+});
 
 test('Express bind error is retained, never dereferences address or announces ready, and closes owned pools', async () => {
   const f = await boot({ listenError: Object.assign(new Error('listen EADDRINUSE'), { code: 'EADDRINUSE' }) });

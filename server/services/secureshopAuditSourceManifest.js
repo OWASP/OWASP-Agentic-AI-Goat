@@ -12,6 +12,36 @@ function exact(value, keys) {
       || keys.some(key => !Object.hasOwn(value, key) || !('value' in Object.getOwnPropertyDescriptor(value, key))))
     throw new TypeError('Invalid scene audit source');
 }
+function confirmedDescription(params) {
+  const value=params?.confirmedDescription;
+  exact(value,['version','text','sha256','personaSessionId','authorityVersion']);
+  if(value.version!==1 || (value.text!==null && (typeof value.text!=='string' || Buffer.byteLength(value.text,'utf8')>65536))
+      || value.sha256!==digest(JSON.stringify(value.text)) || !UUID.test(value.personaSessionId||'')
+      || typeof value.authorityVersion !== 'string' || !/^[1-9]\d*$/.test(value.authorityVersion)
+      || !UUID.test(params.operationId||'')
+      || !['requestSha256','beforeSha256','afterSha256'].every(key=>/^[a-f0-9]{64}$/.test(params[key]||'')))
+    throw new TypeError('Invalid confirmed listing description');
+  return value;
+}
+// Manual and assistant edits share a receipt table, not an authority domain.
+// Recompute the manual scope from immutable birth/scene/persona coordinates;
+// neither an action label nor an arbitrary supplied scope hash establishes it.
+function confirmedManualDescription(params, binding, merchantId) {
+  const value = confirmedDescription(params);
+  const { manualListingScopeKey } = require('./secureshopManualListingContract');
+  if (params.origin !== 'manual' || params.scopeKey !== manualListingScopeKey('edit', binding, merchantId,
+    { sessionId: value.personaSessionId, authorityVersion: value.authorityVersion }))
+    throw new TypeError('Invalid confirmed manual listing description');
+  return value;
+}
+function confirmedAssistantDescription(params, binding, merchantId) {
+  const value = confirmedDescription(params);
+  const { listingEditScopeKey } = require('./secureshopListingEditContract');
+  if (Object.hasOwn(params, 'origin') || params.scopeKey !== listingEditScopeKey(binding, merchantId,
+    { sessionId: value.personaSessionId, authorityVersion: value.authorityVersion }))
+    throw new TypeError('Invalid confirmed assistant listing description');
+  return value;
+}
 function scope(value) {
   exact(value, ['launchId','scenarioId','generation','platformOwnerId','platformSessionId']);
   const result = createLaunchScope(value);
@@ -20,7 +50,9 @@ function scope(value) {
 }
 function sceneOrigin(input, row, consumerScope) {
   exact(input, ['version','kind','sourceExecution','sourceGrant','consumerExecution','consumerGrant','scene','product']);
-  if (input.version !== 2 || input.kind !== 'scene_product_listing_update') throw new TypeError('Invalid scene audit version');
+  const manual=input.kind==='scene_product_listing_manual_edit_confirm';
+  const confirmed=manual || input.kind==='scene_product_listing_edit_confirm';
+  if (input.version !== 2 || (!confirmed && input.kind !== 'scene_product_listing_update')) throw new TypeError('Invalid scene audit version');
   const sourceExecution = scope(input.sourceExecution), consumerExecution = scope(input.consumerExecution);
   exact(input.scene, ['sceneId','sceneGeneration','targetId','birth']);
   exact(input.product, ['productId','merchantId']);
@@ -39,8 +71,12 @@ function sceneOrigin(input, row, consumerScope) {
     return Object.freeze({...value});
   }
   let storage;
-  try { storage = JSON.parse(row.params_json).storage; } catch { throw new TypeError('Invalid scene audit storage'); }
-  if (row.store !== 'review' || row.actor !== 'merchant' || row.action !== 'listing_update'
+  try {
+    const params=JSON.parse(row.params_json);storage=params.storage;
+    if(confirmed)(manual?confirmedManualDescription:confirmedAssistantDescription)(params,{...scene.birth,targetId:scene.targetId,
+      scene:{sceneId:scene.sceneId,sceneGeneration:scene.sceneGeneration,grantId:input.sourceGrant.grantId}},product.merchantId);
+  } catch { throw new TypeError('Invalid scene audit storage'); }
+  if (row.store !== 'review' || row.actor !== 'merchant' || row.action !== (manual?'listing_manual_edit_confirm':confirmed?'listing_edit_confirm':'listing_update')
       || row.outcome !== 'completed' || row.source_kind !== 'product'
       || row.source_id !== String(product.productId) || row.target !== row.source_id
       || storage?.targetId !== scene.targetId || storage?.sceneId !== scene.sceneId
@@ -96,4 +132,4 @@ function createAuditSourceManifest(events, { consumerScope } = {}) {
   return Object.freeze({ version: 1, rowCount: rows.length, logText, logSha256: digest(logText),
     sources: Object.freeze(sources), sourcesSha256: digest(JSON.stringify(sources)) });
 }
-module.exports = { createAuditSourceManifest };
+module.exports = { createAuditSourceManifest, confirmedDescription, confirmedManualDescription, confirmedAssistantDescription };

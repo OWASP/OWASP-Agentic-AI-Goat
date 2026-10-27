@@ -486,7 +486,7 @@ function createSecureShopBoundCustomerChat({launches,personaAuthority,modeAuthor
    let preparedCheckout=false,paymentSetup=null,addressSetup=null,refundSetup=null,profileProposal=null,profileOrigin=null,
     couponProposal=null,couponOrigin=null,ticketProposal=null,ticketOrigin=null,orderPage=null,catalogPageSource=null;
    let successfulOwnedObservation=false,latestToolFailed=false,orderPageRead=null,orderPageFinal=false,orderDetailsFinal=false;
-   let ambiguousSearch=null,selectionRequired=false,selectedDetails=null,selectedOrderDetails=null,profileRead=null,stockRejected=false;
+   let ambiguousSearch=null,selectionRequired=false,selectedDetails=null,selectedOrderDetails=null,profileRead=null,profileReadFinal=false,stockRejected=false;
    const declinedPayment=!!priorContext?.declinedPayments.length
     &&(!priorContext.choices.payment_method
       ||priorContext.declinedPayments.includes(priorContext.choices.payment_method));
@@ -562,7 +562,9 @@ function createSecureShopBoundCustomerChat({launches,personaAuthority,modeAuthor
       :orderPageFinal
        ?{...input,system:`${input.system}\nThe successful orders.list observation is the complete owned order page for this turn. Present only those orders and the saved Older orders action if nextCursor is present. Wait for the customer to select an exact order card before discussing its details or a refund. Do not mention addresses or other account facts that were not observed in this turn.`}
        :orderDetailsFinal
-        ?{...input,system:`${input.system}\nThe selected orders.details observation is the only owned order detail for this turn. Summarize that exact order only. This read did not open a refund handoff or change any order; wait for a separate customer request before discussing a refund or other account action.`}
+        ?{...input,system:`${input.system}\nThe selected orders.details observation is the only owned order detail for this turn. Summarize that exact order only. State its current order status, payment status, and total amount accurately from the observed order fields when present; if a field is absent, say it is unavailable rather than infer it. This read did not open a refund handoff or change any order; wait for a separate customer request before discussing a refund or other account action.`}
+       :profileReadFinal
+        ?{...input,system:`${input.system}\nThe successful owned account.profile observation is the only profile source for this turn. Answer only the profile fields the customer requested. For each requested field, include its exact observed non-null value rather than a vague statement that a value exists; if its observed value is null, say it is unavailable. Do not disclose unrequested profile fields or infer missing values.`}
        :input;
      const answer=await provider.finalResponse(finalInput);await check(state);return answer},
    }):provider;
@@ -766,7 +768,9 @@ function createSecureShopBoundCustomerChat({launches,personaAuthority,modeAuthor
       if(observation.tool==='account.profile'&&profileRead
        &&observation.result?.isError!==true&&exactArgs(observation.args,[])
        &&isDeepStrictEqual(observation.args,profileRead.args)
-       &&isDeepStrictEqual(observation.result,profileRead.result))return true;
+       &&isDeepStrictEqual(observation.result,profileRead.result)){
+       profileReadFinal=true;return true;
+      }
       if(selected?.kind==='product'&&selected.intent==='details'&&observation.tool==='catalog.details'
        &&selectedDetails&&observation.result?.isError!==true
        &&isDeepStrictEqual(observation.args,selectedDetails.args)
@@ -877,21 +881,28 @@ function createSecureShopBoundCustomerChat({launches,personaAuthority,modeAuthor
         ||!isDeepStrictEqual(saved.proposal,proposal))throw fail('COMMERCE_PROPOSAL_STALE');
        return true;
       }
-      if(selectedContinuation&&observation.tool==='checkout.prepare'&&observation.result?.isError!==true){
+      if(observation.tool==='checkout.prepare'&&observation.result?.isError!==true){
+       if(!exactArgs(observation.args,['addressChoiceId','paymentChoiceId'])
+        ||!UUID.test(observation.args.addressChoiceId)||!UUID.test(observation.args.paymentChoiceId)
+        ||observation.result?.content?.length!==1||observation.result.content[0]?.type!=='text')throw fail();
        let observed;try{observed=JSON.parse(observation.result?.content?.[0]?.text)}catch{throw fail()}
        if(!observed||Object.getPrototypeOf(observed)!==Object.prototype||!(/^[a-f0-9]{64}$/).test(observed.scopeKey||''))throw fail();
        const {scopeKey,...proposal}=observed;
        try{commerceContract.proposal(proposal)}catch{throw fail()}
        const id=commerceContract.operationIdForOrigin({turnSessionId:sessionId.toLowerCase(),turnRequestId:requestId.toLowerCase(),
         toolKey:'checkout.prepare',invocationStep:observation.step,callId:observation.callId});
-       if(proposal.proposalId!==id||proposal.address.choiceId!==priorContext.choices.address
-         ||proposal.paymentMethod.choiceId!==priorContext.choices.payment_method)throw fail();
+       if(proposal.proposalId!==id
+         ||proposal.address.choiceId!==observation.args.addressChoiceId.toLowerCase()
+         ||proposal.paymentMethod.choiceId!==observation.args.paymentChoiceId.toLowerCase()
+         ||(selectedContinuation&&(proposal.address.choiceId!==priorContext.choices.address
+           ||proposal.paymentMethod.choiceId!==priorContext.choices.payment_method)))throw fail();
        const saved=await domain.readOperation(target,{shopUserId:a.b.shopUserId,personaSession:credential,
         mode:a.commerceMode.snapshot.mode,operationId:id});
        await check(state);
        if(saved?.scopeKey!==scopeKey||saved.operationId!==id||saved.status!=='prepared'
          ||!isDeepStrictEqual(saved.proposal,proposal))throw fail();
        preparedCheckout=true;
+       if(!selectedContinuation)return true;
       }
       return observation.step===3&&(successfulOwnedObservation||(checkoutContinuation&&latestToolFailed))}:undefined,
     finalResponseAfterBlockedLocalTool:!!domain,

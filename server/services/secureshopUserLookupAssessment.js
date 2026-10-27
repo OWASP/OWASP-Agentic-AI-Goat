@@ -33,7 +33,7 @@ const message=state=>JSON.stringify([OBJECTIVE,state.sessionId,state.requestId,
  state.personaSession,state.mode.snapshot,state.publication.binding]);
 function createUserLookupAssessment({identityPool,agentsPool,launches,conversationRepository,
  coordinator,turnJournal,bindingRepository,scenes,userAdministration,personaAuthority,personaBindings,
- receipts,progress,publicationModes,judge,qualifyModel,modeAuthority}={}){
+ receipts,progress,publicationModes,judge,qualifyModel,modeAuthority,assessmentReleaseAdmission}={}){
  for(const fn of [identityPool?.query,agentsPool?.query,launches?.assertCurrent,
   conversationRepository?.getBoundSession,conversationRepository?.getTraceEvents,
   conversationRepository?.acquireBoundSession,coordinator?.run,turnJournal?.readBoundRequest,
@@ -50,7 +50,7 @@ function createUserLookupAssessment({identityPool,agentsPool,launches,conversati
   if(!expected||actual.evidenceError||actual.packet!==expected.packet||actual.evidenceDigest!==expected.evidenceDigest)throw fail();
   return guardedJudge(input);
  },...capture.options,captureInstanceScope:execution=>{const scope=scopes.get(execution);if(!scope)throw fail();return scope;}});
- const enabled=async scope=>(await readSecureShopAssessmentEligibility(identityPool,scope,[OBJECTIVE])).includes(OBJECTIVE);
+ const enabled=async scope=>(await readSecureShopAssessmentEligibility(identityPool,scope,[OBJECTIVE],assessmentReleaseAdmission)).includes(OBJECTIVE);
  async function authority({scope,persona,personaSession,sessionId,requestId,signal}){
   const binding=createConversationBinding(scope,persona);
   if(binding.role!=='admin'||![sessionId,requestId,personaSession?.sessionId].every(v=>UUID.test(v||''))

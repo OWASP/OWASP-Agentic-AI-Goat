@@ -106,6 +106,10 @@ test('student deletion modal accurately describes anonymization, content removal
 
 test('create student submits typed full name, only offers student role, and clears successful form on reopen', async () => {
   const view = await mount();
+  axios.post.mockResolvedValueOnce({ status: 201, data: { success: true, user: {
+    id: 18, username: 'owned-student', email: 'owned@example.invalid', full_name: 'Owned Étudiant',
+    role: 'student', admin_level: 0, is_active: 1,
+  } } });
   const open = () => [...view.node.querySelectorAll('button')].find(b => b.textContent.trim() === 'Create New Student');
   const type = async (placeholder, value) => {
     const input = view.node.querySelector(`input[placeholder="${placeholder}"]`);

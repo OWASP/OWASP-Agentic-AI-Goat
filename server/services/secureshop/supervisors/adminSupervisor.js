@@ -24,17 +24,20 @@
  */
 
 const { createSupervisorGraph } = require('../../../agent-runtime/secureshopSupervisorGraph');
-const runGraph = createSupervisorGraph({
-  store: require('../sessionStore.js'),
-  Trace: require('../trace.js').Trace,
-  buildBasePrompt: require('./basePrompt.js').buildBasePrompt,
-  buildPolicyBlock: require('./policyLoader.js').buildPolicyBlock,
-  checkToolAcl: require('../toolAcl.js').checkToolAcl,
-});
 const MAX_STEPS = Number(process.env.SS_ADMIN_MAX_STEPS || 8);
 const MAX_PARALLEL_TOOLS = Number(process.env.SS_ADMIN_MAX_PARALLEL_TOOLS || 4);
-async function run(sessionId, userMessage, opts = {}) {
-  return runGraph(sessionId, userMessage, { ...opts, role: opts.role || 'admin' },
-    { maxSteps: MAX_STEPS, maxParallelTools: MAX_PARALLEL_TOOLS });
+// Trusted persistence/authority injection; prompts, policy loading and graph
+// limits remain the original administrator workflow. Never request arguments.
+function createAdminSupervisor({store,Trace,checkToolAcl}) {
+  if(!store||typeof Trace!=='function'||typeof checkToolAcl!=='function')throw new TypeError('Trusted admin dependencies required');
+  const runGraph=createSupervisorGraph({store,Trace,checkToolAcl,
+    buildBasePrompt:require('./basePrompt.js').buildBasePrompt,
+    buildPolicyBlock:require('./policyLoader.js').buildPolicyBlock});
+  return Object.freeze({async run(sessionId,userMessage,opts={}){
+    return runGraph(sessionId,userMessage,{...opts,role:opts.role||'admin'},
+      {maxSteps:MAX_STEPS,maxParallelTools:MAX_PARALLEL_TOOLS});
+  }});
 }
-module.exports = { adminSupervisor: { run }, MAX_STEPS, MAX_PARALLEL_TOOLS };
+const adminSupervisor=createAdminSupervisor({store:require('../sessionStore.js'),
+  Trace:require('../trace.js').Trace,checkToolAcl:require('../toolAcl.js').checkToolAcl});
+module.exports = { adminSupervisor, createAdminSupervisor, MAX_STEPS, MAX_PARALLEL_TOOLS };

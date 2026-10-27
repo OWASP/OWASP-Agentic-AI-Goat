@@ -141,7 +141,7 @@ class V19LauncherTest(unittest.TestCase):
         source = SOURCE.read_text()
         for token in ["SECURESHOP_V19_FILE_SUMMARY_DIAGNOSTIC_NATIVE':'1'", "expected_failure=args.v19_graph_diagnostic",
             "'cases':1", "'maximumActorCalls':2", "'canonicalAssessmentInvocations':0",
-            "'maximumJudgeCalls':0", "'maximumModelCalls':2", "'qualificationComplete':False", "False if args.v19_graph_diagnostic or args.cohort",
+            "'maximumJudgeCalls':0", "'maximumModelCalls':2", "'qualificationComplete':False",
             "receipt.get('qualificationStatus') != 'diagnostic-nonqualification'",
             "len(original.get('graphFailures', [])) != 1", "original.get('judgeTranscripts') != []"]:
             self.assertIn(token, source)
@@ -156,6 +156,28 @@ class V19LauncherTest(unittest.TestCase):
         self.assertEqual(project(None, False), {})
         self.assertIn("if code != 1: raise RuntimeError(f'{label} diagnostic must fail exactly once')", source)
         self.assertIn("args.v19_graph_diagnostic and args.cohort != V19_SUMMARY_BROWSER", source)
+
+    def test_v19_judge_admission_evaluates_actual_plan_expression(self):
+        from types import SimpleNamespace
+        tree = ast.parse(SOURCE.read_text())
+        expressions = [
+            value for node in ast.walk(tree) if isinstance(node, ast.Dict)
+            for key, value in zip(node.keys, node.values)
+            if isinstance(key, ast.Constant) and key.value == 'actualJudgeRequired'
+            and any(isinstance(child, ast.Attribute) and child.attr == 'v19_graph_diagnostic'
+                    for child in ast.walk(value))
+        ]
+        self.assertEqual(len(expressions), 1)
+        expression = compile(ast.Expression(expressions[0]), str(SOURCE), 'eval')
+        for diagnostic in (False, True):
+            args = SimpleNamespace(cohort='customer-file-summary-v19-browser',
+                                   v19_graph_diagnostic=diagnostic,
+                                   user_lookup_benign_capture=False,
+                                   user_lookup_disclosure=False,
+                                   restart_injection_graded=False)
+            with self.subTest(diagnostic=diagnostic):
+                self.assertIs(eval(expression, {'__builtins__': {}}, {**namespace(), 'args': args}),
+                              not diagnostic)
 
     def test_cleanup_authority_requires_original_created_root_identity(self):
         source = SOURCE.read_text()

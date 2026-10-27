@@ -14,9 +14,12 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import stat
 import subprocess
 import sys
+import threading
+import time
 
 ROOT = Path(__file__).resolve().parents[2]
 MAIN_PATH = ROOT / 'tests/postgres/run-secureshop-agent-host-transport-main.py'
@@ -25,9 +28,25 @@ MAIN_COHORT = 'admin-audit-jobs-browser'
 TEST = 'tests/postgres/secureshopAdminAuditJobsRendered.integration.test.js'
 HELPER = 'tests/fixtures/secureshopAuditCollectionQualification.js'
 CONTRACT = 'tests/secureshopAuditCollectionQualification.test.js'
-TEST_SHA256 = '0f12b4b017e877e16d1b53a70ca3923dbcb7b17a58792218a1b8772fc4022e5d'
-HELPER_SHA256 = '7671d0135516f1b4ae099bd01c925e8bd3fc7ff320d90f26be6989599a531fe8'
-CONTRACT_SHA256 = '99985b4c9c29cfec03818302eacf3724457ae4094b2bce5b8eaf0c392c23fc57'
+CONTROL_SOURCES = (
+    'tests/postgres/run-secureshop-audit-collection-browser.py',
+    'tests/postgres/run_audit_collection_with_inspector.py',
+    'tests/postgres/test_secureshop_audit_collection_browser_launcher.py',
+    'tests/postgres/test_secureshop_audit_collection_browser_failure.py',
+    'tests/postgres/test_secureshop_audit_collection_browser_ownership.py',
+    'tests/postgres/test_run_audit_collection_with_inspector.py',
+    'tests/secureshopAuditCollectionTransport.test.js',
+    'tests/postgres/run-secureshop-agent-host-transport-main.py',
+    'tests/postgres/secureshop_darwin_browser_birth.py',
+    'tests/postgres/secureshop_bound_browser_ownership.py',
+    'tests/postgres/darwin_process_inventory.py',
+    'tests/postgres/trusted_process_inspector.py',
+    'tests/fixtures/secureshopDarwinBrowserBirth.js',
+    'tasks/run-in-repository.sh',
+)
+TEST_SHA256 = 'dd1fe9491021fe751e390183227e4ae29aa6a435b5ac8ffb8377f64f28c549c1'
+HELPER_SHA256 = '77290a770558cfb7296952a21fc97d46eded7d52c9885423be4cb3dd5b5ac293'
+CONTRACT_SHA256 = 'ae36d1d33b29a90cc5da9c1a61990bc8603d161ee185b7bef9b9a6c8c522f547'
 MODEL = 'llama3.1:8b'
 CONTEXT = '32768'
 SCOPE = 'V36 focused current-build Audit button; complete oversized original observation, owned witness, actual Ollama and canonical Judge; same-ID POST replay, fixed count rejection, committed reset and populated sibling'
@@ -39,6 +58,105 @@ FLAGS = ('passed','isolatedStores','genuineAdminUiSession','physicalUnboundedRun
 REQUIRED_RECEIPT_KEYS = set(FLAGS) | {'scope','summaryRunId','rowCount','sourceBytes',
                                       'actorCalls','judgeCalls','promptEvalCount','errors'}
 ORIGINAL_EVIDENCE = 'audit-collection-v36-original-evidence.json'
+BROWSER_RECORD = 'audit-collection-v36-browser.json'
+BROWSER_ACK = 'audit-collection-v36-browser-ack.json'
+BROWSER_KIND = 'audit_collection_v36_browser'
+PROFILE_PREFIX = 'dvaia-admin-audit-jobs-'
+_CAPTURE_KEY = object()
+
+
+def direct_v36_command(command, parsed):
+    expected = [parsed.node, '--test', '--test-reporter=tap', '--test-concurrency=1', TEST]
+    if list(command) != expected:
+        raise RuntimeError('V36 direct Node test command changed')
+    return [parsed.node, '--test-reporter=tap', TEST]
+
+
+def extract_browser_opt_in(argv):
+    values = list(argv)
+    count = values.count('--v36-test-no-sandbox')
+    if count > 1:
+        raise RuntimeError('Duplicate V36 browser exception flag denied')
+    if count:
+        values.remove('--v36-test-no-sandbox')
+    return values, count == 1
+
+
+class CapturedV36:
+    def __init__(self, record, profile, key):
+        if key is not _CAPTURE_KEY:
+            raise RuntimeError('V36 independent live browser capture required')
+        self.record = dict(record)
+        self.profile = profile
+
+
+def _browser_modules():
+    directory = str(ROOT / 'tests/postgres')
+    if directory not in sys.path:
+        sys.path.insert(0, directory)
+    from darwin_process_inventory import LibProc, SZOMB, owned_group_members
+    from secureshop_bound_browser_ownership import read_record, prove_record_absent
+    return LibProc, SZOMB, owned_group_members, read_record, prove_record_absent
+
+
+def capture_live_v36(record, parent_birth, runtime, *, api, getsid=os.getsid):
+    """Independently bind the direct Node child and its live Chrome/profile twice."""
+    _, zombie, _, _, _ = _browser_modules()
+    def parent():
+        value = api.identity(record['parentPid'])
+        if value is None or (value.start_sec, value.start_usec) != parent_birth \
+                or value.uid != os.getuid() or value.ruid != os.getuid() \
+                or value.pgid != record['parentPid'] or value.status == zombie:
+            raise RuntimeError('V36 direct Node parent birth unavailable')
+    parent()
+    first = api.identity(record['pid'])
+    expected = (record['pid'], record['parentPid'], os.getuid(), os.getuid(),
+                record['pgid'], *record['birth'])
+    fields = lambda item: (item.pid, item.ppid, item.uid, item.ruid, item.pgid,
+                           item.start_sec, item.start_usec)
+    if first is None or fields(first) != expected or first.status == zombie \
+            or getsid(first.pid) != record['sessionId']:
+        raise RuntimeError('V36 browser live birth mismatch')
+    argv = api.arguments(first.pid)
+    profiles = [item.split('=', 1)[1] for item in argv if item.startswith('--user-data-dir=')]
+    if not argv or argv[0] != record['executablePath'] or len(profiles) != 1 \
+            or Path(profiles[0]).parent != Path(runtime) / 'tmp' \
+            or not Path(profiles[0]).name.startswith(PROFILE_PREFIX):
+        raise RuntimeError('V36 browser executable or owned profile mismatch')
+    second = api.identity(first.pid)
+    parent()
+    if second is None or fields(second) != expected or second.status == zombie:
+        raise RuntimeError('V36 browser changed during live capture')
+    return CapturedV36(record, profiles[0], _CAPTURE_KEY)
+
+
+def retire_live_v36(captured, *, api, getsid=os.getsid, killpg=os.killpg,
+                    monotonic=time.monotonic, sleep=time.sleep):
+    """Signal only a previously live-captured, still matching detached session."""
+    if not isinstance(captured, CapturedV36):
+        raise RuntimeError('V36 journal-only browser record cannot grant signal authority')
+    record = captured.record
+    _, _, owned_group_members, _, prove_record_absent = _browser_modules()
+    if record['pgid'] != record['pid']:
+        return prove_record_absent([record], api=api)
+    births = {record['pid']: tuple(record['birth'])}
+    def members():
+        return owned_group_members(record['pgid'], api=api, getsid=getsid, births=births)
+    for sig, duration in ((signal.SIGTERM, 5), (signal.SIGKILL, 3)):
+        if not members():
+            return prove_record_absent([record], api=api)
+        leader = api.identity(record['pid'])
+        if leader is None or (leader.start_sec, leader.start_usec) != tuple(record['birth']) \
+                or leader.uid != os.getuid() or leader.ruid != os.getuid() \
+                or leader.pgid != record['pgid'] or getsid(leader.pid) != record['sessionId']:
+            raise RuntimeError('V36 detached browser lost live birth anchor')
+        killpg(record['pgid'], sig)
+        until = monotonic() + duration
+        while monotonic() < until:
+            if not members():
+                return prove_record_absent([record], api=api)
+            sleep(0.1)
+    raise RuntimeError('V36 captured browser session remains')
 
 
 def digest(path):
@@ -66,10 +184,18 @@ def validate_context_contract(fixture_source, helper_source):
     helper = re.findall(r'^const CONTEXT_WINDOW = ([0-9]+);$', helper_source, re.MULTILINE)
     if fixture != [CONTEXT] or helper != [CONTEXT]:
         raise RuntimeError('V36 fixture/helper context disagrees with wrapper before provisioning')
+    # The sole V36 model path must outlive the bounded provider request while
+    # the original Audit cohorts retain their existing transport cap.
+    if "createSecureShopAuditTiming({profile:'unbounded'})" not in fixture_source \
+            or "function actorWireTimeoutMs(collectionTiming) { return collectionTiming ? 180000 : 120000; }" not in fixture_source \
+            or 'timeout: actorWireTimeoutMs(collectionTiming)' not in fixture_source \
+            or 'const COLLECTION_BROWSER_RESPONSE_TIMEOUT_MS = 320000;' not in helper_source \
+            or 'timeout:COLLECTION_BROWSER_RESPONSE_TIMEOUT_MS' not in helper_source:
+        raise RuntimeError('V36 bounded timeout profile disagrees with wrapper before provisioning')
 
 
 def frozen_source_digests():
-    return {relative: digest(ROOT / relative) for relative in (TEST, HELPER, CONTRACT)}
+    return {relative: digest(ROOT / relative) for relative in (TEST, HELPER, CONTRACT, *CONTROL_SOURCES)}
 
 
 def _safe_int(value, *, minimum=None, maximum=None):
@@ -276,11 +402,54 @@ def plan(main, parsed):
     return 0
 
 
-def run(main, rewritten, source_before):
+def run(main, rewritten, source_before, parsed=None, *, browser_opt_in=False):
     original_popen = main.subprocess.Popen
     original_counts = main.complete_tap_counts
     original_receipt = main.admin_audit_jobs_receipt
     evidence_path = None
+    browser_capture = {'captured': None, 'error': None, 'retired': None}
+
+    def record_failure(error):
+        if evidence_path is None:
+            return
+        # Supplemental evidence must never replace the original exception.
+        try:
+            source_after = frozen_source_digests()
+            failure_report = {
+                'version': 1, 'cohort': COHORT, 'scope': SCOPE, 'assertion': ASSERTION,
+                'adapterPassed': False, 'failure': {'type': type(error).__name__,
+                'message': str(error)[:1000]}, 'sourceBefore': source_before,
+                'sourceAfter': source_after, 'sourceUnchanged': source_after == source_before,
+                'modelVerification': {'status': 'unverified',
+                                      'reason': 'adapter failed before complete post-run verification'},
+                'mainOutputSha256': hashlib.sha256(output.getvalue().encode()).hexdigest(),
+                'mainOutputBytes': len(output.getvalue().encode()),
+                'browserCapture': {
+                    'liveCaptured': browser_capture['captured'] is not None,
+                    'captureError': type(browser_capture['error']).__name__
+                        if browser_capture['error'] is not None else None,
+                    'captureErrorMessage': str(browser_capture['error'])[:300]
+                        if browser_capture['error'] is not None else None,
+                    'retirement': browser_capture['retired'],
+                    'recordPresent': (evidence_path / BROWSER_RECORD).is_file(),
+                    'ackPresent': (evidence_path / BROWSER_ACK).is_file(),
+                },
+            }
+            result_path = evidence_path / 'result.json'
+            if result_path.is_file() and not result_path.is_symlink():
+                try:
+                    failure_report['mainResult'] = json.loads(result_path.read_text())
+                    failure_report['mainResultSha256'] = digest(result_path)
+                except (OSError, json.JSONDecodeError):
+                    failure_report['mainResultUnavailable'] = True
+            report_path = evidence_path / 'v36-adapter-report.json'
+            if evidence_path.is_dir() and not report_path.exists():
+                with report_path.open('x', encoding='utf-8') as handle:
+                    os.chmod(report_path, 0o600)
+                    json.dump(failure_report, handle, sort_keys=True, separators=(',', ':'))
+                    handle.write('\n')
+        except BaseException:
+            pass
 
     def collection_popen(command, *args, **kwargs):
         nonlocal evidence_path
@@ -298,8 +467,134 @@ def run(main, rewritten, source_before):
                 # The shared launcher passes the receipt filename, while the
                 # adapter report belongs beside it in the private directory.
                 evidence_path = Path(configured_path).parent
+            if browser_opt_in:
+                if sys.platform != 'darwin' or evidence_path is None:
+                    raise RuntimeError('V36 current-host owned Darwin browser evidence required')
+                child_env.update(
+                    SECURESHOP_AUDIT_COLLECTION_TEST_NO_SANDBOX='1',
+                    SECURESHOP_AUDIT_COLLECTION_BROWSER_RECORD_PATH=str(evidence_path / BROWSER_RECORD),
+                    SECURESHOP_AUDIT_COLLECTION_BROWSER_ACK_PATH=str(evidence_path / BROWSER_ACK),
+                    SECURESHOP_AUDIT_COLLECTION_BROWSER_SHA256=parsed.browser_sha256,
+                    SECURESHOP_BOUND_BROWSER_BIRTH_SCRIPT=str(ROOT / 'tests/postgres/secureshop_darwin_browser_birth.py'),
+                    SECURESHOP_BOUND_BROWSER_BIRTH_PYTHON=str(Path(sys.executable).resolve()),
+                )
             kwargs['env'] = child_env
-        return original_popen(command, *args, **kwargs)
+        if TEST in {str(item) for item in command} and browser_opt_in:
+            command = direct_v36_command(command, parsed)
+        child = original_popen(command, *args, **kwargs)
+        if TEST not in {str(item) for item in command} or not browser_opt_in:
+            return child
+        def return_with_failure(error):
+            # The shared launcher must first receive/own the child. Its first
+            # wait then raises the original setup failure; subsequent cleanup
+            # waits retain Popen's real implementation.
+            original = child.wait
+            def fail_first_wait(*unused_args, **unused_kwargs):
+                child.wait = original
+                raise error
+            child.wait = fail_first_wait
+            return child
+        try:
+            LibProc, SZOMB, _, read_record, _ = _browser_modules()
+            api = LibProc()
+            node = api.identity(child.pid)
+            if node is None or node.ppid != os.getpid() or node.uid != os.getuid() \
+                    or node.ruid != os.getuid() or node.pgid != child.pid \
+                    or os.getsid(child.pid) != child.pid or node.status == SZOMB:
+                raise RuntimeError('V36 direct Node child birth unavailable')
+        except BaseException as error:
+            # Return the spawned child to the shared launcher so its owned
+            # process-group cleanup still runs; never orphan it from Popen.
+            browser_capture['error'] = error
+            return return_with_failure(error)
+        try:
+            parent_birth = (node.start_sec, node.start_usec)
+            stop = threading.Event()
+        except BaseException as error:
+            browser_capture['error'] = error
+            return return_with_failure(error)
+        def watch():
+            try:
+                record_path = evidence_path / BROWSER_RECORD
+                deadline = time.monotonic() + 60
+                while not stop.is_set() and time.monotonic() < deadline:
+                    if not record_path.exists():
+                        stop.wait(0.025)
+                        continue
+                    records = read_record(evidence_path, BROWSER_RECORD, BROWSER_KIND,
+                                          parsed.browser, parsed.browser_sha256, child.pid,
+                                          parent_pid=child.pid, require_all=True,
+                                          allow_browser_session=True)
+                    record = records[0]
+                    captured = capture_live_v36(record, parent_birth,
+                                                 evidence_path / 'runtime', api=api)
+                    browser_capture['captured'] = captured
+                    data = {'schemaVersion': 1, 'recordSha256': digest(record_path),
+                            'parentPid': child.pid, 'browserPid': record['pid'], 'profile': captured.profile}
+                    ack = evidence_path / BROWSER_ACK
+                    temporary = evidence_path / f'{BROWSER_ACK}.{os.getpid()}.tmp'
+                    with temporary.open('x', encoding='utf-8') as handle:
+                        os.chmod(temporary, 0o600)
+                        json.dump(data, handle, sort_keys=True, separators=(',', ':'))
+                        handle.write('\n')
+                    os.replace(temporary, ack)
+                    return
+                if not stop.is_set():
+                    raise RuntimeError('V36 live browser birth record timed out')
+            except BaseException as error:
+                browser_capture['error'] = error
+        try:
+            watcher = threading.Thread(target=watch, name='v36-browser-birth', daemon=True)
+        except BaseException as error:
+            stop.set()
+            browser_capture['error'] = error
+            return return_with_failure(error)
+        started = False
+        try:
+            watcher.start()
+            started = True
+            original_wait = child.wait
+        except BaseException as error:
+            stop.set()
+            if started:
+                watcher.join(timeout=2)
+            browser_capture['error'] = error
+            return return_with_failure(error)
+        def wait_with_owned_browser(*wait_args, **wait_kwargs):
+            primary = None
+            try:
+                return original_wait(*wait_args, **wait_kwargs)
+            except BaseException as error:
+                primary = error
+                raise
+            finally:
+                cleanup_error = None
+                try:
+                    stop.set()
+                    watcher.join(timeout=2)
+                    if watcher.is_alive():
+                        raise RuntimeError('V36 browser birth watcher did not stop')
+                except BaseException as error:
+                    cleanup_error = error
+                    browser_capture['error'] = browser_capture['error'] or error
+                captured = browser_capture['captured']
+                if cleanup_error is None and captured is not None \
+                        and captured.record['pgid'] == captured.record['pid']:
+                    try:
+                        browser_capture['retired'] = retire_live_v36(captured, api=api)
+                    except BaseException as error:
+                        cleanup_error = error
+                        browser_capture['error'] = browser_capture['error'] or error
+                if cleanup_error is not None and primary is None:
+                    raise cleanup_error
+        try:
+            child.wait = wait_with_owned_browser
+        except BaseException as error:
+            stop.set()
+            watcher.join(timeout=2)
+            browser_capture['error'] = error
+            return return_with_failure(error)
+        return child
 
     def collection_counts(content, label, expected_assertions):
         if expected_assertions == [main.ADMIN_AUDIT_JOBS_ASSERTION]:
@@ -318,37 +613,8 @@ def run(main, rewritten, source_before):
         try:
             with contextlib.redirect_stdout(output):
                 code = main.main(rewritten)
-        except Exception as error:
-            if evidence_path is not None:
-                # Diagnostics are best-effort: never mask the qualification
-                # exception with a report, hash, or source-check failure.
-                try:
-                    source_after = frozen_source_digests()
-                    failure_report = {
-                        'version': 1, 'cohort': COHORT, 'scope': SCOPE, 'assertion': ASSERTION,
-                        'adapterPassed': False, 'failure': {'type': type(error).__name__,
-                        'message': str(error)[:1000]}, 'sourceBefore': source_before,
-                        'sourceAfter': source_after, 'sourceUnchanged': source_after == source_before,
-                        'modelVerification': {'status': 'unverified',
-                                              'reason': 'shared launcher raised before post-run model snapshot'},
-                        'mainOutputSha256': hashlib.sha256(output.getvalue().encode()).hexdigest(),
-                        'mainOutputBytes': len(output.getvalue().encode()),
-                    }
-                    result_path = evidence_path / 'result.json'
-                    if result_path.is_file() and not result_path.is_symlink():
-                        try:
-                            failure_report['mainResult'] = json.loads(result_path.read_text())
-                            failure_report['mainResultSha256'] = digest(result_path)
-                        except (OSError, json.JSONDecodeError):
-                            failure_report['mainResultUnavailable'] = True
-                    report_path = evidence_path / 'v36-adapter-report.json'
-                    if evidence_path.is_dir() and not report_path.exists():
-                        with report_path.open('x', encoding='utf-8') as handle:
-                            os.chmod(report_path, 0o600)
-                            json.dump(failure_report, handle, sort_keys=True, separators=(',', ':'))
-                            handle.write('\n')
-                except Exception:
-                    pass
+        except BaseException as error:
+            record_failure(error)
             raise
         lines = [line for line in output.getvalue().splitlines() if line.strip()]
         if not lines:
@@ -359,6 +625,13 @@ def run(main, rewritten, source_before):
             raise RuntimeError('Shared launcher final result is not JSON') from error
         if not isinstance(launcher_result, dict) or not isinstance(launcher_result.get('evidence'), str):
             raise RuntimeError('Shared launcher final result lacks evidence path')
+        if browser_opt_in:
+            if browser_capture['error'] is not None or browser_capture['captured'] is None:
+                error = RuntimeError('V36 independent live browser capture incomplete')
+                record_failure(error)
+                raise error from browser_capture['error']
+            _, _, _, _, prove_record_absent = _browser_modules()
+            browser_capture['retired'] = prove_record_absent([browser_capture['captured'].record])
         evidence = Path(launcher_result['evidence'])
         result_path = evidence / 'result.json'
         receipt_path = evidence / 'admin-audit-jobs-browser.json'
@@ -384,6 +657,9 @@ def run(main, rewritten, source_before):
             'sourceAfter': source_after,
             'sourceUnchanged': True,
             'adapterPassed': True,
+            'browserBirth': {'recordSha256': digest(evidence / BROWSER_RECORD),
+                             'ackSha256': digest(evidence / BROWSER_ACK),
+                             'absence': browser_capture['retired']} if browser_opt_in else None,
         }
         report_path = evidence / 'v36-adapter-report.json'
         with report_path.open('x', encoding='utf-8') as handle:
@@ -404,21 +680,25 @@ def main(argv=None):
     validate_frozen_sources()
     source_before = frozen_source_digests()
     main_module = load_main()
-    raw = list(sys.argv[1:] if argv is None else argv)
+    raw, browser_opt_in = extract_browser_opt_in(sys.argv[1:] if argv is None else argv)
     rewritten = rewrite_args(raw)
     parsed = main_module.parse(rewritten)
+    if browser_opt_in and (Path(parsed.main_workspace).resolve() != ROOT
+                           or parsed.current_host_profile is None
+                           or not parsed.browser or not parsed.browser_sha256):
+        raise RuntimeError('V36 browser exception requires pinned current-main local profile')
     if parsed.plan:
         return plan(main_module, parsed)
     primary = None
     try:
-        return run(main_module, rewritten, source_before)
-    except Exception as error:
+        return run(main_module, rewritten, source_before, parsed, browser_opt_in=browser_opt_in)
+    except BaseException as error:
         primary = error
         raise
     finally:
         try:
             drifted = frozen_source_digests() != source_before
-        except Exception:
+        except BaseException:
             drifted = True
         if drifted and primary is None:
             raise RuntimeError('V36 frozen fixture/helper/contract changed during qualification')

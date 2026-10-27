@@ -405,6 +405,25 @@ function createSecureShopBoundReviewRepository(pool, dependencies = {}) {
         platformSessionId: Number(row.original_platform_session_id) }, scene);
     }));
   }
+  // Recovery must not adopt a legacy birth target or install a scene mapping.
+  async function readRetainedSceneTarget(scene) {
+    if (!scene?.scene) throw failure('SHOP_SCENE_STALE', 'Retained product scene required');
+    return withSceneLease(scene, () => withTransaction(pool, async client => {
+      await assertSceneGrant(client, scene);
+      const row = (await client.query(`SELECT r.* FROM secureshop_review.scene_review_targets m
+        JOIN secureshop_review.review_targets r ON r.target_id=m.review_target_id
+        WHERE m.scene_id=$1 AND m.product_target_id=$2
+          AND m.original_platform_owner_id=$3 AND r.lifecycle='active'
+        FOR SHARE OF r`, [scene.scene.sceneId,scene.targetId,scene.platformOwnerId])).rows[0];
+      await assertSceneGrant(client, scene);
+      await checkCurrent(executionScope(scene));
+      if (!row) return null;
+      return reviewScene.attach({targetId:row.target_id,launchId:row.launch_id,
+        scenarioId:row.scenario_id,generation:Number(row.generation),
+        platformOwnerId:Number(row.original_platform_owner_id),
+        platformSessionId:Number(row.original_platform_session_id)},scene);
+    }));
+  }
   async function adoptSellerLessons(inputScope) {
     const scope = normalizeScope(inputScope);
     const scene = reviewScene.productScene(scope);
@@ -492,6 +511,7 @@ function createSecureShopBoundReviewRepository(pool, dependencies = {}) {
 
   return Object.freeze({
     readSceneTarget,
+    readRetainedSceneTarget,
     adoptSellerLessons, bindSceneTarget, provisionScene,
     async provision(inputScope, { reviews = [], compatibleReviews = [], effectTimeoutMs } = {}) {
       validateEffectDeadline(effectTimeoutMs);

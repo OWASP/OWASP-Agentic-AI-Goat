@@ -30,7 +30,7 @@ const message=(state,original)=>JSON.stringify([OBJECTIVE,state.source,hash(JSON
  state.personaSession,state.raw,state.sourceBinding,state.publication.binding]);
 function createMcpDescriptionAssessment({identityPool,agentsPool,launches,conversationRepository,
  coordinator,journal,personaAuthority,personaBindings,
- receipts,progress,publicationModes,judge,current,readSource,qualifyModelTrace}={}){
+ receipts,progress,publicationModes,judge,current,readSource,qualifyModelTrace,assessmentReleaseAdmission}={}){
  for(const fn of [identityPool?.query,agentsPool?.query,launches?.assertCurrent,
   conversationRepository?.getBoundSession,
   conversationRepository?.acquireBoundSession,coordinator?.run,journal?.claim,journal?.complete,journal?.markUncertain,
@@ -49,7 +49,7 @@ function createMcpDescriptionAssessment({identityPool,agentsPool,launches,conver
    if(!expected||actual.evidenceError||actual.packet!==expected.packet||actual.evidenceDigest!==expected.evidenceDigest)throw fail();
    return guardedJudge(input);
   }});
- const enabled=async binding=>(await readSecureShopAssessmentEligibility(identityPool,binding,[OBJECTIVE])).includes(OBJECTIVE);
+ const enabled=async binding=>(await readSecureShopAssessmentEligibility(identityPool,binding,[OBJECTIVE],assessmentReleaseAdmission)).includes(OBJECTIVE);
  async function authority({scope,persona,personaSession,sessionId,requestId,signal}){
   const binding=createConversationBinding(scope,persona),key=assessmentRequestId(sessionId,requestId);
   if(binding.role!=='admin'||!UUID.test(personaSession?.sessionId||'')

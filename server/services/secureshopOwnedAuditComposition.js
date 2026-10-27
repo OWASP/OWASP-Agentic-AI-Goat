@@ -1,7 +1,7 @@
 'use strict';
-function createOwnedAuditComposition({identityPool,launches,personaAuth,auditReader,cleanupAuthority,turns,journal,conversations,conversationRepository,client,provider,receipts,progress,judge,agentEnabled=false,personaAuthority,personaBindings,gradingCore,gradingBootstrap,agentsPool,resetComposition,toolPolicyAdmission,toolPolicyRepository,promptPolicyRepository,modeAuthority}){
+function createOwnedAuditComposition({identityPool,launches,personaAuth,auditReader,cleanupAuthority,turns,journal,conversations,conversationRepository,client,provider,receipts,progress,judge,agentEnabled=false,personaAuthority,personaBindings,gradingCore,gradingBootstrap,agentsPool,resetComposition,toolPolicyAdmission,toolPolicyRepository,promptPolicyRepository,modeAuthority,assessmentReleaseAdmission}){
  if(gradingBootstrap!==undefined){
-  const prepared=require('./secureshopGradingBootstrap').resolveSecureShopGradingBootstrap(gradingBootstrap,{identityPool,agentsPool,resetComposition});
+  const prepared=require('./secureshopGradingBootstrap').resolveSecureShopGradingBootstrap(gradingBootstrap,{identityPool,agentsPool,resetComposition,assessmentReleaseAdmission});
   for(const [name,value] of Object.entries({gradingCore,personaAuthority,personaBindings}))if(Object.hasOwn(arguments[0]||{},name)&&value!==prepared[name])throw TypeError('Matching prepared audit grading dependencies required');
   if(launches!==prepared.resetComposition.launches)throw TypeError('Matching audit launch authority required');
   ({gradingCore,personaAuthority,personaBindings}=prepared);

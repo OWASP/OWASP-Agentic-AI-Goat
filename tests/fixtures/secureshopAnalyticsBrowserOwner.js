@@ -17,16 +17,29 @@ function observeBrowserEndpoint(child,append,timeoutMs=30000){
   const timer=setTimeout(()=>finish(Error('Owned Chrome startup deadline')),timeoutMs);child.once('exit',exit);child.once('error',error);child.stderr.on('data',data);
  });
 }
-async function launchOwnedAnalyticsBrowser(root,label,{admitEndpoint=()=>{}}={}){
- assert.match(label,/^[a-z]+$/);const puppeteer=require('puppeteer'),executable=process.env.ANALYTICS_BROWSER_EXECUTABLE,profile=path.join(root,label+'-profile');assert.ok(path.isAbsolute(executable));fs.accessSync(executable,fs.constants.X_OK);const executableSha256=createHash('sha256').update(fs.readFileSync(executable)).digest('hex');assert.equal(executableSha256,process.env.ANALYTICS_BROWSER_SHA256);fs.mkdirSync(profile,{mode:0o700});
+async function launchOwnedAnalyticsBrowser(root,label,{admitEndpoint=()=>{},personaInboxCurrentHost=false}={}){
+ assert.match(label,/^[a-z]+$/);const puppeteer=require('puppeteer'),executable=process.env.ANALYTICS_BROWSER_EXECUTABLE,profile=path.join(root,label+'-profile');assert.ok(path.isAbsolute(executable));fs.accessSync(executable,fs.constants.X_OK);const executableSha256=createHash('sha256').update(fs.readFileSync(executable)).digest('hex');assert.equal(executableSha256,process.env.ANALYTICS_BROWSER_SHA256);
+ const current=personaInboxCurrentHost?require('./secureshopPersonaInboxCurrentHostAdmission')
+  .browserOptions(process.env,process.cwd(),path.dirname(root),root,label):null;
+ fs.mkdirSync(profile,{mode:0o700});
  let child,browser,identity;
  try{
-  const defaultArgs=await puppeteer.defaultArgs({headless:true,userDataDir:profile,args:['--remote-debugging-port=0','--disable-background-networking','--disable-component-update','--disable-domain-reliability','--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1']});
-  child=spawn(executable,defaultArgs,{detached:false,env:{PATH:'/usr/bin:/bin',HOME:root,TMPDIR:root},stdio:['ignore','ignore','pipe']});
+  const defaultArgs=await puppeteer.defaultArgs({headless:true,userDataDir:profile,args:current
+   ?['--remote-debugging-port=0',...current.flags]
+   :['--remote-debugging-port=0','--disable-background-networking','--disable-component-update','--disable-domain-reliability','--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1']});
+  child=spawn(executable,defaultArgs,{detached:false,env:current?.environment||{PATH:'/usr/bin:/bin',HOME:root,TMPDIR:root},stdio:['ignore','ignore','pipe']});
   const stderrFile=path.join(root,label+'-stderr.log');fs.writeFileSync(stderrFile,'',{mode:0o600});
   const endpointReady=observeBrowserEndpoint(child,chunk=>fs.appendFileSync(stderrFile,chunk));endpointReady.catch(()=>{});
   await bounded(require('node:events').once(child,'spawn'),3000,'Chrome spawn timeout');
-  identity=require('./browserProcessOwnership').captureBrowserProcessIdentity(child.pid);fs.writeFileSync(path.join(root,label+'-process.json'),JSON.stringify({...identity,profile,executableSha256}),{mode:0o600});
+  if(personaInboxCurrentHost){
+   const proved=require('./secureshopPersonaInboxCurrentHostAdmission').browserIdentity(
+    process.env,process.cwd(),path.dirname(root),root,label,child.pid,executableSha256);
+   identity=proved.identity;
+   fs.writeFileSync(path.join(root,label+'-birth.json'),
+    JSON.stringify({browser:proved.record,worker:proved.workerRecord}),{flag:'wx',mode:0o600});
+  }else identity=require('./browserProcessOwnership').captureBrowserProcessIdentity(child.pid);
+  fs.writeFileSync(path.join(root,label+'-process.json'),JSON.stringify({...identity,profile,executableSha256}),
+   {flag:personaInboxCurrentHost?'wx':'w',mode:0o600});
   const endpoint=await endpointReady;
   await admitEndpoint(endpoint);
   browser=await bounded(puppeteer.connect({browserWSEndpoint:endpoint,protocolTimeout:15000}),20000,'Chrome connection timeout');const original=browser.close.bind(browser);let closed=false;

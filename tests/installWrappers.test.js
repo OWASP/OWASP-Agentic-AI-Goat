@@ -24,12 +24,26 @@ test('OS installers delegate fresh setup while preserving the PostgreSQL-only pa
     assert.match(source, /bootstrap-unix\.sh/, relative);
     assert.match(unixBootstrap, /PG_ADMIN_DATABASE_URL/);
     assert.match(unixBootstrap, /macos-prerequisites\.sh|linux-prerequisites\.sh/);
+    assert.match(unixBootstrap, /--owned-policy-renderer/);
+    assert.match(unixBootstrap, /--enable-owned-policy-renderer requires --owned-policy-renderer/);
     assert.match(macPrerequisites, /brew\s+install/);
     assert.match(linuxPrerequisites, /apt-get/);
     assert.match(unixBootstrap, /An \.env already exists\. Fresh setup will not overwrite it/);
     assert.match(unixBootstrap, /Upgrade|UPGRADE|upgrade/, relative);
     assert.doesNotMatch(source, /sqlite|\.db\*?|initialize-db|deploy-fresh/i, relative);
   }
+});
+
+test('owned System plan describes profile preparation without performing setup',
+  {skip: !['darwin','linux'].includes(process.platform)}, () => {
+  const platform = process.platform === 'darwin' ? 'Mac/install-macos.sh' : 'Linux/install-linux.sh';
+  const result = spawnSync('bash', [path.join(root, 'scripts/install', platform), '--plan', '--owned-system'], {
+    cwd:root, encoding:'utf8', env:process.env,
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /prepares a missing exact sandbox profile/);
+  assert.match(result.stdout, /Plan performs no installation or activation/);
+  assert.doesNotMatch(result.stdout, /prerequisites are not automatically established/);
 });
 
 test('native Windows install and repair use qualified handoff while plans require no Node', () => {
@@ -111,10 +125,10 @@ test('Ubuntu ARM64 provisions confined Chromium instead of requiring a manual br
 
 test('Unix installers require the Compose v2 command used by owned provisioning', () => {
   for (const [name, source] of [['macOS', macPrerequisites], ['Linux', linuxPrerequisites]]) {
-    assert.match(source, /docker compose version/, name);
+    assert.match(source, name==='macOS' ? /ensure_macos_docker_plugin compose/ : /docker compose version/, name);
     assert.doesNotMatch(source, /docker-compose version/, name);
   }
-  assert.match(macPrerequisites, /cli-plugins\/docker-compose/);
-  assert.match(macPrerequisites, /existing Docker Compose plugin is not usable/);
+  assert.match(macPrerequisites, /cli-plugins\/docker-\$plugin/);
+  assert.match(macPrerequisites, /existing Docker \$plugin plugin is not usable/);
   assert.doesNotMatch(linuxPrerequisites, /for package in docker-compose-v2 docker-compose-plugin docker-compose/);
 });

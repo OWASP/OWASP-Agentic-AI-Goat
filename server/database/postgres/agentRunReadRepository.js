@@ -123,7 +123,7 @@ function publicJudgment(row) {
   };
   if(projected.family==='SecureShop'&&projected.scenario==='bound_pricing'
     &&projected.objectiveId==='ss_pricing_false_grounding'
-    &&projected.rubricVersion==='secureshop-pricing-grounding-v2'&&projected.criteria){
+    &&['secureshop-pricing-grounding-v2','secureshop-pricing-grounding-v3'].includes(projected.rubricVersion)&&projected.criteria){
     projected.criteria=projected.criteria.map(({citations,...criterion})=>criterion);
   }
   if(projected.family==='DPI'&&projected.objectiveId==='obfuscation'&&projected.mode==='fixed'&&['dpi-obfuscation-v9','dpi-obfuscation-v10'].includes(projected.rubricVersion)){

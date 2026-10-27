@@ -43,9 +43,31 @@ test('shows a human-readable zero-stock draft and resolves a lost POST only thro
   if(url.endsWith('/listing-create/confirm')) { posts++; expect(JSON.parse(options.body)).toEqual({sessionId,requestId,proposalId}); completed=true; throw Error('lost'); }
   throw Error(`Unexpected ${url}`);
  });
- await render(transport); await settle(); expect(node.textContent).toContain('Practice mug'); expect(node.textContent).toContain('Initial stock: 0'); expect(node.textContent).toContain('Not provided');
- await act(async()=>node.querySelector('button').click()); await settle();
- expect(posts).toBe(1); expect(values.has(SHOP_LISTING_CREATE_KEY)).toBe(false); expect(node.textContent).toContain('Listing created from the saved result.');
+ const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+ let releaseDigest;
+ const digestGate = new Promise(resolve => { releaseDigest = resolve; });
+ try {
+  Object.defineProperty(globalThis, 'crypto', { value: { subtle: { digest: async (...args) => {
+   await digestGate; return webcrypto.subtle.digest(...args);
+  } } }, configurable: true });
+  await render(transport); await settle(); expect(node.textContent).toContain('Practice mug'); expect(node.textContent).toContain('Initial stock: 0'); expect(node.textContent).toContain('Not provided');
+  await act(async()=>node.querySelector('button').click());
+  expect(posts).toBe(0);
+  releaseDigest();
+  await waitFor(() => expect(posts).toBe(1));
+  await waitFor(() => expect(node.textContent).toContain('Listing created from the saved result.'));
+  expect(values.has(SHOP_LISTING_CREATE_KEY)).toBe(false);
+  expect(transport.mock.calls.map(([url, options]) => ({ url, method: options.method }))).toEqual([
+   { url: `/api/secureshop/agents/merchant/assistant/operations/${sessionId}/${requestId}`, method: 'GET' },
+   { url: `/api/secureshop/agents/merchant/assistant/listing-create/operations/${proposalId}`, method: 'GET' },
+   { url: '/api/secureshop/agents/merchant/assistant/listing-create/confirm', method: 'POST' },
+   { url: `/api/secureshop/agents/merchant/assistant/listing-create/operations/${proposalId}`, method: 'GET' },
+  ]);
+ } finally {
+  releaseDigest();
+  if (cryptoDescriptor) Object.defineProperty(globalThis, 'crypto', cryptoDescriptor);
+  else delete globalThis.crypto;
+ }
 });
 
 test('retains a parent-acknowledged ref when post-confirm GET remains absent and never repeats POST', async () => {

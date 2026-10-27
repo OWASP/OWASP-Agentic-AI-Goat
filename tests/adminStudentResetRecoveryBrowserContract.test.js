@@ -1,7 +1,9 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { resetResponseIdentity, assertReplayPreserved } = require('./postgres/adminStudentResetRecoveryBrowser');
+const { createHash } = require('node:crypto');
+const { resetResponseIdentity, assertReplayPreserved,
+ createStudentResetQ05Receipt, assertCompletedCleanupReceipts } = require('./postgres/adminStudentResetRecoveryBrowser');
 const id = '12345678-1234-4234-8234-123456789012';
 const endpoint = 'http://127.0.0.1:3001/api/admin/students/7/workshops/sensitive_info_disclosure/reset';
 const event = { request: { method: 'POST', url: endpoint, headers: { 'X-Reset-Operation-Id': id } }, responseStatusCode: 200 };
@@ -16,6 +18,129 @@ test('replay oracle rejects new UUID, generation advancement, lost resumed state
  const proof = { originalId: id, replayId: id, before: { generation: 3, resumed: ['marker'], journal: 'completed' }, after: { generation: 3, resumed: ['marker'], journal: 'completed' }, siblingBefore: { generation: 1 }, siblingAfter: { generation: 1 } };
  assertReplayPreserved(proof);
  for (const delta of [{ replayId: id.replace(/2$/, '3') }, { after: { ...proof.after, generation: 4 } }, { after: { ...proof.after, resumed: [] } }, { siblingAfter: { generation: 2 } }]) assert.throws(() => assertReplayPreserved({ ...proof, ...delta }));
+});
+
+test('distinct reset receipt binds all three real request IDs, state pairs and explicit exclusions', () => {
+ const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+ const sibling = { controlled: 'sibling' }, resumed = { controlled: 'resumed' };
+ const second = '12345678-1234-4234-8234-123456789013';
+ const recovery = { status: 'passed', requestOperationIds: [id, id, second], realResetPostCount: 3,
+  originalGeneration: 0, finalGeneration: 2, replayPreservedResumedState: true,
+  siblingPreserved: true, modelCalls: 0,
+  ackLoss: { method: 'POST', path: '/api/admin/students/7/workshops/sensitive_info_disclosure/reset',
+   phase: 'after-real-http-200-before-browser-consumption' },
+  phases: [{ phase: 'baseline', siblingSha256: hash(sibling) },
+   { phase: 'resumed', snapshotSha256: hash(resumed) },
+   { phase: 'replay-preserved', snapshotSha256: hash(resumed), siblingSha256: hash(sibling) }] };
+ const input = { target: 7, sibling: 8, cancelBefore: { controlled: 'target' },
+  cancelAfter: { controlled: 'target' }, authorityBefore: { controlled: 'target' },
+  authorityAfter: { controlled: 'target' }, recovery, deniedResetPostCount: 1 };
+ const receipt = createStudentResetQ05Receipt(input);
+ assert.equal(receipt.workshopKey, 'sensitive_info_disclosure');
+ assert.equal(receipt.requestOperationIds[1], id);
+ assert.equal(receipt.requestOperationIds[2], second);
+ assert.equal(receipt.deniedResetPostCount, 1);
+ assert.equal(receipt.canonicalCredit, false);
+ assert.equal(receipt.modelCalls, 0); assert.equal(receipt.judgeCalls, 0);
+ assert(Object.values(receipt.facts).every(value => value === true));
+ for (const pair of Object.values(receipt.snapshots)) assert.equal(pair.before, pair.after);
+ assert(receipt.excluded.includes('bulk-reset'));
+ assert(receipt.excluded.includes('full-Q05-denominator'));
+ assert.throws(() => createStudentResetQ05Receipt({ ...input, deniedResetPostCount: 0 }));
+ assert.throws(() => createStudentResetQ05Receipt({ ...input, cancelAfter: {} }));
+ assert.throws(() => createStudentResetQ05Receipt({ ...input,
+  recovery: { ...recovery, requestOperationIds: [id, second, second] } }));
+ assert.throws(() => createStudentResetQ05Receipt({ ...input,
+  recovery: { ...recovery, phases: recovery.phases.map(phase => phase.phase === 'replay-preserved'
+   ? { ...phase, snapshotSha256: hash({ lost: 'resumed-state' }) } : phase) } }));
+});
+
+test('published cleanup receipt oracle enforces exact plan steps, owner and generations', () => {
+ const base = { operation_id: id, owner_id: 7, from_generation: 2,
+  to_generation: 3, completed_at: new Date('2026-01-01T00:00:00Z') };
+ const make = version => ({ resets: [{ ...base, plan_version: version, status: 'completed' }],
+  steps: (version === 2 ? ['finflow_store'] : ['legacy_store', 'finflow_store'])
+   .map(step_key => ({ operation_id: id, step_key, status: 'completed' })),
+  receipts: (version === 2 ? ['finflow_store'] : ['legacy_store', 'finflow_store'])
+   .map(step_key => ({ ...base, step_key })) });
+ for (const version of [1, 2]) {
+  const valid = make(version);
+  assert.equal(assertCompletedCleanupReceipts(valid, id, 7, 2), true);
+  assert.throws(() => assertCompletedCleanupReceipts({ ...valid, receipts: [] }, id, 7, 2));
+  assert.throws(() => assertCompletedCleanupReceipts({ ...valid,
+   receipts: [...valid.receipts, { ...base, step_key: 'extra' }] }, id, 7, 2));
+  assert.throws(() => assertCompletedCleanupReceipts({ ...valid,
+   receipts: valid.receipts.map(row => ({ ...row, owner_id: 8 })) }, id, 7, 2));
+  assert.throws(() => assertCompletedCleanupReceipts({ ...valid,
+   receipts: valid.receipts.map(row => ({ ...row, from_generation: 1 })) }, id, 7, 2));
+  assert.throws(() => assertCompletedCleanupReceipts({ ...valid,
+   receipts: valid.receipts.map(row => ({ ...row, completed_at: null })) }, id, 7, 2));
+  assert.throws(() => assertCompletedCleanupReceipts({ ...valid,
+   steps: valid.steps.map(row => ({ ...row, status: 'pending' })) }, id, 7, 2));
+ }
+});
+
+test('current-host reset wrapper orders Cancel then real denied confirmation before recovery', async () => {
+ const { EventEmitter } = require('node:events');
+ const { runStudentResetQ05Scenario } = require('./postgres/adminStudentResetRecoveryBrowser');
+ const base = 'http://127.0.0.1:3001';
+ const resetUrl = `${base}/api/admin/students/7/workshops/sensitive_info_disclosure/reset`;
+ const order = [], records = [];
+ class Page extends EventEmitter {
+  async goto(url) { assert(url.startsWith(base + '/admin/student-workshop-view')); order.push('open'); }
+  async waitForSelector() {}
+  async $(selector) {
+   assert(selector.includes('Erase all Sensitive Info'));
+   return { evaluate: async () => true, click: async () => {
+    const dialog = { type: () => 'confirm',
+     message: () => 'Reset Sensitive Info Workshop Progress for controlled learner?',
+     dismiss: async () => { order.push('cancel'); },
+     accept: async () => {
+      order.push('accept');
+      const request = { url: () => resetUrl, method: () => 'POST' };
+      this.emit('request', request);
+      this.emit('response', { url: () => resetUrl, request: () => request, status: () => 403 });
+     } };
+    this.emit('dialog', dialog);
+   } };
+  }
+  waitForResponse(predicate) { return new Promise(resolve => {
+   const listener = response => { if (predicate(response)) { this.off('response', listener); resolve(response); } };
+   this.on('response', listener);
+  }); }
+ }
+ const page = new Page();
+ const snapshots = { 7: { state: [{ generation: 0 }], completions: [{ id: 'controlled' }],
+  time: [{ seconds: 0 }], tools: [{ marker: 'controlled' }] },
+  8: { state: [{ generation: 0 }], completions: [{ id: 'sibling' }],
+   time: [{ seconds: 0 }], tools: [{ marker: 'sibling' }] } };
+ const support = { seedControlledCompletion: async id => { order.push('seed-' + id); },
+  resume: async id => { order.push('resume-' + id); },
+  snapshot: async id => structuredClone(snapshots[id]) };
+ const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+ const replay = hash({ resumed: true }), siblingHash = hash(snapshots[8]);
+ const recovery = { status: 'passed', requestOperationIds: [id, id, '12345678-1234-4234-8234-123456789013'],
+  realResetPostCount: 3, originalGeneration: 0, finalGeneration: 2, modelCalls: 0,
+  replayPreservedResumedState: true, siblingPreserved: true,
+  ackLoss: { method: 'POST', path: '/api/admin/students/7/workshops/sensitive_info_disclosure/reset',
+   phase: 'after-real-http-200-before-browser-consumption' },
+  phases: [{ phase: 'baseline', siblingSha256: siblingHash },
+   { phase: 'resumed', snapshotSha256: replay },
+   { phase: 'replay-preserved', snapshotSha256: replay, siblingSha256: siblingHash }] };
+ const receipt = await runStudentResetQ05Scenario({ page, base, target: 7, sibling: 8, support,
+  revoke: async () => { order.push('revoke'); },
+  restore: async () => { order.push('restore'); },
+  recover: async () => { order.push('recover'); return recovery; },
+  record: async value => records.push(value) });
+ assert.deepEqual(order.slice(0, 8), ['seed-7', 'seed-8', 'resume-7', 'resume-8',
+  'open', 'cancel', 'open', 'revoke']);
+ assert(order.indexOf('accept') > order.indexOf('revoke'));
+ assert(order.indexOf('recover') > order.indexOf('accept'));
+ assert.equal(receipt.deniedResetPostCount, 1);
+ assert.equal(records.at(-1).status, 'bounded-rendered-student-reset-observed');
+ assert(records.some(value => value.phase === 'cancel-no-request'));
+ assert(records.some(value => value.phase === 'authority-denied'));
+ assert.equal(page.listenerCount('request'), 0);
 });
 
 test('response hook drops exactly one successful delivery and drains its handler', async () => {

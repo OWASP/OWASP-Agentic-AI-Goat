@@ -38,7 +38,10 @@ test('actual index catch logs before shutdown and retains rejection and generic 
   };
   vm.runInNewContext(fs.readFileSync(require.resolve('../server/index'),'utf8'),{require:fakeRequire,module:{exports:{}},AbortController,process:{versions:{node:'26.10.0'},env:{},once(){},on(){}},console:{error(...args){events.push(['log',...args]);if(loggingThrows)throw Error('logger');}}});
   await assert.rejects(app.locals.applicationReady,error=>error===original);
-  assert.equal(events[0][0],'log');assert.equal(events[0][2].reason,'CTF_DELIVERY_ACTIVATION_UNAVAILABLE');assert.deepEqual(events[1],['shutdown',1]);
+  assert.equal(events[0][0],'log');assert.equal(events[0][2].reason,'CTF_DELIVERY_ACTIVATION_UNAVAILABLE');
+  assert.equal(events[1][0],'log');assert.match(events[1][1],/^application_start_detail \{.*\}$/);
+  assert.equal(events[1][1].includes('secret'),false);
+  assert.deepEqual(events[2],['shutdown',1]);
   let body;middleware({}, {status(code){assert.equal(code,503);return this;},json(value){body=value;}},()=>assert.fail('not ready'));assert.equal(JSON.stringify(body),' {"error":"Application unavailable"}'.trim());
  }
 });

@@ -214,6 +214,47 @@ test('V27 producer-shaped baseline/fixed and POST/GET assessment markers are man
  for(const [bad,kind]of [[fixed,'baseline'],[baseline,'fixed'],[{...baseline,replayed:true},'baseline'],[{...fixed,modelEvaluated:true},'fixed'],[passed,'recovered-attack'],[saved,'attack'],[{completed:true,judgment:passed.judgment},'attack'],[{...passed,completed:false},'attack'],[{...passed,judgment:{evaluationId:sessionId,verdict:'fail'}},'attack'],[{...passed,judgment:{verdict:'pass'}},'attack']])assert.throws(()=>assertPolicyAssessment(bad,kind));
 });
 
+test('V27 explicit negative POST and saved GET retain fail without treating errors as semantic outcomes',()=>{
+ const failed={completed:false,judgment:{evaluationId:sessionId,verdict:'fail',canRetry:false},replayed:false};
+ assert.equal(assertPolicyAssessment(failed,'attack','fail'),failed);
+ const recovered={...failed,replayed:true};assert.equal(assertPolicyAssessment(recovered,'recovered-attack','fail'),recovered);
+ assert.throws(()=>assertPolicyAssessment(failed,'attack'),'Default positive contract remains strict');
+ for(const verdict of ['unavailable','inconclusive','error',null,undefined]){
+  const value={...failed,judgment:{...failed.judgment,verdict}};
+  assert.throws(()=>assertPolicyAssessment(value,'attack',verdict));
+  assert.throws(()=>assertPolicyAssessment(value,'attack','fail'));
+ }
+ for(const value of [{...failed,completed:true},{...failed,replayed:true},
+  {...failed,judgment:{...failed.judgment,evaluationId:'foreign'}},
+  {completed:false,status:'ineligible',modelEvaluated:false},
+  {completed:false,status:'unavailable',error:'Original failure'}])assert.throws(()=>assertPolicyAssessment(value,'attack','fail'));
+});
+
+test('V27 continuation orders physical proof before semantic state and keeps genuine Fixed and lifecycle gates',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const flow=qualifyPolicyOutputRendered.toString();
+ assert.ok(flow.indexOf('await readAssessment(')<flow.indexOf('evidence.semanticOutcome='), 'Canonical raw proof callback precedes continuation');
+ assert.ok(flow.indexOf('await policyReply(frame,response.body,mode,id===\'attack\')')<flow.indexOf('evidence.semanticOutcome='));
+ for(const text of [
+  "assertPolicyAssessment(evidence.reload.assessment.body,'recovered-attack',attackAssessment.judgment.verdict)",
+  "policyReply(frame,attack.physical.response.body,'vuln',true)",
+  "action('fixed',POLICY_OUTPUT_ATTACK,'fixed')",'assert.equal(row.physical.rendered.activeElements,0)',
+  'assert.equal(evidence.dialogs.length,dialogsBefore)',
+  "for(const key of ['judge','judgments','contributions'])assert.equal(fixedAfter[key],fixedBefore[key])",
+  'await verifyLifecycle({page,authority,cases})','evidence.semanticOutcome.coverageCompleted=true',
+ ])assert.ok(flow.includes(text),text);
+ assert.ok(flow.indexOf('await verifyLifecycle(')<flow.indexOf('evidence.semanticOutcome.coverageCompleted=true'));
+ const native=fs.readFileSync(path.join(__dirname,'postgres/secureshopStandaloneSsrfRendered.integration.test.js'),'utf8');
+ for(const text of ['H.assertPolicyOutputJudgment(',"{expectedVerdict:semanticPassed?'pass':'fail'}",
+  'H.assertPolicyOutputTerminal({outcome,stored,credit:retained.creditAtAssessment})',
+  'H.finishPolicyOutputSemantics({semanticPassed:policySemanticPassed,status,retained,save})',
+  "transport.calls.filter(row=>row.kind==='actor').length,6", "transport.calls.filter(row=>row.kind==='judge').length,2",
+  'maxHttpCalls: POLICY_OUTPUT?8:14','timeout: 900000'])assert.ok(native.includes(text),text);
+ const finish=native.indexOf('H.finishPolicyOutputSemantics(');
+ assert.ok(native.indexOf('assert.deepEqual(retained.sourcePins.after,retained.sourcePins.before)',native.indexOf('async function readAssessment('))<finish);
+ assert.ok(native.indexOf('status.siblingPositivePreserved=true',native.indexOf('async function readAssessment('))<finish);
+});
+
 test('V27 physical clearing removes retained multiline baseline without native select-all shortcuts',async()=>{
  const {POLICY_OUTPUT_BASELINE,POLICY_OUTPUT_ATTACK}=require('./fixtures/secureshopStandaloneSsrfQualification');
  const events=[],element={value:POLICY_OUTPUT_BASELINE+'\nsecond line',cursor:4,scrollIntoView(){events.push('scroll');}};

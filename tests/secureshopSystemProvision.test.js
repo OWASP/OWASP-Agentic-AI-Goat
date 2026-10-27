@@ -20,12 +20,12 @@ function fixture(t){
  fs.writeFileSync(path.join(dir,'local-docker.json'),JSON.stringify({version:1,workspaceId:id,host:'unix:///var/run/docker.sock',daemonId:'controlled-daemon',source:'environment-host'}),{mode:0o600});
  const profileSha=hash(renderMcpSandboxAppArmor(fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'),'utf8'),'dvaia-mcp-sandbox'));
  const calls=[],envFiles=[],images=new Map([[BASE,{Id:BASE,Architecture:'arm64'}]]),networks=new Map(),volumes=new Map(),containers=new Map();
- const controls={unknownCreate:false,missingCreate:false,readiness:false,profileSha,profileEnforced:true,buildHook:null};
+ const controls={unknownCreate:false,missingCreate:false,readiness:false,profileSha,profileExists:true,profileEnforced:true,buildHook:null};
  const labels=args=>Object.fromEntries(args.flatMap((x,i)=>x==='--label'?[args[i+1].split(/=(.*)/s).slice(0,2)]:[]));
  const inspect=(value,kind)=>value?{exitCode:0,stdout:JSON.stringify([value]),stderr:''}:{exitCode:1,stdout:'',stderr:kind==='volume'?'Error response from daemon: no such volume':'No such object'};
  const run=async(file,args,options)=>{
   calls.push({file,args:[...args],options});assert.ok(options.timeoutMs<=300000);assert.ok(options.maxOutputBytes<=1048576);
-  if(file==='sudo'){if(args[1]==='sha256sum')return{exitCode:0,stdout:controls.profileSha+'  /etc/apparmor.d/dvaia-mcp-sandbox\n'};return{exitCode:0,stdout:controls.profileEnforced?'dvaia-mcp-sandbox (enforce)\n':'dvaia-mcp-sandbox (complain)\n'};}
+  if(file==='sudo'){if(args[1]==='test')return{exitCode:args[2]==='-L'||!controls.profileExists?1:0,stdout:''};if(args[1]==='stat')return{exitCode:0,stdout:'0:0:600:regular file'};if(args[1]==='sha256sum')return{exitCode:0,stdout:controls.profileSha+'  /etc/apparmor.d/dvaia-mcp-sandbox\n'};if(args[1]==='cp'){assert(args.includes('--no-clobber'));controls.profileExists=true;return{exitCode:0,stdout:''};}if(args[1]==='apparmor_parser'){if(args[2]==='-r')controls.profileEnforced=true;return{exitCode:0,stdout:''};}return{exitCode:0,stdout:controls.profileEnforced?'dvaia-mcp-sandbox (enforce)\n':'dvaia-mcp-sandbox (complain)\n'};}
   assert.equal(file,'docker');assert.deepEqual(args.slice(0,2),['--host','unix:///var/run/docker.sock']);args=args.slice(2);
   if(args[0]==='info')return{exitCode:0,stdout:'"controlled-daemon"'};
   if(args[1]==='inspect')return inspect(args[0]==='container'
@@ -87,6 +87,18 @@ test('foreign mounts, image, namespace, port or token stop repeat without modify
 test('profile mismatch refuses before build or credential stage; image architecture drift refuses before create',async t=>{
  const f=fixture(t);f.controls.profileSha='f'.repeat(64);await assert.rejects(provision(f.options),{code:'SYSTEM_INSTALL_PROFILE_CONFLICT'});assert.equal(fs.existsSync(path.join(f.dir,managed.FILE)),false);assert.ok(!f.calls.some(c=>c.args[2]==='build'));
  f.controls.profileSha=hash(renderMcpSandboxAppArmor(fs.readFileSync(path.join(f.root,'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'),'utf8'),'dvaia-mcp-sandbox'));await provision(f.options);f.images.get(IMAGE).Architecture='amd64';await assert.rejects(provision(f.options),{code:'SYSTEM_INSTALL_IMAGE_CONFLICT'});
+});
+
+test('clean explicit System provision prepares the exact shared profile before build; startExisting never repairs it',async t=>{
+ const f=fixture(t);f.controls.profileExists=false;f.controls.profileEnforced=false;
+ const result=await provision(f.options);assert.equal(result.ready,true);
+ const install=f.calls.findIndex(c=>c.options.stage==='profile-install'),load=f.calls.findIndex(c=>c.options.stage==='profile-load'),build=f.calls.findIndex(c=>c.file==='docker'&&c.args[2]==='build');
+ assert(install>=0&&load>install&&build>load);
+ const activation=require('../scripts/install/secureshop-owned-system-activate');
+ activation.activate({filePath:result.managedPath,expected:activation.capture(result.managedPath)});
+ const before=f.calls.length;f.controls.profileExists=false;
+ await assert.rejects(startExisting(f.options),{code:'SYSTEM_INSTALL_PROFILE_UNAVAILABLE'});
+ assert(!f.calls.slice(before).some(c=>['profile-install','profile-load'].includes(c.options.stage)));
 });
 
 test('build reads frozen verified bytes even if live source changes during the bounded build',async t=>{
@@ -210,7 +222,7 @@ for mutate in mutations:
  else:raise AssertionError('invalid controlled receipt accepted')
 print(json.dumps({'controlled':True,'genuineCredit':False,'negatives':len(mutations)}))
 `;
- const result=require('node:child_process').spawnSync('/usr/local/bin/python3',['-c',code],{cwd:ROOT,encoding:'utf8',timeout:10000});
+ const result=require('node:child_process').spawnSync('python3',['-B','-c',code],{cwd:ROOT,encoding:'utf8',timeout:10000});
  assert.equal(result.status,0,result.stderr);assert.deepEqual(JSON.parse(result.stdout),{controlled:true,genuineCredit:false,negatives:10});
 });
 

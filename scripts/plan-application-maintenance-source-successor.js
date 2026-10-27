@@ -91,6 +91,43 @@ function directMissingFromChanged(root, changed, pinned) {
   return [...missing].sort();
 }
 
+
+// Exactly two nonexecuted drafts retired at the reviewed v339 -> v340 boundary.
+// This is historical retirement, not byte equivalence with executable migrations.
+function reviewedDraftRetirements(root, previousVersion, priorBytes, prior, missingSql) {
+  if (previousVersion !== 339) {
+    if (missingSql.length) throw new Error('Previously admitted SQL missing: ' + missingSql.join(', '));
+    return [];
+  }
+  if (hash(priorBytes) !== '36585449ef212b5ae002b31237ba4bcc538b3c64f8e1fc6820b131297e853831') throw new Error('Exact v339 predecessor required');
+  const drafts = {
+    'db/postgres/drafts/secureshop_owned_registration.sql': '8526dbdb872ece1c6e4493e766c63db0265a4c7822a1f146c5582675466d4e31',
+    'db/postgres/drafts/xss_profile_model_origin.sql': 'b00dbc0b6ad7663e339055a4bebad7eb2b9cb522e7c05cb56e8c6f0c704be1d7',
+  };
+  if (JSON.stringify([...missingSql].sort()) !== JSON.stringify(Object.keys(drafts).sort())) throw new Error('Exact two absent nonexecuted drafts required');
+  for (const [name, digest] of Object.entries(drafts)) {
+    if (prior.files[name] !== digest || prior.recoveryFiles.filter(value => value === name).length !== 1) throw new Error('Exact draft predecessor entry required');
+    // lstat detects dangling links; only ENOENT is evidence of absence.
+    for (let parent = path.dirname(path.join(root, name)); parent !== root; parent = path.dirname(parent)) {
+      let info;
+      try { info = fs.lstatSync(parent); }
+      catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+      if (!info.isDirectory() || info.isSymbolicLink() || fs.realpathSync(parent) !== parent) throw new Error('Noncanonical retired draft ancestor');
+    }
+    try { fs.lstatSync(path.join(root, name)); }
+    catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+    throw new Error('Retired draft still exists: ' + name);
+  }
+  const xss = 'db/postgres/workshop-migrations/xss/0006_profile_model_origin.sql';
+  const registration = 'db/postgres/workshop-migrations/secureshop_agents/0115_owned_mcp_registration_journal.sql';
+  const xssSha = '2d22cd959598cd165f80a312d09f582f8ac649e630fce21c840409ecf5adca4f';
+  if (prior.files[xss] !== xssSha || hash(ownedFile(root, xss)) !== xssSha) throw new Error('Retained XSS migration changed');
+  if (Object.hasOwn(prior.files, registration) || hash(ownedFile(root, registration)) !== 'f02847fa244b35e255208fab9ee5da4325b7e48aea1fe839780e3a0d4245e7f0') throw new Error('Exact added registration migration required');
+  return Object.entries(drafts).map(([name, priorSha256]) => ({path: name, priorSha256,
+    predecessorVersion: 339, successorVersion: 340,
+    justification: 'Explicit retirement of absent nonexecuted draft; executable migrations remain separately admitted; no byte-equivalence claim.'}));
+}
+
 function planSuccessor({ root = ROOT, previousVersion } = {}) {
   root = fs.realpathSync(root);
   if (previousVersion === undefined) {
@@ -102,22 +139,26 @@ function planSuccessor({ root = ROOT, previousVersion } = {}) {
   if (!Number.isSafeInteger(previousVersion) || previousVersion < 1) throw new Error('Invalid predecessor version');
   const nextVersion = previousVersion + 1;
   const priorName = `server/services/applicationMaintenanceInprocessSources-v${previousVersion}.json`;
-  const prior = JSON.parse(ownedFile(root, priorName));
+  const priorBytes = ownedFile(root, priorName);
+  const prior = JSON.parse(priorBytes);
   if (prior.version !== 1 || prior.profile !== 'canonical16-ctf-inprocess-v1' || !Array.isArray(prior.recoveryFiles) || !prior.files || typeof prior.files !== 'object') throw new Error('Invalid predecessor manifest');
   if (JSON.stringify(prior.recoveryFiles) !== JSON.stringify([...new Set(prior.recoveryFiles)].sort()) ||
       prior.recoveryFiles.some(name => !Object.hasOwn(prior.files, name))) throw new Error('Invalid predecessor recovery inventory');
   const sql = sqlInventory(root), oldSql = Object.keys(prior.files).filter(name => name.startsWith('db/postgres/') && name.endsWith('.sql')).sort();
   const addedSql = sql.filter(name => !Object.hasOwn(prior.files, name));
   const missingSql = oldSql.filter(name => !sql.includes(name));
-  if (missingSql.length) throw new Error(`Previously admitted SQL missing: ${missingSql.join(', ')}`);
+  const retiredDrafts = reviewedDraftRetirements(root, previousVersion, priorBytes, prior, missingSql);
+  const retiredNames = new Set(retiredDrafts.map(row => row.path));
   const files = { ...prior.files }, changed = [];
+  for (const name of retiredNames) delete files[name];
   const prospectiveAdmission = virtualAdmission(ownedFile(root, ADMISSION), previousVersion, nextVersion);
   for (const name of Object.keys(files)) {
     const digest = hash(name === ADMISSION ? prospectiveAdmission : ownedFile(root, name));
     if (digest !== files[name]) { changed.push(name); files[name] = digest; }
   }
   for (const name of addedSql) files[name] = hash(ownedFile(root, name));
-  const candidate = { version: prior.version, profile: prior.profile, files, recoveryFiles: [...new Set([...prior.recoveryFiles, ...addedSql])].sort() };
+  const candidate = { version: prior.version, profile: prior.profile, files, recoveryFiles: [...new Set([...prior.recoveryFiles.filter(name => !retiredNames.has(name)), ...addedSql])].sort(),
+    ...(retiredDrafts.length ? {retiredDrafts} : prior.retiredDrafts ? {retiredDrafts: prior.retiredDrafts} : {}) };
   const plannedManifest = `server/services/applicationMaintenanceInprocessSources-v${nextVersion}.json`;
   const reachable = staticallyReachableMissing(root, files, {
     sourceOverrides: new Map([[ADMISSION, prospectiveAdmission]]), planned: new Set([plannedManifest]),
@@ -137,4 +178,4 @@ if (require.main === module) {
   process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
 }
 
-module.exports = { planSuccessor, sqlInventory, virtualAdmission, staticallyReachableMissing, directMissingFromChanged };
+module.exports = { reviewedDraftRetirements, planSuccessor, sqlInventory, virtualAdmission, staticallyReachableMissing, directMissingFromChanged };

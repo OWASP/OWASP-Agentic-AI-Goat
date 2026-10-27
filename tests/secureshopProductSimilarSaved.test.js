@@ -10,7 +10,7 @@ const {SECURESHOP_CONVERSATION_PURPOSES:P}=require('../server/services/securesho
 
 // Controlled in-memory stores/providers exercise the real graph and admission
 // code. These tests produce no actual model, PostgreSQL, browser or credit proof.
-function fixture({capture,afterCommit,readHook,observation,chatHook,toolHook,fixedFactory=false}={}) {
+function fixture({capture,protectedCapture,afterCommit,readHook,observation,chatHook,toolHook,fixedFactory=false}={}) {
   const scope={launchId:randomUUID(),scenarioId:randomUUID(),generation:2,platformOwnerId:12,platformSessionId:13};
   const persona={id:1000000012,role:'customer'},personaSession={sessionId:randomUUID(),authorityVersion:'2'};
   let target=createSceneBinding({...scope,generation:1,targetId:randomUUID()},
@@ -69,7 +69,8 @@ function fixture({capture,afterCommit,readHook,observation,chatHook,toolHook,fix
         return createSecureShopBoundProductTools({...input,catalog:{async getProduct(){return {product:seed};},
           async listProducts(){return {products:[seed],total:1};}},retrieval:{async similar(){throw Error('Fixed must not retrieve');}}});}
       return new Map([['product-search.similar',async()=>{counts.tools++;await toolHook?.();
-      input.captureManualRagSource?.({target:JSON.parse(JSON.stringify(target)),lineage:capture||{eligible:false,reason:'missing_original'}});
+      input.captureManualRagSource?.({target:JSON.parse(JSON.stringify(target)),lineage:capture||{eligible:false,reason:'missing_original'},
+        ...(protectedCapture || {})});
       return {content:[{type:'text',text:JSON.stringify(value)}]};}]]);}
   });
   const base={scope,persona,personaSession,productId:7};
@@ -120,6 +121,41 @@ test('private lineage persists before postcommit while oversized input stays exp
   assert.deepEqual(large.requests.get(large.key(largeInput)).result_json.taskMetadata.manualRagConsumerOrigin.lineage,
     {eligible:false,reason:'metadata_limit'});
   assert.equal(large.counts.actor,2);assert.equal(large.counts.tools,1);
+});
+
+test('protected source capture is additive, saved before callback and does not rerun on recovery',async()=>{
+  // Controlled capture exercises persistence only, not source qualification.
+  const capture={eligible:false,reason:'missing_original'};
+  const protectedCapture={protectedLineage:{eligible:true,version:2,original:'private source reference'},
+    query:{version:1,kind:'product_name_description',text:'Owned\nPublic topic'}};
+  const f=fixture({capture,protectedCapture}),input=await f.input();
+  const result=await f.assist.runSimilar(input),row=f.requests.get(f.key(input));
+  const metadata=row.result_json.taskMetadata,origin=metadata.protectedManualConsumerOrigin;
+  assert.deepEqual(metadata.manualRagConsumerOrigin.lineage,capture);
+  assert.deepEqual(origin.lineage,protectedCapture.protectedLineage);
+  assert.deepEqual(origin.query,protectedCapture.query);
+  assert.deepEqual(origin.source,{sessionId:input.sessionId,requestId:input.requestId});
+  assert.deepEqual(origin.traceEventIds,metadata.manualRagConsumerOrigin.traceEventIds);
+  assert.equal(Object.hasOwn(result,'protectedManualConsumerOrigin'),false);
+  assert.deepEqual(result.retrieved_context,f.value.retrieved_context);
+  assert.equal(result.recommendation,'Observed original recommendation.');
+  const before={...f.counts};
+  assert.deepEqual((await f.assist.readSimilar(input)).result,result);
+  assert.deepEqual(await f.assist.runSimilar(input),result);
+  for(const name of ['actor','tools','commits','postCommit'])assert.equal(f.counts[name],before[name]);
+});
+
+test('oversized protected capture cannot evict public source metadata or truncate original context',async()=>{
+  const capture={eligible:true,version:1,original:'public reference retained'};
+  const f=fixture({capture,protectedCapture:{protectedLineage:{eligible:true,version:2,original:'x'.repeat(70000)},
+    query:{text:'Owned\nPublic topic'}}}),input=await f.input();
+  const result=await f.assist.runSimilar(input),metadata=f.requests.get(f.key(input)).result_json.taskMetadata;
+  assert.equal(Object.hasOwn(metadata,'protectedManualConsumerOrigin'),false);
+  assert.deepEqual(metadata.manualRagConsumerOrigin.lineage,capture);
+  assert.ok(Buffer.byteLength(JSON.stringify(metadata))<=65536);
+  assert.deepEqual(result.retrieved_context,f.value.retrieved_context);
+  assert.deepEqual((await f.assist.readSimilar(input)).result,result);
+  assert.equal(f.counts.actor,2);assert.equal(f.counts.tools,1);
 });
 
 test('production tool factory forwards only its server-owned private callback; fixed catalog path performs no retrieval capture',async()=>{
@@ -191,6 +227,7 @@ test('strict fixed catalog run has ordinary v2 saved read/replay without requiri
   const f=fixture({fixedFactory:true});f.setMode();const input=await f.input(),result=await f.assist.runSimilar(input);
   assert.equal(result.mode,'catalog');assert.deepEqual(result.retrieved_context,[]);
   assert.equal(result.modeCapability.effectiveMode,'fixed');
+  assert.equal(result.modeCapability.policyVersion,'bounded-product-data-and-catalog-neighbors-v1','Summary-only policy must not invalidate existing Similar recovery');
   const row=f.requests.get(f.key(input));assert.equal(row.result_json.taskMetadata.productAssist.version,2);
   assert.equal(row.result_json.taskMetadata.manualRagConsumerOrigin.lineage.eligible,false);
   const before={...f.counts};assert.deepEqual((await f.assist.readSimilar(input)).result,result);

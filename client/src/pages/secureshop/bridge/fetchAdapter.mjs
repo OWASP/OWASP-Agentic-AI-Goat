@@ -1,5 +1,5 @@
 import { matchOperationRequest } from './operations.mjs';
-import { encodeAvatarTraversalFormData, encodeAvatarUploadFormData, encodeFileSummaryFormData, encodeUploadFormData } from './uploads.mjs';
+import { encodeAccountAvatarFormData, encodeAvatarTraversalFormData, encodeAvatarUploadFormData, encodeFileSummaryFormData, encodeUploadFormData } from './uploads.mjs';
 
 const MAX_BODY_BYTES = 128 * 1024;
 const bridgeFetchMetadata = new WeakMap();
@@ -77,11 +77,12 @@ export function createBridgeFetch({ bridge, origin, getToken = () => undefined,
     if (shopBearer !== undefined && (typeof shopBearer !== 'string' || !shopBearer
       || shopBearer.length > 8192 || /[\r\n]/.test(shopBearer))) fail();
     if (multipartForm) {
-      if (!['/api/secureshop/uploads','/api/secureshop/agents/customer/avatar-upload/path-traversal/run','/api/secureshop/agents/customer/avatar-upload/run','/api/secureshop/agents/customer/file-summary/run'].includes(url.pathname) || url.search || request.method !== 'POST'
+      if (!['/api/secureshop/uploads','/api/secureshop/uploads/avatar','/api/secureshop/agents/customer/avatar-upload/path-traversal/run','/api/secureshop/agents/customer/avatar-upload/run','/api/secureshop/agents/customer/file-summary/run'].includes(url.pathname) || url.search || request.method !== 'POST'
         || new Headers(init?.headers ?? (isRequest ? input.headers : undefined)).has('content-type')) fail();
+      const accountAvatar=url.pathname === '/api/secureshop/uploads/avatar';
       const traversal=url.pathname.endsWith('/customer/avatar-upload/path-traversal/run'),avatar=url.pathname.endsWith('/customer/avatar-upload/run'),fileSummary=url.pathname.endsWith('/customer/file-summary/run');
-      const upload=traversal?encodeAvatarTraversalFormData(multipartForm):avatar?encodeAvatarUploadFormData(multipartForm):fileSummary?encodeFileSummaryFormData(multipartForm):encodeUploadFormData(multipartForm);
-      return bridge.request(traversal?'agent.customer.avatarTraversal.run':avatar?'agent.customer.avatarUpload.run':fileSummary?'agent.customer.fileSummary.run':'uploads.create', upload, { shopBearer, signal: request.signal });
+      const upload=accountAvatar?encodeAccountAvatarFormData(multipartForm):traversal?encodeAvatarTraversalFormData(multipartForm):avatar?encodeAvatarUploadFormData(multipartForm):fileSummary?encodeFileSummaryFormData(multipartForm):encodeUploadFormData(multipartForm);
+      return bridge.request(accountAvatar?'uploads.avatar.create':traversal?'agent.customer.avatarTraversal.run':avatar?'agent.customer.avatarUpload.run':fileSummary?'agent.customer.fileSummary.run':'uploads.create', upload, { shopBearer, signal: request.signal });
     }
     if (request.body && !contentType) fail();
     const body = await readJson(request);

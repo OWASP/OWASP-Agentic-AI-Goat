@@ -28,6 +28,78 @@ test('shop login and bootstrap use only shop cookie endpoints, with launch secre
     headers: expect.objectContaining({ 'X-DVAIA-SecureShop-Launch': bootstrap.bearer }) }));
 });
 
+test('external test send requires cookie and parent launch/persona together and accepts only bound receipts', async () => {
+  const operationId = '11111111-1111-4111-8111-111111111111';
+  const scopeKey = 'a'.repeat(64), requestSha256 = 'b'.repeat(64);
+  const preview = { sender: 'merchant@gmail.com', recipient: 'person@sharklasers.com',
+    subject: 'SecureShop synthetic delivery test',
+    text: `This is a manually requested SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n` };
+  const prepared = { version: 1, operationId, scopeKey, requestSha256, state: 'prepared',
+    preview, expiresAt: expiry, smtp: null };
+  const ready = { version: 1, available: true, scopeKey, sender: preview.sender,
+    templateVersion: 'synthetic-test-v1', limits: { ownerPerHour: 3, senderPerHour: 20 } };
+  const fetchImpl = jest.fn().mockResolvedValueOnce(response(ready))
+    .mockResolvedValueOnce(response(prepared)).mockResolvedValueOnce(response(prepared))
+    .mockResolvedValueOnce(response({ ...prepared, state: 'smtp_accepted',
+      smtp: { smtpAccepted: true, deliveryConfirmed: false, messageId: 'provider-id',
+        acceptedRecipient: preview.recipient } }));
+  const client = createStandaloneShopClient({ fetchImpl });
+  expect(await client.getExternalMailReadiness(bootstrap.bearer, bootstrap.persona.token)).toEqual(ready);
+  expect(await client.prepareExternalMail(bootstrap.bearer, bootstrap.persona.token,
+    { operationId, recipient: preview.recipient, scopeKey })).toEqual(prepared);
+  expect(await client.getExternalMailOperation(bootstrap.bearer, bootstrap.persona.token,
+    operationId, scopeKey)).toEqual(prepared);
+  expect((await client.confirmExternalMail(bootstrap.bearer, bootstrap.persona.token,
+    { operationId, requestSha256, scopeKey })).state).toBe('smtp_accepted');
+  expect(fetchImpl.mock.calls.map(([path]) => path)).toEqual([
+    '/api/secureshop/auth/external-mail/readiness',
+    '/api/secureshop/auth/external-mail/prepare',
+    `/api/secureshop/auth/external-mail/operations/${operationId}`,
+    '/api/secureshop/auth/external-mail/confirm',
+  ]);
+  for (const [, options] of fetchImpl.mock.calls) {
+    expect(options).toMatchObject({ credentials: 'include', redirect: 'error', headers: {
+      'X-DVAIA-SecureShop-Launch': bootstrap.bearer,
+      Authorization: `Bearer ${bootstrap.persona.token}` } });
+  }
+  expect(JSON.parse(fetchImpl.mock.calls[3][1].body)).toEqual({ version: 1, operationId, requestSha256 });
+  expect(fetchImpl.mock.calls[3][1].body).not.toContain(preview.text);
+});
+
+test('external test send rejects forged acknowledgment and never sends an invalid recipient', async () => {
+  const operationId = '11111111-1111-4111-8111-111111111111', scopeKey = 'a'.repeat(64);
+  const client = createStandaloneShopClient({ fetchImpl: jest.fn().mockResolvedValue(response({
+    version: 1, operationId, scopeKey, requestSha256: 'b'.repeat(64), state: 'smtp_accepted',
+    preview: { sender: 'merchant@gmail.com', recipient: 'person@sharklasers.com',
+      subject: 'SecureShop synthetic delivery test',
+      text: `This is a manually requested SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n` },
+    expiresAt: expiry, smtp: { smtpAccepted: true, deliveryConfirmed: true,
+      messageId: 'provider-id', acceptedRecipient: 'person@sharklasers.com' },
+  })) });
+  await expect(client.prepareExternalMail(bootstrap.bearer, bootstrap.persona.token,
+    { operationId, recipient: 'person@example.com', scopeKey })).rejects.toThrow('draft required');
+  await expect(client.getExternalMailOperation(bootstrap.bearer, bootstrap.persona.token,
+    operationId, scopeKey)).rejects.toThrow('not verified');
+});
+
+test('external test send accepts only the server terminal expiry DTO, not a client-inferred draft expiry', async () => {
+  const operationId = '11111111-1111-4111-8111-111111111111', scopeKey = 'a'.repeat(64);
+  const expiryPast = new Date(Date.now() - 60000).toISOString();
+  const row = { version: 1, operationId, scopeKey, requestSha256: 'b'.repeat(64), state: 'expired',
+    preview: { sender: 'merchant@gmail.com', recipient: 'person@sharklasers.com',
+      subject: 'SecureShop synthetic delivery test',
+      text: `This is a manually requested SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n` },
+    expiresAt: expiryPast, smtp: null };
+  const fetchImpl = jest.fn().mockResolvedValueOnce(response(row))
+    .mockResolvedValueOnce(response({ ...row, state: 'prepared' }));
+  const client = createStandaloneShopClient({ fetchImpl });
+  expect((await client.getExternalMailOperation(bootstrap.bearer, bootstrap.persona.token,
+    operationId, scopeKey)).state).toBe('expired');
+  expect((await client.getExternalMailOperation(bootstrap.bearer, bootstrap.persona.token,
+    operationId, scopeKey)).state).toBe('prepared');
+  expect(fetchImpl).toHaveBeenCalledTimes(2);
+});
+
 test('malformed bootstrap cannot enter the bound frame', () => {
   expect(() => validateShopBootstrap({ ...bootstrap, extra: 'platform-token' })).toThrow('Invalid shop bootstrap');
   expect(() => validateShopBootstrap({ ...bootstrap, persona: { ...bootstrap.persona, user: { ...bootstrap.persona.user,

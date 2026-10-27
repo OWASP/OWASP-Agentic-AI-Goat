@@ -338,7 +338,7 @@ test('composition exposes the one coordinator and accepts only a branded prepare
   const conversationRepository = methodMap(['acquireBoundSession', 'activateBoundSession',
     'abandonBoundSession', 'getBoundSession', 'appendMessage', 'getMessages', 'getTokens',
     'addTokens', 'appendTraces', 'getTrace', 'getTraceEvents', 'latestTrace', 'personaLatestTrace']);
-  const journal = methodMap(['lookupGeneralRequest', 'claim', 'complete', 'markUncertain', 'readBoundRequest', 'readAuditRequest']);
+  const journal = methodMap(['lookupGeneralRequest', 'lookupReviewModerationRequest', 'claim', 'complete', 'markUncertain', 'readBoundRequest', 'readAuditRequest']);
   const reviewRepository = methodMap(['provision', 'listReviews', 'listPending', 'submitReview',
     'decide', 'cleanup', 'readCleanupReceipt', 'readSubmission', 'captureReviewAdmissionTime', 'readDecisionReceipt',
     'readSceneTarget', 'provisionScene']);
@@ -443,6 +443,10 @@ test('composition exposes the one coordinator and accepts only a branded prepare
     return originalSearchEchoFactory(input);
   });
   const prepared=createSecureShopBoundReviewComposition(preparedOptions);
+  assert.equal(typeof prepared.accountAvatar?.upload, 'function',
+    'JSON-only direct avatar must compose without optional V06 asset origin or capability');
+  assert.equal(typeof prepared.accountAvatar?.read, 'function');
+  assert.equal(prepared.avatarUpload, undefined);
   assert.equal(prepared.roleAssistants.admin.userLookupAssessment.objectiveId,'ss_user_lookup_sensitive_disclosure');
   assert.equal(typeof prepared.roleAssistants.admin.userLookupAssessment.readOutcome,'function');
   const preparedV8=createSecureShopBoundReviewComposition({...preparedOptions,searchEchoEvidenceVersion:8});
@@ -512,7 +516,7 @@ test('direct MCP trust construction uses the default owned bundle without startu
   const conversationRepository = methodMap(['acquireBoundSession', 'activateBoundSession',
     'abandonBoundSession', 'getBoundSession', 'appendMessage', 'getMessages', 'getTokens',
     'addTokens', 'appendTraces', 'getTrace', 'latestTrace']);
-  const journal = methodMap(['lookupGeneralRequest', 'lookupMcpRequest', 'claim', 'complete', 'markUncertain']);
+  const journal = methodMap(['lookupGeneralRequest', 'lookupReviewModerationRequest', 'lookupMcpRequest', 'claim', 'complete', 'markUncertain']);
   const reviewRepository = methodMap(['provision', 'listReviews', 'listPending', 'submitReview',
     'decide', 'cleanup', 'readCleanupReceipt', 'readSubmission', 'captureReviewAdmissionTime']);
   const productRepository = methodMap(['open', 'provision', 'list', 'get', 'cleanup', 'readCleanupReceipt']);
@@ -553,12 +557,15 @@ test('composition rejects missing authority rather than constructing a partial r
 test('V01 and V06 canonical assessments bind publication scope to shop tenant mode',async()=>{
   const source=await require('node:fs/promises').readFile(
     path.join(root,'server/services/secureshopBoundReviewComposition.js'),'utf8');
-  for(const [start,end] of [['let avatarUpload;','let productSearch;'],
+  for(const [start,end] of [['let avatarUpload, accountAvatar, uploadRepository','let productSearch;'],
     ['let checkoutAuditLesson;','const refundRepository']]){
     const block=source.slice(source.indexOf(start),source.indexOf(end));
     assert.ok(block.length>0);assert.doesNotMatch(block,/publicationModes:\s*workshopProgress/);
     assert.match(block,/publicationModes:\s*require\('\.\.\/database\/postgres\/secureshopModeRepository'\)\.createSecureShopModeRepository\(identityPool\)/);
   }
+  assert.match(source,/accountAvatar=require\('\.\/secureshopBoundAccountAvatar'\)/);
+  assert.ok(source.indexOf('accountAvatar=require') < source.indexOf('if (uploadAssetOrigin !== undefined'),
+    'direct JSON avatar service must not require the optional V06 asset origin');
 });
 
 test('close waits for pending initialization and releases every temporary readiness pool', async () => {

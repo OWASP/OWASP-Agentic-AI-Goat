@@ -11,15 +11,20 @@ const http = require('node:http');
 const { networkGuardSource, waitForChild, createOwnedChildren } = require('../fixtures/fullBackendBootControls');
 
 test('enabled actual index installs prepared SecureShop grading', {skip:process.env.PG_SECURESHOP_ENABLED_STARTUP!=='1',timeout:180000},async t=>{
+  const ownerDeadline = Date.now() + 180000;
   const source = path.resolve(__dirname, '../..');
   assert.equal(fs.realpathSync(source), process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
-  assert.equal(fs.statSync(source).mode & 0o222, 0, 'source must be frozen');
+  const currentHost = process.env.ADMIN_ACL_PERMISSION_CURRENT_HOST === '1'
+    ? await require('./aclPermissionCurrentHostAdmission').admitAclCurrentHost() : null;
+  if (!currentHost) assert.equal(fs.statSync(source).mode & 0o222, 0, 'source must be frozen');
+  if (currentHost) assert.equal(process.env.DVAIA_ACL_PERMISSION_RECOVERY, '1');
   const root = process.env.DVAIA_FULL_BACKEND_RUNTIME_ROOT;
   assert.ok(root && path.isAbsolute(root));
   assert.equal(fs.realpathSync(root), root);
   assert.equal(fs.statSync(root).uid, process.getuid());
   assert.equal(fs.readdirSync(root).length, 0);
-  assert.ok(!root.startsWith(source + path.sep) && !source.startsWith(root + path.sep));
+  if (currentHost) assert.equal(root, path.join(currentHost.runtime, 'fixture'));
+  else assert.ok(!root.startsWith(source + path.sep) && !source.startsWith(root + path.sep));
   fs.chmodSync(root, 0o700);
   const { requiredStoreManifest } = require('../../db/postgres/initialize-application');
   assert.equal(requiredStoreManifest.length, 16);
@@ -31,6 +36,7 @@ test('enabled actual index installs prepared SecureShop grading', {skip:process.
     AWS_EC2_METADATA_DISABLED: 'true', HF_HUB_OFFLINE: '1', TRANSFORMERS_OFFLINE: '1',
     HF_HOME: path.join(root, 'hf-cache'), EVENT_GATE_ENABLED: 'false',
     JWT_SECRET: randomUUID() + randomUUID(), LANGCHAIN_TRACING_V2: 'false', LANGSMITH_TRACING: 'false' };
+  if (currentHost) { assert.equal(process.env.PG_POOL_BUDGET, '78'); env.PG_POOL_BUDGET = '78'; }
   const databases = new Set(), roles = new Set(), endpoints = new Set();
   for (const row of requiredStoreManifest) {
     let database;
@@ -40,13 +46,16 @@ test('enabled actual index installs prepared SecureShop grading', {skip:process.
       assert.equal(url.hostname, '127.0.0.1'); assert.ok(url.port);
       assert.equal(url.search, ''); assert.equal(url.hash, '');
       assert.equal(decodeURIComponent(url.username), role);
-      assert.equal(url.pathname, `/dvaia_test_full_backend_${row.schema}`);
+      assert.equal(url.pathname, currentHost
+        ? '/' + currentHost.stores.find(store => store.schema === row.schema).database
+        : `/dvaia_test_full_backend_${row.schema}`);
       if (database) assert.equal(url.pathname, database);
       database = url.pathname; roles.add(role); endpoints.add(url.host);env[key] = url.href;
     }
     databases.add(database);
   }
   assert.equal(databases.size, 16); assert.equal(roles.size, 32); assert.equal(endpoints.size, 1);
+  if (currentHost) { env.CTF_DELIVERY_DATABASE_URL = require('./aclCtfStartupInitialize').admitDelivery({...env, CTF_DELIVERY_DATABASE_URL:process.env.CTF_DELIVERY_DATABASE_URL}); }
   for (const directory of [env.HOME, env.LOGS_DIR, env.DVAIA_APP_DATA_ROOT]) fs.mkdirSync(directory, { mode: 0o700 });
   env.SS_PASSWORD_RESET_KEY_PATH=path.join(env.DVAIA_APP_DATA_ROOT,'password-reset-keys.json');
   fs.writeFileSync(env.SS_PASSWORD_RESET_KEY_PATH,JSON.stringify({version:1,activeKeyId:'native',keys:{native:randomBytes(32).toString('base64url')}}),{mode:0o600,flag:'wx'});
@@ -62,13 +71,13 @@ test('enabled actual index installs prepared SecureShop grading', {skip:process.
   try{
    assert.equal(await waitForChild(launch('server/database/sensitiveInfoFiles.js',['--initialize-missing']),{timeoutMs:30000,signal:t.signal}),0);
    assert.ok(fs.statSync(env.LEGACY_SENSITIVE_FILES_ROOT).isDirectory());
-   assert.equal(await waitForChild(launch('db/postgres/initialize-application.js'),{timeoutMs:90000,signal:t.signal}),0);
+   assert.equal(await waitForChild(launch(currentHost ? 'tests/postgres/aclCtfStartupInitialize.js' : 'db/postgres/initialize-application.js'),{timeoutMs:90000,signal:t.signal}),0);
    const {Pool}=require('pg');pool=new Pool({connectionString:env.IDENTITY_DATABASE_URL,max:2});migration=new Pool({connectionString:env.IDENTITY_MIGRATION_DATABASE_URL,max:2});
    const identity=require('../../server/database/postgres/identityRepository').createIdentityRepository(pool),password=randomUUID()+'Aa1!',passwordHash=await require('bcryptjs').hash(password,4);
    const create=async label=>identity.createUser({username:label+'-'+randomUUID(),email:randomUUID()+'@example.invalid',passwordHash});
    const admin=await create('admin'),student=await create('student'),sibling=await create('sibling');await migration.query("UPDATE identity.users SET role='admin',admin_level=1,email_verified=1 WHERE id=$1",[admin.id]);await identity.grantPermission({userId:admin.id,permission:'view_analytics',grantedBy:admin.id});
    child=launch('server/index.js');const base=`http://127.0.0.1:${port}`;
-   const request=async(url,token,body,extra={})=>{const response=await fetch(base+url,{method:body?'POST':'GET',signal:AbortSignal.any([t.signal,AbortSignal.timeout(3000)]),headers:{'content-type':'application/json',...(token?{authorization:`Bearer ${token}`}:{ }),...extra},...(body?{body:JSON.stringify(body)}:{})});return{status:response.status,body:await response.json()};};
+   const request=async(url,token,body,extra={},operationSignal=t.signal)=>{const response=await fetch(base+url,{method:body?'POST':'GET',signal:AbortSignal.any([t.signal,operationSignal,AbortSignal.timeout(3000)]),headers:{'content-type':'application/json',...(token?{authorization:`Bearer ${token}`}:{ }),...extra},...(body?{body:JSON.stringify(body)}:{})});return{status:response.status,body:await response.json()};};
    let ready=false;for(let i=0;i<300;i++){assert.equal(child.exitCode,null);try{ready=(await request('/api/monitoring/ping')).status===200;}catch{}if(ready)break;await new Promise(resolve=>setTimeout(resolve,100));}assert.equal(ready,true);
    const login=async user=>{const result=await request('/api/auth/login',null,{username:user.username,password});assert.equal(result.status,200);return result.body.token;};
    const adminToken=await login(admin),token=await login(student),siblingToken=await login(sibling);
@@ -147,9 +156,22 @@ test('enabled actual index installs prepared SecureShop grading', {skip:process.
    if(process.env.DVAIA_USERS_RENDERED==='1'){
     await migration.query("UPDATE workshop_platform.exercises SET is_visible=true WHERE workshop_key='secureshop_agent_security'");
     const browserStudent=await create('browser');
-    renderedUsers=await require('../fixtures/secureshopEnabledUsersBrowser').qualifyEnabledUsersBrowser({origin:base,user:browserStudent,password,root,prepareMcpTools:async headers=>{const fixturePool=new Pool({connectionString:env.SECURESHOP_AGENTS_MIGRATION_DATABASE_URL,max:1});try{return await require('../helpers/secureshopMcpToolsEnabledQualification').seedMcpTools({identityPool:pool,agentsMigration:fixturePool,bearer:headers['x-dvaia-secureshop-launch']});}finally{await fixturePool.end();}}});
+    renderedUsers=await require('../fixtures/secureshopEnabledUsersBrowser').qualifyEnabledUsersBrowser({origin:base,user:browserStudent,password,root,currentHost,prepareAclRecovery: process.env.DVAIA_ACL_PERMISSION_RECOVERY === '1' ? async (headers, personaToken) => {
+      const cancellation = new AbortController();
+      const signal = AbortSignal.any([t.signal, cancellation.signal]);
+      const check = () => { signal.throwIfAborted(); assert(Date.now() < ownerDeadline); assert.equal(child.exitCode, null); };
+      check(); assert.equal(typeof personaToken, 'string');
+      const bearer = headers['x-dvaia-secureshop-launch']; assert.equal(typeof bearer, 'string');
+      return { signal, check, deadline: ownerDeadline, abortOwner: () => cancellation.abort(), readOperation: async operationId => {
+        check(); assert.match(operationId, /^[0-9a-f-]{36}$/i);
+        const observed = await request('/api/secureshop/admin/access-control/operations/' + operationId,
+          personaToken, undefined, {'x-dvaia-secureshop-launch': bearer}, signal);
+        check(); assert.equal(observed.status, 200); return observed.body;
+      }};
+    } : undefined,prepareMcpTools:async headers=>{const fixturePool=new Pool({connectionString:env.SECURESHOP_AGENTS_MIGRATION_DATABASE_URL,max:1});try{return await require('../helpers/secureshopMcpToolsEnabledQualification').seedMcpTools({identityPool:pool,agentsMigration:fixturePool,bearer:headers['x-dvaia-secureshop-launch']});}finally{await fixturePool.end();}}});
    }
    fs.writeFileSync(path.join(root,'enabled-startup-result.json'),JSON.stringify({ready:true,panels:readiness.body.panels,scope:'actual enabled index and prepared getter; mock provider/no inference',backendPid:child.pid,agentPort,userAdministration,mcpTools,...(renderedUsers?{renderedUsers}:{})},null,2),{mode:0o600});
+   if (currentHost) await currentHost.verifyBuild();
    child.kill('SIGTERM');assert.equal(await waitForChild(child,{timeoutMs:15000,signal:t.signal}),0);
   }finally{const cleaned=await Promise.allSettled([owned.cleanup(),pool?.end(),migration?.end()]);assert.ok(cleaned.every(row=>row.status==='fulfilled'),'Owned startup cleanup must complete');}
 });

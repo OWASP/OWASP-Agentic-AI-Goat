@@ -20,6 +20,12 @@ SPEC.loader.exec_module(LAUNCHER)
 
 
 class ProductSearchBrowserCleanup(unittest.TestCase):
+    def setUp(self):
+        # These fixtures explicitly exercise the retained ps parser.
+        platform = patch.object(LAUNCHER.sys, 'platform', 'linux')
+        platform.start()
+        self.addCleanup(platform.stop)
+
     def test_residual_owned_profile_fails_absence(self):
         with tempfile.TemporaryDirectory() as directory:
             runtime = Path(directory)

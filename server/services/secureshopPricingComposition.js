@@ -182,6 +182,10 @@ async function createSecureShopPricingComposition({
         await execution.check();
         return published;
       }
+      // A graph error/cancellation is not a completed Pricing execution. An
+      // effect may already have happened even when no observation was retained;
+      // the existing failure path must keep the admitted operation unknown.
+      if(result.stopReason!=='end_turn')throw fail('PRICING_OUTCOME_UNCERTAIN');
       if(selected.experiment&&!experimentObserved()){
         const pending=typedFinalOptions().pricingFinalDecision;
         let decision;try{decision=JSON.parse(result.text);}catch{}
@@ -224,6 +228,12 @@ async function createSecureShopPricingComposition({
         const typed=typedFinalOptions(),{pricingFinalDecision,pricingProviderIdentity}=typed;
         if(pricingFinalDecision&&provider.capabilities?.pricingFinalDecision!==true)throw fail('SECURESHOP_PRICING_FINAL_UNSUPPORTED');
         const response=await provider.chat({ ...args, closedToolCatalog: true, maxToolCalls: 1,...typed,
+          ...(selected.task==='pricing-strategy'&&provider.capabilities?.pricingGenerationEnvelopeV1===true
+            ?{pricingDecisionFormat:'bounded-envelope-v1'}
+            :selected.task==='pricing-strategy'&&provider.capabilities?.pricingJsonDecisionV1===true
+              ?{pricingDecisionFormat:'json-v1'}:{}),
+          ...(selected.task==='price-advisor'&&provider.capabilities?.priceAdvisorJsonDecisionV1===true
+            ?{pricingDecisionFormat:'price-advisor-json-v1'}:{}),
           ...(experimentContext?{pricingExperimentContext:experimentContext}:{}) });
         if(pricingProviderIdentity&&(response?.provider!==pricingProviderIdentity.provider||response?.model!==pricingProviderIdentity.model))throw fail('SECURESHOP_PRICING_FINAL_UNSUPPORTED');
         for(const call of response?.tool_uses||[]){

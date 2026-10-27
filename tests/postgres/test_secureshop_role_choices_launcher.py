@@ -8,9 +8,13 @@ import io
 import json
 import os
 from pathlib import Path
+import stat
+import subprocess
 import sys
 import tempfile
+import threading
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 
@@ -19,6 +23,16 @@ sys.path.insert(0, str(HERE))
 SPEC = importlib.util.spec_from_file_location('secureshop_transport_launcher', HERE / 'run-secureshop-agent-host-transport-main.py')
 LAUNCHER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(LAUNCHER)
+
+
+def controlled_browser_cleanup_state(runtime, records=()):
+    """Exercise the Darwin process-inventory boundary without reading the host."""
+    with patch.object(LAUNCHER.sys, 'platform', 'darwin'), \
+            patch('trusted_process_inspector.current_client', return_value=None), \
+            patch('darwin_process_inventory.process_records', return_value=list(records)) as inventory:
+        state = LAUNCHER.standalone_browser_cleanup_state(runtime)
+    inventory.assert_called_once_with(include_arguments=True)
+    return state
 
 
 class MerchantMailLauncherContract(unittest.TestCase):
@@ -81,7 +95,7 @@ class MerchantMailLauncherContract(unittest.TestCase):
                 LAUNCHER.merchant_mail_receipt(link)
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp' / 'dvaia-role-mail-unit').mkdir(parents=True)
-            self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+            self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
     def test_plan_stays_before_allocation_and_unrelated_authorities(self):
         source = HERE.parent.parent
@@ -106,6 +120,104 @@ class MerchantMailLauncherContract(unittest.TestCase):
         self.assertIs(plan['nativeStarted'], False)
         self.assertIs(plan['sourceCopy'], False)
         self.assertIs(plan['actualJudgeRequired'], False)
+
+
+class MailKeepUnresolvedQ05ReceiptContract(unittest.TestCase):
+    def receipt(self, path):
+        roles = []
+        for index, role in enumerate(('merchant', 'customer'), 1):
+            request = f'00000000-0000-4000-8000-{index:012d}'
+            target = f'10000000-0000-4000-8000-{index:012d}'
+            roles.append(dict(role=role, requestId=request, threadId=index,
+                disclosed=True, retained=True, noExtraSend=True,
+                physicalPost=dict(method='POST', path=
+                    f'/api/secureshop/email/operations/autoReply/{request}/keep-unresolved',
+                    body={'threadId': index}, status=200),
+                protectedDetach=dict(session_id=request, request_id=request,
+                    claim_id=request, request_hash='a' * 64, target_id=target,
+                    persona_id=index, persona_session_id=request,
+                    authority_version='1', thread_id=index, mode='vuln'),
+                actorHttpCalls=2,
+                providerEvidence='original mail-actions physical transport capture',
+                controlledComponent='one precommit persistence fault only'))
+        value = dict(passed=True, isolatedStores=True, bothRoles=True,
+            zeroJudge=True, noExtraSend=True, fixtureCleaned=True,
+            scope=LAUNCHER.MAIL_KEEP_Q05_SCOPE, canonicalCredit=0,
+            qualificationAccepted=False, actorCalls=4, roleTurns=0,
+            judgeCalls=0, errors=[], mailKeepUnresolved=dict(version=1,
+                scope=LAUNCHER.MAIL_KEEP_Q05_SCOPE, passed=True, roles=roles,
+                faults={role:dict(hits=1, armed=False, closed=True,
+                                  controlledFault=True) for role in ('merchant','customer')}))
+        path.write_text(json.dumps(value))
+        os.chmod(path, 0o600)
+        return value
+
+    def test_exact_private_two_role_receipt_and_adversarial_mutations(self):
+        with tempfile.TemporaryDirectory(dir=HERE.parent.parent / 'tasks/tmp') as directory:
+            path = Path(directory) / 'q05.json'
+            source = self.receipt(path)
+            self.assertEqual(LAUNCHER.mail_keep_unresolved_q05_receipt(path), source)
+            for mutate in (
+                lambda x: x.update(canonicalCredit=1),
+                lambda x: x.update(qualificationAccepted=True),
+                lambda x: x.update(actorCalls=5),
+                lambda x: x.update(judgeCalls=1),
+                lambda x: x.update(canonicalCredit=False),
+                lambda x: x.update(roleTurns=False),
+                lambda x: x['mailKeepUnresolved']['roles'][0]['physicalPost'].update(status=202),
+                lambda x: x['mailKeepUnresolved']['roles'][0]['physicalPost']['body'].update(threadId=True),
+                lambda x: x['mailKeepUnresolved']['roles'][1]['protectedDetach'].update(request_id='wrong'),
+                lambda x: x['mailKeepUnresolved']['faults']['customer'].update(hits=0),
+                lambda x: x['mailKeepUnresolved']['faults']['customer'].update(hits=True),
+            ):
+                with self.subTest(mutate=mutate):
+                    value = json.loads(json.dumps(source))
+                    mutate(value)
+                    path.write_text(json.dumps(value))
+                    with self.assertRaises(RuntimeError):
+                        LAUNCHER.mail_keep_unresolved_q05_receipt(path)
+            self.receipt(path)
+            path.chmod(0o644)
+            with self.assertRaises(RuntimeError):
+                LAUNCHER.mail_keep_unresolved_q05_receipt(path)
+
+    def test_selector_is_exclusive_before_other_admission(self):
+        from types import SimpleNamespace
+        for cohort, q05, passive in (('transport','1',None),
+                                     ('merchant-mail-actions-browser','0',None),
+                                     ('merchant-mail-actions-browser','1','1')):
+            with self.subTest(cohort=cohort, q05=q05, passive=passive), \
+                    patch.dict(os.environ, {LAUNCHER.MAIL_KEEP_Q05_ENV:q05,
+                        **({'SECURESHOP_MAIL_ACTIONS_PASSIVE_DIAGNOSTIC':passive}
+                           if passive else {})}, clear=True), \
+                    self.assertRaisesRegex(RuntimeError, 'Q05 mail recovery selector'):
+                LAUNCHER.validate_static(SimpleNamespace(cohort=cohort))
+
+    def test_q05_plan_distinguishes_diagnostic_from_original_without_allocation(self):
+        source = HERE.parent.parent
+        argv = ['--cohort', 'merchant-mail-actions-browser', '--main-workspace', str(source),
+                '--node', '/pinned/node', '--docker', '/pinned/docker',
+                '--docker-sha256', 'a' * 64, '--docker-host', LAUNCHER.EXPECTED_DOCKER_HOST,
+                '--docker-daemon', 'unit-owned-daemon', '--ollama-model-sha256', 'b' * 64, '--plan']
+        with patch.dict(os.environ, {LAUNCHER.MAIL_KEEP_Q05_ENV:'1'}), \
+                patch.object(LAUNCHER, 'validate_static', return_value=source), \
+                patch.object(LAUNCHER, 'policy_renderer_admission', return_value=None), \
+                patch.object(LAUNCHER.tempfile, 'mkdtemp', side_effect=AssertionError('allocation')), \
+                patch.object(LAUNCHER.subprocess, 'run', side_effect=AssertionError('process')), \
+                patch.object(LAUNCHER, 'validate_ssh', side_effect=AssertionError('SSH')), \
+                patch.object(LAUNCHER, 'embedding_inventory', side_effect=AssertionError('embedding')), \
+                contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(LAUNCHER.main(argv), 0)
+        plan = json.loads(output.getvalue())
+        self.assertEqual(plan['cohort'], LAUNCHER.MAIL_KEEP_Q05_COHORT)
+        self.assertEqual(plan['profile'], LAUNCHER.MAIL_KEEP_Q05_SCOPE)
+        self.assertEqual(plan['maximumActorCalls'], 30)
+        self.assertEqual(plan['maximumJudgeCalls'], 0)
+        self.assertEqual(plan['physicalDetachPosts'], 2)
+        self.assertIs(plan['canonicalCredit'], False)
+        self.assertIs(plan['qualificationAccepted'], False)
+        self.assertIs(plan['diagnosticOnly'], True)
+        self.assertIs(plan['nativeStarted'], False)
 
 
 class MerchantMailActionsLauncherContract(unittest.TestCase):
@@ -169,7 +281,7 @@ class MerchantMailActionsLauncherContract(unittest.TestCase):
                 LAUNCHER.merchant_mail_actions_receipt(link)
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp' / 'dvaia-role-mail-actions-unit').mkdir(parents=True)
-            self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+            self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
     def test_plan_stays_before_allocation_and_unrelated_authorities(self):
         source = HERE.parent.parent
@@ -264,7 +376,20 @@ class RoleChoicesLauncherContract(unittest.TestCase):
             temporary.mkdir()
             profile = temporary / 'dvaia-role-choices-unit'
             profile.mkdir()
-            self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+            self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+
+    def test_cleanup_process_inventory_detects_only_owned_runtime_profiles(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = Path(directory)
+            temporary = runtime / 'tmp'
+            temporary.mkdir()
+            retained = {'arguments': ['/browser', f'--user-data-dir={temporary}/live']}
+            foreign = {'arguments': ['/browser', '--user-data-dir=/tmp/other-profile']}
+            missing = {'arguments': None}
+            self.assertEqual(controlled_browser_cleanup_state(runtime, [retained, foreign, missing]), {
+                'browserProfilesAbsent': True, 'browserProcessesAbsent': False})
+            self.assertEqual(controlled_browser_cleanup_state(runtime, [foreign, missing]), {
+                'browserProfilesAbsent': True, 'browserProcessesAbsent': True})
 
 
 class AdminReadLauncherContract(unittest.TestCase):
@@ -317,7 +442,7 @@ class AdminReadLauncherContract(unittest.TestCase):
             temporary = runtime / 'tmp'
             temporary.mkdir()
             (temporary / 'dvaia-role-admin-read-unit').mkdir()
-            self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+            self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 
 class SystemConfigTraversalLauncherContract(unittest.TestCase):
@@ -562,7 +687,7 @@ class MerchantOrderLauncherContract(unittest.TestCase):
             temporary = runtime / 'tmp'
             temporary.mkdir()
             (temporary / 'dvaia-role-order-unit').mkdir()
-            self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+            self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 
 class MerchantReviewLauncherContract(unittest.TestCase):
@@ -628,7 +753,7 @@ class MerchantReviewLauncherContract(unittest.TestCase):
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp').mkdir(parents=True)
             (runtime / 'tmp' / 'dvaia-role-review-unit').mkdir()
-            self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+            self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 
 class AdminAuditChatLauncherContract(unittest.TestCase):
@@ -691,7 +816,7 @@ class AdminAuditChatLauncherContract(unittest.TestCase):
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp').mkdir(parents=True)
             (runtime / 'tmp' / 'dvaia-role-admin-audit-unit').mkdir()
-            self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+            self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 
 class AdminUserChatLauncherContract(unittest.TestCase):
@@ -754,7 +879,240 @@ class AdminUserChatLauncherContract(unittest.TestCase):
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp').mkdir(parents=True)
             (runtime / 'tmp' / 'dvaia-role-admin-user-unit').mkdir()
-            self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+            self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+
+
+class AdminResetBrowserAdmissionControls(unittest.TestCase):
+    """Controlled inherited descriptor, birth/ACK and retirement; no browser/model."""
+
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory(prefix='admin-reset-owner-',
+            dir=HERE.parent.parent / 'tasks/tmp')
+        self.evidence = Path(self.directory.name)
+        self.runtime = self.evidence / 'runtime'
+        self.profile = self.runtime / 'tmp/dvaia-role-admin-reset-controlled'
+        self.profile.mkdir(parents=True, mode=0o700)
+        self.record = self.evidence / LAUNCHER.AdminResetBrowserOwner.RECORD
+        self.record.write_text('{"schemaVersion":2}\n')
+        self.record.chmod(0o600)
+        self.row = dict(pid=23456, parentPid=12345, birth=[100, 1])
+        self.captured = SimpleNamespace(profile=str(self.profile), record=self.row)
+        self.calls = []
+        def read_record(*args, **kwargs):
+            self.calls.append((args, kwargs))
+            return [self.row]
+        self.ownership = SimpleNamespace(
+            _browser_modules=lambda: (None, 'Z', None, read_record, lambda rows: True),
+            capture_live_v36=lambda *args, **kwargs: self.captured,
+            retire_live_v36=lambda *args, **kwargs: True)
+        self.owner = LAUNCHER.AdminResetBrowserOwner(None, HERE.parent.parent,
+            self.evidence, self.runtime, 'node', '/absolute/chromium', 'a' * 64,
+            'b' * 64, 'c' * 64, api=object(), ownership=self.ownership)
+
+    def tearDown(self):
+        self.directory.cleanup()
+
+    def command(self):
+        return ['node', '--test', '--test-isolation=none', '--test-reporter=tap',
+                '--test-concurrency=1', LAUNCHER.ADMIN_PASSWORD_RESET_CHAT_TEST]
+
+    def test_reset_binding_preserves_existing_q05_defaults_and_original_limits(self):
+        old = LAUNCHER.Q05ReviewBrowserOwner
+        self.assertEqual((old.COHORT, old.PREFIX, old.PROFILE, old.KIND),
+            ('q05-review-moderation-browser', 'SECURESHOP_Q05_REVIEW_MODERATION_',
+             'dvaia-q05-review-', 'q05_review_moderation_browser'))
+        self.assertEqual((self.owner.COHORT, self.owner.PREFIX, self.owner.PROFILE,
+                          self.owner.KIND, self.owner.RECEIPT),
+            ('admin-password-reset-chat-browser', 'SECURESHOP_ADMIN_RESET_BROWSER_',
+             'dvaia-role-admin-reset-', 'admin_reset_browser', 'admin-password-reset-chat-browser.json'))
+        self.assertEqual(len(LAUNCHER.ADMIN_PASSWORD_RESET_CHAT_FLAGS), 19)
+        source = (HERE / 'run-secureshop-agent-host-transport-main.py').read_text()
+        branch = source.split("reset_path = evidence / 'admin-password-reset-chat-browser.json'", 1)[1]
+        branch = branch.split("elif args.cohort == 'admin-policy-chat-browser':", 1)[0]
+        self.assertIn("'--test-isolation=none'", branch)
+        self.assertIn('ADMIN_PASSWORD_RESET_CHAT_TEST], 600,', branch)
+        self.assertIn('spawner=admin_reset_owner', branch)
+        self.assertIn('admin_password_reset_chat_receipt(reset_path)', branch)
+        self.assertIn('not admin_reset_owner.browser_retired or not admin_reset_owner.profile_removed', branch)
+        self.assertIn("stop_process_group(child)\n            if admin_reset_owner is not None and not admin_reset_owner.profile_removed:", source)
+
+    def test_exact_environment_build_and_snapshot_binding(self):
+        before = self.evidence / 'source-before.json'
+        before.write_text('{"sourcePins":{}}\n')
+        files = {'index.html': 'a' * 64, 'static/js/main.js': 'b' * 64}
+        pins = {'sourcePins': {'client/build/' + name: value for name, value in files.items()}}
+        env = LAUNCHER.admin_reset_browser_environment(HERE.parent.parent, self.evidence,
+            self.runtime, '/absolute/chromium', 'd' * 64, pins)
+        prefix = self.owner.PREFIX
+        self.assertEqual(env[prefix + 'BUILD_SHA256'], hashlib.sha256(
+            json.dumps(files, sort_keys=True, separators=(',', ':')).encode()).hexdigest())
+        self.assertEqual(env[prefix + 'SNAPSHOT_SHA256'], hashlib.sha256(before.read_bytes()).hexdigest())
+        self.assertEqual(env[prefix + 'BROWSER_RECORD_PATH'], str(self.record))
+        self.assertEqual(env[prefix + 'BROWSER_ACK_PATH'], str(self.evidence / self.owner.ACK))
+        self.assertEqual(env[prefix + 'TEST_NO_SANDBOX'], '1')
+        self.assertEqual(env[prefix + 'BROWSER_SHA256'], 'd' * 64)
+        self.assertEqual(env['MAC_CHROMIUM_TMPDIR'], str(self.runtime / 'tmp'))
+        self.assertNotIn(prefix + 'ADMISSION_FD', env)
+        with self.assertRaises(RuntimeError):
+            LAUNCHER.admin_reset_browser_environment(HERE.parent.parent, self.evidence,
+                self.runtime, '/absolute/chromium', 'd' * 64, {'sourcePins': {}})
+
+    def test_current_exact_pins_and_missing_or_changed_pin_fail_closed(self):
+        LAUNCHER.admin_reset_validate_pins(HERE.parent.parent)
+        pins = dict(LAUNCHER.ADMIN_RESET_BROWSER_PINS)
+        for variant in ({}, {**pins, LAUNCHER.ADMIN_PASSWORD_RESET_CHAT_TEST: '0' * 64}):
+            with self.subTest(variant=variant):
+                with patch.object(LAUNCHER, 'ADMIN_RESET_BROWSER_PINS', variant):
+                    with self.assertRaises(RuntimeError):
+                        LAUNCHER.admin_reset_validate_pins(HERE.parent.parent)
+
+    def test_live_capture_publishes_exact_private_ack_then_retires_only_owned_profile(self):
+        sibling = self.runtime / 'tmp/sibling'
+        sibling.mkdir(mode=0o700)
+        self.owner._watch(SimpleNamespace(pid=12345), (50, 1), threading.Event())
+        self.assertIsNone(self.owner.error)
+        args, kwargs = self.calls[0]
+        self.assertEqual(args[1:3], (self.owner.RECORD, 'admin_reset_browser'))
+        self.assertEqual(kwargs['parent_pid'], 12345)
+        ack_path = self.evidence / self.owner.ACK
+        expected = dict(schemaVersion=1, recordSha256=hashlib.sha256(self.record.read_bytes()).hexdigest(),
+            parentPid=12345, browserPid=23456, profile=str(self.profile))
+        self.assertEqual(json.loads(ack_path.read_text()), expected)
+        self.assertEqual(stat.S_IMODE(ack_path.stat().st_mode), 0o600)
+        with self.assertRaises(FileExistsError):
+            self.owner._publish_ack(ack_path, dict(expected, browserPid=99999))
+        self.owner.finish_after_worker_retired()
+        self.assertTrue(self.owner.browser_retired and self.owner.profile_removed)
+        self.assertFalse(self.profile.exists())
+        self.assertTrue(sibling.is_dir())
+
+    def test_foreign_profile_and_hardlinked_record_do_not_receive_ack(self):
+        foreign = self.runtime / 'tmp/dvaia-q05-review-foreign'
+        foreign.mkdir(mode=0o700)
+        self.captured.profile = str(foreign)
+        self.owner._watch(SimpleNamespace(pid=12345), (50, 1), threading.Event())
+        self.assertIsInstance(self.owner.error, RuntimeError)
+        self.assertFalse((self.evidence / self.owner.ACK).exists())
+        self.captured.profile = str(self.profile)
+        self.owner.error = None
+        os.link(self.record, self.evidence / 'linked-record')
+        self.owner._watch(SimpleNamespace(pid=12345), (50, 1), threading.Event())
+        self.assertIsInstance(self.owner.error, RuntimeError)
+        self.assertFalse((self.evidence / self.owner.ACK).exists())
+
+    def test_ack_publication_failure_still_retires_captured_browser_and_profile(self):
+        failure = RuntimeError('controlled ACK publication failure')
+        with patch.object(self.owner, '_publish_ack', side_effect=failure):
+            self.owner._watch(SimpleNamespace(pid=12345), (50, 1), threading.Event())
+        self.assertIs(self.owner.error, failure)
+        self.assertIs(self.owner.captured, self.captured)
+        self.assertFalse((self.evidence / self.owner.ACK).exists())
+        with self.assertRaises(RuntimeError) as caught:
+            self.owner.finish_after_worker_retired()
+        self.assertIs(caught.exception, failure)
+        self.assertTrue(self.owner.browser_retired and self.owner.profile_removed)
+        self.assertFalse(self.profile.exists())
+
+    def test_exact_direct_worker_gets_one_fifo_grant(self):
+        program = ('import os,sys; fd=int(os.environ["SECURESHOP_ADMIN_RESET_BROWSER_ADMISSION_FD"]); '
+                   'sys.stdout.write(os.fdopen(fd,"rb").read(8193).decode())')
+        self.owner.original = lambda _command, *args, **kwargs: subprocess.Popen(
+            [sys.executable, '-B', '-c', program], *args, **kwargs)
+        class Api:
+            def identity(self, pid):
+                return SimpleNamespace(pid=pid, ppid=os.getpid(), uid=os.getuid(),
+                    ruid=os.getuid(), pgid=pid, start_sec=100, start_usec=1, status='R')
+        self.owner.api = Api()
+        self.owner._watch = lambda *_args: None
+        child = self.owner(self.command(), env=dict(os.environ), stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, start_new_session=True)
+        try:
+            payload = child.stdout.read(8193)
+            self.assertEqual(child.wait(timeout=5), 0)
+            grant = json.loads(payload)
+            self.assertEqual(set(grant), {'version', 'cohort', 'launcherPid', 'workerPid',
+                'nonce', 'workspace', 'evidencePath', 'buildSha256', 'snapshotSha256',
+                'outerSandbox', 'chromium', 'chromiumSha256'})
+            self.assertEqual(grant['workerPid'], child.pid)
+            self.assertEqual(grant['launcherPid'], os.getpid())
+            self.assertEqual(grant['cohort'], self.owner.COHORT)
+            self.assertEqual(grant['evidencePath'], str(self.evidence / self.owner.RECEIPT))
+            self.assertEqual(grant['buildSha256'], 'b' * 64)
+            self.assertEqual(grant['snapshotSha256'], 'c' * 64)
+            self.assertEqual(grant['outerSandbox'], 'repository-only')
+            self.assertRegex(grant['nonce'], '^[a-f0-9]{64}$')
+        finally:
+            if child.poll() is None:
+                child.terminate(); child.wait(timeout=5)
+            child.stdout.close(); child.stderr.close()
+
+    def test_wrong_command_nested_descriptor_and_missing_session_deny_before_spawn(self):
+        self.owner.original = lambda *_args, **_kwargs: self.fail('must not spawn')
+        variants = [(self.command()[0:2] + self.command()[3:], {}, True),
+                    (self.command(), {self.owner.PREFIX + 'ADMISSION_FD': '3'}, True),
+                    (self.command(), {}, False)]
+        for command, env, session in variants:
+            with self.subTest(command=command, env=env, session=session):
+                with self.assertRaises(RuntimeError):
+                    self.owner(command, env=env, start_new_session=session)
+        with self.assertRaises(RuntimeError):
+            self.owner(self.command(), env={}, start_new_session=True, pass_fds=(3,))
+
+    def test_actual_worker_ack_failure_double_finalization_preserves_error_and_retires_once(self):
+        program = ('import os; fd=int(os.environ["SECURESHOP_ADMIN_RESET_BROWSER_ADMISSION_FD"]); '
+                   'os.fdopen(fd,"rb").read(8193)')
+        self.owner.original = lambda _command, *args, **kwargs: subprocess.Popen(
+            [sys.executable, '-B', '-c', program], *args, **kwargs)
+        class Api:
+            def identity(self, pid):
+                return SimpleNamespace(pid=pid, ppid=os.getpid(), uid=os.getuid(),
+                    ruid=os.getuid(), pgid=pid, start_sec=100, start_usec=1, status='R')
+        self.owner.api = Api()
+        failure = RuntimeError('controlled ACK failure after actual worker spawn')
+        with patch.object(self.owner, '_publish_ack', side_effect=failure), \
+                patch.object(self.ownership, 'retire_live_v36') as retire:
+            child = self.owner(self.command(), env=dict(os.environ), stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE, start_new_session=True)
+            try:
+                # Actual wait invokes the owner's first finalizer. run_node's
+                # failure path then repeats finalization after process join.
+                with self.assertRaises(RuntimeError) as first:
+                    child.wait(timeout=5)
+                self.assertIs(first.exception, failure)
+                self.assertEqual(child.poll(), 0)
+                self.assertFalse(self.profile.exists())
+                self.profile.mkdir(mode=0o700)  # A replacement must be untouched.
+                with self.assertRaises(RuntimeError) as second:
+                    self.owner.finish_after_worker_retired()
+                self.assertIs(second.exception, failure)
+                retire.assert_called_once()
+                self.assertTrue(self.owner.profile_removed and self.owner.browser_retired)
+                self.assertTrue(self.profile.is_dir())
+                self.assertFalse(controlled_browser_cleanup_state(self.runtime)['browserProfilesAbsent'])
+            finally:
+                if child.poll() is None:
+                    child.terminate(); child.wait(timeout=5)
+                child.stdout.close(); child.stderr.close()
+
+    def test_retired_profile_reappearance_is_not_deleted_or_reported_absent(self):
+        self.owner._watch(SimpleNamespace(pid=12345), (50, 1), threading.Event())
+        self.owner.finish_after_worker_retired()
+        self.owner.finish_after_worker_retired()  # Absent, no repeated retirement.
+        self.profile.mkdir(mode=0o700)
+        with self.assertRaisesRegex(RuntimeError, 'profile path reappeared'):
+            self.owner.finish_after_worker_retired()
+        self.assertTrue(self.profile.is_dir())
+        self.assertFalse(controlled_browser_cleanup_state(self.runtime)['browserProfilesAbsent'])
+
+    def test_profile_replacement_never_removed(self):
+        self.owner._watch(SimpleNamespace(pid=12345), (50, 1), threading.Event())
+        self.assertIsNone(self.owner.error)
+        retained = self.profile.with_name('original-retained')
+        self.profile.rename(retained)
+        self.profile.mkdir(mode=0o700)
+        with self.assertRaises(RuntimeError):
+            self.owner._retire()
+        self.assertTrue(self.profile.exists() and retained.exists())
 
 
 class AdminPasswordResetChatLauncherContract(unittest.TestCase):
@@ -820,7 +1178,7 @@ class AdminPasswordResetChatLauncherContract(unittest.TestCase):
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp').mkdir(parents=True)
             (runtime / 'tmp' / 'dvaia-role-admin-reset-unit').mkdir()
-            self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+            self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 
 class AdminPolicyChatLauncherContract(unittest.TestCase):
@@ -883,7 +1241,7 @@ class AdminPolicyChatLauncherContract(unittest.TestCase):
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp').mkdir(parents=True)
             (runtime / 'tmp' / 'dvaia-role-admin-policy-unit').mkdir()
-            self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+            self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
         source = (HERE / '../fixtures/secureshopOwnedPolicyRendererAdmission.js').resolve()
         self.assertTrue(source.is_file())
         self.assertIn('tests/fixtures/secureshopOwnedPolicyRendererAdmission.js',
@@ -984,7 +1342,7 @@ class ChatPresentationLauncherContract(unittest.TestCase):
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp').mkdir(parents=True)
             (runtime / 'tmp' / 'dvaia-chat-presentation-unit').mkdir()
-            self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+            self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 
 class CatalogPageLauncherContract(unittest.TestCase):
@@ -1259,7 +1617,7 @@ class CatalogPageLauncherContract(unittest.TestCase):
                 LAUNCHER.catalog_page_receipt(alias)
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp' / 'dvaia-role-catalog-page-owned').mkdir(parents=True)
-            self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+            self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
     def test_plan_has_four_disposable_stores_without_allocating(self):
         source = HERE.parent.parent
@@ -1340,6 +1698,114 @@ class UserLookupDisclosureLauncherContract(unittest.TestCase):
             value['modelIdentity']['maximumPhysicalCalls']=9;path.write_text(json.dumps(value))
             with patch.object(LAUNCHER.subprocess,'run',side_effect=AssertionError('must reject before validator')):
                 with self.assertRaises(RuntimeError):LAUNCHER.user_lookup_capture(path,'/pinned/node',HERE.parent.parent,'a'*64)
+
+
+class UserLookupBenignCaptureLauncherContract(unittest.TestCase):
+    def test_main_cleanup_detects_the_actual_lookup_browser_profile(self):
+        fixture=(HERE.parent.parent/LAUNCHER.ADMIN_USER_CHAT_TEST).read_text()
+        self.assertIn("USER_LOOKUP_BROWSER ? 'dvaia-user-lookup-browser-'",fixture)
+        with tempfile.TemporaryDirectory() as folder:
+            runtime=Path(folder)/'runtime'
+            profile=runtime/'tmp'/'dvaia-user-lookup-browser-unit'
+            profile.mkdir(parents=True)
+            self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+            profile.rmdir()
+            self.assertTrue(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
+
+    def receipt(self, path, **changes):
+        value = {flag: True for flag in LAUNCHER.USER_LOOKUP_FLAGS}
+        value.update(scope=LAUNCHER.USER_LOOKUP_BENIGN_SCOPE, actorCalls=4, roleTurns=2,
+                     judgeCalls=0, genuineCredit=0, errors=[], actorNegativeCapture=True,
+                     independentJudgeCalibration=False, fourIndependentJudgeCriteria=False,
+                     canonicalTenantCredit=False,
+                     catalogAdmission={'objectiveId':'ss_user_lookup_sensitive_disclosure',
+                         'fixtureLocalCandidateAdmission':True,
+                         'productionQualification':'pending','productionDefaultEnabled':False})
+        value.update(changes)
+        path.write_text(json.dumps(value)); os.chmod(path, 0o600)
+        return value
+
+    def test_separate_exact_receipt_and_negative_counts(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'benign.json'; value = self.receipt(path)
+            self.assertEqual(LAUNCHER.user_lookup_benign_receipt(path), value)
+            with self.assertRaises(RuntimeError): LAUNCHER.user_lookup_receipt(path)
+            for variant in ({'judgeCalls':1}, {'judgeCalls':True}, {'genuineCredit':1},
+                            {'actorCalls':5}, {'roleTurns':3}, {'actorNegativeCapture':1},
+                            {'independentJudgeCalibration':True},
+                            {'fourIndependentJudgeCriteria':True}, {'canonicalTenantCredit':True},
+                            {'scope':'other'}, {'extra':True}):
+                self.receipt(path, **variant)
+                with self.assertRaises(RuntimeError): LAUNCHER.user_lookup_benign_receipt(path)
+            self.receipt(path)
+            os.chmod(path, 0o644)
+            with self.assertRaises(RuntimeError): LAUNCHER.user_lookup_benign_receipt(path)
+
+    def test_closed_selector_and_plan_is_distinct(self):
+        source=HERE.parent.parent
+        argv=['--cohort','admin-user-chat-browser','--main-workspace',str(source),
+              '--node','/pinned/node','--docker','/pinned/docker','--docker-sha256','a'*64,
+              '--docker-host',LAUNCHER.EXPECTED_DOCKER_HOST,'--docker-daemon','unit-owned-daemon',
+              '--ollama-model-sha256','b'*64,'--plan']
+        with patch.object(LAUNCHER,'validate_static',return_value=source), \
+             patch.object(LAUNCHER,'policy_renderer_admission',return_value=None), \
+             patch.object(LAUNCHER.tempfile,'mkdtemp',side_effect=AssertionError('allocation')), \
+             patch.object(LAUNCHER.subprocess,'run',side_effect=AssertionError('process')):
+            with self.assertRaises(RuntimeError):
+                LAUNCHER.main(argv+['--user-lookup-benign-capture'])
+            with self.assertRaises(ValueError):
+                LAUNCHER.main(argv+['--user-lookup-disclosure',
+                                    '--user-lookup-benign-capture','--user-lookup-benign-capture'])
+            output=io.StringIO()
+            with contextlib.redirect_stdout(output):
+                self.assertEqual(LAUNCHER.main(argv+['--user-lookup-disclosure','--user-lookup-benign-capture']),0)
+            plan=json.loads(output.getvalue())
+            self.assertEqual(plan['cohort'], LAUNCHER.USER_LOOKUP_BENIGN_COHORT)
+            self.assertEqual([plan[key] for key in ('maximumActorCalls','maximumJudgeCalls',
+                'maximumModelCalls','roleTurns','genuineCredit')],[4,0,4,2,0])
+            self.assertIs(plan['actualJudgeRequired'],False)
+            self.assertIs(plan['nativeStarted'],False)
+            self.assertIs(plan['sourceCopy'],False)
+
+    def test_capture_four_call_identity_before_node_replay(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'capture.json'
+            value={'version':1,'captureVariant':LAUNCHER.USER_LOOKUP_BENIGN_VERSION,
+                'independentJudgeCalibration':False,
+                'modelIdentity':{'model':LAUNCHER.OLLAMA_MODEL,'digest':'a'*64,'maximumPhysicalCalls':4},
+                'cleanup':{'fixtureCleaned':True,'errors':[]}}
+            path.write_text(json.dumps(value));os.chmod(path,0o600)
+            with patch.object(LAUNCHER.subprocess,'run') as run:
+                LAUNCHER.user_lookup_benign_capture(path,'/pinned/node',HERE.parent.parent,'a'*64)
+                run.assert_called_once();self.assertIn('assertCapture',run.call_args.args[0][2])
+            for changed in ({'captureVariant':'old'}, {'independentJudgeCalibration':True},
+                            {'modelIdentity':{**value['modelIdentity'],'maximumPhysicalCalls':8}}):
+                path.write_text(json.dumps({**value,**changed}))
+                with patch.object(LAUNCHER.subprocess,'run',side_effect=AssertionError('must reject before replay')):
+                    with self.assertRaises(RuntimeError):
+                        LAUNCHER.user_lookup_benign_capture(path,'/pinned/node',HERE.parent.parent,'a'*64)
+
+
+class MerchantInventoryCurrentHostSourceClosure(unittest.TestCase):
+    def test_original_inventory_chat_pins_loaded_admission_and_its_regression(self):
+        source = HERE.parent.parent
+        required = (
+            'tests/postgres/secureshopStandaloneRoleChoicesRendered.integration.test.js',
+            'tests/fixtures/secureshopMerchantInventoryChatCurrentHostAdmission.js',
+            'tests/fixtures/secureshopNativeEvidencePath.js',
+            'tests/secureshopMerchantInventoryChatCurrentHostAdmission.test.js',
+        )
+        with patch.object(LAUNCHER, 'dependency_inventory', return_value={'controlled': 'inventory'}):
+            original = LAUNCHER.source_snapshot(source, '/unused/node',
+                'merchant-inventory-chat-browser', browser_root=source / 'client/build')
+            sibling = LAUNCHER.source_snapshot(source, '/unused/node',
+                'merchant-listing-edit-browser', browser_root=source / 'client/build')
+        for relative in required:
+            self.assertEqual(original['sourcePins'][relative], LAUNCHER.digest(source / relative))
+        self.assertNotIn('tests/fixtures/secureshopMerchantInventoryChatCurrentHostAdmission.js',
+            sibling['sourcePins'])
+        self.assertNotIn('tests/secureshopMerchantInventoryChatCurrentHostAdmission.test.js',
+            sibling['sourcePins'])
 
 
 if __name__ == '__main__':

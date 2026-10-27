@@ -77,7 +77,7 @@ function publicUser(user) {
     username: user.username, email: user.email, role: user.role };
 }
 
-function createSecureShopStandaloneAuthRouter({ service, bootstrap, cartImport, mode, assessmentObjectives, assessmentRecovery, assessmentProgress, registeredAdminReset, reset, practices, allowedOrigins,
+function createSecureShopStandaloneAuthRouter({ service, bootstrap, cartImport, mode, assessmentObjectives, assessmentRecovery, assessmentProgress, registeredAdminReset, reset, practices, externalMail, allowedOrigins,
   secureCookies = false, loginLimit = 30 } = {}) {
   if (!service || ['login', 'register', 'authenticate', 'renew', 'logout', 'changePassword']
     .some(method => typeof service[method] !== 'function')
@@ -89,6 +89,8 @@ function createSecureShopStandaloneAuthRouter({ service, bootstrap, cartImport, 
     return value;
   }));
   const router = express.Router();
+  if (externalMail) router.use('/external-mail', require('./secureshopExternalMail')
+    .createExternalMailRouter({...externalMail,authService:service,allowedOrigins}));
   const cookieOptions = { httpOnly: true, sameSite: 'strict', secure: secureCookies, path: '/api/secureshop' };
   router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   router.use((req, res, next) => {

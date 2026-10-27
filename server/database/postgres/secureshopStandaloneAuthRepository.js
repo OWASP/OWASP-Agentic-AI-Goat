@@ -183,7 +183,51 @@ function createSecureShopStandaloneAuthRepository({ pool, executionTenantSlug = 
           AND s.authority_version=p.authority_version`, [tokenHash, executionTenantSlug])).rows[0];
       return context(row);
     },
-    async readOrCreateDefaultExecutionSession({ principalId, authSessionId,
+    async readExistingExecutionSession({ principalId, authSessionId,
+      credentialVersion, authorityVersion }) {
+      return withTransaction(pool, async client => {
+        const source = (await client.query(`SELECT p.principal_id::text AS "principalId",
+          p.owner_id AS "principalOwnerId",t.owner_id AS "ownerId",
+          s.session_id AS "authSessionId",t.tenant_id::text AS "tenantId",
+          m.membership_version::text AS "membershipVersion",
+          p.shop_user_id AS "shopUserId",p.username,p.email,m.role,
+          p.credential_version::text AS "credentialVersion",
+          p.authority_version::text AS "authorityVersion",
+          s.expires_at AS "expiresAt"
+          FROM secureshop_auth.sessions s
+          JOIN secureshop_auth.principals p USING(principal_id)
+          JOIN secureshop_auth.tenant_memberships m USING(principal_id)
+          JOIN secureshop_auth.tenants t USING(tenant_id)
+          JOIN secureshop_auth.session_membership_snapshots v ON v.session_id=s.session_id
+            AND v.tenant_id=m.tenant_id AND v.membership_version=m.membership_version
+          WHERE s.session_id=$1 AND p.principal_id=$2::uuid AND t.slug=$5
+            AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()
+            AND p.is_active=true AND (p.locked_until IS NULL OR p.locked_until<=clock_timestamp())
+            AND s.credential_version=p.credential_version
+            AND s.authority_version=p.authority_version
+            AND p.credential_version=$3::bigint AND p.authority_version=$4::bigint
+            AND m.is_active=true AND t.is_active=true
+          FOR SHARE OF s,p,m,t`,
+        [authSessionId, principalId, credentialVersion, authorityVersion,
+          executionTenantSlug])).rows[0];
+        if (!source) throw failure('SHOP_AUTH_INVALID');
+        // One selected execution per cookie/tenant, with immutable older executions retained.
+        await client.query("SELECT pg_advisory_xact_lock(hashtextextended('secureshop-practice-selection:'||$1::text||':'||$2::text,0))",
+          [source.authSessionId, source.tenantId]);
+        let execution = (await client.query(`SELECT e.session_id AS "sessionId",
+          e.expires_at AS "expiresAt",e.revoked_at AS "revokedAt"
+          FROM secureshop_auth.practice_selections x JOIN secureshop_auth.execution_sessions e
+            ON e.session_id=x.execution_session_id
+          WHERE x.auth_session_id=$1 AND x.tenant_id=$2::uuid AND x.principal_id=$3::uuid
+            AND e.auth_session_id=x.auth_session_id AND e.tenant_id=x.tenant_id
+            AND e.principal_id=x.principal_id AND e.membership_version=$4::bigint FOR SHARE OF e`,
+        [source.authSessionId, source.tenantId, source.principalId, source.membershipVersion])).rows[0];
+        if (!execution || execution.revokedAt || new Date(execution.expiresAt).getTime() <= Date.now()) {
+          throw failure('SHOP_AUTH_INVALID');
+        }
+        return tenantContext({ ...source, ...execution });
+      });
+    },    async readOrCreateDefaultExecutionSession({ principalId, authSessionId,
       credentialVersion, authorityVersion }) {
       return withTransaction(pool, async client => {
         const source = (await client.query(`SELECT p.principal_id::text AS "principalId",
@@ -297,6 +341,33 @@ function createSecureShopStandaloneAuthRepository({ pool, executionTenantSlug = 
           AND p.is_active=true AND (p.locked_until IS NULL OR p.locked_until<=clock_timestamp())
           AND s.credential_version=p.credential_version
           AND s.authority_version=p.authority_version`, [tokenHash, executionTenantSlug])).rows[0] || null;
+    },
+    async withCurrentCredential(tokenHash, execution, action) {
+      if (typeof action !== 'function') throw failure('SHOP_AUTH_INVALID');
+      return withTransaction(pool, async client => {
+        const row = (await client.query(`SELECT m.membership_version::text AS "membershipVersion",t.tenant_id::text AS "tenantId", ${TENANT_PRINCIPAL_COLUMNS},p.password_hash AS "passwordHash",
+        s.session_id AS "sessionId",s.expires_at AS "expiresAt"
+        FROM secureshop_auth.sessions s JOIN secureshop_auth.principals p USING(principal_id)
+        JOIN secureshop_auth.tenant_memberships m ON m.principal_id=p.principal_id
+        JOIN secureshop_auth.tenants t ON t.tenant_id=m.tenant_id
+        JOIN secureshop_auth.session_membership_snapshots v ON v.session_id=s.session_id
+          AND v.tenant_id=m.tenant_id AND v.membership_version=m.membership_version
+        WHERE s.token_hash=$1 AND t.slug=$2 AND t.is_active AND m.is_active AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()
+          AND p.is_active=true AND (p.locked_until IS NULL OR p.locked_until<=clock_timestamp())
+          AND s.credential_version=p.credential_version
+          AND s.authority_version=p.authority_version FOR SHARE OF s,p,m,t`, [tokenHash, executionTenantSlug])).rows[0] || null;
+        if (!row) throw failure('SHOP_AUTH_INVALID');
+        const currentExecution=(await client.query(`SELECT e.session_id FROM secureshop_auth.execution_sessions e
+          JOIN secureshop_auth.practice_selections x ON x.execution_session_id=e.session_id
+          AND x.auth_session_id=e.auth_session_id AND x.tenant_id=e.tenant_id AND x.principal_id=e.principal_id
+          WHERE e.session_id=$1 AND e.auth_session_id=$2 AND e.principal_id=$3::uuid
+          AND e.tenant_id=$4::uuid AND e.membership_version=$5::bigint
+          AND e.revoked_at IS NULL AND e.expires_at>clock_timestamp() AND e.expires_at >= $6::timestamptz
+          FOR SHARE OF e,x`,[execution.sessionId,row.sessionId,row.principalId,
+            row.tenantId,row.membershipVersion,execution.expiresAt])).rows[0];
+        if (!currentExecution) throw failure('SHOP_AUTH_INVALID');
+        return action(row);
+      });
     },
     async changePassword({ tokenHash, credentialVersion, passwordHash }) {
       return withTransaction(pool, async client => {

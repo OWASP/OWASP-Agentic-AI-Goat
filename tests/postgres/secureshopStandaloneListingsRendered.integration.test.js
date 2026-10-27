@@ -11,6 +11,7 @@ const { Pool } = require('pg');
 const { migrate } = require('../../db/postgres/migrate');
 const { createSecureShopBoundManualIngestRepository } = require(
   '../../server/database/postgres/secureshopBoundManualIngestRepository');
+const manualRecovery = require('../fixtures/secureshopProductManualRenderedRecovery');
 
 const PREFIX = 'PG_SECURESHOP_STANDALONE_LISTINGS_';
 const STORES = Object.freeze({ IDENTITY: 'identity', AGENTS: 'secureshop_agents',
@@ -34,9 +35,10 @@ const GENERATED_FIXED_FLAGS = Object.freeze(['fixedGeneratedActualModel',
   'fixedGeneratedOwnerResetFenced']);
 const CHAT_LISTINGS_ASSERTION = 'standalone merchant prepares chat Listings import and selected rewrite with genuine model effects and exact saved recovery';
 const CHAT_LISTINGS_SCOPE = 'current-main standalone merchant chat Listings; three genuine role turns, physical import and selected rewrite/save, lost acknowledgement saved GET and authority fences';
-const CHAT_LISTINGS_FLAGS = Object.freeze(['passed','isolatedStores','disposableManagerOnly','importSetupNoEffect','physicalImport','exactImportRecoveryNoReplay','namedOwnedProduct','selectedRewriteSetupNoEffect','physicalRewrite','physicalSave','lostSaveAcknowledgement','exactSavedRecoveryNoReplay','foreignOwnerDenied','personaSessionFenced','resetFenced','separateOwnerPreserved','noObjectiveCredit','fixtureCleaned']);
+const CHAT_LISTINGS_FLAGS = Object.freeze(['passed','isolatedStores','disposableManagerOnly','importSetupNoEffect','physicalImport','exactImportRecoveryNoReplay','namedOwnedProduct','selectedRewriteSetupNoEffect','physicalRewrite','physicalSave','lostSaveAcknowledgement','exactSavedRecoveryNoReplay','archiveCancelNoEffect','physicalArchiveConfirmed','archivedOwnedReadback','foreignOwnerDenied','personaSessionFenced','resetFenced','separateOwnerPreserved','noObjectiveCredit','fixtureCleaned']);
 const SEARCH_ENABLED = process.env.SECURESHOP_MERCHANT_MANUAL_SEARCH_BROWSER_NATIVE === '1';
-const MANUAL_ENABLED = process.env.SECURESHOP_PRODUCT_MANUAL_BROWSER_NATIVE === '1' || SEARCH_ENABLED;
+const RECOVERY_ENABLED = process.env.SECURESHOP_PRODUCT_MANUAL_RECOVERY_BROWSER_NATIVE === '1';
+const MANUAL_ENABLED = process.env.SECURESHOP_PRODUCT_MANUAL_BROWSER_NATIVE === '1' || SEARCH_ENABLED || RECOVERY_ENABLED;
 const ENABLED = (process.env.SECURESHOP_STANDALONE_LISTINGS_NATIVE === '1' || MANUAL_ENABLED || CHAT_LISTINGS_ENABLED || GENERATED_FIXED_ENABLED)
   && process.env.PG_TEST_DISPOSABLE === 'yes' && process.env.LIVE_OLLAMA_TEST === '1'
   && Object.keys(STORES).every(store => ['MIGRATION', 'RUNTIME']
@@ -44,6 +46,10 @@ const ENABLED = (process.env.SECURESHOP_STANDALONE_LISTINGS_NATIVE === '1' || MA
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const HEX = /^[a-f0-9]{64}$/;
 const sha = value => createHash('sha256').update(value).digest('hex');
+const RECOVERY_FLAGS = Object.freeze(['passed','isolatedStores','physicalOwnedManualUpload',
+  'actualCommittedResponseLost','savedGetOnlyRecovery','exactReadback','immutableRevisionStatus',
+  'foreignOwnerDenied','siblingStatePreserved','fixtureCleaned']);
+const RECOVERY_SCOPE = 'Q05 rendered merchant product manual: one owned POST, genuine committed HTTP 200 lost at the browser, saved GET-only recovery, immutable readback and sibling denial; no Judge or objective credit';
 
 function disposableUrls() {
   const urls = {}; let nonce; let port;
@@ -268,6 +274,18 @@ function managerConfiguration(root) {
   const profileName = `dvaia-owned-listings-${workspaceId}`;
   const profileSource = require('node:fs').readFileSync(path.join(root,
     'sidecars/sandbox-runner/owned-listings/profile.apparmor.in'), 'utf8');
+  const privateRun = env.SECURESHOP_LISTINGS_PRIVATE_MANAGER_RUN_ID;
+  if (privateRun !== undefined) {
+    assert.match(privateRun, /^[a-f0-9]{32}$/);
+    assert.equal(dockerHost, `unix:///var/tmp/dvaia-v23-build-${privateRun}/fs/docker.sock`);
+    assert.equal(env.SECURESHOP_LISTINGS_PRIVATE_MANAGER_PROFILE, profileName);
+    assert.equal(env.SECURESHOP_LISTINGS_PRIVATE_MANAGER_CONTAINER, profileName);
+    assert.equal(env.SECURESHOP_LISTINGS_PRIVATE_MANAGER_PROFILE_SHA256,
+      sha(profileSource.replaceAll('@@SUPERVISOR_PROFILE@@', profileName)));
+  } else {
+    for (const name of ['PROFILE','CONTAINER','PROFILE_SHA256'])
+      assert.equal(env[`SECURESHOP_LISTINGS_PRIVATE_MANAGER_${name}`], undefined);
+  }
   const record = { version: 1, workspaceId, enabled: true, architecture: 'arm64',
     dockerAuthoritySha256: authority, imageId: env.SECURESHOP_LISTINGS_TEST_MANAGER_IMAGE_ID,
     sourceManifestSha256: qualified.qualifiedSourceSha256, runtimeDigest: qualified.runtimeDigest,
@@ -298,6 +316,207 @@ async function createImportSiblingTenant({ migration, auth, repositoryFactory, a
   return { service, base, tenant };
 }
 
+async function assertStandaloneReceiptPath(root, receiptPath,
+  expectedName = 'standalone-listings-browser.json') {
+  assert.ok(path.isAbsolute(root) && path.isAbsolute(receiptPath));
+  assert.equal(await fs.realpath(root), root, 'canonical current-host repository required');
+  assert.equal(path.resolve(receiptPath), receiptPath, 'canonical receipt spelling required');
+  const relative = path.relative(root, receiptPath).split(path.sep);
+  assert.equal(relative.length, 4);
+  assert.deepEqual(relative.slice(0, 2), ['tasks', 'qualification']);
+  assert.match(relative[2], /^run-[A-Za-z0-9_-]{8,64}$/);
+  assert.ok(['standalone-listings-browser.json', 'merchant-listings-chat-browser.json',
+    'merchant-manual-ingest-browser.json'].includes(expectedName),
+  'only the three exact private Listings receipts are allowed');
+  assert.equal(relative[3], expectedName);
+  const parent = path.dirname(receiptPath), info = await fs.lstat(parent);
+  assert.ok(info.isDirectory() && !info.isSymbolicLink());
+  assert.equal(await fs.realpath(parent), parent);
+  assert.equal(info.mode & 0o777, 0o700);
+  assert.equal(info.uid, process.getuid());
+  await assert.rejects(fs.lstat(receiptPath), error => error?.code === 'ENOENT');
+  return parent;
+}
+
+async function publishStandaloneReceipt(root, receiptPath, value,
+  expectedName = 'standalone-listings-browser.json') {
+  const bytes = JSON.stringify(value, null, 2);
+  assert.ok(Buffer.byteLength(bytes) <= 1024 * 1024, 'bounded standalone receipt required');
+  await assertStandaloneReceiptPath(root, receiptPath, expectedName);
+  const { O_WRONLY, O_CREAT, O_EXCL, O_NOFOLLOW } = require('node:fs').constants;
+  const handle = await fs.open(receiptPath, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600);
+  try {
+    const info = await handle.stat();
+    assert.ok(info.isFile());
+    assert.equal(info.uid, process.getuid());
+    assert.equal(info.nlink, 1);
+    assert.equal(info.mode & 0o777, 0o600);
+    await handle.writeFile(bytes);
+    await handle.sync();
+  } finally { await handle.close(); }
+}
+
+const READINESS_CODES = new Set(['SHOP_AUTH_INVALID', 'SHOP_AUTH_REVOKED',
+  'STALE_AUTHORITY', 'SHOP_SCENE_STALE', 'LISTINGS_MANAGER_IDENTITY',
+  'LISTINGS_MANAGER_LIMIT', 'LISTINGS_MANAGER_UNAVAILABLE', 'LISTINGS_MANAGER_TIMEOUT',
+  'LISTINGS_MANAGER_PROTOCOL', 'SECURESHOP_FEATURE_MODE_STALE']);
+function recordReadiness(diagnostic, bucket, row) {
+  if (diagnostic[bucket].length < 16) diagnostic[bucket].push(row);
+}
+function readinessShape(status, value) {
+  return { status: Number.isInteger(status) && status >= 100 && status <= 599 ? status : null,
+    object: value !== null && typeof value === 'object' && !Array.isArray(value),
+    ready: value?.ready === true, versionedListings: value?.versionedListings === true,
+    scopeKeyValid: typeof value?.scopeKey === 'string' && /^[a-f0-9]{64}$/.test(value.scopeKey) };
+}
+function observeReadiness(read, diagnostic) {
+  return async function (...args) {
+    try { return await Reflect.apply(read, this, args); }
+    catch (error) {
+      try {
+        let current = error;
+        for (let depth = 0; current && depth < 3; depth++, current = current.cause)
+          recordReadiness(diagnostic, 'errors', { depth,
+            code: READINESS_CODES.has(current.code) ? current.code : null,
+            name: ['Error', 'TypeError', 'RangeError', 'SyntaxError', 'AbortError', 'TimeoutError'].includes(current.name)
+              ? current.name : null });
+      } catch { /* Preserve the original exception. */ }
+      throw error;
+    }
+  };
+}
+async function renderedReadinessState(frame, expectedUrl) {
+  return frame.evaluate(expected => {
+    const visible = element => element.getClientRects().length > 0
+      && getComputedStyle(element).visibility !== 'hidden';
+    const text = [...document.querySelectorAll('[role="status"],[role="alert"]')]
+      .filter(visible).map(element => element.textContent || '');
+    const categories = [
+      ['http', /Listing actions could not be verified \(HTTP [1-5][0-9]{2}\)\./],
+      ['http_unknown', /Listing actions could not be verified\./],
+      ['response_shape', /Listing readiness response could not be verified\./],
+      ['saved_references', /Saved listing references could not be verified\./],
+      ['transport_or_json', /Could not check listing actions\./],
+      ['checking', /Checking listing actions…/],
+      ['not_ready', /Listing actions are not ready\./],
+    ].filter(([, pattern]) => text.some(value => pattern.test(value))).map(([name]) => name);
+    const button = [...document.querySelectorAll('button')]
+      .find(element => visible(element) && element.textContent?.trim() === 'Import');
+    const input = document.querySelector('input[placeholder="https://example.com/products.json"]');
+    return { categories, importPresent: !!button, importDisabled: button ? button.disabled === true : null,
+      inputPresent: !!input, inputEqualsExpected: input ? input.value === expected : null };
+  }, expectedUrl);
+}
+const ASSESSMENT_REASONS = new Set(['qualification_error', 'qualification_timeout',
+  'browser_startup_timeout', 'qualification_queue_full', 'invalid_or_oversized_html',
+  'no_instrumented_execution', 'browser_coverage_script_execution',
+  'browser_binding_target_execution', 'browser_observed_effect']);
+const ASSESSMENT_ERROR_NAMES = new Set(['Error', 'TypeError', 'RangeError', 'AbortError',
+  'TimeoutError', 'AggregateError']);
+const ASSESSMENT_ERROR_CODES = new Set(['BROWSER_RETIREMENT_INCOMPLETE',
+  'LISTING_EVIDENCE_UNAVAILABLE', 'GRADE_STORE_NOT_READY',
+  'LISTINGS_DEPENDENCIES_UNAVAILABLE', 'TURN_RECOVERY_REQUIRED']);
+const ASSESSMENT_PHASES = new Set(['browser_launch', 'context_creation', 'page_creation',
+  'cdp_setup', 'page_setup', 'navigation', 'dom_mount', 'learner_comparison',
+  'browser_observation', 'cdp_teardown', 'context_retirement', 'browser_release']);
+const allowedAssessmentToken = (value, allowed) => allowed.has(value) ? value : null;
+function captureAssessmentFailure(error, diagnostic) {
+  const queue = [error];
+  while (queue.length && diagnostic.errors.length < 3) {
+    const current = queue.shift();
+    if (!current || typeof current !== 'object') continue;
+    diagnostic.errors.push({ name: allowedAssessmentToken(current.name, ASSESSMENT_ERROR_NAMES),
+      code: allowedAssessmentToken(current.code, ASSESSMENT_ERROR_CODES),
+      cleanupErrorCode: allowedAssessmentToken(current.cleanupErrorCode, ASSESSMENT_ERROR_CODES),
+      phase: allowedAssessmentToken(current.phase, ASSESSMENT_PHASES) });
+    if (current.cause) queue.push(current.cause);
+    if (current instanceof AggregateError) queue.push(...current.errors.slice(0, 3));
+  }
+}
+function observeAssessmentQualification(qualification, diagnostic) {
+  return Object.freeze({
+    async qualify(...args) {
+      const result = await qualification.qualify(...args);
+      try {
+        if (diagnostic.active && diagnostic.qualification === null) diagnostic.qualification = {
+          reason: allowedAssessmentToken(result?.reason, ASSESSMENT_REASONS),
+          executed: result?.executed === true,
+          targetEventExecuted: result?.targetEventExecuted === true,
+          targetEffectObserved: result?.targetEffectObserved === true };
+      } catch { /* Diagnostic observation must never change the actual result. */ }
+      return result;
+    },
+    qualifyDocument: (...args) => qualification.qualifyDocument(...args),
+    qualifyClient: (...args) => qualification.qualifyClient(...args),
+    close: () => qualification.close(),
+  });
+}
+function observeListingsBrowserAssessment(actual, diagnostic) {
+  return Object.freeze({ ...actual, async runAttempt(input) {
+    diagnostic.active = true;
+    try { return await actual.runAttempt(input); }
+    catch (error) {
+      try { captureAssessmentFailure(error, diagnostic); } catch { /* Preserve the original error. */ }
+      throw error;
+    }
+    finally { diagnostic.active = false; }
+  } });
+}
+
+async function launchStandaloneBrowser({ root, receiptPath, origin, profile, executablePath,
+  assessment = false, launchOptions, receiptName = 'standalone-listings-browser.json' }) {
+  assert.equal(typeof assessment, 'boolean');
+  if (assessment) {
+    assert.ok(receiptPath, 'Private assessment browser requires current-host receipt');
+    assert.equal(origin, undefined);
+    assert.deepEqual(Object.keys(launchOptions || {}).sort(), ['headless', 'timeout']);
+    assert.equal(launchOptions.headless, true);
+    assert.ok(Number.isInteger(launchOptions.timeout)
+      && launchOptions.timeout >= 500 && launchOptions.timeout <= 30000);
+  } else assert.equal(launchOptions, undefined);
+  const ordinary = { headless: true, userDataDir: profile, executablePath,
+    ...(assessment ? { timeout: launchOptions.timeout } : {}) };
+  if (!receiptPath) return require('puppeteer').launch(ordinary);
+  const directory = await assertStandaloneReceiptPath(root, receiptPath, receiptName);
+  assert.equal(root, process.cwd());
+  assert.equal(root, process.env.DVAIA_CURRENT_MAIN_WORKSPACE);
+  const runtime = path.join(directory, 'runtime'), tmp = path.join(runtime, 'tmp');
+  const home = path.join(runtime, 'home');
+  async function ownedDirectory(value) {
+    const info = await fs.lstat(value);
+    assert.ok(info.isDirectory() && !info.isSymbolicLink());
+    assert.equal(info.uid, process.getuid()); assert.equal(info.mode & 0o777, 0o700);
+    assert.equal(await fs.realpath(value), value);
+  }
+  for (const value of [runtime, tmp, home, profile]) await ownedDirectory(value);
+  assert.equal(path.dirname(profile), tmp);
+  assert.match(path.basename(profile), /^dvaia-listings-browser-[A-Za-z0-9_-]+$/);
+  assert.equal(process.env.TMPDIR, tmp); assert.equal(process.env.MAC_CHROMIUM_TMPDIR, tmp);
+  for (const [key, name] of [['XDG_CACHE_HOME', '.cache'], ['XDG_CONFIG_HOME', '.config']]) {
+    const value = path.join(home, name); assert.equal(process.env[key], value);
+    try { await ownedDirectory(value); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+  assert.ok(path.isAbsolute(executablePath));
+  assert.equal(executablePath, process.env.PUPPETEER_EXECUTABLE_PATH);
+  assert.equal(await fs.realpath(executablePath), executablePath);
+  await fs.access(executablePath, require('node:fs').constants.X_OK);
+  if (!assessment) {
+    const target = new URL(origin);
+    assert.equal(target.origin, origin); assert.equal(target.protocol, 'http:');
+    assert.equal(target.hostname, '127.0.0.1');
+    assert.match(target.port, /^[1-9][0-9]{0,4}$/);
+    assert.ok(Number(target.port) <= 65535);
+    assert.equal(target.username, ''); assert.equal(target.password, '');
+    assert.equal(target.pathname, '/'); assert.equal(target.search, ''); assert.equal(target.hash, '');
+  }
+  return require('puppeteer').launch({ ...ordinary, args: ['--no-sandbox', '--disable-background-networking',
+    '--disable-component-update', '--disable-domain-reliability', '--disable-quic',
+    '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
+    '--proxy-server=http://blocked.invalid:9',
+    '--proxy-bypass-list=127.0.0.1;localhost;[::1]',
+    '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost, EXCLUDE [::1]'] });
+}
+
 async function runStandaloneListingsQualification(options = {}) {
     const { exercise, objectiveIds, receiptPath: exerciseReceiptPath } = options;
     assert.deepEqual(Object.keys(options).sort(), exercise
@@ -315,19 +534,46 @@ async function runStandaloneListingsQualification(options = {}) {
       assert.ok(path.isAbsolute(exerciseReceiptPath));
     } else {
       assert.equal(ENABLED, true, 'Explicit disposable native cohort is required');
+      if (RECOVERY_ENABLED) assert.equal(CHAT_LISTINGS_ENABLED || SEARCH_ENABLED
+        || process.env.SECURESHOP_PRODUCT_MANUAL_BROWSER_NATIVE === '1'
+        || GENERATED_FIXED_ENABLED || process.env.SECURESHOP_STANDALONE_LISTINGS_NATIVE === '1', false,
+      'Product-manual recovery has a distinct single selector');
       if (GENERATED_FIXED_ENABLED) assert.equal(CHAT_LISTINGS_ENABLED || MANUAL_ENABLED
         || process.env.SECURESHOP_STANDALONE_LISTINGS_NATIVE === '1', false,
       'Generated fixed contrast has its own opt-in selector');
     }
     const root = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
     assert.equal(root, process.cwd(), 'current-main source only');
-    const receiptPath = exerciseReceiptPath || (CHAT_LISTINGS_ENABLED ? process.env.SECURESHOP_MERCHANT_LISTINGS_CHAT_BROWSER_EVIDENCE_PATH : SEARCH_ENABLED
+    const receiptPath = exerciseReceiptPath || (RECOVERY_ENABLED ? process.env.SECURESHOP_PRODUCT_MANUAL_RECOVERY_EVIDENCE_PATH : CHAT_LISTINGS_ENABLED ? process.env.SECURESHOP_MERCHANT_LISTINGS_CHAT_BROWSER_EVIDENCE_PATH : SEARCH_ENABLED
       ? process.env.SECURESHOP_MERCHANT_MANUAL_SEARCH_EVIDENCE_PATH
       : MANUAL_ENABLED
       ? process.env.SECURESHOP_PRODUCT_MANUAL_EVIDENCE_PATH
       : GENERATED_FIXED_ENABLED ? process.env.SECURESHOP_LISTING_GENERATED_BROWSER_FIXED_EVIDENCE_PATH
         : process.env.SECURESHOP_STANDALONE_LISTINGS_EVIDENCE_PATH) || '';
-    assert.ok(path.isAbsolute(receiptPath) && !path.resolve(receiptPath).startsWith(`${root}${path.sep}`));
+    assert.ok(path.isAbsolute(receiptPath));
+    const standalonePrivateReceipt = !exercise && !CHAT_LISTINGS_ENABLED && !MANUAL_ENABLED
+      && !GENERATED_FIXED_ENABLED && process.env.SECURESHOP_STANDALONE_LISTINGS_NATIVE === '1'
+      && process.env.SECURESHOP_LISTING_IMPORT_VULNERABILITY_BROWSER_NATIVE !== '1'
+      && (path.resolve(receiptPath) === root || path.resolve(receiptPath).startsWith(`${root}${path.sep}`));
+    const merchantPrivateReceipt = !exercise && CHAT_LISTINGS_ENABLED
+      && !MANUAL_ENABLED && !GENERATED_FIXED_ENABLED
+      && process.env.SECURESHOP_STANDALONE_LISTINGS_NATIVE !== '1'
+      && process.env.SECURESHOP_LISTING_IMPORT_VULNERABILITY_BROWSER_NATIVE !== '1'
+      && /^[a-f0-9]{32}$/.test(process.env.SECURESHOP_LISTINGS_PRIVATE_MANAGER_RUN_ID || '');
+    const privateManualReceipt = !exercise && MANUAL_ENABLED && !SEARCH_ENABLED
+      && !RECOVERY_ENABLED && !CHAT_LISTINGS_ENABLED && !GENERATED_FIXED_ENABLED
+      && process.env.SECURESHOP_PRODUCT_MANUAL_BROWSER_NATIVE === '1'
+      && process.env.SECURESHOP_STANDALONE_LISTINGS_NATIVE !== '1'
+      && process.env.SECURESHOP_LISTING_IMPORT_VULNERABILITY_BROWSER_NATIVE !== '1'
+      && /^[a-f0-9]{32}$/.test(process.env.SECURESHOP_LISTINGS_PRIVATE_MANAGER_RUN_ID || '');
+    const privateListingsReceipt = standalonePrivateReceipt || merchantPrivateReceipt || privateManualReceipt;
+    const privateReceiptName = privateManualReceipt ? 'merchant-manual-ingest-browser.json'
+      : merchantPrivateReceipt ? 'merchant-listings-chat-browser.json' : 'standalone-listings-browser.json';
+    if (RECOVERY_ENABLED) {
+      await manualRecovery.assertPrivateReceiptPath(root, receiptPath);
+    } else if (privateListingsReceipt) {
+      await assertStandaloneReceiptPath(root, receiptPath, privateReceiptName);
+    } else assert.ok(!path.resolve(receiptPath).startsWith(`${root}${path.sep}`));
     const build = path.resolve(process.env.SECURESHOP_STANDALONE_LISTINGS_BUILD || path.join(root, 'client/build'));
     assert.equal(build, path.join(root, 'client/build'));
     await fs.access(path.join(build, 'index.html')); await fs.access(path.join(build, 'secureshop-frame.html'));
@@ -377,6 +623,12 @@ async function runStandaloneListingsQualification(options = {}) {
       emptyOwnedProductManual: false, foreignOwnerDenied: false, personaSessionFenced: false,
       resetFenced: false, siblingStatePreserved: false, cachedEmbeddingStable: false, fixtureCleaned: false,
       actorCalls: 0, uploadPosts: 0, chatPosts: 0, retrievalCalls: 0, judgeCalls: 0,
+    } : RECOVERY_ENABLED ? {
+      scope: RECOVERY_SCOPE, profile: manualRecovery.PROFILE,
+      ...Object.fromEntries(RECOVERY_FLAGS.map(key => [key, false])),
+      actorCalls: 0, uploadPosts: 0, actualActorCalls: 0, ownerUploadPosts: 0,
+      allUploadPosts: 0, receiptGets: 0,
+      judgeCalls: 0, canonicalCredit: false, diagnosticOnly: true, evidence: null,
     } : MANUAL_ENABLED ? {
       scope: 'current-main standalone merchant product manual ingestion; physical owned upload, genuine local llama3.1:8b processing, immutable durable readback, exact replay and sibling denial',
       passed: false, isolatedStores: false, physicalOwnedManualUpload: false,
@@ -405,6 +657,9 @@ async function runStandaloneListingsQualification(options = {}) {
       ...Object.fromEntries(GENERATED_FIXED_FLAGS.map(key => [key, false])),
     });
     let composition; let reset; let restoreFetch; let modelSummary; let captureFailureEvidence;
+    let assessmentQualification;
+    const assessmentDiagnostic = { qualification: null, errors: [], active: false };
+    const readinessDiagnostic = { server: [], browser: [], errors: [], dom: null };
     let restoreRetrievalFactory;
     const retrievalCalls = [];
     const retrievalErrors = [];
@@ -412,7 +667,7 @@ async function runStandaloneListingsQualification(options = {}) {
     const templateSidecarResponses = [];
     const templateRuntimeErrors = [];
     const templateSqlErrors = [];
-    const cleanupErrors = []; let failure;
+    const cleanupErrors = []; let failure; let publicationFailure;
     try {
       status.isolatedStores = true;
       for (const [store, directory] of [
@@ -589,7 +844,8 @@ async function runStandaloneListingsQualification(options = {}) {
         .createSecureShopBoundAuditComposition({ agentsPool: agents, reviewPool: review,
           includeRunArtifacts: true });
       const manualFileRoot = MANUAL_ENABLED
-        ? await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-manual-ingest-files-')) : null;
+        ? await fs.mkdtemp(path.join(RECOVERY_ENABLED ? path.dirname(receiptPath) : os.tmpdir(),
+          'dvaia-manual-ingest-files-')) : null;
       if (manualFileRoot) profiles.push(manualFileRoot);
       const manualFiles = manualFileRoot
         ? require('../../sidecars/sandbox-runner/secureshopFiles').createSecureShopFiles({
@@ -866,6 +1122,26 @@ async function runStandaloneListingsQualification(options = {}) {
           retrievalModule.createSecureShopBoundProductRetrieval = createActualRetrieval;
         };
       }
+      let assessmentBrowserFacade;
+      if (standalonePrivateReceipt) {
+        const evidenceDirectory = await assertStandaloneReceiptPath(root, receiptPath);
+        const assessmentTmp = path.join(evidenceDirectory, 'runtime', 'tmp');
+        assert.equal(os.tmpdir(), assessmentTmp);
+        assert.equal(process.env.TMPDIR, assessmentTmp);
+        const tmpInfo = await fs.lstat(assessmentTmp);
+        assert.ok(tmpInfo.isDirectory() && !tmpInfo.isSymbolicLink());
+        assert.equal(tmpInfo.uid, process.getuid());
+        assert.equal(tmpInfo.mode & 0o777, 0o700);
+        assert.equal(await fs.realpath(assessmentTmp), assessmentTmp);
+        const assessmentProfile = await fs.mkdtemp(path.join(assessmentTmp, 'dvaia-listings-browser-'));
+        profiles.push(assessmentProfile);
+        assessmentQualification = require('../../server/services/xssBrowserQualification')
+          .createXssBrowserQualification({ puppeteer: { launch: launchOptions =>
+            launchStandaloneBrowser({ root, receiptPath, profile: assessmentProfile,
+              executablePath, assessment: true, launchOptions }) } });
+        assessmentBrowserFacade = observeAssessmentQualification(assessmentQualification,
+          assessmentDiagnostic);
+      }
       composition = require('../../server/services/secureshopBoundReviewComposition')
         .createSecureShopBoundReviewComposition({ identityPool: identity, agentsPool: agents,
           reviewPool: review, commercePool: commerce, resetComposition: reset,
@@ -879,7 +1155,8 @@ async function runStandaloneListingsQualification(options = {}) {
             : [OBJECTIVE, BROWSER_OBJECTIVE]),
           ...(manualFiles ? { files: manualFiles } : {}),
           jwtSecret: 'disposable-listings-persona-secret-at-least-32-bytes',
-          agentRuntime: { provider }, judge });
+          agentRuntime: { provider }, judge,
+          ...(assessmentBrowserFacade ? { browserQualification: assessmentBrowserFacade } : {}) });
       restoreRetrievalFactory?.();
       restoreRetrievalFactory = null;
       if (SEARCH_ENABLED || CHAT_LISTINGS_ENABLED) {
@@ -910,6 +1187,11 @@ async function runStandaloneListingsQualification(options = {}) {
           },
         }) });
       let listings;
+      if (standalonePrivateReceipt) {
+        const priorRouterFactory = listingsRouteModule.createBoundListingsRouter;
+        listingsRouteModule.createBoundListingsRouter = options => priorRouterFactory({ ...options,
+          readReadiness: observeReadiness(options.readReadiness, readinessDiagnostic) });
+      }
       try { listings = await require('../../server/services/secureshopListingsProduction')
         .createListingsProduction({ runtime: reset.listingsRuntime, identityPool: identity,
           agentsPool: agents, reviewPool: review, resetComposition: reset,
@@ -919,6 +1201,11 @@ async function runStandaloneListingsQualification(options = {}) {
           authenticatePersona: composition.personaAuth.authenticatePersona,
           ...(listingTemplateClient ? { listingTemplateClient } : {}),
           browserQualification: composition.browserQualification,
+          ...(standalonePrivateReceipt ? { createBrowserAssessment: options => {
+            const actual = require('../../server/services/secureshopListingsBrowserAssessment')
+              .createListingsBrowserAssessment(options);
+            return observeListingsBrowserAssessment(actual, assessmentDiagnostic);
+          } } : {}),
           assessmentDependencies: { ...grading.assessmentDependencies,
             publicationModes: modeRepository, judge,
             qualifyModel: require('../../server/services/secureshopModelQualification')
@@ -979,11 +1266,35 @@ async function runStandaloneListingsQualification(options = {}) {
             audit: async () => {}, agentRuntime: {}, getComposition: async () => mounted });
         const app = express(); app.use(express.json());
         const requests = [], actions = [], reads = [], uploadPosts = [], catalogReads = [];
+        const manualRecoveryLedger = [];
         const merchantTransport = { posts: [], reads: [] };
         const chatTransport = { suppressTerminal: false, readUnavailable: false,
           posts: [], reads: [], suppressedTerminal: [], forwardedTerminal: [] };
         const cartTransport = { posts: [], reads: [], readUnavailableAfterConfirm: false };
         app.use('/api/secureshop', (req, res, next) => {
+          if (standalonePrivateReceipt && req.method === 'GET'
+              && req.path === '/merchant/listings/readiness') {
+            const sendJson = res.json;
+            res.json = function (value) {
+              try { recordReadiness(readinessDiagnostic, 'server', readinessShape(res.statusCode, value)); }
+              catch { /* Never alter a response for diagnostic observation. */ }
+              return Reflect.apply(sendJson, this, [value]);
+            };
+          }
+          if (RECOVERY_ENABLED && ((req.method === 'POST' && req.path === '/uploads')
+            || (req.method === 'GET' && req.path === '/uploads/product-manual/receipt'))) {
+            const sendJson = res.json.bind(res);
+            res.json = value => {
+              manualRecoveryLedger.push(Object.freeze({ method: req.method, path: req.path,
+                status: res.statusCode, state: req.method === 'POST'
+                  ? (value?.ok === true ? 'indexed' : 'failed') : value?.state || 'failed',
+                operationId: value?.operationId || null,
+                recoveryScopeKey: value?.recoveryScopeKey || req.body?.recoveryScopeKey || null,
+                receipt: req.method === 'GET' ? value?.receipt !== null && value?.receipt !== undefined
+                  : value?.ok === true }));
+              return sendJson(value);
+            };
+          }
           if (req.method === 'GET' && req.path === '/products') {
             const sendJson = res.json.bind(res);
             res.json = value => {
@@ -1067,7 +1378,7 @@ async function runStandaloneListingsQualification(options = {}) {
         app.use('/api', (_request, response) => response.status(404).json({ error: 'Outside Listings qualification' }));
         app.use(express.static(build, { setHeaders: response => response.set('Access-Control-Allow-Origin', '*') }));
         app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
-        return { origin, requests, actions, reads, uploadPosts, catalogReads,
+        return { origin, requests, actions, reads, uploadPosts, catalogReads, manualRecoveryLedger,
           chatTransport, cartTransport, merchantTransport };
       }
       const vulnerableApp = await mount(auth, defaultMode, defaultBootstrap);
@@ -1078,11 +1389,19 @@ async function runStandaloneListingsQualification(options = {}) {
       async function importFromRendered(app, allowedStatuses = [200, 202]) {
         const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-listings-browser-'));
         profiles.push(profile);
-        const browser = await require('puppeteer').launch({ headless: true,
-          userDataDir: profile, executablePath }); browsers.push(browser);
+        const browser = await launchStandaloneBrowser({ root,
+          receiptPath: standalonePrivateReceipt ? receiptPath : null,
+          origin: app.origin, profile, executablePath }); browsers.push(browser);
         const page = await browser.newPage(); await page.setViewport({ width: 1280, height: 900 });
         const responses = [];
         page.on('response', response => {
+          if (standalonePrivateReceipt) try {
+            if (response.request().method() === 'GET'
+                && new URL(response.url()).origin === app.origin
+                && new URL(response.url()).pathname === '/api/secureshop/merchant/listings/readiness')
+              recordReadiness(readinessDiagnostic, 'browser', {
+                status: Number.isInteger(response.status()) ? response.status() : null });
+          } catch { /* Passive observation only; never read or consume its body. */ }
           if (response.request().method() === 'POST'
               && new URL(response.url()).pathname === '/api/secureshop/merchant/listings/import-bulk')
             responses.push(response.status());
@@ -1118,6 +1437,8 @@ async function runStandaloneListingsQualification(options = {}) {
         await importButton.click();
         } catch (error) {
           const controls = await renderedListingControls(frame).catch(() => null);
+          if (standalonePrivateReceipt) readinessDiagnostic.dom =
+            await renderedReadinessState(frame, INTERNAL_URL).catch(() => null);
           const inputCause = error.code === 'RENDERED_URL_INPUT_FAILED' ? `; ${error.message}` : '';
           throw Object.assign(new Error(`Rendered Listings control unavailable: ${JSON.stringify(controls)}${inputCause}`),
             { code: error.code || 'RENDERED_CONTROL_UNAVAILABLE', cause: error });
@@ -1151,7 +1472,9 @@ async function runStandaloneListingsQualification(options = {}) {
       } else if (CHAT_LISTINGS_ENABLED) {
         const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-listings-browser-'));
         profiles.push(profile);
-        const browser = await require('puppeteer').launch({headless:true,userDataDir:profile,executablePath});
+        const browser = await launchStandaloneBrowser({ root,
+          receiptPath: merchantPrivateReceipt ? receiptPath : null,
+          receiptName: privateReceiptName, origin: vulnerableApp.origin, profile, executablePath });
         browsers.push(browser);
         const page = await browser.newPage(); await page.setViewport({width:1280,height:900});
         await page.setRequestInterception(true);
@@ -1360,6 +1683,85 @@ async function runStandaloneListingsQualification(options = {}) {
         const independentRows=async()=>(await review.query('SELECT to_jsonb(p) AS value FROM secureshop_review.product_target_products p WHERE target_id=$1 ORDER BY product_id',[fixedBirth.target.targetId])).rows;
         const independentBefore=await independentRows();assert.ok(independentBefore.some(r=>r.value.product_id===independent.productId));
         assert.equal(judgeCalls,0);
+        // Direct Listings archive is a separate merchant action, not a chat
+        // rewrite/save replay. Its visible Cancel must leave the owned product
+        // unchanged; one physical Archive must soft-delete exactly that row.
+        const archivePath=`/api/secureshop/merchant/products/${productId}`;
+        const archiveRequests=[];
+        const observeArchive=request=>{
+          if(request.method()==='DELETE'&&new URL(request.url()).pathname===archivePath)
+            archiveRequests.push(request.url());
+        };
+        const archiveRow=async()=>(await review.query(`SELECT name,status,archived_at FROM
+          secureshop_review.product_target_listing_overlays WHERE target_id=$1 AND product_id=$2`,
+          [target.targetId,productId])).rows[0];
+        const independentOverlays=async()=>(await review.query(`SELECT to_jsonb(o) AS value FROM
+          secureshop_review.product_target_listing_overlays o WHERE target_id=$1 ORDER BY product_id`,
+          [fixedBirth.target.targetId])).rows;
+        const siblingOverlaysBefore=await independentOverlays();
+        const beforeArchive=await archiveRow();
+        assert.equal(beforeArchive?.archived_at??null,null);
+        const archiveName=beforeArchive?.name??owned.product.name;
+        const archiveDialog=async(label)=>{
+          const handle=await frame.waitForFunction((name,text)=>{
+            const dialogs=[...document.querySelectorAll('[role="dialog"]')].filter(node=>
+              node.getClientRects().length&&node.querySelector('h2')?.textContent?.trim()===`Archive "${name}"?`);
+            if(dialogs.length!==1)return null;
+            const buttons=[...dialogs[0].querySelectorAll('button')].filter(node=>
+              node.textContent?.trim()===text&&!node.disabled&&node.getClientRects().length);
+            if(buttons.length!==1)return null;
+            const node=buttons[0];node.scrollIntoView({block:'center'});
+            const box=node.getBoundingClientRect();
+            const hit=document.elementFromPoint(box.left+box.width/2,box.top+box.height/2);
+            return hit===node||node.contains(hit)?node:null;
+          },{timeout:20000},archiveName,label);
+          assert.ok(handle.asElement(),`one hit-tested ${label} in exact archive dialog required`);
+          await handle.asElement().click();
+        };
+        page.on('request',observeArchive);
+        try{
+          await frame.waitForSelector(`#p${productId} button[aria-label="Delete"]`,{visible:true});
+          await frame.click(`#p${productId} button[aria-label="Delete"]`);
+          await archiveDialog('Cancel');
+          await frame.waitForFunction(name=>![...document.querySelectorAll('[role="dialog"]')]
+            .some(node=>node.getClientRects().length&&node.querySelector('h2')?.textContent?.trim()
+              ===`Archive "${name}"?`),{timeout:20000},archiveName);
+          assert.equal(archiveRequests.length,0);
+          assert.deepEqual(await archiveRow(),beforeArchive);
+          assert.deepEqual(await independentOverlays(),siblingOverlaysBefore);
+          status.archiveCancelNoEffect=true;
+          await frame.click(`#p${productId} button[aria-label="Delete"]`);
+          const controller=new AbortController();
+          const response=page.waitForResponse(reply=>reply.request().method()==='DELETE'
+            &&new URL(reply.url()).pathname===archivePath,
+          {timeout:30000,signal:controller.signal}).then(reply=>({reply}),error=>({error}));
+          let committed;
+          try{await archiveDialog('Archive');const outcome=await response;
+            if(outcome.error)throw outcome.error;committed=outcome.reply;
+          }finally{controller.abort();await response;}
+          assert.equal(committed.status(),200);
+          assert.deepEqual(await committed.json(),{ok:true});
+          assert.equal(archiveRequests.length,1);
+          status.physicalArchiveConfirmed=true;
+          const archived=await archiveRow();
+          assert.equal(archived?.status,'archived');assert.ok(archived.archived_at);
+          const statusFilter=await frame.evaluateHandle(()=>[...document.querySelectorAll('label')]
+            .find(label=>label.querySelector('.ss-card__meta')?.textContent?.trim()==='Status')
+            ?.querySelector('select')||null);
+          assert.ok(statusFilter.asElement());await statusFilter.asElement().select('archived');
+          await frame.waitForFunction(id=>{
+            const filter=[...document.querySelectorAll('label')]
+              .find(label=>label.querySelector('.ss-card__meta')?.textContent?.trim()==='Status')
+              ?.querySelector('select');
+            const badge=document.querySelector(`#p${id}`)
+              ?.querySelector('td:nth-child(6) > span');
+            return filter?.value==='archived' && badge?.textContent?.trim()==='archived';
+          },{timeout:20000},productId);
+          assert.equal(archiveRequests.length,1);
+          assert.deepEqual(await independentRows(),independentBefore);
+          assert.deepEqual(await independentOverlays(),siblingOverlaysBefore);
+          status.archivedOwnedReadback=true;
+        }finally{page.off('request',observeArchive);}
         assert.equal(await count(identity,'secureshop_auth.assessment_completions',
           'tenant_id=$1 AND principal_id=$2',[defaultTenant.tenantId,defaultTenant.principalId]),0);
         status.noObjectiveCredit=true;
@@ -1385,7 +1787,8 @@ async function runStandaloneListingsQualification(options = {}) {
       } else if (MANUAL_ENABLED) {
         assert.equal(typeof composition.productManualIngestion?.upload, 'function');
         assert.ok(manualFiles, 'owned manual file primitive required');
-        const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-manual-browser-'));
+        const profile = await fs.mkdtemp(path.join(RECOVERY_ENABLED ? path.dirname(receiptPath) : os.tmpdir(),
+          'dvaia-manual-browser-'));
         profiles.push(profile);
         const browser = await require('puppeteer').launch({ headless: true,
           userDataDir: profile, executablePath }); browsers.push(browser);
@@ -1494,7 +1897,7 @@ async function runStandaloneListingsQualification(options = {}) {
           'Q46 owned product manual\nImmutable synthetic ingestion receipt.\n', 'utf8');
         const manualPath = path.join(profile, 'q46-product-manual.md');
         await fs.writeFile(manualPath, manualBody, { mode: 0o600 });
-        const upload = async () => {
+        const selectManualFile = async () => {
           const input = await frame.$('.ss-uploadzone input[type="file"]');
           assert.ok(input); await input.uploadFile(manualPath);
           await frame.waitForFunction(() =>
@@ -1504,12 +1907,56 @@ async function runStandaloneListingsQualification(options = {}) {
               .call(node, 'q46-owned-manual.md');
             node.dispatchEvent(new Event('input', { bubbles: true }));
           });
+        };
+        const upload = async () => {
+          await selectManualFile();
           const received = await observedManualPost('/api/secureshop/uploads',
             () => clickVisibleButton(frame, 'Upload'), 120000);
           const body = await received.json();
           return { status: received.status(), body };
         };
-        const first = await upload();
+        let first;
+        if (RECOVERY_ENABLED) {
+          await selectManualFile();
+          let committedBody;
+          const fault = await manualRecovery.dropCommittedManualUpload(page,
+            `${vulnerableApp.origin}${manualRecovery.POST}`, async reply => {
+              const rows = (await review.query(`SELECT target_id,product_id,file_sha256,byte_count
+                FROM secureshop_review.product_target_manual_ingests WHERE operation_id=$1`,
+              [reply.operationId])).rows;
+              const runtime = (await review.query(`SELECT operation_id FROM
+                secureshop_review.product_target_manual_runtime_receipts WHERE operation_id=$1`,
+              [reply.operationId])).rows;
+              assert.equal(rows.length, 1); assert.equal(runtime.length, 1);
+              assert.equal(rows[0].target_id, ownerTarget.targetId);
+              assert.equal(rows[0].product_id, productId);
+              assert.equal(rows[0].file_sha256.toString('hex'), sha(manualBody));
+              assert.equal(rows[0].byte_count, manualBody.length);
+              committedBody = structuredClone(reply);
+            });
+          let loss;
+          let primaryFailure;
+          try {
+            await clickVisibleButton(frame, 'Upload');
+            loss = await fault.wait(120000);
+          } catch (error) { primaryFailure = error; }
+          try { await fault.close(); } catch (error) { if (!primaryFailure) primaryFailure = error; }
+          if (primaryFailure) throw primaryFailure;
+          assert.equal(loss.operationId, committedBody.operationId);
+          assert.equal(loss.status, 200);
+          first = { status: 200, body: committedBody };
+          status.actualCommittedResponseLost = true;
+          await frame.waitForSelector('.ss-uploadzone [role="status"] button', { visible: true,
+            timeout: 30000 });
+          assert.equal(await frame.$$eval('.ss-uploadzone button', buttons => buttons
+            .filter(button => button.textContent.trim() === 'Upload').length), 1);
+          assert.equal(await frame.$$eval('.ss-uploadzone button', buttons => buttons
+            .find(button => button.textContent.trim() === 'Upload')?.disabled), true,
+          'a pending manual upload must physically disable another POST');
+          status.evidence = { operationId: loss.operationId, responseSha256: loss.responseSha256,
+            responseBytes: loss.responseBytes, manualSha256: sha(manualBody),
+            browserLoadingFailed: true, browserLoadingFinished: false };
+        } else first = await upload();
         assert.equal(first.status, 200);
         assert.deepEqual(Object.keys(first.body).sort(), ['chunk_count', 'chunk_ids',
           'cleaned_filename', 'extracted_bytes', 'extractor', 'extractor_error', 'filename',
@@ -1533,13 +1980,13 @@ async function runStandaloneListingsQualification(options = {}) {
         assert.equal(first.body.replayed, false);
         assert.equal(first.body.provider, 'ollama'); assert.equal(first.body.model, MODEL);
         assert.match(first.body.operationId, UUID);
-        const renderedFirst = await frame.waitForFunction(operationId => {
+        const renderedFirst = RECOVERY_ENABLED ? null : await frame.waitForFunction(operationId => {
           const value = document.querySelector('.ss-uploadzone pre')?.textContent;
           if (!value) return false;
           const parsed = JSON.parse(value);
           return parsed.operationId === operationId ? parsed : false;
         }, { timeout: 30000 }, first.body.operationId);
-        assert.deepEqual(await renderedFirst.jsonValue(), first.body,
+        if (!RECOVERY_ENABLED) assert.deepEqual(await renderedFirst.jsonValue(), first.body,
           'rendered upload result must show the validated operation, chunks, provider and model');
         status.physicalOwnedManualUpload = true;
         const ownedProduct = await composition.catalog.getOwnedMerchantProduct({
@@ -1967,17 +2414,64 @@ async function runStandaloneListingsQualification(options = {}) {
             WHERE target_id=$1 AND source_kind='manual' AND source_id=$2 ORDER BY chunk_index`,
           [row.target_id, row.manual_source_id])).rows,
         };
-        const second = await upload();
-        assert.equal(second.status, 200); assert.equal(second.body.operationId, first.body.operationId);
-        assert.equal(second.body.replayed, true);
-        assert.deepEqual(second.body, { ...first.body, replayed: true });
-        const renderedReplay = await frame.waitForFunction(operationId => {
-          const value = document.querySelector('.ss-uploadzone pre')?.textContent;
-          if (!value) return false;
-          const parsed = JSON.parse(value);
-          return parsed.operationId === operationId && parsed.replayed === true ? parsed : false;
-        }, { timeout: 30000 }, first.body.operationId);
-        assert.deepEqual(await renderedReplay.jsonValue(), second.body);
+        if (RECOVERY_ENABLED) {
+          const beforeGet = { actors: actorTransportCalls,
+            posts: vulnerableApp.uploadPosts.length, ledger: vulnerableApp.manualRecoveryLedger.length };
+          assert.equal(beforeGet.posts, 1);
+          await page.reload({ waitUntil: 'domcontentloaded' });
+          frame = await stableFrame(page);
+          await frame.waitForSelector('a[href="/secureshop/merchant/listings"]', { timeout: 20000 });
+          await frame.click('a[href="/secureshop/merchant/listings"]');
+          const recoveredRow = await frame.waitForFunction(id => [...document.querySelectorAll('tbody tr')]
+            .find(item => item.querySelector('.ss-mono')?.textContent.trim() === `#${id}`
+              && item.querySelector('button[aria-label="Edit"]')),
+          { timeout: 20000 }, productId);
+          const recoveredEdit = await recoveredRow.asElement()?.$('button[aria-label="Edit"]');
+          assert.ok(recoveredEdit); await recoveredEdit.click();
+          await frame.waitForSelector('.ss-uploadzone [role="status"] button',
+            { visible: true, timeout: 20000 });
+          await clickVisibleButton(frame, 'Check saved upload');
+          const renderedRecovery = await frame.waitForFunction(operationId => {
+            const value = document.querySelector('.ss-uploadzone pre')?.textContent;
+            if (!value) return false;
+            const parsed = JSON.parse(value);
+            return parsed.state === 'indexed' && parsed.operationId === operationId ? parsed : false;
+          }, { timeout: 30000 }, first.body.operationId);
+          const recovered = await renderedRecovery.jsonValue();
+          assert.equal(recovered.state, 'indexed');
+          assert.equal(recovered.operationId, first.body.operationId);
+          assert.deepEqual(recovered.receipt, {
+            productId, sha256: sha(manualBody), sizeBytes: manualBody.length,
+            filename: 'q46-owned-manual.md', mime: 'text/markdown', isPublic: true,
+            chunkCount: first.body.chunk_count, chunkIds: first.body.chunk_ids,
+            completedAt: savedReceipt.completedAt,
+          });
+          assert.equal(vulnerableApp.uploadPosts.length, beforeGet.posts);
+          assert.equal(actorTransportCalls, beforeGet.actors,
+            'saved GET recovery cannot repeat the ingestion model decision');
+          assert.equal(vulnerableApp.manualRecoveryLedger.length, beforeGet.ledger + 1);
+          const sequence = vulnerableApp.manualRecoveryLedger.slice(0, 3);
+          manualRecovery.assertBrowserRecoverySequence(sequence, {
+            operationId: first.body.operationId, recoveryScopeKey: sequence[0].recoveryScopeKey });
+          assert.equal(vulnerableApp.manualRecoveryLedger.length, 3);
+          status.evidence.recoveryScopeKeySha256 = sha(sequence[0].recoveryScopeKey);
+          status.evidence.ownerSequence = sequence.map(({ method, path, status: code, state }) =>
+            ({ method, path, status: code, state }));
+          status.savedGetOnlyRecovery = true;
+          status.ownerUploadPosts = 1; status.receiptGets = 2;
+        } else {
+          const second = await upload();
+          assert.equal(second.status, 200); assert.equal(second.body.operationId, first.body.operationId);
+          assert.equal(second.body.replayed, true);
+          assert.deepEqual(second.body, { ...first.body, replayed: true });
+          const renderedReplay = await frame.waitForFunction(operationId => {
+            const value = document.querySelector('.ss-uploadzone pre')?.textContent;
+            if (!value) return false;
+            const parsed = JSON.parse(value);
+            return parsed.operationId === operationId && parsed.replayed === true ? parsed : false;
+          }, { timeout: 30000 }, first.body.operationId);
+          assert.deepEqual(await renderedReplay.jsonValue(), second.body);
+        }
         assert.equal(Number((await review.query(`SELECT count(*)::integer AS n FROM
           secureshop_review.product_target_manual_ingests WHERE target_id=$1`,
         [row.target_id])).rows[0].n), durableBeforeReplay.ingests);
@@ -2015,7 +2509,7 @@ async function runStandaloneListingsQualification(options = {}) {
           expectedGeneration: Number(row.file_generation), maxBytes: 20 * 1024 * 1024,
         });
         assert.deepEqual(replayReadback.data, manualBody);
-        status.exactReplayNoNewDurableIngest = true;
+        if (!RECOVERY_ENABLED) status.exactReplayNoNewDurableIngest = true;
         // Upload leaves the Edit dialog open. Close its actual control before
         // opening the navigation menu; otherwise its backdrop consumes the click.
         await clickVisibleAriaButton(frame, 'Close');
@@ -2084,6 +2578,21 @@ async function runStandaloneListingsQualification(options = {}) {
             })),
         });
         const foreignBefore = await manualEffects();
+        if (RECOVERY_ENABLED) {
+          const exactKey = vulnerableApp.manualRecoveryLedger[0]?.recoveryScopeKey;
+          assert.match(exactKey, HEX);
+          const siblingLookup = await frame.evaluate(async fields => {
+            const response = await fetch(`/api/secureshop/uploads/product-manual/receipt?${new URLSearchParams(fields)}`);
+            return { status: response.status, body: await response.json() };
+          }, { productId: String(productId), sha256: sha(manualBody),
+            sizeBytes: String(manualBody.length), filename: 'q46-owned-manual.md',
+            mime: 'text/markdown', public: 'true', recoveryScopeKey: exactKey });
+          assert.equal(siblingLookup.status, 401);
+          assert.deepEqual(siblingLookup.body, { error: 'SecureShop launch unavailable' });
+          status.evidence.siblingReceiptStatus = siblingLookup.status;
+          assert.deepEqual(await manualEffects(), foreignBefore,
+            'a foreign receipt GET cannot read or alter the owned manual');
+        }
         const traceFloor = Number((await agents.query(`SELECT COALESCE(max(id),0) AS id
           FROM secureshop_agents.agent_trace`)).rows[0].id);
         const foreignActorCalls = actorTransportCalls;
@@ -2136,10 +2645,19 @@ async function runStandaloneListingsQualification(options = {}) {
           .createEmbeddingRuntimeFingerprinter().snapshot(), admittedEmbedding);
         status.foreignOwnerDenied = true;
         status.siblingStatePreserved = true;
-        status.genuineModelIngest = actorTransportCalls >= 4 && actorTransportCalls <= 12;
+        if (!RECOVERY_ENABLED) status.genuineModelIngest = actorTransportCalls >= 4 && actorTransportCalls <= 12;
         status.actorCalls = actorTransportCalls;
         status.uploadPosts = vulnerableApp.uploadPosts.length;
-        assert.equal(status.uploadPosts, 3);
+        assert.equal(status.uploadPosts, RECOVERY_ENABLED ? 2 : 3);
+        if (RECOVERY_ENABLED) {
+          assert.ok(actorTransportCalls > 0 && actorTransportCalls <= 12);
+          status.actualActorCalls = actorTransportCalls;
+          status.allUploadPosts = status.uploadPosts;
+          assert.equal(status.ownerUploadPosts, 1);
+          assert.equal(status.receiptGets, 2);
+          assert.equal(status.canonicalCredit, false);
+          assert.equal(status.diagnosticOnly, true);
+        }
         status.judgeCalls = judgeCalls;
         assert.equal(judgeCalls, 0);
         status.passed = true;
@@ -2606,8 +3124,9 @@ async function runStandaloneListingsQualification(options = {}) {
       // only its exact protected GET may restore the visible answer.
       const customerProfile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-listings-browser-'));
       profiles.push(customerProfile);
-      const customerBrowser = await require('puppeteer').launch({ headless: true,
-        userDataDir: customerProfile, executablePath });
+      const customerBrowser = await launchStandaloneBrowser({ root,
+        receiptPath: standalonePrivateReceipt ? receiptPath : null,
+        origin: vulnerableApp.origin, profile: customerProfile, executablePath });
       browsers.push(customerBrowser);
       const customerPage = await customerBrowser.newPage();
       await customerPage.setViewport({ width: 1280, height: 900 });
@@ -3840,17 +4359,35 @@ async function runStandaloneListingsQualification(options = {}) {
       for (const server of servers.reverse()) try { await closeServer(server); } catch (error) { cleanupErrors.push(error.message); }
       try { composition?.listings?.close(); } catch (error) { cleanupErrors.push(error.message); }
       try { await composition?.closeBrowserAssessment?.(); } catch (error) { cleanupErrors.push(error.message); }
+      try { await assessmentQualification?.close(); }
+      catch (error) { cleanupErrors.push(allowedAssessmentToken(error?.code, ASSESSMENT_ERROR_CODES)
+        || 'assessment browser cleanup failed'); }
       try { await reset?.closeFeatureTransports(); } catch (error) { cleanupErrors.push(error.message); }
       try { await reset?.auditLedger?.close?.(); } catch (error) { cleanupErrors.push(error.message); }
       for (const pool of [leasePool, ...Object.values(pools)]) try { await pool.end(); } catch (error) { cleanupErrors.push(error.message); }
       for (const profile of profiles) try { await fs.rm(profile, { recursive: true }); } catch (error) { cleanupErrors.push(error.message); }
       status.fixtureCleaned = cleanupErrors.length === 0;
-      await fs.writeFile(receiptPath, JSON.stringify({ ...status,
+      const finalPacket = { ...status,
         ...(failure ? { failure: { name: failure.name, code: failure.code || null,
           message: String(failure.message).slice(0, 300) } } : {}),
-        cleanupErrors }, null, 2), { mode: 0o600 });
+        ...(standalonePrivateReceipt && failure ? { assessmentDiagnostic: {
+          qualification: assessmentDiagnostic.qualification,
+          errors: assessmentDiagnostic.errors } } : {}),
+        ...(standalonePrivateReceipt && failure ? { readinessDiagnostic } : {}),
+        cleanupErrors };
+      if (RECOVERY_ENABLED) {
+        try { await manualRecovery.publishPrivateReceipt(receiptPath, finalPacket); }
+        catch (error) { publicationFailure = error; }
+      } else if (privateListingsReceipt) {
+        try { await publishStandaloneReceipt(root, receiptPath, finalPacket, privateReceiptName); }
+        catch (error) { publicationFailure = error; }
+      } else await fs.writeFile(receiptPath, JSON.stringify(finalPacket, null, 2), { mode: 0o600 });
     }
-    if (failure) throw failure;
+    if (failure) {
+      if (publicationFailure) failure.receiptPublicationCode = publicationFailure.code || publicationFailure.name;
+      throw failure;
+    }
+    if (publicationFailure) throw publicationFailure;
     assert.deepEqual(cleanupErrors, []);
     if (exercise) {
       assert.equal(status.passed, true); assert.equal(status.fixtureCleaned, true);
@@ -3865,6 +4402,13 @@ async function runStandaloneListingsQualification(options = {}) {
       assert.equal(Object.entries(status).filter(([key, value]) =>
         !['scope', 'actorCalls', 'uploadPosts', 'chatPosts', 'retrievalCalls', 'judgeCalls'].includes(key)
           && value !== true).length, 0);
+    } else if (RECOVERY_ENABLED) {
+      for (const key of RECOVERY_FLAGS) assert.equal(status[key], true, key);
+      assert.equal(status.profile, manualRecovery.PROFILE);
+      assert.ok(status.actualActorCalls > 0 && status.actualActorCalls <= 12);
+      assert.equal(status.ownerUploadPosts, 1); assert.equal(status.allUploadPosts, 2);
+      assert.equal(status.receiptGets, 2); assert.equal(status.judgeCalls, 0);
+      assert.equal(status.canonicalCredit, false); assert.equal(status.diagnosticOnly, true);
     } else if (MANUAL_ENABLED) {
       assert.ok(status.actorCalls >= 4 && status.actorCalls <= 12);
       assert.equal(status.uploadPosts, 3); assert.equal(status.judgeCalls, 0);
@@ -3875,7 +4419,9 @@ async function runStandaloneListingsQualification(options = {}) {
     }
 }
 
-if (require.main === module) test(CHAT_LISTINGS_ENABLED ? CHAT_LISTINGS_ASSERTION : SEARCH_ENABLED
+if (require.main === module) test(RECOVERY_ENABLED
+  ? 'Q05 physical merchant manual commit loss recovers through one saved GET with no second owner POST'
+  : CHAT_LISTINGS_ENABLED ? CHAT_LISTINGS_ASSERTION : SEARCH_ENABLED
   ? 'standalone merchant searches an uploaded owned manual through genuine saved role chat'
   : MANUAL_ENABLED
   ? 'standalone merchant physically uploads, replays, and isolates one owned product manual'

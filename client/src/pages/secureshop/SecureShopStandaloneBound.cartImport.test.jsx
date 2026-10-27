@@ -7,6 +7,7 @@ import { GUEST_CART_IMPORT_REQUEST_KEY } from './guestCartImport.mjs';
 import { BOUND_CART_REFRESH_CHANNEL } from './bridge/cartRefresh.mjs';
 import { ASSESSMENT_PANEL_CHANNEL } from './bridge/assessmentPanelIntent.mjs';
 import { PASSWORD_RESET_PANEL_CHANNEL } from './bridge/passwordResetIntent.mjs';
+import { EXTERNAL_MAIL_PANEL_CHANNEL } from './bridge/externalMailIntent.mjs';
 import { AUDIT_CSV_CHANNEL } from './bridge/auditCsvExport.mjs';
 import { REGISTERED_PASSWORD_RESET_KEY } from './bridge/registeredPasswordResetRecovery.mjs';
 
@@ -77,6 +78,7 @@ function harness(result, role = 'customer', initialRoute = '/secureshop/cart', c
     checkPractice: checkPracticeMock, openRetainedPractice: openRetainedMock,
     reset: resetMock, resumeResetRecovery: recoveryMock, close,
     preparePasswordReset: preparePasswordResetMock,
+    getExternalMailReadiness: jest.fn().mockResolvedValue({ version: 1, available: false, reason: 'not_configured' }),
   }; };
   const client = { importCart: jest.fn().mockResolvedValue(result),
     getMode: jest.fn().mockResolvedValue({ mode: 'vuln', revision: '1' }), setMode: jest.fn(),
@@ -113,6 +115,25 @@ function harness(result, role = 'customer', initialRoute = '/secureshop/cart', c
     setReadbackConfirmation: value => { readbackConfirmation = value; },
     getFrame: () => activeFrame, render, close };
 }
+
+test('merchant iframe can only open an empty parent-owned external send panel with exact source and nonce', async () => {
+  const h = harness(null, 'merchant', '/secureshop/merchant/inbox');
+  try {
+    await h.render();
+    const payload = { channel: EXTERNAL_MAIL_PANEL_CHANNEL, type: 'open', nonce: 'a'.repeat(64) };
+    const emit = (data, source = h.getFrame().contentWindow, origin = 'null') => act(async () =>
+      window.dispatchEvent(new MessageEvent('message', { source, origin, data })));
+    await emit({ ...payload, recipient: 'person@sharklasers.com' });
+    expect(h.container.querySelector('[aria-labelledby="external-mail-title"]')).toBeNull();
+    await emit(payload, window, 'null');
+    await emit(payload, h.getFrame().contentWindow, 'http://localhost');
+    await emit({ ...payload, nonce: 'b'.repeat(64) });
+    expect(h.container.querySelector('[aria-labelledby="external-mail-title"]')).toBeNull();
+    await emit(payload);
+    expect(h.container.querySelector('[aria-labelledby="external-mail-title"]')).toBeTruthy();
+    expect(h.container.textContent).toContain('not configured');
+  } finally { await h.close(); }
+});
 
 test('confirmed mode change rebuilds the authenticated frame without clearing saved browser state', async () => {
   const h = harness(null, 'merchant', '/secureshop/merchant/inbox');

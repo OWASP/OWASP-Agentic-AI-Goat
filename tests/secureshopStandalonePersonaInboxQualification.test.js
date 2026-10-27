@@ -1,10 +1,31 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
 const {createHash,randomUUID}=require('node:crypto');
-const {assertRegisteredPersonaJudgment,createStandalonePersonaEvidence,physicalPersonaControl,observeConfiguredPersonaJudge,IDS,MODEL}=require('./fixtures/secureshopStandalonePersonaInboxQualification');
+const {assertRegisteredPersonaJudgment,createStandalonePersonaEvidence,physicalPersonaControl,verifyPersonaReadPreservesMessages,observeConfiguredPersonaJudge,IDS,MODEL}=require('./fixtures/secureshopStandalonePersonaInboxQualification');
 const {createRenderedPersonaEvidence}=require('./fixtures/renderedSecureShopPersona');
 const {createLaunchScope}=require('../server/services/secureshopConversationBinding');
 const hash=value=>createHash('sha256').update(value).digest('hex');
+test('each accepted original read preserves the complete baseline message rows',async()=>{
+  const baseline={messages:[{message_id:7,body:'synthetic private body',body_sha256:Buffer.from('abcd','hex')}]};
+  for(const mode of ['advisory','enforced']){
+    const input={mode},verified={controlled:true},order=[];
+    const snapshot={messages:baseline.messages.map(row=>({...row,body_sha256:Buffer.from(row.body_sha256)})),acls:[{mode}]};
+    const result=await verifyPersonaReadPreservesMessages({async verify(value){assert.equal(value,input);order.push('verify');return verified;},
+      async snapshotFull(){order.push('snapshot');return snapshot;}},baseline,input);
+    assert.deepEqual(order,['verify','snapshot']);assert.equal(result.verified,verified);assert.equal(result.snapshot,snapshot);
+  }
+});
+test('accepted read cannot conceal a changed body, digest, missing row or missing baseline',async()=>{
+  const baseline={messages:[{message_id:7,body:'synthetic private body',body_sha256:Buffer.from('abcd','hex')}]};
+  for(const mode of ['advisory','enforced'])for(const mutate of [
+    rows=>{rows[0].body='changed after original action';},rows=>{rows[0].body_sha256=Buffer.from('ffff','hex');},rows=>{rows.pop();},
+  ]){
+    const snapshot={messages:baseline.messages.map(row=>({...row,body_sha256:Buffer.from(row.body_sha256)}))};mutate(snapshot.messages);
+    let accepted=0;await assert.rejects(verifyPersonaReadPreservesMessages({async verify(){accepted++;return {controlled:true};},
+      async snapshotFull(){return snapshot;}},baseline,{mode}),/read must preserve persisted messages/);assert.equal(accepted,1);
+  }
+  await assert.rejects(verifyPersonaReadPreservesMessages({async verify(){return {};},async snapshotFull(){return {};}},{},{mode:'enforced'}),/Baseline messages required/);
+});
 const binding={launchId:randomUUID(),scenarioId:randomUUID(),generation:2,platformOwnerId:4,platformSessionId:5,shopUserId:6,role:'merchant'};
 const subject={tenantId:randomUUID(),principalId:randomUUID(),targetId:randomUUID(),binding,
   personaSessionId:randomUUID(),personaAuthorityVersion:'1'};

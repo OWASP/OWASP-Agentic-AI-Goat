@@ -337,10 +337,12 @@ function createSecureShopBoundPersonaRepository({ commercePool, agentsPool, audi
       return count;
     },
     async createSession({ sessionId, jti, scope, persona, expiresAt, ip = null, userAgent = null,
-      credentialVersion = 1, authorityVersion, bootstrap = null }) {
+      credentialVersion = 1, authorityVersion, bootstrap = null, additionalSession = false, sourceJti = null }) {
       const binding = createLaunchScope(scope);
       expectedAuthorityVersion(authorityVersion);
       const coordinates = values(scope, persona);
+      if (typeof additionalSession !== 'boolean' || (additionalSession && (!bootstrap || !UUID.test(sourceJti))))
+        throw unavailable('SHOP_AUTH_INVALID');
       if (bootstrap && (!UUID.test(bootstrap.principalId)
         || !Number.isSafeInteger(bootstrap.authSessionId) || bootstrap.authSessionId<1
         || !Number.isSafeInteger(bootstrap.executionSessionId)
@@ -374,7 +376,22 @@ function createSecureShopBoundPersonaRepository({ commercePool, agentsPool, audi
         if (currentCredentialVersion !== suppliedCredentialVersion) {
           throw unavailable('SHOP_CREDENTIALS_INVALID');
         }
-        if (bootstrap) {
+        if (additionalSession) {
+          const current=(await client.query(`SELECT session_id FROM secureshop_agents.bound_persona_sessions
+            WHERE platform_launch_id=$1 AND platform_scenario_id=$2
+              AND platform_launch_generation=$3 AND original_platform_owner_id=$4
+              AND original_platform_session_id=$5 AND shop_user_id=$6 AND role=$7
+              AND jti_sha256=$8 AND revoked_at IS NULL AND expires_at>clock_timestamp()
+              AND standalone_principal_id=$9 AND standalone_session_id=$10
+              AND standalone_credential_version=$11 AND standalone_authority_version=$12
+              AND bootstrap_membership_version=$13
+              AND bootstrap_persona_authority_version=$14 AND credential_version=$15 FOR UPDATE`,
+            [...coordinates,digest(sourceJti),bootstrap.principalId,bootstrap.authSessionId,
+              bootstrap.credentialVersion,bootstrap.authorityVersion,bootstrap.membershipVersion,
+              authorityVersion,suppliedCredentialVersion])).rows[0];
+          if (!current) throw unavailable('SHOP_AUTH_INVALID');
+        }
+        if (bootstrap && !additionalSession) {
           const existing=(await client.query(`SELECT session_id,bootstrap_jti,expires_at
             FROM secureshop_agents.bound_persona_sessions
             WHERE platform_launch_id=$1 AND platform_scenario_id=$2
@@ -384,7 +401,7 @@ function createSecureShopBoundPersonaRepository({ commercePool, agentsPool, audi
               AND standalone_credential_version=$10 AND standalone_authority_version=$11
               AND bootstrap_persona_authority_version=$12
               AND credential_version=$13 AND bootstrap_membership_version=$14
-              AND revoked_at IS NULL
+              AND additional_session=false AND revoked_at IS NULL
               AND expires_at>clock_timestamp() FOR UPDATE`,
           [...coordinates,bootstrap.principalId,bootstrap.authSessionId,
             bootstrap.credentialVersion,bootstrap.authorityVersion,
@@ -408,14 +425,14 @@ function createSecureShopBoundPersonaRepository({ commercePool, agentsPool, audi
            shop_user_id,username,role,email,full_name,phone,expires_at,ip,user_agent,credential_version,
            standalone_principal_id,standalone_session_id,bootstrap_jti,
            standalone_credential_version,standalone_authority_version,
-           bootstrap_persona_authority_version,bootstrap_membership_version)
-          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
+           bootstrap_persona_authority_version,bootstrap_membership_version,additional_session)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)`,
         [sessionId, digest(jti), ...coordinates.slice(0, 5), persona.id, persona.username,
           persona.role, persona.email, persona.full_name ?? null, persona.phone ?? null, expiresAt,
           ip, userAgent, suppliedCredentialVersion,bootstrap?.principalId??null,
           bootstrap?.authSessionId??null,bootstrap?jti:null,
           bootstrap?.credentialVersion??null,bootstrap?.authorityVersion??null,
-          bootstrap?authorityVersion:null,bootstrap?.membershipVersion??null]);
+          bootstrap?authorityVersion:null,bootstrap?.membershipVersion??null,additionalSession]);
         await audit(client, scope, persona.id, 'session_create', sessionId, { credentialVersion: suppliedCredentialVersion });
         await client.query('COMMIT');
         return Object.freeze(bootstrap?{sessionId,jti,expiresAt,reused:false}:{sessionId});

@@ -1,6 +1,9 @@
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import AdminUserConfirmation from './AdminUserConfirmation.jsx';
+import BoundRoleAssistant from './BoundRoleAssistant.jsx';
+import { saveRoleAssistantCompletedReference } from '../utils/roleAssistantCompletedReferences.mjs';
+import { saveRoleAssistantReference, clearRoleAssistantReference } from '../utils/roleAssistantReferences.mjs';
 import { attachShopStorage, SHOP_USER_ADMIN_KEY } from '../utils/shopStorage.mjs';
 import { assertSaved } from '../pages/admin/userAdminOperation.js';
 let mockStandalone = false;
@@ -43,6 +46,91 @@ beforeEach(() => {
     flush: () => flush() });
 });
 afterEach(async () => { await act(async () => root.unmount()); release(); node.remove(); });
+
+test.each([false, true])('real parent blocks saved user recovery until history settles (initial failure=%s)', async initialFailure => {
+  const saved = { scopeKey: proposal.scopeKey, targetId: 7, action: 'set_role',
+    role: 'merchant', operationId: proposal.proposalId, expectedVersion: '4' };
+  values.set(SHOP_USER_ADMIN_KEY, JSON.stringify(saved));
+  const reference = { role: 'admin', shopUserId: 1, sessionId, requestId, startedAt: 1 };
+  await saveRoleAssistantReference(reference);
+  await saveRoleAssistantCompletedReference(reference);
+  await clearRoleAssistantReference(reference);
+  let releaseHistory, releaseOperation, historyCalls = 0;
+  const history = new Promise(resolve => { releaseHistory = resolve; });
+  const operation = new Promise(resolve => { releaseOperation = resolve; });
+  const operationPath = `/api/secureshop/admin/users/operations/${proposal.proposalId}`;
+  const historyPath = `/api/secureshop/agents/admin/assistant/operations/${sessionId}/${requestId}`;
+  const transport = jest.fn(async (url, options = {}) => {
+    if ((options.method || 'GET') !== 'GET') throw Error('Unexpected mutation');
+    if (url === historyPath) {
+      historyCalls++;
+      if (initialFailure && historyCalls === 1) throw Error('Controlled history unavailable');
+      return history;
+    }
+    if (url === operationPath) return operation;
+    // Actual sibling components may query availability; no capability is granted.
+    return json({}, 403);
+  });
+  globalThis.fetch = transport;
+  await act(async () => root.render(<BoundRoleAssistant role="admin" shopUserId={1}
+    authorityKey="admin-token" transport={transport} />));
+  await settle();
+  expect(transport.mock.calls.filter(([url]) => url === historyPath)).toHaveLength(1);
+  const check = [...node.querySelectorAll('button')]
+    .find(button => button.textContent === 'Check saved user change');
+  expect(check).toBeTruthy();
+  expect(check.disabled).toBe(true);
+  await act(async () => check.click());
+  expect(transport.mock.calls.filter(([url]) => url === operationPath)).toHaveLength(0);
+  expect(values.get(SHOP_USER_ADMIN_KEY)).toBe(JSON.stringify(saved));
+  if (initialFailure) {
+    expect(node.textContent).toContain('Controlled history unavailable');
+    const retry = [...node.querySelectorAll('button')]
+      .find(button => button.textContent === 'Check saved assistant page');
+    expect(retry.disabled).toBe(false);
+    await act(async () => retry.click());
+    expect(historyCalls).toBe(2);
+    expect(check.disabled).toBe(true);
+  }
+  await act(async () => releaseHistory({ ...json({ sessionId, requestId,
+    status: 'completed', replayed: true, stopReason: 'end_turn', modeCapability,
+    text: 'Prepared user change', hops: [], cards: [], userAdministrationProposal: proposal }),
+    headers: { get: () => 'application/json' } }));
+  await settle();
+  expect(node.textContent).toContain('Prepared user change');
+  expect(transport.mock.calls.filter(([url]) => url === operationPath)).toHaveLength(0);
+  const ready = [...node.querySelectorAll('button')]
+    .find(button => button.textContent === 'Check saved user change');
+  expect(ready.disabled).toBe(false);
+  await act(async () => ready.click());
+  expect(transport.mock.calls.filter(([url]) => url === operationPath)).toHaveLength(1);
+  await act(async () => releaseOperation(json({ ok: true, receipt })));
+  await settle();
+  expect(transport.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(0);
+  expect(transport.mock.calls.filter(([url]) => url === operationPath)).toHaveLength(1);
+  expect(node.textContent).toContain('User change confirmed.');
+  expect(values.has(SHOP_USER_ADMIN_KEY)).toBe(false);
+});
+
+test('authority transition during saved GET preserves reference and discards stale completion', async () => {
+  const saved = { scopeKey: proposal.scopeKey, targetId: 7, action: 'set_role',
+    role: 'merchant', operationId: proposal.proposalId, expectedVersion: '4' };
+  values.set(SHOP_USER_ADMIN_KEY, JSON.stringify(saved));
+  let finish;
+  const transport = jest.fn(() => new Promise(resolve => { finish = resolve; }));
+  globalThis.fetch = transport;
+  await render(transport, null);
+  await act(async () => node.querySelector('button').click());
+  expect(transport).toHaveBeenCalledTimes(1);
+  expect(transport.mock.calls[0]).toEqual([`/api/secureshop/admin/users/operations/${proposal.proposalId}`]);
+  await act(async () => root.render(<AdminUserConfirmation shopUserId={1}
+    authorityKey="different-admin-token" transport={transport} />));
+  await act(async () => finish(json({ ok: true, receipt })));
+  await settle();
+  expect(values.get(SHOP_USER_ADMIN_KEY)).toBe(JSON.stringify(saved));
+  expect(node.textContent).not.toContain('User change confirmed.');
+  expect(transport).toHaveBeenCalledTimes(1);
+});
 
 test('reviewed role change waits for parent ACK, then lost response recovers by one exact GET', async () => {
   let acknowledge, posts = 0, committed = false;

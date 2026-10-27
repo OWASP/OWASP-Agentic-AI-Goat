@@ -30,6 +30,11 @@ export const useAuth = () => {
   return context;
 };
 
+// Optional for shared admin panels that are also rendered without a provider in
+// controlled tests. The getter is synchronous so a staged action can detect a
+// login/logout cycle even when the bearer value returns to its old value.
+export const useAuthRevision = () => useContext(AuthContext)?.getAuthRevision ?? null;
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -62,6 +67,7 @@ export const AuthProvider = ({ children }) => {
             // still-valid platform token — the exact bug that logged admins out
             // when they used Student View to try a student exercise.
             if (error.response?.status === 401 && !isLoginPage && !!token && requestHadAuth && isJwtExpired(token)) {
+              authRevision.current += 1;
               localStorage.removeItem('token');
               delete axios.defaults.headers.common['Authorization'];
               setUser(null);
@@ -214,7 +220,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateUser,
-    checkAuthStatus
+    checkAuthStatus,
+    getAuthRevision: () => authRevision.current
   };
 
   return (

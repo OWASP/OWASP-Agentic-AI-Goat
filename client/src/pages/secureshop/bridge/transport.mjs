@@ -1,4 +1,4 @@
-import { buildAvatarTraversalFormData, buildAvatarUploadFormData, buildFileSummaryFormData, buildUploadFormData } from './uploads.mjs';
+import { buildAccountAvatarFormData, buildAvatarTraversalFormData, buildAvatarUploadFormData, buildFileSummaryFormData, buildUploadFormData } from './uploads.mjs';
 import { compileGuestRead, isGuestReadOperation } from './guestRead.mjs';
 
 // Ports must be transferred only after the host verifies the expected frame,
@@ -56,8 +56,8 @@ export function createHostTransport({ port, compileOperation, fetchImpl = global
         || message.shopBearer !== undefined || request.body !== undefined)) throw protocolError();
       const multipart = request.bodyKind === 'multipart';
       if (request.bodyKind !== undefined && !multipart) throw protocolError();
-      if (multipart && (!['/api/secureshop/uploads','/api/secureshop/agents/customer/avatar-upload/path-traversal/run','/api/secureshop/agents/customer/avatar-upload/run','/api/secureshop/agents/customer/file-summary/run'].includes(request.path) || request.method !== 'POST')) throw protocolError();
-      const body = multipart ? (request.path.endsWith('/customer/avatar-upload/path-traversal/run')?buildAvatarTraversalFormData(request.body):request.path.endsWith('/customer/avatar-upload/run')?buildAvatarUploadFormData(request.body):request.path.endsWith('/customer/file-summary/run')?buildFileSummaryFormData(request.body):buildUploadFormData(request.body)) : request.body === undefined ? undefined : JSON.stringify(request.body);
+      if (multipart && (!['/api/secureshop/uploads','/api/secureshop/uploads/avatar','/api/secureshop/agents/customer/avatar-upload/path-traversal/run','/api/secureshop/agents/customer/avatar-upload/run','/api/secureshop/agents/customer/file-summary/run'].includes(request.path) || request.method !== 'POST')) throw protocolError();
+      const body = multipart ? (request.path === '/api/secureshop/uploads/avatar'?buildAccountAvatarFormData(request.body):request.path.endsWith('/customer/avatar-upload/path-traversal/run')?buildAvatarTraversalFormData(request.body):request.path.endsWith('/customer/avatar-upload/run')?buildAvatarUploadFormData(request.body):request.path.endsWith('/customer/file-summary/run')?buildFileSummaryFormData(request.body):buildUploadFormData(request.body)) : request.body === undefined ? undefined : JSON.stringify(request.body);
       if (!multipart && body !== undefined && (request.method === 'GET' || encoder.encode(body).byteLength > maxBodyBytes)) throw protocolError();
       const headers = new Headers({ Accept: request.responseKind === 'sse' ? 'text/event-stream' : 'application/json' });
       if (!multipart && body !== undefined) headers.set('Content-Type', 'application/json');

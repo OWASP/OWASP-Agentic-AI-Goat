@@ -12,8 +12,8 @@ const scope = Object.freeze({ launchId: '10000000-0000-4000-8000-000000000091',
   platformOwnerId: 91, platformSessionId: 901 });
 const launch = 'g'.repeat(43);
 
-function routeHandlers(router) {
-  const layer = router.stack.find(item => item.route?.path === '/uploads' && item.route.methods.post);
+function routeHandlers(router, path = '/uploads', method = 'post') {
+  const layer = router.stack.find(item => item.route?.path === path && item.route.methods[method]);
   assert.ok(layer, 'missing bound upload route');
   return layer.route.stack.map(item => item.handle);
 }
@@ -101,6 +101,63 @@ function validResult() {
     extractor_error: null, indexed_corpus: 'manuals', operationId: '30000000-0000-4000-8000-000000000091',
     replayed: false, provider: 'ollama', model: 'llama3.1:8b', private_target: 'secret' };
 }
+
+test('receipt GET parses exact descriptor, scopes recovery and strips model/private fields without caching',async()=>{
+  const calls=[];const key='a'.repeat(64);
+  const adapter={upload:async()=>assert.fail('GET uploaded'),async readReceipt(input){calls.push(input);return {
+    version:1,kind:'product_manual',operationId:validResult().operationId,recoveryScopeKey:key,state:'indexed',provider:'hidden',
+    receipt:{...input.descriptor,chunkCount:1,chunkIds:['manual:2:0'],completedAt:'2026-10-19T00:00:00.000Z',privateTarget:'hidden'}};}};
+  const query={productId:'7',sha256:'b'.repeat(64),sizeBytes:'21',filename:'../../manual.html',mime:'text/custom',public:'false',recoveryScopeKey:key};
+  const req=request({body:Buffer.alloc(0),contentType:''});req.method='GET';req.query=query;
+  req.ssPersonaSession={sessionId:'30000000-0000-4000-8000-000000000091',authorityVersion:'2'};
+  const res=response();await invoke(routeHandlers(gateway(adapter),'/uploads/product-manual/receipt','get'),req,res);
+  assert.equal(res.statusCode,200);assert.equal(res.headers['cache-control'],'no-store');
+  assert.deepEqual(calls[0].descriptor,{productId:7,sha256:query.sha256,sizeBytes:21,filename:query.filename,mime:query.mime,isPublic:false});
+  assert.equal(calls[0].recoveryScopeKey,key);assert.deepEqual(calls[0].personaSession,req.ssPersonaSession);
+  assert.equal(res.payload.provider,undefined);assert.equal(res.payload.receipt.privateTarget,undefined);
+});
+test('receipt GET errors and foreign personas remain no-store, and missing receipt stays unresolved',async()=>{
+  const key='a'.repeat(64);let calls=0;
+  const adapter={upload:async()=>assert.fail('GET uploaded'),async readReceipt(){calls++;return {
+    version:1,kind:'product_manual',operationId:validResult().operationId,recoveryScopeKey:key,state:'not_found',receipt:null};}};
+  const base={productId:'7',sha256:'b'.repeat(64),sizeBytes:'21',filename:'manual.md',mime:'text/markdown',public:'true'};
+  for(const [query,role,status] of [[base,'merchant',200],[{...base,sha256:['x','y']},'merchant',400],
+    [{...base,recoveryScopeKey:''},'merchant',400],[{...base,extra:'secret'},'merchant',400],[base,'customer',403]]){
+    const req=request({role,body:Buffer.alloc(0),contentType:''});req.method='GET';req.query=query;
+    const res=response();await invoke(routeHandlers(gateway(adapter),'/uploads/product-manual/receipt','get'),req,res);
+    assert.equal(res.statusCode,status);assert.equal(res.headers['cache-control'],'no-store');
+    if(status===200)assert.equal(res.payload.state,'not_found');
+  }
+  assert.equal(calls,1);
+});
+test('optional fifth multipart field is passed only when valid, without changing legacy fields',async()=>{
+  const calls=[];const adapter={async upload(input){calls.push(input);return validResult();}};
+  for(const [key,status] of [['a'.repeat(64),200],['',400],['invalid',400]]){
+    const form=multipart({fields:validFields({recoveryScopeKey:key})});
+    const req=request({body:form.body,contentType:form.contentType}),res=response();
+    await invoke(routeHandlers(gateway(adapter)),req,res);assert.equal(res.statusCode,status);
+  }
+  assert.equal(calls.length,1);assert.equal(calls[0].recoveryScopeKey,'a'.repeat(64));
+  assert.equal(calls[0].productId,7);assert.equal(calls[0].isPublic,true);
+});
+test('real retained catalog missing scene maps409, while SQL503 and expired launch401 remain distinct',async()=>{
+  let failure=null;const forbidden=async()=>assert.fail('retired recovery attempted an effect');
+  const catalog=require('../server/services/secureshopBoundCatalog').createSecureShopBoundCatalog({
+    sourcePool:{query:forbidden},resolveTarget:forbidden,checkCurrent:async()=>{if(failure?.code==='STALE_LAUNCH')throw failure;},
+    scenes:{resolve:forbidden,finalize:forbidden,readRetained:async()=>{if(failure)throw failure;return null;}},
+    repository:{open:forbidden,get:forbidden,provision:forbidden,list:forbidden,categories:forbidden,
+      createListing:forbidden,updateListing:forbidden,archiveListing:forbidden}});
+  const adapter={upload:forbidden,readReceipt:input=>catalog.readRetainedOwnedMerchantProduct({...input,productId:input.descriptor.productId})};
+  for(const [code,status,error] of [[null,409,'Shop practice has changed. Reopen SecureShop to continue.'],
+    ['57P01',503,'Bound SecureShop operation unavailable'],['STALE_LAUNCH',401,'SecureShop launch unavailable']]){
+    failure=code?Object.assign(Error('private failure'),{code}):null;
+    const req=request({body:Buffer.alloc(0),contentType:''});req.method='GET';
+    req.query={productId:'7',sha256:'b'.repeat(64),sizeBytes:'21',filename:'manual.md',mime:'text/plain',public:'true'};
+    const res=response();await invoke(routeHandlers(gateway(adapter),'/uploads/product-manual/receipt','get'),req,res);
+    assert.equal(res.statusCode,status);assert.equal(res.payload.error,error);assert.equal(res.headers['cache-control'],'no-store');
+    if(status===409)assert.equal(res.payload.code,'SHOP_SCENE_STALE');
+  }
+});
 
 test('parses exact multipart bytes and projects private ingestion fields out', async () => {
   let input;

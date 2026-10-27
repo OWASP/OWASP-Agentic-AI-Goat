@@ -61,6 +61,16 @@ async function createResetSupport({ runtime, migration, progress, appDataRoot })
       await progress.recordHeartbeat({ userId: owner, workshopKey: WORKSHOP });
       await store.logToolCall(String(owner), { name: marker, result: 'controlled non-credit activity', mode: 'vulnerable' });
     }
+    async function seedControlledCompletion(owner) {
+      // Projection/reset fixture only: no agent run, model, evidence adapter or Judge is invoked.
+      const objectiveId = 'tool_enum';
+      const available = (await migration.query(`SELECT is_enabled FROM workshop_platform.objectives
+        WHERE workshop_key=$1 AND objective_id=$2 AND catalog_active=true`, [WORKSHOP, objectiveId])).rows[0];
+      assert.equal(available?.is_enabled, true, 'controlled reset completion objective must be enabled');
+      const result = await progress.syncObjectiveComplete(owner, WORKSHOP, objectiveId);
+      assert.equal(result.changed, true, 'controlled completion fixture must be newly seeded');
+      return objectiveId;
+    }
     async function snapshot(owner) {
       const query = async (pool, sql, args=[owner]) => (await pool.query(sql, args)).rows;
       return {
@@ -73,7 +83,8 @@ async function createResetSupport({ runtime, migration, progress, appDataRoot })
         receipts: await query(finflowMigration, 'SELECT * FROM finflow.sensitive_info_cleanup_receipts WHERE owner_id=$1 ORDER BY operation_id,step_key'),
       };
     }
-    return { resetService, resume, snapshot, close: async () => { await Promise.all([finflow.end(), finflowMigration.end(), leasePools.close()]); } };
+    return { resetService, resume, seedControlledCompletion, snapshot,
+      close: async () => { await Promise.all([finflow.end(), finflowMigration.end(), leasePools.close()]); } };
   } catch (error) {
     await Promise.allSettled([finflow.end(), finflowMigration.end(), leasePools?.close()]); throw error;
   }

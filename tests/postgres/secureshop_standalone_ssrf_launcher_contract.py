@@ -14,9 +14,9 @@ from urllib.parse import urlparse
 COHORT = 'standalone-ssrf-rendered-browser'
 COHORT_ID = 'secureshop-standalone-ssrf-rendered-browser-current-main-v1'
 TEST = 'tests/postgres/secureshopStandaloneSsrfRendered.integration.test.js'
-TEST_SHA256 = '019caa861b3ac2684fce8b920a3d4a8d2a8c808da25c4cc409b94283c70e4ccc'
+TEST_SHA256 = 'c91c4f989e9c9c2d19208e91250ef99b55a7598ed669c4a06931e37734528d81'
 CALLER_TEST = 'tests/secureshopStandaloneSsrfRenderedCaller.test.js'
-CALLER_TEST_SHA256 = '10108bf10ff62a09145be001ba52093438de93b21d3ab461089da7b8f7ae3161'
+CALLER_TEST_SHA256 = 'b3b7d31885facce6f9c30c0992be19c4f34b61bbaaa88a3c7138a475844e4c41'
 TITLE = 'registered standalone customer renders genuine SSRF HTTP and Judge receipts with exact retry and native reset'
 SCOPE = 'current-main registered customer SSRF; three physical real-model actions, same-ID retry, tenant Judge credit, current-launch native coordinator reset, admitted pending sibling preservation'
 POLICY_COHORT_ID = 'secureshop-policy-final-html-rendered-browser-current-main-v1'
@@ -64,12 +64,28 @@ def require(condition, message):
         raise RuntimeError('C32 ' + message)
 
 
-def child_environment(source, evidence, stores, policy_output=False):
+def child_environment(source, evidence, stores, policy_output=False, repository_evidence=False):
     """Closed environment delta; browser executable/hash comes from launcher admission."""
     source, evidence = Path(source), Path(evidence)
     require(source.is_absolute() and source.resolve() == source, 'canonical main source required')
-    require(evidence.is_absolute() and evidence.resolve() == evidence and evidence != source
-            and source not in evidence.parents, 'private external evidence required')
+    require(type(repository_evidence) is bool, 'closed repository evidence selector required')
+    require(evidence.is_absolute() and evidence.resolve() == evidence and evidence != source,
+            'canonical private evidence required')
+    if repository_evidence:
+        require(policy_output is True, 'repository evidence is exclusive to V27 policy output')
+        from secureshop_current_host_admission import evidence_parent
+        parent = evidence_parent(source)
+        run = evidence.parent
+        require(evidence.name == 'standalone-ssrf-rendered' and run.parent == parent
+                and re.fullmatch(r'run-[a-z0-9_]{8}', run.name) is not None,
+                'exact V27 repository evidence path required')
+        for directory in (run, evidence):
+            require(not directory.is_symlink() and directory.is_dir()
+                    and directory.stat().st_uid == os.getuid()
+                    and directory.stat().st_mode & 0o777 == 0o700,
+                    'private owned V27 evidence directory required')
+    else:
+        require(source not in evidence.parents, 'private external evidence required')
     require(set(stores) == set(STORES), 'four owned stores required')
     result = {'PG_TEST_DISPOSABLE': 'yes', 'DVAIA_CURRENT_MAIN_WORKSPACE': str(source),
               'SECURESHOP_STANDALONE_SSRF_RENDERED_NATIVE': '1',
@@ -77,6 +93,7 @@ def child_environment(source, evidence, stores, policy_output=False):
               'SECURESHOP_STANDALONE_SSRF_RENDERED_EVIDENCE_PATH': str(evidence / 'result.json')}
     require(type(policy_output) is bool, 'closed policy output selector required')
     if policy_output: result['SECURESHOP_POLICY_OUTPUT_BROWSER_NATIVE'] = '1'
+    if repository_evidence: result['SECURESHOP_POLICY_OUTPUT_REPOSITORY_EVIDENCE'] = '1'
     databases = set()
     for key, name in STORES.items():
         require(set(stores[key]) == {'RUNTIME', 'MIGRATION'}, 'runtime/migration pair required')

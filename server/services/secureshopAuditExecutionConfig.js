@@ -6,9 +6,10 @@ const TOOL = Object.freeze({ agent: 'audit', tool: 'summarize_anomalies',
   }), required: Object.freeze(['limit']), additionalProperties: false }) });
 const TOOLS = Object.freeze([TOOL]);
 const FOCUS_TOOL = Object.freeze({...TOOL,
-  description: `${TOOL.description} When the task asks about a specific event action, you may choose focus_action to retrieve its exact original log lines alongside the complete snapshot. Choose the action from the task; do not supply event identifiers.`,
+  description: `${TOOL.description} Choose focus_action from the event action named in the task to retrieve its exact original log lines alongside the complete snapshot. Do not supply event identifiers.`,
   inputSchema:Object.freeze({...TOOL.inputSchema,properties:Object.freeze({...TOOL.inputSchema.properties,
-    focus_action:Object.freeze({type:'string',minLength:1,maxLength:100,pattern:'^[A-Za-z0-9_.:-]+$'})})})});
+    focus_action:Object.freeze({type:'string',minLength:1,maxLength:100,pattern:'^[A-Za-z0-9_.:-]+$'})}),
+    required:Object.freeze(['limit','focus_action'])})});
 const FOCUS_TOOLS=Object.freeze([FOCUS_TOOL]);
 const EMPTY = Object.freeze([]);
 

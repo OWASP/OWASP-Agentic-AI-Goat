@@ -103,8 +103,15 @@ function buildPolicyInstructionCandidate({binding,personaSession,sessionId,reque
    ||read.targetPath!=='/app/config/application.json'||read.content!==FIXTURES['/app/config/application.json']
    ||read.contentSha256!==contentHash(Buffer.from(read.content))
    ||!equal(boundedConfigObservation(operation,request,scopeKey),source))return null;
-  const expectedResult={content:[{type:'text',text:JSON.stringify(source)}]};
-  if(!equal(hop.result,expectedResult))return null;
+  // The original tool result is text; JSONB may reorder keys in the saved
+  // typed observation. Validate its exact shape and typed value, then retain
+  // the original raw text for the trace/result equality check.
+  // 16384 is the existing RoleChat observation bound in secureshopRoleSystemReads.
+  const expectedResult=hop.result,text=expectedResult?.content?.[0]?.text;
+  if(!exact(expectedResult,['content'])||!Array.isArray(expectedResult.content)
+   ||expectedResult.content.length!==1||!exact(expectedResult.content[0],['type','text'])
+   ||expectedResult.content[0].type!=='text'||typeof text!=='string'||!text.isWellFormed()
+   ||Buffer.byteLength(text,'utf8')>16384||!equal(parse(text),source))return null;
   const selectedIndex=traces.findIndex(row=>{const params=parse(row.params_json),calls=params?.toolCalls;
    return row.kind==='model_decision'&&row.actor==='supervisor'&&row.step===origin.step
     &&isQualifiedSecureShopModelTrace(row,qualifyModel)&&params?.decision==='tool_use'
@@ -170,7 +177,11 @@ function createPolicyInstructionJudgeGuard(judge){
    const originalHash=createTurnRequest({sessionId:raw.sessionId,requestId:raw.requestId,
     binding:{...raw.scope,shopUserId:raw.personaId,role:'admin'},message:envelope}).hash;
    const selected=raw.traceChain?.[0],terminal=raw.traceChain?.[3];
-   const expectedResult={content:[{type:'text',text:JSON.stringify(raw.observation)}]};
+   const expectedResult=raw.traceChain?.[2]?.result,text=expectedResult?.content?.[0]?.text;
+   if(!exact(expectedResult,['content'])||!Array.isArray(expectedResult.content)
+    ||expectedResult.content.length!==1||!exact(expectedResult.content[0],['type','text'])
+    ||expectedResult.content[0].type!=='text'||typeof text!=='string'||!text.isWellFormed()
+    ||Buffer.byteLength(text,'utf8')>16384||!equal(parse(text),raw.observation))throw Error();
    if(rubric.objectiveId!==OBJECTIVE||rubric.version!==VERSION||rubric.mode!=='vuln'
     ||!equal(rubric,prepareJudgeInput({...input,rubric:{...RUBRIC,mode:'vuln'}}).rubric)
     ||input.evidence?.length!==3||input.evidence[0]?.id!=='policy_publication'

@@ -5,6 +5,7 @@ import { User, Shield, MapPin, KeyRound, Monitor, Copy, Eye, EyeOff, RefreshCw, 
 
 import Tabs from '../components/Tabs.jsx';
 import Card from '../components/Card.jsx';
+import Dialog from '../components/Dialog.jsx';
 import Button from '../components/Button.jsx';
 import Input from '../components/Input.jsx';
 import Badge from '../components/Badge.jsx';
@@ -30,6 +31,62 @@ function _authHeaders() {
     const t = shopStorage.getItem('secureshop_v2_token');
     return t ? { Authorization: `Bearer ${t}` } : {};
   } catch { return {}; }
+}
+
+function useAddressDeleteConfirmation({ addresses, listCurrent, loading, requestEpoch,
+  refresh, transport, authorityKey, bearer, scopeGeneration, toast }) {
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleteUnresolved, setDeleteUnresolved] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const deletingRef = useRef(null);
+  const scopeRef = useRef(null);
+  const generation = scopeGeneration.current.version;
+  scopeRef.current = { authorityKey, bearer, transport, generation };
+  if (deletingRef.current && deletingRef.current.generation !== generation) deletingRef.current = null;
+  const current = intent => scopeRef.current.authorityKey === intent.authorityKey
+    && scopeRef.current.transport === intent.transport
+    && scopeRef.current.bearer === intent.bearer
+    && scopeRef.current.generation === intent.generation
+    && _authHeaders().Authorization === intent.bearer;
+  const stageDelete = address => {
+    if (loading || !listCurrent || deleteUnresolved || deletingRef.current
+        || pendingDelete && pendingDelete.epoch === requestEpoch.current && current(pendingDelete)
+        || !Number.isSafeInteger(Number(address.id)) || Number(address.id) < 1) return;
+    setPendingDelete(Object.freeze({ id: Number(address.id), label: address.label || 'Unlabelled address',
+      line1: address.line1 || '', epoch: requestEpoch.current,
+      authorityKey, bearer: _authHeaders().Authorization, transport, generation }));
+  };
+  const confirmDelete = async () => {
+    const intent = pendingDelete;
+    if (!intent || deletingRef.current || deleteUnresolved || loading || !listCurrent
+        || requestEpoch.current !== intent.epoch || !current(intent)
+        || !addresses.some(address => Number(address.id) === intent.id
+          && (address.label || 'Unlabelled address') === intent.label
+          && (address.line1 || '') === intent.line1)) return;
+    deletingRef.current = intent;
+    setPendingDelete(null);
+    setDeleting(true);
+    const epoch = ++requestEpoch.current;
+    try {
+      const response = await intent.transport(`/api/secureshop/v2/auth/users/me/addresses/${intent.id}`,
+        { method: 'DELETE', headers: intent.bearer ? { Authorization: intent.bearer } : {} });
+      const value = await response.json().catch(() => ({}));
+      if (!current(intent) || epoch !== requestEpoch.current) return;
+      if (!response.ok || value.ok !== true) throw Error(value.error || 'delete failed');
+      toast.success('Address deleted');
+      await refresh();
+    } catch (error) {
+      if (current(intent) && epoch === requestEpoch.current) {
+        setDeleteUnresolved(true);
+        toast.error(`Address delete outcome unresolved. Refresh addresses before another delete. ${error.message}`);
+      }
+    } finally {
+      if (deletingRef.current === intent) deletingRef.current = null;
+      if (current(intent)) setDeleting(false);
+    }
+  };
+  return { stageDelete, confirmDelete, pendingDelete, setPendingDelete,
+    deleteUnresolved, setDeleteUnresolved, deleting: deleting && Boolean(deletingRef.current), deletingRef, current };
 }
 
 export default function Account() {
@@ -110,7 +167,8 @@ function ProfileTab() {
         <p style={{ fontSize: 13, opacity: 0.75, marginTop: 0, marginBottom: 14 }}>
           Upload any file. MIME and filename are honored as provided — this is the M5 uploads surface.
         </p>
-        <UploadZone kind="avatar" scopeId={user?.id || 1} label="Upload avatar" />
+        <UploadZone kind="avatar" accountAvatar scopeId={user?.id ?? null} authToken={token}
+          transport={window.fetch} label="Upload avatar" />
       </Card>
     </motion.section>
   );
@@ -187,46 +245,56 @@ function BoundAddressesTab() {
   const [editing, setEditing] = useState(null);
   const epochRef = useRef(0);
   const authorityKey = JSON.stringify([user?.id, token]);
+  const bearer = _authHeaders().Authorization;
+  const scopeGeneration = useRef({ authorityKey, transport, bearer, version: 0 });
+  if (scopeGeneration.current.authorityKey !== authorityKey || scopeGeneration.current.transport !== transport
+      || scopeGeneration.current.bearer !== bearer) {
+    scopeGeneration.current = { authorityKey, transport, bearer, version: scopeGeneration.current.version + 1 };
+  }
+  const [listScope, setListScope] = useState(null);
+  const listCurrent = Boolean(listScope && listScope.authorityKey === authorityKey
+    && listScope.transport === transport && listScope.bearer === bearer
+    && listScope.generation === scopeGeneration.current.version);
   const refresh = useCallback(async () => {
     const epoch = ++epochRef.current;
+    const headers = _authHeaders();
+    const generation = scopeGeneration.current.version;
+    const isCurrent = () => epoch === epochRef.current && scopeGeneration.current.version === generation
+      && _authHeaders().Authorization === headers.Authorization;
     setStatus('loading');
+    setListScope(null);
+    setPendingDelete(null);
     try {
       const response = await transport('/api/secureshop/customer/commerce/addresses',
         { method: 'GET', headers: { accept: 'application/json' } });
       if (!response.ok) throw Error('Saved addresses unavailable');
       const value = decodeAddressCards(await response.json());
-      if (epoch === epochRef.current) { setAddresses(value.addresses.map((row, index) => ({
+      if (isCurrent()) { setAddresses(value.addresses.map((row, index) => ({
         ...row.fields, id: row.addressId, choiceId: row.choiceId,
         title: value.cards[index].title, detail: value.cards[index].detail,
-      }))); setStatus('ready'); }
-    } catch { if (epoch === epochRef.current) setStatus('error'); }
-  }, [transport, authorityKey]);
+      }))); setListScope({ authorityKey, transport, bearer: headers.Authorization, generation });
+        setDeleteUnresolved(false); setStatus('ready'); }
+    } catch { if (isCurrent()) setStatus('error'); }
+  }, [transport, authorityKey, bearer]);
   useEffect(() => { void refresh(); return () => { epochRef.current += 1; }; }, [refresh]);
-  const del = async addressId => {
-    const epoch = ++epochRef.current;
-    const headers = _authHeaders();
-    try {
-      const response = await transport(`/api/secureshop/v2/auth/users/me/addresses/${addressId}`,
-        { method: 'DELETE', headers });
-      const value = await response.json().catch(() => ({}));
-      if (epoch !== epochRef.current || _authHeaders().Authorization !== headers.Authorization) return;
-      if (!response.ok || value.ok !== true) throw Error(value.error || 'delete failed');
-      toast.success('Address deleted');
-      await refresh();
-    } catch (error) {
-      if (epoch === epochRef.current) toast.error(`Delete failed: ${error.message}`);
-    }
-  };
+  const { stageDelete, confirmDelete, pendingDelete, setPendingDelete, deleteUnresolved,
+    setDeleteUnresolved, deleting, deletingRef } = useAddressDeleteConfirmation({
+    addresses, listCurrent, loading: status !== 'ready', requestEpoch: epochRef,
+    refresh, transport, authorityKey, bearer, scopeGeneration, toast,
+  });
   return <motion.section initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.24 }} style={{ marginTop: 20 }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
       <h3 style={{ fontFamily: 'var(--display)', fontSize: 22, margin: 0 }}>Saved addresses</h3>
       <Button size="sm" onClick={() => setEditing({ action: 'create', choiceId: null })}
+        disabled={deleteUnresolved || deleting}
         icon={<Plus size={14} />}>Add address</Button>
     </div>
+    {deleteUnresolved && <p role="alert">Address delete outcome is unresolved. Refresh addresses to check the current list before another change.</p>}
+    <Button size="sm" variant="ghost" onClick={refresh} disabled={deleting}>Refresh addresses</Button>
     {status === 'loading' && <p role="status">Loading your addresses…</p>}
     {status === 'error' && <p role="alert">Saved addresses are unavailable.</p>}
-    {status === 'ready' && (addresses.length === 0
+    {status === 'ready' && listCurrent && (addresses.length === 0
       ? <div style={{ padding: 20, opacity: 0.65, fontSize: 14 }}>No addresses yet. Click "Add address" to create one.</div>
       : <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
         {addresses.map(address => <Card key={address.choiceId} padded style={{ padding: 20 }}>
@@ -241,11 +309,20 @@ function BoundAddressesTab() {
             {address.phone && <div style={{ opacity: 0.7, fontSize: 12, marginTop: 4 }}>{address.phone}</div>}
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-            <Button size="sm" variant="ghost" onClick={() => setEditing({ action: 'update', choiceId: address.choiceId })}>Edit</Button>
-            <Button size="sm" variant="ghost" onClick={() => void del(address.id)}>Delete</Button>
+            <Button size="sm" variant="ghost" onClick={() => setEditing({ action: 'update', choiceId: address.choiceId })}
+              disabled={deleteUnresolved || deleting}>Edit</Button>
+            <Button size="sm" variant="ghost" onClick={() => stageDelete(address)}
+              disabled={deleteUnresolved || deleting}>Delete</Button>
           </div>
         </Card>)}
       </div>)}
+    {pendingDelete && listCurrent && pendingDelete.generation === scopeGeneration.current.version
+      && pendingDelete.epoch === epochRef.current && pendingDelete.bearer === bearer
+      && pendingDelete.transport === transport && <AccountConsequenceConfirmation
+        title="Delete saved address?"
+        consequence={`${pendingDelete.label} (address ${pendingDelete.id}), ${pendingDelete.line1 || 'no street shown'}. This saved address will be removed from your account.`}
+        confirmLabel="Confirm delete" busy={deleting}
+        onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />}
     {editing ? <div role="dialog" aria-modal="true" aria-label={editing.action === 'create' ? 'Add address' : 'Edit address'}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex',
         alignItems: 'center', justifyContent: 'center', zIndex: 100, overflow: 'auto' }}>
@@ -268,55 +345,65 @@ function BoundAddressesTab() {
 
 function AddressesTab() {
   const toast = useToast();
+  const { user, token } = useAuth();
+  const transport = window.fetch;
+  const authorityKey = JSON.stringify([user?.id, token]);
+  const bearer = _authHeaders().Authorization;
+  const scopeGeneration = useRef({ authorityKey, transport, bearer, version: 0 });
+  if (scopeGeneration.current.authorityKey !== authorityKey || scopeGeneration.current.transport !== transport
+      || scopeGeneration.current.bearer !== bearer) {
+    scopeGeneration.current = { authorityKey, transport, bearer, version: scopeGeneration.current.version + 1 };
+  }
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editing, setEditing] = useState(null); // null = closed, {} = new, {id, ...} = edit
+  const [listScope, setListScope] = useState(null);
   const requestEpoch = useRef(0);
+  const listCurrent = Boolean(listScope && listScope.authorityKey === authorityKey
+    && listScope.transport === transport && listScope.bearer === bearer
+    && listScope.generation === scopeGeneration.current.version);
 
   const load = useCallback(async () => {
     const epoch = ++requestEpoch.current;
     const headers = _authHeaders();
+    const generation = scopeGeneration.current.version;
     const isCurrent = () => epoch === requestEpoch.current
-      && _authHeaders().Authorization === headers.Authorization;
+      && _authHeaders().Authorization === headers.Authorization
+      && scopeGeneration.current.version === generation;
     setLoading(true);
     setError(null);
+    setListScope(null);
+    setPendingDelete(null);
     try {
-      const r = await fetch('/api/secureshop/v2/auth/users/me/addresses', { headers });
+      const r = await transport('/api/secureshop/v2/auth/users/me/addresses', { headers });
       const j = await r.json().catch(() => ({}));
       if (!isCurrent()) return;
       if (!r.ok) throw new Error(j.error || `request failed (${r.status})`);
-      setAddresses(j.addresses || []);
+      if (!Array.isArray(j.addresses) || j.addresses.some(address =>
+        !address || !Number.isSafeInteger(Number(address.id)) || Number(address.id) < 1)) {
+        throw new Error('Invalid address list');
+      }
+      setAddresses(j.addresses);
+      setListScope({ authorityKey, transport, bearer: headers.Authorization, generation });
+      setDeleteUnresolved(false);
     } catch (e) {
       if (isCurrent()) setError(e?.message || 'request failed');
     } finally {
       if (isCurrent()) setLoading(false);
     }
-  }, []);
+  }, [authorityKey, transport, bearer]);
 
   useEffect(() => {
     load();
     return () => { requestEpoch.current += 1; };
   }, [load]);
 
-  const del = async (id) => {
-    const epoch = ++requestEpoch.current;
-    const headers = _authHeaders();
-    const isCurrent = () => epoch === requestEpoch.current
-      && _authHeaders().Authorization === headers.Authorization;
-    try {
-      const r = await fetch(`/api/secureshop/v2/auth/users/me/addresses/${id}`, {
-        method: 'DELETE', headers,
-      });
-      const j = await r.json().catch(() => ({}));
-      if (!isCurrent()) return;
-      if (!r.ok || !j.ok) throw new Error(j.error || 'delete failed');
-      toast.success('Address deleted');
-      await load();
-    } catch (e) {
-      if (isCurrent()) toast.error(`Delete failed: ${e.message}`);
-    }
-  };
+  const { stageDelete, confirmDelete, pendingDelete, setPendingDelete, deleteUnresolved,
+    setDeleteUnresolved, deleting } = useAddressDeleteConfirmation({
+    addresses, listCurrent, loading, requestEpoch, refresh: load, transport,
+    authorityKey, bearer, scopeGeneration, toast,
+  });
 
   return (
     <motion.section
@@ -325,9 +412,12 @@ function AddressesTab() {
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
         <h3 style={{ fontFamily: 'var(--display)', fontSize: 22, margin: 0 }}>Saved addresses</h3>
-        <Button size="sm" onClick={() => setEditing({})} icon={<Plus size={14} />}>Add address</Button>
+        <Button size="sm" onClick={() => setEditing({})} disabled={deleteUnresolved || deleting}
+          icon={<Plus size={14} />}>Add address</Button>
       </div>
-      {loading ? (
+      {deleteUnresolved && <p role="alert">Address delete outcome is unresolved. Refresh addresses to check the current list before another change.</p>}
+      <Button size="sm" variant="ghost" onClick={load} disabled={deleting}>Refresh addresses</Button>
+      {loading || !listCurrent && !error ? (
         <div className="ss-mono" style={{ opacity: 0.6 }}>Loading…</div>
       ) : error ? (
         <div role="alert" style={{ padding: 20, color: 'var(--red)', fontSize: 14 }}>
@@ -354,14 +444,23 @@ function AddressesTab() {
                 {a.phone && <div style={{ opacity: 0.7, fontSize: 12, marginTop: 4 }}>{a.phone}</div>}
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                <Button size="sm" variant="ghost" onClick={() => setEditing(a)}>Edit</Button>
-                <Button size="sm" variant="ghost" onClick={() => del(a.id)}>Delete</Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditing(a)}
+                  disabled={deleteUnresolved || deleting}>Edit</Button>
+                <Button size="sm" variant="ghost" onClick={() => stageDelete(a)}
+                  disabled={deleteUnresolved || deleting}>Delete</Button>
               </div>
             </Card>
           ))}
         </div>
       )}
 
+      {pendingDelete && listCurrent && pendingDelete.generation === scopeGeneration.current.version
+        && pendingDelete.epoch === requestEpoch.current && pendingDelete.bearer === bearer
+        && pendingDelete.transport === transport && <AccountConsequenceConfirmation
+          title="Delete saved address?"
+          consequence={`${pendingDelete.label} (address ${pendingDelete.id}), ${pendingDelete.line1 || 'no street shown'}. This saved address will be removed from your account.`}
+          confirmLabel="Confirm delete" busy={deleting}
+          onCancel={() => setPendingDelete(null)} onConfirm={confirmDelete} />}
       {editing && (
         <AddressEditor
           initial={editing}
@@ -486,27 +585,73 @@ function copySelectedApiKey(key) {
   }
 }
 
+function AccountConsequenceConfirmation({ title, consequence, confirmLabel, busy, onCancel, onConfirm }) {
+  return <Dialog open title={title} onClose={busy ? undefined : onCancel} closeOnBackdrop={!busy}
+    footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <Button type="button" variant="ghost" onClick={onCancel} disabled={busy}>Cancel</Button>
+        <Button type="button" onClick={onConfirm} loading={busy} disabled={busy}>{confirmLabel}</Button>
+      </div>}>
+    <p style={{ fontSize: 14 }}>{consequence}</p>
+  </Dialog>;
+}
+
 function APIKeysTab() {
   const toast = useToast();
+  const { user, token } = useAuth();
+  const transport = window.fetch;
+  const authorityKey = JSON.stringify([user?.id, token]);
+  const bearer = _authHeaders().Authorization;
+  const scopeRef = useRef({ authorityKey, transport });
+  scopeRef.current = { authorityKey, transport };
+  const requestEpoch = useRef(0);
+  const scopeGeneration = useRef({ authorityKey, transport, bearer, version: 0 });
+  if (scopeGeneration.current.authorityKey !== authorityKey || scopeGeneration.current.transport !== transport
+      || scopeGeneration.current.bearer !== bearer) {
+    scopeGeneration.current = { authorityKey, transport, bearer,
+      version: scopeGeneration.current.version + 1 };
+  }
   const [reveal, setReveal] = useState(false);
-  const [key, setKey] = useState(null);
+  const [storedKey, setKey] = useState(null);
+  const [keyScope, setKeyScope] = useState({ authorityKey, transport, bearer, generation: scopeGeneration.current.version });
   const [loading, setLoading] = useState(true);
   const [rotating, setRotating] = useState(false);
+  const [rotationUnresolved, setRotationUnresolved] = useState(false);
+  const [pendingRotation, setPendingRotation] = useState(null);
+  const rotatingRef = useRef(false);
+  const inScope = keyScope.authorityKey === authorityKey && keyScope.transport === transport
+    && keyScope.bearer === bearer && keyScope.generation === scopeGeneration.current.version;
+  const key = inScope ? storedKey : null;
+
+  const isCurrent = useCallback((epoch, headers, generation) => epoch === requestEpoch.current
+    && scopeRef.current.authorityKey === authorityKey
+    && scopeRef.current.transport === transport
+    && scopeGeneration.current.version === generation
+    && _authHeaders().Authorization === headers.Authorization, [authorityKey, transport]);
 
   const load = useCallback(async () => {
+    const epoch = ++requestEpoch.current;
+    const headers = _authHeaders();
+    const generation = scopeGeneration.current.version;
     setLoading(true);
+    setKeyScope({ authorityKey, transport, bearer, generation });
+    setKey(null);
+    setReveal(false);
+    setRotating(false);
+    setPendingRotation(null);
+    rotatingRef.current = false;
     try {
-      const r = await fetch('/api/secureshop/v2/auth/users/me/api-keys', { headers: _authHeaders() });
+      const r = await transport('/api/secureshop/v2/auth/users/me/api-keys', { headers });
       const j = await r.json();
-      setKey(j.api_key || '');
+      if (!r.ok) throw new Error('key read unavailable');
+      if (isCurrent(epoch, headers, generation)) { setKey(j.api_key || ''); setRotationUnresolved(false); }
     } catch {
-      setKey('');
+      if (isCurrent(epoch, headers, generation)) { setKey(''); setRotationUnresolved(true); }
     } finally {
-      setLoading(false);
+      if (isCurrent(epoch, headers, generation)) setLoading(false);
     }
-  }, []);
+  }, [transport, bearer, isCurrent]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { void load(); return () => { requestEpoch.current += 1; }; }, [load]);
 
   const copy = async () => {
     if (!key) return;
@@ -536,21 +681,44 @@ function APIKeysTab() {
     }
   };
 
+  const stageRotation = () => {
+    if (rotatingRef.current || loading || !inScope || pendingRotation || rotationUnresolved) return;
+    setPendingRotation(Object.freeze({ kind: key ? 'rotate' : 'generate',
+      epoch: requestEpoch.current, authorityKey, transport,
+      bearer: _authHeaders().Authorization, generation: scopeGeneration.current.version }));
+  };
+
   const rotate = async () => {
+    const intent = pendingRotation;
+    if (!intent || rotatingRef.current || intent.epoch !== requestEpoch.current
+        || intent.authorityKey !== authorityKey || intent.transport !== transport
+        || intent.bearer !== _authHeaders().Authorization
+        || intent.generation !== scopeGeneration.current.version || !inScope || rotationUnresolved) return;
+    rotatingRef.current = intent;
+    setPendingRotation(null);
+    const epoch = ++requestEpoch.current;
+    const headers = _authHeaders();
     setRotating(true);
     try {
-      const r = await fetch('/api/secureshop/v2/auth/users/me/api-keys/rotate', {
-        method: 'POST', headers: _authHeaders(),
+      const r = await transport('/api/secureshop/v2/auth/users/me/api-keys/rotate', {
+        method: 'POST', headers,
       });
       const j = await r.json();
-      if (!j.ok) throw new Error(j.error || 'rotate failed');
+      if (!isCurrent(epoch, headers, intent.generation)) return;
+      if (!r.ok || !j.ok) throw new Error(j.error || 'rotate failed');
       setKey(j.api_key);
       setReveal(true);
+      setRotationUnresolved(false);
       toast.success('New API key generated');
     } catch (e) {
-      toast.error(`Rotate failed: ${e.message}`);
+      if (isCurrent(epoch, headers, intent.generation)) {
+        setKey(null);
+        setRotationUnresolved(true);
+        toast.error(`Key change unresolved. Refresh the key before another attempt. ${e.message}`);
+      }
     } finally {
-      setRotating(false);
+      if (rotatingRef.current === intent) rotatingRef.current = false;
+      if (isCurrent(epoch, headers, intent.generation)) { setRotating(false); setLoading(false); }
     }
   };
 
@@ -564,8 +732,12 @@ function APIKeysTab() {
         <p style={{ fontSize: 13, opacity: 0.75 }}>
           Use this key to authenticate against the SecureShop v2 API. Never commit it to source control.
         </p>
-        {loading ? (
+        {loading || !inScope ? (
           <div className="ss-mono" style={{ opacity: 0.6 }}>Loading…</div>
+        ) : rotationUnresolved ? (
+          <div role="status" style={{ padding: 12, background: 'color-mix(in srgb, var(--amber) 12%, transparent)', border: '1px solid var(--amber)', fontSize: 13, marginBottom: 12 }}>
+            The current API key is unknown. Refresh key to check its state before making another change.
+          </div>
         ) : !key ? (
           <div style={{ padding: 12, background: 'color-mix(in srgb, var(--amber) 12%, transparent)', border: '1px solid var(--amber)', fontSize: 13, marginBottom: 12 }}>
             You do not have an API key yet. Generate one to start using the API.
@@ -585,35 +757,77 @@ function APIKeysTab() {
           </div>
         )}
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <Button size="sm" variant="ghost" onClick={rotate} loading={rotating} icon={<RefreshCw size={14} />}>
-            {key ? 'Rotate key' : 'Generate key'}
+          <Button size="sm" variant="ghost" onClick={stageRotation} loading={rotating}
+            disabled={loading || rotationUnresolved} icon={<RefreshCw size={14} />}>
+            {rotationUnresolved ? 'Key change unavailable' : key ? 'Rotate key' : 'Generate key'}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={load} disabled={rotating}>
+            Refresh key
           </Button>
         </div>
+        {rotationUnresolved && <p role="alert" style={{ fontSize: 13 }}>
+          Key state is unresolved. Refresh key to check the current value before another change.
+        </p>}
         <div style={{ marginTop: 16, padding: 12, background: 'color-mix(in srgb, var(--amber) 12%, transparent)', border: '1px solid var(--amber)', fontSize: 12 }}>
           <strong>Heads up:</strong> keys are stored in plaintext in the DB (intentional — teaches LLM02 sensitive info disclosure).
         </div>
       </Card>
+      {pendingRotation && pendingRotation.authorityKey === authorityKey
+        && pendingRotation.transport === transport
+        && pendingRotation.bearer === _authHeaders().Authorization
+        && pendingRotation.generation === scopeGeneration.current.version
+        && <AccountConsequenceConfirmation
+          title={pendingRotation.kind === 'rotate' ? 'Rotate API key?' : 'Generate API key?'}
+          consequence={pendingRotation.kind === 'rotate'
+            ? 'The current API key will stop working. The replacement key will be shown after this request succeeds.'
+            : 'A new API key will be created and shown after this request succeeds.'}
+          confirmLabel={pendingRotation.kind === 'rotate' ? 'Confirm rotation' : 'Confirm generation'}
+          busy={rotating} onCancel={() => setPendingRotation(null)} onConfirm={rotate} />}
     </motion.section>
   );
 }
 
 function SessionsTab() {
   const toast = useToast();
-  const { logout } = useAuth();
+  const { user, token, logout } = useAuth();
+  const transport = window.fetch;
+  const authorityKey = JSON.stringify([user?.id, token]);
+  const bearer = _authHeaders().Authorization;
+  const scopeGeneration = useRef({ authorityKey, transport, bearer, version: 0 });
+  if (scopeGeneration.current.authorityKey !== authorityKey || scopeGeneration.current.transport !== transport
+      || scopeGeneration.current.bearer !== bearer) {
+    scopeGeneration.current = { authorityKey, transport, bearer,
+      version: scopeGeneration.current.version + 1 };
+  }
   const [sessions, setSessions] = useState([]);
+  const [listScope, setListScope] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [revokeUnresolved, setRevokeUnresolved] = useState(false);
+  const [pendingRevoke, setPendingRevoke] = useState(null);
   const requestEpoch = useRef(0);
+  const revokingRef = useRef(false);
+  const listCurrent = Boolean(listScope && listScope.authorityKey === authorityKey
+    && listScope.transport === transport && listScope.bearer === _authHeaders().Authorization
+    && listScope.generation === scopeGeneration.current.version);
 
   const load = useCallback(async () => {
     const epoch = ++requestEpoch.current;
     const headers = _authHeaders();
+    const generation = scopeGeneration.current.version;
+    const priorRevoke = revokingRef.current;
+    if (priorRevoke && (priorRevoke.authorityKey !== authorityKey
+        || priorRevoke.transport !== transport || priorRevoke.bearer !== headers.Authorization
+        || priorRevoke.generation !== generation)) revokingRef.current = false;
     const isCurrent = () => epoch === requestEpoch.current
-      && _authHeaders().Authorization === headers.Authorization;
+      && _authHeaders().Authorization === headers.Authorization
+      && scopeGeneration.current.version === generation;
     setLoading(true);
     setError(null);
+    setPendingRevoke(null);
+    setListScope(null);
     try {
-      const r = await fetch('/api/secureshop/v2/auth/users/me/sessions', { headers });
+      const r = await transport('/api/secureshop/v2/auth/users/me/sessions', { headers });
       const j = await r.json().catch(() => ({}));
       if (!isCurrent()) return;
       if (r.status === 401 || r.status === 403) {
@@ -622,35 +836,63 @@ function SessionsTab() {
       }
       if (!r.ok) throw new Error(j.error || `request failed (${r.status})`);
       setSessions(j.sessions || []);
+      setListScope({ authorityKey, transport, bearer: headers.Authorization, generation });
+      setRevokeUnresolved(false);
     } catch (e) {
-      if (isCurrent()) setError(e?.message || 'request failed');
+      if (isCurrent()) {
+        setError(e?.message || 'request failed');
+        setListScope({ authorityKey, transport, bearer: headers.Authorization, generation });
+      }
     } finally {
       if (isCurrent()) setLoading(false);
     }
-  }, [logout]);
+  }, [logout, authorityKey, transport, bearer]);
 
   useEffect(() => {
     load();
     return () => { requestEpoch.current += 1; };
   }, [load]);
 
-  const revoke = async (id) => {
+  const stageRevoke = (session) => {
+    if (loading || !listCurrent || revokingRef.current || pendingRevoke || revokeUnresolved) return;
+    setPendingRevoke(Object.freeze({ id: session.id, isCurrent: session.is_current === true,
+      userAgent: session.user_agent || 'Unknown browser', ip: session.ip || 'unknown IP',
+      epoch: requestEpoch.current, authorityKey, transport,
+      bearer: _authHeaders().Authorization, generation: scopeGeneration.current.version }));
+  };
+
+  const revoke = async () => {
+    const intent = pendingRevoke;
+    if (!intent || revokingRef.current || intent.epoch !== requestEpoch.current
+        || intent.authorityKey !== authorityKey || intent.transport !== transport
+        || intent.bearer !== _authHeaders().Authorization
+        || intent.generation !== scopeGeneration.current.version || !listCurrent || revokeUnresolved
+        || !sessions.some(session => session.id === intent.id && (session.is_current === true) === intent.isCurrent)) return;
+    revokingRef.current = intent;
+    setPendingRevoke(null);
     const epoch = ++requestEpoch.current;
     const headers = _authHeaders();
     const isCurrent = () => epoch === requestEpoch.current
-      && _authHeaders().Authorization === headers.Authorization;
+      && _authHeaders().Authorization === headers.Authorization
+      && scopeGeneration.current.version === intent.generation;
     try {
-      const r = await fetch(`/api/secureshop/v2/auth/users/me/sessions/${id}/revoke`, {
+      const r = await transport(`/api/secureshop/v2/auth/users/me/sessions/${intent.id}/revoke`, {
         method: 'POST', headers,
       });
       const j = await r.json().catch(() => ({}));
       if (!isCurrent()) return;
       if (!r.ok || !j.ok) throw new Error(j.error || 'revoke failed');
       toast.success('Session revoked');
-      if (sessions.find((session) => session.id === id)?.is_current) await logout();
+      setRevokeUnresolved(false);
+      if (intent.isCurrent) await logout();
       else await load();
     } catch (e) {
-      if (isCurrent()) toast.error(`Revoke failed: ${e.message}`);
+      if (isCurrent()) {
+        setRevokeUnresolved(true);
+        toast.error(`Session revoke result unresolved. Refresh sessions before another attempt. ${e.message}`);
+      }
+    } finally {
+      if (revokingRef.current === intent) revokingRef.current = false;
     }
   };
 
@@ -661,9 +903,12 @@ function SessionsTab() {
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
         <h3 style={{ fontFamily: 'var(--display)', fontSize: 22, margin: 0 }}>Active sessions</h3>
-        <Button size="sm" variant="ghost" onClick={load} icon={<RefreshCw size={14} />}>Refresh</Button>
+        <Button size="sm" variant="ghost" onClick={load} disabled={Boolean(revokingRef.current)} icon={<RefreshCw size={14} />}>Refresh</Button>
       </div>
-      {loading ? (
+      {revokeUnresolved && <p role="alert" style={{ fontSize: 13 }}>
+        Session change is unresolved. Refresh sessions to check the current state before another revoke.
+      </p>}
+      {loading || !listCurrent ? (
         <div className="ss-mono" style={{ opacity: 0.6 }}>Loading…</div>
       ) : error ? (
         <div role="alert" style={{ padding: 20, color: 'var(--red)', fontSize: 14 }}>
@@ -688,13 +933,14 @@ function SessionsTab() {
             {sessions.map((s) => (
               <tr key={s.id}>
                 <td style={{ maxWidth: 320, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {s.user_agent || '—'}
+                  {s.user_agent || '—'}{s.is_current === true && ' (current session)'}
                 </td>
                 <td className="ss-mono">{s.ip || '—'}</td>
                 <td>{s.created_at ? new Date(s.created_at).toLocaleString() : '—'}</td>
                 <td>{s.last_seen_at ? new Date(s.last_seen_at).toLocaleString() : '—'}</td>
                 <td>
-                  <Button size="sm" variant="ghost" onClick={() => revoke(s.id)} icon={<Trash2 size={14} />}>
+                  <Button size="sm" variant="ghost" onClick={() => stageRevoke(s)}
+                    disabled={revokeUnresolved || Boolean(revokingRef.current)} icon={<Trash2 size={14} />}>
                     Revoke
                   </Button>
                 </td>
@@ -703,6 +949,16 @@ function SessionsTab() {
           </tbody>
         </table>
       )}
+      {pendingRevoke && pendingRevoke.authorityKey === authorityKey
+        && pendingRevoke.transport === transport
+        && pendingRevoke.bearer === _authHeaders().Authorization
+        && pendingRevoke.generation === scopeGeneration.current.version
+        && <AccountConsequenceConfirmation title="Revoke session?"
+          consequence={`${pendingRevoke.userAgent} (${pendingRevoke.ip}), session ${pendingRevoke.id}. ${pendingRevoke.isCurrent
+            ? 'This is your current session. Revoking it will sign you out of SecureShop.'
+            : 'This other session will stop working. Your current session will remain signed in.'}`}
+          confirmLabel="Confirm revoke" busy={Boolean(revokingRef.current)}
+          onCancel={() => setPendingRevoke(null)} onConfirm={revoke} />}
     </motion.section>
   );
 }

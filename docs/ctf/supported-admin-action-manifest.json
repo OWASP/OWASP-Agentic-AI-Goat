@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "scope": "Thirteen consequential administrator action types or variants advertised in the supported CTF panel. Parameterized rows and configuration keys can render multiple physical controls. This is a bounded partition, not an exhaustive CTF action inventory.",
+  "authority": "Manual authenticated administrator actions. Lifecycle mutations do not invoke a model or Judge at mutation time. Preview invokes the configured guardian provider for an ungraded diagnostic response; no learner admission, Objective Judge, progress, scoring, or credit is claimed. This partition does not decide Q08 applicability for other CTF actions.",
+  "qualification": "Source-level wiring checked only. Physical/native PostgreSQL, rendered browser, and actual-model qualification remain unverified.",
+  "recovery": {
+    "kind": "lifecycle_operation_only",
+    "endpoint": "GET /api/ctf/operations/:operationId",
+    "behavior": "For recovery.request lifecycle mutations, the mounted page can poll an operationId returned by the server. If the original acknowledgment or reference is lost, the client reports an unknown outcome and does not resubmit automatically; references are not persisted across reloads. Preview uses a direct axios request and is outside this operation recovery path."
+  },
+  "actions": [
+    {
+      "id": "ctf.admin.participant.reset",
+      "visibleControl": "Leaderboard: Reset; staged Reset participant progress dialog, then Reset Progress",
+      "uiHandler": "confirmReset",
+      "confirmation": "stageParticipantAction(entry, 'reset') captures the target and authority; ConfirmDialog calls confirmReset and describes deleted progress, attempts, and per-player technique blocks.",
+      "consequence": "Reset one participant's CTF progress while retaining registration; shared payload fingerprints remain.",
+      "request": { "method": "POST", "path": "/api/ctf/admin/participants/:userId/reset" },
+      "dispatcher": { "kind": "owner_reset", "input": "ownerId=req.params.userId" },
+      "effect": { "source": "server/database/postgres/ctfProjectionRepository.js", "case": "owner_reset", "operation": "m.reset({participantId:p,userId:owner,remove:false})" },
+      "applicability": "manual_admin_no_model_judge_or_credit_claim"
+    },
+    {
+      "id": "ctf.admin.participant.remove",
+      "visibleControl": "Leaderboard: Remove; staged Remove participant from CTF dialog, then Remove from CTF",
+      "uiHandler": "confirmRemove",
+      "confirmation": "stageParticipantAction(entry, 'remove') captures the target and authority; ConfirmDialog calls confirmRemove and describes deletion and re-registration.",
+      "consequence": "Remove one CTF participant, progress, attempts, and leaderboard data; re-registration remains possible.",
+      "request": { "method": "POST", "path": "/api/ctf/admin/participants/:userId/remove" },
+      "dispatcher": { "kind": "owner_remove", "input": "ownerId=req.params.userId" },
+      "effect": { "source": "server/database/postgres/ctfProjectionRepository.js", "case": "owner_remove", "operation": "m.reset({participantId:p,userId:owner,remove:true})" },
+      "applicability": "manual_admin_no_model_judge_or_credit_claim"
+    },
+    {
+      "id": "ctf.admin.participant.ban",
+      "visibleControl": "Leaderboard: Ban; ban-reason prompt; staged Ban participant from CTF dialog",
+      "uiHandler": "handleBan",
+      "confirmation": "A window.prompt obtains the reason; Cancel aborts. The captured target, reason, and authority are then reviewed in a rendered ConfirmDialog; Cancel retires the stage without a request.",
+      "consequence": "Block the selected user from CTF participation while preserving existing progress and the platform account.",
+      "request": { "method": "POST", "path": "/api/ctf/admin/participants/:userId/ban" },
+      "dispatcher": { "kind": "ban", "input": "ownerId=req.params.userId; reason=req.body.reason or admin default" },
+      "effect": { "source": "server/database/postgres/ctfProjectionRepository.js", "case": "ban", "operation": "m.banUser(owner,b.reason,command.actorId)" },
+      "applicability": "manual_admin_no_model_judge_or_credit_claim"
+    },
+    {
+      "id": "ctf.admin.participant.unban",
+      "visibleControl": "Leaderboard: Unban; staged Unban participant from CTF dialog",
+      "uiHandler": "handleUnban",
+      "confirmation": "The captured target and authority are reviewed in a rendered ConfirmDialog; Cancel retires the stage without a request.",
+      "consequence": "Restore the selected user's CTF participation while preserving progress and the platform account.",
+      "request": { "method": "POST", "path": "/api/ctf/admin/participants/:userId/unban" },
+      "dispatcher": { "kind": "unban", "input": "ownerId=req.params.userId" },
+      "effect": { "source": "server/database/postgres/ctfProjectionRepository.js", "case": "unban", "operation": "m.unbanUser(owner)" },
+      "applicability": "manual_admin_no_model_judge_or_credit_claim"
+    },
+    {
+      "id": "ctf.admin.blocklist.technique.clear",
+      "visibleControl": "Danger Zone: Clear Technique Blocklist",
+      "uiHandler": "clearBlocklist",
+      "confirmation": "Danger Zone stages the technique target with captured authority; a rendered ConfirmDialog names the cross-CTF consequence. Cancel retires the stage without a request; Confirm checks current authority before one request. Blocklist and full-reset staging are mutually exclusive.",
+      "consequence": "Clear per-user technique blocks across all stages (UI sends no stageId).",
+      "request": { "method": "POST", "path": "/api/ctf/admin/blocklists/technique/clear" },
+      "dispatcher": { "kind": "blocklist_clear", "input": "memory=technique; stageId=null" },
+      "effect": { "source": "server/database/postgres/ctfProjectionRepository.js", "case": "blocklist_clear", "operation": "m.clearTechniqueBlocklist(stage)" },
+      "applicability": "manual_admin_no_model_judge_or_credit_claim"
+    },
+    {
+      "id": "ctf.admin.blocklist.payload.clear",
+      "visibleControl": "Danger Zone: Clear Payload Blocklist",
+      "uiHandler": "clearBlocklist",
+      "confirmation": "Danger Zone stages the payload target with captured authority; a rendered ConfirmDialog names the cross-CTF consequence. Cancel retires the stage without a request; Confirm checks current authority before one request. Blocklist and full-reset staging are mutually exclusive.",
+      "consequence": "Clear community payload blocks across all stages (UI sends no stageId).",
+      "request": { "method": "POST", "path": "/api/ctf/admin/blocklists/payload/clear" },
+      "dispatcher": { "kind": "blocklist_clear", "input": "memory=payload; stageId=null" },
+      "effect": { "source": "server/database/postgres/ctfProjectionRepository.js", "case": "blocklist_clear", "operation": "m.clearPayloadBlocklist(stage)" },
+      "applicability": "manual_admin_no_model_judge_or_credit_claim"
+    },
+    {
+      "id": "ctf.admin.full_reset",
+      "visibleControl": "Danger Zone: Full CTF Reset; typed token and Reset the entire CTF dialog",
+      "uiHandler": "fullReset",
+      "confirmation": "RESET_CTF_CONFIRM enables requestFullReset; a staged authority and second ResetConfirmation dialog gate fullReset. The server also requires the token.",
+      "consequence": "Delete CTF participants, progress, attempts, events, sessions, blocklists, and leaderboard data.",
+      "request": { "method": "POST", "path": "/api/ctf/admin/reset" },
+      "dispatcher": { "kind": "global_reset", "input": "empty command after RESET_CTF_CONFIRM body guard" },
+      "effect": { "source": "server/database/postgres/ctfProjectionRepository.js", "case": "global_reset", "operation": "m.reset({all:true})" },
+      "applicability": "manual_admin_no_model_judge_or_credit_claim"
+    },
+    {
+      "id": "ctf.admin.stage.toggle_active",
+      "visibleControl": "Levels: Active toggle for each stage",
+      "uiHandler": "toggleActive",
+      "confirmation": "Activate or deactivate confirmation captures the stage and authority; Cancel, authority retirement, or a refreshed stage invalidates the review. Confirm sends one captured-authority update, then reads the durable stage roster without optimistic mutation or automatic resubmission.",
+      "consequence": "Activate or deactivate the selected stage through is_active.",
+      "request": { "method": "PUT", "path": "/api/ctf/admin/stages/:id" },
+      "dispatcher": { "kind": "catalog_mutation", "input": "action=update; stageId=req.params.id; fields=req.body.is_active" },
+      "effect": { "source": "server/database/postgres/ctfProjectionRepository.js", "case": "catalog_mutation", "operation": "m.updateStage(stage,b.fields)" },
+      "applicability": "manual_admin_no_model_judge_or_credit_claim"
+    },
+    {
+      "id": "ctf.admin.stage.save",
+      "visibleControl": "Levels: expanded Advanced stage controls Save",
+      "uiHandler": "handleSave",
+      "confirmation": "StageEditForm parses hints and defense-style JSON, then stages an immutable nine-field advanced draft bound to the exact editor and captured administrator authority. A rendered ConfirmDialog explains guardian policy and scoring effects; Cancel retires the stage without a request. Confirm claims one request with the captured bearer.",
+      "consequence": "Update selected stage fields including prompt, criteria, adaptive mode, score, feedback, and hints.",
+      "request": { "method": "PUT", "path": "/api/ctf/admin/stages/:id" },
+      "dispatcher": { "kind": "catalog_mutation", "input": "action=update; stageId=req.params.id; fields=req.body" },
+      "effect": { "source": "server/database/postgres/ctfProjectionRepository.js", "case": "catalog_mutation", "operation": "m.updateStage(stage,b.fields)" },
+      "applicability": "manual_admin_no_model_judge_or_credit_claim"
+    },
+    {
+      "id": "ctf.admin.stage.save_teaching",
+      "visibleControl": "Levels: expanded Teaching content Save teaching content; staged Save CTF teaching content dialog",
+      "uiHandler": "handleSaveTeaching",
+      "confirmation": "TeachingContentForm validates up to three string hints, then stages an immutable five-field draft bound to the exact editor and captured administrator authority. A rendered ConfirmDialog describes learner and instructor effects; Cancel retires the stage without a request. Confirm claims one request with the captured bearer.",
+      "consequence": "Update stage title, description, objective, hints, and instructor solution content.",
+      "request": { "method": "PUT", "path": "/api/ctf/admin/stages/:id/content" },
+      "dispatcher": { "kind": "catalog_mutation", "input": "action=update; stageId=req.params.id; fields=req.body" },
+      "effect": { "source": "server/database/postgres/ctfProjectionRepository.js", "case": "catalog_mutation", "operation": "m.updateStage(stage,b.fields)" },
+      "applicability": "manual_admin_no_model_judge_or_credit_claim"
+    },
+    {
+      "id": "ctf.admin.stage.delete",
+      "visibleControl": "Levels: expanded Delete stage button",
+      "uiHandler": "confirmDelete",
+      "confirmation": "StageEditForm stages the exact stage and current editor authority for a rendered ConfirmDialog describing cascading deletion. Cancel retires that stage with zero DELETE. Confirm claims one DELETE with the captured bearer; unknown outcomes are not automatically retried.",
+      "consequence": "Delete the selected CTF stage and database-owned dependent state.",
+      "request": { "method": "DELETE", "path": "/api/ctf/admin/stages/:id" },
+      "dispatcher": { "kind": "catalog_mutation", "input": "action=delete; stageId=req.params.id; fields={}" },
+      "effect": { "source": "server/database/postgres/ctfProjectionRepository.js", "case": "catalog_mutation", "operation": "m.deleteStage(stage)" },
+      "applicability": "manual_admin_no_model_judge_or_credit_claim"
+    },
+    {
+      "id": "ctf.admin.stage.preview",
+      "visibleControl": "Levels: expanded Preview button, then Disclosure Preview Run Preview",
+      "uiHandler": "runPreview",
+      "confirmation": "Opening Disclosure Preview captures the exact stage, editor, and administrator authority. Explicit Run Preview requires a nonempty frozen payload and claims one request with the captured bearer; the modal itself is the review boundary, with no redundant confirmation dialog. Close, unmount, or authority/stage retirement aborts the owned request and suppresses late output. A lost response is not retried automatically.",
+      "consequence": "Run configured model-aware defenses and guardian provider for a diagnostic response without learner admission, adaptive memory, canonical Objective Judge, progress, or scoring.",
+      "request": { "method": "POST", "path": "/api/ctf/admin/stages/:id/preview" },
+      "dispatcher": { "kind": "previewHandler", "input": "direct authenticated preview route; no runtime.mutate catalog command" },
+      "effect": { "source": "server/services/ctfAuthorityPreviewRoute.js", "case": "preview", "operation": "runDefenseLayers + runCtfGuardianGraph + provider.generateResponse" },
+      "recovery": "Direct non-durable axios preview request; there is no operationId recovery or automatic POST retry. Cancellation after dispatch may already have consumed provider work.",
+      "applicability": "manual_admin_model_preview_ungraded_no_judge_or_credit_claim"
+    },
+    {
+      "id": "ctf.admin.config.save",
+      "visibleControl": "Config: Save or toggle stages one editable CONFIG_LABELS key, then Confirm Config Save",
+      "uiHandler": "confirmConfigSave",
+      "confirmation": "Each of the fifteen editable keys stages one immutable value and current administrator authority. A rendered ConfirmDialog shows the old and proposed value; Cancel retires the stage with no POST. Confirm claims one POST with the captured bearer. Completion is acknowledged only after current GET readback matches; a lost response is not automatically retried.",
+      "consequence": "Update one selected CTF configuration key and its value.",
+      "parameterizedKeys": ["ctf_enabled", "ctf_visible_to_students", "student_leaderboard_visible", "public_leaderboard_visible", "ctf_registration_open", "ctf_max_participants", "ctf_time_limit", "leaderboard_update_interval", "ctf_nav_visible", "ctf_show_technique_feedback", "ctf_show_attempt_counter", "ctf_hint_gating_attempts", "ctf_hint_cost_1", "ctf_hint_cost_2", "ctf_hint_cost_3"],
+      "request": { "method": "POST", "path": "/api/ctf/admin/config" },
+      "dispatcher": { "kind": "config_mutation", "input": "key=req.body.key; value=req.body.value" },
+      "effect": { "source": "server/database/postgres/ctfProjectionRepository.js", "case": "config_mutation", "operation": "m.updateConfig(b.key,b.value)" },
+      "applicability": "manual_admin_no_model_judge_or_credit_claim"
+    }
+  ],
+  "unresolvedActions": [
+    { "id": "ctf.participant.register", "status": "source_unreviewed" },
+    { "id": "ctf.participant.start", "status": "source_unreviewed", "trigger": "automatic_mount_after_stage_selection" },
+    { "id": "ctf.participant.hint", "status": "source_unreviewed" },
+    { "id": "ctf.participant.attempt", "status": "source_unreviewed" },
+    { "id": "ctf.participant.practice", "status": "source_unreviewed" }
+  ],
+  "routeOnly": [
+    { "method": "POST", "path": "/api/ctf/admin/stages", "status": "no_CTFAdminPanel_caller_observed; not assessed as unsupported" },
+    { "method": "POST", "path": "/api/ctf/heartbeat", "status": "no_CTFAdminPanel_caller_observed; not assessed as unsupported" }
+  ],
+  "unresolved": "All CTF actions outside these thirteen advertised administrator action types or variants remain outside this partition and require separate applicability and qualification review."
+}

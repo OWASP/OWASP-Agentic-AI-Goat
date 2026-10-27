@@ -73,9 +73,15 @@ function createSecureShopBoundPersonaAuthority({pool,checkCurrent}={}){
     [trusted.launchId,trusted.scenarioId,trusted.generation,trusted.platformOwnerId,trusted.platformSessionId,personaId,binding.sessionId,role])).rowCount;
    if(live!==1)throw invalid();
   }
-  async function transaction(work){
+  async function transaction(work,{externalDeadline}={}){
    await checkCurrent(trusted);const c=await pool.connect();
    try{await c.query('BEGIN');
+    if(externalDeadline!==undefined){
+     if(!Number.isFinite(externalDeadline)||externalDeadline<=Date.now()||externalDeadline>Date.now()+20000)throw invalid();
+     await c.query("SET LOCAL statement_timeout='3000ms'");
+     await c.query("SET LOCAL lock_timeout='3000ms'");
+     await c.query("SET LOCAL idle_in_transaction_session_timeout='25000ms'");
+    }
     await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`secureshop-bound-audit-owner:${trusted.platformOwnerId}`]);
     await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`secureshop-conversation-admission:${trusted.launchId}`]);
     await current(c);const result=await work(c,binding);await current(c);await c.query('COMMIT');return result;
@@ -92,6 +98,17 @@ function createSecureShopBoundPersonaAuthority({pool,checkCurrent}={}){
     try{return await transaction(async()=>{admitted=true;const value=await work(binding);completed=true;return value;});}
     catch(cause){if(!admitted || (['REVIEW_OPERATION_CONFLICT','COMMERCE_OPERATION_CONFLICT'].includes(cause?.code)
       && cause.effectNotApplied===true))throw cause;const error=Object.assign(new Error('Separate-store effect outcome requires authoritative readback'),{code:'PERSONA_EFFECT_OUTCOME_UNCERTAIN',executionBoundary:true,effectCallbackCompleted:completed});Object.defineProperty(error,'cause',{value:cause});throw error;}
+   },
+   // Purpose-closed external test-mail lease. No SQL client is handed to SMTP;
+   // the caller must close its transport at this absolute deadline. A remote
+   // effect is never described as rolled back by this transaction.
+   withExternalMailDispatch(work,{deadlineAt}={}){
+    if(typeof work!=='function'||!Number.isFinite(deadlineAt)
+      ||deadlineAt<=Date.now()||deadlineAt>Date.now()+20000)throw invalid();
+    return transaction(async()=>{
+     if(Date.now()>=deadlineAt)throw invalid();
+     return work(binding);
+    },{externalDeadline:deadlineAt});
    },
    // Point-in-time admission only: returns after releasing SQL locks. This does
    // not authorize a later remote action or imply rollback of a remote effect.

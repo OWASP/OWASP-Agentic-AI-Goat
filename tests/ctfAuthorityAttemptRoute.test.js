@@ -7,6 +7,18 @@ test('real coordinator supplies exact run identity; learner bytes retained and a
 test('malformed references and payload reject before admission; limiter remains owner/stage scoped',async t=>{const f=await fixture(t);for(const [path,body] of [['/attempt/0',{payload:'x'}],['/attempt/1',{payload:' '}],['/attempt/1',{payload:'x',sessionToken:{}}],['/operation/bad',{}],['/recovery/bad',{}],['/publish/bad',{}]])assert.equal((await f.post(path,body)).status,400);assert.equal(f.admissions,0);for(let i=0;i<10;i++)assert.equal((await f.post('/attempt/1',{payload:'x'})).status,202);assert.equal((await f.post('/attempt/1',{payload:'x'})).status,429);assert.equal((await f.post('/attempt/2',{payload:'x'})).status,202);assert.equal((await f.post('/attempt/1',{payload:'x'},9)).status,202);});
 test('recovery uses exact references outside coordinator and never repeats attempt or exposes historical credit',async t=>{const f=await fixture(t),id='00000000-0000-0000-0000-000000000001';await f.post('/operation/'+id);const r=await f.post('/recovery/'+id,{resumeAuthorization:true,runId:'forged'});assert.deepEqual(await r.json(),{state:'historical_receipt',admissionId:id,currentCompletion:false});await f.post('/publish/'+id);assert.equal(f.admissions,0);assert.deepEqual(f.calls.map(x=>x.name),['recoverOperation','recoverDecision','publishDecision']);assert.equal(f.calls[1].args.resumeAuthorization,undefined);});
 test('runtime errors do not retry or expose internal messages',async t=>{const f=await fixture(t);let n=0;f.runtime.attempt=async()=>{n++;throw Object.assign(Error('private database details'),{statusCode:503});};const r=await f.post('/attempt/1',{payload:'x'});assert.equal(r.status,503);assert(!JSON.stringify(await r.json()).includes('private'));assert.equal(n,1);});
+test('authenticated stale publication is 409 without recasting foreign or revoked sessions',async t=>{
+ const f=await fixture(t),id='00000000-0000-0000-0000-000000000001';
+ for(const [code,status,body] of [
+  ['PCT01',409,{error:'CTF request is no longer current'}],
+  ['42501',403,{error:'CTF service temporarily unavailable'}],
+  ['28000',401,{error:'Session is no longer current'}],
+ ]){
+  f.runtime.publishDecision=async args=>{f.calls.push({name:'publishDecision',args});throw Object.assign(Error('private owner and generation'),{code});};
+  const response=await f.post('/publish/'+id);assert.equal(response.status,status);assert.deepEqual(await response.json(),body);
+ }
+ assert.equal(f.calls.length,3);assert.equal(f.admissions,0);
+});
 test('explicit authorization recovery carries only bound reference and never creates another model run',async t=>{
  const f=await fixture(t),id='00000000-0000-0000-0000-000000000001';
  f.runtime.recoverDecision=async args=>{f.calls.push({name:'recoverDecision',args});return{state:'authorized_receipt',decisionId:id,accepted:true,private:'do not expose'};};

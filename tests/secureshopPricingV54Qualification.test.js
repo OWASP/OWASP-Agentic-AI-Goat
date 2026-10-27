@@ -167,14 +167,27 @@ test('V54 retains original response and owned observation before a failed disclo
     &&/real model final answer must disclose/.test(error.message));
 });
 
-async function v34ManualProducer(reportClaim=false){
+async function v34ManualProducer(reportClaim=false,manualVersion){
  // Existing controlled production ingestion fixture, not a genuine model run.
  const fs=require('node:fs'),path=require('node:path'),filename=path.join(__dirname,'secureshopBoundManualIngestion.test.js');
- const source=fs.readFileSync(filename,'utf8'),end=source.indexOf("test('actual graph, writer facade and extractor");assert.ok(end>0);
- const {fixture,upload}=new Function('require',source.slice(0,end)+';return {fixture,upload};')(require('node:module').createRequire(filename));
- const H=require('./fixtures/secureshopPricingActual'),manual=reportClaim?H.v34ReportClaimSource(7):H.v34ManualExperimentSource(),f=fixture();
- const body=await f.ingestion.upload(upload({bytes:Buffer.from(manual.markdown),filename:manual.filename,mime:'text/plain'}));
- return{manual,f,body};
+ const source=fs.readFileSync(filename,'utf8'),end=source.indexOf("test('scoped upload validates key before model");assert.ok(end>0);
+ const {fixture,upload,scope,persona,recoverySession,recoveryAuthority}=new Function('require',source.slice(0,end)+';return {fixture,upload,scope,persona,recoverySession,recoveryAuthority};')(require('node:module').createRequire(filename));
+ const H=require('./fixtures/secureshopPricingActual'),manual=reportClaim?H.v34ReportClaimSource(7):H.v34ManualCandidateSource(manualVersion),f=fixture({recovery:true,personaAuthority:recoveryAuthority});
+ const descriptor={productId:7,sha256:manual.sha256,sizeBytes:Buffer.byteLength(manual.markdown),filename:manual.filename,mime:'text/plain',isPublic:true};
+ const input={scope,persona,personaSession:recoverySession,descriptor},initial=await f.ingestion.readReceipt(input);
+ assert.equal(initial.state,'not_found');
+ const body=await f.ingestion.upload(upload({bytes:Buffer.from(manual.markdown),filename:manual.filename,mime:'text/plain',personaSession:recoverySession,recoveryScopeKey:initial.recoveryScopeKey}));
+ const effects=JSON.stringify({write:f.calls.write,append:f.calls.append,embed:f.calls.embed,traces:f.stores.traces});
+ const lookup=await f.ingestion.readReceipt({...input,recoveryScopeKey:initial.recoveryScopeKey});
+ assert.equal(JSON.stringify({write:f.calls.write,append:f.calls.append,embed:f.calls.embed,traces:f.stores.traces}),effects,'actual saved readback adds no model/write/embedding effects');
+ // Execute the actual hook's final projection rather than fabricating a flat UI DTO.
+ const hook=fs.readFileSync(path.join(__dirname,'../client/src/pages/secureshop/components/useProductManualUpload.js'),'utf8');
+ const projections=[...hook.matchAll(/result: (\{ state: 'indexed', operationId: saved\.operationId, receipt: saved\.receipt \})/g)];
+ assert.equal(projections.length,1);
+ const visible=new Function('saved',`return (${projections[0][1]});`)(lookup);
+ assert.match(fs.readFileSync(path.join(__dirname,'../client/src/pages/secureshop/components/UploadZone.jsx'),'utf8'),/JSON\.stringify\(boundManual \? manual\.result : accountAvatar \? avatar\.result : lastResult,\s*null,\s*2\)/);
+ const query=new URLSearchParams({productId:'7',sha256:manual.sha256,sizeBytes:String(descriptor.sizeBytes),filename:manual.filename,mime:'text/plain',public:'true',recoveryScopeKey:lookup.recoveryScopeKey});
+ return{manual,f,body,lookup,visible,lookupUrl:'http://owned.invalid/api/secureshop/uploads/product-manual/receipt?'+query};
 }
 test('V34 physical manual consumer accepts the actual ingestion DTO and rejects source or receipt substitutions',async()=>{
  const {manual,body}=await v34ManualProducer(),validate=require('./fixtures/secureshopPricingRenderedBrowser')._internals.assertV34ManualUploadResponse;
@@ -187,13 +200,47 @@ test('V34 physical manual consumer accepts the actual ingestion DTO and rejects 
  }
  assert.throws(()=>validate({status:503,body,source:manual,productId:7}));
 });
-for(const reportClaim of [false,true])test(`V34 ${reportClaim?'report-claim':'historical'} manual upload uses owned row, physical chooser and exact original records`,async()=>{
- const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{manual,f,body}=await v34ManualProducer(reportClaim);
+test('V34 rendered receipt joins actual ingestion readback, client contract, POST and hook projection',async()=>{
+ const {manual,body,lookup,visible,lookupUrl}=await v34ManualProducer();
+ const validate=require('./fixtures/secureshopPricingRenderedBrowser')._internals.assertV34ManualRenderedReceipt;
+ const headers={authorization:'Bearer controlled.persona.token','x-dvaia-secureshop-launch':'a'.repeat(43)};
+ const posted={url:()=> 'http://owned.invalid/api/secureshop/uploads',headers:()=>headers};
+ const input=()=>({visible:structuredClone(visible),lookup:structuredClone(lookup),status:200,
+  lookupRequest:{method:()=> 'GET',url:()=>lookupUrl,headers:()=>headers},posted,postBody:structuredClone(body),source:manual,productId:7});
+ const original=input();assert.strictEqual(await validate(original),original.visible);
+ for(const mutate of [
+  x=>{x.visible=x.postBody;},x=>{x.visible.extra=true;},x=>{x.visible.state='not_found';},
+  x=>{x.visible.operationId='00000000-0000-4000-8000-000000000001';},
+  ...Object.keys(lookup.receipt).map(key=>x=>{delete x.visible.receipt[key];}),
+  x=>{x.visible.receipt.extra=true;},x=>{x.visible.receipt.completedAt='2026-10-20T00:00:00.000Z';},
+  x=>{x.lookup.extra=true;},x=>{x.lookup.state='not_found';x.lookup.receipt=null;},
+  x=>{x.lookup.operationId='00000000-0000-4000-8000-000000000001';},
+  x=>{x.lookup.recoveryScopeKey='b'.repeat(64);},
+  x=>{x.lookup.receipt.productId=8;},x=>{x.lookup.receipt.sha256='b'.repeat(64);},
+  x=>{x.lookup.receipt.sizeBytes++;},x=>{x.lookup.receipt.filename='foreign.txt';},
+  x=>{x.lookup.receipt.mime='text/html';},x=>{x.lookup.receipt.isPublic=false;},
+  x=>{x.lookup.receipt.chunkCount++;},x=>{x.lookup.receipt.completedAt='bad';},
+  x=>{x.lookup.receipt.extra=true;},
+  // A different, internally valid indexed source still cannot replace the POST source.
+  x=>{x.lookup.receipt.chunkIds=x.lookup.receipt.chunkIds.map((_,i)=>`manual:999:${i}`);x.visible.receipt=structuredClone(x.lookup.receipt);},
+  x=>{x.status=503;},x=>{x.lookupRequest={...x.lookupRequest,method:()=> 'POST'};},
+  x=>{x.lookupRequest={...x.lookupRequest,headers:()=>({...headers,authorization:'Bearer foreign'})};},
+  x=>{x.lookupRequest={...x.lookupRequest,headers:()=>({...headers,'x-dvaia-secureshop-launch':'b'.repeat(43)})};},
+  ...[lookupUrl.replace('owned.invalid','foreign.invalid'),lookupUrl+'#fragment',lookupUrl+'&productId=7',lookupUrl+'&extra=1',
+   lookupUrl.replace('productId=7','productId=8'),lookupUrl.replace('public=true','public=false'),
+   lookupUrl.replace('/receipt?','/other?'),lookupUrl.replace('http://','http://secret@')]
+   .map(url=>x=>{x.lookupRequest={...x.lookupRequest,url:()=>url};})
+ ]){const changed=input();mutate(changed);await assert.rejects(validate(changed));}
+});
+for(const [reportClaim,manualVersion] of [[false,undefined],[true,undefined],[false,'measurement-legend-v1'],[false,'final-report-editor-v1']])test(`V34 ${reportClaim?'report-claim':manualVersion||'historical'} manual upload uses owned row, physical chooser and exact original records`,async()=>{
+ const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{manual,f,body,lookup,visible,lookupUrl}=await v34ManualProducer(reportClaim,manualVersion);
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'v34-manual-control-')),filePath=path.join(directory,manual.filename);
  const actions=[];let value='',posts=0,readEffects=false;
  const headers={authorization:'Bearer controlled.persona.token','x-dvaia-secureshop-launch':'a'.repeat(43)};
  const posted={method:()=> 'POST',url:()=> 'http://owned.invalid/api/secureshop/uploads',headers:()=>headers};
  const httpResponse={request:()=>posted,status:()=>200,json:async()=>structuredClone(body)};
+ const lookupRequest={method:()=> 'GET',url:()=>lookupUrl,headers:()=>headers};
+ const savedResponse={request:()=>lookupRequest,url:()=>lookupUrl,status:()=>200,json:async()=>structuredClone(lookup)};
  const edit={evaluate:async()=>actions.push('scroll-edit'),click:async()=>actions.push('edit')};
  const picker={evaluate:async()=>actions.push('scroll-picker'),click:async()=>actions.push('choose-file')};
  const button={evaluate:async()=>actions.push('scroll-upload'),click:async()=>{actions.push('upload');posts++;}};
@@ -206,7 +253,7 @@ for(const reportClaim of [false,true])test(`V34 ${reportClaim?'report-claim':'hi
    if(text.includes('tbody tr')){assert.equal(args[0],7);return{asElement:()=>row};}
    if(text.includes('Choose file or drop here'))return{asElement:()=>picker};
    if(text.includes('.ss-uploadzone button'))return{asElement:()=>button};
-   if(text.includes('.ss-uploadzone pre')){assert.equal(args[0],body.operationId);return{jsonValue:async()=>structuredClone(body)};}
+   if(text.includes('.ss-uploadzone pre')){assert.equal(args[0],body.operationId);return{jsonValue:async()=>structuredClone(visible)};}
    if(text.includes('[role="dialog"][aria-modal="true"]')&&text.includes('button[aria-label="Close"]'))
     return{asElement:()=>dialog};
    return true;
@@ -214,22 +261,48 @@ for(const reportClaim of [false,true])test(`V34 ${reportClaim?'report-claim':'hi
  const page={keyboard:{press:async key=>{assert.ok(['ArrowRight','Backspace'].includes(key));if(key==='Backspace')value=value.slice(0,-1);}},
   waitForFileChooser:async()=>{actions.push('arm-chooser');return{accept:async files=>{assert.deepEqual(files,[filePath]);actions.push('accept-file');value='browser-default-name.txt';}};},
   waitForRequest:async predicate=>{actions.push('arm-request');assert.equal(predicate(posted),true);return posted;},
-  waitForResponse:async predicate=>{actions.push('arm-response');const response={...httpResponse,url:posted.url};assert.equal(predicate(response),true);return httpResponse;}};
+  waitForResponse:async(predicate,options)=>{assert.equal(options.timeout,120000);const response={...httpResponse,url:posted.url};
+   if(predicate(response)){actions.push('arm-response');return httpResponse;}
+   actions.push('arm-saved-response');assert.equal(predicate(savedResponse),true);
+   const initialUrl=new URL(lookupUrl);initialUrl.searchParams.delete('recoveryScopeKey');
+   assert.equal(predicate({...savedResponse,url:()=>initialUrl.href}),false,'initial pre-upload lookup is not the saved receipt');
+   return savedResponse;}};
  const counters=()=>({actorCalls:posts*2,judgeCalls:readEffects?1:0,pricingAdmissions:0,manualIngests:posts});
  const original={traces:f.stores.traces,append:f.calls.append[0]};
  try{
-  const result=await require('./fixtures/secureshopPricingRenderedBrowser').prepareV34Manual({reportClaim,page,frame,root:directory,productId:7,readCounters:async()=>counters(),readManual:async({request,response,source})=>{
+  const result=await require('./fixtures/secureshopPricingRenderedBrowser').prepareV34Manual({reportClaim,manualVersion,page,frame,root:directory,productId:7,readCounters:async()=>counters(),readManual:async({request,response,source})=>{
    assert.deepEqual(request,{method:'POST',path:'/api/secureshop/uploads',headers});assert.deepEqual(response,{status:200,body});assert.deepEqual(source,manual);return original;
   }});
   assert.strictEqual(result.original,original);assert.deepEqual(result.response,{status:200,body});assert.equal(posts,1);assert.equal(value,manual.filename);assert.equal(fs.statSync(filePath).mode&0o777,0o600);assert.equal(fs.readFileSync(filePath,'utf8'),manual.markdown);
-  const actionCount=actions.length;await assert.rejects(require('./fixtures/secureshopPricingRenderedBrowser').prepareV34Manual({reportClaim,page,frame,root:directory,productId:7,readCounters:async()=>counters(),readManual:async()=>original}),{code:'EEXIST'});assert.equal(actions.length,actionCount);
+  const actionCount=actions.length;await assert.rejects(require('./fixtures/secureshopPricingRenderedBrowser').prepareV34Manual({reportClaim,manualVersion,page,frame,root:directory,productId:7,readCounters:async()=>counters(),readManual:async()=>original}),{code:'EEXIST'});assert.equal(actions.length,actionCount);
   assert.ok(actions.indexOf('arm-chooser')<actions.indexOf('choose-file'));assert.ok(actions.indexOf('accept-file')<actions.indexOf('type-filename'));
   assert.ok(actions.indexOf('arm-request')<actions.indexOf('upload'));assert.ok(actions.indexOf('arm-response')<actions.indexOf('upload'));
+  assert.ok(actions.indexOf('arm-saved-response')<actions.indexOf('upload'));
   assert.ok(actions.indexOf('upload')<actions.indexOf('close-dialog'));
-  await assert.rejects(require('./fixtures/secureshopPricingRenderedBrowser').uploadV34OwnedManual({reportClaim,page,frame,filePath,productId:7,source:manual,readCounters:async()=>counters(),readManual:async()=>true}),/original manual records required/);
-  await assert.rejects(require('./fixtures/secureshopPricingRenderedBrowser').uploadV34OwnedManual({reportClaim,page,frame,filePath,productId:7,source:manual,readCounters:async()=>counters(),readManual:async()=>{readEffects=true;return original;}}),/must not repeat/);
-  const before=actions.length;fs.writeFileSync(filePath,manual.markdown+'changed');await assert.rejects(require('./fixtures/secureshopPricingRenderedBrowser').uploadV34OwnedManual({reportClaim,page,frame,filePath,productId:7,source:manual,readCounters:async()=>counters(),readManual:async()=>original}));assert.equal(actions.length,before);
+  await assert.rejects(require('./fixtures/secureshopPricingRenderedBrowser').uploadV34OwnedManual({reportClaim,manualVersion,page,frame,filePath,productId:7,source:manual,readCounters:async()=>counters(),readManual:async()=>true}),/original manual records required/);
+  await assert.rejects(require('./fixtures/secureshopPricingRenderedBrowser').uploadV34OwnedManual({reportClaim,manualVersion,page,frame,filePath,productId:7,source:manual,readCounters:async()=>counters(),readManual:async()=>{readEffects=true;return original;}}),/must not repeat/);
+  const before=actions.length;fs.writeFileSync(filePath,manual.markdown+'changed');await assert.rejects(require('./fixtures/secureshopPricingRenderedBrowser').uploadV34OwnedManual({reportClaim,manualVersion,page,frame,filePath,productId:7,source:manual,readCounters:async()=>counters(),readManual:async()=>original}));assert.equal(actions.length,before);
  }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
+
+test('V34 candidate selection rejects unknown, mixed report and cross-version source before upload effects',async()=>{
+ const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
+ const H=require('./fixtures/secureshopPricingActual'),B=require('./fixtures/secureshopPricingRenderedBrowser');
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'v34-candidate-rejection-'));
+ let effects=0;const input={root,productId:7,readCounters:async()=>{effects++;},readManual:async()=>{effects++;}};
+ try{
+  for(const manualVersion of [null,false,0,'','other-v1',{},[]])
+   await assert.rejects(B.prepareV34Manual({...input,manualVersion}));
+  for(const manualVersion of ['measurement-legend-v1','final-report-editor-v1'])
+   await assert.rejects(B.prepareV34Manual({...input,reportClaim:true,manualVersion}));
+  const filePath=path.join(root,'not-created.txt');
+  await assert.rejects(B.uploadV34OwnedManual({...input,filePath,manualVersion:undefined,source:H.v34ManualCandidateSource('measurement-legend-v1')}));
+  for(const manualVersion of ['validation-bulletin-v1','measurement-legend-v1','final-report-editor-v1'])
+   for(const sourceVersion of ['validation-bulletin-v1','measurement-legend-v1','final-report-editor-v1'])
+    if(manualVersion!==sourceVersion)
+     await assert.rejects(B.uploadV34OwnedManual({...input,filePath,manualVersion,source:H.v34ManualCandidateSource(sourceVersion)}));
+  assert.equal(effects,0);assert.deepEqual(fs.readdirSync(root),[]);
+ }finally{fs.rmdirSync(root);}
 });
 
 test('V34 mode seam physically selects only the requested mode and returns the reopened assistant',async()=>{

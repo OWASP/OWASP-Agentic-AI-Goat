@@ -17,7 +17,7 @@ const TRIGGERS=Object.freeze([
 ]);
 const SPECS=Object.freeze(Object.entries(TABLES).flatMap(([table,{required}])=>['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER'].map(privilege=>Object.freeze({table,privilege,expected:required.includes(privilege)}))));
 const fail=()=>Object.assign(new Error('Bound tool policy schema or privileges unavailable'),{code:'BOUND_TOOL_POLICY_NOT_READY'});
-const REGISTRY_UPGRADE_DENIAL_LENGTHS=Object.freeze([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,69,70,71,73,74,75,76,77]);
+const REGISTRY_UPGRADE_DENIAL_LENGTHS=Object.freeze([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,69,70,71,73,74,75,76,77,78,79,80]);
 const REGISTRY_UPGRADE_DENIAL_CONSTRAINT=`CHECK (((jsonb_typeof(added_denials) = 'array'::text) AND (jsonb_array_length(added_denials) = ANY (ARRAY[${REGISTRY_UPGRADE_DENIAL_LENGTHS.join(',')}]))))`;
 const normalizedConstraint=value=>String(value||'').replace(/\s+/g,'');
 async function assertBoundToolPolicyReadiness(pool){
@@ -56,7 +56,7 @@ async function assertBoundToolPolicyReadiness(pool){
     JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=k.attnum
     WHERE c.conrelid='secureshop_agents.bound_tool_registry_upgrades'::regclass AND c.contype='p') AS primary_columns,
    EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='secureshop_agents.bound_tool_registry_upgrades'::regclass
-    AND conname='bound_tool_registry_successor_v36' AND contype='c' AND convalidated) AS successor_constraint,
+    AND conname='bound_tool_registry_successor_v39' AND contype='c' AND convalidated) AS successor_constraint,
    (SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid='secureshop_agents.bound_tool_registry_upgrades'::regclass
     AND conname='bound_tool_registry_upgrades_added_denials_check' AND contype='c' AND convalidated) AS added_denials_constraint,
    (SELECT encode(sha256(convert_to(prosrc,'UTF8')),'hex') FROM pg_proc
@@ -67,7 +67,7 @@ async function assertBoundToolPolicyReadiness(pool){
   if(successor.rows.length!==1||row.successor_constraint!==true
    ||JSON.stringify(row.primary_columns)!==JSON.stringify(['platform_launch_id','platform_scenario_id','platform_launch_generation','original_platform_owner_id','original_platform_session_id','successor_version'])
    ||normalizedConstraint(row.added_denials_constraint)!==normalizedConstraint(REGISTRY_UPGRADE_DENIAL_CONSTRAINT)
-   ||row.upgrade_guard_sha256!=='fdc3c3b3e51dfc3e2feb57c8ab53ffdce131c2c42032feba9db8a2fea5b0c9c2'
+   ||row.upgrade_guard_sha256!=='445e8716ed8920be8666c95e7aaa04f662c61a1726172f6d93ac9fbff20f43d6'
    ||row.head_guard_sha256!=='6830fb9d9680c1150204c3f3991345be6692008cae800e035b5e06e6b1549d95')throw fail();
   return Object.freeze({ready:true});
  }catch(error){if(error.code==='BOUND_TOOL_POLICY_NOT_READY')throw error;throw fail();}

@@ -1,6 +1,10 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { createHash } = require('node:crypto');
 const { isQualifiedSecureShopModelTrace } = require('../../server/services/secureshopRealModelTrace');
 const { IDOR_LESSON_TOOLS } = require('../../server/services/secureshopIdorLessonContract');
 const { projectIdorLessonObservation } = require('../../server/services/secureshopIdorLessonTools');
@@ -17,6 +21,95 @@ const FLAGS = Object.freeze(['passed', 'isolatedStores', 'canonicalObjectivesEna
   'immutableHistoryRetained', 'fixtureCleaned']);
 const LABELS = Object.freeze({ cart_remove: 'Reserved lesson cart item',
   order_status: 'Reserved lesson order' });
+const CART_OBJECTIVE = 'ss_idor_cart_delete';
+const ORDER_OBJECTIVE = 'ss_idor_order_status_disclosure';
+
+async function admitDisposableIdorCandidate({ migration, catalog, administratorContext,
+  curriculum, activeObjectiveIds }) {
+  assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
+  assert.deepEqual(activeObjectiveIds, activeObjectiveIds.length === 1
+    ? [CART_OBJECTIVE] : [CART_OBJECTIVE, ORDER_OBJECTIVE]);
+  assert.equal(curriculum.isAssessmentReleaseAllowed(ORDER_OBJECTIVE), false);
+  const originals = new Map();
+  for (const objectiveId of activeObjectiveIds) {
+    const checked = curriculum.OBJECTIVES.find(row => row.id === objectiveId);
+    assert.ok(checked);
+    assert.equal(checked.defaultEnabled, false);
+    assert.equal(checked.qualification, objectiveId === CART_OBJECTIVE ? 'native-model' : 'pending');
+    const objective = (await catalog.list(administratorContext)).objectives
+      .find(row => row.objectiveId === objectiveId);
+    assert.equal(objective?.qualification,
+      objectiveId === CART_OBJECTIVE ? 'native-model' : 'pending');
+    assert.equal(objective.enabled, false);
+    originals.set(objectiveId, objective);
+  }
+  if (activeObjectiveIds.includes(ORDER_OBJECTIVE)) {
+    const objective = originals.get(ORDER_OBJECTIVE);
+    await assert.rejects(catalog.set(administratorContext,
+      { objectiveId: ORDER_OBJECTIVE, enabled: true, expectedRevision: objective.revision }),
+    { code: 'SHOP_OBJECTIVE_UNQUALIFIED' });
+    const checked = curriculum.OBJECTIVES.find(row => row.id === ORDER_OBJECTIVE);
+    const source = JSON.stringify({ version: 1, id: checked.id, label: checked.text,
+      defaultEnabled: checked.defaultEnabled, qualification: checked.qualification });
+    const sourceSha256 = createHash('sha256').update(source).digest('hex');
+    const admitted = await migration.query(`UPDATE secureshop_auth.assessment_objectives
+        SET qualification='native-model' WHERE objective_id=$1 AND qualification='pending'
+          AND is_enabled=false AND catalog_active=true
+          AND configuration_source='checked_in_default' AND source_sha256=$2
+          AND source_document=$3::jsonb
+        RETURNING objective_id,qualification,is_enabled`, [ORDER_OBJECTIVE, sourceSha256, source]);
+    assert.equal(admitted.rowCount, 1);
+    assert.deepEqual(admitted.rows, [{ objective_id: ORDER_OBJECTIVE,
+      qualification: 'native-model', is_enabled: false }]);
+    const promoted = (await catalog.list(administratorContext)).objectives
+      .find(row => row.objectiveId === ORDER_OBJECTIVE);
+    assert.equal(promoted?.qualification, 'native-model');
+    assert.equal(promoted.enabled, false);
+    originals.set(ORDER_OBJECTIVE, promoted);
+  }
+  for (const objectiveId of activeObjectiveIds) {
+    const objective = originals.get(objectiveId);
+    assert.equal((await catalog.set(administratorContext,
+      { objectiveId, enabled: true, expectedRevision: objective.revision })).enabled, true);
+  }
+  return Object.freeze({ fixtureLocalCandidateAdmission: activeObjectiveIds.includes(ORDER_OBJECTIVE),
+    publicOrderQualification: 'pending', publicOrderDefaultEnabled: false });
+}
+
+function assertPrivateIdorEvidencePath(evidencePath, { root, dockerHost, cartOnly = false }) {
+  assert.ok(path.isAbsolute(evidencePath));
+  assert.equal(path.resolve(evidencePath), evidencePath);
+  const profileRoot = path.join(root, '.qualification');
+  const currentHostPrefix = `unix://${profileRoot}${path.sep}`;
+  if (!dockerHost?.startsWith(currentHostPrefix)) {
+    assert.ok(!evidencePath.startsWith(`${root}${path.sep}`));
+    return evidencePath; // Historical external-evidence admission is unchanged.
+  }
+  const profile = dockerHost.slice(currentHostPrefix.length);
+  assert.match(profile, /^(?:dvaia|goat)-[a-z0-9]+(?:-[a-z0-9]+)*\/docker\.sock$/);
+  const run = path.dirname(evidencePath);
+  assert.match(path.basename(run), /^run-[A-Za-z0-9_-]+$/);
+  assert.equal(evidencePath, path.join(root, 'tasks', 'qualification', path.basename(run),
+    cartOnly ? 'customer-idor-cart-v10-browser.json' : 'customer-idor-lesson-browser.json'));
+  const ownedDirectory = (directory, mode) => {
+    const stat = fs.lstatSync(directory);
+    assert.ok(stat.isDirectory() && !stat.isSymbolicLink());
+    assert.equal(stat.uid, os.userInfo().uid);
+    if (mode !== undefined) assert.equal(stat.mode & 0o777, mode);
+  };
+  ownedDirectory(root);
+  ownedDirectory(path.join(root, 'tasks'));
+  ownedDirectory(path.join(root, 'tasks', 'qualification'), 0o700);
+  ownedDirectory(run, 0o700);
+  ownedDirectory(profileRoot);
+  ownedDirectory(path.dirname(dockerHost.slice('unix://'.length)));
+  const socket = fs.lstatSync(dockerHost.slice('unix://'.length));
+  assert.ok(socket.isSocket() && !socket.isSymbolicLink());
+  assert.equal(socket.uid, os.userInfo().uid);
+  assert.throws(() => fs.lstatSync(evidencePath), error => error.code === 'ENOENT',
+    'new private IDOR receipt path required');
+  return evidencePath;
+}
 
 function exact(value, keys) {
   return value && Object.getPrototypeOf(value) === Object.prototype
@@ -195,6 +288,7 @@ function assertIdorBrowserReceipt(value) {
 }
 
 module.exports = { IDOR_BROWSER_SCOPE: SCOPE, IDOR_BROWSER_FLAGS: FLAGS,
+  assertPrivateIdorEvidencePath, admitDisposableIdorCandidate,
   assertCardsMatchBirth, assertSavedLesson, assertOriginalLessonTurn,
   assertOriginalActorWire,
   assertIdorBrowserReceipt };

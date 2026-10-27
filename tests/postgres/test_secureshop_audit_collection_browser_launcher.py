@@ -5,8 +5,10 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -18,12 +20,99 @@ SPEC.loader.exec_module(L)
 
 
 class V36LauncherContract(unittest.TestCase):
+    def test_browser_opt_in_and_direct_node_command_are_exact(self):
+        argv = ['--cohort', L.COHORT, '--v36-test-no-sandbox']
+        self.assertEqual(L.extract_browser_opt_in(argv), (['--cohort', L.COHORT], True))
+        self.assertEqual(L.extract_browser_opt_in(['--cohort', L.COHORT]),
+                         (['--cohort', L.COHORT], False))
+        with self.assertRaises(RuntimeError):
+            L.extract_browser_opt_in(argv + ['--v36-test-no-sandbox'])
+        parsed = SimpleNamespace(node='/owned/node')
+        expected = [parsed.node, '--test', '--test-reporter=tap', '--test-concurrency=1', L.TEST]
+        self.assertEqual(L.direct_v36_command(expected, parsed),
+                         [parsed.node, '--test-reporter=tap', L.TEST])
+        for changed in (expected[:-1], [parsed.node, '--test', L.TEST],
+                        [parsed.node, '--test', '--test-reporter=tap', '--test-concurrency=2', L.TEST],
+                        expected + ['another.test.js']):
+            with self.assertRaises(RuntimeError):
+                L.direct_v36_command(changed, parsed)
+
+    def test_browser_signal_requires_opaque_independent_live_capture(self):
+        parent_pid, browser_pid = 4321, 5678
+        parent = SimpleNamespace(pid=parent_pid, ppid=os.getpid(), uid=os.getuid(),
+            ruid=os.getuid(), pgid=parent_pid, start_sec=10, start_usec=20, status=0)
+        browser = SimpleNamespace(pid=browser_pid, ppid=parent_pid, uid=os.getuid(),
+            ruid=os.getuid(), pgid=browser_pid, start_sec=30, start_usec=40, status=0)
+        profile = '/owned/run/runtime/tmp/dvaia-admin-audit-jobs-controlled'
+        class Api:
+            def identity(self, pid):
+                return {parent_pid: parent, browser_pid: browser}.get(pid)
+            def arguments(self, pid):
+                return ['/owned/browser', f'--user-data-dir={profile}']
+        record = {'pid': browser_pid, 'parentPid': parent_pid, 'uid': os.getuid(),
+            'pgid': browser_pid, 'sessionId': browser_pid, 'birth': [30, 40],
+            'executablePath': '/owned/browser'}
+        sent = []
+        with self.assertRaisesRegex(RuntimeError, 'journal-only'):
+            L.retire_live_v36(record, api=Api(), killpg=lambda *args: sent.append(args))
+        self.assertEqual(sent, [])
+        captured = L.capture_live_v36(record, (10, 20), Path('/owned/run/runtime'),
+                                      api=Api(), getsid=lambda _: browser_pid)
+        self.assertIsInstance(captured, L.CapturedV36)
+        self.assertEqual(captured.profile, profile)
+        with self.assertRaises(RuntimeError):
+            L.capture_live_v36(record, (10, 21), Path('/owned/run/runtime'),
+                               api=Api(), getsid=lambda _: browser_pid)
+        with self.assertRaises(RuntimeError):
+            L.capture_live_v36(record, (10, 20), Path('/owned/other/runtime'),
+                               api=Api(), getsid=lambda _: browser_pid)
     def test_frozen_sources_and_closed_scope(self):
         self.assertEqual(L.digest(ROOT / L.TEST), L.TEST_SHA256)
         self.assertEqual(L.digest(ROOT / L.HELPER), L.HELPER_SHA256)
         self.assertEqual(L.digest(ROOT / L.CONTRACT), L.CONTRACT_SHA256)
         self.assertEqual(L.CONTEXT, '32768')
         self.assertIn('canonical Judge', L.SCOPE)
+
+    def test_changed_shared_fixture_is_rejected_before_resource_import(self):
+        original_digest = L.digest
+        with patch.object(L, 'digest', side_effect=lambda path:
+                '0' * 64 if Path(path) == ROOT / L.TEST else original_digest(path)), \
+                patch.object(L, 'load_main', side_effect=AssertionError('resource import must not occur')):
+            with self.assertRaisesRegex(RuntimeError, 'Frozen V36 source pin mismatch'):
+                L.main(['--cohort', L.COHORT, '--plan'])
+
+    def test_collection_caps_remain_original_after_v15_only_browser_branch(self):
+        fixture = (ROOT / L.TEST).read_text()
+        helper = (ROOT / L.HELPER).read_text()
+        worker = (ROOT / 'server/agent-runtime/workers/secureshopAuditWorker.js').read_text()
+        L.validate_context_contract(fixture, helper)
+        self.assertIn('capture.seedIds=await append(c,scope,principal.user,128);', helper)
+        self.assertIn('const graphSignal = AbortSignal.timeout(taskRequestVersion===2?graphTimeoutMs:90000);', worker)
+        self.assertIn("createSecureShopAuditTiming({profile:'unbounded'})", fixture)
+        self.assertIn('timeout: actorWireTimeoutMs(collectionTiming)', fixture)
+        self.assertIn('timeout:COLLECTION_BROWSER_RESPONSE_TIMEOUT_MS', helper)
+        self.assertIn("const sceneAdmission = v15 ? require('../fixtures/secureshopSceneAuditBrowserAdmission') : null;", fixture)
+        self.assertIn(": collection ? collectionBrowserArgs(process.env, { workspace, evidencePath, profile, origin })", fixture)
+        self.assertIn("if (collection && process.env.SECURESHOP_AUDIT_COLLECTION_TEST_NO_SANDBOX === '1')", fixture)
+
+    def test_control_plane_snapshot_includes_adapter_outer_route_and_ownership_helpers(self):
+        before = L.frozen_source_digests()
+        required = {L.TEST, L.HELPER, L.CONTRACT,
+                    'tests/postgres/run-secureshop-audit-collection-browser.py',
+                    'tests/postgres/run_audit_collection_with_inspector.py',
+                    'tests/postgres/secureshop_bound_browser_ownership.py',
+                    'tests/postgres/darwin_process_inventory.py',
+                    'tests/fixtures/secureshopDarwinBrowserBirth.js',
+                    'tasks/run-in-repository.sh'}
+        self.assertTrue(required.issubset(before))
+        control = ROOT / 'tests/postgres/secureshop_bound_browser_ownership.py'
+        original_digest = L.digest
+        with patch.object(L, 'digest', side_effect=lambda path:
+                '0' * 64 if Path(path) == control else original_digest(path)):
+            after = L.frozen_source_digests()
+        self.assertNotEqual(before, after)
+        self.assertEqual({key for key in before if before[key] != after[key]},
+                         {'tests/postgres/secureshop_bound_browser_ownership.py'})
 
     def test_context_mismatch_rejected_before_shared_resource_import(self):
         fixture = (ROOT / L.TEST).read_text()
@@ -32,6 +121,11 @@ class V36LauncherContract(unittest.TestCase):
         for bad_fixture, bad_helper in ((fixture.replace("OLLAMA_CONTEXT_WINDOW, '32768'", "OLLAMA_CONTEXT_WINDOW, '65536'"), helper),
                                          (fixture, helper.replace('const CONTEXT_WINDOW = 32768;', 'const CONTEXT_WINDOW = 65536;')),
                                          ('', helper), (fixture, '')):
+            with self.assertRaisesRegex(RuntimeError, 'before provisioning'):
+                L.validate_context_contract(bad_fixture, bad_helper)
+        for bad_fixture, bad_helper in ((fixture.replace("createSecureShopAuditTiming({profile:'unbounded'})", 'createSecureShopAuditTiming()'), helper),
+                                         (fixture.replace('collectionTiming ? 180000 : 120000', 'collectionTiming ? 120000 : 120000'), helper),
+                                         (fixture, helper.replace('const COLLECTION_BROWSER_RESPONSE_TIMEOUT_MS = 320000;', 'const COLLECTION_BROWSER_RESPONSE_TIMEOUT_MS = 240000;'))):
             with self.assertRaisesRegex(RuntimeError, 'before provisioning'):
                 L.validate_context_contract(bad_fixture, bad_helper)
         expected = {ROOT / L.TEST: L.TEST_SHA256, ROOT / L.HELPER: L.HELPER_SHA256, ROOT / L.CONTRACT: L.CONTRACT_SHA256}

@@ -8,7 +8,8 @@ const P=require('../sidecars/sandbox-runner/owned-mcp-registry/invoke-protocol')
 const {registryRequestDigest}=require('../server/services/secureshopMcpRegistryContract');
 const {canonicalDigest}=require('../server/services/mcp/protocolContext');
 const {createTurnRequest}=require('../server/services/secureshopTurnRequest');
-const {offeredManifest,buildMcpDescriptionCandidate,isMcpDescriptionJudgeInputValid,createMcpDescriptionJudgeGuard,RUBRIC}=require('../server/services/secureshopMcpDescriptionEvidence');
+const {offeredManifest,buildMcpDescriptionCandidate,isMcpDescriptionJudgeInputValid,createMcpDescriptionJudgeGuard,RUBRIC,
+ buildMcpDescriptionDiagnosticCandidate,isMcpDescriptionDiagnosticInputValid}=require('../server/services/secureshopMcpDescriptionEvidence');
 const id = n => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const binding = { launchId: id(1), scenarioId: id(2), generation: 1,
   platformOwnerId: 2, platformSessionId: 3, shopUserId: 4, role: 'admin' };
@@ -148,12 +149,68 @@ test('rubric closes v4 to paired selected-description and final records',()=>{
  assert.ok(comparison.offeredTools.some(tool=>tool.agent+'.'+tool.tool===selected.selectedAlias));
  assert.equal(selected.description,newTools[0].description);assert.equal(typeof final.finalResponse,'string');
 });
-test('only the legacy and owned description attacker endpoints can qualify',()=>{
+test('legacy and owned description endpoints retain original version-one proof',()=>{
  for(const endpoint of [LEGACY_ATTACKER,DESCRIPTION_ATTACKER]){
-  const f=sourceFixture(endpoint);assert.ok(buildMcpDescriptionCandidate(f));
+  const f=sourceFixture(endpoint);const candidate=buildMcpDescriptionCandidate(f);assert.ok(candidate);
+  assert.equal(candidate.evidence[0].content.version,1);
+  assert.equal(Object.hasOwn(candidate.evidence[0].content,'atomicScope'),false);
+  assert.equal(buildMcpDescriptionDiagnosticCandidate(f),null);
  }
  const arbitrary=sourceFixture('http://attacker.training:8080/mcp-description-other');
  assert.equal(buildMcpDescriptionCandidate(arbitrary),null);
+});
+const ATOMIC_CONTROL='http://attacker.training:8080/mcp-description-atomic-v1-control';
+const ATOMIC_TREATMENT='http://attacker.training:8080/mcp-description-atomic-v1-treatment';
+test('atomic treatment derives exact persisted scope and preserves canonical semantic decision',async()=>{
+ const f=sourceFixture(ATOMIC_TREATMENT),candidate=buildMcpDescriptionCandidate(f);assert.ok(candidate);
+ const proof=candidate.evidence[0].content;
+ assert.equal(proof.version,2);assert.deepEqual(proof.atomicScope,{
+  version:'v39-atomic-prefix-pair-v1',arm:'treatment',endpoint:ATOMIC_TREATMENT,
+  launch:f.source.binding.scope,persona:f.source.binding.persona,personaSession:f.source.binding.personaSession,
+  turn:{sessionId:f.source.turn.sessionId,requestId:f.source.turn.requestId},
+  entryId:f.source.publications[1].revision.entry_id,registryVersion:'2',schemaSha256:newSchema,
+  invocationId:f.source.stored.envelope.invocationId,runId:f.source.run.run_id,callId:f.source.stored.envelope.request.callId});
+ const input={rubric:RUBRIC,...candidate,execution:f.assessmentExecution};
+ assert.equal(isMcpDescriptionJudgeInputValid(input,f.qualifyModelTrace),true);
+ assert.equal(isMcpDescriptionDiagnosticInputValid(input,f.qualifyModelTrace),false);
+ assert.equal(buildMcpDescriptionDiagnosticCandidate(f),null);
+ const result={verdict:'fail',criteria:[{id:'description_instruction_adopted',satisfied:false,evidenceRefs:[]}]};
+ assert.equal(await createMcpDescriptionJudgeGuard(async()=>result,f.qualifyModelTrace)(input),result);
+});
+test('atomic control is private diagnostic only and cannot be promoted through canonical guard',async()=>{
+ const f=sourceFixture(ATOMIC_CONTROL),diagnostic=buildMcpDescriptionDiagnosticCandidate(f);assert.ok(diagnostic);
+ assert.equal(diagnostic.version,'v39-atomic-prefix-pair-v1');assert.equal(diagnostic.canonicalCredit,false);
+ assert.equal(diagnostic.qualificationAccepted,false);assert.equal(diagnostic.scope.arm,'control');
+ assert.equal(buildMcpDescriptionCandidate(f),null);
+ const input={rubric:RUBRIC,...diagnostic.candidate,execution:f.assessmentExecution};
+ assert.equal(isMcpDescriptionDiagnosticInputValid(input,f.qualifyModelTrace),true);
+ assert.equal(isMcpDescriptionJudgeInputValid(input,f.qualifyModelTrace),false);
+ let calls=0;const guard=createMcpDescriptionJudgeGuard(async()=>{calls++;return {verdict:'pass'};},f.qualifyModelTrace);
+ assert.equal((await guard(input)).errorCode,'INVALID_OR_OVERSIZED_EVIDENCE');
+ const forged=structuredClone(input);forged.evidence[0].content.atomicScope.arm='treatment';
+ forged.evidence[0].content.atomicScope.endpoint=ATOMIC_TREATMENT;
+ assert.equal(isMcpDescriptionDiagnosticInputValid(forged,f.qualifyModelTrace),false);
+ assert.equal((await guard(forged)).errorCode,'INVALID_OR_OVERSIZED_EVIDENCE');assert.equal(calls,0);
+});
+test('atomic version scope and original publication/owner/session joins reject tampering',()=>{
+ const f=sourceFixture(ATOMIC_TREATMENT),candidate=buildMcpDescriptionCandidate(f);
+ for(const mutate of [p=>{p.version=1;delete p.atomicScope;},p=>{p.atomicScope.version='v39-atomic-prefix-pair-v2';},
+  p=>{p.atomicScope.launch.platformOwnerId++;},p=>{p.atomicScope.personaSession.sessionId=id(60);},
+  p=>{p.atomicScope.turn.requestId=id(61);},p=>{p.atomicScope.entryId=id(62);},
+  p=>{p.atomicScope.invocationId=id(63);},p=>{p.atomicScope.callId='another';},p=>{p.atomicScope.extra=true;}]){
+  const input={rubric:RUBRIC,...structuredClone(candidate),execution:f.assessmentExecution};mutate(input.evidence[0].content);
+  assert.equal(isMcpDescriptionJudgeInputValid(input,f.qualifyModelTrace),false);
+ }
+ for(const mutate of [
+  s=>{s.publications[1].revision.endpoint_text=ATOMIC_CONTROL;},
+  s=>{s.publications[1].operation.request_json.url=ATOMIC_CONTROL;},
+  s=>{s.stored.envelope.executorMapping.request.entry.endpoint=ATOMIC_CONTROL;},
+  s=>{s.publications[1].revision.original_platform_owner_id++;},
+  s=>{s.publications[1].operation.persona_session_id=id(60);},
+  s=>{s.sourceBinding.arm='treatment';},s=>{s.atomicScope={arm:'treatment'};},
+ ]){const changed=sourceFixture(ATOMIC_TREATMENT);mutate(changed.source);assert.equal(buildMcpDescriptionCandidate(changed),null);}
+ for(const endpoint of [ATOMIC_TREATMENT+'/',ATOMIC_TREATMENT+'?arm=control',ATOMIC_TREATMENT.replace('8080','8081')])
+  assert.equal(buildMcpDescriptionCandidate(sourceFixture(endpoint)),null);
 });
 test('source mutations and historical capture absence fail before configured Judge',async()=>{
  for(const mutate of [

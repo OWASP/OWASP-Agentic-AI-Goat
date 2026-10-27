@@ -9,6 +9,34 @@ const {localProfilePlan}=require('./mcp-owned-local');
 const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
 const fail=code=>Object.assign(Error('Owned Pricing provisioning requires recovery'),{code});
 const BASE='node:26.10.0-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1';
+const BASE_REPOSITORY_DIGEST=BASE.replace('node:26.10.0-slim@','node@');
+function temporaryRoot(root,repositoryOnlyStorage){
+ if(!repositoryOnlyStorage)return os.tmpdir();
+ const canonical=fs.realpathSync(root),rootStat=fs.lstatSync(root);
+ if(!rootStat.isDirectory()||rootStat.isSymbolicLink())throw fail('PRICING_REPOSITORY_STORAGE_UNQUALIFIED');
+ const tasks=path.join(canonical,'tasks'),parent=fs.lstatSync(tasks);
+ if(!parent.isDirectory()||parent.isSymbolicLink()||parent.uid!==process.getuid()||(parent.mode&0o022)!==0)throw fail('PRICING_REPOSITORY_STORAGE_UNQUALIFIED');
+ const current=path.join(tasks,'tmp');
+ try{fs.mkdirSync(current,{mode:0o700});}catch(error){if(error.code!=='EEXIST')throw fail('PRICING_REPOSITORY_STORAGE_UNQUALIFIED');}
+ const st=fs.lstatSync(current);
+ if(!st.isDirectory()||st.isSymbolicLink()||st.uid!==process.getuid()||(st.mode&0o022)!==0||fs.realpathSync(current)!==current)
+  throw fail('PRICING_REPOSITORY_STORAGE_UNQUALIFIED');
+ return current;
+}
+async function ensureBase({inspect,docker,authority,root,repositoryOnlyStorage,admitRepositoryStorage}){
+ let base=await inspect('image',BASE);
+ if(!base){
+  if(repositoryOnlyStorage){
+   if(typeof admitRepositoryStorage!=='function'||await admitRepositoryStorage({root,dockerHost:authority.host,reference:BASE,architecture:'arm64'})!==true)
+    throw fail('PRICING_REPOSITORY_STORAGE_UNQUALIFIED');
+  }
+  await docker(['image','pull','--platform','linux/arm64',BASE],300000);
+  base=await inspect('image',BASE);
+ }
+ if(!base||base.Architecture!=='arm64'||base.Os!=='linux'||!base.RepoDigests?.includes(BASE_REPOSITORY_DIGEST))
+  throw fail('PRICING_BASE_UNQUALIFIED');
+ return base;
+}
 async function provisionProfile({p,authority,root,home,platform,run}){
  let location;if(platform==='linux')location=localProfilePlan({root,home,platform});else{
   const marker='/.colima/',offset=authority.host.indexOf(marker);if(!authority.host.startsWith('unix:///')||offset<8)throw fail('PRICING_PROFILE_AUTHORITY_CONFLICT');
@@ -35,13 +63,13 @@ async function provision(options={}){
  const docker=async(args,timeoutMs=30000,missing=false)=>{const r=await run('docker',['--host',authority.host,...args],{timeoutMs,maxOutputBytes:1048576});if(r.exitCode!==0){if(missing&&/No such|not found/.test(r.stderr||''))return null;throw fail('PRICING_INSTALL_COMMAND_FAILED');}return r.stdout;};
  const inspect=async(kind,id)=>{const raw=await docker([kind,'inspect',id],10000,true);if(raw===null)return null;const rows=JSON.parse(raw);if(!Array.isArray(rows)||rows.length!==1)throw fail('PRICING_INSPECT_INVALID');return rows[0];};
  const daemon=JSON.parse(await docker(['info','--format','{{json .Architecture}}']));if(!['aarch64','arm64'].includes(daemon))throw fail('PRICING_DAEMON_ARCHITECTURE_UNQUALIFIED');
- const temp=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-pricing-provision-'));fs.chmodSync(temp,0o700);const tempId=fs.lstatSync(temp);
+ const temp=fs.mkdtempSync(path.join(temporaryRoot(root,options.repositoryOnlyStorage===true),'dvaia-pricing-provision-'));fs.chmodSync(temp,0o700);const tempId=fs.lstatSync(temp);
  try{
   const saved=stage.read({root,home}),existing=managed.load({root,home}),tag='dvaia-owned-pricing-'+p.workspaceId+':local';
   let image=await inspect('image',saved?.value.imageId||existing?.config.imageId||tag);
   if(!image&&(saved||existing))throw fail('PRICING_STAGED_IMAGE_MISSING');
   if(!image){
-   const base=await inspect('image',BASE);if(!base||base.Architecture!=='arm64'||!base.RepoDigests?.includes(BASE.replace('node:26.10.0-slim@','node@')))throw fail('PRICING_BASE_UNQUALIFIED');
+   await ensureBase({inspect,docker,authority,root,repositoryOnlyStorage:options.repositoryOnlyStorage===true,admitRepositoryStorage:options.admitRepositoryStorage});
    const capture=planner.qualifiedSource(root);if(capture.sha256!==p.source.sha256)throw fail('PRICING_SOURCE_CHANGED');
    for(const [relative,digest]of Object.entries(capture.files)){const bytes=fs.readFileSync(path.join(root,relative));if(sha(bytes)!==digest)throw fail('PRICING_SOURCE_CHANGED');const dest=path.join(temp,relative);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes,{mode:0o444,flag:'wx'});}
    if(planner.qualifiedSource(root).sha256!==capture.sha256)throw fail('PRICING_SOURCE_CHANGED');
@@ -140,4 +168,4 @@ async function startExisting(options={}){
   samePrivateState();
   return Object.freeze({ready:true,enabled:true,containerId:record.config.containerId});
 }
-module.exports={prepare:planner.plan,provision,startExisting,_internals:{provisionProfile,verifyExistingProfile}};
+module.exports={prepare:planner.plan,provision,startExisting,_internals:{provisionProfile,verifyExistingProfile,ensureBase,temporaryRoot}};

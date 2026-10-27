@@ -61,8 +61,10 @@ test('standalone shop assessment adapter isolates principals and rejects control
   { skip: !ENABLED, timeout: 220000 }, async t => {
     assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), process.cwd());
     const evidencePath = process.env.SECURESHOP_STANDALONE_ASSESSMENT_EVIDENCE_PATH || '';
-    assert.ok(path.isAbsolute(evidencePath));
-    assert.ok(!path.resolve(evidencePath).startsWith(`${process.cwd()}${path.sep}`));
+    require('../fixtures/secureshopNativeEvidencePath').assertNativeEvidencePath(evidencePath, {
+      root: process.cwd(), dockerHost: process.env.DOCKER_HOST,
+      basename: 'standalone-assessment.json',
+    });
     const im = new Pool({ connectionString: disposableUrl('IDENTITY_MIGRATION_URL'), max: 2 });
     const identity = new Pool({ connectionString: disposableUrl('IDENTITY_RUNTIME_URL'), max: 8 });
     const leases = new Pool({ connectionString: disposableUrl('IDENTITY_RUNTIME_URL'), max: 3 });

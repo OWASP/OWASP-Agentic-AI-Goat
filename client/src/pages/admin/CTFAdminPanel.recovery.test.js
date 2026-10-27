@@ -18,7 +18,11 @@ test('config202 retains current display and suppresses success toast until curre
  let finish; axios.post.mockResolvedValue({ status: 202, data: { operationId: '11111111-1111-4111-8111-111111111111' } });
  axios.get.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
  act(() => toggle.click()); await flush();
+ expect(axios.post).not.toHaveBeenCalled();
+ act(() => [...node.querySelector('[role="dialog"]').querySelectorAll('button')]
+  .find(x => x.textContent.includes('Confirm Config Save')).click()); await flush();
  expect(toast.success).not.toHaveBeenCalled(); expect(toggle.getAttribute('aria-checked')).toBe('true');
+ axios.get.mockImplementationOnce(() => Promise.resolve({ status: 200, data: { config: { ctf_enabled: 'false' } } }));
  await act(async () => finish({ status: 200, data: { success: true } })); await flush();
  expect(toast.success).toHaveBeenCalledTimes(1); expect(axios.post).toHaveBeenCalledTimes(1);
  act(() => root.unmount()); node.remove(); localStorage.clear();
@@ -42,6 +46,13 @@ test('stage editor displays persisted full feedback and can restore and save it 
   act(() => { select.value = 'full'; select.dispatchEvent(new Event('change', { bubbles: true })); });
   expect(select.value).toBe('full');
   act(() => [...node.querySelectorAll('button')].find(x => x.textContent.trim() === 'Save').click()); await flush();
+  expect(axios.put).not.toHaveBeenCalled();
+  act(() => [...node.querySelector('[role="dialog"]').querySelectorAll('button')]
+    .find(x => x.textContent.trim() === 'Cancel').click()); await flush();
+  expect(axios.put).not.toHaveBeenCalled();
+  act(() => [...node.querySelectorAll('button')].find(x => x.textContent.trim() === 'Save').click()); await flush();
+  act(() => [...node.querySelector('[role="dialog"]').querySelectorAll('button')]
+    .find(x => x.textContent.trim() === 'Confirm Advanced Save').click()); await flush();
   expect(axios.put).toHaveBeenCalledTimes(1);
   expect(axios.put.mock.calls[0][0]).toBe('/api/ctf/admin/stages/1');
   expect(axios.put.mock.calls[0][1]).toEqual(expect.objectContaining({ feedback_mode: 'full', stage_name: 'Open guardian', hints: '[]', defense_style: '[]' }));

@@ -9,14 +9,14 @@ const latest = require('../server/services/secureshopBoundAclRegistry');
 const laterKeys = new Set([latest.TICKET_PREPARE_KEY, latest.DIAGNOSTIC_PREPARE_KEY,
   latest.MAIL_SUMMARY_KEY, latest.COUPON_PROBE_KEY, latest.PRODUCT_SEARCH_UNION_KEY,
   latest.ARITHMETIC_SUM_KEY, latest.AVATAR_UPLOAD_KEY, ...latest.LISTING_OPTIMIZE_KEYS,
-  latest.FILE_SUMMARY_KEY, latest.USER_LOOKUP_KEY, latest.UPLOAD_PREVIEW_KEY, latest.AGENCY_ROLE_KEY]);
+  latest.FILE_SUMMARY_KEY, latest.USER_LOOKUP_KEY, latest.UPLOAD_PREVIEW_KEY, latest.AGENCY_ROLE_KEY, latest.MCP_REGISTRATION_KEY]);
 const laterPredecessors = new Set([latest.TICKET_PREDECESSOR_REGISTRY_SHA256,
   latest.DIAGNOSTIC_PREDECESSOR_REGISTRY_SHA256, latest.MAIL_SUMMARY_PREDECESSOR_REGISTRY_SHA256,
   latest.COUPON_PROBE_PREDECESSOR_REGISTRY_SHA256, latest.PRODUCT_SEARCH_UNION_PREDECESSOR_REGISTRY_SHA256,
   latest.ARITHMETIC_SUM_PREDECESSOR_REGISTRY_SHA256, latest.AVATAR_UPLOAD_PREDECESSOR_REGISTRY_SHA256,
   latest.LISTING_OPTIMIZE_PREDECESSOR_REGISTRY_SHA256, latest.FILE_SUMMARY_PREDECESSOR_REGISTRY_SHA256,
   latest.USER_LOOKUP_PREDECESSOR_REGISTRY_SHA256, latest.UPLOAD_PREVIEW_PREDECESSOR_REGISTRY_SHA256,
-  latest.AGENCY_ROLE_PREDECESSOR_REGISTRY_SHA256]);
+  latest.AGENCY_ROLE_PREDECESSOR_REGISTRY_SHA256, latest.MCP_REGISTRATION_PREDECESSOR_REGISTRY_SHA256]);
 const R = {...latest, REGISTRY_VERSION:24, REGISTRY_SHA256:latest.TICKET_PREDECESSOR_REGISTRY_SHA256,
   REGISTRY:latest.REGISTRY.filter(row=>!laterKeys.has(row.toolKey)),
   REGISTRY_UPGRADES:Object.fromEntries(Object.entries(latest.REGISTRY_UPGRADES)
@@ -121,7 +121,7 @@ test('the gated native fixture executes current accounting while keeping histori
       .reduce((count,row)=>count+latest.ROLES.filter(role=>row.roleApplicability[role]).length,0)]));
   assert.deepEqual(result.actualDenialCounts, denialCounts);
   const postV30Keys = new Set([latest.AVATAR_UPLOAD_KEY,...latest.LISTING_OPTIMIZE_KEYS,
-    latest.FILE_SUMMARY_KEY,latest.USER_LOOKUP_KEY,latest.UPLOAD_PREVIEW_KEY,latest.AGENCY_ROLE_KEY]);
+    latest.FILE_SUMMARY_KEY,latest.USER_LOOKUP_KEY,latest.UPLOAD_PREVIEW_KEY,latest.AGENCY_ROLE_KEY,latest.MCP_REGISTRATION_KEY]);
   assert.deepEqual(Array.from(result.currentAddedKeys),
     latest.REGISTRY_UPGRADES[latest.PREDECESSOR_REGISTRY_SHA256].filter(key=>!postV30Keys.has(key)));
   assert.ok(result.currentAddedKeys.includes(latest.COUPON_PREPARE_KEY));

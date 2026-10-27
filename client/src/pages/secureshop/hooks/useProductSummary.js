@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { productSummaryReferenceStore } from '../utils/productSummaryReference.mjs';
 import { trustedTurnMode } from '../utils/turnModeCapability.mjs';
+import { discardIgnoredMutationResponse } from '../utils/discardIgnoredMutationResponse.mjs';
 
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const exact = (value, keys) => value && Object.getPrototypeOf(value) === Object.prototype
@@ -79,8 +80,9 @@ export function useProductSummary({ productId, shopUserId, authorityKey, transpo
       ref = await referenceStore.save({shopUserId,productId:selected,recoveryKey:session.recoveryKey,sessionId:session.sessionId,requestId:crypto.randomUUID(),startedAt:Date.now()}, () => current(entry));
       if (!current(entry)) return;
       entry.reference = ref;
-      try { await transport(base(selected), { method:'POST', headers:{'content-type':'application/json'},
-        body:JSON.stringify({sessionId:ref.sessionId,requestId:ref.requestId}), signal:entry.controller.signal }); }
+      try { const response = await transport(base(selected), { method:'POST', headers:{'content-type':'application/json'},
+        body:JSON.stringify({sessionId:ref.sessionId,requestId:ref.requestId}), signal:entry.controller.signal });
+        await discardIgnoredMutationResponse(response, {signal:entry.controller.signal}); }
       catch { /* Only saved GET resolves an uncertain original POST. */ }
       if (current(entry)) await read(entry);
     } catch (cause) {
@@ -125,8 +127,9 @@ export function useProductSummary({ productId, shopUserId, authorityKey, transpo
       const before = await read(entry);
       if (!current(entry) || before.status !== 'not_found') return;
       const ref = entry.reference;
-      try { await transport(base(ref.productId), {method:'POST',headers:{'content-type':'application/json'},
-        body:JSON.stringify({sessionId:ref.sessionId,requestId:ref.requestId}),signal:entry.controller.signal}); }
+      try { const response = await transport(base(ref.productId), {method:'POST',headers:{'content-type':'application/json'},
+        body:JSON.stringify({sessionId:ref.sessionId,requestId:ref.requestId}),signal:entry.controller.signal});
+        await discardIgnoredMutationResponse(response, {signal:entry.controller.signal}); }
       catch { /* Recover the same original request; never allocate new IDs. */ }
       if (current(entry)) await read(entry);
     } catch { if (current(entry)) setState({summary:null,loading:false,status:null,error:recoveryError(entry, 'Saved summary unavailable.')}); }

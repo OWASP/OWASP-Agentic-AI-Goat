@@ -15,7 +15,7 @@ async function attempts(c,f,limit){
 async function participants(c){
  const rows=[];let after=0;
  for(let page=0;page<64;page++){
-  const next=(await c.query("SELECT p.*,(SELECT COUNT(*)::integer FROM ctf.ctf_progress pr WHERE pr.participant_id=p.id AND pr.status='completed') AS stages_completed,(SELECT SUM(pr.attempts_count)::integer FROM ctf.ctf_progress pr WHERE pr.participant_id=p.id) AS total_attempts FROM ctf.ctf_participants p WHERE p.id>$1 ORDER BY p.id LIMIT 256",[after])).rows;
+  const next=(await c.query("SELECT p.*,(SELECT COUNT(*)::integer FROM ctf.ctf_progress pr WHERE pr.participant_id=p.id AND pr.status='completed') AS stages_completed,(SELECT SUM(pr.attempts_count)::integer FROM ctf.ctf_progress pr WHERE pr.participant_id=p.id) AS total_attempts,EXISTS(SELECT 1 FROM ctf.ctf_bans b WHERE b.user_id=p.user_id) AS is_banned FROM ctf.ctf_participants p WHERE p.id>$1 ORDER BY p.id LIMIT 256",[after])).rows;
   rows.push(...next);if(Buffer.byteLength(JSON.stringify(rows))>8*1024*1024)throw Error('CTF_READ_UNAVAILABLE');
   if(next.length<256)return rows.sort((a,b)=>{const at=a.started_at==null?Infinity:new Date(a.started_at).getTime(),bt=b.started_at==null?Infinity:new Date(b.started_at).getTime();return bt-at||Number(b.id)-Number(a.id);});
   after=next.at(-1).id;

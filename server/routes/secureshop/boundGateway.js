@@ -73,6 +73,7 @@ function exactQuery(req, allowed) {
     && typeof req.query[key] === 'string');
 }
 function publicError(error) {
+  if (error?.code === 'UPLOAD_RECOVERY_SCOPE_STALE') return [409, 'Upload recovery scope changed. Reopen SecureShop to continue.', false];
   if (error?.code === 'SHOP_SCENE_SELECTION_REQUIRED') return [409, 'Choose an existing shop practice to continue', false];
   if (error?.code === 'SHOP_SCENE_STALE') return [409, 'Shop practice has changed. Reopen SecureShop to continue.', false];
   if (error?.code === 'PRODUCT_TARGET_CAPACITY') return [409,
@@ -80,6 +81,7 @@ function publicError(error) {
   if (['STALE_LAUNCH', 'LAUNCH_UNAVAILABLE', 'SESSION_UNAVAILABLE']
     .includes(error?.code)) return [401, 'SecureShop launch unavailable', true];
   if (error?.code === 'OWNER_MISMATCH') return [401, 'SecureShop launch unavailable', false];
+  if (error?.code === 'CONVERSATION_UNAVAILABLE') return [404, 'Conversation unavailable', false];
   if (error?.code === 'SHOP_AUTH_INVALID') return [401, 'Shop authentication required', false];
   if (error?.code === 'SHOP_CREDENTIALS_INVALID') return [401, 'Invalid shop credentials', false];
   if (error?.code === 'SHOP_PASSWORD_MISMATCH') return [403, 'Current shop password is incorrect', false];
@@ -197,11 +199,11 @@ function projectSimilarResult(result, { productId, sessionId, requestId } = {}) 
 // Mount at /api/secureshop before every legacy SecureShop router. No launch
 // header exits this router unchanged. Once the header is present, this router
 // owns the request and its terminal handler prevents any legacy fall-through.
-function createSecureShopBoundGateway({ launches, authenticatePersona, personaAuth,
+function createSecureShopBoundGateway({ launches, authenticatePersona, personaAuth, standaloneAuth,
   reviewsRouter, browserRouter, personaInboxRouter, mcpTrustRouter, ssrfRouter, catalog, commerce,
   account, admin, personaObservations, userAdministration, accessControl, promptPolicies, promptPolicyTaskTargets = [], systemConfigRouter, systemDiagnosticRouter, systemRebuildRouter, systemRestartRouter, analyticsRouter, pricingRouter, listingsRouter, mailRouter, inventoryRouter, ownedMcpRegistryRouter, adminChatRouter,
   refundRouter, customerChatRouter, agencyRoleRouter, idorLessonRouter, checkoutAuditLessonRouter, couponAgentRouter, couponProbeRouter, avatarUploadRouter, fileSummaryRouter, filePathSummaryRouter, productSearchRouter, orderStatusRouter, ticketAgentRouter, searchEchoRouter, manualRagRouter, productSummaryRouter, merchantAssistantRouter, adminAssistantRouter,
-  productAssist, productManualIngestion, auditSummary, auditUnbounded, auditSearch,
+  productAssist, productManualIngestion, accountAvatar, auditSummary, auditUnbounded, auditSearch,
   auditAgentReady = false, auditTimingReady = false, scenes } = {}) {
   if (typeof launches?.resolveCapability !== 'function'
     || typeof authenticatePersona !== 'function'
@@ -247,6 +249,8 @@ function createSecureShopBoundGateway({ launches, authenticatePersona, personaAu
     || (adminAssistantRouter !== undefined && typeof adminAssistantRouter !== 'function')
     || (admin !== undefined && typeof admin?.users !== 'function')
     || (productManualIngestion !== undefined && typeof productManualIngestion?.upload !== 'function')
+    || (accountAvatar !== undefined && (typeof accountAvatar?.upload !== 'function'
+      || typeof accountAvatar?.read !== 'function'))
     || (productAssist !== undefined && (typeof productAssist?.summary !== 'function'
       || typeof productAssist?.similar !== 'function'))
     || (auditSummary !== undefined && (typeof auditSummary?.createSession !== 'function'
@@ -496,9 +500,99 @@ function createSecureShopBoundGateway({ launches, authenticatePersona, personaAu
     ['get', '/email/operations/:action/:requestId'],
   ]);
 
+  if (accountAvatar) {
+    const parseAvatar = multer({ storage: multer.memoryStorage(), preservePath: true,
+      limits: { fileSize: 20 * 1024 * 1024, files: 1, fields: 5, parts: 6,
+        fieldSize: 4096, fieldNameSize: 32 } }).single('file');
+    const avatarResult = (res, value, persona, requestId) => {
+      const required = ['ok','kind','scope_id','requestId','status','operationId','filename',
+        'mime','size_bytes','public','is_traversal','replayed'];
+      if (!plain(value) || Object.keys(value).sort().join(',') !== required.concat(
+        value.status === 'denied' ? ['denialCode'] : []).sort().join(',')
+          || typeof value.ok !== 'boolean' || value.ok !== (value.status === 'completed')
+          || value.kind !== 'avatar' || value.scope_id !== String(persona.id)
+          || value.requestId !== requestId || !['completed','denied','uncertain'].includes(value.status)
+          || value.operationId !== null && !SESSION_UUID.test(value.operationId)
+          || value.status !== 'uncertain' && value.operationId === null
+          || typeof value.filename !== 'string' || typeof value.mime !== 'string'
+          || !Number.isSafeInteger(value.size_bytes) || value.size_bytes < 0
+          || value.size_bytes > 20 * 1024 * 1024 || typeof value.public !== 'boolean'
+          || typeof value.is_traversal !== 'boolean' || typeof value.replayed !== 'boolean'
+          || value.status === 'denied' && (typeof value.denialCode !== 'string'
+            || !value.denialCode || value.denialCode.length > 128))
+        throw new Error('Invalid bound avatar result');
+      res.set('Cache-Control', 'no-store').json(value);
+    };
+    router.post('/uploads/avatar', ...persona(), handle(async (req, res) => {
+      if (!exactQuery(req, []) || !req.is('multipart/form-data'))
+        return res.status(400).json({ error: 'Invalid avatar upload' });
+      let value;
+      try {
+        value = await runProductRequest(req, res, async signal => {
+          await new Promise((resolve, reject) => parseAvatar(req, res,
+            error => error ? reject(error) : resolve()));
+          signal.throwIfAborted();
+          const body = req.body;
+          if (!plain(body) || Object.keys(body).sort().join(',') !== 'kind,mime,public,requestId,scope_id'
+              || body.kind !== 'avatar' || typeof body.requestId !== 'string'
+              || !SESSION_UUID.test(body.requestId)
+              || String(req.boundPersona.id) !== body.scope_id
+              || typeof body.mime !== 'string' || !body.mime || Buffer.byteLength(body.mime) > 1024
+              || /[\0\r\n]/.test(body.mime) || !['true','false'].includes(body.public)
+              || !req.file || !Buffer.isBuffer(req.file.buffer) || !req.file.buffer.length
+              || typeof req.file.originalname !== 'string' || !req.file.originalname
+              || Buffer.byteLength(req.file.originalname) > 4096)
+            throw Object.assign(new Error('Invalid avatar upload'), { code: 'INVALID_ARGUMENT' });
+          return accountAvatar.upload({ ...context(req), personaSession: req.ssPersonaSession,
+            requestId: body.requestId, scopeId: req.boundPersona.id, bytes: req.file.buffer,
+            filename: req.file.originalname, mime: body.mime, public: body.public === 'true', signal });
+        });
+      } catch (error) {
+        if (error instanceof multer.MulterError) return res.status(error.code === 'LIMIT_FILE_SIZE' ? 413 : 400)
+          .json({ error: 'Invalid or oversized avatar upload' });
+        throw error;
+      }
+      if (value !== PRODUCT_REQUEST_ABORTED) avatarResult(res, value, req.boundPersona, req.body.requestId);
+    }));
+    router.get('/uploads/avatar/operations/:requestId', ...persona(), handle(async (req, res) => {
+      if (!exactQuery(req, []) || !SESSION_UUID.test(req.params.requestId || ''))
+        return res.status(400).json({ error: 'Invalid avatar operation' });
+      const value = await runProductRequest(req, res, signal => accountAvatar.read({ ...context(req),
+        personaSession: req.ssPersonaSession, requestId: req.params.requestId, signal }));
+      if (value !== PRODUCT_REQUEST_ABORTED) avatarResult(res, value, req.boundPersona, req.params.requestId);
+    }));
+  } else registerUnavailable([
+    ['post', '/uploads/avatar'], ['get', '/uploads/avatar/operations/:requestId']
+  ]);
+
   if (productManualIngestion) {
+    const manualRecovery = require('../../services/secureshopManualUploadRecoveryContract');
+    router.get('/uploads/product-manual/receipt', (_req, res, next) => {
+      res.set('Cache-Control', 'no-store'); next();
+    }, ...persona('merchant'), handle(async (req, res) => {
+      const fields = ['productId', 'sha256', 'sizeBytes', 'filename', 'mime', 'public', 'recoveryScopeKey'];
+      if (!exactQuery(req, fields) || fields.slice(0, 6).some(key => !Object.hasOwn(req.query, key))
+          || !resourceId(req.query.productId) || !resourceId(req.query.sizeBytes)
+          || !['true', 'false'].includes(req.query.public)) throw Object.assign(new Error('Invalid manual receipt request'), {code:'INVALID_ARGUMENT'});
+      const descriptor = manualRecovery.normalizeManualUploadDescriptor({productId:resourceId(req.query.productId),
+        sha256:req.query.sha256, sizeBytes:resourceId(req.query.sizeBytes), filename:req.query.filename,
+        mime:req.query.mime, isPublic:req.query.public === 'true'});
+      const recoveryScopeKey = req.query.recoveryScopeKey === undefined ? undefined
+        : manualRecovery.validateManualUploadRecoveryKey(req.query.recoveryScopeKey);
+      if (typeof productManualIngestion.readReceipt !== 'function') throw new Error('Manual receipt recovery unavailable');
+      const result = await productManualIngestion.readReceipt({...context(req),
+        personaSession:req.ssPersonaSession, descriptor,
+        ...(recoveryScopeKey === undefined ? {} : {recoveryScopeKey})});
+      if (result?.version !== 1 || result.kind !== 'product_manual' || !requestUuid(result.operationId)
+          || !['indexed', 'not_found'].includes(result.state)
+          || (result.state === 'not_found' ? result.receipt !== null : !plain(result.receipt))) throw new Error('Invalid manual receipt result');
+      manualRecovery.validateManualUploadRecoveryKey(result.recoveryScopeKey);
+      res.json({...project(result, ['version','kind','operationId','recoveryScopeKey','state']),
+        receipt:result.receipt === null ? null : project(result.receipt,
+          ['productId','sha256','sizeBytes','filename','mime','isPublic','chunkCount','chunkIds','completedAt'])});
+    }));
     const parseManual = multer({ storage: multer.memoryStorage(), preservePath: true,
-      limits: { fileSize: 20 * 1024 * 1024, files: 1, fields: 4, parts: 5,
+      limits: { fileSize: 20 * 1024 * 1024, files: 1, fields: 5, parts: 6,
         fieldSize: 256, fieldNameSize: 32 },
     }).single('file');
     router.post('/uploads', ...persona('merchant'), handle(async (req, res) => {
@@ -512,7 +606,8 @@ function createSecureShopBoundGateway({ launches, authenticatePersona, personaAu
             error => error ? reject(error) : resolve()));
           signal.throwIfAborted();
           const body = req.body;
-          if (!plain(body) || Object.keys(body).length !== 4
+          if (!plain(body) || ![4,5].includes(Object.keys(body).length)
+              || Object.keys(body).some(key => !['kind','scope_id','mime','public','recoveryScopeKey'].includes(key))
               || !['kind', 'scope_id', 'mime', 'public'].every(key => typeof body[key] === 'string')
               || body.kind !== 'product_manual' || !resourceId(body.scope_id)
               || !['true', 'false'].includes(body.public) || !body.mime || Buffer.byteLength(body.mime) > 128
@@ -523,9 +618,12 @@ function createSecureShopBoundGateway({ launches, authenticatePersona, personaAu
               || /[\x00-\x1f\x7f]/.test(req.file.originalname)) {
             throw Object.assign(new Error('Invalid manual upload'), { code: 'INVALID_ARGUMENT' });
           }
+          const recoveryScopeKey = body.recoveryScopeKey === undefined ? undefined
+            : manualRecovery.validateManualUploadRecoveryKey(body.recoveryScopeKey);
           return productManualIngestion.upload({ ...context(req), ...(req.ssPersonaSession ? {personaSession:req.ssPersonaSession} : {}), productId: resourceId(body.scope_id),
             bytes: req.file.buffer, filename: req.file.originalname, mime: body.mime,
-            isPublic: body.public === 'true', signal });
+            isPublic: body.public === 'true', signal,
+            ...(recoveryScopeKey === undefined ? {} : {recoveryScopeKey}) });
         });
       } catch (error) {
         if (error instanceof multer.MulterError) {
@@ -547,12 +645,27 @@ function createSecureShopBoundGateway({ launches, authenticatePersona, personaAu
         'chunk_ids', 'extractor', 'extractor_error', 'indexed_corpus', 'operationId',
         'replayed', 'provider', 'model']));
     }));
-  } else registerUnavailable([['post', '/uploads']]);
+  } else {
+    router.get('/uploads/product-manual/receipt', (_req, res) => res.set('Cache-Control','no-store')
+      .status(503).json({error:'Bound SecureShop operation unavailable'}));
+    registerUnavailable([['post', '/uploads']]);
+  }
 
   router.post('/v2/auth/login', handle(async (req, res) => {
     if (!exactQuery(req, []) || !exactBody(req, ['username', 'password'])
       || typeof req.body.username !== 'string' || typeof req.body.password !== 'string') {
       return res.status(400).json({ error: 'Invalid shop login request' });
+    }
+    const cookie = require('../secureshopStandaloneAuth').readShopCookie(req);
+    if (standaloneAuth && cookie) {
+      if (typeof standaloneAuth.withReauthenticatedExecution !== 'function'
+        || typeof personaAuth.establishAdditionalSession !== 'function') throw Object.assign(new Error('Shop authentication unavailable'), {code:'SHOP_AUTH_INVALID'});
+      const result = await standaloneAuth.withReauthenticatedExecution({ token: cookie,
+        username: req.body.username, password: req.body.password }, shopPrincipal =>
+          personaAuth.establishAdditionalSession({ scope: req.ssLaunch, shopPrincipal,
+            token: readBearer(req), ip: typeof req.ip === 'string' ? req.ip : null,
+            userAgent: req.get('user-agent') || null }));
+      return res.json(result);
     }
     const result = await personaAuth.login({ scope: req.ssLaunch,
       username: req.body.username, password: req.body.password,
@@ -1100,6 +1213,38 @@ function createSecureShopBoundGateway({ launches, authenticatePersona, personaAu
   }));
 
   const merchantContext=req=>({...context(req),...(req.ssPersonaSession?{personaSession:Object.freeze({sessionId:req.ssPersonaSession.sessionId,authorityVersion:req.ssPersonaSession.authorityVersion})}:{})});
+  const manualListing = require('../../services/secureshopManualListingContract');
+  router.get('/merchant/listings/manual/readiness', ...persona('merchant'), handle(async (req, res) => {
+    if (!exactQuery(req, []) || req.body !== undefined && !exactBody(req, [], []))
+      return res.status(400).json({ error: 'Invalid manual listing readiness request' });
+    res.json(await catalog.manualListingReadiness(merchantContext(req)));
+  }));
+  for (const kind of ['create', 'edit']) {
+    const suffix = kind === 'create' ? 'Create' : 'Edit';
+    router.post(`/merchant/listings/manual/${kind}/preview`, ...persona('merchant'), handle(async (req, res) => {
+      const keys = kind === 'create' ? ['listing'] : ['productId', 'listing'];
+      if (!exactQuery(req, []) || !exactBody(req, keys))
+        return res.status(400).json({ error: 'Invalid manual listing preview request' });
+      manualListing.boundManualListingRequest(req.body);
+      const listing = manualListing.normalizeManualListing(req.body.listing);
+      res.json(await catalog[`previewManualMerchantListing${suffix}`]({ ...merchantContext(req), listing,
+        ...(kind === 'edit' ? { productId: req.body.productId } : {}) }));
+    }));
+    router.post(`/merchant/listings/manual/${kind}/confirm`, ...persona('merchant'), handle(async (req, res) => {
+      if (!exactQuery(req, []) || !exactBody(req, ['operationId', 'preview']) || !requestUuid(req.body.operationId))
+        return res.status(400).json({ error: 'Invalid manual listing confirmation request' });
+      manualListing.boundManualListingRequest(req.body);
+      const preview = manualListing.validateManualListingPreview(req.body.preview, kind);
+      res.json(await catalog[`confirmManualMerchantListing${suffix}`]({ ...merchantContext(req),
+        operationId: req.body.operationId, preview }));
+    }));
+    router.get(`/merchant/listings/manual/${kind}/operations/:operationId`, ...persona('merchant'), handle(async (req, res) => {
+      if (!exactQuery(req, []) || !requestUuid(req.params.operationId)
+          || req.body !== undefined && !exactBody(req, [], []))
+        return res.status(400).json({ error: 'Invalid manual listing outcome request' });
+      res.json(await catalog[`readManualMerchantListing${suffix}`]({ ...merchantContext(req), operationId: req.params.operationId }));
+    }));
+  }
   router.get('/merchant/products', ...persona('merchant'), handle(async (req, res) => {
     const allowed = ['retailer_id', 'page', 'per_page', 'sort', 'search', 'status', 'category'];
     const page = positive(req.query.page, 1, 2147483647);

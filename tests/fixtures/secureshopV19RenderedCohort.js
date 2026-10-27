@@ -254,9 +254,10 @@ function findCommittedRunResponse(records, { sessionId, requestId }) {
 function createV19RenderedCohort({ root, receiptPath, status, diagnosticOnly = false }) {
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
   assert.equal(typeof diagnosticOnly, 'boolean');
-  const ownedRoot = path.resolve(process.env.SECURESHOP_V19_OWNED_FILES_ROOT || '/');
-  assert.ok(ownedRoot !== '/' && !ownedRoot.startsWith(root + path.sep));
-  assert.ok(path.isAbsolute(receiptPath) && !receiptPath.startsWith(root + path.sep));
+  const ownedRoot = process.env.SECURESHOP_V19_OWNED_FILES_ROOT;
+  require('./secureshopV19RepositoryPaths').assertV19RepositoryPaths({
+    root, supportReceipt: process.env.SECURESHOP_CUSTOMER_CHECKOUT_EVIDENCE_PATH,
+    cohortReceipt: receiptPath, ownedFilesRoot: ownedRoot });
   const inputsBytes = fs.readFileSync(path.join(root, 'tests/fixtures/secureshopV19ActualCases.json'));
   assert.equal(hash(inputsBytes), INPUT_SHA);
   const inputs = JSON.parse(inputsBytes);

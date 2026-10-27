@@ -44,6 +44,13 @@ function merchantReview(row) {
     created_at: row.created_at, moderated_at: row.moderated_at ?? null });
 }
 function publicError(error) {
+  if (['SHOP_SCENE_STALE','SHOP_SCENE_SELECTION_REQUIRED','REVIEW_RECOVERY_SCOPE_CHANGED',
+    'SECURESHOP_FEATURE_MODE_STALE','ANALYTICS_MODE_STALE'].includes(error?.code)) return [409,
+    'Review moderation scope changed. Reopen SecureShop to continue.'];
+  if (error?.code === 'REVIEW_RECOVERY_UNAVAILABLE') return [409,
+    'Saved moderation recovery unavailable. Do not repeat the request.'];
+  if (error?.code === 'TURN_RECOVERY_REQUIRED') return [409,
+    'Moderation outcome is unresolved. Check the saved request; do not repeat it.'];
   if (error?.code === 'REVIEW_TARGET_CAPACITY') return [409,
     'SecureShop retained review limit reached. Ask your administrator to review retained sessions before opening another.'];
   if (AUTHORITY_ERRORS.has(error?.code)) {
@@ -136,13 +143,32 @@ function createBoundReviewsRouter({ launches, authenticatePersona, service, mode
     res.json({ ok: true, review_id: result.id });
   }));
 
+  router.get('/merchant/reviews/moderation/:requestId',
+    (_req,res,next) => {res.set('Cache-Control','no-store');next();},
+    launch, ...persona('merchant'), handle(async (req,res) => {
+      if (!noUnexpectedQuery(req,res,['limit','recoveryScopeKey'])
+          || typeof req.params.requestId !== 'string' || !UUID.test(req.params.requestId)
+          || typeof req.query.limit !== 'string' || !/^(?:[1-9][0-9]?|100)$/.test(req.query.limit)
+          || (req.query.recoveryScopeKey !== undefined && (typeof req.query.recoveryScopeKey !== 'string'
+            || !/^[0-9a-f]{64}$/.test(req.query.recoveryScopeKey)))) {
+        if (!res.headersSent) res.status(400).json({error:'Invalid moderation request'});
+        return;
+      }
+      if (typeof moderation?.readModeration !== 'function') return res.status(503).json({error:'Bound model moderation unavailable'});
+      res.json(await moderation.readModeration({scope:req.ssLaunch,persona:req.boundPersona,
+        personaSession:req.ssPersonaSession,requestId:req.params.requestId.toLowerCase(),
+        limit:Number(req.query.limit),recoveryScopeKey:req.query.recoveryScopeKey}));
+    }));
+
   for (const path of ['/merchant/reviews/moderate', '/merchant/reviews/moderate-all']) {
     router.post(path, select, ...persona('merchant'), handle(async (req, res) => {
       if (!moderation) return res.status(503).json({ error: 'Bound model moderation unavailable' });
       if (!noUnexpectedQuery(req, res, []) || !req.is('application/json')
-          || !exactObject(req.body, ['request_id', 'limit'], ['request_id'])
+          || !exactObject(req.body, ['request_id', 'limit', 'recoveryScopeKey'], ['request_id'])
           || typeof req.body.request_id !== 'string' || !UUID.test(req.body.request_id)
-          || (req.body.limit !== undefined && (!Number.isInteger(req.body.limit) || req.body.limit < 1 || req.body.limit > 100))) {
+          || (req.body.limit !== undefined && (!Number.isInteger(req.body.limit) || req.body.limit < 1 || req.body.limit > 100))
+          || (req.body.recoveryScopeKey !== undefined && (typeof req.body.recoveryScopeKey !== 'string'
+            || !/^[0-9a-f]{64}$/.test(req.body.recoveryScopeKey) || req.body.limit === undefined))) {
         if (!res.headersSent) res.status(400).json({ error: 'Invalid moderation request' });
         return;
       }
@@ -152,7 +178,8 @@ function createBoundReviewsRouter({ launches, authenticatePersona, service, mode
       try {
         const result = await moderation.moderateReviews({ scope: req.ssLaunch, persona: req.boundPersona,
           ...(req.ssPersonaSession ? {personaSession:req.ssPersonaSession} : {}),
-          requestId: req.body.request_id.toLowerCase(), limit: req.body.limit ?? 100, signal: controller.signal });
+          requestId: req.body.request_id.toLowerCase(), limit: req.body.limit ?? 100, signal: controller.signal,
+          ...(req.body.recoveryScopeKey === undefined ? {} : {recoveryScopeKey:req.body.recoveryScopeKey}) });
         controller.signal.throwIfAborted();
         res.json(result);
       } finally {

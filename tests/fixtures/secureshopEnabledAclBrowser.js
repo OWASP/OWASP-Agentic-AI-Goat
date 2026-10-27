@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('node:assert/strict');
-async function qualifyEnabledAclBrowser({ page, frame, origin }) {
+async function qualifyEnabledAclBrowser({ page, frame, origin, permissionRecovery = null }) {
   const response = (suffix, method) => page.waitForResponse(r =>
     r.url() === origin + '/api/secureshop/admin/access-control' + suffix
     && r.request().method() === method, { timeout: 15000 });
@@ -41,7 +41,9 @@ async function qualifyEnabledAclBrowser({ page, frame, origin }) {
     return body;
   };
   const cell = '[data-testid="acl-cell-audit.search_by_user-admin"]';
-  const denied = await toggle(cell, '/permission'); assert.equal(denied.allowed, false);
+  const recovered = permissionRecovery ? await require('./secureshopAclPermissionRecoveryBrowser').permissionRecovery({
+    ...permissionRecovery, page, frame, origin, policy }) : null;
+  const denied = recovered ? recovered.body : await toggle(cell, '/permission'); assert.equal(denied.allowed, false);
   const enforcement = '[data-testid="acl-enforcement-toggle"]';
   assert.equal((await toggle(enforcement, '/enforcement')).enforcement_enabled, true);
   assert.equal((await toggle(enforcement, '/enforcement')).enforcement_enabled, false);
@@ -49,6 +51,6 @@ async function qualifyEnabledAclBrowser({ page, frame, origin }) {
   const unsupported = policy.tools.find(row => row.readOnly);
   assert.ok(unsupported);
   assert.equal(await frame.$eval(`[data-testid="acl-cell-${unsupported.tool_name}-admin"]`, node => node.disabled), true);
-  return { policyMutations: 4, exactReceiptReadbacks: 4, acknowledgedReceiptsAndPolicyRefreshes: 4, unsupportedDisabled: true, defaultsRestored: true };
+  return { policyMutations: 4, exactReceiptReadbacks: 4, acknowledgedReceiptsAndPolicyRefreshes: permissionRecovery ? 3 : 4, ...(permissionRecovery ? { permissionLostAckRecovered: true } : {}), unsupportedDisabled: true, defaultsRestored: true };
 }
 module.exports = { qualifyEnabledAclBrowser };

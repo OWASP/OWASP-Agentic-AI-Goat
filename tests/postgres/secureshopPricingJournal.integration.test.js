@@ -170,7 +170,21 @@ test('pricing candidate native original authority, journal and controlled graph'
  assert.deepEqual(await application.run(serviceInput),executed);assert.equal(providerCalls,2);
  const judgmentPersistence=await require('../fixtures/secureshopPricingJudgmentPersistence')({identity,im,agents,launches,owner});
  let assembled;
- if(process.env.PERSONA_PRICING_HTTP_NATIVE==='1')assembled=await require('../fixtures/secureshopPricingAssembled')({identity,im,agents,review,launches,conversations,conversationRepository,turns,journal,coordinator,catalog,products,authority,auth,owner});
+ if(process.env.SECURESHOP_PRICING_V25_MANUAL_NATIVE==='1'){
+  // The preload admitted the real parent-issued output/descriptor before this
+  // test opened any pool. Reuse the original fifteen dependency objects and
+  // the original helper; this branch earns no resource-retirement authority.
+  const admitted=require('../fixtures/pricingOwnedOutput').v25Admission();
+  const controller=new AbortController();
+  const interrupted=()=>controller.abort(Error('V25 original worker interrupted'));
+  process.once('SIGTERM',interrupted);process.once('SIGINT',interrupted);
+  t.after(()=>{process.off('SIGTERM',interrupted);process.off('SIGINT',interrupted);});
+  const result=await require('./ownedPricingManualConsumer')._consume({
+   ...admitted,admitted,signal:controller.signal,
+   dependencies:{identity,im,agents,review,launches,conversations,
+    conversationRepository,turns,journal,coordinator,catalog,products,authority,owner,auth}});
+  assembled={actual:result.observation,manualConsumer:result.receipt};
+ }else if(process.env.PERSONA_PRICING_HTTP_NATIVE==='1')assembled=await require('../fixtures/secureshopPricingAssembled')({identity,im,agents,review,launches,conversations,conversationRepository,turns,journal,coordinator,catalog,products,authority,auth,owner});
  const rows=async(table,o)=>(await agents.query(`SELECT * FROM ${prefix+table} WHERE platform_launch_id=$1 ORDER BY operation_id`,[o.scope.launchId])).rows;
  const siblingRows={admissions:await rows('admissions',b),outcomes:await rows('outcomes',b)};
  const preserved=(await rows('admissions',a)).map(r=>[r.operation_id,r.request_sha256.toString('hex'),r.binding_sha256.toString('hex')]);

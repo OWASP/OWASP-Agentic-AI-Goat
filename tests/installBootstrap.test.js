@@ -122,6 +122,25 @@ test('Unix opt-in plans accept Analytics and combined System options without exe
  }
 });
 
+test('Unix policy-renderer flags are paired, nonmutating in plan, and forwarded exactly',()=>{
+ for(const osName of ['Darwin','Linux']){
+  const value=osName==='Linux'?linuxFixture():fixture({osName});
+  const invoke=osName==='Linux'?(args=>runLinuxFixture(value,args)):(args=>invokeBootstrap(value,osName,args));
+  try{
+   const plan=invoke(['--plan','--owned-policy-renderer','--enable-owned-policy-renderer']);
+   assert.equal(plan.status,0,plan.stderr);assert.match(plan.stdout,/ARM64 macOS\/Linux only/);assert.match(plan.stdout,/pinned Node base image and Debian build packages/);assert.equal(fs.existsSync(value.log),false);
+   const preparePlan=invoke(['--plan','--owned-policy-renderer']);
+   assert.equal(preparePlan.status,0,preparePlan.stderr);assert.match(preparePlan.stdout,/preparation preserves an existing disabled preference/);assert.equal(fs.existsSync(value.log),false);
+   const bad=invoke(['--plan','--enable-owned-policy-renderer']);
+   assert.equal(bad.status,1);assert.match(bad.stderr,/requires --owned-policy-renderer/);assert.equal(fs.existsSync(value.log),false);
+   const prepare=invoke(['--owned-policy-renderer']);
+   assert.equal(prepare.status,0,prepare.stderr);const prepareLog=fs.readFileSync(value.log,'utf8').trim().split('\n');assert(prepareLog.includes('npm run setup -- --owned-policy-renderer'));
+   const run=invoke(['--owned-policy-renderer','--enable-owned-policy-renderer']);
+   assert.equal(run.status,0,run.stderr);const log=fs.readFileSync(value.log,'utf8');assert.match(log,/npm run setup -- --owned-policy-renderer --enable-owned-policy-renderer/);
+  }finally{cleanup(value);}
+ }
+});
+
 function linuxFixture({ distro = 'ubuntu', arch = 'x86_64', aptFails = false, missingNpm = false,
   refreshDockerGroup = false, legacyComposeOnly = false, composePluginInstall = false,
   snapInstalled = false, snapInstallFails = false } = {}) {
@@ -319,6 +338,38 @@ test('missing Node is installed through mocked Homebrew and setup delegates', ()
     assert.match(log, /brew (?:install|upgrade) node/);
     assert.match(log, /brew install ollama/);
     assert.match(log, /npm run setup -- --no-install/);
+  } finally { cleanup(value); }
+});
+
+test('macOS fresh setup rechecks its selected Colima context, not an unavailable default context', () => {
+  const value = fixture();
+  delete value.env.PG_ADMIN_DATABASE_URL;
+  fs.writeFileSync(path.join(value.bin, 'docker'), `#!/bin/sh
+echo "docker $*" >> "$FAKE_LOG"
+if [ "$1" = --context ] && [ "$2" = colima-default ] && [ "$3" = info ]; then exit 0; fi
+if [ "$1" = info ]; then exit 9; fi
+exit 0
+`, { mode: 0o700 });
+  try {
+    const result = runFixture(value, ['--no-install']);
+    assert.equal(result.status, 0, result.stderr);
+    const log = fs.readFileSync(value.log, 'utf8');
+    assert.equal((log.match(/^docker --context colima-default info$/gm) || []).length, 2);
+    assert.doesNotMatch(log, /^docker info$/m);
+    assert.match(log, /^npm run setup -- --no-install$/m);
+  } finally { cleanup(value); }
+});
+
+test('Linux fresh setup retains its ordinary Docker availability check', () => {
+  const value = linuxFixture();
+  delete value.env.PG_ADMIN_DATABASE_URL;
+  try {
+    const result = runLinuxFixture(value, ['--no-install']);
+    assert.equal(result.status, 0, result.stderr);
+    const log = fs.readFileSync(value.log, 'utf8');
+    assert.match(log, /^docker info$/m);
+    assert.doesNotMatch(log, /^docker --context /m);
+    assert.match(log, /^npm run setup -- --no-install$/m);
   } finally { cleanup(value); }
 });
 

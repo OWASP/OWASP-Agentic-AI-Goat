@@ -82,6 +82,20 @@ function createSupervisorGraph({ store, Trace, buildBasePrompt, buildPolicyBlock
     const { provider, pool, manifest, stream = null, role, policyDbPath, callerRole = null, callerId = null,
       signal = null, ownerId = callerId } = opts;
     if (!provider || !pool || !manifest) throw new Error(`${role}Supervisor.run requires provider, pool and manifest`);
+    const consumption = opts.consumptionCapability !== undefined || opts.consumptionRequired !== undefined
+      ? require('../services/secureshopCustomerConsumptionAuthority').consumptionFor(opts.consumptionCapability,
+        {sessionId,role,callerId}) : null;
+    const reservedToolResults=new Set();
+    const persist = async (method,args,message) => {
+      if(consumption){await consumption.check();
+        if(method!=='appendToolResult'||!reservedToolResults.delete(args[0]))consumption.append(message);}
+      return store[method](sessionId,...args);
+    };
+    const appendUserMessage=(_id,text)=>persist('appendUserMessage',[text],{role:'user',content:text});
+    const appendAssistantMessage=(_id,text)=>persist('appendAssistantMessage',[text],{role:'assistant',content:text});
+    const appendToolResult=(_id,id,text)=>persist('appendToolResult',[id,text],{role:'tool',tool_call_id:id,content:text});
+    const appendAssistantToolCalls=(_id,calls)=>persist('appendAssistantToolCalls',[calls],{role:'assistant',content:'',
+      tool_calls:calls.map(call=>({id:call.id,type:'function',function:{name:call.name,arguments:JSON.stringify(call.args||{})}}))});
     const check = opts.check;
     const effect = opts.effect;
     const effectWithReceipt = opts.effectWithReceipt;
@@ -121,6 +135,7 @@ function createSupervisorGraph({ store, Trace, buildBasePrompt, buildPolicyBlock
     }
     const assertExecution = async () => {
       signal?.throwIfAborted();
+      if(consumption)await consumption.check();
       if (check) {
         try { await check(); }
         catch (cause) {
@@ -153,10 +168,13 @@ function createSupervisorGraph({ store, Trace, buildBasePrompt, buildPolicyBlock
     const graph = new StateGraph(State)
       .addNode('initialize', async () => {
         if (check) await check();
-        await appendUserMessage(sessionId, userMessage);
+        if(!consumption?.fixed)await appendUserMessage(sessionId, userMessage);
         const externalMcpBlock = typeof manifest.buildExternalMcpPromptBlock === 'function' ? await manifest.buildExternalMcpPromptBlock() : '';
         systemPrompt = buildBasePrompt(role, { extra: await buildPolicyBlock(role, { dbPath: policyDbPath }), externalMcpBlock });
         tools = manifest.getForRole(role);
+        if(consumption?.fixed){await consumption.check();
+          consumption.input({system:systemPrompt,messages:await getMessages(sessionId),tools,role,max_tokens:2048,ownerId});
+          await appendUserMessage(sessionId,userMessage);}
         if(decisionRouting){
           if(!Array.isArray(tools)||!tools.length)throw new TypeError('Routed task catalog required');
           const byName=new Map();
@@ -202,8 +220,10 @@ function createSupervisorGraph({ store, Trace, buildBasePrompt, buildPolicyBlock
         let response,usageDebited=false;
         try {
           await assertExecution();
-          response=await provider.routeWorkflow({system:decisionRouting.system,
-            messages:[{role:'user',content:userMessage}],role,max_tokens:Math.min(state.remaining,256),signal,ownerId});
+          const routeInput={system:decisionRouting.system,
+            messages:[{role:'user',content:userMessage}],role,max_tokens:Math.min(state.remaining,256),signal,ownerId};
+          if(consumption)consumption.input(routeInput);
+          response=await provider.routeWorkflow(routeInput);
           await assertExecution();
           const decision=response?.decision&&Object.getPrototypeOf(response.decision)===Object.prototype
             ?parseWorkflowRoute(response.decision):null;
@@ -265,6 +285,7 @@ function createSupervisorGraph({ store, Trace, buildBasePrompt, buildPolicyBlock
           const modelInput = { system: finalResponseRequired
             ? `${systemPrompt}\n\n${FINAL_RESPONSE_INSTRUCTION}` : systemPrompt,
           messages, role, max_tokens: Math.min(state.remaining, 2048), signal, ownerId };
+          if(consumption)consumption.input(finalResponseRequired?modelInput:{...modelInput,tools});
           if (finalResponseRequired && typeof provider.finalResponse !== 'function') {
             throw Object.assign(new Error('Structured final response capability unavailable'), {
               code: 'SECURESHOP_FINAL_RESPONSE_UNSUPPORTED',
@@ -381,7 +402,7 @@ function createSupervisorGraph({ store, Trace, buildBasePrompt, buildPolicyBlock
         });
         await appendAssistantToolCalls(sessionId, calls);
         let terminalToolOutcome=null;
-        await Promise.all(calls.map(async call => {
+        const dispatchOne = async call => {
         const [namespace, toolName] = String(call.name).includes('.')
           ? String(call.name).split('.', 2)
           : [call.name, ''];
@@ -567,6 +588,9 @@ function createSupervisorGraph({ store, Trace, buildBasePrompt, buildPolicyBlock
         if (recoverableExternalError) await assertExecution();
         const clat = Date.now() - ct0;
         const resultJson = JSON.stringify(toolResult);
+        if(consumption){await consumption.check();consumption.tool(resultJson);
+          const text=extractToolText(toolResult);consumption.tool(text);
+          consumption.append({role:'tool',tool_call_id:call.id,content:text});reservedToolResults.add(call.id);}
         trace.record({
           step,
           actor: 'task→supervisor',
@@ -629,7 +653,16 @@ function createSupervisorGraph({ store, Trace, buildBasePrompt, buildPolicyBlock
           });
         }
         return hop;
-        }));
+        };
+        if (consumption?.fixed) {
+          // Finish validation and persistence before admitting another Fixed
+          // effect. Promise.all can otherwise leave a sibling writing after
+          // the graph has rejected a result that exceeds the byte budget.
+          for (const call of calls) await dispatchOne(call);
+        } else {
+          // Preserve concurrent dispatch for the original teaching path.
+          await Promise.all(calls.map(dispatchOne));
+        }
         const cancelled = cancelledBeforeEffect || signal?.aborted;
         return { hops: [...state.hops, ...hops],
           ...(terminalToolOutcome?{finalText:terminalToolOutcome.text,stopReason:terminalToolOutcome.stopReason}:{}),

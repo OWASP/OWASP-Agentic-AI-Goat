@@ -1,10 +1,12 @@
 import os
+import hashlib
 import json
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 from full_backend_auth_contract import REQUIRED, EMBEDDING_ASSETS, QUALIFIED_ADDITIONAL_MIGRATIONS, REVIEWED_MIGRATIONS, STORES, validate_manifest, inventory, validate_fullboot_layout, validate_mcp_indirect_configuration, MCP_MODEL_DIGEST
 
 class Contract(unittest.TestCase):
@@ -12,7 +14,8 @@ class Contract(unittest.TestCase):
   from full_backend_auth_contract import (STUDENT_DELETION_SOURCE_ROOTS,
    student_deletion_source_closure,validate_student_deletion_source_closure)
   source=Path(__file__).resolve().parents[2]
-  closure=student_deletion_source_closure(source)
+  node=source/'tasks/runtime/node/node_modules/node/bin/node'
+  closure=student_deletion_source_closure(source,node)
   self.assertTrue(STUDENT_DELETION_SOURCE_ROOTS <= closure)
   for required in ['server/services/studentDeletionRunDrain.js',
                    'server/database/postgres/agentRunReadRepository.js',
@@ -21,10 +24,113 @@ class Contract(unittest.TestCase):
                    'server/services/legacyUploadLifecycle.js']:
    self.assertIn(required,closure)
   manifest={'files':dict.fromkeys(closure,'a'*64)}
-  self.assertEqual(validate_student_deletion_source_closure(source,manifest),closure)
+  self.assertEqual(validate_student_deletion_source_closure(source,manifest,node),closure)
   for missing in ['server/services/studentDeletionRunDrain.js','server/services/legacyChallengeOwnerCleanup.js']:
    partial={'files':{key:value for key,value in manifest['files'].items() if key!=missing}}
-   with self.assertRaises(RuntimeError):validate_student_deletion_source_closure(source,partial)
+   with self.assertRaises(RuntimeError):validate_student_deletion_source_closure(source,partial,node)
+ def test_student_deletion_ast_ignores_comments_strings_templates_but_keeps_executable_loads(self):
+  source=Path(__file__).resolve().parents[2]
+  node=source/'tasks/runtime/node/node_modules/node/bin/node'
+  script=r"""
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const parser=require('./client/node_modules/@babel/parser');
+const {references}=require('./tests/fixtures/studentDeletionSourceClosure');
+const fake="// require('./comment')\n/* load('./block') */\n"+
+  "const doc=\"require('./string')\"; const template=`require('./template')`; "+
+  "const pattern=/require/; require /* split */ ( './live' );";
+assert.deepEqual(references('server/services/studentDeletionAdapters.js',fake,parser),['./live']);
+assert.deepEqual(references('server/services/studentDeletionAdapters.js',
+  "load /*split*/ ('./adapter'); require('./runtime')",parser).sort(),
+  ['./adapter','./runtime']);
+assert.throws(()=>references('server/services/studentDeletionAdapters.js',
+  'load(variable)',parser),/dynamic source edge/);
+assert.throws(()=>references('other.js','require(variable)',parser),/dynamic source edge/);
+assert.throws(()=>references('other.mjs','import(variable)',parser),/dynamic source edge/);
+assert.deepEqual(references('other.mjs',"import('./child.mjs'); export * from './sibling.mjs'",parser).sort(),
+  ['./child.mjs','./sibling.mjs']);
+assert.deepEqual(references('other.js',"require(flag?'./yes':'./no')",parser).sort(),
+  ['./no','./yes']);
+assert.throws(()=>references('other.js','import(computed)',parser),/dynamic source edge/);
+assert.throws(()=>references('other.js','require(`./${computed}`)',parser),/dynamic source edge/);
+assert.throws(()=>references('db/postgres/initialize-application.js',
+  'const repositories=Object.freeze([]); require(`../../server/database/postgres/${moduleName}`)',parser),
+  /dynamic source edge unresolved/);
+const initializer=fs.readFileSync('db/postgres/initialize-application.js','utf8');
+assert.throws(()=>references('db/postgres/initialize-application.js',initializer+
+  '\nfunction decoy(moduleName){return require(`../../server/database/postgres/${moduleName}`)}',parser),
+  /dynamic source edge unresolved|Reviewed dynamic-source exception changed/);
+assert.throws(()=>references('db/postgres/initialize-application.js',initializer.replace(
+  'await require(`../../server/database/postgres/${moduleName}`)[method]();',
+  'const moduleName=externalName; await require(`../../server/database/postgres/${moduleName}`)[method]();'),parser),
+  /dynamic source edge unresolved|Reviewed dynamic-source exception changed/);
+assert.throws(()=>references('db/postgres/initialize-application.js',initializer.replace(
+  'for (const [schema, , moduleName, method] of repositories)',
+  'const repositories=externalRows; for (const [schema, , moduleName, method] of repositories)'),parser),
+  /dynamic source edge unresolved|Reviewed dynamic-source exception changed/);
+const startup=fs.readFileSync('scripts/start-application.js','utf8');
+assert.throws(()=>references('scripts/start-application.js',startup+
+  '\nfunction decoy(kind){return require(`./install/mcp-owned-${kind}`)}',parser),
+  /Reviewed dynamic-source exception changed/);
+assert.throws(()=>references('scripts/start-application.js',startup.replace(
+  'start: options => require(`./install/mcp-owned-${kind}`).startExisting(options)',
+  'start: options => {kind=options.kind;return require(`./install/mcp-owned-${kind}`).startExisting(options)}'),parser),
+  /Reviewed dynamic-source exception changed/);
+for(const file of ['db/postgres/initialize-application.js','scripts/start-application.js',
+  'agent-host/shared/vectorStore.js','scripts/setup-application.js']) {
+  const original=fs.readFileSync(file,'utf8');
+  assert.throws(()=>references(file,original+'\n// changed reviewed bytes',parser),
+    /Reviewed dynamic-source exception changed/);
+}
+assert.deepEqual(references('other.js',"load(variable)",parser),[]);
+"""
+  result=subprocess.run([str(node),'-e',script],cwd=source,capture_output=True,text=True,
+                        timeout=10,env={'PATH':str(node.parent),'NODE_OPTIONS':'--no-addons'})
+  self.assertEqual(result.returncode,0,result.stderr[:2000])
+ def test_student_deletion_ast_traverses_literal_dynamic_mjs_and_rejects_dynamic_require(self):
+  source=Path(__file__).resolve().parents[2]
+  node=source/'tasks/runtime/node/node_modules/node/bin/node'
+  temporary_parent=source/'tasks/tmp'
+  with tempfile.TemporaryDirectory(prefix='deletion-ast-',dir=temporary_parent) as temporary:
+   directory=Path(temporary)
+   (directory/'entry.js').write_text("import('./child.mjs')")
+   (directory/'child.mjs').write_text("import './leaf.js';")
+   (directory/'leaf.js').write_text('export const value=1;')
+   root=directory.relative_to(source).as_posix()
+   script="const x=require('./tests/fixtures/studentDeletionSourceClosure'); process.stdout.write(JSON.stringify(x.collect(process.argv[1],[process.argv[2]])))"
+   result=subprocess.run([str(node),'-e',script,str(source),root+'/entry.js'],cwd=source,
+                         capture_output=True,text=True,timeout=10,
+                         env={'PATH':str(node.parent),'NODE_OPTIONS':'--no-addons'})
+   self.assertEqual(result.returncode,0,result.stderr[:2000])
+   self.assertEqual(set(json.loads(result.stdout)),
+                    {root+'/entry.js',root+'/child.mjs',root+'/leaf.js'})
+   (directory/'child.mjs').write_text('require(computed)')
+   rejected=subprocess.run([str(node),'-e',script,str(source),root+'/entry.js'],cwd=source,
+                           capture_output=True,text=True,timeout=10,
+                           env={'PATH':str(node.parent),'NODE_OPTIONS':'--no-addons'})
+   self.assertNotEqual(rejected.returncode,0)
+   self.assertIn('Executable dynamic source edge unresolved',rejected.stderr)
+ def test_package_inventory_authenticates_scanner_and_parser_before_execution(self):
+  from full_backend_auth_contract import validate_package
+  root=Path(__file__).resolve().parents[2]
+  node=root/'tasks/runtime/node/node_modules/node/bin/node'
+  with tempfile.TemporaryDirectory(dir=root/'tasks/tmp') as temporary:
+   parent=Path(temporary)/'package'
+   source=parent/'source'
+   source.mkdir(parents=True)
+   manifest=parent/'manifest.json'
+   manifest.write_text('{}')
+   manifest.chmod(0o444)
+   parent.chmod(0o555)
+   try:
+    with patch('full_backend_auth_contract.validate_manifest',return_value={'files':{}}), \
+         patch('full_backend_auth_contract.inventory',side_effect=RuntimeError('complete inventory mismatch')), \
+         patch('full_backend_auth_contract.validate_student_deletion_source_closure') as scanner:
+     with self.assertRaisesRegex(RuntimeError,'complete inventory mismatch'):
+      validate_package(source,manifest,hashlib.sha256(manifest.read_bytes()).hexdigest(),
+                       node,hashlib.sha256(node.read_bytes()).hexdigest())
+     scanner.assert_not_called()
+   finally: parent.chmod(0o700)
  def test_mcp_rendered_lifecycle_closure_is_required(self):
   from full_backend_auth_contract import MCP_RENDERED_REQUIRED, validate_mcp_rendered_manifest
   self.assertIn('tests/fixtures/mcpRenderedAdminLifecycle.js',MCP_RENDERED_REQUIRED)

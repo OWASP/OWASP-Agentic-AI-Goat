@@ -144,6 +144,36 @@ test('staged readiness never enables configuration until single-use identity-bou
  const proof=await activation.verifyStagedPricing({...f,env,execute,fetchImpl});assert.equal(managed.load(f).config.enabled,false);
  assert.throws(()=>activation.activateStagedPricing({...proof}));const enabled=activation.activateStagedPricing(proof);assert.equal(enabled.config.enabled,true);assert.equal(enabled.config.token,f.config.token);assert.throws(()=>activation.activateStagedPricing(proof));
 });
+test('cold Pricing base uses only selected daemon, exact digest and arm64; repository mode admits storage before pull',async t=>{
+ const {ensureBase,temporaryRoot}=require('../scripts/install/secureshop-owned-pricing-provision')._internals;
+ const f=fixture(t),reference='node:26.10.0-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1';
+ const digest=reference.replace('node:26.10.0-slim@','node@'),authority={host:'unix:///selected/pricing.sock'};
+ let base=null,operations=[],admissions=0;
+ const inspect=async(kind,id)=>{assert.equal(kind,'image');assert.equal(id,reference);operations.push('inspect');return base;};
+ const docker=async(args,deadline)=>{operations.push(args);assert.deepEqual(args,['image','pull','--platform','linux/arm64',reference]);assert.equal(deadline,300000);base={Architecture:'arm64',Os:'linux',RepoDigests:[digest]};};
+ await assert.rejects(ensureBase({inspect,docker,authority,root:f.root,repositoryOnlyStorage:true}),{code:'PRICING_REPOSITORY_STORAGE_UNQUALIFIED'});
+ assert.deepEqual(operations,['inspect']);
+ operations=[];await ensureBase({inspect,docker,authority,root:f.root,repositoryOnlyStorage:true,admitRepositoryStorage:async details=>{
+  admissions++;assert.deepEqual(details,{root:f.root,dockerHost:authority.host,reference,architecture:'arm64'});return true;
+ }});
+ assert.equal(admissions,1);assert.deepEqual(operations,['inspect',['image','pull','--platform','linux/arm64',reference],'inspect']);
+ operations=[];await ensureBase({inspect,docker,authority,root:f.root,repositoryOnlyStorage:true,admitRepositoryStorage:async()=>assert.fail('already present must not re-admit')});
+ assert.deepEqual(operations,['inspect']);
+ for(const invalid of [{...base,Architecture:'amd64'},{...base,Os:'darwin'},{...base,RepoDigests:['node@sha256:'+'0'.repeat(64)]}]){
+  base=invalid;await assert.rejects(ensureBase({inspect,docker,authority,root:f.root}),{code:'PRICING_BASE_UNQUALIFIED'});
+ }
+ base=null;operations=[];await assert.rejects(ensureBase({inspect,docker:async args=>{operations.push(args);base={Architecture:'arm64',Os:'linux',RepoDigests:['node@sha256:'+'0'.repeat(64)]};},authority,root:f.root}),{code:'PRICING_BASE_UNQUALIFIED'});
+ assert.equal(operations.filter(Array.isArray).length,1,'wrong digest after one pull is rejected');
+ base=null;operations=[];await assert.rejects(ensureBase({inspect,docker:async args=>{operations.push(args);throw Object.assign(Error('pull failed'),{code:'PRICING_INSTALL_COMMAND_FAILED'});},authority,root:f.root}),{code:'PRICING_INSTALL_COMMAND_FAILED'});
+ assert.equal(operations.filter(Array.isArray).length,1,'failed pull never reaches a build');
+ fs.mkdirSync(path.join(f.root,'tasks'),{mode:0o700});
+ assert.equal(temporaryRoot(f.root,true),path.join(fs.realpathSync(f.root),'tasks','tmp'));
+ assert.equal(temporaryRoot(f.root,false),os.tmpdir());
+ fs.chmodSync(path.join(f.root,'tasks','tmp'),0o777);assert.throws(()=>temporaryRoot(f.root,true),{code:'PRICING_REPOSITORY_STORAGE_UNQUALIFIED'});
+ fs.chmodSync(path.join(f.root,'tasks','tmp'),0o700);
+ const moved=path.join(f.root,'tasks','tmp-owned');fs.renameSync(path.join(f.root,'tasks','tmp'),moved);fs.symlinkSync(moved,path.join(f.root,'tasks','tmp'));
+ assert.throws(()=>temporaryRoot(f.root,true),{code:'PRICING_REPOSITORY_STORAGE_UNQUALIFIED'});
+});
 test('private pre-create stage retains exact identity and rejects authority/image/port conflicts',t=>{
  const f=fixture(t),stage=require('../scripts/install/secureshop-owned-pricing-stage');fs.unlinkSync(f.filename);
  const plan={workspaceId:f.config.workspaceId,dockerAuthoritySha256:f.config.dockerAuthoritySha256,source:{sha256:f.config.packageSha256},port:f.config.port};
@@ -164,19 +194,25 @@ test('provision reconciles saved identity without rebuild/create or credential r
 });
 test('first provision stages disabled before create, starts checked identity and activates only after readiness',async t=>{
  const f=fixture(t),{provision}=require('../scripts/install/secureshop-owned-pricing-provision');fs.unlinkSync(f.filename);
- let resources=inspectedResources(f.config),imageAvailable=false,builds=0,created=false,network=false,starts=0,creates=0;resources.image.Os='linux';resources.image.Config.User='10001:10001';
+ let resources=inspectedResources(f.config),baseAvailable=false,pulls=0,imageAvailable=false,builds=0,created=false,network=false,starts=0,creates=0;resources.image.Os='linux';resources.image.Config.User='10001:10001';
  const run=async(_file,args)=>{
   if(args.includes('info'))return{exitCode:0,stdout:JSON.stringify(args.at(-1).includes('Architecture')?'aarch64':'owned-daemon')};
+  if(args.includes('pull')){assert.deepEqual(args.slice(-5),['image','pull','--platform','linux/arm64','node:26.10.0-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1']);pulls++;baseAvailable=true;return{exitCode:0,stdout:''};}
   if(args.includes('build')){builds++;const context=args.at(-1);for(const relative of require('../server/services/secureshopPricingPackage').PRICING_PACKAGE_FILES)assert.equal(fs.statSync(path.join(context,relative)).mode&0o777,0o444,'runtime source must remain readable after Docker COPY');imageAvailable=true;return{exitCode:0,stdout:''};}
   if(args.includes('create')&&args.includes('network')){network=true;return{exitCode:0,stdout:''};}
   if(args.includes('create')){creates++;assert.equal(managed.load(f),null);const staged=require('../scripts/install/secureshop-owned-pricing-stage').read(f).value;resources=inspectedResources({...f.config,...staged});resources.image.Os='linux';resources.image.Config.User='10001:10001';resources.network.Internal=false;resources.container.State.Running=false;resources.container.NetworkSettings.Ports={};created=true;return{exitCode:0,stdout:f.config.containerId};}
   if(args.includes('start')){starts++;assert.equal(managed.load(f).config.enabled,false);resources.container.State.Running=true;resources.container.NetworkSettings.Ports=resources.container.HostConfig.PortBindings;return{exitCode:0,stdout:''};}
-  if(args.includes('inspect')){if(args.includes('image')){if(args.at(-1).startsWith('node:'))return{exitCode:0,stdout:JSON.stringify([{Architecture:'arm64',RepoDigests:[args.at(-1).replace('node:26.10.0-slim@','node@')]}])};if(!imageAvailable)return{exitCode:1,stderr:'No such image'};return{exitCode:0,stdout:JSON.stringify([resources.image])};}if(args.includes('network')){if(!network)return{exitCode:1,stderr:'No such network'};const staged=require('../scripts/install/secureshop-owned-pricing-stage').read(f).value;return{exitCode:0,stdout:JSON.stringify([{...resources.network,Internal:false,Labels:{'dvaia.pricing.owner':staged.ownerId,'dvaia.pricing.workspace':staged.workspaceId,'dvaia.pricing.package':staged.packageSha256}}])};}if(!created)return{exitCode:1,stderr:'No such container'};return{exitCode:0,stdout:JSON.stringify([resources.container])};}
+  if(args.includes('inspect')){if(args.includes('image')){if(args.at(-1).startsWith('node:'))return baseAvailable?{exitCode:0,stdout:JSON.stringify([{Architecture:'arm64',Os:'linux',RepoDigests:[args.at(-1).replace('node:26.10.0-slim@','node@')]}])}:{exitCode:1,stderr:'No such image'};if(!imageAvailable)return{exitCode:1,stderr:'No such image'};return{exitCode:0,stdout:JSON.stringify([resources.image])};}if(args.includes('network')){if(!network)return{exitCode:1,stderr:'No such network'};const staged=require('../scripts/install/secureshop-owned-pricing-stage').read(f).value;return{exitCode:0,stdout:JSON.stringify([{...resources.network,Internal:false,Labels:{'dvaia.pricing.owner':staged.ownerId,'dvaia.pricing.workspace':staged.workspaceId,'dvaia.pricing.package':staged.packageSha256}}])};}if(!created)return{exitCode:1,stderr:'No such container'};return{exitCode:0,stdout:JSON.stringify([resources.container])};}
   assert.fail('unexpected command');
  };
  let ready=false;const fetchImpl=async()=>{assert.equal(managed.load(f).config.enabled,false);if(!ready)throw Error('controlled readiness unavailable');return new Response(JSON.stringify({version:require('../sidecars/sandbox-runner/owned-pricing-http/wire').VERSION,ready:true,isolation:'bwrap-owned-pricing-http-v1',pricingCapability:'secureshop-owned-pricing-http.v1'}));};
- await assert.rejects(provision({...f,platform:'linux',architecture:'arm64',environment:env,run,provisionProfile:async()=>{},fetchImpl}));const stagedBefore=managed.load(f);assert.equal(stagedBefore.config.enabled,false);ready=true;
- const result=await provision({...f,platform:'linux',architecture:'arm64',environment:env,run,provisionProfile:async()=>{},fetchImpl});assert.equal(result.enabled,true);assert.equal(managed.load(f).config.token,stagedBefore.config.token);assert.equal(builds,1);assert.equal(creates,1);assert.equal(starts,1);assert.equal(managed.load(f).config.enabled,true);
+ const {setupOwnedPricing}=require('../scripts/install/pricing-setup');
+ fs.mkdirSync(path.join(f.root,'tasks'),{mode:0o700});
+ const repoTmp=path.join(f.root,'tasks','tmp');
+ const setup=()=>setupOwnedPricing({requested:true,root:f.root,homeDirectory:f.home,platform:'linux',repositoryOnlyStorage:true,admitRepositoryStorage:async details=>{assert.equal(details.dockerHost,'unix:///tmp/owned-pricing.sock');assert.equal(details.root,f.root);return true;},applicationEnvironment:env,environment:env,provision:input=>provision({...input,architecture:'arm64',run,provisionProfile:async()=>{},fetchImpl})});
+ await assert.rejects(setup());assert.deepEqual(fs.readdirSync(repoTmp),[],'failed readiness retires repository-only staging');const stagedBefore=managed.load(f);assert.equal(stagedBefore.config.enabled,false);ready=true;
+ const result=await setup();assert.deepEqual(fs.readdirSync(repoTmp),[],'successful setup retires repository-only staging');
+ assert.equal(result.activationEnabled,true);assert.equal(pulls,1);assert.equal(managed.load(f).config.token,stagedBefore.config.token);assert.equal(builds,1);assert.equal(creates,1);assert.equal(starts,1);assert.equal(managed.load(f).config.enabled,true);
 });
 test('expired staged readiness proof cannot activate a disabled record',async t=>{
  const f=fixture(t),activation=require('../server/services/secureshopPricingActivation'),performance=require('node:perf_hooks').performance;

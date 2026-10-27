@@ -42,6 +42,7 @@ export default function AdminUsers() {
   const [administration, setAdministration] = useState(null);
   const lookupScope = useRef(administration?.scopeKey); lookupScope.current = administration?.scopeKey;
   const [pendingChange, setPendingChange] = useState(null);
+  const [confirmation, setConfirmation] = useState(null);
   const [mutationError, setMutationError] = useState(null);
   const [authLossFor, setAuthLossFor] = useState(null);
   const mutationLock = useRef(false);
@@ -65,10 +66,16 @@ export default function AdminUsers() {
   const [lookupInput, setLookupInput] = useState('');
   const [lookupResult, setLookupResult] = useState(null);
   useEffect(() => { setLookupResult(null); setResetTarget(null); setAuthLossFor(null); }, [authToken, transport, administration?.scopeKey]);
-  const [banReason, setBanReason] = useState('');
+  const [banReasonEntry, setBanReasonEntry] = useState(null);
+  const banReason = banReasonEntry?.authToken === authToken
+    && banReasonEntry?.transport === transport
+    && banReasonEntry?.scopeKey === (administration?.scopeKey ?? null)
+    ? banReasonEntry.value : '';
   const validBanReason = typeof banReason === 'string' && !!banReason.trim()
     && banReason.isWellFormed() && new TextEncoder().encode(banReason).byteLength <= 1024;
   const queryKey = JSON.stringify([page, debounced, roleFilter, bannedFilter]);
+  useEffect(() => { setConfirmation(null); setBanReasonEntry(null); },
+    [authToken, transport, administration?.scopeKey, queryKey, boundFrame]);
   const inScope = marker => marker?.authToken === authToken && marker?.transport === transport && marker?.queryKey === queryKey;
   const currentData = inScope(loadedFor);
   const currentError = inScope(errorFor) ? loadError : null;
@@ -77,6 +84,24 @@ export default function AdminUsers() {
   const visiblePages = currentData ? pages : 1;
   const visibleAdministration = currentData ? administration : null;
   const visibleSelected = currentData ? visibleUsers.find(user => user.id === selected?.id) : null;
+  const confirmationVisible = confirmation && confirmation.authToken === authToken
+    && confirmation.transport === transport && globalThis.fetch === transport
+    && confirmation.scopeKey === (administration?.scopeKey ?? null)
+    && confirmation.queryKey === queryKey && confirmation.boundFrame === boundFrame;
+  const confirmationCurrent = change => {
+    if (!mounted.current || !change || !currentData || currentError || busy || pendingChange || mutationLock.current
+      || change.authToken !== authToken || authRef.current !== change.authToken
+      || change.transport !== transport || globalThis.fetch !== change.transport
+      || change.scopeKey !== (administration?.scopeKey ?? null)
+      || change.queryKey !== queryKey || change.boundFrame !== boundFrame
+      || (boundFrame && administration?.roleBan !== true)) return false;
+    const target = visibleUsers.find(user => user.id === change.targetId);
+    return !!target && target.username === change.username
+      && (target.identity_kind ?? null) === change.identityKind
+      && (target.authority_version ?? null) === change.expectedVersion
+      && target.role === change.sourceRole
+      && (target.banned_at ?? null) === change.bannedAt;
+  };
   useEffect(() => { setSelected(null); }, [queryKey, authToken, transport]);
 
   // Debounce search input.
@@ -178,19 +203,15 @@ export default function AdminUsers() {
     && target?.identity_kind === 'registered_account'
     && operation.targetId === (shopAuth?.user?.id ?? administration?.resetActorId)
     && (operation.action === 'ban' || operation.role !== 'admin');
-  const mutateUser = async (id, action, role) => {
-    if (mutationLock.current || busy || currentError || !currentData || (boundFrame && !administration?.roleBan) || pendingChange) return;
-    if (action === 'ban' && !validBanReason) {
-      setMutationError('Enter a reason before banning this account.');
-      return;
-    }
-    const target = users.find(u => u.id === id);
-    if (!target?.authority_version) return;
+  const mutateUser = async change => {
+    if (!confirmationCurrent(change) || !change.expectedVersion) return;
+    const { targetId: id, action, role } = change;
+    const target = visibleUsers.find(user => user.id === id);
     mutationLock.current = true;
     setBusy(true); setMutationError(null); setAuthLossFor(null);
-    const operation = { scopeKey: administration.scopeKey, targetId: id, action, role,
-      reason: action === 'ban' ? banReason : undefined,
-      operationId: null, expectedVersion: target.authority_version };
+    const operation = { scopeKey: change.scopeKey, targetId: id, action, role,
+      reason: action === 'ban' ? change.reason : undefined,
+      operationId: null, expectedVersion: change.expectedVersion };
     try {
       operation.operationId = crypto.randomUUID();
       await savePending(operation, undefined, undefined,
@@ -220,18 +241,46 @@ export default function AdminUsers() {
       }
     } finally { mutationLock.current = false; if (mounted.current && authRef.current === authToken && globalThis.fetch === transport) setBusy(false); }
   };
-  const legacyMutation = async (id, action, body) => {
-    if (boundFrame || administration || mutationLock.current || busy || currentError || !currentData) return;
+  const legacyMutation = async change => {
+    if (!confirmationCurrent(change) || boundFrame || administration) return;
     mutationLock.current=true;setBusy(true);
     try {
-      const response=await fetch(`/api/secureshop/admin/users/${id}/${action}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+      const response=await change.transport(`/api/secureshop/admin/users/${change.targetId}/${change.action === 'ban' ? 'ban' : 'role'}`,
+        {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(change.action === 'ban'
+          ? {reason:change.reason} : {role:change.role})});
       if (!response.ok || (await response.json())?.ok!==true) throw new Error('User change was not acknowledged');
       if (mounted.current && authRef.current===authToken && globalThis.fetch===transport) await load();
     } catch(error) { if (mounted.current && authRef.current===authToken && globalThis.fetch===transport) setMutationError(error.message); }
     finally { mutationLock.current=false;if(mounted.current && authRef.current===authToken && globalThis.fetch===transport)setBusy(false); }
   };
-  const changeRole = (id, role) => administration ? mutateUser(id, role === 'banned' ? 'ban' : 'set_role', role === 'banned' ? undefined : role) : legacyMutation(id,'role',{role});
-  const ban = id => administration ? mutateUser(id, 'ban') : legacyMutation(id,'ban',{reason:banReason || 'no reason given'});
+  const stageChange = (id, action, role) => {
+    if (!mounted.current || mutationLock.current || busy || currentError || !currentData || pendingChange
+      || (boundFrame && administration?.roleBan !== true)) return;
+    const target = visibleUsers.find(user => user.id === id);
+    if (!target || (boundFrame && !target.authority_version)) return;
+    if (action === 'ban' && administration && !validBanReason) {
+      setMutationError('Enter a reason before banning this account.'); return;
+    }
+    setMutationError(null);
+    setConfirmation(Object.freeze({ targetId: target.id, username: target.username,
+      identityKind: target.identity_kind ?? null, expectedVersion: target.authority_version ?? null,
+      sourceRole: target.role, bannedAt: target.banned_at ?? null,
+      action, role, reason: action === 'ban' ? (administration ? banReason : banReason || 'no reason given') : undefined,
+      authToken, transport, scopeKey: administration?.scopeKey ?? null, queryKey, boundFrame }));
+  };
+  const changeRole = (id, role) => stageChange(id,
+    administration && role === 'banned' ? 'ban' : 'set_role', administration && role === 'banned' ? undefined : role);
+  const ban = id => stageChange(id, 'ban');
+  const confirmChange = () => {
+    const change = confirmation;
+    if (!confirmationCurrent(change)) {
+      setConfirmation(null); setMutationError('User or administrator authority changed. Review the current directory before trying again.');
+      return;
+    }
+    setConfirmation(null);
+    if (administration) void mutateUser(change);
+    else void legacyMutation(change);
+  };
   const recoverChange = async () => {
     if (!pendingChange || mutationLock.current) return;
     mutationLock.current = true; setBusy(true); setAuthLossFor(null);
@@ -264,6 +313,7 @@ export default function AdminUsers() {
     try {
       const r = await fetch(`/api/secureshop/admin/users/${id}/reset-password`, { method: 'POST' });
       const j = await r.json();
+      if (!mounted.current || authRef.current !== authToken || globalThis.fetch !== transport) return;
       if (j.ok) {
         showToast(`temp password: ${j.temporary_password}`, 'success');
         window.alert(`Temporary password for user ${id}: ${j.temporary_password}\n\n(email_sent=${j.email_sent} — intentional: no delivery)`);
@@ -406,6 +456,21 @@ export default function AdminUsers() {
         <button className="ss-btn" onClick={load} disabled={busy}>Retry</button>
       </div>}
 
+      {confirmationVisible && <section role="dialog" aria-label="Confirm user change" className="ss-mono"
+        style={{ marginBottom: 16, padding: 16, border: '1px solid var(--rule)', background: 'var(--paper)' }}>
+        <div style={{ marginBottom: 8 }}>
+          {confirmation.action === 'ban'
+            ? `Ban ${confirmation.username} (#${confirmation.targetId})? This can revoke account access and records the reason verbatim in the audit log.`
+            : `Change ${confirmation.username} (#${confirmation.targetId}) from ${confirmation.sourceRole} to ${confirmation.role}? This can change account access immediately.`}
+        </div>
+        {confirmation.action === 'ban' && <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: '0 0 8px' }}>{confirmation.reason}</pre>}
+        {!confirmationCurrent(confirmation) && <div role="alert" style={{ marginBottom: 8 }}>This confirmation is stale. Review the current directory.</div>}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" className="ss-btn ss-btn--ghost" onClick={() => setConfirmation(null)}>Cancel</button>
+          <button type="button" className="ss-btn" onClick={confirmChange} disabled={!confirmationCurrent(confirmation)}>Confirm user change</button>
+        </div>
+      </section>}
+
       {/* User table */}
       <section style={{ marginBottom: 24 }}>
         <div style={{ border: '1px solid var(--rule)', overflowX: 'auto' }}>
@@ -469,7 +534,8 @@ export default function AdminUsers() {
             className="ss-lane__input"
             placeholder="verbatim into audit_events → LLM01 log-injection sink"
             value={banReason}
-            onChange={(e) => setBanReason(e.target.value)}
+            onChange={(e) => setBanReasonEntry({ value: e.target.value, authToken,
+              transport, scopeKey: administration?.scopeKey ?? null })}
             style={{ flex: 1, maxWidth: 640 }}
             aria-label="Ban reason (audit-log)"
           />

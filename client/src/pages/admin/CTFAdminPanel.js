@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import axios from 'axios';
 import useCtfRecovery from '../../services/useCtfRecovery';
 import { isCtfRecoveryCancelled } from '../../services/ctfRecovery';
+import { useAuthRevision } from '../../context/AuthContext';
 import CtfRecoveryNotice from '../../components/CtfRecoveryNotice';
 import { ResetConfirmation } from '../../components/workshop/WorkshopExperience';
 import { toast } from 'react-toastify';
@@ -115,6 +116,39 @@ const TABS = [
 function getAuthHeaders() {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function useStagedCtfAuthority(onChange) {
+  const getAuthRevision = useAuthRevision();
+  const storageEpoch = useRef(0);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  useEffect(() => {
+    const onStorage = event => {
+      if (event.storageArea !== localStorage || (event.key !== 'token' && event.key !== null)) return;
+      storageEpoch.current += 1;
+      onChangeRef.current();
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
+  const capture = () => {
+    try {
+      const token = localStorage.getItem('token');
+      return token ? { token, storageEpoch: storageEpoch.current,
+        authRevision: getAuthRevision ? getAuthRevision() : null } : null;
+    } catch { return null; }
+  };
+  const isCurrent = staged => {
+    try {
+      return !!staged && staged.token === localStorage.getItem('token')
+        && staged.storageEpoch === storageEpoch.current
+        && (staged.authRevision === null || (getAuthRevision && staged.authRevision === getAuthRevision()));
+    } catch { return false; }
+  };
+  return { capture, isCurrent };
 }
 
 function formatTimestamp(ts) {
@@ -753,11 +787,8 @@ function StageEditForm({ stage, onSave, onSaveTeaching, onDelete, onPreview, sav
           <button
             type="button"
             style={s.btn('danger')}
-            onClick={() => {
-              if (window.confirm(`Delete stage "${stage.stage_name}"? This cannot be undone.`)) {
-                onDelete(stage.id);
-              }
-            }}
+            onClick={onDelete}
+            disabled={saving}
           >
             <FiTrash2 /> Delete
           </button>
@@ -767,30 +798,59 @@ function StageEditForm({ stage, onSave, onSaveTeaching, onDelete, onPreview, sav
   );
 }
 
-function PreviewModal({ stage, onClose }) {
+function PreviewModal({ preview, isCurrent, onClose }) {
   const s = stylesForTheme();
   const [payload, setPayload] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const mountedRef = useRef(true);
+  const pendingRef = useRef(null);
+  const currentRef = useRef(isCurrent);
+  currentRef.current = isCurrent;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      pendingRef.current?.abort();
+      pendingRef.current = null;
+    };
+  }, []);
 
   const runPreview = async () => {
+    if (!mountedRef.current || !currentRef.current(preview) || pendingRef.current) return;
     if (!payload.trim()) {
       toast.error('Enter a payload to preview');
       return;
     }
+    const capturedPayload = payload;
+    const controller = new AbortController();
+    pendingRef.current = controller;
     setLoading(true);
     setResult(null);
     try {
       const res = await axios.post(
-        `/api/ctf/admin/stages/${stage.id}/preview`,
-        { payload },
-        { headers: getAuthHeaders() }
+        `/api/ctf/admin/stages/${preview.stageId}/preview`,
+        { payload: capturedPayload },
+        { headers: { Authorization: `Bearer ${preview.authority.token}` }, signal: controller.signal }
       );
+      if (!mountedRef.current || pendingRef.current !== controller || controller.signal.aborted
+        || !currentRef.current(preview)) return;
+      if (res.status !== 200 || !res.data || typeof res.data.defenseBlocked !== 'boolean'
+        || typeof res.data.wouldSucceed !== 'boolean' || !res.data.classification
+        || typeof res.data.classification.tag !== 'string' || !res.data.classification.tag
+        || !Number.isFinite(res.data.classification.confidence)
+        || res.data.classification.confidence < 0 || res.data.classification.confidence > 1
+        || (res.data.rawResponse != null && typeof res.data.rawResponse !== 'string')
+        || (res.data.processedResponse != null && typeof res.data.processedResponse !== 'string')
+        || !Array.isArray(res.data.previewTrace)) throw Error('Preview response was incomplete');
       setResult(res.data);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Preview failed');
+      if (mountedRef.current && pendingRef.current === controller && !controller.signal.aborted
+        && currentRef.current(preview)) toast.error(err.response?.data?.error || 'Preview failed or did not complete');
     } finally {
-      setLoading(false);
+      if (pendingRef.current === controller) pendingRef.current = null;
+      if (mountedRef.current && currentRef.current(preview)) setLoading(false);
     }
   };
 
@@ -799,7 +859,7 @@ function PreviewModal({ stage, onClose }) {
       <div style={s.modal} onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="preview-title">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
           <h3 id="preview-title" style={{ margin: 0, color: COLORS.accent }}>
-            Disclosure Preview: {stage.stage_name}
+            Disclosure Preview: {preview.stageName}
           </h3>
           <button type="button" style={{ ...s.btn('ghost'), padding: '0.35rem' }} onClick={onClose} aria-label="Close">
             <FiX />
@@ -1197,88 +1257,379 @@ function SolutionsTab() {
 
 function LevelsTab() {
   const s = stylesForTheme();
-  const recovery = useCtfRecovery();
   const [stages, setStages] = useState([]);
+  const stageRosterRef = useRef(stages);
+  stageRosterRef.current = stages;
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [previewStage, setPreviewStage] = useState(null);
+  const previewRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
+  const [teachingReview, setTeachingReview] = useState(null);
+  const teachingReviewRef = useRef(null);
+  const teachingPendingRef = useRef(null);
+  const [advancedReview, setAdvancedReview] = useState(null);
+  const advancedReviewRef = useRef(null);
+  const advancedPendingRef = useRef(null);
+  const [stageActiveReview, setStageActiveReview] = useState(null);
+  const stageActiveReviewRef = useRef(null);
+  const stageActivePendingRef = useRef(null);
+  const [deleteReview, setDeleteReview] = useState(null);
+  const deleteReviewRef = useRef(null);
+  const deletePendingRef = useRef(null);
+  const editorSessionRef = useRef(null);
+  const stageRequestRef = useRef(0);
+  const stageAbortRef = useRef(null);
+  const stageMountedRef = useRef(true);
+  const getAuthRevision = useAuthRevision();
+  const renderedAuthRevision = getAuthRevision ? getAuthRevision() : null;
+  const observedAuthRevisionRef = useRef(renderedAuthRevision);
+  const authority = useStagedCtfAuthority(() => {
+    previewRef.current = null;
+    setPreviewStage(null);
+    teachingReviewRef.current = null;
+    advancedReviewRef.current = null;
+    stageActiveReviewRef.current = null;
+    deleteReviewRef.current = null;
+    editorSessionRef.current = null;
+    stageRequestRef.current += 1;
+    stageAbortRef.current?.abort();
+    setTeachingReview(null);
+    setAdvancedReview(null);
+    setStageActiveReview(null);
+    setDeleteReview(null);
+    setExpandedId(null);
+    setStages([]);
+    fetchStages();
+  });
+  const recovery = useCtfRecovery(undefined, () =>
+    (!teachingPendingRef.current || authority.isCurrent(teachingPendingRef.current.authority))
+    && (!advancedPendingRef.current || authority.isCurrent(advancedPendingRef.current.authority))
+    && (!stageActivePendingRef.current || authority.isCurrent(stageActivePendingRef.current.authority))
+    && (!deletePendingRef.current || authority.isCurrent(deletePendingRef.current.authority)));
+  const authorityRef = useRef(authority);
+  authorityRef.current = authority;
 
   const fetchStages = useCallback(async () => {
+    if (!stageMountedRef.current) return;
+    previewRef.current = null;
+    setPreviewStage(null);
+    stageAbortRef.current?.abort();
+    const controller = new AbortController();
+    stageAbortRef.current = controller;
+    const request = ++stageRequestRef.current;
+    const owner = authorityRef.current.capture();
+    const editor = editorSessionRef.current;
+    editorSessionRef.current = editor && authorityRef.current.isCurrent(editor.authority)
+      ? { stageId: editor.stageId, authority: owner } : null;
+    teachingReviewRef.current = null;
+    advancedReviewRef.current = null;
+    stageActiveReviewRef.current = null;
+    deleteReviewRef.current = null;
+    setTeachingReview(null);
+    setAdvancedReview(null);
+    setStageActiveReview(null);
+    setDeleteReview(null);
     setLoading(true);
     try {
-      const res = await axios.get('/api/ctf/admin/stages', { headers: getAuthHeaders() });
+      const res = await axios.get('/api/ctf/admin/stages', { headers: getAuthHeaders(), signal: controller.signal });
+      if (!stageMountedRef.current || request !== stageRequestRef.current || !authorityRef.current.isCurrent(owner)) return;
       setStages(res.data.stages || []);
+      return true;
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
+      if (isCtfRecoveryCancelled(err) || !stageMountedRef.current || request !== stageRequestRef.current || !authorityRef.current.isCurrent(owner)) return;
       toast.error(err.response?.data?.error || 'Failed to load stages');
+      return false;
     } finally {
-      setLoading(false);
+      controller.abort();
+      if (stageAbortRef.current === controller) stageAbortRef.current = null;
+      if (stageMountedRef.current && request === stageRequestRef.current && authorityRef.current.isCurrent(owner)) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    stageMountedRef.current = true;
     fetchStages();
+    return () => {
+      stageMountedRef.current = false;
+      previewRef.current = null;
+      stageRequestRef.current += 1;
+      stageAbortRef.current?.abort();
+      stageAbortRef.current = null;
+      teachingReviewRef.current = null;
+      advancedReviewRef.current = null;
+      stageActiveReviewRef.current = null;
+      deleteReviewRef.current = null;
+      editorSessionRef.current = null;
+    };
   }, [fetchStages]);
 
-  const toggleActive = async (stage) => {
-    setTogglingId(stage.id);
-    const newActive = stage.is_active ? 0 : 1;
+  useEffect(() => {
+    if (observedAuthRevisionRef.current === renderedAuthRevision) return;
+    observedAuthRevisionRef.current = renderedAuthRevision;
+    previewRef.current = null;
+    setPreviewStage(null);
+    teachingReviewRef.current = null;
+    advancedReviewRef.current = null;
+    stageActiveReviewRef.current = null;
+    deleteReviewRef.current = null;
+    editorSessionRef.current = null;
+    setTeachingReview(null);
+    setAdvancedReview(null);
+    setStageActiveReview(null);
+    setDeleteReview(null);
+    setExpandedId(null);
+    setStages([]);
+    fetchStages();
+  }, [fetchStages, renderedAuthRevision]);
+
+  const toggleStageEditor = (stage, renderedAuthority) => {
+    if (teachingReviewRef.current || teachingPendingRef.current || advancedReviewRef.current
+      || advancedPendingRef.current || stageActiveReviewRef.current || stageActivePendingRef.current
+      || deleteReviewRef.current || deletePendingRef.current) return;
+    if (!authority.isCurrent(renderedAuthority)) return;
+    previewRef.current = null;
+    setPreviewStage(null);
+    if (editorSessionRef.current?.stageId === stage.id) {
+      editorSessionRef.current = null;
+      setExpandedId(null);
+      return;
+    }
+    editorSessionRef.current = { stageId: stage.id, authority: renderedAuthority };
+    setExpandedId(stage.id);
+  };
+
+  const openPreview = (stage, editor) => {
+    if (!stageMountedRef.current || !editor || editorSessionRef.current !== editor
+      || editor.stageId !== stage.id || stageRosterRef.current.find(item => item.id === stage.id) !== stage
+      || !authority.isCurrent(editor.authority) || previewRef.current || saving
+      || teachingReviewRef.current || teachingPendingRef.current
+      || advancedReviewRef.current || advancedPendingRef.current
+      || stageActiveReviewRef.current || stageActivePendingRef.current
+      || deleteReviewRef.current || deletePendingRef.current) return;
+    const captured = Object.freeze({ stageId: stage.id, stageName: stage.stage_name,
+      stageSource: stage, editor, authority: editor.authority });
+    previewRef.current = captured;
+    setPreviewStage(captured);
+  };
+
+  const closePreview = captured => {
+    if (previewRef.current !== captured) return;
+    previewRef.current = null;
+    setPreviewStage(null);
+  };
+
+  const isCurrentPreview = captured => !!captured && stageMountedRef.current
+    && previewRef.current === captured && editorSessionRef.current === captured.editor
+    && authority.isCurrent(captured.authority)
+    && stageRosterRef.current.find(stage => stage.id === captured.stageId) === captured.stageSource
+    && captured.stageSource.stage_name === captured.stageName;
+
+  const stageSaveTeaching = (id, data, editor) => {
+    if (!stageMountedRef.current || !editor || editorSessionRef.current !== editor || editor.stageId !== id
+      || !authority.isCurrent(editor.authority) || teachingReviewRef.current || teachingPendingRef.current
+      || advancedReviewRef.current || advancedPendingRef.current
+      || stageActiveReviewRef.current || stageActivePendingRef.current
+      || deleteReviewRef.current || deletePendingRef.current || saving) return;
+    const draft = Object.freeze({ stage_name: data.stage_name, stage_description: data.stage_description,
+      hints: data.hints, teaching_objective: data.teaching_objective, solution_content: data.solution_content });
+    const staged = { id, stageName: stages.find(item => item.id === id)?.stage_name || data.stage_name,
+      data: draft, editor, authority: editor.authority };
+    teachingReviewRef.current = staged;
+    setTeachingReview(staged);
+  };
+
+  const cancelSaveTeaching = staged => {
+    if (!staged || teachingReviewRef.current !== staged || teachingPendingRef.current) return;
+    teachingReviewRef.current = null;
+    setTeachingReview(null);
+  };
+
+  const stageActiveToggle = (stage, renderedAuthority) => {
+    if (!stageMountedRef.current || !authority.isCurrent(renderedAuthority) || stageActiveReviewRef.current
+      || stageActivePendingRef.current || teachingReviewRef.current || teachingPendingRef.current
+      || advancedReviewRef.current || advancedPendingRef.current
+      || deleteReviewRef.current || deletePendingRef.current || saving) return;
+    const current = stageRosterRef.current.find(item => item.id === stage.id);
+    if (current !== stage) return;
+    const staged = Object.freeze({ id: stage.id, stageName: stage.stage_name,
+      currentActive: stage.is_active ? 1 : 0, nextActive: stage.is_active ? 0 : 1,
+      authority: renderedAuthority });
+    stageActiveReviewRef.current = staged;
+    setStageActiveReview(staged);
+  };
+
+  const cancelStageActive = staged => {
+    if (!staged || stageActiveReviewRef.current !== staged || stageActivePendingRef.current) return;
+    stageActiveReviewRef.current = null;
+    setStageActiveReview(null);
+  };
+
+  const confirmStageActive = async staged => {
+    if (!staged || stageActiveReviewRef.current !== staged || stageActivePendingRef.current
+      || teachingReviewRef.current || teachingPendingRef.current || advancedReviewRef.current
+      || advancedPendingRef.current || deleteReviewRef.current || deletePendingRef.current
+      || !stageMountedRef.current
+      || !authority.isCurrent(staged.authority)) return;
+    const current = stageRosterRef.current.find(item => item.id === staged.id);
+    if (!current || current.stage_name !== staged.stageName
+      || (current.is_active ? 1 : 0) !== staged.currentActive) return;
+    stageActiveReviewRef.current = null;
+    stageActivePendingRef.current = staged;
+    setStageActiveReview(null);
+    setTogglingId(staged.id);
     try {
       await recovery.request('put',
-        `/api/ctf/admin/stages/${stage.id}`,
-        { is_active: newActive },
-        { headers: getAuthHeaders() }
+        `/api/ctf/admin/stages/${staged.id}`,
+        { is_active: staged.nextActive },
+        { headers: { Authorization: `Bearer ${staged.authority.token}` } }
       );
-      setStages((prev) => prev.map((st) => (st.id === stage.id ? { ...st, is_active: newActive } : st)));
-      toast.success(`Stage ${newActive ? 'activated' : 'deactivated'}`);
+      if (!stageMountedRef.current || stageActivePendingRef.current !== staged || !authority.isCurrent(staged.authority)) return;
+      const refreshed = await fetchStages();
+      if (refreshed && stageMountedRef.current && stageActivePendingRef.current === staged
+        && authority.isCurrent(staged.authority)) toast.success(`Stage ${staged.nextActive ? 'activated' : 'deactivated'}`);
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
+      if (isCtfRecoveryCancelled(err) || !stageMountedRef.current || stageActivePendingRef.current !== staged
+        || !authority.isCurrent(staged.authority)) return;
       toast.error(err.response?.data?.error || 'Failed to toggle stage');
     } finally {
-      setTogglingId(null);
+      if (stageActivePendingRef.current === staged) {
+        stageActivePendingRef.current = null;
+        if (stageMountedRef.current) setTogglingId(null);
+      }
     }
   };
 
-  const handleSave = async (id, data) => {
+  const stageSaveAdvanced = (id, data, editor) => {
+    if (!stageMountedRef.current || !editor || editorSessionRef.current !== editor || editor.stageId !== id
+      || !authority.isCurrent(editor.authority) || advancedReviewRef.current || advancedPendingRef.current
+      || teachingReviewRef.current || teachingPendingRef.current
+      || stageActiveReviewRef.current || stageActivePendingRef.current
+      || deleteReviewRef.current || deletePendingRef.current || saving) return;
+    const current = stageRosterRef.current.find(item => item.id === id);
+    if (!current) return;
+    const draft = Object.freeze({ stage_name: data.stage_name, stage_description: data.stage_description,
+      system_prompt: data.system_prompt, success_criteria: data.success_criteria,
+      hints: data.hints, defense_style: data.defense_style, adaptive_mode: data.adaptive_mode,
+      level_score: data.level_score, feedback_mode: data.feedback_mode });
+    const staged = { id, stageName: current.stage_name, data: draft, editor, authority: editor.authority };
+    advancedReviewRef.current = staged;
+    setAdvancedReview(staged);
+  };
+
+  const cancelSaveAdvanced = staged => {
+    if (!staged || advancedReviewRef.current !== staged || advancedPendingRef.current) return;
+    advancedReviewRef.current = null;
+    setAdvancedReview(null);
+  };
+
+  const confirmSaveAdvanced = async staged => {
+    if (!staged || advancedReviewRef.current !== staged || advancedPendingRef.current
+      || editorSessionRef.current !== staged.editor || !stageMountedRef.current
+      || !authority.isCurrent(staged.authority)) return;
+    const current = stageRosterRef.current.find(item => item.id === staged.id);
+    if (!current || current.stage_name !== staged.stageName) return;
+    advancedReviewRef.current = null;
+    advancedPendingRef.current = staged;
+    setAdvancedReview(null);
     setSaving(true);
     try {
-      await recovery.request('put',`/api/ctf/admin/stages/${id}`, data, { headers: getAuthHeaders() });
-      toast.success('Stage saved');
-      setExpandedId(null);
-      fetchStages();
+      await recovery.request('put', `/api/ctf/admin/stages/${staged.id}`, staged.data,
+        { headers: { Authorization: `Bearer ${staged.authority.token}` } });
+      if (!stageMountedRef.current || advancedPendingRef.current !== staged || !authority.isCurrent(staged.authority)) return;
+      const refreshed = await fetchStages();
+      if (refreshed && stageMountedRef.current && advancedPendingRef.current === staged
+        && authority.isCurrent(staged.authority)) {
+        toast.success('Stage saved');
+        editorSessionRef.current = null;
+        setExpandedId(null);
+      }
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
+      if (isCtfRecoveryCancelled(err) || !stageMountedRef.current || advancedPendingRef.current !== staged
+        || !authority.isCurrent(staged.authority)) return;
       toast.error(err.response?.data?.error || 'Failed to save stage');
     } finally {
-      setSaving(false);
+      if (advancedPendingRef.current === staged) {
+        advancedPendingRef.current = null;
+        if (stageMountedRef.current) setSaving(false);
+      }
     }
   };
 
-  const handleSaveTeaching = async (id, data) => {
+  const handleSaveTeaching = async staged => {
+    if (!staged || teachingReviewRef.current !== staged || teachingPendingRef.current
+      || editorSessionRef.current !== staged.editor || !authority.isCurrent(staged.authority)) return;
+    teachingReviewRef.current = null;
+    teachingPendingRef.current = staged;
+    setTeachingReview(null);
     setSaving(true);
+    const { id, data } = staged;
     try {
-      await recovery.request('put',`/api/ctf/admin/stages/${id}/content`, data, { headers: getAuthHeaders() });
+      await recovery.request('put',`/api/ctf/admin/stages/${id}/content`, data, { headers: { Authorization: `Bearer ${staged.authority.token}` } });
+      if (!stageMountedRef.current || teachingPendingRef.current !== staged || !authority.isCurrent(staged.authority)) return;
       toast.success('Teaching content saved');
       fetchStages();
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
+      if (isCtfRecoveryCancelled(err) || !stageMountedRef.current || teachingPendingRef.current !== staged || !authority.isCurrent(staged.authority)) return;
       toast.error(err.response?.data?.error || 'Failed to save teaching content');
     } finally {
-      setSaving(false);
+      if (teachingPendingRef.current === staged) {
+        teachingPendingRef.current = null;
+        if (stageMountedRef.current) setSaving(false);
+      }
     }
   };
 
-  const handleDelete = async (id) => {
+  const stageDelete = (stage, editor) => {
+    if (!stageMountedRef.current || !editor || editorSessionRef.current !== editor
+      || editor.stageId !== stage.id || !authority.isCurrent(editor.authority)
+      || stageRosterRef.current.find(item => item.id === stage.id) !== stage
+      || deleteReviewRef.current || deletePendingRef.current
+      || teachingReviewRef.current || teachingPendingRef.current
+      || advancedReviewRef.current || advancedPendingRef.current
+      || stageActiveReviewRef.current || stageActivePendingRef.current || saving) return;
+    const staged = Object.freeze({ id: stage.id, stageName: stage.stage_name,
+      editor, authority: editor.authority });
+    deleteReviewRef.current = staged;
+    setDeleteReview(staged);
+  };
+
+  const cancelDelete = staged => {
+    if (!staged || deleteReviewRef.current !== staged || deletePendingRef.current) return;
+    deleteReviewRef.current = null;
+    setDeleteReview(null);
+  };
+
+  const confirmDelete = async staged => {
+    if (!staged || deleteReviewRef.current !== staged || deletePendingRef.current
+      || editorSessionRef.current !== staged.editor || !stageMountedRef.current
+      || !authority.isCurrent(staged.authority)) return;
+    const current = stageRosterRef.current.find(item => item.id === staged.id);
+    if (!current || current.stage_name !== staged.stageName) return;
+    deleteReviewRef.current = null;
+    deletePendingRef.current = staged;
+    setDeleteReview(null);
+    setSaving(true);
     try {
-      await recovery.request('delete',`/api/ctf/admin/stages/${id}`, undefined, { headers: getAuthHeaders() });
-      toast.success('Stage deleted');
+      await recovery.request('delete',`/api/ctf/admin/stages/${staged.id}`, undefined,
+        { headers: { Authorization: `Bearer ${staged.authority.token}` } });
+      if (!stageMountedRef.current || deletePendingRef.current !== staged
+        || !authority.isCurrent(staged.authority)) return;
+      editorSessionRef.current = null;
       setExpandedId(null);
-      fetchStages();
+      const refreshed = await fetchStages();
+      if (refreshed && stageMountedRef.current && deletePendingRef.current === staged
+        && authority.isCurrent(staged.authority)) toast.success('Stage deleted');
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
+      if (isCtfRecoveryCancelled(err) || !stageMountedRef.current
+        || deletePendingRef.current !== staged || !authority.isCurrent(staged.authority)) return;
       toast.error(err.response?.data?.error || 'Failed to delete stage');
+    } finally {
+      if (deletePendingRef.current === staged) {
+        deletePendingRef.current = null;
+        if (stageMountedRef.current) setSaving(false);
+      }
     }
   };
 
@@ -1311,11 +1662,14 @@ function LevelsTab() {
             </tr>
           </thead>
           <tbody>
-            {stages.map((stage) => (
+            {stages.map((stage) => {
+              const editor = editorSessionRef.current;
+              const renderedAuthority = authority.capture();
+              return (
               <React.Fragment key={stage.id}>
                 <tr
                   style={{ cursor: 'pointer' }}
-                  onClick={() => setExpandedId(expandedId === stage.id ? null : stage.id)}
+                  onClick={() => toggleStageEditor(stage, renderedAuthority)}
                 >
                   <td style={s.td}>{stage.stage_number}</td>
                   <td style={s.td}>{stage.stage_name}</td>
@@ -1327,8 +1681,8 @@ function LevelsTab() {
                   <td style={s.td} onClick={(e) => e.stopPropagation()}>
                     <ToggleSwitch
                       checked={!!stage.is_active}
-                      disabled={togglingId === stage.id}
-                      onChange={() => toggleActive(stage)}
+                      disabled={togglingId !== null || !!stageActiveReview}
+                      onChange={() => stageActiveToggle(stage, renderedAuthority)}
                     />
                   </td>
                   <td style={s.td}>
@@ -1338,21 +1692,55 @@ function LevelsTab() {
                 {expandedId === stage.id && (
                   <StageEditForm
                     stage={stage}
-                    onSave={handleSave}
-                    onSaveTeaching={handleSaveTeaching}
-                    onDelete={handleDelete}
-                    onPreview={setPreviewStage}
+                    onSave={(id, data) => stageSaveAdvanced(id, data, editor)}
+                    onSaveTeaching={(id, data) => stageSaveTeaching(id, data, editor)}
+                    onDelete={() => stageDelete(stage, editor)}
+                    onPreview={() => openPreview(stage, editor)}
                     saving={saving}
                   />
                 )}
               </React.Fragment>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
       {previewStage && (
-        <PreviewModal stage={previewStage} onClose={() => setPreviewStage(null)} />
+        <PreviewModal preview={previewStage} isCurrent={isCurrentPreview}
+          onClose={() => closePreview(previewStage)} />
       )}
+      <ConfirmDialog
+        open={!!teachingReview}
+        title="Save CTF teaching content"
+        message={teachingReview ? `This updates the learner-visible title, description, objective, and hints for "${teachingReview.stageName}", plus its admin-only instructor solution. Guardian policy and scoring are unchanged.` : ''}
+        confirmLabel="Confirm Teaching Save"
+        onConfirm={() => handleSaveTeaching(teachingReview)}
+        onCancel={() => cancelSaveTeaching(teachingReview)}
+      />
+      <ConfirmDialog
+        open={!!advancedReview}
+        title="Save advanced CTF stage controls"
+        message={advancedReview ? `This updates the learner-visible name, description, and hints for "${advancedReview.stageName}", and changes its guardian system prompt, success criteria, defense style, adaptive mode, score, and feedback mode. Review these policy and scoring consequences before saving.` : ''}
+        confirmLabel="Confirm Advanced Save"
+        onConfirm={() => confirmSaveAdvanced(advancedReview)}
+        onCancel={() => cancelSaveAdvanced(advancedReview)}
+      />
+      <ConfirmDialog
+        open={!!stageActiveReview}
+        title={stageActiveReview?.nextActive ? 'Activate CTF stage' : 'Deactivate CTF stage'}
+        message={stageActiveReview ? `Change learner availability for "${stageActiveReview.stageName}" from ${stageActiveReview.currentActive ? 'active' : 'inactive'} to ${stageActiveReview.nextActive ? 'active' : 'inactive'}? Stored progress and attempts are not reset.` : ''}
+        confirmLabel={stageActiveReview?.nextActive ? 'Confirm Activate' : 'Confirm Deactivate'}
+        onConfirm={() => confirmStageActive(stageActiveReview)}
+        onCancel={() => cancelStageActive(stageActiveReview)}
+      />
+      <ConfirmDialog
+        open={!!deleteReview}
+        title="Delete CTF stage"
+        message={deleteReview ? `Permanently delete "${deleteReview.stageName}"? Its stage-owned progress, attempts, events, adaptive blocklist entries, and teaching content will be removed. Historical command evidence remains. This cannot be undone.` : ''}
+        confirmLabel="Confirm Delete"
+        onConfirm={() => confirmDelete(deleteReview)}
+        onCancel={() => cancelDelete(deleteReview)}
+      />
     </div>
   );
 }
@@ -1587,17 +1975,44 @@ function AttemptsTab() {
 
 function LeaderboardTab() {
   const s = stylesForTheme();
-  const recovery = useCtfRecovery();
   const [leaderboard, setLeaderboard] = useState([]);
   const [participants, setParticipants] = useState([]);
   const [bannedUserIds, setBannedUserIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [actionUserId, setActionUserId] = useState(null);
   const [resetTarget, setResetTarget] = useState(null);
+  const resetTargetRef = useRef(null);
   const [resetting, setResetting] = useState(false);
   const participantResetRef = useRef(false);
   const [removeTarget, setRemoveTarget] = useState(null);
+  const removeTargetRef = useRef(null);
   const [removing, setRemoving] = useState(false);
+  const participantRemoveRef = useRef(false);
+  const [banReview, setBanReview] = useState(null);
+  const banReviewRef = useRef(null);
+  const banPendingRef = useRef(null);
+  const rosterRequestRef = useRef(0);
+  const rosterAbortRef = useRef(null);
+  const rosterMountedRef = useRef(true);
+  const getAuthRevision = useAuthRevision();
+  const renderedAuthRevision = getAuthRevision ? getAuthRevision() : null;
+  const observedAuthRevisionRef = useRef(renderedAuthRevision);
+  const authority = useStagedCtfAuthority(() => {
+    resetTargetRef.current = null;
+    removeTargetRef.current = null;
+    banReviewRef.current = null;
+    rosterRequestRef.current += 1;
+    setResetTarget(null);
+    setRemoveTarget(null);
+    setBanReview(null);
+    setBannedUserIds(new Set());
+    setLeaderboard([]);
+    setParticipants([]);
+    fetchData();
+  });
+  const recovery = useCtfRecovery(undefined, () => !banPendingRef.current || authority.isCurrent(banPendingRef.current.authority));
+  const authorityRef = useRef(authority);
+  authorityRef.current = authority;
 
   const participantByLeaderId = useMemo(() => {
     const map = {};
@@ -1608,48 +2023,103 @@ function LeaderboardTab() {
   }, [participants]);
 
   const fetchData = useCallback(async () => {
+    if (!rosterMountedRef.current) return;
+    rosterAbortRef.current?.abort();
+    const controller = new AbortController();
+    rosterAbortRef.current = controller;
+    const request = ++rosterRequestRef.current;
+    const owner = authorityRef.current.capture();
     setLoading(true);
     try {
       const [lbRes, partsRes] = await Promise.all([
-        axios.get('/api/ctf/leaderboard', { headers: getAuthHeaders(), params: { limit: 50 } }),
-        axios.get('/api/ctf/admin/participants', { headers: getAuthHeaders() }),
+        axios.get('/api/ctf/leaderboard', { headers: getAuthHeaders(), params: { limit: 50 }, signal: controller.signal }),
+        axios.get('/api/ctf/admin/participants', { headers: getAuthHeaders(), signal: controller.signal }),
       ]);
+      if (!rosterMountedRef.current || request !== rosterRequestRef.current || !authorityRef.current.isCurrent(owner)) return;
+      const nextParticipants = partsRes.data.participants || [];
       setLeaderboard(lbRes.data.leaderboard || []);
-      setParticipants(partsRes.data.participants || []);
+      setParticipants(nextParticipants);
+      setBannedUserIds(new Set(nextParticipants.filter(p => p.is_banned === true).map(p => p.user_id)));
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
+      if (isCtfRecoveryCancelled(err) || !rosterMountedRef.current || request !== rosterRequestRef.current || !authorityRef.current.isCurrent(owner)) return;
       toast.error(err.response?.data?.error || 'Failed to load leaderboard');
     } finally {
-      setLoading(false);
+      controller.abort();
+      if (rosterAbortRef.current === controller) rosterAbortRef.current = null;
+      if (rosterMountedRef.current && request === rosterRequestRef.current && authorityRef.current.isCurrent(owner)) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    rosterMountedRef.current = true;
     fetchData();
+    return () => {
+      rosterMountedRef.current = false;
+      rosterRequestRef.current += 1;
+      rosterAbortRef.current?.abort();
+      rosterAbortRef.current = null;
+      banReviewRef.current = null;
+    };
   }, [fetchData]);
+
+  useEffect(() => {
+    if (observedAuthRevisionRef.current === renderedAuthRevision) return;
+    observedAuthRevisionRef.current = renderedAuthRevision;
+    banReviewRef.current = null;
+    setBanReview(null);
+    setBannedUserIds(new Set());
+    setLeaderboard([]);
+    setParticipants([]);
+    fetchData();
+  }, [fetchData, renderedAuthRevision]);
 
   const getUserId = (entry) => {
     const p = participantByLeaderId[entry.participant_id];
     return p?.user_id;
   };
 
-  const confirmReset = async () => {
-    if (!resetTarget || participantResetRef.current) return;
-    const userId = getUserId(resetTarget);
+  const stageParticipantAction = (entry, action) => {
+    const userId = getUserId(entry);
     if (!userId) {
       toast.error('Could not resolve user ID for this participant');
+      return;
+    }
+    const stagedAuthority = authority.capture();
+    if (!stagedAuthority) return;
+    const target = { userId, username: entry.username, authority: stagedAuthority };
+    if (action === 'reset') {
+      resetTargetRef.current = target;
+      setResetTarget(target);
+    } else {
+      removeTargetRef.current = target;
+      setRemoveTarget(target);
+    }
+  };
+
+  const confirmReset = async () => {
+    if (!resetTarget || resetTargetRef.current !== resetTarget || participantResetRef.current) return;
+    if (!authority.isCurrent(resetTarget.authority)) {
+      resetTargetRef.current = null;
       setResetTarget(null);
       return;
     }
+    const { userId, username, authority: resetAuthority } = resetTarget;
+    resetTargetRef.current = null;
     participantResetRef.current = true;
+    // The confirmation has already captured its exact target and authority.
+    // Retire the overlay before a recoverable request can park so the mounted
+    // recovery notice remains reachable without releasing the single-flight.
+    setResetTarget(null);
     setResetting(true);
     setActionUserId(userId);
     try {
-      await recovery.request('post',`/api/ctf/admin/participants/${userId}/reset`, {}, { headers: getAuthHeaders() });
-      toast.success(`${resetTarget.username} reset successfully`);
-      fetchData();
+      await recovery.request('post',`/api/ctf/admin/participants/${userId}/reset`, {}, { headers: { Authorization: `Bearer ${resetAuthority.token}` } });
+      if (authority.isCurrent(resetAuthority)) {
+        toast.success(`${username} reset successfully`);
+        fetchData();
+      }
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
+      if (isCtfRecoveryCancelled(err) || !authority.isCurrent(resetAuthority)) return;
       toast.error(err.response?.data?.error || 'Reset failed');
     } finally {
       participantResetRef.current = false;
@@ -1660,72 +2130,112 @@ function LeaderboardTab() {
   };
 
   const confirmRemove = async () => {
-    if (!removeTarget) return;
-    const userId = getUserId(removeTarget);
-    if (!userId) {
-      toast.error('Could not resolve user ID for this participant');
+    if (!removeTarget || removeTargetRef.current !== removeTarget || participantRemoveRef.current) return;
+    if (!authority.isCurrent(removeTarget.authority)) {
+      removeTargetRef.current = null;
       setRemoveTarget(null);
       return;
     }
+    const { userId, username } = removeTarget;
+    removeTargetRef.current = null;
+    participantRemoveRef.current = true;
     setRemoving(true);
     setActionUserId(userId);
     try {
-      await recovery.request('post',`/api/ctf/admin/participants/${userId}/remove`, {}, { headers: getAuthHeaders() });
-      toast.success(`${removeTarget.username} removed from CTF`);
-      fetchData();
+      await recovery.request('post',`/api/ctf/admin/participants/${userId}/remove`, {}, { headers: { Authorization: `Bearer ${removeTarget.authority.token}` } });
+      if (authority.isCurrent(removeTarget.authority)) {
+        toast.success(`${username} removed from CTF`);
+        fetchData();
+      }
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
+      if (isCtfRecoveryCancelled(err) || !authority.isCurrent(removeTarget.authority)) return;
       toast.error(err.response?.data?.error || 'Remove failed');
     } finally {
+      participantRemoveRef.current = false;
       setActionUserId(null);
       setRemoving(false);
       setRemoveTarget(null);
     }
   };
 
-  const handleBan = async (entry) => {
+  const stageBanAction = (entry, kind) => {
+    if (banReviewRef.current || banPendingRef.current || participantResetRef.current || participantRemoveRef.current || resetTargetRef.current || removeTargetRef.current) return;
     const userId = getUserId(entry);
     if (!userId) {
       toast.error('Could not resolve user ID');
       return;
     }
-    const reason = window.prompt(`Ban reason for ${entry.username}:`, 'Banned by admin');
-    if (reason === null) return;
-    setActionUserId(userId);
+    const stagedAuthority = authority.capture();
+    if (!stagedAuthority) return;
+    const reason = kind === 'ban' ? window.prompt(`Ban reason for ${entry.username}:`, 'Banned by admin') : null;
+    if (kind === 'ban' && reason === null) return;
+    if (!authority.isCurrent(stagedAuthority)) return;
+    const staged = { kind, userId, username: entry.username, reason, authority: stagedAuthority };
+    banReviewRef.current = staged;
+    setBanReview(staged);
+  };
+
+  const claimBanReview = (staged, kind) => {
+    if (!staged || banReviewRef.current !== staged || staged.kind !== kind || banPendingRef.current || !authority.isCurrent(staged.authority)) return false;
+    banReviewRef.current = null;
+    banPendingRef.current = staged;
+    setBanReview(null);
+    setActionUserId(staged.userId);
+    return true;
+  };
+
+  const finishBanReview = staged => {
+    if (banPendingRef.current !== staged) return;
+    banPendingRef.current = null;
+    setActionUserId(null);
+  };
+
+  const handleBan = async (staged) => {
+    if (!claimBanReview(staged, 'ban')) return;
+    const { userId, username, reason } = staged;
     try {
       await recovery.request('post',
         `/api/ctf/admin/participants/${userId}/ban`,
         { reason },
-        { headers: getAuthHeaders() }
+        { headers: { Authorization: `Bearer ${staged.authority.token}` } }
       );
-      toast.success(`${entry.username} banned`);
+      if (!authority.isCurrent(staged.authority) || banPendingRef.current !== staged) return;
+      toast.success(`${username} banned`);
       setBannedUserIds((prev) => new Set([...prev, userId]));
+      fetchData();
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
+      if (isCtfRecoveryCancelled(err) || !authority.isCurrent(staged.authority) || banPendingRef.current !== staged) return;
       toast.error(err.response?.data?.error || 'Ban failed');
     } finally {
-      setActionUserId(null);
+      finishBanReview(staged);
     }
   };
 
-  const handleUnban = async (entry) => {
-    const userId = getUserId(entry);
-    if (!userId) return;
-    setActionUserId(userId);
+  const handleUnban = async (staged) => {
+    if (!claimBanReview(staged, 'unban')) return;
+    const { userId, username } = staged;
     try {
-      await recovery.request('post',`/api/ctf/admin/participants/${userId}/unban`, {}, { headers: getAuthHeaders() });
-      toast.success(`${entry.username} unbanned`);
+      await recovery.request('post',`/api/ctf/admin/participants/${userId}/unban`, {}, { headers: { Authorization: `Bearer ${staged.authority.token}` } });
+      if (!authority.isCurrent(staged.authority) || banPendingRef.current !== staged) return;
+      toast.success(`${username} unbanned`);
       setBannedUserIds((prev) => {
         const next = new Set(prev);
         next.delete(userId);
         return next;
       });
+      fetchData();
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
+      if (isCtfRecoveryCancelled(err) || !authority.isCurrent(staged.authority) || banPendingRef.current !== staged) return;
       toast.error(err.response?.data?.error || 'Unban failed');
     } finally {
-      setActionUserId(null);
+      finishBanReview(staged);
     }
+  };
+
+  const cancelBanReview = staged => {
+    if (!staged || banReviewRef.current !== staged || banPendingRef.current) return;
+    banReviewRef.current = null;
+    setBanReview(null);
   };
 
   if (loading) {
@@ -1790,7 +2300,7 @@ function LeaderboardTab() {
                           type="button"
                           style={{ ...s.btn('ghost'), padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}
                           disabled={busy}
-                          onClick={() => setResetTarget(entry)}
+                          onClick={() => stageParticipantAction(entry, 'reset')}
                         >
                           Reset
                         </button>
@@ -1799,7 +2309,7 @@ function LeaderboardTab() {
                             type="button"
                             style={{ ...s.btn('success'), padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}
                             disabled={busy}
-                            onClick={() => handleUnban(entry)}
+                            onClick={() => stageBanAction(entry, 'unban')}
                           >
                             Unban
                           </button>
@@ -1808,7 +2318,7 @@ function LeaderboardTab() {
                             type="button"
                             style={{ ...s.btn('danger'), padding: '0.35rem 0.5rem', fontSize: '0.75rem' }}
                             disabled={busy}
-                            onClick={() => handleBan(entry)}
+                            onClick={() => stageBanAction(entry, 'ban')}
                           >
                             <FiUserX /> Ban
                           </button>
@@ -1817,7 +2327,7 @@ function LeaderboardTab() {
                           type="button"
                           style={{ ...s.btn('ghost'), padding: '0.35rem 0.5rem', fontSize: '0.75rem', color: COLORS.warning }}
                           disabled={busy}
-                          onClick={() => setRemoveTarget(entry)}
+                          onClick={() => stageParticipantAction(entry, 'remove')}
                         >
                           <FiTrash2 /> Remove
                         </button>
@@ -1837,7 +2347,7 @@ function LeaderboardTab() {
         confirmLabel="Reset Progress"
         loading={resetting}
         onConfirm={confirmReset}
-        onCancel={() => setResetTarget(null)}
+        onCancel={() => { resetTargetRef.current = null; setResetTarget(null); }}
       />
       <ConfirmDialog
         open={!!removeTarget}
@@ -1846,7 +2356,17 @@ function LeaderboardTab() {
         confirmLabel="Remove from CTF"
         loading={removing}
         onConfirm={confirmRemove}
-        onCancel={() => setRemoveTarget(null)}
+        onCancel={() => { removeTargetRef.current = null; setRemoveTarget(null); }}
+      />
+      <ConfirmDialog
+        open={!!banReview}
+        title={banReview?.kind === 'ban' ? 'Ban participant from CTF' : 'Unban participant from CTF'}
+        message={banReview ? banReview.kind === 'ban'
+          ? `"${banReview.username}" will be blocked from CTF participation. Their existing progress and platform account remain stored. Reason: ${banReview.reason}`
+          : `"${banReview.username}" will be allowed to participate in the CTF again. Their existing progress and platform account remain unchanged.` : ''}
+        confirmLabel={banReview?.kind === 'ban' ? 'Confirm Ban' : 'Confirm Unban'}
+        onConfirm={() => banReview?.kind === 'ban' ? handleBan(banReview) : handleUnban(banReview)}
+        onCancel={() => cancelBanReview(banReview)}
       />
     </div>
   );
@@ -1854,39 +2374,127 @@ function LeaderboardTab() {
 
 function ConfigTab() {
   const s = stylesForTheme();
-  const recovery = useCtfRecovery();
+  const reviewRef = useRef(null);
+  const pendingRef = useRef(null);
+  const mountedRef = useRef(true);
+  const readNumberRef = useRef(0);
+  const readAbortRef = useRef(null);
+  const persistedRef = useRef({});
+  const authority = useStagedCtfAuthority(() => {
+    reviewRef.current = null;
+    readNumberRef.current += 1;
+    readAbortRef.current?.abort();
+    if (mountedRef.current) {
+      setConfigReview(null);
+      fetchConfig();
+    }
+  });
+  const authorityRef = useRef(authority);
+  authorityRef.current = authority;
+  const recovery = useCtfRecovery(undefined, () => !pendingRef.current || authorityRef.current.isCurrent(pendingRef.current.authority));
   const [config, setConfig] = useState({});
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState(null);
+  const [configReview, setConfigReview] = useState(null);
+  const getAuthRevision = useAuthRevision();
+  const renderedAuthRevision = getAuthRevision ? getAuthRevision() : null;
+  const observedAuthRevisionRef = useRef(renderedAuthRevision);
 
-  const fetchConfig = useCallback(async () => {
+  const fetchConfig = useCallback(async (expectedAuthority = null) => {
+    const captured = expectedAuthority || authorityRef.current.capture();
+    if (!captured || !authorityRef.current.isCurrent(captured)) return null;
+    const readNumber = ++readNumberRef.current;
+    readAbortRef.current?.abort();
+    const controller = new AbortController();
+    readAbortRef.current = controller;
     setLoading(true);
     try {
-      const res = await axios.get('/api/ctf/config', { headers: getAuthHeaders() });
-      setConfig(res.data.config || {});
+      const res = await axios.get('/api/ctf/config', {
+        headers: { Authorization: `Bearer ${captured.token}` }, signal: controller.signal,
+      });
+      if (!mountedRef.current || controller.signal.aborted || readNumber !== readNumberRef.current
+        || !authorityRef.current.isCurrent(captured)) return null;
+      if (res.status != null && res.status !== 200) throw new Error('Configuration readback was not complete');
+      if (!res.data?.config || typeof res.data.config !== 'object' || Array.isArray(res.data.config))
+        throw new Error('Configuration readback was unavailable');
+      persistedRef.current = res.data.config;
+      setConfig(res.data.config);
+      return res.data.config;
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
-      toast.error(err.response?.data?.error || 'Failed to load config (is CTF enabled?)');
+      if (controller.signal.aborted || !mountedRef.current || readNumber !== readNumberRef.current
+        || !authorityRef.current.isCurrent(captured)) return null;
+      if (!expectedAuthority && !isCtfRecoveryCancelled(err))
+        toast.error(err.response?.data?.error || 'Failed to load config (is CTF enabled?)');
+      return null;
     } finally {
-      setLoading(false);
+      if (readAbortRef.current === controller) readAbortRef.current = null;
+      if (mountedRef.current && readNumber === readNumberRef.current && authorityRef.current.isCurrent(captured))
+        setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    mountedRef.current = true;
     fetchConfig();
+    return () => {
+      mountedRef.current = false;
+      reviewRef.current = null;
+      readNumberRef.current += 1;
+      readAbortRef.current?.abort();
+    };
   }, [fetchConfig]);
 
-  const saveConfig = async (key, value) => {
-    setSavingKey(key);
+  useEffect(() => {
+    if (observedAuthRevisionRef.current === renderedAuthRevision) return;
+    observedAuthRevisionRef.current = renderedAuthRevision;
+    reviewRef.current = null;
+    setConfigReview(null);
+    readNumberRef.current += 1;
+    readAbortRef.current?.abort();
+    fetchConfig();
+  }, [fetchConfig, renderedAuthRevision]);
+
+  const stageConfigSave = (key, value) => {
+    if (!Object.prototype.hasOwnProperty.call(CONFIG_LABELS, key) || reviewRef.current || pendingRef.current) return;
+    const captured = authority.capture();
+    if (!captured || !authority.isCurrent(captured)) return;
+    const staged = Object.freeze({ key, value: String(value), previous: String(persistedRef.current[key] ?? ''), authority: captured });
+    reviewRef.current = staged;
+    setConfigReview(staged);
+  };
+
+  const cancelConfigSave = staged => {
+    if (reviewRef.current !== staged) return;
+    reviewRef.current = null;
+    setConfigReview(null);
+  };
+
+  const confirmConfigSave = async staged => {
+    if (!staged || reviewRef.current !== staged || pendingRef.current || !authority.isCurrent(staged.authority)) return;
+    pendingRef.current = staged;
+    reviewRef.current = null;
+    setConfigReview(null);
+    setSavingKey(staged.key);
+    let mutationCompleted = false;
     try {
-      await recovery.request('post','/api/ctf/admin/config', { key, value: String(value) }, { headers: getAuthHeaders() });
-      setConfig((prev) => ({ ...prev, [key]: String(value) }));
-      toast.success(`${CONFIG_LABELS[key] || key} updated`);
+      await recovery.request('post','/api/ctf/admin/config', { key: staged.key, value: staged.value },
+        { headers: { Authorization: `Bearer ${staged.authority.token}` } });
+      mutationCompleted = true;
+      if (!mountedRef.current || !authority.isCurrent(staged.authority) || pendingRef.current !== staged) return;
+      const readback = await fetchConfig(staged.authority);
+      if (!mountedRef.current || !authority.isCurrent(staged.authority) || pendingRef.current !== staged) return;
+      if (!readback || String(readback[staged.key] ?? '') !== staged.value) {
+        toast.error('Configuration update may have applied; refresh to verify the saved value.');
+        return;
+      }
+      toast.success(`${CONFIG_LABELS[staged.key]} updated`);
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
-      toast.error(err.response?.data?.error || 'Failed to save config');
+      if (!mountedRef.current || !authority.isCurrent(staged.authority) || isCtfRecoveryCancelled(err)) return;
+      toast.error(mutationCompleted ? 'Configuration update may have applied; refresh to verify the saved value.'
+        : (err.response?.data?.error || 'Configuration outcome unknown or failed; check status before retrying.'));
     } finally {
-      setSavingKey(null);
+      if (pendingRef.current === staged) pendingRef.current = null;
+      if (mountedRef.current) setSavingKey(null);
     }
   };
 
@@ -1900,7 +2508,11 @@ function ConfigTab() {
     <div>
       <CtfRecoveryNotice notices={recovery.notices} />
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-        <button type="button" style={s.btn('ghost')} onClick={fetchConfig}>
+        <button type="button" style={s.btn('ghost')} onClick={() => {
+          reviewRef.current = null;
+          setConfigReview(null);
+          fetchConfig();
+        }}>
           <FiRefreshCw /> Refresh
         </button>
       </div>
@@ -1930,8 +2542,8 @@ function ConfigTab() {
               {isBool ? (
                 <ToggleSwitch
                   checked={value === 'true'}
-                  disabled={isSaving}
-                  onChange={(on) => saveConfig(key, on ? 'true' : 'false')}
+                  disabled={isSaving || Boolean(configReview) || Boolean(savingKey)}
+                  onChange={(on) => stageConfigSave(key, on ? 'true' : 'false')}
                 />
               ) : (
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -1943,8 +2555,8 @@ function ConfigTab() {
                   <button
                     type="button"
                     style={s.btn('primary')}
-                    disabled={isSaving}
-                    onClick={() => saveConfig(key, config[key])}
+                    disabled={isSaving || Boolean(configReview) || Boolean(savingKey)}
+                    onClick={() => stageConfigSave(key, config[key])}
                   >
                     <FiSave /> {isSaving ? '…' : 'Save'}
                   </button>
@@ -1962,43 +2574,92 @@ function ConfigTab() {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        open={Boolean(configReview)}
+        title="Review CTF configuration change"
+        message={configReview ? `${CONFIG_LABELS[configReview.key]} (${configReview.key}) will change from "${configReview.previous}" to "${configReview.value}". This changes the CTF configuration for participants and administrators. Confirm only if this is intended.` : ''}
+        confirmLabel="Confirm Config Save"
+        onConfirm={() => confirmConfigSave(configReview)}
+        onCancel={() => cancelConfigSave(configReview)}
+      />
     </div>
   );
 }
 
 function DangerZoneTab() {
   const s = stylesForTheme();
-  const recovery = useCtfRecovery();
   const [resetConfirm, setResetConfirm] = useState('');
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
+  const [blocklistDialog, setBlocklistDialog] = useState(null);
   const [loading, setLoading] = useState(null);
   const destructiveActionRef = useRef(null);
+  const pendingBlocklistRef = useRef(null);
+  const stagedBlocklistRef = useRef(null);
+  const stagedResetRef = useRef(null);
+  const authority = useStagedCtfAuthority(() => {
+    stagedResetRef.current = null;
+    stagedBlocklistRef.current = null;
+    setResetDialogOpen(false);
+    setBlocklistDialog(null);
+  });
+  const recovery = useCtfRecovery(undefined, () => !pendingBlocklistRef.current
+    || authority.isCurrent(pendingBlocklistRef.current.authority));
 
-  const clearBlocklist = async (type) => {
+  const requestClearBlocklist = (type) => {
+    if (destructiveActionRef.current || stagedBlocklistRef.current || stagedResetRef.current) return;
+    const staged = { type, authority: authority.capture() };
+    if (!staged.authority) return;
+    stagedBlocklistRef.current = staged;
+    setBlocklistDialog(type);
+  };
+
+  const cancelClearBlocklist = () => {
+    if (destructiveActionRef.current) return;
+    stagedBlocklistRef.current = null;
+    setBlocklistDialog(null);
+  };
+
+  const clearBlocklist = async () => {
+    const staged = stagedBlocklistRef.current;
+    if (!staged || blocklistDialog !== staged.type || destructiveActionRef.current) return;
+    stagedBlocklistRef.current = null;
+    setBlocklistDialog(null);
+    if (!authority.isCurrent(staged.authority)) return;
+    const { type } = staged;
     const label = type === 'technique' ? 'technique' : 'payload';
-    if (destructiveActionRef.current) return;
-    if (!window.confirm(`Clear the entire ${label} blocklist?`)) return;
-    if (destructiveActionRef.current) return;
-    destructiveActionRef.current = type;
+    destructiveActionRef.current = staged;
+    pendingBlocklistRef.current = staged;
     setLoading(type);
     try {
       const res = await recovery.request('post',
         `/api/ctf/admin/blocklists/${type}/clear`,
         {},
-        { headers: getAuthHeaders() }
+        { headers: { Authorization: `Bearer ${staged.authority.token}` } }
       );
-      toast.success(res.data.message || `${label} blocklist cleared`);
+      if (pendingBlocklistRef.current === staged && authority.isCurrent(staged.authority))
+        toast.success(res.data.message || `${label} blocklist cleared`);
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
+      if (isCtfRecoveryCancelled(err) || pendingBlocklistRef.current !== staged
+        || !authority.isCurrent(staged.authority)) return;
       toast.error(err.response?.data?.error || `Failed to clear ${label} blocklist`);
     } finally {
-      destructiveActionRef.current = null;
-      setLoading(null);
+      if (pendingBlocklistRef.current === staged) pendingBlocklistRef.current = null;
+      if (destructiveActionRef.current === staged) {
+        destructiveActionRef.current = null;
+        setLoading(null);
+      }
     }
   };
 
   const fullReset = async () => {
     if (resetConfirm !== 'RESET_CTF_CONFIRM' || destructiveActionRef.current) return;
+    const staged = stagedResetRef.current;
+    if (!resetDialogOpen || !authority.isCurrent(staged)) {
+      stagedResetRef.current = null;
+      setResetDialogOpen(false);
+      return;
+    }
+    stagedResetRef.current = null;
     destructiveActionRef.current = 'reset';
     setResetDialogOpen(false);
     setLoading('reset');
@@ -2006,12 +2667,14 @@ function DangerZoneTab() {
       const res = await recovery.request('post',
         '/api/ctf/admin/reset',
         { confirm: 'RESET_CTF_CONFIRM' },
-        { headers: getAuthHeaders() }
+        { headers: { Authorization: `Bearer ${staged.token}` } }
       );
-      toast.success(res.data.message || 'CTF reset successfully');
-      setResetConfirm('');
+      if (authority.isCurrent(staged)) {
+        toast.success(res.data.message || 'CTF reset successfully');
+        setResetConfirm('');
+      }
     } catch (err) {
-      if (isCtfRecoveryCancelled(err)) return;
+      if (isCtfRecoveryCancelled(err) || !authority.isCurrent(staged)) return;
       toast.error(err.response?.data?.error || 'CTF reset failed');
     } finally {
       destructiveActionRef.current = null;
@@ -2020,11 +2683,14 @@ function DangerZoneTab() {
   };
 
   const requestFullReset = () => {
-    if (resetConfirm !== 'RESET_CTF_CONFIRM' || destructiveActionRef.current) return;
+    if (resetConfirm !== 'RESET_CTF_CONFIRM' || destructiveActionRef.current || stagedBlocklistRef.current) return;
+    const staged = authority.capture();
+    if (!staged) return;
+    stagedResetRef.current = staged;
     setResetDialogOpen(true);
   };
 
-  const destructiveBusy = Boolean(loading);
+  const destructiveBusy = Boolean(loading || blocklistDialog || resetDialogOpen);
 
   return (
     <div style={s.dangerZone}>
@@ -2046,7 +2712,7 @@ function DangerZoneTab() {
             type="button"
             style={s.btn('danger')}
             disabled={destructiveBusy}
-            onClick={() => clearBlocklist('technique')}
+            onClick={() => requestClearBlocklist('technique')}
           >
             {loading === 'technique' ? <FiRefreshCw /> : <FiTrash2 />}
             {loading === 'technique' ? ' Clearing…' : ' Clear Technique Blocklist'}
@@ -2062,7 +2728,7 @@ function DangerZoneTab() {
             type="button"
             style={s.btn('danger')}
             disabled={destructiveBusy}
-            onClick={() => clearBlocklist('payload')}
+            onClick={() => requestClearBlocklist('payload')}
           >
             {loading === 'payload' ? <FiRefreshCw /> : <FiTrash2 />}
             {loading === 'payload' ? ' Clearing…' : ' Clear Payload Blocklist'}
@@ -2099,12 +2765,20 @@ function DangerZoneTab() {
           </button>
         </div>
       </div>
+      <ConfirmDialog
+        open={!!blocklistDialog}
+        title={`Clear entire ${blocklistDialog} blocklist?`}
+        message={`This removes all ${blocklistDialog} blocks across the CTF and cannot be undone.`}
+        confirmLabel="Clear Blocklist"
+        onCancel={cancelClearBlocklist}
+        onConfirm={clearBlocklist}
+      />
       <ResetConfirmation
         open={resetDialogOpen}
         status={loading === 'reset' ? 'resetting' : 'confirming'}
         title="Reset the entire CTF?"
         description="This deletes all CTF participants, progress, attempts, events, sessions, blocklists, and leaderboard data."
-        onCancel={() => { if (!destructiveActionRef.current) setResetDialogOpen(false); }}
+        onCancel={() => { if (!destructiveActionRef.current) { stagedResetRef.current = null; setResetDialogOpen(false); } }}
         onConfirm={fullReset}
       />
     </div>

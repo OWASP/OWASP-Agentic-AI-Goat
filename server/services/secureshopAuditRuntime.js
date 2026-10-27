@@ -78,7 +78,9 @@ function createSecureShopAuditRuntime({agentsPool,reviewPool,ledger,turns,conver
   if(!['http:','https:'].includes(endpoint.protocol)||endpoint.username||endpoint.password)
     throw new TypeError('Invalid audit model endpoint');
   const provider=new OllamaProvider({baseUrl,model});
-  const timing=require('./secureshopAuditTiming').createSecureShopAuditTiming();
+  const timing=require('./secureshopAuditTiming').createSecureShopAuditTiming({
+    profile:assessmentVariant==='unbounded'?'unbounded':'instruction',
+  });
   const qualifyModel=createSecureShopModelQualifier(provider);
   const snapshot=require('../database/postgres/secureshopAuditSnapshot').createSecureShopAuditSnapshot({agentsPool,reviewPool});
   const auditJudge=judge===undefined?require('./secureshopAuditTiming').createSecureShopAuditJudge(timing):judge;

@@ -16,6 +16,8 @@ const RUNTIME_URL = 'PG_ADMIN_BROWSER_TEST_RUNTIME_URL';
 const MIGRATION_URL = 'PG_ADMIN_BROWSER_TEST_MIGRATION_URL';
 const RESOURCE_JOURNAL = 'PG_ADMIN_BROWSER_RESOURCE_JOURNAL';
 const TEMP_ROOT = 'PG_ADMIN_BROWSER_TEMP_ROOT';
+const q05CurrentHost = process.env.ADMIN_Q05_CURRENT_HOST === '1';
+const studentResetCurrentHost = q05CurrentHost && process.env.ADMIN_STUDENT_RESET_ONLY === '1';
 const enabled = process.env.RUN_ADMIN_PRODUCTION_BROWSER === '1'
   && process.env.PG_TEST_DISPOSABLE === 'yes'
   && Boolean(process.env[RUNTIME_URL])
@@ -133,8 +135,9 @@ function operationalUnavailable(_req, res) {
   res.status(503).json({ error: 'Not part of the bounded admin browser qualification' });
 }
 
-async function closeServer(server) {
+async function closeServer(server, { q05 = false } = {}) {
   if (!server?.listening) return;
+  if (q05) return require('./adminQ05RenderedScenario').closeQ05OwnedServer(server);
   await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }
 
@@ -356,7 +359,7 @@ async function refreshStudentView(page) {
 
 test('production admin UI uses durable PostgreSQL auth and responds to delegated permission changes', {
   skip: !enabled,
-  timeout: process.env.ADMIN_STUDENT_RESET_ONLY === '1' ? 480000 : 240000,
+  timeout: process.env.ADMIN_STUDENT_RESET_ONLY === '1' || q05CurrentHost ? 480000 : 240000,
 }, async t => {
   assertDisposableUrl(process.env[RUNTIME_URL], RUNTIME_URL);
   assertDisposableUrl(process.env[MIGRATION_URL], MIGRATION_URL);
@@ -367,6 +370,11 @@ test('production admin UI uses durable PostgreSQL auth and responds to delegated
     'runtime and migration URLs must use distinct least-privilege roles');
   const journalPath = path.resolve(process.env[RESOURCE_JOURNAL]);
   const requestedTempRoot = path.resolve(process.env[TEMP_ROOT]);
+  const q05 = q05CurrentHost
+    ? require('./adminQ05RenderedScenario').admitQ05({ env: process.env, repo: REPO,
+      journalPath, tempRoot: requestedTempRoot,
+      expectedCohort: studentResetCurrentHost
+        ? 'admin-student-reset-current-host' : 'admin-q05-current-host' }) : null;
   assert.equal(process.env[RESOURCE_JOURNAL], journalPath, `${RESOURCE_JOURNAL} must be absolute`);
   assert.equal(process.env[TEMP_ROOT], requestedTempRoot, `${TEMP_ROOT} must be absolute`);
   assert.equal(path.dirname(requestedTempRoot), path.dirname(journalPath),
@@ -399,11 +407,18 @@ test('production admin UI uses durable PostgreSQL auth and responds to delegated
   t.after(async () => {
     const errors = [];
     for (const [name, cleanup] of [
-      ['browser-close', async () => closeBrowserBounded(browser, browserPid)],
+      ['browser-close', async () => {
+        if (q05) {
+          browser?.disconnect();
+          browser?.process()?.unref();
+        }
+        else await closeBrowserBounded(browser, browserPid);
+      }],
       ['browser-root-absence', async () => {
+        if (q05) return;
         if (processExists(browserPid)) throw new Error(`owned browser root process ${browserPid} remains alive`);
       }],
-      ['server-close', async () => closeServer(server)],
+      ['server-close', async () => closeServer(server, { q05 })],
       ['auth-router-close', async () => authRouter?.close()],
       ['session-cleanup-stop', async () => sessionManager?.stopCleanupTask()],
       ...buildChildren.map(child => [`build-process-group-${child.pid}`, async () => stopProcessGroup(child)]),
@@ -426,14 +441,14 @@ test('production admin UI uses durable PostgreSQL auth and responds to delegated
       t.diagnostic(`retained qualification artifacts after cleanup failure: ${tempRoot || 'not-created'}`);
       throw new AggregateError(errors, 'admin browser qualification cleanup failed');
     }
-    if (tempRoot) {
+    if (tempRoot && !q05) {
       await fs.rm(tempRoot, { recursive: true, force: true });
       assert.equal(await fs.stat(tempRoot).then(() => true, error => error.code !== 'ENOENT'), false,
         'owned browser runtime root must be absent after cleanup');
     }
-    journal.status = 'cleanup_complete';
+    journal.status = q05 ? 'browser_cleanup_delegated_to_current_host_launcher' : 'cleanup_complete';
     journal.testBody = qualificationCompleted ? 'passed' : 'failed';
-    journal.tempRootAbsent = true;
+    journal.tempRootAbsent = q05 ? false : true;
     await persistJournal();
   });
 
@@ -474,7 +489,8 @@ test('production admin UI uses durable PostgreSQL auth and responds to delegated
   const admin = await identity.createUser({
     username: 'rendered-admin', email: 'rendered-admin@example.invalid', passwordHash: adminHash,
   });
-  await migration.query("UPDATE identity.users SET role='admin',admin_level=1,email_verified=1 WHERE id=$1", [admin.id]);
+  await migration.query("UPDATE identity.users SET role='admin',admin_level=$2,email_verified=1 WHERE id=$1",
+    [admin.id, q05 && !studentResetCurrentHost ? 2 : 1]);
   const firstStudent = await identity.createUser({
     username: 'isolated-student-one', email: 'student-one@example.invalid', passwordHash: studentHash,
   });
@@ -570,15 +586,23 @@ test('production admin UI uses durable PostgreSQL auth and responds to delegated
     }),
   ]);
 
-  await buildProductionClient(buildDirectory, async child => {
-    buildChildren.push(child);
-    journal.resources.build = { pid: child.pid, pgid: child.pid };
-    journal.status = 'build_started';
+  if (q05) {
+    await q05.verifyBuild();
+    journal.resources.build = { existingArtifact: q05.buildDirectory, sha256: q05.buildSha256,
+      noBuildExecuted: true };
+    journal.status = 'existing_build_verified';
     await persistJournal();
-  });
-  journal.resources.build.exitCode = 0;
-  journal.status = 'build_complete';
-  await persistJournal();
+  } else {
+    await buildProductionClient(buildDirectory, async child => {
+      buildChildren.push(child);
+      journal.resources.build = { pid: child.pid, pgid: child.pid };
+      journal.status = 'build_started';
+      await persistJournal();
+    });
+    journal.resources.build.exitCode = 0;
+    journal.status = 'build_complete';
+    await persistJournal();
+  }
   const { createPostgresIdentityAdapter } = require('../../server/services/postgresIdentityAdapter');
   const { createPostgresAdminAuth } = require('../../server/middleware/postgresAdminAuth');
   const { createPostgresSessionManager } = require('../../server/middleware/postgresSessionManager');
@@ -625,6 +649,55 @@ test('production admin UI uses durable PostgreSQL auth and responds to delegated
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json());
+  const q05AckLoss = { armed: null, drops: [], invalidDrops: [] };
+  const q05AccountAccessReceived = [];
+  const q05DeactivationReceived = [];
+  const armQ05AckLoss = (method, endpoint) => {
+    assert(q05 && !q05AckLoss.armed);
+    assert((method === 'PUT' && /^\/api\/admin\/administrators\/[1-9]\d*$/.test(endpoint))
+      || (method === 'DELETE' && /^\/api\/admin\/administrators\/[1-9]\d*$/.test(endpoint))
+      || (method === 'POST' && /^\/api\/admin\/users\/[1-9]\d*\/unlock$/.test(endpoint)),
+    'Only the three exact Q05 acknowledgement-loss routes may be armed');
+    q05AckLoss.armed = { method, endpoint };
+    if (method === 'DELETE') return () => ({
+      received: q05DeactivationReceived.filter(path => path === endpoint).length,
+      armed: q05AckLoss.armed?.method === method && q05AckLoss.armed?.endpoint === endpoint,
+      validDrops: q05AckLoss.drops.filter(drop => drop.method === method && drop.path === endpoint).length,
+      invalidDrops: q05AckLoss.invalidDrops.filter(drop => drop.method === method && drop.path === endpoint).length,
+      validStatus200: q05AckLoss.drops.some(drop => drop.method === method
+        && drop.path === endpoint && drop.status === 200),
+    });
+  };
+  if (q05) app.use((req, res, next) => {
+    if (req.method === 'POST' && /^\/api\/admin\/users\/[1-9]\d*\/(lock|unlock)$/.test(req.originalUrl))
+      q05AccountAccessReceived.push(req.originalUrl);
+    if (req.method === 'DELETE' && /^\/api\/admin\/administrators\/[1-9]\d*$/.test(req.originalUrl))
+      q05DeactivationReceived.push(req.originalUrl);
+    const armed = q05AckLoss.armed;
+    if (!armed || req.method !== armed.method || req.originalUrl !== armed.endpoint) return next();
+    if (req.method === 'DELETE') {
+      require('./adminQ05RenderedScenario').installQ05DeactivationAckObserver(
+        req, res, req.originalUrl, result => {
+          q05AckLoss.armed = null;
+          if (result.valid) q05AckLoss.drops.push({ method: req.method, path: req.originalUrl,
+            phase: 'after-real-http-200-before-browser-consumption', ...result.fact });
+          else q05AckLoss.invalidDrops.push({ method: req.method, path: req.originalUrl,
+            reason: result.reason });
+        });
+      return next();
+    }
+    // Test-only one-shot response discard at the final HTTP write. The mounted
+    // repository/route has already returned; the browser cannot see an ACK.
+    res.end = function discardOneAcknowledgement() {
+      q05AckLoss.armed = null;
+      const dropped = { method: req.method, path: req.originalUrl,
+        phase: 'after-mounted-handler-before-response' };
+      q05AckLoss.drops.push(dropped);
+      req.socket.destroy();
+      return this;
+    };
+    next();
+  });
   app.use(session({ secret: 'owned-admin-browser-express-session-secret', resave: false, saveUninitialized: false }));
   app.use(sessionManager.middleware());
   app.use('/api/auth', authRouter);
@@ -678,8 +751,9 @@ test('production admin UI uses durable PostgreSQL auth and responds to delegated
     operational,
     deletionService: { deleteStudent: async () => { throw new Error('outside bounded qualification'); } },
   }));
-  app.use(express.static(buildDirectory, { index: false }));
-  app.get(/.*/, (_req, res) => res.sendFile('index.html', { root: buildDirectory }));
+  const servedBuild = q05?.buildDirectory || buildDirectory;
+  app.use(express.static(servedBuild, { index: false }));
+  app.get(/.*/, (_req, res) => res.sendFile('index.html', { root: servedBuild }));
   server = app.listen(0, '127.0.0.1');
   await new Promise((resolve, reject) => {
     server.once('listening', resolve);
@@ -703,18 +777,40 @@ test('production admin UI uses durable PostgreSQL auth and responds to delegated
     headers: { authorization: `Bearer ${unpersistedToken}` },
   })).status, 401, 'validly signed JWT without a persisted session must not authorize an admin API');
 
+  if (q05) journal.q05LaunchGrant = await q05.consumeLaunchGrant(profileDirectory);
   browser = await require('puppeteer').launch({
     headless: true,
     userDataDir: profileDirectory,
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
-    args: ['--no-sandbox'],
+    args: q05 ? [
+      '--no-sandbox', '--disable-background-networking', '--disable-component-update',
+      '--disable-domain-reliability', '--disable-quic',
+      '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
+      '--proxy-server=http://blocked.invalid:9',
+      '--proxy-bypass-list=127.0.0.1;localhost;[::1]',
+      '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost, EXCLUDE [::1]',
+    ] : ['--no-sandbox'],
+    ...(q05 ? { handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false } : {}),
   });
   browserPid = browser.process()?.pid;
   assert.ok(Number.isSafeInteger(browserPid) && browserPid > 0, 'owned browser PID must be observable');
-  journal.resources.browser = { pid: browserPid };
+  journal.resources.browser = q05
+    ? { pid: browserPid, profileDirectory,
+      executablePath: process.env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE }
+    : { pid: browserPid };
   journal.status = 'browser_launched';
   await persistJournal();
+  if (q05) await q05.awaitBrowserAck(browserPid, profileDirectory);
+  const q05UnexpectedTargets = [];
+  const q05Targets = q05 ? require('./adminQ05RenderedScenario').q05PageTargets(target => {
+    q05UnexpectedTargets.push(target.type());
+    if (target.type() === 'page') void target.page().then(other => other?.close()).catch(() => {});
+    else void browser.disconnect().catch(() => {});
+  }) : null;
+  if (q05) browser.on('targetcreated', target => q05Targets.observe(target));
   const page = await browser.newPage();
+  if (q05) assert(q05Targets.mainIs(page.target()),
+    'Only the owned rendered main page may precede request interception');
   const pageErrors = [];
   const requestedPaths = [];
   const blockedOrigins = [];
@@ -745,6 +841,37 @@ test('production admin UI uses durable PostgreSQL auth and responds to delegated
     requestedPaths.push(target.pathname);
     void request.continue();
   });
+  const openQ05AuthorityTab = async () => {
+    assert(q05 && !studentResetCurrentHost, 'Only the manual Q05 cohort may open an auxiliary authority tab');
+    const { q05AuxiliaryRequestAllowed } = require('./adminQ05RenderedScenario');
+    q05Targets.armAuxiliary();
+    let other;
+    try {
+      other = await browser.newPage();
+      assert(q05Targets.auxiliaryIs(other.target()), 'Armed auxiliary target must be the physical new page');
+      assert(['about:blank', ''].includes(other.url()), 'Auxiliary tab must begin without external navigation');
+      await other.setRequestInterception(true);
+      other.on('request', request => {
+        if (q05AuxiliaryRequestAllowed(request.url(), base))
+          void request.continue();
+        else { blockedOrigins.push('auxiliary-origin-denied'); void request.abort('blockedbyclient'); }
+      });
+      await other.goto(`${base}/api/auth/status`, { waitUntil: 'domcontentloaded' });
+      assert.equal(new URL(other.url()).origin, base);
+      const otherTarget = other.target();
+      return Object.freeze({
+        async swap(tokenA, tokenB) {
+          assert.equal(new URL(other.url()).origin, base);
+          await other.evaluate(([a, b]) => { localStorage.setItem('token', b); localStorage.setItem('token', a); }, [tokenA, tokenB]);
+        },
+        async close() { try { await other.close(); } finally { q05Targets.closeAuxiliary(otherTarget); } },
+      });
+    } catch (error) {
+      q05Targets.disarmAuxiliary();
+      if (other) { try { await other.close(); } finally { q05Targets.closeAuxiliary(other.target()); } }
+      throw error;
+    }
+  };
 
   t.diagnostic('browser: opening workshop login');
   await page.goto(`${base}/workshop-login`, { waitUntil: 'networkidle0' });
@@ -766,7 +893,55 @@ test('production admin UI uses durable PostgreSQL auth and responds to delegated
   await page.waitForFunction(() => location.pathname.startsWith('/admin'), { timeout: 15000 });
 
   t.diagnostic('browser: durable admin login verified');
+  if (q05 && !studentResetCurrentHost) {
+    journal.q05 = { status: 'running', modelCalls: 0, judgeCalls: 0 };
+    await persistJournal();
+    journal.q05 = await q05.run({ page, base, runtime, migration, admin, firstStudent,
+      secondStudent, token: loginBody.token, adminPassword,
+      armAcknowledgementLoss: armQ05AckLoss, openAuthorityTab: openQ05AuthorityTab,
+      record: async facts => { journal.q05 = facts; await persistJournal(); } });
+    assert.deepEqual(q05AckLoss.invalidDrops, [],
+      'A malformed or incomplete deactivation acknowledgement cannot qualify');
+    assert.equal(q05AckLoss.drops.length, 3);
+    journal.q05.ackLoss = q05AckLoss.drops[0];
+    journal.q05.administratorDeactivationAckLoss = q05AckLoss.drops[1];
+    journal.q05.accountUnlockAckLoss = q05AckLoss.drops[2];
+    assert(q05Targets.auxiliaryUsed(), 'Exactly one owned Q05 authority tab must have been observed');
+    assert.deepEqual(q05UnexpectedTargets, [], 'Q05 rendered flow must not open unarmed browser targets');
+    const studentId = journal.q05.actions.studentCreate.targetId;
+    assert.deepEqual(q05AccountAccessReceived,
+      [`/api/admin/users/${studentId}/lock`, `/api/admin/users/${studentId}/unlock`],
+      'Mounted server must receive exactly one physical Lock and Unlock POST');
+    journal.q05.accountAccessServerReceived = { lock: 1, unlock: 1 };
+    assert.deepEqual(q05DeactivationReceived,
+      [`/api/admin/administrators/${journal.q05.actions.administratorDeactivation.targetId}`],
+      'Mounted server must receive exactly one physical administrator DELETE');
+    journal.q05.administratorDeactivationServerReceived = { delete: 1 };
+    await q05.verifyBuild();
+    journal.status = 'test_body_passed';
+    qualificationCompleted = true;
+    await persistJournal();
+    return;
+  }
   if (process.env.ADMIN_STUDENT_RESET_ONLY === '1') {
+    if (studentResetCurrentHost) {
+      const result = await require('./adminStudentResetRecoveryBrowser').runStudentResetQ05Scenario({
+        page, base, target: firstStudent.id, sibling: secondStudent.id, support: resetSupport,
+        revoke: () => identity.revokePermission(admin.id, 'manage_progress'),
+        restore: () => identity.grantPermission({ userId: admin.id,
+          permission: 'manage_progress', grantedBy: admin.id }),
+        record: async evidence => { journal.studentResetQ05 = evidence; await persistJournal(); },
+      });
+      journal.studentResetQ05 = result;
+      assert.deepEqual(q05UnexpectedTargets, [], 'reset cohort must not open additional browser targets');
+      await q05.verifyBuild();
+      assert.deepEqual(blockedOrigins, []);
+      assert.deepEqual(pageErrors, []);
+      qualificationCompleted = true;
+      journal.status = 'test_body_passed';
+      await persistJournal();
+      return;
+    }
     const studentLogin = await fetch(`${base}/api/auth/login`, { method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ username: firstStudent.username, password: studentPassword }) });

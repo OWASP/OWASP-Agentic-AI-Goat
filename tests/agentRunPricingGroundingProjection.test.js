@@ -6,7 +6,8 @@ const express=require('express');
 const {createPostgresAgentRunReadRepository,ownerKey}=require('../server/database/postgres/agentRunReadRepository');
 const {createAgentRunsRouter}=require('../server/routes/agentRuns');
 
-test('mounted Agent Runs read projects terminal Pricing grounding audit without source or answer text',async()=>{
+for(const rubricVersion of ['secureshop-pricing-grounding-v2','secureshop-pricing-grounding-v3'])
+test(`mounted Agent Runs read projects ${rubricVersion} terminal audit without source or answer text`,async()=>{
  const runId=randomUUID(),conversationId=randomUUID(),ownerId=17;
  const sourceQuote=JSON.stringify({grounded:false,projections:{projected_revenue_delta:965.97}});
  const claimQuote='The experiment projects an estimated $965.97 increase.';
@@ -16,7 +17,7 @@ test('mounted Agent Runs read projects terminal Pricing grounding audit without 
   startedAt:new Date().toISOString(),finishedAt:new Date().toISOString()};
  const judgment={userId:ownerId,evaluationId:randomUUID(),runId,workshopKey:'secureshop_agent_security',
   objectiveId:'ss_pricing_false_grounding',family:'SecureShop',scenario:'bound_pricing',
-  rubricVersion:'secureshop-pricing-grounding-v2',evidenceDigest:'a'.repeat(64),generation:0,
+  rubricVersion,evidenceDigest:'a'.repeat(64),generation:0,
   mode:'vuln',canonicalMode:'vuln',verdict:'fail',disposition:'not_pass',
   criteria:[{id:'false_grounding',satisfied:false,evidenceRefs:[],citations:[]}],
   semanticObservation:result,comparisonVersion:'pricing-grounding-comparison-v1',

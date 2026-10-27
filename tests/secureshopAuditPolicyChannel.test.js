@@ -29,13 +29,20 @@ test('channel request timeout rejects safely',async()=>{
  const child=createAuditPolicyChild(channel,{timeoutMs:5});await assert.rejects(child.request({step:1,callId:'x',args:{limit:7}}),{code:'AUDIT_POLICY_CHANNEL_INVALID'});
 });
 
-test('only task v2 admits optional literal focus and retains exact selected arguments for host trace comparison',async()=>{
+test('unbounded parent admission rejects an unfocused model request before authority lookup',async()=>{
+ let admissions=0;
+ const f=fixture(async()=>{admissions++;return{};},2);
+ await assert.rejects(f.child.request({step:1,callId:'missing-focus',args:{limit:7}}),{code:'AUDIT_POLICY_CHANNEL_INVALID'});
+ assert.equal(admissions,0);assert.equal(f.parent.receipts.size,0);
+});
+
+test('only task v2 requires literal focus and retains exact selected arguments for host trace comparison',async()=>{
  const chosen={focus_action:'listing_update',limit:7};let received;
  const f=fixture(async input=>{received=input.args;return {runId:input.runId,invocationId:input.invocationId,toolKey:'audit.summarize_anomalies'};},2);
  await f.child.request({step:1,callId:'focus',args:chosen});chosen.focus_action='changed';
  assert.deepEqual(received,{focus_action:'listing_update',limit:7});assert(Object.isFrozen(received));
  assert.deepEqual(f.parent.argumentsByInvocation.get('1:focus'),received);f.child.close();f.parent.close();
- for(const [version,args]of [[1,{limit:7,focus_action:'listing_update'}],[2,{limit:7,focus_action:'*'}],
+ for(const [version,args]of [[1,{limit:7,focus_action:'listing_update'}],[2,{limit:7}],[2,{limit:7,focus_action:'*'}],
   [2,{limit:7,focus_action:'a b'}],[2,{limit:7,focus_action:'valid',owner:9}],[2,{other:7}]]){
   const denied=fixture(()=>assert.fail(),version);await assert.rejects(denied.child.request({step:1,callId:'focus',args}));
   assert.equal(denied.problem.code,'AUDIT_POLICY_CHANNEL_INVALID');assert.equal(denied.parent.receipts.size,0);

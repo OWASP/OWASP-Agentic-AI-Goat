@@ -77,7 +77,7 @@ test('rewrite recovery forwards its original journal mode and preserves immutabl
  const saved=[...graph.claims.values()][0];delete saved.result.modeCapability;
  assert.equal((await composition.recover(raw)).modeCapability,undefined);assert.equal(modelCalls,1);
 });
-async function setup(t,{maxClients=512}={}){
+async function setup(t,{maxClients=512,toolPolicyRepository}={}){
  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'listings-composition-'));await fs.chmod(directory,0o700);
  const raw=input('import'),prepared=prepareListingAdmission(raw),identity='a'.repeat(64),runtimeDigest='b'.repeat(64),token='x'.repeat(43);
  let effects=0;const namespace={async checkReadiness(){return{ready:true,runtimeDigest};},async execute({request,mode}){effects++;return{version:1,operationId:request.operationId,requestSha256:prepared.requestSha256,mode,products:[{name:'Observed product',price:'5.25'}],sources:[{kind:'json',uri:request.json_url,byteCount:44,sourceSha256:'c'.repeat(64),prototypeEffect:{observed:false,inheritedProperties:[]}}]};}};
@@ -85,7 +85,7 @@ async function setup(t,{maxClients=512}={}){
  t.after(async()=>{await listener.close();await fs.rm(directory,{recursive:true,force:true});});
  const config={scope:raw.scope,targetId:raw.targetId,mode:raw.mode,origin:`http://127.0.0.1:${address.port}`,token,runtimeIdentity:hash(JSON.stringify({identity,runtimeDigest})),runtimeDigest,executorId:randomUUID()};
  const sql=sqlFixture(),graph=graphFixture();let resolveHook=()=>{},retireHook=async()=>{throw Error('cleanup unavailable');};
- const composition=createListingsComposition({...graph,pool:sql.pool,capabilityKey:Buffer.alloc(32,7),maxClients,targetManager:{acknowledgeRetirement:(...args)=>retireHook(...args),async resolveConfiguration(query){await resolveHook(query);return {...config,...query};}}});
+ const composition=createListingsComposition({...graph,pool:sql.pool,capabilityKey:Buffer.alloc(32,7),maxClients,toolPolicyRepository,targetManager:{acknowledgeRetirement:(...args)=>retireHook(...args),async resolveConfiguration(query){await resolveHook(query);return {...config,...query};}}});
  return{composition,raw,sql,graph,config,namespace,effects:()=>effects,setResolveHook(fn){resolveHook=fn;},setRetireHook(fn){retireHook=fn;}};
 }
 test('controlled graph uses real private HTTP receipts and canonical journal; replay dispatches once',async t=>{
@@ -139,6 +139,54 @@ test('explicit resume reconciles original receipt then new model publishes witho
  assert.ok(JSON.stringify(f.graph.decisions.at(-1)).includes('recoveredObservation'));
  const replay=await f.composition.resume(f.raw);assert.equal(replay.replayed,true);
  assert.equal(f.effects(),1);assert.equal(f.graph.decisions.length,before+1);
+});
+
+test('policy-enabled resume preserves publish-only model authority and one original effect',async t=>{
+ const {REGISTRY_SHA256,createBoundAclResolver}=require('../server/services/secureshopBoundAclRegistry');
+ const admissions=[];let deny=false;
+ const publications=f=>f.sql.queries.filter(([sql])=>sql.startsWith('SELECT secureshop_review.publish_owned_listing_import')).length;
+ const publishOnly=(f,from)=>{for(const call of f.graph.decisions.slice(from))
+  assert.deepEqual(call.tools.map(x=>x.agent+'.'+x.tool),['listing.publish']);};
+ const policy={async admitTool(x){admissions.push(x);const allowed=!(deny&&x.tool==='publish');
+  return {admissionId:randomUUID(),runId:x.runId,invocationId:x.invocationId,toolKey:x.agent+'.'+x.tool,
+   policyVersion:'1',registrySha256:REGISTRY_SHA256,enforcement:true,allowed,
+   action:allowed?'dispatch':'block',policyViolation:allowed?null:'denied-by-acl'};}};
+ // The global incomplete-catalog guard is unchanged and still fails closed.
+ assert.throws(()=>createBoundAclResolver({workflow:'listing-import',declaredTools:[{agent:'listing',tool:'publish'}]}),/incomplete declared tools/);
+ const f=await setup(t,{toolPolicyRepository:policy});await f.composition.run(f.raw);
+ f.sql.events.splice(1);f.graph.setPlan(['listing.publish']);
+ const before=f.graph.decisions.length,priorAdmissions=admissions.length,beforePublications=publications(f);
+ const resumed=await f.composition.resume(f.raw);
+ assert.equal(resumed.operation.state,'completed');assert.equal(f.effects(),1);
+ assert.equal(f.graph.decisions.length,before+1);
+ publishOnly(f,before);assert.equal(publications(f),beforePublications+1);
+ assert.deepEqual(admissions.slice(priorAdmissions).map(x=>x.agent+'.'+x.tool),['listing.publish']);
+ assert.deepEqual(admissions.at(-1).declaredTools.map(x=>x.agent+'.'+x.tool),['listing.fetch_parse','listing.publish']);
+ assert.equal((await f.composition.resume(f.raw)).replayed,true);
+ assert.equal(f.graph.decisions.length,before+1);assert.equal(f.effects(),1);
+ assert.equal(publications(f),beforePublications+1);assert.equal(admissions.length,priorAdmissions+1);
+ // New independent operations exercise attempted hidden-tool use, current ACL
+ // denial, and revoked authority without altering a completed operation.
+ for(const variant of ['hidden-fetch','denied-publish','revoked']){
+  deny=false;const v=await setup(t,{toolPolicyRepository:policy});await v.composition.run(v.raw);
+  v.sql.events.splice(2);const prior=v.graph.decisions.length,at=admissions.length,publicationBefore=publications(v);
+  v.graph.setPlan(variant==='hidden-fetch'?['listing.fetch_parse','listing.publish']:['listing.publish']);
+  deny=variant==='denied-publish';if(variant==='revoked')v.graph.revoke();
+  let result,error;try{result=await v.composition.resume(v.raw);}catch(value){error=value;}
+  assert.equal(v.effects(),1);
+  publishOnly(v,prior);
+  assert.ok(admissions.slice(at).every(x=>x.tool==='publish'),'hidden fetch never reaches policy admission');
+  if(variant==='hidden-fetch'){
+   assert.equal(result?.operation.state,'completed');assert.equal(publications(v),publicationBefore+1);
+   assert.deepEqual(admissions.slice(at).map(x=>x.tool),['publish']);
+   const decisionCount=v.graph.decisions.length,admissionCount=admissions.length;
+   assert.equal((await v.composition.resume(v.raw)).replayed,true);
+   assert.equal(v.graph.decisions.length,decisionCount);assert.equal(admissions.length,admissionCount);
+   assert.equal(publications(v),publicationBefore+1);assert.equal(v.effects(),1);
+  }else{assert.ok(!v.sql.events.some(row=>row.state==='completed'));assert.equal(publications(v),publicationBefore);}
+  if(variant==='denied-publish')assert.deepEqual(admissions.slice(at).map(x=>x.tool),['publish']);
+  if(variant==='revoked'){assert.equal(error?.code,'SHOP_AUTH_INVALID');assert.equal(v.graph.decisions.length,prior);}
+ }
 });
 
 test('explicit shutdown disposal releases cached clients and rejects subsequent operations',async t=>{

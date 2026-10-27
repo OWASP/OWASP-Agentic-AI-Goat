@@ -1,5 +1,5 @@
 'use strict';
-const {isAssessmentReleaseAllowed}=require('../../config/secureshopCurriculum');
+const {resolveAssessmentReleaseAdmission}=require('../../services/secureshopAssessmentReleaseAdmission');
 const {createHash,randomUUID}=require('node:crypto');
 const {canRetryJudgeError}=require('../../agent-runtime/judgeErrors');
 const {isDeepStrictEqual}=require('node:util');
@@ -12,8 +12,9 @@ const WORKSHOP='secureshop_agent_security';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const fail=(code='SHOP_ASSESSMENT_STALE')=>Object.assign(new Error('Shop assessment unavailable'),{code});
 const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
-function createSecureShopAssessmentStore({pool,subject}) {
+function createSecureShopAssessmentStore({pool,subject,assessmentReleaseAdmission}) {
   const state=subjectState(subject),b=state.binding,modeRepository=createSecureShopModeRepository(pool);
+  const release=resolveAssessmentReleaseAdmission(assessmentReleaseAdmission,{identityPool:pool});
   const args=[b.tenantId,b.principalId],judgeObservations=new Map(),allowedJudgeRuns=new Set([b.runId]);
   async function observeJudge(input,judge){
     await state.check();
@@ -36,6 +37,7 @@ function createSecureShopAssessmentStore({pool,subject}) {
   async function mode(){return modeRepository.getEvaluationScope(b.scope.platformOwnerId,WORKSHOP,b.scope);}
   async function guarded(work){
     await state.check();
+    await release.assertScope(b.scope);
     const result=await state.fence.withCrossStoreEffect(()=>withTransaction(pool,async client=>{
       // Every shop credential/membership/tenant change synchronously updates this
       // registry row (0139). Its shared lock fences revocation through commit.
@@ -92,7 +94,7 @@ function createSecureShopAssessmentStore({pool,subject}) {
       FROM secureshop_auth.assessment_objectives o LEFT JOIN secureshop_auth.assessment_configuration c
       ON c.objective_id=o.objective_id AND c.tenant_id=$2 WHERE o.objective_id=$1`,[id,b.tenantId])).rows[0];
     if(!row)throw fail('OBJECTIVE_UNAVAILABLE');
-    return isAssessmentReleaseAllowed(id)?row:{...row,qualification:'pending'};
+    return release.isAllowed(id)?row:{...row,qualification:'pending'};
   }
   function sameAuthority(other){return other&&isDeepStrictEqual({...other,runId:null},{...b,runId:null});}
   function eligible(row,current,catalog){return Boolean(sameAuthority(row.execution_json)&&row.owner_key===b.ownerKey
@@ -109,7 +111,7 @@ function createSecureShopAssessmentStore({pool,subject}) {
         await objective(client,id);if(expectedGeneration!==current.generation)throw fail('STALE_GENERATION');
         const found=await client.query(`SELECT 1 FROM secureshop_auth.active_assessment_contributions
           WHERE tenant_id=$1 AND principal_id=$2 AND objective_id=$3 AND generation=$4`,[...args,id,current.generation]);
-        return {generation:current.generation,completed:isAssessmentReleaseAllowed(id)&&found.rowCount>0};
+        return {generation:current.generation,completed:release.isAllowed(id)&&found.rowCount>0};
       });
     },
     async getCanonicalWorkshopCompletions(uid,key,{expectedGeneration}){
@@ -117,7 +119,7 @@ function createSecureShopAssessmentStore({pool,subject}) {
         if(expectedGeneration!==current.generation)throw fail('STALE_GENERATION');
         const rows=(await client.query(`SELECT DISTINCT objective_id FROM secureshop_auth.active_assessment_contributions
           WHERE tenant_id=$1 AND principal_id=$2 AND generation=$3 ORDER BY objective_id`,[...args,current.generation])).rows;
-        return {generation:current.generation,objectiveIds:rows.map(row=>row.objective_id).filter(isAssessmentReleaseAllowed)};
+        return {generation:current.generation,objectiveIds:rows.map(row=>row.objective_id).filter(release.isAllowed)};
       });
     },
   });

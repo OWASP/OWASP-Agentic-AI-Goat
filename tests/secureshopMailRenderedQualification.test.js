@@ -180,7 +180,7 @@ test('controlled loop fixture satisfies the actual review runtime constructor wi
   launches:methods('assertCurrent resolveCapability reserveReviewsTarget'),
   lifecycle:{reviews:methods('provision listReviews submitReview listPending readDecisionReceipt decide'),
    conversations:methods('acquireBoundSession getBoundSession getMessages appendMessage getTokens addTokens appendTraces'),
-   journal:methods('lookupGeneralRequest claim complete markUncertain'),
+   journal:methods('lookupGeneralRequest lookupReviewModerationRequest claim complete markUncertain'),
    runCoordinator:methods('reset run')},
   authority:methods('capture'),auth:methods('authenticatePersona')});
  assert.equal(typeof runtime.router,'function');assert.equal(typeof runtime.runner.run,'function');
@@ -235,7 +235,7 @@ test('stored lifecycle composes actual review and browser routers without openin
   const runtime=await require('./fixtures/secureshopMailRenderedQualification').createStoredBrowserLifecycleRuntime({
    identity:{query:async()=>({rows:[{name:'owned_identity'}]})},agents:{query:async()=>({rows:[{name:'owned_agents'}]})},progress,
    launches:methods('assertCurrent resolveCapability reserveReviewsTarget readExistingReviewsTarget'),
-   lifecycle:{reviews:methods('provision listReviews submitReview listPending readDecisionReceipt decide readSubmission'),conversations:methods('acquireBoundSession getBoundSession getMessages appendMessage getTokens addTokens appendTraces'),journal:methods('lookupGeneralRequest claim complete markUncertain'),runCoordinator:methods('reset run')},
+   lifecycle:{reviews:methods('provision listReviews submitReview listPending readDecisionReceipt decide readSubmission'),conversations:methods('acquireBoundSession getBoundSession getMessages appendMessage getTokens addTokens appendTraces'),journal:methods('lookupGeneralRequest lookupReviewModerationRequest claim complete markUncertain'),runCoordinator:methods('reset run')},
    authority:methods('capture'),auth:methods('authenticatePersona'),getBrowser:()=>{throw Error('No browser allocation');}});
   assert.equal(typeof runtime.router,'function');assert.equal(typeof runtime.browserRouter,'function');assert.deepEqual(runtime.counts(),{browserCalls:0,controlledJudgeCalls:0});await runtime.close();
  }finally{renderer.loadSecureShopReviewCardRenderer=savedRenderer;bootstrap.createSecureShopGradingBootstrap=savedBootstrap;}

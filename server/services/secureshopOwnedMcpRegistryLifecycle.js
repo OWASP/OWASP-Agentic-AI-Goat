@@ -1,7 +1,7 @@
 'use strict';
 const {createLaunchScope}=require('./secureshopConversationBinding');
 const fail=()=>Object.assign(new Error('Owned MCP registry cleanup verification unavailable'),{code:'MCP_REGISTRY_CLEANUP_UNVERIFIED'});
-function createOwnedMcpRegistryLifecycle({pool,cleanupAuthority,invocationLifecycle}={}){
+function createOwnedMcpRegistryLifecycle({pool,cleanupAuthority,invocationLifecycle,registrationLifecycle}={}){
  if(typeof pool?.query!=='function'||typeof cleanupAuthority?.getOperation!=='function')throw new TypeError('Canonical MCP cleanup authority required');
  async function verify(resetId){
   const operation=await cleanupAuthority.getOperation(resetId);if(operation?.resetId!==resetId||!['fenced','committed','aborted'].includes(operation.status))throw fail();
@@ -18,7 +18,7 @@ function createOwnedMcpRegistryLifecycle({pool,cleanupAuthority,invocationLifecy
   const current=await cleanupAuthority.getOperation(resetId);if(JSON.stringify(current.binding)!==JSON.stringify(operation.binding))throw fail();
  }
  function decorateConversation(base){return Object.freeze({...base,
-  async retireGeneration(id,options){await invocationLifecycle?.beforeRetirement(id,options);const receipt=await base.retireGeneration(id,options);await verify(id);return receipt;},
+  async retireGeneration(id,options){await invocationLifecycle?.beforeRetirement(id,options);await registrationLifecycle?.beforeRetirement(id,options);const receipt=await base.retireGeneration(id,options);await verify(id);return receipt;},
   async readReceipt(id,options){const receipt=await base.readReceipt(id,options);await verify(id);return receipt;}
  });}
  async function verifyDeletion({jobId,subjectId,check,signal}){
@@ -34,6 +34,6 @@ function createOwnedMcpRegistryLifecycle({pool,cleanupAuthority,invocationLifecy
    FROM secureshop_agents.bound_mcp_registry_cleanup_receipts c WHERE c.cleanup_id=$1`,[jobId,subjectId]);
   if(result.rows.length!==1||result.rows[0].verified!==true)throw fail();await check();signal?.throwIfAborted();
  }
- return Object.freeze({decorateConversation,verifyDeletion,beforeDeletion:input=>invocationLifecycle?.beforeDeletion(input)});
+ return Object.freeze({decorateConversation,verifyDeletion,async beforeDeletion(input){await invocationLifecycle?.beforeDeletion(input);await registrationLifecycle?.beforeDeletion(input);}});
 }
 module.exports={createOwnedMcpRegistryLifecycle};

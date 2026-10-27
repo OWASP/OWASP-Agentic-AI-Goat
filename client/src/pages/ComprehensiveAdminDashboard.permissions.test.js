@@ -7,7 +7,9 @@ import ComprehensiveAdminDashboard from './ComprehensiveAdminDashboard';
 
 jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() }));
 let mockUser;
-jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: mockUser, logout: jest.fn() }) }));
+let mockAuthRevision;
+jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: mockUser, logout: jest.fn(),
+  getAuthRevision: () => mockAuthRevision }) }));
 jest.mock('../context/WorkshopConfigContext', () => ({ useWorkshopConfig: () => ({ registerReconciler: () => () => {} }) }));
 jest.mock('react-toastify', () => ({ toast: { error: jest.fn(), success: jest.fn() } }));
 jest.mock('./admin/CTFAdminPanel', () => () => null);
@@ -40,6 +42,7 @@ async function mount(path) {
 beforeEach(() => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   mockUser = { id: 1, username: 'admin', isAdmin: true, adminLevel: 2, permissions: [] };
+  mockAuthRevision = 0;
   localStorage.setItem('token', 'fixture');
   axios.get.mockImplementation(genericGet);
   axios.post.mockResolvedValue({ data: { success: true } });
@@ -257,6 +260,10 @@ test('administrator creation is visible only to level two with user-management p
   act(() => view.root.unmount());
 
   mockUser = { ...mockUser, adminLevel: 2, permissions: ['user_management'] };
+  axios.post.mockResolvedValue({ status: 201, data: { success: true, user: { id: 31,
+    username: 'new-instructor', email: 'new@example.test', full_name: null, admin_level: 2,
+    role: 'admin', is_active: 1 },
+    permissions: ['challenge_management', 'view_analytics', 'manage_progress'] } });
   view = await mount('/admin/settings');
   await act(async () => { [...view.node.querySelectorAll('button')].find(button => button.textContent.includes('Manage Users')).click(); });
   await flush();
@@ -289,7 +296,10 @@ test('administrator edit and deactivation use the protected account endpoints', 
     role: 'admin', admin_level: 1, permissions: ['challenge_management'], is_active: 1 };
   axios.get.mockImplementation(url => url.startsWith('/api/admin/users?')
     ? Promise.resolve({ data: { users: [account] } }) : genericGet(url));
-  axios.put.mockResolvedValue({ data: { success: true } });
+  axios.put.mockResolvedValue({ data: { success: true, user: { id: 17, username: 'instructor',
+    email: 'instructor@example.test', full_name: 'Instructor Two', admin_level: 1, is_active: 1 },
+    permissions: ['challenge_management'] } });
+  axios.delete.mockResolvedValue({ data: { success: true, user: { id: 17, is_active: 0 } } });
   const view = await mount('/admin/settings');
   await act(async () => { [...view.node.querySelectorAll('button')].find(button => button.textContent.includes('Manage Users')).click(); });
   await flush();
@@ -328,7 +338,9 @@ test('inactive administrators remain editable for reactivation', async () => {
     role: 'admin', admin_level: 1, permissions: ['view_analytics'], is_active: 0 };
   axios.get.mockImplementation(url => url.startsWith('/api/admin/users?')
     ? Promise.resolve({ data: { users: [account] } }) : genericGet(url));
-  axios.put.mockResolvedValue({ data: { success: true } });
+  axios.put.mockResolvedValue({ data: { success: true, user: { id: 18, username: 'former-admin',
+    email: 'former@example.test', full_name: 'Former Admin', admin_level: 1, is_active: 1 },
+    permissions: ['view_analytics'] } });
   const view = await mount('/admin/settings');
   await act(async () => { [...view.node.querySelectorAll('button')].find(button => button.textContent.includes('Manage Users')).click(); });
   await flush();
@@ -456,5 +468,161 @@ test('level-two permission enables deletion but live revocation disables an alre
   expect(axios.delete).toHaveBeenCalledWith('/api/admin/students/19', {
     headers: { Authorization: 'Bearer fixture' },
   });
+  act(() => view.root.unmount());
+});
+
+test('student deletion staged under one authorized session cannot be confirmed after another authorized session replaces it', async () => {
+  mockUser = { ...mockUser, id: 1, adminLevel: 2, permissions: ['user_management', 'manage_progress'] };
+  axios.get.mockImplementation(studentGet);
+  const view = await mount('/admin/students');
+  await act(async () => { rowDeleteButton(view.node).click(); });
+  expect(view.node.textContent).toContain('Type DELETE to confirm deletion');
+
+  localStorage.setItem('token', 'replacement-session');
+  mockUser = { ...mockUser, id: 2, username: 'other-admin' };
+  await act(async () => {
+    view.root.render(<MemoryRouter initialEntries={['/admin/students']}><ComprehensiveAdminDashboard /></MemoryRouter>);
+  });
+  await flush();
+  const input = view.node.querySelector('#delete-confirmation');
+  if (input) input.value = 'DELETE';
+  const confirm = [...view.node.querySelectorAll('button')]
+    .find(button => button.textContent.trim() === 'Delete Student');
+  if (confirm) await act(async () => { confirm.click(); });
+  await flush();
+  expect(axios.delete).not.toHaveBeenCalled();
+  act(() => view.root.unmount());
+});
+
+test('student deletion rejects a same-token A→B→A auth revision and permits only a fresh stage', async () => {
+  mockUser = { ...mockUser, adminLevel: 2, permissions: ['user_management', 'manage_progress'] };
+  axios.get.mockImplementation(studentGet);
+  const view = await mount('/admin/students');
+  await act(async () => { rowDeleteButton(view.node).click(); });
+  mockAuthRevision += 2; // AuthProvider advances on logout and login, even if the token value returns.
+  const input = view.node.querySelector('#delete-confirmation');
+  input.value = 'DELETE';
+  await act(async () => {
+    [...view.node.querySelectorAll('button')].find(button => button.textContent.trim() === 'Delete Student').click();
+  });
+  expect(axios.delete).not.toHaveBeenCalled();
+
+  await act(async () => { rowDeleteButton(view.node).click(); });
+  view.node.querySelector('#delete-confirmation').value = 'DELETE';
+  await act(async () => {
+    [...view.node.querySelectorAll('button')].find(button => button.textContent.trim() === 'Delete Student').click();
+  });
+  await flush();
+  expect(axios.delete).toHaveBeenCalledTimes(1);
+  expect(axios.delete).toHaveBeenCalledWith('/api/admin/students/19', {
+    headers: { Authorization: 'Bearer fixture' },
+  });
+  act(() => view.root.unmount());
+});
+
+test('cancel consumes student deletion intent before a retained confirm and a new review is required', async () => {
+  mockUser = { ...mockUser, adminLevel: 2, permissions: ['user_management', 'manage_progress'] };
+  axios.get.mockImplementation(studentGet);
+  const view = await mount('/admin/students');
+  await act(async () => { rowDeleteButton(view.node).click(); });
+  view.node.querySelector('#delete-confirmation').value = 'DELETE';
+  const confirm = [...view.node.querySelectorAll('button')]
+    .find(button => button.textContent.trim() === 'Delete Student');
+  const reactPropsKey = Object.keys(confirm).find(key => key.startsWith('__reactProps$'));
+  const staleOnClick = confirm[reactPropsKey].onClick;
+  const cancel = [...view.node.querySelectorAll('button')]
+    .find(button => button.textContent.trim() === 'Cancel');
+  act(() => { cancel.click(); confirm.click(); });
+  expect(axios.delete).not.toHaveBeenCalled();
+  await act(async () => { rowDeleteButton(view.node).click(); });
+  view.node.querySelector('#delete-confirmation').value = 'DELETE';
+  act(() => { staleOnClick({ currentTarget: confirm }); });
+  expect(axios.delete).not.toHaveBeenCalled();
+  await act(async () => {
+    [...view.node.querySelectorAll('button')].find(button => button.textContent.trim() === 'Delete Student').click();
+  });
+  await flush();
+  expect(axios.delete).toHaveBeenCalledTimes(1);
+  act(() => view.root.unmount());
+});
+
+test('double confirmation sends one deletion and an uncertain failure closes consumed intent', async () => {
+  mockUser = { ...mockUser, adminLevel: 2, permissions: ['user_management', 'manage_progress'] };
+  axios.get.mockImplementation(studentGet);
+  const pending = deferred();
+  axios.delete.mockImplementation(() => pending.promise);
+  const view = await mount('/admin/students');
+  await act(async () => { rowDeleteButton(view.node).click(); });
+  view.node.querySelector('#delete-confirmation').value = 'DELETE';
+  const confirm = [...view.node.querySelectorAll('button')]
+    .find(button => button.textContent.trim() === 'Delete Student');
+  act(() => { confirm.click(); confirm.click(); });
+  expect(axios.delete).toHaveBeenCalledTimes(1);
+  await act(async () => { pending.resolve(Promise.reject(new Error('connection lost'))); });
+  await flush();
+  expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('could not be confirmed'));
+  expect(axios.delete).toHaveBeenCalledTimes(1);
+  act(() => view.root.unmount());
+});
+
+test('cross-tab token cycle retires staged student deletion before React rerenders', async () => {
+  mockUser = { ...mockUser, adminLevel: 2, permissions: ['user_management', 'manage_progress'] };
+  axios.get.mockImplementation(studentGet);
+  const view = await mount('/admin/students');
+  await act(async () => { rowDeleteButton(view.node).click(); });
+  view.node.querySelector('#delete-confirmation').value = 'DELETE';
+  const confirm = [...view.node.querySelectorAll('button')]
+    .find(button => button.textContent.trim() === 'Delete Student');
+  await act(async () => {
+    window.dispatchEvent(new StorageEvent('storage', { key: 'token', storageArea: localStorage,
+      oldValue: 'fixture', newValue: 'replacement-session' }));
+    confirm.click();
+  });
+  expect(axios.delete).not.toHaveBeenCalled();
+  act(() => view.root.unmount());
+});
+
+test('student deletion refresh never applies an old result after an A→B→A auth cycle during the GET', async () => {
+  mockUser = { ...mockUser, adminLevel: 2, permissions: ['user_management', 'manage_progress'] };
+  const pendingRefresh = deferred();
+  let holdRefresh = false;
+  let held = false;
+  axios.get.mockImplementation(url => {
+    if (url === '/api/admin/students' && holdRefresh && !held) {
+      held = true;
+      return pendingRefresh.promise;
+    }
+    return studentGet(url);
+  });
+  const view = await mount('/admin/students');
+  await act(async () => { rowDeleteButton(view.node).click(); });
+  view.node.querySelector('#delete-confirmation').value = 'DELETE';
+  holdRefresh = true;
+  const originalConfirm = [...view.node.querySelectorAll('button')]
+    .find(button => button.textContent.trim() === 'Delete Student');
+  const originalPropsKey = Object.keys(originalConfirm).find(key => key.startsWith('__reactProps$'));
+  const oldConfirmHandler = originalConfirm[originalPropsKey].onClick;
+  await act(async () => {
+    originalConfirm.click();
+    await Promise.resolve();
+  });
+  expect(axios.delete).toHaveBeenCalledTimes(1);
+  expect(held).toBe(true);
+  mockAuthRevision += 2;
+  await act(async () => pendingRefresh.resolve({ data: { success: true, students: [
+    { ...managedStudent, id: 77, username: 'stale-refresh-student' },
+  ] } }));
+  await flush();
+  expect(view.node.textContent).not.toContain('stale-refresh-student');
+  expect(toast.success).not.toHaveBeenCalledWith('Student deleted successfully');
+  await act(async () => { rowDeleteButton(view.node).click(); });
+  view.node.querySelector('#delete-confirmation').value = 'DELETE';
+  act(() => { oldConfirmHandler({ currentTarget: originalConfirm }); });
+  expect(axios.delete).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    [...view.node.querySelectorAll('button')].find(button => button.textContent.trim() === 'Delete Student').click();
+  });
+  await flush();
+  expect(axios.delete).toHaveBeenCalledTimes(2);
   act(() => view.root.unmount());
 });

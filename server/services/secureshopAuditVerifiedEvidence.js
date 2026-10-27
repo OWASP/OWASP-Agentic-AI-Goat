@@ -21,6 +21,28 @@ async function consumeSecureShopAuditEvidence(evidence,{qualifyModel,check,obser
   if(!Array.isArray(records)||records.length!==2||records[0]?.workerLocal!==true
       ||records[0].status!=='completed'||records[0].effectKey!==records[1]?.localEffectKey)throw invalid();
   const chain=records[1];
+  if(chain.version===3){
+    const ref=evidence.artifacts.traces;
+    if(!Number.isSafeInteger(ref?.bytes)||ref.bytes<2||ref.bytes>128*1024*1024)throw invalid();
+    const chunks=[];let size=0;const digest=createHash('sha256');
+    for await(const part of evidence.readArtifact('traces')){
+      await check();if(!Buffer.isBuffer(part)||size+part.length>ref.bytes)throw invalid();
+      size+=part.length;digest.update(part);chunks.push(part);
+    }
+    if(size!==ref.bytes||digest.digest('hex')!==ref.sha256)throw invalid();
+    try{
+      const rows=JSON.parse(Buffer.concat(chunks).toString('utf8'));
+      if(!Array.isArray(rows))throw invalid();
+      const decision=rows.find(row=>row.kind==='model_decision');
+      if(JSON.stringify(decision)!==JSON.stringify(chain.decision))throw invalid();
+      const correction=require('./secureshopAuditModelChain').auditCorrectionFromTraces(rows,evidence.requestedCount,decision);
+      if(JSON.stringify(correction)!==JSON.stringify(chain.decisionCorrection))throw invalid();
+      const final=rows.filter(row=>row.kind==='model_decision').at(-1);
+      if(JSON.stringify(final)!==JSON.stringify(chain.final))throw invalid();
+      const framing=require('./secureshopAuditModelChain').auditFinalFramingFromTraces(rows,evidence.requestedCount,final,chain.observationSha256);
+      if(JSON.stringify(framing)!==JSON.stringify(chain.finalFraming))throw invalid();
+    }catch{throw invalid();}
+  }
   if(chain.version===3&&observation===undefined){
     const messages=evidence.artifacts.messages;
     if(!Number.isSafeInteger(messages?.bytes)||messages.bytes<2||messages.bytes>128*1024*1024
@@ -51,6 +73,9 @@ async function consumeSecureShopAuditEvidence(evidence,{qualifyModel,check,obser
     logSha256:chain.logSha256,sourcesSha256:chain.sourcesSha256,summarySha256:chain.summarySha256,
     observationSha256:chain.observationSha256,modelChainVerified:true,objectiveCredit:false,
     trace:Object.freeze([
+      ...(chain.decisionCorrection?chain.decisionCorrection.attempts.map(attempt=>Object.freeze({
+        step:chain.decision.step,phase:'decision_attempt',attempt:attempt.index,validation:attempt.classification,
+        provider:attempt.provider,model:attempt.model,tool:null})):[]),
       Object.freeze({step:chain.decision.step,phase:'decision',provider:chain.decision.provider,
         model:JSON.parse(chain.decision.result_json).model,tool:'audit.summarize_anomalies'}),
       Object.freeze({step:chain.final.step,phase:'final',provider:chain.final.provider,

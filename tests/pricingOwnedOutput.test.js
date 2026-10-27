@@ -6,6 +6,13 @@ const os = require('node:os');
 const path = require('node:path');
 const { test } = require('node:test');
 const { pricingOwnedOutputRoot } = require('./fixtures/pricingOwnedOutput');
+test('V25 output root rejects environment-only authority without inherited parent grant', t => {
+  const previous = process.env.SECURESHOP_PRICING_V25_MANUAL_NATIVE;
+  process.env.SECURESHOP_PRICING_V25_MANUAL_NATIVE = '1';
+  t.after(() => { if(previous === undefined) delete process.env.SECURESHOP_PRICING_V25_MANUAL_NATIVE;
+    else process.env.SECURESHOP_PRICING_V25_MANUAL_NATIVE = previous; });
+  assert.throws(pricingOwnedOutputRoot, /inherited owner admission required/);
+});
 const { writePricingActivationDiagnostic } = require('./fixtures/secureshopPricingAssembled');
 
 test('pricing output stays in an owned private directory outside current source', () => {

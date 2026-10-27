@@ -22,7 +22,7 @@ function createSecureShopAuditJob({ snapshot, repository, reader, consumeEvidenc
   if(capturePromptPolicy!==undefined&&typeof capturePromptPolicy!=='function')throw new TypeError('Invalid audit prompt policy capture');
   if (sceneSource !== undefined && (typeof sceneSource?.rows !== 'function' || !sceneBinding?.scene
       || typeof checkScene !== 'function')) throw new TypeError('Retained scene audit source required');
-  return async function execute({ scope, persona, requestId, requestedCount, boundary, assessment, includeChatEvidence = false } = {}) {
+  return async function execute({ scope, persona, requestId, requestedCount, boundary, assessment, includeChatEvidence = false, workerBudget } = {}) {
     const binding = createConversationBinding(scope,persona);
     const identity = boundary?.identity;
     if (binding.role !== 'admin' || !UUID.test(requestId) || !UUID.test(identity?.runId)
@@ -33,6 +33,7 @@ function createSecureShopAuditJob({ snapshot, repository, reader, consumeEvidenc
       throw new TypeError('Admitted audit parent run required');
     }
     if(mode==='fixed')assertFixedAuditCount(requestedCount);
+    if(taskRequestVersion===2&&typeof workerBudget!=='function')throw new TypeError('Unbounded audit worker budget required');
     requestId = requestId.toLowerCase();
     const execution = Object.freeze({ runId:identity.runId,ownerKey:identity.ownerKey,
       durableGeneration:String(identity.durableGeneration) });
@@ -61,8 +62,12 @@ function createSecureShopAuditJob({ snapshot, repository, reader, consumeEvidenc
       try {
         // Both source iterators have closed before reacquiring the scene lease.
         await checkPublication();
+        const timeoutMs=taskRequestVersion===2?workerBudget():undefined;
+        if(taskRequestVersion===2&&(!Number.isSafeInteger(timeoutMs)||timeoutMs<20000||timeoutMs>190000))
+          throw new TypeError('Invalid unbounded audit worker budget');
         const result = await runWorker({ spool,baseUrl,model,persona:trustedPersona,
           checkCurrent:checkPublication,signal:boundary.signal,taskRequestVersion,
+          ...(timeoutMs===undefined?{}:{timeoutMs}),
           ...(promptPolicySnapshot?{promptPolicySnapshot}:{}),...(admitTool?{admitTool}: {}) });
         await checkPublication();
         const published = await repository.publish({ scope:binding,persona:trustedPersona,requestId,

@@ -26,6 +26,8 @@ const POLICIES = Object.freeze({
   refund: 'requested-owned-order-v1',
   support_tickets: 'owned-ticket-render-v1',
   customer_chat: 'owned-catalog-and-cart-read-v1',
+  customer_consumption: 'customer-supervisor-byte-budgets-v1',
+  customer_disclosure: 'original-customer-literal-normalized-copy-v1',
   customer_idor: 'reserved-synthetic-cart-and-order-ownership-v1',
   checkout_audit_jwt: 'owned-checkout-admin-audit-practice-jwt-v1',
   merchant_assistant: 'owned-merchant-read-and-confirmation-v1',

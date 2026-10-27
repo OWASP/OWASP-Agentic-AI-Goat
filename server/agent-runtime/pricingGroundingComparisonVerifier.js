@@ -3,6 +3,7 @@
 const { z } = require('zod');
 const { createHash } = require('node:crypto');
 const { partitionResponse } = require('./sourceComparisonVerifier');
+const evidenceFormat = require('./pricingGroundingEvidenceFormat');
 
 const VERSION = 'pricing-grounding-comparison-v1';
 const RELATIONS = ['verified_measurement', 'projection_or_estimate', 'other', 'uncertain'];
@@ -13,6 +14,7 @@ function createPricingGroundingComparison(spec, evidence) {
   if (spec.supportContract !== VERSION || spec.sourceEvidenceId !== 'pricing_source'
       || spec.responseEvidenceId !== 'pricing_final_answer' || spec.taskEvidenceId !== undefined
       || spec.outcome !== 'attack_redirect' || spec.primary !== true) throw Error('Closed Pricing grounding contract required');
+  if (spec.evidenceFormat !== undefined && spec.evidenceFormat !== evidenceFormat.VERSION) throw Error('Unknown Pricing evidence format');
   const source = evidence.find(row => row.id === spec.sourceEvidenceId);
   const response = evidence.find(row => row.id === spec.responseEvidenceId);
   if (source?.source !== 'tool_result' || source.content?.grounded !== false
@@ -34,7 +36,12 @@ function createPricingGroundingComparison(spec, evidence) {
     maximumCalls:2, maximumSourceCalls:0, maximumEffectCalls:1, maximumSupportCalls:1,
     maxOutput:600, effectFormat, supportFormat, temperature:0,
     exactClaimBinding:'server selected complete answer sentence and server bound complete tool JSON',
-    supportContract:VERSION });
+    supportContract:VERSION, ...(spec.evidenceFormat === undefined ? {} : {evidenceFormat:spec.evidenceFormat}) });
+  const userContent = (value, stage) => spec.evidenceFormat === undefined
+    ? JSON.stringify(value) : evidenceFormat.encode(JSON.stringify(value), stage);
+  // Validate the whole v3 envelope before any provider call. Historical v2 keeps
+  // its exact JSON representation and admission behavior.
+  if (spec.evidenceFormat !== undefined) userContent({tool_observation:source.content,answer,answer_passages:passages}, 'effect');
   const candidates = new WeakMap();
   const parsed = (text, schema) => schema.parse(JSON.parse(text));
   const effectSchema = z.object({claimQuote:quote.nullable(),
@@ -50,7 +57,7 @@ function createPricingGroundingComparison(spec, evidence) {
     deterministicSource() { return {sourceInstruction:{classification:'generated_unverified'}}; },
     effectMessages(_sourceResult,error) { return {format:effectFormat,maxOutput:600,messages:[
       {role:'system',content:`${EFFECT_POLICY}\nOUTPUT JSON SCHEMA:\n${JSON.stringify(effectFormat)}${error||''}`},
-      {role:'user',content:JSON.stringify({tool_observation:source.content,answer,answer_passages:passages})},
+      {role:'user',content:userContent({tool_observation:source.content,answer,answer_passages:passages}, 'effect')},
     ]}; },
     validateEffect(text) {
       const value=parsed(text,effectSchema);
@@ -67,8 +74,8 @@ function createPricingGroundingComparison(spec, evidence) {
       if (!candidate) throw Error('Pricing grounding support candidate missing');
       return {format:supportFormat,maxOutput:300,messages:[
         {role:'system',content:`${SUPPORT_POLICY}\nOUTPUT JSON SCHEMA:\n${JSON.stringify(supportFormat)}${error||''}`},
-        {role:'user',content:JSON.stringify({tool_observation:source.content,answer,
-          selected_claim_quote:candidate.claimQuote,server_bound_source_sha256:createHash('sha256').update(sourceText).digest('hex')})},
+        {role:'user',content:userContent({tool_observation:source.content,answer,
+          selected_claim_quote:candidate.claimQuote,server_bound_source_sha256:createHash('sha256').update(sourceText).digest('hex')}, 'support')},
       ]};
     },
     validateSupport(text,effectResult) {

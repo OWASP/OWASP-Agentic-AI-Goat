@@ -60,24 +60,9 @@ install_macos_prerequisites() {
     colima start --profile "${owned_profile#colima-}" --cpu 2 --memory 4
     export DVAIA_MCP_OWNED_COLIMA_PROFILE="$owned_profile"
   fi
-  # Local exercise sidecars require Docker even with an external PostgreSQL store.
-  if ! docker info >/dev/null 2>&1; then
-    if "$repair_existing"; then
-      die 'Repair requires the previously bound local Docker daemon to be running. Start that daemon or its recorded Colima profile, then rerun; repair will not start a different Docker service.'
-    fi
-    if [[ -d /Applications/Docker.app ]]; then
-      open -a Docker
-    else
-      colima start --profile "${owned_profile#colima-}" --cpu 2 --memory 4
-    fi
-    local attempt
-    for attempt in {1..120}; do
-      docker info >/dev/null 2>&1 && break
-      [[ "$attempt" != 120 ]] || die 'Docker did not become ready. Finish any macOS application prompts and rerun.'
-      sleep 1
-    done
-  fi
+  ensure_macos_docker_ready "$repair_existing" "$owned_profile"
   ensure_macos_compose
+  ensure_macos_buildx
   command -v ollama >/dev/null 2>&1 || brew install ollama
   if ! curl --fail --silent --max-time 2 http://127.0.0.1:11434/api/tags >/dev/null; then
     if brew list --formula ollama >/dev/null 2>&1; then
@@ -93,9 +78,37 @@ install_macos_prerequisites() {
   fi
 }
 
+ensure_macos_docker_ready() {
+  local repair_existing="$1" owned_profile="$2" attempt
+  local docker_probe=(docker)
+  # Fresh setup selected this profile explicitly. Never start Docker Desktop
+  # or probe an unrelated active context when that selected daemon is unavailable.
+  if [[ "$repair_existing" == false ]]; then docker_probe+=(--context "$owned_profile"); fi
+  if ! "${docker_probe[@]}" info >/dev/null 2>&1; then
+    if "$repair_existing"; then
+      die 'Repair requires the previously bound local Docker daemon to be running. Start that daemon or its recorded Colima profile, then rerun; repair will not start a different Docker service.'
+    fi
+    for attempt in {1..120}; do
+      "${docker_probe[@]}" info >/dev/null 2>&1 && break
+      [[ "$attempt" != 120 ]] || die 'The selected Colima Docker daemon did not become ready; inspect that profile and rerun.'
+      sleep 1
+    done
+  fi
+}
+
 ensure_macos_compose() {
-  docker compose version >/dev/null 2>&1 && return 0
-  if ! brew list --formula docker-compose >/dev/null 2>&1; then brew install docker-compose; fi
+  ensure_macos_docker_plugin compose
+}
+
+ensure_macos_buildx() {
+  ensure_macos_docker_plugin buildx
+}
+
+ensure_macos_docker_plugin() {
+  local plugin="$1"
+  [[ "$plugin" == compose || "$plugin" == buildx ]] || die 'Unsupported Docker CLI plugin.'
+  docker "$plugin" version >/dev/null 2>&1 && return 0
+  if ! brew list --formula "docker-$plugin" >/dev/null 2>&1; then brew install "docker-$plugin"; fi
 
   # Owned-runner provisioning binds an exact daemon with `docker --host ...
   # compose`; a standalone docker-compose binary is not the same capability.
@@ -104,16 +117,16 @@ ensure_macos_compose() {
   # rewriting an existing Docker config or replacing an existing plugin.
   local brew_prefix plugin_source plugin_root plugin_link
   brew_prefix="$(brew --prefix)"
-  plugin_source="$brew_prefix/lib/docker/cli-plugins/docker-compose"
-  [[ "$plugin_source" == /* && -x "$plugin_source" ]] || die 'Homebrew Docker Compose did not provide an executable CLI plugin.'
+  plugin_source="$brew_prefix/lib/docker/cli-plugins/docker-$plugin"
+  [[ "$plugin_source" == /* && -x "$plugin_source" ]] || die "Homebrew Docker $plugin did not provide an executable CLI plugin."
   plugin_root="${DOCKER_CONFIG:-$HOME/.docker}"
   [[ "$plugin_root" == /* ]] || die 'DOCKER_CONFIG must be an absolute path for supported setup.'
-  plugin_link="$plugin_root/cli-plugins/docker-compose"
+  plugin_link="$plugin_root/cli-plugins/docker-$plugin"
   if [[ -e "$plugin_link" || -L "$plugin_link" ]]; then
     [[ -L "$plugin_link" && "$(readlink "$plugin_link")" == "$plugin_source" ]] ||
-      die 'An existing Docker Compose plugin is not usable; preserve it and repair Docker Compose before rerunning setup.'
+      die "An existing Docker $plugin plugin is not usable; preserve it and repair it before rerunning setup."
   else
     (umask 077; mkdir -p "$plugin_root/cli-plugins"; ln -s "$plugin_source" "$plugin_link")
   fi
-  docker compose version >/dev/null 2>&1 || die 'Docker Compose v2 is required by owned runner provisioning but the Docker CLI plugin is unavailable.'
+  docker "$plugin" version >/dev/null 2>&1 || die "Docker $plugin is required by owned runner provisioning but the Docker CLI plugin is unavailable."
 }

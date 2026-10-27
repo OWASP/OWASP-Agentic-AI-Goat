@@ -6,7 +6,7 @@ import CtfRecoveryNotice from '../components/CtfRecoveryNotice';
 jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn(), delete: jest.fn() }));
 const operationId = '11111111-1111-4111-8111-111111111111';
 let node, root, api;
-function Harness({ scope = 1 }) { api = useCtfRecovery(scope); return <CtfRecoveryNotice notices={api.notices} />; }
+function Harness({ scope = 1, isScopeCurrent }) { api = useCtfRecovery(scope, isScopeCurrent); return <CtfRecoveryNotice notices={api.notices} />; }
 async function flush() { await act(async () => { await Promise.resolve(); await Promise.resolve(); }); }
 beforeEach(() => {
  global.IS_REACT_ACT_ENVIRONMENT = true; jest.useFakeTimers(); localStorage.setItem('token', 'original');
@@ -16,6 +16,63 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); node.remove(); jest.restoreAllMocks(); jest.useRealTimers(); localStorage.clear(); });
 const send = (method = 'post', url = '/api/ctf/register') => api.request(method, url, {}, { headers: { Authorization: 'Bearer original' } });
+test('live authority invalidation fences parked status before a rerender', async () => {
+ let valid = true;
+ act(() => root.render(<Harness isScopeCurrent={() => valid} />));
+ axios.post.mockResolvedValue({ status: 202, data: { operationId } });
+ axios.get.mockRejectedValue({ response: { status: 503 } });
+ let pending;
+ await act(async () => { pending = send(); pending.catch(() => {}); });
+ await flush();
+ const priorReads = axios.get.mock.calls.length;
+ valid = false;
+ await act(async () => [...node.querySelectorAll('button')].find(x => x.textContent === 'Check status').click());
+ expect(axios.get).toHaveBeenCalledTimes(priorReads);
+ await act(async () => jest.advanceTimersByTimeAsync(200));
+ await expect(pending).rejects.toMatchObject({ code: 'CTF_RECOVERY_CANCELLED' });
+ expect(node.textContent).toBe('');
+ expect(axios.post).toHaveBeenCalledTimes(1);
+});
+test('retained request from an old scope cannot submit under the new mounted scope', async () => {
+ const oldRequest = api.request;
+ act(() => root.render(<Harness scope={2} />));
+ axios.post.mockResolvedValue({ status: 200, data: { success: true } });
+ let stale;
+ await act(async () => {
+  stale = oldRequest('post', '/api/ctf/register', {}, { headers: { Authorization: 'Bearer original' } });
+  stale.catch(() => {});
+ });
+ await expect(stale).rejects.toMatchObject({ code: 'CTF_RECOVERY_CANCELLED' });
+ expect(axios.post).not.toHaveBeenCalled();
+ let fresh;
+ await act(async () => { fresh = send(); });
+ await expect(fresh).resolves.toMatchObject({ data: { success: true } });
+ expect(axios.post).toHaveBeenCalledTimes(1);
+});
+test('scope ABA does not revive an old callback or let it cancel current recovery', async () => {
+ const oldRequest = api.request;
+ act(() => root.render(<Harness scope={2} />));
+ act(() => root.render(<Harness scope={1} />));
+ axios.post.mockResolvedValue({ status: 202, data: { operationId } });
+ axios.get.mockRejectedValue({ response: { status: 503 } });
+ let pending;
+ await act(async () => { pending = send(); pending.catch(() => {}); });
+ await flush();
+ expect(node.textContent).toContain('Check status');
+ for (const url of ['/api/ctf/register', '/api/ctf/admin/reset']) {
+  let stale;
+  await act(async () => {
+   stale = oldRequest('post', url, {}, { headers: { Authorization: 'Bearer original' } });
+   stale.catch(() => {});
+  });
+  await expect(stale).rejects.toMatchObject({ code: 'CTF_RECOVERY_CANCELLED' });
+ }
+ expect(axios.post).toHaveBeenCalledTimes(1);
+ expect(node.textContent).toContain('Check status');
+ axios.get.mockResolvedValue({ status: 200, data: { success: true } });
+ await act(async () => [...node.querySelectorAll('button')].find(x => x.textContent === 'Check status').click());
+ await expect(pending).resolves.toMatchObject({ data: { success: true } });
+});
 test('initial deadline aborts HTTP, retains unknown state until explicit dismissal, never retries', async () => {
  let late; axios.post.mockImplementation(() => new Promise(resolve => { late = resolve; }));
  let result; await act(async () => { result = send(); result.catch(() => {}); });

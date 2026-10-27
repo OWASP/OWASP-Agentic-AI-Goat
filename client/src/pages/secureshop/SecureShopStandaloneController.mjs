@@ -137,7 +137,7 @@ export function createSecureShopStandaloneController({
       if (key === SHOP_LISTINGS_KEY) {
         const listings = decodeListingsReferences(value);
         return [listings, ...(listings.retained || [])].some(group =>
-          ['rewrite', 'import', 'optimize', 'save', 'template'].some(action => Object.hasOwn(group, action))
+          ['rewrite', 'import', 'optimize', 'save', 'template', 'manualCreate', 'manualEdit'].some(action => Object.hasOwn(group, action))
           || (group.assessment?.length || 0) > 0);
       }
       if (key === SHOP_MAIL_KEY) {
@@ -177,6 +177,49 @@ export function createSecureShopStandaloneController({
   };
   const samePasswordAuthority = value => fresh(value.captured) && current === value.state
     && bootstrap === value.credential && current?.sceneId === value.sceneId;
+
+  const merchantMailAuthority = () => {
+    const state = current, captured = epoch, credential = state?.credential;
+    if (shopRole !== 'merchant' || !fresh(captured) || !state?.session || !UUID.test(state.sceneId || '')
+      || bootstrap !== credential || credential?.persona?.user?.role !== 'merchant') {
+      throw new Error('Current merchant practice required');
+    }
+    return { state, captured, credential, sceneId: state.sceneId };
+  };
+  const sameMerchantMailAuthority = authority => fresh(authority.captured)
+    && current === authority.state && bootstrap === authority.credential
+    && current?.sceneId === authority.sceneId;
+  async function getExternalMailReadiness(signal) {
+    const authority = merchantMailAuthority();
+    const value = await client.getExternalMailReadiness(authority.credential.bearer,
+      authority.credential.persona.token, signal);
+    if (!sameMerchantMailAuthority(authority)) throw new Error('Merchant practice changed');
+    return value;
+  }
+  async function externalMailMutation(kind, operation, verifyBeforeDispatch) {
+    if (!exactKeys(operation, kind === 'prepare'
+      ? ['operationId', 'recipient', 'scopeKey'] : ['operationId', 'requestSha256', 'scopeKey'])) {
+      throw new TypeError('Saved external test send required');
+    }
+    const authority = merchantMailAuthority();
+    const readiness = await client.getExternalMailReadiness(authority.credential.bearer,
+      authority.credential.persona.token);
+    if (!sameMerchantMailAuthority(authority) || readiness.available !== true
+      || readiness.scopeKey !== operation.scopeKey || typeof verifyBeforeDispatch !== 'function'
+      || verifyBeforeDispatch() !== true) throw new Error('External test send authority changed');
+    const args = [authority.credential.bearer, authority.credential.persona.token, operation];
+    const value = await (kind === 'prepare' ? client.prepareExternalMail(...args)
+      : kind === 'confirm' ? client.confirmExternalMail(...args) : client.cancelExternalMail(...args));
+    if (!sameMerchantMailAuthority(authority)) throw new Error('Merchant practice changed');
+    return value;
+  }
+  async function getExternalMailOperation(operationId, scopeKey, signal) {
+    const authority = merchantMailAuthority();
+    const value = await client.getExternalMailOperation(authority.credential.bearer,
+      authority.credential.persona.token, operationId, scopeKey, signal);
+    if (!sameMerchantMailAuthority(authority)) throw new Error('Merchant practice changed');
+    return value;
+  }
 
   async function preparePasswordReset(request, signal) {
     if (!exactKeys(request, request?.kind === 'chat'
@@ -745,5 +788,9 @@ export function createSecureShopStandaloneController({
   }
   return Object.freeze({ start, choosePractice, selectScene, newPractice,
     checkPractice, openRetainedPractice, reset, resumeResetRecovery,
-    preparePasswordReset, resetPasswordFromParent, savedPasswordResetFromParent, close });
+    preparePasswordReset, resetPasswordFromParent, savedPasswordResetFromParent,
+    getExternalMailReadiness, prepareExternalMail: (operation, verify) => externalMailMutation('prepare', operation, verify),
+    confirmExternalMail: (operation, verify) => externalMailMutation('confirm', operation, verify),
+    cancelExternalMail: (operation, verify) => externalMailMutation('cancel', operation, verify),
+    getExternalMailOperation, close });
 }

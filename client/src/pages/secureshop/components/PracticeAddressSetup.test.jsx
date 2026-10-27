@@ -65,6 +65,83 @@ test('chat has no save affordance without exact completed-turn handoff', async (
   expect(node.querySelector('button')).toBeNull();
 });
 
+const savedCreate = (operationId = id) => ({ version: 1, scopeKey: scope, operationId,
+  action: 'create', choiceId: null, expectedSnapshotSha256: null,
+  defaultSetSha256: sha, fieldsSha256: sha });
+const completedCreate = saved => ({ scopeKey: saved.scopeKey, operationId: saved.operationId,
+  status: 'completed', receipt: { version: 1, operationId: saved.operationId,
+    kind: 'address.create', status: 'completed', replayed: true,
+    result: { addressId: 14, fieldsSha256: saved.fieldsSha256,
+      addressSnapshotSha256: sha, defaultSetSha256: sha } } });
+
+test('blocked recovery handler preserves the saved reference and performs no transport or confirmation', async () => {
+  const saved = savedCreate(); values.set(SHOP_ADDRESS_SETUP_KEY, JSON.stringify(saved));
+  const transport = jest.fn(), confirmed = jest.fn();
+  await act(async () => root.render(<PracticeAddressSetup setup={null} entryPoint="chat"
+    authorityKey="A" interactionBlocked transport={transport} onConfirmed={confirmed} />));
+  const button = node.querySelector('button'); expect(button.disabled).toBe(true);
+  // Invoke the real rendered handler directly as well: the disabled DOM alone is not the guard.
+  const propsKey = Object.keys(button).find(key => key.startsWith('__reactProps$'));
+  expect(propsKey).toBeDefined();
+  await act(async () => button[propsKey].onClick());
+  expect(transport).not.toHaveBeenCalled(); expect(confirmed).not.toHaveBeenCalled();
+  expect(JSON.parse(values.get(SHOP_ADDRESS_SETUP_KEY))).toEqual(saved);
+  expect(node.textContent).toContain('Wait for the current conversation');
+});
+
+test('null-handoff saved recovery survives parent rerender and authority renewal with one exact GET only', async () => {
+  const saved = savedCreate(); values.set(SHOP_ADDRESS_SETUP_KEY, JSON.stringify(saved));
+  const confirmed = jest.fn();
+  const transport = jest.fn(async (url, options) => {
+    expect(url).toBe(`/api/secureshop/customer/commerce/operations/${id}`);
+    expect(options.method).toBe('GET'); expect(options.signal.aborted).toBe(false);
+    return json(completedCreate(saved));
+  });
+  const Parent = ({ authority, revision }) => <div data-revision={revision}>
+    <PracticeAddressSetup setup={null} entryPoint="chat" authorityKey={authority}
+      transport={transport} onConfirmed={confirmed} /></div>;
+  await act(async () => root.render(<Parent authority="A" revision={1} />));
+  await act(async () => root.render(<Parent authority="A" revision={2} />));
+  await act(async () => root.render(<Parent authority="B" revision={3} />));
+  expect(transport).not.toHaveBeenCalled();
+  expect(node.querySelector('button').disabled).toBe(false);
+  await click('Check saved address'); await settle();
+  expect(transport).toHaveBeenCalledTimes(1); expect(confirmed).toHaveBeenCalledTimes(1);
+  expect(values.has(SHOP_ADDRESS_SETUP_KEY)).toBe(false);
+  expect(node.textContent).toContain('Address saved.');
+  expect(node.querySelector('button')).toBeNull();
+});
+
+test('late old-authority recovery cannot clear a newer saved reference or publish confirmation', async () => {
+  const old = savedCreate(), newer = savedCreate(choiceId);
+  values.set(SHOP_ADDRESS_SETUP_KEY, JSON.stringify(old));
+  let releaseOld, oldSignal; const confirmed = jest.fn();
+  const transport = jest.fn((url, options) => {
+    expect(options.method).toBe('GET');
+    if (url.endsWith(`/${id}`)) {
+      oldSignal = options.signal;
+      return new Promise(resolve => { releaseOld = () => resolve(json(completedCreate(old))); });
+    }
+    expect(url).toBe(`/api/secureshop/customer/commerce/operations/${choiceId}`);
+    return Promise.resolve(json(completedCreate(newer)));
+  });
+  const view = authority => <PracticeAddressSetup setup={null} entryPoint="chat"
+    authorityKey={authority} transport={transport} onConfirmed={confirmed} />;
+  await act(async () => root.render(view('old')));
+  await click('Check saved address');
+  expect(transport).toHaveBeenCalledTimes(1);
+  values.set(SHOP_ADDRESS_SETUP_KEY, JSON.stringify(newer));
+  await act(async () => root.render(view('new')));
+  expect(oldSignal.aborted).toBe(true);
+  await act(async () => releaseOld()); await settle();
+  expect(JSON.parse(values.get(SHOP_ADDRESS_SETUP_KEY))).toEqual(newer);
+  expect(confirmed).not.toHaveBeenCalled();
+  expect(node.querySelector('button').disabled).toBe(false);
+  await click('Check saved address'); await settle();
+  expect(transport).toHaveBeenCalledTimes(2); expect(confirmed).toHaveBeenCalledTimes(1);
+  expect(values.has(SHOP_ADDRESS_SETUP_KEY)).toBe(false);
+});
+
 test('protected edit preflight supplies full current fields and an opaque choice; unknown outcome stays GET-only', async () => {
   let posts = 0;
   const setup = { version: 1, kind: 'address_setup', action: 'update', choiceId, draft: { city: 'New Town' } };

@@ -21,3 +21,15 @@ test('server-selected product operation exposes only its target-bound observatio
   assert.throws(() => createSecureShopProductExecutionConfig('admin'), /Invalid/);
   assert.throws(() => createSecureShopProductExecutionConfig('__proto__'), /Invalid/);
 });
+
+test('facts-only prompt and manifest are confined to Fixed Summary, with unchanged closed model arguments',async()=>{
+  const fixed=createSecureShopProductExecutionConfig('summary',{mode:'fixed'});
+  const question=createSecureShopProductExecutionConfig('summary',{mode:'fixed',answerQuestion:true});
+  assert.match(fixed.buildBasePrompt('customer'),/only its observed catalog price and stock quantity/);
+  assert.match(fixed.buildBasePrompt('customer'),/descriptive product text is withheld/);
+  assert.match(question.buildBasePrompt('customer'),/using its descriptive text/);
+  assert.doesNotMatch(createSecureShopProductExecutionConfig('similar',{mode:'fixed'}).buildBasePrompt('customer'),/descriptive product text is withheld/);
+  assert.deepEqual(fixed.manifest.getForRole('customer')[0].inputSchema,question.manifest.getForRole('customer')[0].inputSchema);
+  for(const options of [{mode:'fixed',answerQuestion:'false'},{mode:'fixed',policySearchEnabled:true}])assert.throws(()=>createSecureShopProductExecutionConfig('summary',options));
+  assert.throws(()=>createSecureShopProductExecutionConfig('similar',{mode:'fixed',answerQuestion:true}));
+});

@@ -8,6 +8,7 @@ import {
   ImageIcon, AlertTriangle,
 } from 'lucide-react';
 import { useBoundListings } from './useBoundListings';
+import { useManualListings } from './useManualListings';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import UploadZone from '../../components/UploadZone.jsx';
@@ -30,6 +31,7 @@ export default function MerchantListings() {
   const { user, token: authToken } = useAuth() || {};
   const location = useLocation();
   const bound = useBoundListings(authToken, globalThis.fetch);
+  const manual = useManualListings(authToken, user?.id || 2, globalThis.fetch);
   const standalone = isStandaloneShopFrame();
   const retailerId = user?.id || 2;
   const reduced = useReducedMotion();
@@ -59,6 +61,9 @@ export default function MerchantListings() {
   const [templateActionError, setTemplateActionError] = useState(null);
   const [optimizeSetup,setOptimizeSetup]=useState(null);
   const [optimizeResult,setOptimizeResult]=useState(null);
+  const [manualReview, setManualReview] = useState(null);
+  const manualReviewRef = useRef(null);
+  manualReviewRef.current = manualReview;
 
   const toast = useToast();
   const notify = useCallback((msg, kind = 'info') => {
@@ -73,6 +78,19 @@ export default function MerchantListings() {
   const loadScope = JSON.stringify([authToken, retailerId, page, sort, search, status, category]);
   const liveLoad = useRef(null);
   liveLoad.current = { scope: loadScope, transport };
+  const mounted = useRef(false);
+  const submitFlight = useRef(null);
+  const [submitting, setSubmitting] = useState(false);
+  const liveSubmit = useRef(null);
+  const submitEpoch = useRef(0);
+  if (liveSubmit.current && (liveSubmit.current.scope !== loadScope ||
+    liveSubmit.current.transport !== transport || liveSubmit.current.modalMode !== modalMode ||
+    liveSubmit.current.editing !== editing)) submitEpoch.current += 1;
+  liveSubmit.current = { scope: loadScope, transport, modalMode, editing };
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; submitFlight.current = null; };
+  }, []);
   const loadRequest = useRef(null);
   const load = useCallback(async () => {
     // A transport can ignore abort, so also fence every completion by request and scope.
@@ -140,11 +158,13 @@ export default function MerchantListings() {
   }, [authToken, retailerId, transport, shopCategoriesRetry]);
 
   const openCreate = useCallback(() => {
+    manualReviewRef.current = null; setManualReview(null);
     setChatSetup(null);
     setEditing({ title: '', description: '', price: 0, category: '', template_source: '', images: [''] });
     setModalMode('create');
   }, []);
   const openEdit = (product) => { setChatSetup(null);
+    manualReviewRef.current = null; setManualReview(null);
     setEditing({
       id: product.id,
       status: product.status,
@@ -157,8 +177,8 @@ export default function MerchantListings() {
     });
     setModalMode('edit');
   };
-  const closeModal = () => { setModalMode(null); setEditing(null); };
-  useEffect(()=>{setModalMode(null);setEditing(null);setShowBulk(false);setChatSetup(null);setDeleteTarget(null);setTemplateResult(null);setTemplateActionError(null);setOptimizeSetup(null);setOptimizeResult(null);},[authToken,retailerId]);
+  const closeModal = () => { manualReviewRef.current = null; setManualReview(null); setModalMode(null); setEditing(null); };
+  useEffect(()=>{manualReviewRef.current=null;setManualReview(null);setModalMode(null);setEditing(null);setShowBulk(false);setChatSetup(null);setDeleteTarget(null);setTemplateResult(null);setTemplateActionError(null);setOptimizeSetup(null);setOptimizeResult(null);},[authToken,retailerId]);
   useEffect(() => {
     // Overview's role-authorized QuickAction uses this deep link. Consume it
     // only on mount so closing the modal does not reopen it while the hash
@@ -214,6 +234,17 @@ export default function MerchantListings() {
   };
 
   const submitProduct = async (payload) => {
+    // A ref locks synchronously, before React can render a disabled button.
+    // The endpoint has no operation receipt, so never dispatch a second write
+    // while the first outcome is unresolved.
+    if (!mounted.current || submitFlight.current) return;
+    const request = { scope: loadScope, transport, modalMode, editing, epoch: submitEpoch.current };
+    const current = () => mounted.current && submitFlight.current === request &&
+      submitEpoch.current === request.epoch &&
+      liveSubmit.current.scope === request.scope && liveSubmit.current.transport === request.transport &&
+      liveSubmit.current.modalMode === request.modalMode && liveSubmit.current.editing === request.editing;
+    submitFlight.current = request;
+    setSubmitting(true);
     const isEdit = modalMode === 'edit';
     const body = {
       title: payload.title,
@@ -225,39 +256,105 @@ export default function MerchantListings() {
       retailer_id: retailerId,
     };
     try {
+      if (!current()) return;
       if (bound.attached && payload.rewriteOperationId) {
         const result = await bound.run('save', chatSetup ? {rewriteOperationId:payload.rewriteOperationId,chatSource:sourceForListingsSetup(chatSetup)} : {rewriteOperationId:payload.rewriteOperationId,productId:isEdit?payload.id:null,item:{name:body.title,description:body.description,price:body.price,category:body.category,images:body.images,templateSource:body.template_source}});
+        if (!current()) return;
         if(result.state!=='completed'){notify('Save is unresolved. Check saved save to read its outcome.', 'error');return;}
         notify(`Saved listing #${result.productId}`, 'success');closeModal();load();
         await checkSavedListing({rewriteOperationId:result.rewriteOperationId||payload.rewriteOperationId,saveOperationId:result.saveOperationId});
+        return;
+      } else if (bound.attached) {
+        const kind = isEdit ? 'edit' : 'create';
+        const listing = { name: body.title, description: body.description, price: body.price,
+          category: body.category, images: body.images, templateSource: body.template_source };
+        const preview = await manual.preview(kind, listing, isEdit ? payload.id : undefined);
+        if (!current()) return;
+        const review = { kind, preview, epoch: request.epoch, scope: request.scope,
+          transport: request.transport, modalMode: request.modalMode, editing: request.editing };
+        manualReviewRef.current = review; setManualReview(review);
         return;
       } else if (isEdit) {
         const patch = { name: body.title, description: body.description, price: body.price,
           template_source: body.template_source, image_url: body.images[0] || null };
         if (payload.category !== editing?.category) patch.category = body.category;
-        const r = await fetch(`/api/secureshop/merchant/products/${payload.id}`, {
+        const r = await transport(`/api/secureshop/merchant/products/${payload.id}`, {
           method: 'PUT',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ patch }),
         });
+        if (!current()) return;
         const j = await r.json();
+        if (!current()) return;
         if (r.ok) notify(`Updated #${payload.id}`, 'success');
         else { notify(j.error || 'Update failed', 'error'); return; }
       } else {
-        const r = await fetch('/api/secureshop/merchant/products', {
+        const r = await transport('/api/secureshop/merchant/products', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(body),
         });
+        if (!current()) return;
         const j = await r.json();
+        if (!current()) return;
         if (r.ok) notify(`Created listing #${j.product_id}`, 'success');
         else { notify(j.error || 'Create failed', 'error'); return; }
       }
       closeModal();
       load();
     } catch (e) {
-      notify(e.message, 'error');
+      if (current()) notify(e.message, 'error');
+    } finally {
+      if (submitFlight.current === request) {
+        submitFlight.current = null;
+        if (mounted.current) setSubmitting(false);
+      }
     }
+  };
+
+  const currentManualReview = review => mounted.current && manualReviewRef.current === review
+    && submitEpoch.current === review.epoch && liveSubmit.current.scope === review.scope
+    && liveSubmit.current.transport === review.transport
+    && liveSubmit.current.modalMode === review.modalMode && liveSubmit.current.editing === review.editing;
+  useEffect(() => {
+    const review = manualReviewRef.current;
+    if (review && !currentManualReview(review)) {
+      manualReviewRef.current = null;
+      setManualReview(null);
+    }
+  }, [loadScope, transport, modalMode, editing]);
+  const cancelManualReview = () => { manualReviewRef.current = null; setManualReview(null); };
+  const confirmManualReview = async () => {
+    const review = manualReviewRef.current;
+    if (!review || !currentManualReview(review) || submitFlight.current || !manual.ready) return;
+    const request = { review }; submitFlight.current = request; setSubmitting(true);
+    try {
+      const receipt = await manual.confirm(review.kind, review.preview);
+      if (!currentManualReview(review) || submitFlight.current !== request) return;
+      notify(`${review.kind === 'create' ? 'Created' : 'Updated'} listing #${receipt.productId}`, 'success');
+      closeModal(); load();
+    } catch (error) {
+      if (currentManualReview(review) && submitFlight.current === request)
+        notify(error.message || 'Manual listing outcome uncertain. Check the saved operation.', 'error');
+    } finally {
+      if (submitFlight.current === request) { submitFlight.current = null; if (mounted.current) setSubmitting(false); }
+      if (currentManualReview(review)) cancelManualReview();
+    }
+  };
+  const recoverManual = async kind => {
+    const scope = loadScope, fetcher = transport;
+    const current = () => mounted.current && liveLoad.current.scope === scope && liveLoad.current.transport === fetcher;
+    try {
+      const receipt = await manual.recover(kind);
+      if (!current()) return;
+      if (receipt.status === 'completed') { notify(`${kind === 'create' ? 'Created' : 'Updated'} listing #${receipt.productId} recovered.`, 'success'); load(); }
+      else notify('No confirmed outcome yet. The saved operation remains unresolved; no listing was repeated.', 'warn');
+    } catch (error) { if (current()) notify(error.message || 'Saved listing outcome unavailable.', 'error'); }
+  };
+  const clearManual = async kind => {
+    const scope = loadScope, fetcher = transport;
+    try { await manual.clearCompleted(kind); if (mounted.current && liveLoad.current.scope === scope && liveLoad.current.transport === fetcher) notify('Confirmed listing reference cleared. You can start another.', 'info'); }
+    catch (error) { if (mounted.current && liveLoad.current.scope === scope && liveLoad.current.transport === fetcher) notify(error.message, 'error'); }
   };
 
   const confirmDelete = async () => {
@@ -489,13 +586,47 @@ export default function MerchantListings() {
         const result=await bound.recover('save');if(result.state==='completed'){notify('Saved listing recovered. Use Check saved listing for its assessment.','success');load();closeModal();}
         else notify(`Save ${result.state}. No save was repeated.`,'info');
       }catch(error){notify(error.message,'error');}}}>Check saved save</button>}
+      {bound.attached && manual.error && <p role="alert">{manual.error} <button type="button" className="ss-btn ss-btn--ghost ss-btn--sm" onClick={manual.retryReadiness}>Retry manual listing readiness</button></p>}
+      {bound.attached && ['create', 'edit'].map(kind => {
+        const action = kind === 'create' ? 'manualCreate' : 'manualEdit';
+        return manual.references[action] && <div key={kind} className="ss-card" style={{ padding: 12 }}>
+          <span className="ss-mono">Saved manual {kind} operation. No new save will be sent until its outcome is checked.</span>{' '}
+          <button type="button" className="ss-btn ss-btn--ghost ss-btn--sm" disabled={!manual.ready || manual.busy} onClick={() => recoverManual(kind)}>Check saved manual {kind}</button>{' '}
+          {manual.terminal[action]?.status === 'completed' && <button type="button" className="ss-btn ss-btn--ghost ss-btn--sm" disabled={!manual.ready || manual.busy} onClick={() => clearManual(kind)}>Clear confirmed manual {kind}</button>}
+        </div>;
+      })}
       <AnimatePresence>
         {modalMode && editing && (
-          <ListingModal key={chatSetup?.proposalId||`manual-${editing.id||"new"}`} mode={modalMode} initial={editing} onClose={closeModal} onSubmit={submitProduct}
-            reduced={reduced} notify={notify} bound={bound} chatSetup={chatSetup}
+          <ListingModal key={chatSetup?.proposalId||`manual-${editing.id||"new"}`} mode={modalMode} initial={editing} onClose={manualReview ? cancelManualReview : closeModal} onSubmit={submitProduct}
+            reduced={reduced} notify={notify} bound={bound} manual={manual} chatSetup={chatSetup} submitting={submitting}
+            uploadAuthToken={authToken} uploadMerchantId={retailerId} uploadTransport={transport}
+            onDraftChange={cancelManualReview} reviewActive={!!manualReview && currentManualReview(manualReview)}
             categoryOptions={[...new Set([...shopCategories, ...categories])]}
             categoryError={shopCategoriesError} onRetryCategories={() => setShopCategoriesRetry(value => value + 1)} />
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {manualReview && currentManualReview(manualReview) && <Dialog reduced={reduced} onClose={cancelManualReview} wide>
+          <div className="ss-card__meta">REVIEW LISTING CONSEQUENCES</div>
+          <h2 className="ss-display" style={{ fontSize: 24, margin: '6px 0 12px' }}>
+            {manualReview.kind === 'create' ? 'Create this active listing?' : `Update listing #${manualReview.preview.productId}?`}
+          </h2>
+          <p>This publishes the exact name, description, price, category, image URLs, and template source shown below.
+            Template source may execute as Nunjucks with autoescape off; generated description HTML remains an intentional unsanitized surface.</p>
+          {manualReview.kind === 'create' && <p>The new listing will be active with initial stock 0 and a USD price.</p>}
+          {manualReview.kind === 'edit' && <p>Existing listing content will be replaced. {manualReview.preview.invalidatesGeneratedHtml
+            ? 'This edit invalidates previously generated description HTML.' : 'Existing generated description HTML is preserved by this edit.'}</p>}
+          <pre className="ss-mono" style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: 300, overflow: 'auto' }}>
+            {JSON.stringify(manualReview.kind === 'edit' ? {
+              before: manualReview.preview.before, after: manualReview.preview.after,
+            } : manualReview.preview.listing, null, 2)}
+          </pre>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button type="button" className="ss-btn ss-btn--ghost" onClick={cancelManualReview} disabled={submitting}>Cancel</button>
+            <button type="button" className="ss-btn" onClick={confirmManualReview} disabled={submitting || manual.busy}>Confirm {manualReview.kind}</button>
+          </div>
+        </Dialog>}
       </AnimatePresence>
 
       <AnimatePresence>
@@ -534,27 +665,29 @@ export default function MerchantListings() {
   );
 }
 
-function ListingModal({ mode, initial, onClose, onSubmit, reduced, notify, bound,
+function ListingModal({ mode, initial, onClose, onSubmit, reduced, notify, bound, manual, submitting, onDraftChange, reviewActive,
+  uploadAuthToken, uploadMerchantId, uploadTransport,
   categoryOptions, categoryError, onRetryCategories, chatSetup }) {
   const [form, setForm] = useState(initial);
   const [assisting, setAssisting] = useState(false);
   const [preview, setPreview] = useState(null);
   const [rewrite, setRewrite] = useState(null);
+  const updateForm = value => { onDraftChange(); setForm(value); };
   const liveForm=useRef(form);liveForm.current=form;
   useEffect(()=>{if(rewrite&&(rewrite.title!==form.title||rewrite.description!==form.description)){setRewrite(null);setPreview(null);void bound.clear('rewrite').catch(e=>notify(e.message,'error'));}},[form.title,form.description,rewrite,bound]);
 
   const setImage = (i, v) => {
     const next = [...(form.images || [])];
     next[i] = v;
-    setForm({ ...form, images: next });
+    updateForm({ ...form, images: next });
   };
   const addImage = () => {
     const next = [...(form.images || []), ''];
-    setForm({ ...form, images: next.slice(0, 5) });
+    updateForm({ ...form, images: next.slice(0, 5) });
   };
   const removeImage = (i) => {
     const next = (form.images || []).filter((_, idx) => idx !== i);
-    setForm({ ...form, images: next.length ? next : [''] });
+    updateForm({ ...form, images: next.length ? next : [''] });
   };
 
   const assistWrite = async () => {
@@ -592,7 +725,7 @@ function ListingModal({ mode, initial, onClose, onSubmit, reduced, notify, bound
     ? [...categoryOptions, form.category] : categoryOptions;
 
   return (
-    <Dialog reduced={reduced} onClose={onClose} wide>
+    <Dialog reduced={reduced} onClose={onClose} wide inactive={reviewActive}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div className="ss-card__meta">{mode === 'edit' ? 'EDIT LISTING' : 'CREATE LISTING'}</div>
@@ -609,13 +742,13 @@ function ListingModal({ mode, initial, onClose, onSubmit, reduced, notify, bound
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 3fr) minmax(0, 2fr)', gap: 24 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Field label={chatSetup?'Title':`Title (${titleLen}/60)`} error={titleOverflow ? 'Title too long' : null}>
-              <input readOnly={!!chatSetup} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
+              <input readOnly={!!chatSetup} value={form.title} onChange={(e) => updateForm({ ...form, title: e.target.value })}
                      required maxLength={80} style={inputStyle} />
             </Field>
 
             <Field label="Description (markdown) — LLM rewrites into description_html">
               <textarea readOnly={!!chatSetup} rows={6} value={form.description}
-                        onChange={(e) => setForm({ ...form, description: e.target.value })}
+                        onChange={(e) => updateForm({ ...form, description: e.target.value })}
                         style={{ ...inputStyle, fontFamily: 'var(--mono)', fontSize: 13, minHeight: 120 }}
                         placeholder="Describe the product. Markdown supported. Beware — HTML in output is not sanitized." />
               <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
@@ -638,7 +771,7 @@ function ListingModal({ mode, initial, onClose, onSubmit, reduced, notify, bound
 
             <Field label="Template source (Nunjucks — optional)">
               <textarea readOnly={!!chatSetup} rows={3} value={form.template_source || ''}
-                        onChange={(e) => setForm({ ...form, template_source: e.target.value })}
+                        onChange={(e) => updateForm({ ...form, template_source: e.target.value })}
                         placeholder='e.g. "{{ title }} — from {{ retailer }}". autoescape:false — SSTI surface.'
                         style={{ ...inputStyle, fontFamily: 'var(--mono)', fontSize: 12, minHeight: 74 }} />
               <div className="ss-mono" style={{ fontSize: 11, opacity: 0.55, marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -651,11 +784,11 @@ function ListingModal({ mode, initial, onClose, onSubmit, reduced, notify, bound
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Field label="Price">
               <input readOnly={!!chatSetup} type="number" step="0.01" min="0" value={form.price}
-                     onChange={(e) => setForm({ ...form, price: e.target.value })} style={inputStyle} />
+                     onChange={(e) => updateForm({ ...form, price: e.target.value })} style={inputStyle} />
             </Field>
 
             <Field label="Category">
-              <select disabled={!!chatSetup} value={form.category || ''} onChange={(e) => setForm({ ...form, category: e.target.value })} style={selectStyle}>
+              <select disabled={!!chatSetup} value={form.category || ''} onChange={(e) => updateForm({ ...form, category: e.target.value })} style={selectStyle}>
                 <option value="">Uncategorised</option>
                 {availableCategories.map(c => (
                   <option key={c} value={c}>{c}</option>
@@ -691,13 +824,15 @@ function ListingModal({ mode, initial, onClose, onSubmit, reduced, notify, bound
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--rule)' }}>
           <button type="button" className="ss-btn ss-btn--ghost" onClick={onClose}>Cancel</button>
-          <button type="submit" className="ss-btn" disabled={!form.title || titleOverflow || (chatSetup && !rewrite) || bound.busy}>
+          <button type="submit" className="ss-btn" disabled={!form.title || titleOverflow || (chatSetup && !rewrite) || bound.busy || submitting ||
+            (bound.attached && !rewrite && (!manual.ready || !!manual.references[mode === 'edit' ? 'manualEdit' : 'manualCreate']))}>
             {mode === 'edit' ? 'Save changes' : 'Create listing'}
           </button>
         </div>
       </form>
       {mode === 'edit' && initial.status === 'active' && (
         <UploadZone key={initial.id} kind="product_manual" scopeId={initial.id}
+          authToken={uploadAuthToken} merchantId={uploadMerchantId} transport={uploadTransport}
           label="Product manual"
           onUploaded={() => notify('Product manual indexed', 'success')} />
       )}
@@ -831,16 +966,17 @@ function StatusPill({ status }) {
   );
 }
 
-function Dialog({ children, onClose, reduced, wide }) {
+function Dialog({ children, onClose, reduced, wide, inactive = false }) {
   const ref = useRef(null);
   const closeRef = useRef(onClose);
   useEffect(() => { closeRef.current = onClose; }, [onClose]);
   useEffect(() => {
+    if (inactive) return undefined;
     const onKey = (e) => { if (e.key === 'Escape') closeRef.current?.(); };
     document.addEventListener('keydown', onKey);
     ref.current?.focus();
     return () => document.removeEventListener('keydown', onKey);
-  }, []);
+  }, [inactive]);
 
   return (
     <motion.div
@@ -852,8 +988,8 @@ function Dialog({ children, onClose, reduced, wide }) {
         backdropFilter: 'blur(2px)',
         display: 'grid', placeItems: 'center', padding: 24,
       }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      role="dialog" aria-modal="true"
+      onClick={(e) => { if (!inactive && e.target === e.currentTarget) onClose(); }}
+      role="dialog" aria-modal={inactive ? undefined : 'true'} aria-hidden={inactive ? 'true' : undefined} inert={inactive}
     >
       <motion.div
         ref={ref} tabIndex={-1}

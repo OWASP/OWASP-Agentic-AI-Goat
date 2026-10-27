@@ -116,6 +116,10 @@ test('teaching editor uses the narrow content endpoint and excludes guardian and
     const row = [...container.querySelectorAll('tr')].find(node => node.textContent.includes('Teaching level'));
     await act(async () => row.click());
     await act(async () => button('Save teaching content').click()); await flush();
+    expect(axios.put).not.toHaveBeenCalled();
+    const dialog = container.querySelector('[role="dialog"]');
+    expect(dialog.textContent).toContain('Teaching level');
+    await act(async () => [...dialog.querySelectorAll('button')].find(node => node.textContent.trim() === 'Confirm Teaching Save').click()); await flush();
     expect(axios.put).toHaveBeenCalledTimes(1);
     const [url, body] = axios.put.mock.calls[0];
     expect(url).toBe('/api/ctf/admin/stages/12/content');
@@ -134,7 +138,7 @@ test('level editor retains disabled legacy bonus but excludes it from actual sav
   jest.clearAllMocks();
   const stage = { id: 9, stage_number: 1, stage_name: 'Owned level', hints: '[]', defense_style: '[]', time_bonus_seconds: 777, level_score: 100, success_criteria: 'OWNED_SECRET' };
   axios.get.mockImplementation(url => Promise.resolve({ data: url.endsWith('/stages') ? { stages: [stage] } : { analytics: {} } }));
-  axios.put.mockResolvedValue({ data: { message: 'Stage updated' } });
+  axios.put.mockResolvedValue({ status: 200, data: { message: 'Stage updated' } });
   const container = document.createElement('div'); document.body.appendChild(container);
   const root = createRoot(container);
   try {
@@ -147,6 +151,13 @@ test('level editor retains disabled legacy bonus but excludes it from actual sav
     expect(inactive.disabled).toBe(true); expect(inactive.readOnly).toBe(true); expect(inactive.value).toBe('777');
     expect(container.textContent).toContain('This legacy value does not affect scoring.');
     await act(async () => button('Save').click()); await flush();
+    expect(axios.put).not.toHaveBeenCalled();
+    await act(async () => [...container.querySelector('[role="dialog"]').querySelectorAll('button')]
+      .find(node => node.textContent.trim() === 'Cancel').click()); await flush();
+    expect(axios.put).not.toHaveBeenCalled();
+    await act(async () => button('Save').click()); await flush();
+    await act(async () => [...container.querySelector('[role="dialog"]').querySelectorAll('button')]
+      .find(node => node.textContent.trim() === 'Confirm Advanced Save').click()); await flush();
     expect(axios.put).toHaveBeenCalledTimes(1);
     const [url, body] = axios.put.mock.calls[0]; expect(url).toBe('/api/ctf/admin/stages/9');
     expect(body.stage_name).toBe('Owned level'); expect(body).not.toHaveProperty('time_bonus_seconds');

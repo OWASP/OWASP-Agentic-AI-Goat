@@ -14,7 +14,7 @@ const { createSecureShopStandaloneAuthRepository } = require('../../server/datab
 const { createSecureShopStandaloneAuthService } = require('../../server/services/secureshopStandaloneAuth');
 const { seedSecureShopStandaloneDefaults } = require('../../server/database/postgres/secureshopStandaloneSeed');
 const { createSecureShopLaunchRepository } = require('../../server/database/postgres/secureshopLaunchRepository');
-const { createSecureShopBoundPersonaRepository } = require('../../server/database/postgres/secureshopBoundPersonaRepository');
+const { createSecureShopBoundPersonaRepository, MAX_ACTIVE } = require('../../server/database/postgres/secureshopBoundPersonaRepository');
 const { createSecureShopBoundPersonaAuthority } = require('../../server/database/postgres/secureshopBoundPersonaAuthority');
 const { createSecureShopBoundPersonaAuth } = require('../../server/services/secureshopBoundPersonaAuth');
 const { createSecureShopStandaloneBootstrap } = require('../../server/services/secureshopStandaloneBootstrap');
@@ -58,8 +58,9 @@ test('standalone shop principals preserve demo evidence and fence cross-owner se
   { skip: !enabled, timeout: 180000 }, async t => {
     assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'),process.cwd());
     const evidencePath = process.env.WORKSHOP_RAG_EVIDENCE_PATH || '';
-    assert.ok(path.isAbsolute(evidencePath));
-    assert.ok(!path.resolve(evidencePath).startsWith(`${process.cwd()}${path.sep}`));
+    require('../fixtures/secureshopNativeEvidencePath').assertNativeEvidencePath(evidencePath, {
+      root: process.cwd(), dockerHost: process.env.DOCKER_HOST,
+      basename: 'standalone-actor.json' });
     const identityMigration = new Pool({ connectionString: disposableUrl('IDENTITY_MIGRATION_URL'), max: 2 });
     const identity = new Pool({ connectionString: disposableUrl('IDENTITY_RUNTIME_URL'), max: 8 });
     const agentsMigration = new Pool({ connectionString: disposableUrl('AGENTS_MIGRATION_URL'), max: 2 });
@@ -109,7 +110,10 @@ test('standalone shop principals preserve demo evidence and fence cross-owner se
       '0149_secureshop_admin_operation_kinds.sql',
       '0150_secureshop_practice_admission.sql',
       '0151_secureshop_files_principal_admission.sql',
-      '0152_secureshop_scene_assessment_cleanup.sql']);
+      '0152_secureshop_scene_assessment_cleanup.sql',
+      '0153_secureshop_external_test_mail.sql',
+      '0154_ctf_global_reset_adaptive_memory.sql',
+      '0155_ctf_authenticated_publication_stale.sql']);
     assert.deepEqual((await identityMigration.query(`SELECT * FROM identity.secureshop_launches
       WHERE launch_id=ANY($1::uuid[]) ORDER BY launch_id`,[historical.map(row=>row.launchId)])).rows,
       historicalLaunches);
@@ -261,12 +265,24 @@ test('standalone shop principals preserve demo evidence and fence cross-owner se
       '0105_listing_optimize_conversation_purpose.sql',
       '0106_listing_optimize_registry_successor.sql',
       '0107_file_summary_conversation_purpose.sql',
-      '0108_file_summary_registry_successor.sql']);
+      '0108_file_summary_registry_successor.sql',
+      '0109_file_path_summary_conversation_purpose.sql',
+      '0110_policy_final_html.sql',
+      '0111_admin_user_lookup_registry_successor.sql',
+      '0112_upload_preview_registry_successor.sql',
+      '0113_owned_agency_role_state.sql',
+      '0114_customer_agency_role_registry_successor.sql',
+      '0115_owned_mcp_registration_journal.sql',
+      '0116_mcp_registration_registry_successor.sql',
+      '0117_mcp_describe_tools_registry_successor.sql',
+      '0118_mcp_list_servers_registry_successor.sql',
+      '0119_bound_additional_authenticated_sessions.sql']);
     assert.deepEqual((await agentsMigration.query(`SELECT * FROM secureshop_agents.bound_persona_sessions
       WHERE session_id=$1`,[oldSession])).rows[0],{
       ...oldRow,standalone_principal_id:null,standalone_session_id:null,bootstrap_jti:null,
       standalone_credential_version:null,standalone_authority_version:null,
-      bootstrap_persona_authority_version:null,bootstrap_membership_version:null });
+      bootstrap_persona_authority_version:null,bootstrap_membership_version:null,
+      additional_session:false });
     assert.deepEqual(await migrate(agentsMigration,agentsDirectory),[]);
     assert.deepEqual(await migrate(identityMigration,identityDirectory),[]);
 
@@ -290,7 +306,15 @@ test('standalone shop principals preserve demo evidence and fence cross-owner se
       assert.equal(repeated.launch.launchId,firstLaunch.binding.launchId);
       bootstraps.push(repeated);
     }
+    // Concurrent canonical bootstrap remains one physical session; extra sessions
+    // are issued only through reauthentication, never this idempotent path.
+    const firstBoundSessionId=(await bound.authenticateBoundToken({token:firstBound.token,scope:firstLaunch.binding})).sessionId;
+    const concurrent=await Promise.all(Array.from({length:8},()=>bootstrap(firstAuth.context)));
     const originalBootstrap=bootstraps[0];
+    for(const result of concurrent) assert.equal(
+      (await bound.authenticateBoundToken({token:result.persona.token,
+        scope:firstLaunch.binding})).sessionId,firstBoundSessionId);
+
     let refreshedBootstrap=bootstraps.find(value=>
       value.persona.token!==originalBootstrap.persona.token);
     if(!refreshedBootstrap) {
@@ -317,6 +341,50 @@ test('standalone shop principals preserve demo evidence and fence cross-owner se
       token:firstBound.token,scope:firstLaunch.binding})).sessionId,personaRows[0].session_id);
     assert.equal(firstVerified.user.id,
       first.context.shopUserId);
+    // Native real-service proof: wrong password cannot issue, a selected
+    // additional session is distinct, and the canonical/sibling survive revoke.
+    const issueAdditional=(password='disposable actor password')=>
+      standalone.withReauthenticatedExecution({token:firstAuth.token,
+        username:firstAuth.context.username,password}, shopPrincipal=>
+        bound.establishAdditionalSession({scope:firstLaunch.binding,shopPrincipal,
+          token:originalBootstrap.persona.token}));
+    await assert.rejects(issueAdditional('incorrect password'),
+      {code:'SHOP_CREDENTIALS_INVALID'});
+    const extras=[await issueAdditional(),await issueAdditional()];
+    const extraIds=[];
+    for(const extra of extras) {
+      const verified=await bound.authenticateBoundToken({token:extra.token,scope:firstLaunch.binding});
+      assert.notEqual(verified.sessionId,firstVerified.sessionId);
+      extraIds.push(verified.sessionId);
+    }
+    assert.notEqual(extraIds[0],extraIds[1]);
+    const flags=(await agents.query(`SELECT session_id,additional_session
+      FROM secureshop_agents.bound_persona_sessions
+      WHERE session_id=ANY($1::uuid[])`,[[firstVerified.sessionId,...extraIds]])).rows;
+    assert.equal(flags.find(row=>row.session_id===firstVerified.sessionId).additional_session,false);
+    for(const id of extraIds) assert.equal(flags.find(row=>row.session_id===id).additional_session,true);
+    // Capacity is per owned launch, including its canonical row and the
+    // populated historical row. Query the real store, not a mocked counter.
+    let active=(await agents.query(`SELECT count(*)::int n
+      FROM secureshop_agents.bound_persona_sessions WHERE platform_launch_id=$1
+      AND platform_launch_generation=$2 AND revoked_at IS NULL
+      AND expires_at>clock_timestamp()`,[firstLaunch.binding.launchId,
+        firstLaunch.binding.generation])).rows[0].n;
+    assert.ok(active<MAX_ACTIVE);
+    while(active++<MAX_ACTIVE) extras.push(await issueAdditional());
+    await assert.rejects(issueAdditional(),{code:'SHOP_PERSONA_CAPACITY'});
+    assert.equal(await bound.revokeOwnedSession({scope:firstLaunch.binding,
+      shopPersona:firstVerified.user,currentSessionId:firstVerified.sessionId,
+      authorityVersion:firstVerified.authorityVersion,sessionId:extraIds[0]}),true);
+    await assert.rejects(bound.authenticateBoundToken({token:extras[0].token,
+      scope:firstLaunch.binding}));
+    assert.equal((await bound.authenticateBoundToken({token:extras[1].token,
+      scope:firstLaunch.binding})).sessionId,extraIds[1]);
+    assert.equal((await bound.authenticateBoundToken({token:originalBootstrap.persona.token,
+      scope:firstLaunch.binding})).sessionId,firstVerified.sessionId);
+    assert.equal((await bound.authenticateBoundToken({token:siblingBound.token,
+      scope:secondLaunch.binding})).user.id,second.context.shopUserId);
+    for(const extra of extras) await bound.logout({scope:firstLaunch.binding,token:extra.token});
     const originalHeaders=Object.freeze({authorization:`Bearer ${originalBootstrap.persona.token}`,
       'x-dvaia-secureshop-launch':originalBootstrap.bearer});
     const originalHeadersSnapshot={...originalHeaders};
@@ -698,5 +766,5 @@ test('standalone shop principals preserve demo evidence and fence cross-owner se
       distinctRegisteredActors:true,crossOwnerDenied:true,sessionRevocationFenced:true,
       siblingPreserved:true,defaultSeedDurable:true,renewalNewSession:true,
       passwordRevocationFenced:true,secondTenantIsolated:true,
-      registeredToolPolicyAdmission:true,registeredPromptPolicyAdmission:true}));
+      registeredToolPolicyAdmission:true,registeredPromptPolicyAdmission:true}), { flag: 'wx', mode: 0o600 });
   });

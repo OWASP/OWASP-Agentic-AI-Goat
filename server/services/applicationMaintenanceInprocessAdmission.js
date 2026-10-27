@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path'),{createHash,randomUUID}=re
 const prepared=new WeakMap(),admitted=new WeakMap(),consumed=new WeakMap(),execution=new WeakMap();
 const failure=()=>Object.assign(Error('In-process maintenance admission unavailable'),{code:'APPLICATION_MAINTENANCE_PREPARATION_INVALID'});
 const hash=x=>createHash('sha256').update(x).digest('hex');
-const CURRENT_MANIFEST=require('./applicationMaintenanceInprocessSources-v339.json');
+const CURRENT_MANIFEST=require('./applicationMaintenanceInprocessSources-v342.json');
 const RECOVERY_FILES=Object.freeze(Array.isArray(CURRENT_MANIFEST.recoveryFiles)?CURRENT_MANIFEST.recoveryFiles.slice():[]);
 function readWithPolicy(file,workspace){
  if(process.platform==='win32'){
@@ -32,7 +32,7 @@ function optionalPrivateRead(file){
 function immutable(value){if(value&&typeof value==='object'){for(const v of Object.values(value))immutable(v);Object.freeze(value);}return value;}
 function projection(value){return Object.freeze({...value,clean:Object.freeze({...value.clean}),binding:Object.freeze({...value.binding}),owner:immutable(structuredClone(value.owner)),stores:immutable(structuredClone(value.stores)),artifacts:immutable(structuredClone(value.artifacts)),retained:new Map([...value.retained].map(([k,b])=>[k,Buffer.from(b)])),originalBytes:Buffer.from(value.originalBytes),publicationBytes:Buffer.from(value.publicationBytes)});}
 function sourceBinding(root){
- const manifest=require('./applicationMaintenanceInprocessSources-v339.json');
+ const manifest=require('./applicationMaintenanceInprocessSources-v342.json');
  if(manifest.version!==1||manifest.profile!=='canonical16-ctf-inprocess-v1'||!Array.isArray(manifest.recoveryFiles)||JSON.stringify(manifest.recoveryFiles)!==JSON.stringify([...new Set(manifest.recoveryFiles)].sort())||manifest.recoveryFiles.some(name=>!Object.hasOwn(manifest.files,name)))throw failure();
  const actual=[];function scan(directory){for(const entry of fs.readdirSync(directory,{withFileTypes:true})){const file=path.join(directory,entry.name);if(entry.isSymbolicLink())throw failure();if(entry.isDirectory())scan(file);else if(entry.name.endsWith('.sql'))actual.push(path.relative(root,file).split(path.sep).join('/'));}}scan(path.join(root,'db/postgres'));
  const expected=Object.keys(manifest.files).filter(p=>p.startsWith('db/postgres/')&&p.endsWith('.sql')).sort();if(JSON.stringify(actual.sort())!==JSON.stringify(expected))throw failure();

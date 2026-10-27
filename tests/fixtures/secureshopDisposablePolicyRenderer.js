@@ -13,6 +13,7 @@ const authority = require('../../scripts/local-docker-authority');
 const { createSecureShopPolicySandboxRuntime, readBoundedPolicyRenderJson }
   = require('../../server/services/secureshopPolicySandboxRuntime');
 const { ISOLATION } = require('../../server/services/secureshopPromptPolicyContract');
+const { rendererAdmissionPath } = require('./secureshopOwnedPolicyRendererAdmission');
 
 const invoke = promisify(execFile);
 const sha = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
@@ -64,7 +65,14 @@ async function diagnosticDestination(filename) {
   assert.ok(typeof filename === 'string' && path.isAbsolute(filename)
     && path.basename(filename) === 'disposable-policy-renderer-diagnostic.json');
   const parent = path.dirname(filename), stat = await fs.lstat(parent);
-  assert.match(path.basename(parent), /^run-[A-Za-z0-9_]{8,32}$/);
+  if (!/^run-[A-Za-z0-9_]{8,32}$/.test(path.basename(parent))) {
+    const workspace = process.env.DVAIA_CURRENT_MAIN_WORKSPACE;
+    assert.ok(typeof workspace === 'string' && path.isAbsolute(workspace)
+      && await fs.realpath(workspace) === workspace);
+    rendererAdmissionPath(workspace, path.join(workspace, 'tasks/qualification',
+      `system-renderer-${process.env.SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_RUN_ID}`, 'admission.json'));
+    assert.equal(parent, process.env.SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_DIRECTORY);
+  }
   assert.ok(stat.isDirectory() && !stat.isSymbolicLink() && stat.uid === process.getuid()
     && (stat.mode & 0o777) === 0o700 && await fs.realpath(parent) === parent);
   await assert.rejects(fs.lstat(filename), error => error?.code === 'ENOENT');
@@ -95,7 +103,17 @@ function startupFailureRecord({ stage, error, healthAttempts, containerId, port,
 }
 
 async function privateAdmission(workspace, filename) {
-  assert.ok(path.isAbsolute(filename) && !filename.startsWith(`${workspace}${path.sep}`));
+  assert.ok(path.isAbsolute(workspace) && await fs.realpath(workspace) === workspace);
+  // The original V24 owner uses a private run-bound repository path. Other
+  // cohorts retain their external admission; no generic repository exception.
+  rendererAdmissionPath(workspace, filename);
+  let directory;
+  if (filename.startsWith(`${workspace}${path.sep}`)) {
+    const parent = path.dirname(filename), stat = await fs.lstat(parent);
+    assert.ok(stat.isDirectory() && !stat.isSymbolicLink() && stat.uid === process.getuid()
+      && (stat.mode & 0o777) === 0o700 && await fs.realpath(parent) === parent);
+    directory = { parent, dev: stat.dev, ino: stat.ino };
+  }
   assert.equal(await fs.realpath(filename), filename);
   const stat = await fs.lstat(filename);
   assert.ok(stat.isFile() && stat.uid === process.getuid() && stat.nlink === 1
@@ -115,13 +133,19 @@ async function privateAdmission(workspace, filename) {
   assert.ok(bin.isFile() && !bin.isSymbolicLink() && (bin.mode & 0o111) !== 0
     && bin.size <= 128 * 1024 * 1024);
   assert.equal(sha(await fs.readFile(value.dockerExecutable)), value.dockerExecutableSha256);
-  return { value, stat, bytes, bin };
+  return { value, stat, bytes, bin, directory };
 }
 
-async function createDisposablePolicyRenderer({ workspace, admissionFilename, diagnosticPath } = {}) {
+async function captureDisposableAdmission({ workspace, admissionFilename, diagnosticPath } = {}) {
   assert.ok(path.isAbsolute(workspace) && await fs.realpath(workspace) === workspace);
   const diagnosticDirectory = await diagnosticDestination(diagnosticPath);
   const admission = await privateAdmission(workspace, admissionFilename);
+  if (admission.directory) {
+    assert.equal(diagnosticDirectory.parent, process.env.SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_DIRECTORY);
+  } else {
+    // Do not combine a legacy external admission with a V24 owner's directory.
+    assert.match(path.basename(diagnosticDirectory.parent), /^run-[A-Za-z0-9_]{8,32}$/);
+  }
   const options = { root: workspace, home: admission.value.home };
   const record = managed.capture(options), stage = managed.capture(options, true);
   assert.equal(record?.sha256, admission.value.managedSha256);
@@ -131,6 +155,13 @@ async function createDisposablePolicyRenderer({ workspace, admissionFilename, di
   assert.equal(record.value.profile, `dvaia-owned-policy-renderer-${record.value.workspaceId}`);
   assert.equal(sha(installer._internals.profileBytes(workspace, record.value.workspaceId)), record.value.profileSha256);
   const source = installer.sourceManifest(workspace);
+  return { diagnosticDirectory, admission, options, record, stage, source };
+}
+
+async function createDisposablePolicyRenderer(options = {}) {
+  const { workspace, admissionFilename, diagnosticPath } = options;
+  const { diagnosticDirectory, admission, options: managedOptions, record, stage, source }
+    = await captureDisposableAdmission(options);
   const suffix = crypto.randomBytes(6).toString('hex');
   assert.match(suffix, UUID_HEX);
   const name = `dvaia-v59-policy-${suffix}`, network = name, image = `${name}:local`;
@@ -151,6 +182,12 @@ async function createDisposablePolicyRenderer({ workspace, admissionFilename, di
   let imageId, networkId, containerId, port, closed = false, closePromise;
   let setupStage = 'preflight', healthAttempts = 0;
   const assertUnchanged = async () => {
+    if (admission.directory) {
+      const { parent, dev, ino } = admission.directory, current = await fs.lstat(parent);
+      assert.ok(current.isDirectory() && !current.isSymbolicLink() && current.uid === process.getuid()
+        && (current.mode & 0o777) === 0o700 && current.dev === dev && current.ino === ino
+        && await fs.realpath(parent) === parent);
+    }
     const now = await fs.lstat(admissionFilename);
     assert.equal(now.dev, admission.stat.dev); assert.equal(now.ino, admission.stat.ino);
     assert.ok(now.isFile() && now.uid === admission.stat.uid && now.nlink === 1
@@ -159,7 +196,7 @@ async function createDisposablePolicyRenderer({ workspace, admissionFilename, di
     const bin = await fs.lstat(admission.value.dockerExecutable);
     assert.equal(bin.dev, admission.bin.dev); assert.equal(bin.ino, admission.bin.ino);
     assert.equal(sha(await fs.readFile(admission.value.dockerExecutable)), admission.value.dockerExecutableSha256);
-    managed.assertCaptured(record, options); managed.assertCaptured(stage, options, true);
+    managed.assertCaptured(record, managedOptions); managed.assertCaptured(stage, managedOptions, true);
     assert.equal(installer.sourceManifest(workspace).sha256, source.sha256);
     assert.equal(sha(installer._internals.profileBytes(workspace, record.value.workspaceId)), record.value.profileSha256);
   };
@@ -184,7 +221,7 @@ async function createDisposablePolicyRenderer({ workspace, admissionFilename, di
     await assertUnchanged();
     await authority.verifyDockerAuthority({ authority: record.authority, execute });
     await installer._internals.provisionProfile({ p: { workspaceId: record.value.workspaceId,
-      profile: record.value.profile }, authority: record.authority, ...options,
+      profile: record.value.profile }, authority: record.authority, ...managedOptions,
       platform: process.platform, existingOnly: true,
       run: (file, args) => execute(file, args) });
     const p = { workspaceId: record.value.workspaceId, sourceSha256: source.sha256,
@@ -274,7 +311,7 @@ async function createDisposablePolicyRenderer({ workspace, admissionFilename, di
     await authority.verifyDockerAuthority({ authority: record.authority, execute });
     setupStage = 'enforced-profile';
     await installer._internals.provisionProfile({ p: { workspaceId: record.value.workspaceId,
-      profile: record.value.profile }, authority: record.authority, ...options,
+      profile: record.value.profile }, authority: record.authority, ...managedOptions,
       platform: process.platform, existingOnly: true,
       run: (file, args) => execute(file, args) });
     assert.ok(await absent('container', name) && await absent('network', network) && await absent('image', image));
@@ -342,4 +379,5 @@ async function createDisposablePolicyRenderer({ workspace, admissionFilename, di
 }
 
 module.exports = { createDisposablePolicyRenderer, createArgs, assertOwnedResource,
-  transientHealthFailure, diagnosticDestination, startupErrorFacts, startupFailureRecord };
+  transientHealthFailure, diagnosticDestination, startupErrorFacts, startupFailureRecord,
+  _internals: { privateAdmission, captureDisposableAdmission } };

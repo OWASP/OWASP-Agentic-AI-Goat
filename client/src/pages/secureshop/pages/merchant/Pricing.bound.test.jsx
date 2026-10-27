@@ -47,17 +47,31 @@ test('saved fixed-mode comparison denial is terminal only after exact GET and ne
  const ref={scopeKey:'a'.repeat(64),operationId,productId:7,action:'compare',requestSha256};
  localStorage.setItem('ss_pricing_pending',JSON.stringify({version:1,references:[ref]}));
  const result=blockedResult(operationId,requestSha256);
+ let releaseGet,readCount=0;
  fetcher=jest.fn(async(url,options={})=>{
   if(url.includes('/products?'))return response({products:[{id:7,name:'Owned product',price:100}]});
   if(url.includes('/history?'))return response({history:[],grounded:false});
   if(url.endsWith('/run'))return response({ok:true,administration:{versionedPricing:true,scopeKey:ref.scopeKey}});
-  if(url.endsWith(`/operations/${operationId}`))return response(result);
+  if(url.endsWith(`/operations/${operationId}`)){
+   readCount++;
+   return new Promise(resolve=>{releaseGet=()=>resolve(response(result));});
+  }
   throw Error(`Unexpected ${url} ${options.method||'GET'}`);
  });global.fetch=fetcher;
  await render();
  await act(async()=>[...container.querySelectorAll('button')].find(x=>x.textContent==='Check saved operation').click());
+ expect(readCount).toBe(1);
+ expect(localStorage.getItem('ss_pricing_pending')).not.toBeNull();
+ expect(container.textContent).not.toContain('Comparison blocked by fixed-mode policy. No competitor request was made.');
+ await act(async()=>releaseGet());
+ // The click handler starts an async GET, digest verification and acknowledged
+ // reference removal. React does not await that handler's returned promise.
+ for(let attempt=0;attempt<200 && (localStorage.getItem('ss_pricing_pending')!==null
+  || !container.textContent.includes('Comparison blocked by fixed-mode policy. No competitor request was made.'));attempt++)
+  await act(async()=>new Promise(resolve=>setTimeout(resolve,10)));
  expect(container.textContent).toContain('Comparison blocked by fixed-mode policy. No competitor request was made.');
  expect(localStorage.getItem('ss_pricing_pending')).toBeNull();
+ expect(readCount).toBe(1);
  expect(fetcher.mock.calls.filter(([,options])=>options?.method==='POST')).toHaveLength(0);
  expect(container.textContent).not.toContain('Pricing operation completed.');
 });

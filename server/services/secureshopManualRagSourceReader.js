@@ -6,7 +6,8 @@
 // vectors.  Missing or oversized capture is an ordinary ineligible source.
 const { isDeepStrictEqual: equal } = require('node:util');
 const { executionScope } = require('./secureshopSceneBinding');
-const { validateManualRagSourceContract, VERSION, resolveProductSimilarObservation } = require('./secureshopManualRagSourceContract');
+const { validateManualRagSourceContract, validateProtectedManualSourceContract,
+  VERSION, PROTECTED_VERSION, resolveProductSimilarObservation } = require('./secureshopManualRagSourceContract');
 const { SECURESHOP_CONVERSATION_PURPOSES: PURPOSES } = require('./secureshopConversationPurpose');
 
 const MAX_LINEAGE_BYTES = 64 * 1024;
@@ -32,10 +33,10 @@ function targetProjection(target) {
       grantId: target.scene.grantId, execution }) });
 }
 
-function origin(value, kind) {
+function origin(value, kind, protectedSource = false) {
   const keys = kind === 'upload'
     ? ['version', 'binding', 'personaSession', 'source', 'runId', 'traceEventIds', 'target', 'receipt', 'lineage']
-    : ['version', 'binding', 'personaSession', 'source', 'runId', 'traceEventIds', 'execution', 'productId', 'target', 'lineage'];
+    : ['version', 'binding', 'personaSession', 'source', 'runId', 'traceEventIds', 'execution', 'productId', 'target', 'lineage', ...(protectedSource ? ['query'] : [])];
   if (!exact(value, keys) || value.version !== 1 || !plain(value.source)
       || !exact(value.source, ['sessionId', 'requestId'])
       || !UUID.test(value.source.sessionId || '') || !UUID.test(value.source.requestId || '')
@@ -96,10 +97,12 @@ function eligibleSearch(value) {
   return value;
 }
 
-function findSelection(original, lineage) {
+function findSelection(original, lineage, protectedSource = false) {
   const context = resolveProductSimilarObservation(original?.result?.taskMetadata?.productAssist, original?.result)?.retrieved_context;
   if (!Array.isArray(context)) throw fail();
-  const candidates = context.filter(item => item?.sourceKind === 'manual');
+  const candidates = context.filter(item => item?.sourceKind === 'manual'
+    && (!protectedSource || lineage.selected.some(selected=>selected.sourceId===item.sourceId
+      && selected.chunkIndex===item.chunkIndex)));
   if (candidates.length !== 1) throw fail();
   const selected = lineage.selected.filter(item => item?.sourceKind === 'manual'
     && item.sourceId === candidates[0].sourceId && item.chunkIndex === candidates[0].chunkIndex
@@ -131,8 +134,8 @@ function assertOriginal(originValue, original, target, kind) {
   }
 }
 
-function createManualRagSourceReader({ current, readConsumer, readUploader, readReceipt, readRevision,
-  readRevisionPreimage, readManualPreimage, qualifyModel } = {}) {
+function createSourceReader({ current, readConsumer, readUploader, readReceipt, readRevision,
+  readRevisionPreimage, readManualPreimage, qualifyModel } = {}, protectedSource = false) {
   for (const dependency of [current, readConsumer, readUploader, readReceipt, readRevision, qualifyModel]) {
     if (typeof dependency !== 'function') throw new TypeError('Manual RAG source reader dependencies required');
   }
@@ -148,17 +151,21 @@ function createManualRagSourceReader({ current, readConsumer, readUploader, read
           || state.binding?.role !== 'customer' || state.persona?.role !== 'customer') throw fail();
       const checked = async work => { await state.check(); const value = await work(); await state.check(); return value; };
       const consumer = await checked(() => readConsumer({ state, request, purpose: PURPOSES.productAssist }));
-      const consumerOrigin = origin(consumer?.origin, 'consumer');
+      const consumerOrigin = origin(consumer?.origin, 'consumer', protectedSource);
+      if (protectedSource && !equal(consumerOrigin,
+        consumer?.original?.result?.taskMetadata?.protectedManualConsumerOrigin)) throw fail();
       assertOriginal(consumerOrigin, consumer?.original, state.target, 'consumer');
       if (!equal(consumerOrigin.binding, state.binding) || !equal(consumerOrigin.personaSession, state.personaSession)
           || !equal(consumerOrigin.execution, state.execution)) throw fail();
       if (consumerOrigin.lineage.eligible !== true) throw fail();
       let search = consumerOrigin.lineage.version === 2 ? searchReference(consumerOrigin.lineage)
         : eligibleSearch(consumerOrigin.lineage);
-      const selection = findSelection(consumer.original, search);
+      const selection = findSelection(consumer.original, search, protectedSource);
       const uploader = await checked(() => readUploader({ state, operationId: selection.manual.operationId,
         manualSource: selection.manual, purpose: PURPOSES.productManualIngest }));
       const uploadOrigin = origin(uploader?.origin, 'upload');
+      if (protectedSource && !equal(uploadOrigin,
+        uploader?.original?.result?.taskMetadata?.protectedManualUploadOrigin)) throw fail();
       assertOriginal(uploadOrigin, uploader?.original, state.target, 'upload');
       if (uploadOrigin.lineage.eligible !== true || uploadOrigin.receipt?.operationId !== selection.manual.operationId
           || uploadOrigin.receipt?.receiptSha256 !== selection.manual.receiptSha256
@@ -191,7 +198,8 @@ function createManualRagSourceReader({ current, readConsumer, readUploader, read
       }
       const chunk = upload.normalizedChunksJson[selection.selected.chunkIndex];
       if (typeof chunk !== 'string') throw fail();
-      const proof = frozen({ version: VERSION,
+      const proof = frozen({ version: protectedSource ? PROTECTED_VERSION : VERSION,
+        ...(protectedSource ? {query:consumerOrigin.query} : {}),
         birth: { launchId: state.target.launchId, scenarioId: state.target.scenarioId,
           generation: state.target.generation, platformOwnerId: state.target.platformOwnerId,
           platformSessionId: state.target.platformSessionId },
@@ -205,7 +213,8 @@ function createManualRagSourceReader({ current, readConsumer, readUploader, read
         integrity: { manualFieldsJson: upload.manualFieldsJson, sceneReceiptJson: upload.sceneReceiptJson,
           runtimeReceiptJson: upload.runtimeReceiptJson, runtimeReceiptSha256: upload.runtimeReceiptSha256,
           sourceSetJson: search.sourceSetJson, vectorsJson: search.vectorsJson } });
-      const result = validateManualRagSourceContract({ target: state.target, proof, qualifyModel });
+      const validate = protectedSource ? validateProtectedManualSourceContract : validateManualRagSourceContract;
+      const result = validate({ target: state.target, proof, qualifyModel });
       await state.check();
       return result;
     } catch (error) {
@@ -218,4 +227,6 @@ function createManualRagSourceReader({ current, readConsumer, readUploader, read
   };
 }
 
-module.exports = { createManualRagSourceReader, MAX_CAPTURE_BYTES, MAX_LINEAGE_BYTES };
+const createManualRagSourceReader = deps => createSourceReader(deps, false);
+const createProtectedManualSourceReader = deps => createSourceReader(deps, true);
+module.exports = { createManualRagSourceReader, createProtectedManualSourceReader, MAX_CAPTURE_BYTES, MAX_LINEAGE_BYTES };

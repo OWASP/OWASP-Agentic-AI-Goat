@@ -28,7 +28,7 @@ test('v19 pins its exact registry guard, retains historical edges and adds only 
   assert.equal(PRICING_COMPARE_PREDECESSOR_REGISTRY_SHA256, 'e01641f40076b2de5a3b250ef5e62156ae9fca0752c467cfeee5e9ff846f8c83');
   assert.match(migration, /DROP CONSTRAINT bound_tool_registry_successor_v18/);
   assert.match(migration, /ADD CONSTRAINT bound_tool_registry_successor_v19 CHECK/);
-  assert.match(readiness, /bound_tool_registry_successor_v36/);
+  assert.match(readiness, /bound_tool_registry_successor_v37/);
   assert.doesNotMatch(migration, /GRANT\s+|REVOKE\s+|CREATE\s+TABLE/i);
   const priorPairs = [...old.matchAll(/OR \(encode\(NEW\.predecessor_sha256,'hex'\)='([0-9a-f]{64})' AND encode\(NEW\.successor_sha256,'hex'\)='([0-9a-f]{64})'\)/g)]
     .map(match => `${match[1]}:${match[2]}`);

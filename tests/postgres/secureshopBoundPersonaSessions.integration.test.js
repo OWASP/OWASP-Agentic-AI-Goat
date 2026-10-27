@@ -3,6 +3,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const { Module, createRequire } = require('node:module');
 const path = require('node:path');
 const { createHash, randomUUID } = require('node:crypto');
 const { Pool } = require('pg');
@@ -37,33 +38,23 @@ function expires(minutes = 30) {
   return new Date(Date.now() + minutes * 60000).toISOString();
 }
 
-function copyAgentsPrefix(t, tail, prefixName) {
-  const workspace = process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
-  assert.equal(typeof workspace, 'string');
-  const directory = fs.mkdtempSync(path.join(workspace, `${prefixName}-`));
-  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
-  for (const name of fs.readdirSync(agentsMigrations).sort()) {
-    if (/^[0-9]{4}_/.test(name) && name <= tail) {
-      fs.copyFileSync(path.join(agentsMigrations, name), path.join(directory, name));
-    }
-  }
-  assert.equal(fs.readdirSync(directory).sort().at(-1), tail);
-  return directory;
-}
-
-function copyPrefixThrough0013(t) {
-  return copyAgentsPrefix(t, '0013_secureshop_conversation_purpose.sql',
-    'agents-0013-prefix');
-}
-
-function copyPrefixThrough0014(t) {
-  return copyAgentsPrefix(t, '0014_secureshop_bound_session_inventory.sql',
-    'agents-0014-prefix');
-}
-
-function copyPrefixThrough0015(t) {
-  return copyAgentsPrefix(t, '0015_secureshop_bound_password_overlay.sql',
-    'agents-0015-prefix');
+// Filter only directory names in memory. The migration loader still reads
+// each original SQL path and checksum; no source or SQL subset is copied.
+function historicalMigrator(ceiling) {
+  const filename=require.resolve('../../db/postgres/migrate');
+  const local=createRequire(filename);
+  const original=require('node:fs/promises');
+  const virtual={...original,async readdir(target,...args) {
+    const names=await original.readdir(target,...args);
+    return path.resolve(target)===agentsMigrations
+      ? names.filter(name=>!/^\d{4}_[a-z0-9_]+\.sql$/.test(name)
+        || Number(name.slice(0,4))<=ceiling) : names;
+  }};
+  const loaded=new Module(filename,module);
+  loaded.filename=filename;
+  loaded.require=name=>name==='node:fs/promises'?virtual:local(name);
+  loaded._compile(fs.readFileSync(filename,'utf8'),filename);
+  return loaded.exports.migrate;
 }
 
 function assertDisposable(url) {
@@ -113,6 +104,7 @@ test('fresh current-tail sessions retain exact authority, capacity and launch-fi
   assert.ok(applied.includes('0014_secureshop_bound_session_inventory.sql'));
   assert.ok(applied.includes('0015_secureshop_bound_password_overlay.sql'));
   assert.ok(applied.includes('0016_secureshop_bound_api_keys.sql'));
+  assert.ok(applied.includes('0119_bound_additional_authenticated_sessions.sql'));
   assert.deepEqual(applied, currentMigrations);
   assert.deepEqual(await migrate(migration, agentsMigrations), []);
 
@@ -136,6 +128,13 @@ test('fresh current-tail sessions retain exact authority, capacity and launch-fi
     persona: customer, expiresAt: expires() });
   await repository.createSession({ sessionId: merchantId, jti: 'merchant-jti', scope: ownerScope,
     persona: merchant, expiresAt: expires() });
+  const canonicalFlags=(await runtime.query(`SELECT session_id,additional_session
+    FROM secureshop_agents.bound_persona_sessions WHERE session_id=ANY($1::uuid[])`,
+    [[currentId,otherId,siblingId,merchantId]])).rows;
+  assert.equal(canonicalFlags.length,4);
+  assert.ok(canonicalFlags.every(row=>row.additional_session===false));
+  await assert.rejects(runtime.query(`UPDATE secureshop_agents.bound_persona_sessions
+    SET additional_session=true WHERE session_id=$1`,[currentId]),{code:'55000'});
 
   const inventory = await repository.listSessions({ scope: ownerScope,
     shopUserId: customer.id, currentSessionId: currentId });
@@ -244,8 +243,7 @@ test('populated 0013 active and revoked sessions migrate exactly once to 0014', 
     await commerceMigration.query('ROLLBACK');
     throw error;
   }
-  const prefix = copyPrefixThrough0013(t);
-  assert.equal((await migrate(migration, prefix)).at(-1),
+  assert.equal((await historicalMigrator(13)(migration, agentsMigrations)).at(-1),
     '0013_secureshop_conversation_purpose.sql');
   const repository = createSecureShopBoundPersonaRepository({
     commercePool: commerceRuntime, agentsPool: runtime,
@@ -277,8 +275,7 @@ test('populated 0013 active and revoked sessions migrate exactly once to 0014', 
     FROM secureshop_agents.bound_persona_sessions ORDER BY session_id`)).rows;
   assert.equal(before.filter(row => row.revoked_at === null).length, 1);
 
-  const through0014 = copyPrefixThrough0014(t);
-  assert.deepEqual(await migrate(migration, through0014),
+  assert.deepEqual(await historicalMigrator(14)(migration, agentsMigrations),
     ['0014_secureshop_bound_session_inventory.sql']);
   const after = (await runtime.query(`SELECT session_id,created_at,last_seen_at,revoked_at,ip,user_agent
     FROM secureshop_agents.bound_persona_sessions ORDER BY session_id`)).rows;
@@ -290,13 +287,18 @@ test('populated 0013 active and revoked sessions migrate exactly once to 0014', 
   }
   assert.deepEqual(after.map(row => [row.session_id, row.revoked_at !== null]),
     before.map(row => [row.session_id, row.revoked_at !== null]));
-  const through0015 = copyPrefixThrough0015(t);
-  assert.deepEqual(await migrate(migration, through0015),
+  assert.deepEqual(await historicalMigrator(15)(migration, agentsMigrations),
     ['0015_secureshop_bound_password_overlay.sql']);
   const remaining = currentMigrations.filter(name => name > '0015_secureshop_bound_password_overlay.sql');
   assert.equal(remaining[0], '0016_secureshop_bound_api_keys.sql');
+  assert.ok(remaining.includes('0119_bound_additional_authenticated_sessions.sql'));
   assert.deepEqual(await migrate(migration, agentsMigrations), remaining);
   assert.deepEqual(await migrate(migration, agentsMigrations), []);
+  const populatedFlags=(await runtime.query(`SELECT session_id,additional_session
+    FROM secureshop_agents.bound_persona_sessions WHERE session_id=ANY($1::uuid[])`,
+    [[active,revoked]])).rows;
+  assert.equal(populatedFlags.length,2);
+  assert.ok(populatedFlags.every(row=>row.additional_session===false));
   assert.equal((await repository.readSession({ scope: populatedScope,
     jti: 'populated-active' })).session_id, active);
   assert.equal(await repository.readSession({ scope: populatedScope,

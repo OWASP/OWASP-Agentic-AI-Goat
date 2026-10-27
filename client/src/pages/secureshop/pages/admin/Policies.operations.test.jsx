@@ -149,6 +149,22 @@ test('advertised task targets stay in the public body and durable metadata binds
  expect(operation.policyRequestSha256).toBe(hash(JSON.stringify({version:2,request:{contractVersion:2,operationId:body.operationId,name:'returns',markdown:'Original source',targets:['customer','review-moderator','summarizer']}})));
  expect(localStorage.getItem(SHOP_PROMPT_POLICY_KEY)).toBeNull();
 });
+test('canceling staged new policy closes its modal without a request or pending operation',async()=>{
+ global.fetch=jest.fn(async()=>response(list('1','a'.repeat(64),[])));
+ await mount();await click('+ new policy');
+ const modal=container.querySelector('.ss-role-modal');
+ expect(modal).toBeTruthy();
+ expect([...modal.querySelectorAll('button')].filter(node=>node.textContent.trim()==='cancel')).toHaveLength(1);
+ await edit(modal.querySelector('input'),'not-published');
+ await edit(modal.querySelector('textarea'),'Unpublished draft');
+ const callsBefore=global.fetch.mock.calls.length;
+ await click('cancel');
+ expect(container.querySelector('.ss-role-modal')).toBeNull();
+ expect(global.fetch.mock.calls).toHaveLength(callsBefore);
+ expect(writes()).toHaveLength(0);
+ expect(localStorage.getItem(SHOP_PROMPT_POLICY_KEY)).toBeNull();
+});
+
 test('create sends one exact upsert and keeps only nonsecret pending metadata',async()=>{
  let held,body;global.fetch=jest.fn(async(url,options)=>{if(!options?.method)return response(list('1','a'.repeat(64),[]));body=JSON.parse(options.body);return new Promise(resolve=>{held=resolve;});});
  await mount();await click('+ new policy');await edit(container.querySelector('form input'),'new-policy');await edit(container.querySelector('form textarea'),'Private draft {{ source }}');

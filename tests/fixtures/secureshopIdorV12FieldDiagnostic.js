@@ -555,12 +555,24 @@ const V8_BOUNDS=Object.freeze({cases:24,inferenceCalls:24,inferencePerCase:1,ide
 const V8_LOOKUP_FIELDS=Object.freeze(['password','api_key','session_token','full_name','email','phone']);
 const V8_DECISIONS=Object.freeze(['complete_value_communicated','no_complete_value_communicated','indeterminate']);
 const V8_STATES=Object.freeze(['resolved','explicitly_absent','indeterminate']);
-const V8_LOOKUP_ORIGINAL=require('../../tasks/secureshop-v36-grounding-v2-diagnostic').USER_LOOKUP_ORIGINAL;
-const V8_LOOKUP_SHA=require('../../tasks/secureshop-v36-grounding-v2-diagnostic').USER_LOOKUP_ORIGINAL_SHA;
+const V8_LOOKUP_DIAGNOSTIC='../../tasks/secureshop-v36-grounding-v2-diagnostic';
+const V8_LOOKUP_DIAGNOSTIC_FILE='tasks/secureshop-v36-grounding-v2-diagnostic.js';
+function v8LookupDiagnostic(){
+ let resolved;
+ try{resolved=require.resolve(V8_LOOKUP_DIAGNOSTIC);}
+ catch(error){
+  if(error&&error.code==='MODULE_NOT_FOUND'&&error.message.includes(V8_LOOKUP_DIAGNOSTIC)){
+   const unavailable=new Error('Retained V8 lookup diagnostic is unavailable; V8 cannot run');
+   unavailable.code='V8_RETAINED_LOOKUP_DIAGNOSTIC_UNAVAILABLE';throw unavailable;
+  }
+  throw error;
+ }
+ return require(resolved);
+}
 const V8_SOURCE_FILES=Object.freeze([...new Set([...SOURCE_FILES,
- ...require('../../tasks/secureshop-v36-grounding-v2-diagnostic').USER_LOOKUP_FILES,
- 'tests/fixtures/secureshopEnabledUsersBrowser.js','tasks/secureshop-v36-grounding-v2-diagnostic.js'])]);
-const v8SourcePins=()=>Object.fromEntries(V8_SOURCE_FILES.map(name=>[name,sha(fs.readFileSync(path.join(prior.ROOT,name)))]));
+ 'tests/fixtures/secureshopEnabledUsersBrowser.js',V8_LOOKUP_DIAGNOSTIC_FILE])]);
+const v8SourcePins=()=>{const lookup=v8LookupDiagnostic();const files=[...new Set([...V8_SOURCE_FILES,...lookup.USER_LOOKUP_FILES])];
+ return Object.fromEntries(files.map(name=>[name,sha(fs.readFileSync(path.join(prior.ROOT,name)))]));};
 const v8SchemaText={type:'string',minLength:1,maxLength:1000};
 const v8Reason={type:'string',minLength:1,maxLength:512};
 const v8RowKeys=['id','reportedField','subject','subjectContextQuote','subjectReason','decision','value','contextQuote','reason'];
@@ -582,17 +594,20 @@ function v8Schema(fields,lookup=false){
      uniqueItems:true,items:{type:'integer',minimum:1,maximum:12}}}}}}};
 }
 function v8Text(value,max){assert.equal(typeof value,'string');assert(value.trim()&&value.isWellFormed()&&!value.includes('\0')&&Buffer.byteLength(value)<=max);}
-function v8ReadSources({v12WirePath,lookupCapturePath=V8_LOOKUP_ORIGINAL}={}){
+function v8ReadSources({v12WirePath,lookupCapturePath}={}){
+ const lookup=v8LookupDiagnostic();
+ const originalPath=lookup.USER_LOOKUP_ORIGINAL,originalSha=lookup.USER_LOOKUP_ORIGINAL_SHA;
+ if(lookupCapturePath===undefined)lookupCapturePath=originalPath;
  const {protectedDoc,reference}=readV6Original(v12WirePath);
- assert.equal(lookupCapturePath,V8_LOOKUP_ORIGINAL,'Only retained original lookup capture is admitted');
- const bytes=fs.readFileSync(lookupCapturePath);assert.equal(sha(bytes),V8_LOOKUP_SHA);
- const lookup=require('../../tasks/secureshop-v36-grounding-v2-diagnostic').declarationUserLookupV2();
- const original=JSON.parse(bytes);assert.equal(original.cases[0].saved.text,lookup.cases[0].packet.evidence[1].content);
- assert.deepEqual(original.cases[0].lookup.user,lookup.cases[0].packet.evidence[0].content);
+ assert.equal(lookupCapturePath,originalPath,'Only retained original lookup capture is admitted');
+ const bytes=fs.readFileSync(lookupCapturePath);assert.equal(sha(bytes),originalSha);
+ const declaration=lookup.declarationUserLookupV2();
+ const original=JSON.parse(bytes);assert.equal(original.cases[0].saved.text,declaration.cases[0].packet.evidence[1].content);
+ assert.deepEqual(original.cases[0].lookup.user,declaration.cases[0].packet.evidence[0].content);
  return {v12WirePath,lookupCapturePath,v12Reference:reference,v12OriginalSha256:protectedDoc.originalPacketSha256,
   v12WireSha256:protectedDoc.retainedWireSha256,lookupReference:structuredClone(original.cases[0].lookup.user),
-  lookupResponse:original.cases[0].saved.text,lookupCaptureSha256:V8_LOOKUP_SHA,
-  lookupPacketSha256:lookup.originalPacketSha256};
+  lookupResponse:original.cases[0].saved.text,lookupCaptureSha256:originalSha,
+  lookupPacketSha256:declaration.originalPacketSha256};
 }
 function v8AssertSources(sources){
  assert(sources&&typeof sources==='object');

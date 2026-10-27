@@ -60,6 +60,32 @@ function assertReplayPreserved({ originalId, replayId, before, after, siblingBef
 }
 module.exports = { resetResponseIdentity, installOneResponseLoss, clickReset, assertReplayPreserved };
 
+function assertCompletedCleanupReceipts(snapshot, operationId, ownerId, fromGeneration) {
+  const reset = snapshot.resets.find(row => row.operation_id === operationId);
+  assert.ok(reset, 'durable reset operation must exist');
+  assert.equal(reset.status, 'completed');
+  assert.equal(Number(reset.owner_id), ownerId);
+  assert.equal(Number(reset.from_generation), fromGeneration);
+  assert.equal(Number(reset.to_generation), fromGeneration + 1);
+  const expectedKeys = Number(reset.plan_version) === 2
+    ? ['finflow_store'] : Number(reset.plan_version) === 1
+      ? ['finflow_store', 'legacy_store'] : null;
+  assert.ok(expectedKeys, 'reset plan must be a supported durable version');
+  const steps = snapshot.steps.filter(row => row.operation_id === operationId);
+  assert.deepEqual(steps.map(row => row.step_key).sort(), expectedKeys);
+  assert.ok(steps.every(row => row.status === 'completed'));
+  const receipts = snapshot.receipts.filter(row => row.operation_id === operationId);
+  assert.deepEqual(receipts.map(row => row.step_key).sort(), expectedKeys,
+    'every applicable completed reset step must have a published cleanup receipt');
+  assert.ok(receipts.every(row => Number(row.owner_id) === ownerId
+    && Number(row.from_generation) === fromGeneration
+    && Number(row.to_generation) === fromGeneration + 1
+    && Number.isFinite(Date.parse(row.completed_at))),
+  'published cleanup receipts must bind the exact owner, operation and generation');
+  return true;
+}
+module.exports.assertCompletedCleanupReceipts = assertCompletedCleanupReceipts;
+
 function resetReadinessSnapshot() {
   const button = document.querySelector('button[title="Erase all Sensitive Info workshop progress for this student"]');
   const refresh = [...document.querySelectorAll('button')].find(item => item.textContent.trim() === 'Refresh');
@@ -71,7 +97,8 @@ function resetReadinessSnapshot() {
 }
 module.exports.resetReadinessSnapshot = resetReadinessSnapshot;
 
-async function runRecoveryScenario({ page, base, target, sibling, support, record = async () => {} }) {
+async function runRecoveryScenario({ page, base, target, sibling, support,
+  requireControlledCompletion = false, record = async () => {} }) {
   const evidence = { status: 'running', phases: [] };
   const browserDeadline = setTimeout(() => { void page.close().catch(() => {}); }, 120000);
   const checkpoint = async (phase, values) => { evidence.phases.push({ phase, ...values }); await record(evidence); };
@@ -120,6 +147,8 @@ async function runRecoveryScenario({ page, base, target, sibling, support, recor
     await support.resume(target, 'before-reset'); await support.resume(sibling, 'sibling-preserved');
     const initial = await support.snapshot(target), siblingBefore = await support.snapshot(sibling);
     assert.ok(initial.tools.length && initial.time.length && siblingBefore.tools.length);
+    if (requireControlledCompletion) assert.equal(initial.completions.length, 1,
+      'only the controlled preexisting completion is seeded');
     await checkpoint('baseline', { targetSha256: digest(initial), siblingSha256: digest(siblingBefore) });
     await open(); assert.equal(ids.length, 0, 'mount must not issue reset');
     loss = await installOneResponseLoss(page, endpoint);
@@ -131,10 +160,9 @@ async function runRecoveryScenario({ page, base, target, sibling, support, recor
     await checkpoint('successful-response-dropped', { operationId: first, snapshotSha256: digest(cleared), generation: cleared.state[0]?.generation });
     assert.equal(cleared.state[0].generation, initial.state[0].generation + 1);
     assert.equal(cleared.tools.length, 0); assert.equal(cleared.time.length, 0);
+    if (requireControlledCompletion) assert.equal(cleared.completions.length, 0);
     assert.equal(cleared.resets.length, 1); assert.equal(cleared.resets[0].operation_id, first);
-    assert.equal(cleared.resets[0].status, 'completed');
-    assert.ok(cleared.steps.length && cleared.steps.every(row => row.status === 'completed'));
-    assert.ok(cleared.receipts.length && cleared.receipts.every(row => row.operation_id === first));
+    assertCompletedCleanupReceipts(cleared, first, target, initial.state[0].generation);
     assert.deepEqual(await support.snapshot(sibling), siblingBefore);
     await support.resume(target, 'after-lost-response-resumed');
     const resumed = await support.snapshot(target); assert.ok(resumed.tools.length && resumed.time.length);
@@ -150,11 +178,13 @@ async function runRecoveryScenario({ page, base, target, sibling, support, recor
     const final = await support.snapshot(target);
     assert.equal(final.state[0].generation, resumed.state[0].generation + 1);
     assert.equal(final.tools.length, 0); assert.equal(final.time.length, 0);
+    if (requireControlledCompletion) assert.equal(final.completions.length, 0);
     assert.equal(final.resets.length, 2);
     assert.deepEqual(final.resets.find(row => row.operation_id === first), cleared.resets[0]);
     assert.deepEqual(final.steps.filter(row => row.operation_id === first), cleared.steps);
     assert.deepEqual(final.receipts.filter(row => row.operation_id === first), cleared.receipts);
     assert.ok(final.resets.every(row => row.status === 'completed'));
+    assertCompletedCleanupReceipts(final, ids[2], target, resumed.state[0].generation);
     assert.deepEqual(await support.snapshot(sibling), siblingBefore);
     if (confirmationFailure) throw confirmationFailure;
     evidence.status = 'passed';
@@ -162,6 +192,8 @@ async function runRecoveryScenario({ page, base, target, sibling, support, recor
     return { ...evidence, requestOperationIds: ids, realResetPostCount: 3,
       originalGeneration: initial.state[0].generation, finalGeneration: final.state[0].generation,
       replayPreservedResumedState: true, siblingPreserved: true, modelCalls: 0,
+      ackLoss: { method: 'POST', path: new URL(endpoint).pathname,
+        phase: 'after-real-http-200-before-browser-consumption' },
       markerProvenance: 'controlled repository activity; no objective completion claim' };
   } catch (error) {
     evidence.status = 'failed'; evidence.error = error.message; await record(evidence); throw error;
@@ -172,6 +204,171 @@ async function runRecoveryScenario({ page, base, target, sibling, support, recor
   }
 }
 module.exports.runRecoveryScenario = runRecoveryScenario;
+
+const snapshotSha256 = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+async function clickWithResetDialog(page, action) {
+  let finish, fail;
+  const handled = new Promise((resolve, reject) => { finish = resolve; fail = reject; });
+  const onDialog = dialog => {
+    Promise.resolve().then(async () => {
+      assert.equal(dialog.type(), 'confirm');
+      assert.match(dialog.message(), /^Reset Sensitive Info Workshop Progress for /);
+      await action(dialog);
+    }).then(finish, fail);
+  };
+  page.once('dialog', onDialog);
+  const timeout = setTimeout(() => fail(new Error('Reset confirmation did not appear')), 10000);
+  try { await Promise.all([clickReset(page), handled]); }
+  finally { clearTimeout(timeout); page.off('dialog', onDialog); }
+}
+
+function createStudentResetQ05Receipt({ target, sibling, cancelBefore, cancelAfter,
+  authorityBefore, authorityAfter, recovery, deniedResetPostCount }) {
+  assert(Number.isSafeInteger(target) && target > 0 && Number.isSafeInteger(sibling) && sibling > 0 && target !== sibling);
+  assert.equal(deniedResetPostCount, 1);
+  assert.equal(recovery?.status, 'passed');
+  assert.equal(recovery?.requestOperationIds?.length, 3);
+  assert.equal(recovery.realResetPostCount, 3);
+  assert.match(recovery.requestOperationIds[0], UUID);
+  assert.equal(recovery.requestOperationIds[1], recovery.requestOperationIds[0]);
+  assert.match(recovery.requestOperationIds[2], UUID);
+  assert.notEqual(recovery.requestOperationIds[2], recovery.requestOperationIds[0]);
+  assert.equal(recovery.replayPreservedResumedState, true);
+  assert.equal(recovery.siblingPreserved, true);
+  assert.equal(recovery.modelCalls, 0);
+  assert.deepEqual(recovery.ackLoss, { method: 'POST',
+    path: `/api/admin/students/${target}/workshops/sensitive_info_disclosure/reset`,
+    phase: 'after-real-http-200-before-browser-consumption' });
+  assert.equal(recovery.finalGeneration, recovery.originalGeneration + 2);
+  const phase = name => {
+    const found = recovery.phases.find(item => item.phase === name);
+    assert.ok(found, `Missing reset phase ${name}`);
+    return found;
+  };
+  const baseline = phase('baseline'), resumed = phase('resumed'), replay = phase('replay-preserved');
+  assert.equal(snapshotSha256(cancelBefore), snapshotSha256(cancelAfter));
+  assert.equal(snapshotSha256(authorityBefore), snapshotSha256(authorityAfter));
+  assert.equal(resumed.snapshotSha256, replay.snapshotSha256);
+  assert.equal(baseline.siblingSha256, replay.siblingSha256);
+  return {
+    version: 1, status: 'bounded-rendered-student-reset-observed',
+    workshopKey: 'sensitive_info_disclosure', targetId: target, siblingId: sibling,
+    modelCalls: 0, judgeCalls: 0, canonicalCredit: false,
+    seedProvenance: 'controlled-preexisting-completion-not-model-credit',
+    facts: {
+      cancelNoRequest: true, cancelStateUnchanged: true,
+      stagedAuthorityDenied: true, stagedAuthorityNoEffect: true,
+      completionSeeded: true, completionCleared: true, timeCleared: true,
+      toolActivityCleared: true, durableStepsCompleted: true,
+      cleanupReceiptsCompleted: true, lostAckEffectPersisted: true,
+      unknownUiNoAutomaticRetry: true, remountNoRequest: true,
+      sameIdReplayPreservedResumedState: true, originalReceiptsUnchanged: true,
+      newExplicitOperation: true, siblingPreserved: true,
+    },
+    requestOperationIds: recovery.requestOperationIds,
+    realResetPostCount: recovery.realResetPostCount,
+    deniedResetPostCount,
+    originalGeneration: recovery.originalGeneration,
+    finalGeneration: recovery.finalGeneration,
+    ackLoss: recovery.ackLoss,
+    snapshots: {
+      cancel: { before: snapshotSha256(cancelBefore), after: snapshotSha256(cancelAfter) },
+      stagedAuthority: { before: snapshotSha256(authorityBefore), after: snapshotSha256(authorityAfter) },
+      replay: { before: resumed.snapshotSha256, after: replay.snapshotSha256 },
+      sibling: { before: baseline.siblingSha256, after: replay.siblingSha256 },
+    },
+    excluded: ['bulk-reset', 'other-workshop-reset', 'student-deletion',
+      'nonempty-backup-traversal-cleanup', 'inflight-model-cancellation',
+      'model-grading', 'full-Q05-denominator'],
+  };
+}
+module.exports.createStudentResetQ05Receipt = createStudentResetQ05Receipt;
+
+async function runStudentResetQ05Scenario({ page, base, target, sibling, support,
+  revoke, restore, recover = runRecoveryScenario, record = async () => {} }) {
+  const endpoint = `${base}/api/admin/students/${target}/workshops/sensitive_info_disclosure/reset`;
+  const open = async () => {
+    await page.goto(`${base}/admin/student-workshop-view?studentId=${target}`,
+      { waitUntil: 'networkidle0', timeout: 15000 });
+    await page.waitForSelector('button[title="Erase all Sensitive Info workshop progress for this student"]',
+      { visible: true, timeout: 10000 });
+  };
+  let resetPosts = 0;
+  const partial = { status: 'running', phase: 'fixture-seed', phases: [] };
+  const checkpoint = async (phase, values = {}) => {
+    partial.phase = phase;
+    partial.phases.push({ phase, ...values });
+    await record({ ...partial, resetPosts });
+  };
+  const onRequest = request => { if (request.url() === endpoint && request.method() === 'POST') resetPosts++; };
+  page.on('request', onRequest);
+  try {
+    await support.seedControlledCompletion(target);
+    await support.seedControlledCompletion(sibling);
+    await support.resume(target, 'controlled-before-cancel');
+    await support.resume(sibling, 'controlled-sibling-preserved');
+    const cancelBefore = await support.snapshot(target), siblingBefore = await support.snapshot(sibling);
+    assert.equal(cancelBefore.completions.length, 1);
+    assert.ok(cancelBefore.time.length && cancelBefore.tools.length);
+    await checkpoint('controlled-preexisting-state', { targetSha256: snapshotSha256(cancelBefore),
+      siblingSha256: snapshotSha256(siblingBefore), completionCount: cancelBefore.completions.length,
+      toolActivityCount: cancelBefore.tools.length, timeRows: cancelBefore.time.length });
+    await open();
+    await clickWithResetDialog(page, dialog => dialog.dismiss());
+    assert.equal(resetPosts, 0, 'Cancel must not issue a reset POST');
+    const cancelAfter = await support.snapshot(target);
+    assert.deepEqual(cancelAfter, cancelBefore);
+    assert.deepEqual(await support.snapshot(sibling), siblingBefore);
+    await checkpoint('cancel-no-request', { before: snapshotSha256(cancelBefore),
+      after: snapshotSha256(cancelAfter) });
+
+    await open();
+    await checkpoint('authority-dialog-staged');
+    const authorityBefore = await support.snapshot(target);
+    const deniedController = new AbortController();
+    const deniedResponse = page.waitForResponse(response => response.url() === endpoint
+      && response.request().method() === 'POST' && response.status() === 403,
+    { timeout: 15000, signal: deniedController.signal });
+    try {
+      await Promise.all([deniedResponse, clickWithResetDialog(page, async dialog => {
+        await revoke();
+        await dialog.accept();
+      })]);
+    } finally {
+      deniedController.abort();
+      await deniedResponse.catch(() => {});
+      await restore();
+    }
+    assert.equal(resetPosts, 1, 'a staged confirmation must reach the real denied POST exactly once');
+    const authorityAfter = await support.snapshot(target);
+    assert.deepEqual(authorityAfter, authorityBefore, '403 must have no reset effect');
+    assert.deepEqual(await support.snapshot(sibling), siblingBefore);
+    await checkpoint('authority-denied', { statusCode: 403,
+      before: snapshotSha256(authorityBefore), after: snapshotSha256(authorityAfter) });
+    page.off('request', onRequest);
+
+    const recovery = await recover({ page, base, target, sibling, support,
+      requireControlledCompletion: true,
+      record: async evidence => {
+        partial.phase = 'recovery-' + (evidence.phases.at(-1)?.phase || evidence.status);
+        partial.recovery = { status: evidence.status, phases: evidence.phases,
+          requestOperationIds: evidence.requestOperationIds || [] };
+        await record({ ...partial, resetPosts });
+      } });
+    const receipt = createStudentResetQ05Receipt({ target, sibling, cancelBefore,
+      cancelAfter, authorityBefore, authorityAfter, recovery, deniedResetPostCount: resetPosts });
+    await record(receipt);
+    return receipt;
+  } catch (error) {
+    await record({ ...partial, status: 'failed', resetPosts,
+      failure: { phase: partial.phase, errorName: error?.name || 'Error' } });
+    throw error;
+  } finally {
+    page.off('request', onRequest);
+    await restore();
+  }
+}
+module.exports.runStudentResetQ05Scenario = runStudentResetQ05Scenario;
 
 async function runAccessDenialScenario({ page, base, target, sibling, support, revoke, restore, announce, record = async () => {} }) {
   const selector = 'button[title="Erase all Sensitive Info workshop progress for this student"]';

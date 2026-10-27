@@ -5,6 +5,20 @@ const { createPricingHttpHandler } = require('./http-handler');
 const failure = code => Object.assign(new Error(code), { code });
 const HOSTS = new Set(['127.0.0.1', '::1', '0.0.0.0', '::']);
 const CLOSE_TIMEOUT_MS = 20000;
+// Private startup diagnostics are versioned, opt-in, and never contain error
+// messages, paths, command output, tokens, or stacks. They do not alter status.
+const STARTUP_CODES = new Set(['HTTP_ASSET_UNTRUSTED','HTTP_ASSET_CHANGED','HTTP_ASSET_REGISTRY_INVALID',
+  'HTTP_PLATFORM_UNAVAILABLE','HTTP_PROFILE_UNAVAILABLE','HTTP_SUPERVISOR_CAPABILITIES','HTTP_REQUEST_INVALID',
+  'HTTP_OPERATION_ABORTED','HTTP_EXECUTION_TIMEOUT','HTTP_OUTPUT_LIMIT','HTTP_INPUT_FAILURE','HTTP_CHILD_FAILED',
+  'HTTP_NAMESPACE_UNAVAILABLE','EACCES','ENOENT','EPERM','PRICING_LISTENER_DISABLED','PRICING_LISTENER_BIND_INVALID',
+  'PRICING_LISTENER_CONFIG_INVALID','PRICING_LISTENER_CLOSED','PRICING_LISTENER_BIND_FAILED','PRICING_LISTENER_NOT_READY',
+  'PRICING_LISTENER_DRAIN_TIMEOUT','PRICING_LISTENER_DRAIN_FAILED']);
+const startupCauses = new WeakMap();
+function startupDiagnostic(error) {
+  if(error&&startupCauses.has(error))return startupCauses.get(error);
+  const code=STARTUP_CODES.has(error?.code)?error.code:'UNKNOWN';
+  return Object.freeze({version:1,code,childExit:code==='HTTP_CHILD_FAILED'&&Number.isInteger(error.exitCode)&&error.exitCode>=0&&error.exitCode<=255?error.exitCode:null});
+}
 
 // Separate opt-in service, never imported by the main sandbox entrypoint.
 function createPricingHttpListener({ enabled, token, host, port, executor, expectedProfile,
@@ -76,7 +90,9 @@ function createPricingHttpListener({ enabled, token, host, port, executor, expec
       } catch (error) {
         if (state === 'starting') state = 'failed';
         if (['PRICING_LISTENER_BIND_FAILED', 'PRICING_LISTENER_CLOSED'].includes(error.code)) throw error;
-        throw failure('PRICING_LISTENER_NOT_READY');
+        const unavailable=failure('PRICING_LISTENER_NOT_READY');
+        startupCauses.set(unavailable,startupDiagnostic(error));
+        throw unavailable;
       }
     })();
     return startPromise;
@@ -125,8 +141,9 @@ async function runPricingHttpListener({ env = process.env, signals = process,
     await closePromise;
     write('PRICING_LISTENER_CLOSED\n');
     return 0;
-  } catch {
+  } catch (error) {
     if (listener) { try { await stop(); } catch {} }
+    if(env.SECURESHOP_PRICING_DIAGNOSTICS==='startup-v1')write('PRICING_STARTUP_DIAGNOSTIC_V1:'+JSON.stringify(startupDiagnostic(error))+'\n');
     write('PRICING_LISTENER_FAILED\n');
     return 1;
   } finally {

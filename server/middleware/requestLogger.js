@@ -3,6 +3,7 @@
 const morgan = require('morgan');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
+const { requestLogUrl } = require('../utils/requestLogUrl');
 
 // ── Request ID ────────────────────────────────────────────────────────────────
 const requestId = (req, res, next) => {
@@ -16,10 +17,11 @@ const requestId = (req, res, next) => {
 // set req.user — even though httpLogger is registered before auth middleware.
 morgan.token('request-id', (req) => req.requestId || '-');
 morgan.token('user-id',    (req) => (req.user && req.user.id) ? String(req.user.id) : '-');
+morgan.token('request-log-url', requestLogUrl);
 
 const httpLogger = morgan(
   // The format string is still used as the human-readable message field
-  ':request-id :method :url :status :response-time ms :remote-addr ":user-agent" user=:user-id',
+  ':request-id :method :request-log-url :status :response-time ms :remote-addr ":user-agent" user=:user-id',
   {
     stream: {
       write: (message) => {

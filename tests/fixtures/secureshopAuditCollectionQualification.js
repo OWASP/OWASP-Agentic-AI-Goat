@@ -13,6 +13,8 @@ const sha = value => createHash('sha256').update(value).digest('hex');
 const MODEL = 'llama3.1:8b';
 const CONTEXT_WINDOW = 32768;
 const RESERVED_OUTPUT = 256;
+// Browser observation may trail the bounded 290-second owner run by 30 seconds.
+const COLLECTION_BROWSER_RESPONSE_TIMEOUT_MS = 320000;
 const REPAIR_INSTRUCTION = 'The previous response did not match the required answer-only JSON schema. Return exactly one object with one nonempty answer string. Do not return a tool call or any other key.';
 const ASSERTION = 'V36 physical unbounded Audit observes over 100 owned rows and 131072 bytes with genuine model witness, canonical Judge credit and fixed replay reset sibling fences';
 const SCOPE = 'V36 focused current-build Audit button; complete oversized original observation, owned witness, actual Ollama and canonical Judge; same-ID POST replay, fixed count rejection, committed reset and populated sibling';
@@ -47,12 +49,32 @@ async function artifact(evidence,name) {
   for await(const part of evidence.readArtifact(name)){size+=part.length;assert.ok(size<=ref.bytes);parts.push(part);}
   const bytes=Buffer.concat(parts);assert.equal(size,ref.bytes);assert.equal(sha(bytes),ref.sha256);return bytes.toString('utf8');
 }
-function assertWireObservation(wires,content,summary) {
+function assertFinalTaskFraming(messages,content,chain,requestedCount=5000) {
+  const framing=chain?.finalFraming;
+  assert.equal(messages[0]?.role,'system');
+  assert.equal(typeof messages[0]?.content,'string');
+  assert.deepEqual(Object.keys(messages[0]).sort(),['content','role']);
+  const expected={...require('../../server/services/secureshopAuditModelChain').createAuditFinalFraming(requestedCount,content),
+    version:2,systemSha256:sha(messages[0].content)};
+  assert.deepEqual(framing,expected,'current native evidence requires trusted final framing');
+  const task=require('../../server/services/secureshopAuditSummaryTaskPrompt').createAuditSummaryTaskPrompt({version:2,requestedCount});
+  assert.deepEqual(messages.at(-1),{role:'user',content:task});
+  assert.equal(messages.filter(row=>row.role==='user'&&row.content===task).length,2);
+  assert.deepEqual(messages[1],{role:'user',content:task});
+  assert.equal(messages.length,5);
+  const call=JSON.parse(chain.decision.params_json).toolCalls[0];
+  assert.equal(call.name,'audit.summarize_anomalies');
+  const {serializeMessage}=require('../../server/services/secureshop/providers/ollamaProvider');
+  assert.deepEqual(messages.at(-2),serializeMessage({role:'tool',tool_call_id:call.id,content}));
+  assert.deepEqual(messages[2],serializeMessage({role:'assistant',tool_calls:[{id:call.id,name:call.name,args:call.args}]}));
+}
+function assertWireObservation(wires,content,summary,framing) {
   const matching=wires.filter(w=>w.path==='/api/chat'
     && Array.isArray(w.request?.messages) && w.request.messages.some(m=>m.role==='user'
       && typeof m.content==='string' && m.content.startsWith('Tool observation for completed call ')
       && m.content.endsWith(`(tool result):\n${content}`)));
   assert.ok(matching.length>=1&&matching.length<=2,'one final response and at most one repair are required');
+  if(framing!==undefined)assertFinalTaskFraming(matching[0].request.messages,content,framing);
   let remainingOutput=RESERVED_OUTPUT,selected,previousRaw;
   for(const [index,w] of matching.entries()){
     assert.equal(w.complete,true);assert.equal(w.status,200);
@@ -88,6 +110,28 @@ function assertWireObservation(wires,content,summary) {
   return selected;
 }
 
+function assertAuditDecisionWires(wires, chain, requestedCount=5000) {
+  const correction=chain.decisionCorrection;assert.ok(correction,'current V2 decision attempts must be retained');
+  assert.ok(correction.attempts.every(attempt=>attempt.schemaVersion===2),'current native audit requires source-derived schema version 2');
+  assert.equal(require('../../server/services/secureshopAuditDecisionCorrection')
+    .verifyAuditDecisionAttempts(correction.attempts,requestedCount),correction.attemptsSha256);
+  const actual=wires.filter(w=>w.path==='/api/chat'&&w.request?.format?.oneOf
+    &&w.request.messages?.some(m=>m.role==='system'&&m.content===correction.attempts[0].request.messages[0].content));
+  assert.equal(actual.length,correction.attempts.length);
+  for(const [index,attempt] of correction.attempts.entries()){
+    const wire=actual[index];assert.equal(wire.complete,true);assert.equal(wire.status,200);
+    assert.equal(wire.request.model,attempt.model);assert.equal(attempt.model,MODEL);
+    assert.deepEqual(wire.request.messages,attempt.request.messages);assert.deepEqual(wire.request.format,attempt.request.format);
+    assert.deepEqual(wire.request.options,{num_ctx:CONTEXT_WINDOW,num_predict:attempt.request.numPredict,temperature:0});
+    const frames=wire.responseText.trim().split('\n').map(JSON.parse);
+    assert.ok(frames.length);assert.ok(frames.every((row,i)=>row.model===MODEL&&row.error===undefined
+      &&row.done===(i===frames.length-1)&&row.message?.role==='assistant'&&typeof row.message.content==='string'));
+    assert.equal(frames.at(-1).done_reason,'stop');
+    assert.equal(frames.map(row=>row.message.content).join(''),attempt.raw);
+    assert.equal(frames.at(-1).eval_count,attempt.usage.outputTokens);
+    assert.equal(frames.at(-1).prompt_eval_count,attempt.usage.inputTokens);
+  }
+}
 function assertOriginalAuditObservation({messages,log,sources,traces,effects,requestedCount=5000}) {
   const tools=messages.filter(message=>message.role==='tool');assert.equal(tools.length,1);
   const observation=JSON.parse(tools[0].content);
@@ -147,7 +191,7 @@ async function recordObservedHttpResponse(c,response) {
   }
 }
 async function physical(c,frame) {
-  const waiting=c.page.waitForResponse(r=>r.url()===`${c.origin}/api/secureshop/admin/audit/unbounded-summary`&&r.request().method()==='POST',{timeout:240000}).then(response=>({response}),error=>({error}));
+  const waiting=c.page.waitForResponse(r=>r.url()===`${c.origin}/api/secureshop/admin/audit/unbounded-summary`&&r.request().method()==='POST',{timeout:COLLECTION_BROWSER_RESPONSE_TIMEOUT_MS}).then(response=>({response}),error=>({error}));
   const button=await frame.waitForSelector('button[aria-label="Observe unbounded audit summary"]',{visible:true,timeout:30000});
   await frame.waitForFunction(()=>!document.querySelector('button[aria-label="Observe unbounded audit summary"]').disabled,{timeout:30000});
   await button.scrollIntoView();assert.equal(await button.evaluate(node=>{const r=node.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return node.contains(hit);}),true);
@@ -179,6 +223,7 @@ async function qualifyAuditCollection(c) {
   capture.artifacts={log,sources,messages,traces:JSON.parse(await artifact(evidence,'traces')),effects:JSON.parse(await artifact(evidence,'effects'))};
   capture.originalObservation=assertOriginalAuditObservation({messages,log,sources,
     traces:capture.artifacts.traces,effects:capture.artifacts.effects});
+  assertAuditDecisionWires(capture.wires,capture.artifacts.effects.find(row=>row.kind==='audit_model_chain'));
   const sourceRows=JSON.parse(sources);
   for(const id of capture.seedIds)assert.equal(sourceRows.filter(r=>r.id===`agents:${id}`).length,1);
   assert.equal(sourceRows.some(r=>r.id===`agents:${capture.peerIds[0]}`),false);
@@ -191,7 +236,9 @@ async function qualifyAuditCollection(c) {
   const prepared=prepareJudgeInput(preparedResult.packet);assert.equal(prepared.evidenceError,undefined);
   const observation=messages.filter(m=>m.role==='tool');assert.equal(observation.length,1);
   assert.ok(Buffer.byteLength(observation[0].content,'utf8')>131072);
-  capture.wire=assertWireObservation(c.wires,observation[0].content,result.summary);
+  const framedChain=capture.artifacts.effects.find(row=>row.kind==='audit_model_chain');
+  assert.ok(framedChain?.finalFraming,'current native run requires final task framing provenance');
+  capture.wire=assertWireObservation(c.wires,observation[0].content,result.summary,framedChain);
   const promptEvalCount=JSON.parse(capture.wire.responseText.trim().split('\n').at(-1)).prompt_eval_count;
   capture.witness={row,boundedWitness};capture.prepared=prepared;
   const judgments=(await identity.query('SELECT * FROM secureshop_auth.assessment_judgments WHERE run_id=$1 AND objective_id=$2',[result.runId,OBJECTIVE])).rows;
@@ -210,7 +257,7 @@ async function qualifyAuditCollection(c) {
   assert.equal(originalCredit.completions.length,1);assert.equal(originalCredit.contributions.length,1);assertCreditRows(judgment,originalCredit.completions[0],originalCredit.contributions[0]);
   const stable=await count();capture.replay=await post(c,'unbounded-summary',actual.request);
   assert.deepEqual(capture.replay,{status:200,body:{...result,replayed:true}});assert.deepEqual(await count(),stable);
-  const foreignErrors=capture.errors.length;capture.foreign=await post(c,'unbounded-summary',actual.request,c.peer.headers);assert.equal(capture.foreign.status,503);assert.deepEqual(capture.errors.slice(foreignErrors),[{requestId:actual.request.request_id,code:'CONVERSATION_UNAVAILABLE'}]);assert.deepEqual(await count(),stable);
+  const foreignErrors=capture.errors.length;capture.foreign=await post(c,'unbounded-summary',actual.request,c.peer.headers);assert.deepEqual(capture.foreign,{status:404,body:{error:'Conversation unavailable'}});assert.deepEqual(capture.errors.slice(foreignErrors),[{requestId:actual.request.request_id,code:'CONVERSATION_UNAVAILABLE'}]);assert.deepEqual(await count(),stable);
   const subjects=(await identity.query(`SELECT e.tenant_id AS "tenantId",e.principal_id AS "principalId",p.shop_user_id AS "shopUserId",e.session_id AS "sessionId"
     FROM secureshop_auth.execution_authority_state e JOIN secureshop_auth.principals p ON p.principal_id=e.principal_id WHERE e.session_id=$1 AND e.is_active=1`,[scope.platformSessionId])).rows;
   assert.equal(subjects.length,1);const mode=await modeRepository.getPrincipalMode(subjects[0]);assert.equal(mode.mode,'vuln');
@@ -226,4 +273,4 @@ async function qualifyAuditCollection(c) {
   const active=(await identity.query('SELECT evaluation_id FROM secureshop_auth.active_assessment_contributions WHERE evaluation_id=$1',[judgment.evaluation_id])).rows;assert.deepEqual(active,[]);
   return {...Object.fromEntries(FLAGS.filter(k=>k!=='fixtureCleaned').map(k=>[k,true])),scope:SCOPE,summaryRunId:result.runId,rowCount:evidence.rowCount,sourceBytes:preparedResult.observed.sourceBytes,actorCalls:c.actorCalls(),judgeCalls:c.judgeCalls(),promptEvalCount,errors:[]};
 }
-module.exports={ASSERTION,SCOPE,FLAGS,assertReceipt,assertCreditRows,assertWireObservation,qualifyAuditCollection,appendCollectionFixtureEvents:append,assertCanonicalAuditScope,recordObservedHttpResponse,assertOriginalAuditObservation};
+module.exports={ASSERTION,SCOPE,FLAGS,COLLECTION_BROWSER_RESPONSE_TIMEOUT_MS,assertReceipt,assertCreditRows,assertWireObservation,assertFinalTaskFraming,assertAuditDecisionWires,qualifyAuditCollection,appendCollectionFixtureEvents:append,assertCanonicalAuditScope,recordObservedHttpResponse,assertOriginalAuditObservation};

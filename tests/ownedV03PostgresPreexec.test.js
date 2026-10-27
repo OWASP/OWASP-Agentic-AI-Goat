@@ -1,0 +1,50 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),cp=require('node:child_process');
+const p={ROOT:path.resolve(__dirname,'..'),PY:"/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"};
+const source=fs.readFileSync(path.join(p.ROOT,'tests/postgres/ownedV03PostgresOwner.js'),'utf8'),core=new Function('crypto','handles','path','spawn',source.slice(source.indexOf('const COMMAND_PYTHON='),source.indexOf('async function createPostgresOwner('))+';return {transport};')(crypto,new WeakMap(),path,cp.spawn);
+const observerSource=fs.readFileSync(path.join(p.ROOT,'tests/postgres/ownedV03MainProcess.js'),'utf8');
+const inspector=new Function('spawn','path','fail',observerSource.slice(observerSource.indexOf('function inspector('),observerSource.indexOf('function childTerminal('))+';return inspector;')(cp.spawn,path,code=>Object.assign(Error(code),{code}));
+const inventory=crypto.createHash('sha256').update(fs.readFileSync(path.join(p.ROOT,'tests/postgres/darwin_process_inventory.py'))).digest('hex');
+for(const mode of ['fast','slow','descendant','error'])test('actual gated transport '+mode,async()=>{
+ const journal=[],control=inspector(p.ROOT,p.PY,inventory,journal),observer={observe:control.observe,status:()=>({pending:control.pending.size,debts:control.debts.length})};
+ const nowMs=()=>Math.floor(performance.now()),owner={nowMs},records=[];
+ const transport=core.transport(owner,{root:p.ROOT,docker:path.join(p.ROOT,'tests/fixtures/v03GatedCommandChild.py'),host:'unused'},observer,async(name,value)=>{records.push(JSON.parse(JSON.stringify(value)));});
+ const result=await transport.command([mode],3000,nowMs()+15000);
+ assert.equal(result.code,mode==='error'?7:0);assert.equal(transport.clean(),true);
+ const terminal=records.at(-1);assert(terminal.birth&&terminal.gateBirth&&terminal.releaseAttempted);
+ assert.equal(terminal.closed,true);assert.equal(terminal.groupAbsent,true);
+ assert.deepEqual(terminal.birth.identity,terminal.gateBirth.identity);
+ assert(journal.every(row=>row.closed));
+});
+test('failed observation never releases fixed command and gate self-expires',async()=>{
+ const children=[],launch=(...args)=>{const child=cp.spawn(...args);children.push({child,done:new Promise(resolve=>child.once('close',resolve))});return child;};
+ const nowMs=()=>Math.floor(performance.now()),writes=[],expected=Object.assign(Error('controlled'),{code:'V03_PROCESS_CONTROL_FAILED'});
+ const observer={observe:async()=>{throw expected;},status:()=>({pending:0,debts:1})};
+ const transport=core.transport({nowMs},{root:p.ROOT,docker:path.join(p.ROOT,'tests/fixtures/v03GatedCommandChild.py'),host:'unused'},observer,async(name,value)=>writes.push(JSON.parse(JSON.stringify(value))),launch);
+ await assert.rejects(transport.command(['fast'],250,nowMs()+12000),error=>error===expected);
+ for(const row of children)assert.equal(await row.done,71);
+ assert.equal(writes.at(-1).stdout,'');assert.equal(writes.at(-1).birth,null);assert.equal(transport.clean(),false);
+});
+test('deadline consumed during observation cannot release command',async()=>{
+ const journal=[],control=inspector(p.ROOT,p.PY,inventory,journal);let expired=false;
+ const start=Math.floor(performance.now()),nowMs=()=>expired?start+3000:Math.floor(performance.now());
+ const observer={observe:async request=>{const result=await control.observe(request);if(request.op==='inspect')expired=true;return result;},status:()=>({pending:control.pending.size,debts:control.debts.length})};
+ const writes=[],transport=core.transport({nowMs},{root:p.ROOT,docker:path.join(p.ROOT,'tests/fixtures/v03GatedCommandChild.py'),host:'unused'},observer,async(name,value)=>writes.push(JSON.parse(JSON.stringify(value))));
+ await assert.rejects(transport.command(['fast'],1000,start+20000),{code:'V03_PG_DEADLINE'});
+ assert.equal(writes.at(-1).releaseAttempted,undefined);assert.equal(writes.at(-1).stdout,'');assert.equal(transport.clean(),false);
+ assert(journal.every(row=>row.closed));
+});
+test('release failure preserves primary and debt without renewing authority',async()=>{
+ const journal=[],control=inspector(p.ROOT,p.PY,inventory,journal),requests=[],children=[];
+ const observer={observe:request=>{requests.push(request);return control.observe(request);},status:()=>({pending:control.pending.size,debts:control.debts.length})};
+ const primary=Object.assign(Error('controlled release failure'),{code:'EPIPE'});
+ const launch=(...args)=>{const child=cp.spawn(...args);children.push({child,done:new Promise(resolve=>child.once('close',resolve))});child.stdin.end=()=>{throw primary;};return child;};
+ const nowMs=()=>Math.floor(performance.now()),writes=[];
+ const transport=core.transport({nowMs},{root:p.ROOT,docker:path.join(p.ROOT,'tests/fixtures/v03GatedCommandChild.py'),host:'unused'},observer,async(name,value)=>writes.push(JSON.parse(JSON.stringify(value))),launch);
+ await assert.rejects(transport.command(['fast'],500,nowMs()+15000),error=>error===primary&&error.cleanupDebt===true);
+ for(const row of children)assert.equal(await row.done,71);
+ assert.equal(transport.clean(),false);assert.equal(writes.at(-1).failure,'EPIPE');assert.equal(writes.at(-1).stdout,'');
+ assert.deepEqual(requests.map(row=>row.op),['inspect','retire']);
+ assert.deepEqual(requests[1].expected.identity,writes.at(-1).gateBirth.identity);
+ assert(journal.every(row=>row.closed));
+});

@@ -2,10 +2,155 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { randomUUID } = require('node:crypto');
 const { IDOR_BROWSER_SCOPE, IDOR_BROWSER_FLAGS, assertCardsMatchBirth,
   assertSavedLesson, assertOriginalLessonTurn, assertOriginalActorWire,
-  assertIdorBrowserReceipt } =
+  assertIdorBrowserReceipt, assertPrivateIdorEvidencePath,
+  admitDisposableIdorCandidate } =
   require('./fixtures/secureshopIdorLessonRenderedQualification');
+
+test('V12 candidate is a disposable, exact-source CAS; public defaults stay pending', async t => {
+  const prior = process.env.PG_TEST_DISPOSABLE;
+  t.after(() => { if (prior === undefined) delete process.env.PG_TEST_DISPOSABLE;
+    else process.env.PG_TEST_DISPOSABLE = prior; });
+  const curriculum = require('../server/config/secureshopCurriculum');
+  const orderId = 'ss_idor_order_status_disclosure';
+  const cart = { objectiveId: 'ss_idor_cart_delete', qualification: 'native-model',
+    enabled: false, revision: '1' };
+  const order = { objectiveId: orderId, qualification: 'pending',
+    enabled: false, revision: '1' };
+  const queries = [], sets = [];
+  const migration = { async query(sql, params) {
+    queries.push({ sql, params });
+    if (order.qualification !== 'pending') return { rowCount: 0, rows: [] };
+    order.qualification = 'native-model';
+    return { rowCount: 1, rows: [{ objective_id: orderId,
+      qualification: 'native-model', is_enabled: false }] };
+  } };
+  const catalog = {
+    async list() { return { objectives: [cart, order].map(row => ({ ...row })) }; },
+    async set(_context, input) {
+      sets.push(input);
+      const row = [cart, order].find(candidate => candidate.objectiveId === input.objectiveId);
+      if (row.qualification !== 'native-model') throw Object.assign(Error('unqualified'),
+        { code: 'SHOP_OBJECTIVE_UNQUALIFIED' });
+      row.enabled = input.enabled;
+      return { ...row };
+    },
+  };
+  const argumentsFor = () => ({ migration, catalog, administratorContext: {}, curriculum,
+    activeObjectiveIds: [cart.objectiveId, orderId] });
+  delete process.env.PG_TEST_DISPOSABLE;
+  await assert.rejects(admitDisposableIdorCandidate(argumentsFor()));
+  assert.equal(queries.length, 0);
+  process.env.PG_TEST_DISPOSABLE = 'yes';
+  const result = await admitDisposableIdorCandidate(argumentsFor());
+  assert.deepEqual(result, { fixtureLocalCandidateAdmission: true,
+    publicOrderQualification: 'pending', publicOrderDefaultEnabled: false });
+  assert.equal(curriculum.isAssessmentReleaseAllowed(orderId), false);
+  assert.equal(curriculum.OBJECTIVES.find(row => row.id === orderId).qualification, 'pending');
+  assert.equal(queries.length, 1);
+  assert.match(queries[0].sql, /qualification='pending'[\s\S]*is_enabled=false[\s\S]*configuration_source='checked_in_default'/);
+  assert.equal(queries[0].params[0], orderId);
+  const expectedSource = JSON.stringify({ version: 1, id: orderId,
+    label: curriculum.OBJECTIVES.find(row => row.id === orderId).text,
+    defaultEnabled: false, qualification: 'pending' });
+  assert.equal(queries[0].params[2], expectedSource);
+  assert.equal(queries[0].params[1], require('node:crypto').createHash('sha256')
+    .update(expectedSource).digest('hex'));
+  assert.deepEqual(sets.map(set => set.objectiveId), [orderId, cart.objectiveId, orderId]);
+  assert.equal(sets[0].enabled, true); // Initial public denial, before the CAS.
+  assert.equal(sets[2].enabled, true);
+});
+
+test('V12 candidate refuses a stale or foreign seed without enabling order', async t => {
+  const prior = process.env.PG_TEST_DISPOSABLE;
+  t.after(() => { if (prior === undefined) delete process.env.PG_TEST_DISPOSABLE;
+    else process.env.PG_TEST_DISPOSABLE = prior; });
+  process.env.PG_TEST_DISPOSABLE = 'yes';
+  const orderId = 'ss_idor_order_status_disclosure';
+  const rows = [
+    { objectiveId: 'ss_idor_cart_delete', qualification: 'native-model', enabled: false,
+      revision: '1' },
+    { objectiveId: orderId, qualification: 'pending', enabled: false, revision: '1' },
+  ];
+  let enabledOrder = false, updates = 0, enabledCart = false;
+  const catalog = {
+    async list() { return { objectives: rows.map(row => ({ ...row })) }; },
+    async set(_context, input) {
+      if (input.objectiveId === orderId) {
+        if (rows[1].qualification === 'pending') throw Object.assign(Error('unqualified'),
+          { code: 'SHOP_OBJECTIVE_UNQUALIFIED' });
+        enabledOrder = true;
+      } else enabledCart = true;
+      return { enabled: true };
+    },
+  };
+  await assert.rejects(admitDisposableIdorCandidate({
+    migration: { async query() { updates++; return { rowCount: 0, rows: [] }; } },
+    catalog, administratorContext: {},
+    curriculum: require('../server/config/secureshopCurriculum'),
+    activeObjectiveIds: rows.map(row => row.objectiveId),
+  }));
+  assert.equal(updates, 1);
+  assert.equal(enabledOrder, false);
+  assert.equal(enabledCart, false);
+});
+
+test('current-host IDOR receipt must be new, private, and inside this checkout; legacy stays external', async t => {
+  const checkout = path.resolve(__dirname, '..');
+  const tempCandidate = process.env.DVAIA_REPO_LOCAL_UNIT_RUNTIME || process.env.TMPDIR;
+  const tempParent = tempCandidate && path.resolve(tempCandidate).startsWith(
+    `${checkout}${path.sep}tasks${path.sep}tmp${path.sep}`)
+    ? path.resolve(tempCandidate) : path.join(checkout, 'tasks', 'tmp');
+  const root = fs.mkdtempSync(path.join(tempParent, 'idor-path-'));
+  fs.mkdirSync(path.join(root, 'tasks'));
+  const qualification = path.join(root, 'tasks', 'qualification');
+  const profileRoot = path.join(root, '.qualification');
+  fs.mkdirSync(qualification, { mode: 0o700 });
+  fs.mkdirSync(profileRoot, { mode: 0o700 });
+  const run = fs.mkdtempSync(path.join(qualification, 'run-'));
+  const profile = path.join(profileRoot, `goat-i-${randomUUID().slice(0, 6)}`);
+  fs.mkdirSync(profile, { mode: 0o700 });
+  const socket = path.join(profile, 'docker.sock');
+  const realLstat = fs.lstatSync;
+  t.mock.method(fs, 'lstatSync', (target, ...options) => target === socket
+    ? { isSocket: () => true, isSymbolicLink: () => false, uid: process.getuid() }
+    : realLstat(target, ...options));
+  t.after(() => {
+    fs.rmdirSync(profile);
+    fs.rmdirSync(run);
+    fs.rmdirSync(profileRoot);
+    fs.rmdirSync(qualification);
+    fs.rmdirSync(path.join(root, 'tasks'));
+    fs.rmdirSync(root);
+  });
+  const dockerHost = `unix://${socket}`;
+  const evidencePath = path.join(run, 'customer-idor-lesson-browser.json');
+  assert.equal(assertPrivateIdorEvidencePath(evidencePath, { root, dockerHost }), evidencePath);
+  const cartPath = path.join(run, 'customer-idor-cart-v10-browser.json');
+  assert.equal(assertPrivateIdorEvidencePath(cartPath, { root, dockerHost, cartOnly: true }), cartPath);
+  assert.throws(() => assertPrivateIdorEvidencePath('/tmp/legacy-id-or/receipt.json', { root, dockerHost }));
+  assert.throws(() => assertPrivateIdorEvidencePath(evidencePath, { root, dockerHost,
+    cartOnly: true }));
+  assert.throws(() => assertPrivateIdorEvidencePath(path.join(run, '..', 'elsewhere.json'),
+    { root, dockerHost }));
+  fs.chmodSync(run, 0o755);
+  assert.throws(() => assertPrivateIdorEvidencePath(evidencePath, { root, dockerHost }));
+  fs.chmodSync(run, 0o700);
+  fs.writeFileSync(evidencePath, 'old receipt');
+  assert.throws(() => assertPrivateIdorEvidencePath(evidencePath, { root, dockerHost }));
+  fs.unlinkSync(evidencePath);
+  fs.symlinkSync(path.join(run, 'missing-receipt.json'), evidencePath);
+  assert.throws(() => assertPrivateIdorEvidencePath(evidencePath, { root, dockerHost }));
+  fs.unlinkSync(evidencePath);
+  assert.equal(assertPrivateIdorEvidencePath('/tmp/legacy-id-or/receipt.json',
+    { root, dockerHost: 'unix:///legacy/docker.sock' }), '/tmp/legacy-id-or/receipt.json');
+  assert.throws(() => assertPrivateIdorEvidencePath(evidencePath,
+    { root, dockerHost: 'unix:///legacy/docker.sock' }));
+});
 
 const birth = { cartItemId: 41, orderId: 72,
   orderPreimage: { totalAmount: '10.00', status: 'processing', shippingAddress: 'Synthetic lesson address',

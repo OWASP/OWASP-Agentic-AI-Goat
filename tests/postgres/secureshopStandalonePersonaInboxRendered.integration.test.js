@@ -4,15 +4,20 @@ const {randomUUID,randomBytes,createHash}=require('node:crypto');
 const SOURCE=path.resolve(__dirname,'../..');
 const PREFIX='PG_SECURESHOP_STANDALONE_PERSONA_';
 const ENABLED=process.env.SECURESHOP_STANDALONE_PERSONA_NATIVE==='1';
+const CURRENT_HOST=process.env.SECURESHOP_STANDALONE_PERSONA_CURRENT_HOST_EVIDENCE==='1';
 function privateWrite(root,name,value){const bytes=JSON.stringify(value,null,2);assert(Buffer.byteLength(bytes)<=64*1024*1024);
- fs.writeFileSync(path.join(root,name),bytes,{mode:0o600});}
+ if(!CURRENT_HOST){fs.writeFileSync(path.join(root,name),bytes,{mode:0o600});return;}
+ require('../fixtures/secureshopPersonaInboxCurrentHostAdmission')
+  .writePrivate(process.env,SOURCE,root,name,value);}
 function admission(){
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(process.env.LIVE_OLLAMA_TEST,'1');
  assert.equal(process.env.DVAIA_CURRENT_MAIN_WORKSPACE,SOURCE);assert.equal(process.cwd(),SOURCE);
  assert.equal(process.env.LAB_MODE,'vuln');
  const evidence=process.env.SECURESHOP_STANDALONE_PERSONA_EVIDENCE_PATH;
- assert(path.isAbsolute(evidence)&&!path.resolve(evidence).startsWith(SOURCE+path.sep));
- assert.equal(fs.realpathSync(evidence),evidence);assert.equal(fs.statSync(evidence).mode&0o777,0o700);
+ if(CURRENT_HOST)require('../fixtures/secureshopPersonaInboxCurrentHostAdmission')
+  .admit(process.env,SOURCE,evidence);
+ else{assert(path.isAbsolute(evidence)&&!path.resolve(evidence).startsWith(SOURCE+path.sep));
+  assert.equal(fs.realpathSync(evidence),evidence);assert.equal(fs.statSync(evidence).mode&0o777,0o700);}
  const names={IDENTITY:'identity',AGENTS:'secureshop_agents',REVIEW:'secureshop_review',COMMERCE:'secureshop'};
  const urls={};let nonce,port;
  for(const [name,store]of Object.entries(names)){urls[name]={};for(const role of ['RUNTIME','MIGRATION']){
@@ -22,7 +27,7 @@ function admission(){
   const match=new RegExp('^/dvaia_test_agent_host_([a-f0-9]{12})_'+store+'$').exec(url.pathname);assert(match);
   nonce??=match[1];port??=url.port;assert.equal(match[1],nonce);assert.equal(url.port,port);urls[name][role]=url.href;
  }}
- return {evidence,urls};
+ return {evidence,urls,currentHost:CURRENT_HOST};
 }
 
 test('C31 standalone rendered advisory and enforced Persona Inbox with genuine actor and Judge',
@@ -186,7 +191,7 @@ async function qualifyStandalonePersonaActual({owned,state,save,stage,identity,i
    personaAuthority:grading.personaAuthority,personaRepository:composition.repositories.personas,
    provider,promptPolicyRepository,toolPolicyRepository,modeAuthority,
    mailScenes:composition.mailScenes,authenticatePersona:composition.personaAuth.authenticatePersona,
-   assessmentDependencies:{...grading.assessmentDependencies,judge},mode:'vuln'});
+   assessmentDependencies:{...grading.assessmentDependencies,judge,publicationModes:modeRepository},mode:'vuln'});
   assert.equal(mailProduction.ready,true);activeMail=mailProduction;
   const mounted=Object.freeze({...composition,mail:mailProduction,
    standaloneAuth:Object.freeze({service:standalone,bootstrap,reset:protectedReset,
@@ -228,7 +233,8 @@ async function qualifyStandalonePersonaActual({owned,state,save,stage,identity,i
   stage('standalone-persona-rendered-inbox');
   fs.mkdirSync(path.join(owned.evidence,'runtime'),{mode:0o700});
   browser=await require('../fixtures/secureshopAnalyticsBrowserOwner')
-   .launchOwnedAnalyticsBrowser(path.join(owned.evidence,'runtime'),'browser');
+   .launchOwnedAnalyticsBrowser(path.join(owned.evidence,'runtime'),'browser',
+    {personaInboxCurrentHost:owned.currentHost});
   context=await browser.createBrowserContext();page=await context.newPage();
   await page.setViewport({width:1440,height:1000});await page.setRequestInterception(true);
   page.on('request',request=>{let allowed=false;try{const url=new URL(request.url());
@@ -320,4 +326,4 @@ async function qualifyStandalonePersonaActual({owned,state,save,stage,identity,i
  }catch(error){primary=error;throw error;}
  finally{try{await close();}catch(error){if(!primary)throw error;primary.cleanupFailure={name:error.name,code:error.code||null};}}
 }
-module.exports={admission,qualifyStandalonePersonaActual};
+module.exports={admission,privateWrite,qualifyStandalonePersonaActual};

@@ -90,6 +90,21 @@ test('summary retains original hop; saved read and exact replay add no model, to
   assert.deepEqual(await f.assist.runSummary(input),result);
   for(const name of ['actor','tools','commits','postCommit'])assert.equal(f.counts[name],before[name]);
 });
+test('Fixed Summary policy accepts new saved output but fences old descriptive output on GET and exact replay',async()=>{
+  const f=fixture({fixedFactory:true});f.setMode();const input=await f.input();
+  const result=await f.assist.runSummary(input);
+  assert.equal(result.modeCapability.policyVersion,'fixed-summary-numeric-facts-v1');
+  assert.equal(result.description,null);assert.equal(result.name,'Product 7');
+  assert.equal(result.summary,'Observed original summary.');
+  assert.deepEqual((await f.assist.readSummary(input)).result,result);
+  assert.deepEqual(await f.assist.runSummary(input),result);
+  const before={...f.counts},row=f.requests.get(f.key(input));
+  row.result_json.taskMetadata.productSummaryOrigin.execution.policyVersion='bounded-product-data-and-catalog-neighbors-v1';
+  row.result_json.modeCapability.policyVersion='bounded-product-data-and-catalog-neighbors-v1';
+  await assert.rejects(f.assist.readSummary(input));
+  await assert.rejects(f.assist.runSummary(input));
+  for(const name of ['actor','tools','commits','postCommit'])assert.equal(f.counts[name],before[name]);
+});
 test('summary rejects foreign owner/session/product, changed original hash and changed hop bytes',async()=>{
   const f=fixture(),input=await f.input();await f.assist.runSummary(input);
   for(const patch of [{persona:{id:17,role:'customer'}},{productId:8},{sessionId:randomUUID()},

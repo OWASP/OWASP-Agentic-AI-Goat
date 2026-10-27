@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import re
+import resource
 import signal
 import stat
 import subprocess
@@ -34,7 +35,7 @@ def buildx_identity(api, args):
     return {'path': str(path), 'sha256': BUILDX_SHA256}
 
 
-def source_manifest(api, args, source, additional_drivers=()):
+def source_manifest(api, args, source, additional_drivers=(), current_host=None):
     result = subprocess.run([args.node, '-e',
         "const planner=require('./scripts/install/secureshop-owned-listings');"
         "require('./scripts/install/secureshop-owned-listings-qualified-candidate');"
@@ -53,6 +54,9 @@ def source_manifest(api, args, source, additional_drivers=()):
     drivers = ['tests/postgres/run-secureshop-agent-host-transport-main.py',
         'tests/postgres/listings_package_candidate.py', 'tests/postgres/listings_native_resources.py',
         'tests/postgres/sql_nosql_docker_ownership.py', 'tests/postgres/admin_browser_current_main_admission.py']
+    if current_host is not None:
+        drivers.extend(('tests/postgres/listings_package_goat_current.py',
+                        'tests/postgres/secureshop_current_host_admission.py'))
     for name in additional_drivers:
         if not isinstance(name, str) or not re.fullmatch(r'[A-Za-z0-9_./-]+', name):
             raise RuntimeError('Canonical additional package driver required')
@@ -70,8 +74,12 @@ def source_manifest(api, args, source, additional_drivers=()):
                 or path.resolve() != path or not path.is_file() or path.stat().st_size > 4 * 1024 * 1024):
             raise RuntimeError('Canonical helper dependency required')
         drivers.append(str(path.relative_to(source)))
-    return {'package': manifest, 'drivers': {name: api.digest(source / name) for name in sorted(set(drivers))},
-            'node': api.digest(args.node), 'docker': api.digest(args.docker), 'buildx': buildx_identity(api, args)}
+    result = {'package': manifest, 'drivers': {name: api.digest(source / name) for name in sorted(set(drivers))},
+              'node': api.digest(args.node), 'docker': api.digest(args.docker),
+              'buildx': current_host.guest_identity() if current_host is not None else buildx_identity(api, args)}
+    if current_host is not None:
+        result['currentHostProfile'] = 'goat-q'
+    return result
 
 
 def context_bytes(source, manifest):
@@ -130,7 +138,8 @@ def read_result(path, replay):
     return value
 
 
-def qualify(api, args, source, after_package=None, expected_runtime_digest=None, expected_source_sha256=None, additional_drivers=()):
+def qualify(api, args, source, after_package=None, expected_runtime_digest=None, expected_source_sha256=None,
+            additional_drivers=(), current_host=None):
     if after_package is not None and not callable(after_package):
         raise RuntimeError('Package callback must be callable')
     if expected_runtime_digest is not None and not re.fullmatch(r'[a-f0-9]{64}', expected_runtime_digest):
@@ -140,47 +149,63 @@ def qualify(api, args, source, after_package=None, expected_runtime_digest=None,
     if not isinstance(additional_drivers, tuple):
         raise RuntimeError('Canonical additional package drivers required')
     if args.plan:
-        print(json.dumps({'cohort': 'listings-package', 'workspace': str(source), 'stores': [],
+        print(json.dumps({'cohort': 'listings-package-goat-current-v1' if current_host is not None else 'listings-package', 'workspace': str(source), 'stores': [],
             'tests': 2, 'browser': False, 'modelCalls': 0, 'sourceCopy': False,
             'nativeStarted': False, 'candidateOnly': True, 'fixture': FIXTURE}))
         return 0
-    parent = Path(args.evidence_parent or Path(tempfile.gettempdir()).resolve() / 'dvaia-listings-package-native')
-    if not parent.is_absolute() or parent.resolve().is_relative_to(source):
-        raise RuntimeError('Private package evidence must be outside checkout')
+    if current_host is not None:
+        if (not current_host.LIVE_ENABLED or Path(source) != current_host.source
+                or getattr(args, 'current_host_profile', None) != 'goat-q'
+                or args.docker_daemon != current_host.daemon_id
+                or args.docker_host != 'unix://' + str(Path(source) / '.qualification/goat-q/docker.sock')
+                or (args.evidence_parent is not None and Path(args.evidence_parent) != current_host.evidence_parent)):
+            raise RuntimeError('Reviewed current-host Listings build admission remains closed')
+    parent = (Path(current_host.evidence_parent) if current_host is not None else
+              Path(args.evidence_parent or Path(tempfile.gettempdir()).resolve() / 'dvaia-listings-package-native'))
+    if not parent.is_absolute() or (current_host is None and parent.resolve().is_relative_to(source)):
+        raise RuntimeError('Private package evidence parent invalid')
     parent.mkdir(mode=0o700, parents=True, exist_ok=True)
     if parent.is_symlink() or parent.resolve() != parent or parent.stat().st_uid != os.getuid() or parent.stat().st_mode & 0o777 != 0o700:
         raise RuntimeError('Private package evidence parent required')
-    evidence = Path(tempfile.mkdtemp(prefix='run-', dir=parent)); evidence.chmod(0o700)
+    prefix = 'run-listings-package-goat-' if current_host is not None else 'run-'
+    evidence = Path(tempfile.mkdtemp(prefix=prefix, dir=parent)); evidence.chmod(0o700)
     runtime = evidence / 'runtime'; runtime.mkdir(mode=0o700)
     for name in ('home', 'tmp'): (runtime / name).mkdir(mode=0o700)
     clean = {'PATH': f'{Path(args.node).parent}:{Path(args.docker).parent}:/usr/bin:/bin',
         'HOME': str(runtime / 'home'), 'TMPDIR': str(runtime / 'tmp'), 'LANG': 'C', 'DOCKER_HOST': args.docker_host}
-    plugin = buildx_identity(api, args)
+    plugin = current_host.guest_identity() if current_host is not None else buildx_identity(api, args)
     docker_config = runtime / 'docker-config'; docker_config.mkdir(mode=0o700)
     config_path = docker_config / 'config.json'
-    api.atomic_json(config_path, {'cliPluginsExtraDirs': [str(Path(plugin['path']).parent)]})
+    api.atomic_json(config_path, {} if current_host is not None else
+                    {'cliPluginsExtraDirs': [str(Path(plugin['path']).parent)]})
     config_sha256 = api.digest(config_path)
     clean.update(DOCKER_CONFIG=str(docker_config), DOCKER_BUILDKIT='1')
     command = api.docker_owner_command(args, clean)
-    nonce = uuid.uuid4().hex[:12]; name = 'dvaia-listings-package-' + nonce
+    nonce = uuid.uuid4().hex[:12]
+    name = ('dvaia-listings-goat-' if current_host is not None else 'dvaia-listings-package-') + nonce
     state = {'container': name, 'volume': name + '-journal', 'network': 'none', 'packaged': True,
         'imageTag': name + ':candidate', 'daemon': args.docker_daemon, 'attempted': [],
-        'labels': {'dvaia.owner': str(uuid.uuid4()), 'dvaia.cohort': 'listings-package'}}
+        'labels': {'dvaia.owner': str(uuid.uuid4()),
+                   'dvaia.cohort': 'listings-package-goat-current-v1' if current_host is not None else 'listings-package'}}
     child = None; failure = None; cleanup = {}; results = {}; post_package = None; pins = None; image_attempted = False
     def persist(): api.atomic_json(evidence / 'resources.json', state)
     def unchanged():
         verify_daemon(command, args.docker_daemon)
         if config_path.is_symlink() or api.digest(config_path) != config_sha256:
             raise RuntimeError('Private Docker plugin configuration changed')
-        if source_manifest(api, args, source, additional_drivers) != pins: raise RuntimeError('Package source/executable drift')
+        if source_manifest(api, args, source, additional_drivers, current_host) != pins: raise RuntimeError('Package source/executable drift')
     def execute(parts, label, timeout, data=None):
         nonlocal child
         output = evidence / (label + '.stdout'); error = evidence / (label + '.stderr')
         with output.open('xb') as out, error.open('xb') as err:
             os.chmod(output, 0o600); os.chmod(error, 0o600)
-            child = subprocess.Popen([args.docker, '--host', args.docker_host, *parts], env=clean,
+            argv = (current_host.build_argv(parts, builder=state.get('builder')) if current_host is not None and label == 'build' else
+                    [args.docker, '--host', args.docker_host, *parts])
+            def bounded_output():
+                resource.setrlimit(resource.RLIMIT_FSIZE, (8 * 1024 * 1024, 8 * 1024 * 1024))
+            child = subprocess.Popen(argv, env=clean,
                 stdin=subprocess.PIPE if data is not None else subprocess.DEVNULL, stdout=out, stderr=err,
-                start_new_session=True)
+                start_new_session=True, preexec_fn=bounded_output if current_host is not None else None)
             state[label + 'Process'] = {'pid': child.pid, 'pgid': os.getpgid(child.pid)}; persist()
             child.communicate(input=data, timeout=timeout)
             if child.returncode != 0: raise RuntimeError('Packaged ' + label + ' failed')
@@ -190,13 +215,14 @@ def qualify(api, args, source, after_package=None, expected_runtime_digest=None,
     try:
         signal.signal(signal.SIGTERM, api.interrupted); signal.signal(signal.SIGINT, api.interrupted)
         verify_daemon(command, args.docker_daemon)
-        pins = source_manifest(api, args, source, additional_drivers); api.atomic_json(evidence / 'source-before.json', pins)
+        pins = source_manifest(api, args, source, additional_drivers, current_host); api.atomic_json(evidence / 'source-before.json', pins)
         if expected_source_sha256 is not None and pins['package']['sha256'] != expected_source_sha256:
             raise RuntimeError('Packaged source differs from canonical qualification')
         state['labels']['dvaia.listings.source'] = pins['package']['sha256']
         if expected_runtime_digest is not None:
             state['labels']['dvaia.listings.runtime'] = expected_runtime_digest
-        state['profile'] = api.listings_profile_plan(source, args.node, args.docker_host, nonce)
+        state['profile'] = (current_host.profile_plan(nonce) if current_host is not None else
+                            api.listings_profile_plan(source, args.node, args.docker_host, nonce))
         state['environmentSha256'] = hashlib.sha256(('LISTINGS_PROFILE=' + state['profile']['name']).encode()).hexdigest()
         persist()
         for kind in ('container', 'volume'):
@@ -248,7 +274,7 @@ def qualify(api, args, source, after_package=None, expected_runtime_digest=None,
             if not isinstance(callback, dict):
                 raise RuntimeError('Package callback receipt required')
             post_package = callback
-        api.atomic_json(evidence / 'source-after.json', source_manifest(api, args, source, additional_drivers))
+        api.atomic_json(evidence / 'source-after.json', source_manifest(api, args, source, additional_drivers, current_host))
     except Exception as error:
         failure = type(error).__name__ + ': ' + str(error)
     finally:
@@ -293,7 +319,9 @@ def qualify(api, args, source, after_package=None, expected_runtime_digest=None,
         except Exception as error: errors.append('process-absence:' + type(error).__name__)
         cleanup['errors'] = errors
         passed = failure is None and not errors and len(results) == 2
-        report = {'version': 2, 'cohort': 'listings-package', 'status': 'passed' if passed else 'failed',
+        report = {'version': 3 if current_host is not None else 2,
+            'cohort': 'listings-package-goat-current-v1' if current_host is not None else 'listings-package',
+            'status': 'passed' if passed else 'failed',
             'candidateOnly': True, 'sourceCopy': False, 'sourceRoot': str(source), 'modelCalls': 0,
             'unusedResources': {'remote': 'not-used', 'buildCa': 'not-used'}, 'ownedProcesses': processes,
             'frozenHashesVerified': pins is not None and not any(e.startswith('source:') for e in errors),

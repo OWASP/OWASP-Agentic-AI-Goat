@@ -738,6 +738,7 @@ async function setup({
   upgrade = false, repair = false, homeDirectory = os.homedir(), provision, provisionDelivery, initializeApplication, platform = process.platform,
   ownedMcpRegistry = false, enableOwnedMcpRegistry = false, setupOwnedMcpRegistry, ownedPolicyRenderer = false, enableOwnedPolicyRenderer = false, provisionOwnedPolicyRenderer, ownedListingTemplate = false, enableOwnedListingTemplate = false, provisionOwnedListingTemplate, ownedListings = false, enableOwnedListings = false, setupOwnedListings, preflightOwnedListings, ownedSystem = false, ownedPricing = false, setupOwnedPricing, ownedCoupons = false, setupOwnedCoupons, ownedAnalytics = false, enableOwnedAnalytics = false, setupOwnedAnalytics, qualifiedSecureShop = false, prepareQualifiedSystem, preflightQualifiedSystem, setupOwnedSystem, provisionOwnedRunner, provisionOwnedHttp, provisionOwnedShadow, provisionAuditSql, nodeVersion = process.versions.node, requestGeneration, loadRenderer, loadMailRenderer, loadProductRenderer, loadTicketRenderer, loadSearchEchoRenderer, loadPolicyOutputRenderer,
   ensureDockerAuthority = resolveDockerAuthority,
+  preflightOwnedMcpRegistryArchitecture,
   runDatabasePhase = require('./install/setup-database-phase').runSetupDatabasePhase,
   observeWindowsHost = require('./lib/windows-host-preflight').observeWindowsHostPreflight,
   prepareWindowsLabInstallation, provisionBaseLabServices, setupLocalPostgres, setupLocalMailpit,
@@ -773,8 +774,23 @@ async function setup({
   const listingsQualification = ownedListings ? await (preflightOwnedListings || require('./install/listings-setup').preflight)({root,environment:processEnvironment}) : null;
   if (ownedSystem) require('./install/secureshop-owned-system-activate').listenerPorts({root,homeDirectory,environment:processEnvironment});
   if(qualifiedSecureShop && !ownedSystem) throw Object.assign(new SetupError('Qualified SecureShop fresh preparation requires explicit --qualified-secureshop --owned-system consent.'),{code:'SYSTEM_COMBINED_OPT_IN_REQUIRED'});
-  if(qualifiedSecureShop) await (preflightQualifiedSystem || require('./install/secureshop-qualified-system-setup').preflight)({root,home:homeDirectory,platform,environment:processEnvironment});
+  if(qualifiedSecureShop) {
+    const systemSetup=require('./install/secureshop-qualified-system-setup');
+    processEnvironment=await systemSetup.selectSetupEnvironment({root,home:homeDirectory,platform,environment:processEnvironment});
+    await (preflightQualifiedSystem || systemSetup.preflight)({root,home:homeDirectory,platform,environment:processEnvironment});
+  }
   let windowsLab;
+  const preflightRegistryDaemon = async environment => {
+    if (!ownedMcpRegistry) return;
+    // Resolve the same workspace-owned Docker authority used by local
+    // PostgreSQL, without creating a container or persisting new authority.
+    const selected = await ensureDockerAuthority({ directory, workspaceId:id, environment,
+      execute, platform, persist:false,
+      ...(windowsLab ? {ownedLabSession:windowsLab.session} : {}) });
+    await (preflightOwnedMcpRegistryArchitecture || require('./install/secureshop-owned-mcp-registry-setup').preflightOwnedMcpRegistryArchitecture)({
+      root, homeDirectory, platform, environment, dockerAuthority:selected?.authority,
+    });
+  };
   try {
   if (upgrade) {
     const manifestPath = path.join(directory, 'provisioning.json');
@@ -799,6 +815,7 @@ async function setup({
     if (platform === 'win32' && (shouldBindLocalSidecarDocker(appDataEnvironment) || !externalAdminUrl)) {
       windowsLab = await (prepareWindowsLabInstallation || require('./lib/windows-lab-installation').prepareWindowsLabInstallation)({ root, homeDirectory, environment: appDataEnvironment, mode: 'existing' });
     }
+    await preflightRegistryDaemon(appDataEnvironment);
     if (externalAdminUrl && shouldBindLocalSidecarDocker(appDataEnvironment)) {
       await ensureDockerAuthority({ directory, workspaceId: id, environment: appDataEnvironment,
         execute, platform, persist: true, ...(windowsLab ? { ownedLabSession: windowsLab.session } : {}) });
@@ -842,6 +859,7 @@ async function setup({
   if (platform === 'win32' && (shouldBindLocalSidecarDocker(processEnvironment) || !externalAdminUrl)) {
     windowsLab = await (prepareWindowsLabInstallation || require('./lib/windows-lab-installation').prepareWindowsLabInstallation)({ root, homeDirectory, environment: processEnvironment, mode: 'fresh' });
   }
+  await preflightRegistryDaemon(processEnvironment);
   if (externalAdminUrl && shouldBindLocalSidecarDocker(processEnvironment)) {
     await ensureDockerAuthority({ directory, workspaceId: id, environment: processEnvironment,
       execute, platform, persist: true, ...(windowsLab ? { ownedLabSession: windowsLab.session } : {}) });
@@ -1205,17 +1223,17 @@ if (require.main === module) {
     if (host) console.log(JSON.stringify(host, null, 2));
     if (host && !host.hostSupported) process.exitCode = 1;
     else {
-    if(args.includes('--owned-mcp-registry') || args.includes('--enable-owned-mcp-registry') || args.includes('--qualified-secureshop')) console.log('Owned MCP registry: automatically build or verify the pinned 17-file image and private loopback service after bound SecureShop prerequisites. ARM64 qualified only; Linux AMD64 remains unqualified. Preserve existing disabled preferences unless --enable-owned-mcp-registry is explicit. Plan performs no build, provisioning or activation.');
+    if(args.includes('--owned-mcp-registry') || args.includes('--enable-owned-mcp-registry') || args.includes('--qualified-secureshop')) console.log('Owned MCP registry: automatically build or verify the pinned 20-file image and private loopback service after bound SecureShop prerequisites. ARM64 only; Linux AMD64 remains unqualified. Preserve existing disabled preferences unless --enable-owned-mcp-registry is explicit. Plan performs no build, provisioning or activation.');
     if(args.includes('--owned-policy-renderer')) console.log('Owned strict policy renderer: verify or provision the private loopback renderer while preserving its disabled preference. Activation requires explicit --enable-owned-policy-renderer and confirmed readiness. Plan performs no build, provisioning or activation.');
     if(args.includes('--owned-listing-template')) console.log('Owned Listings template: separate ARM64 Linux/macOS package, private loopback port 8109–8118 and disabled-by-default staged container. Activation requires --enable-owned-listing-template and exact inert readiness. It does not enable Listings. Plan performs no build, provisioning or activation.');
     if(args.includes('--enable-owned-analytics')) console.log('Explicit Analytics enablement also provisions/verifies its existing owned resources and enables the private feature only after readiness; use to recover staged setup or deliberately re-enable it.');
     if(args.includes('--owned-coupons')) console.log('Owned coupon opt-in: automatically prepares owned Analytics, applies additive review migrations, verifies runtime/schema, and records private activation. Existing disabled preferences are preserved. Requires bound SecureShop. Plan makes no changes.');
     if(args.includes('--owned-analytics')) console.log('Owned Analytics: provision a separate private PostgreSQL cluster and enable only after cluster and application request-schema readiness. Requires enabled bound SecureShop; preserves existing disabled preferences. Plan makes no changes.');
-    if(args.includes('--qualified-secureshop')) console.log('Explicit combined opt-in prepares six bound SecureShop panels (reviews, manuals, products, inbox, MCP trust, controlled SSRF) and private System listeners. Requires existing enforced profile/ARM64; candidate readiness precedes activation. Plan makes no changes.');
+    if(args.includes('--qualified-secureshop')) console.log('Explicit combined opt-in prepares six bound SecureShop panels (reviews, manuals, products, inbox, MCP trust, controlled SSRF) and private System listeners. Requires ARM64 and verified local Docker authority; explicit setup can prepare the missing owned AppArmor profile and rejects conflicting profiles. Candidate readiness precedes activation. Plan makes no changes.');
     if(args.includes('--owned-pricing')) console.log('Owned Pricing opt-in: requires bound SecureShop; ARM64 daemon/package only, immutable workspace AppArmor profile, private loopback listener and readiness before activation. AMD64 remains unqualified. Plan performs no changes.');
     console.log('Local audit SQL prerequisite: fresh provisioning uses loopback port 8097; retained private configurations keep their saved port and disabled preference. Eligible SecureShop setup enables audit summary only when its private setting is absent and owned audit readiness succeeds. Plan makes no changes.');
     if(args.includes('--owned-listings')) console.log(args.includes('--enable-owned-listings')?'Owned Listings explicit activation (ARM64 qualified only): provision or verify the exact retained manager, schema, cleanup bindings and private authority, then atomically enable and require application restart. Plan performs no provisioning or activation.':'Owned Listings preparation (ARM64 qualified only): verify package and daemon authority, then stage one shared manager and private journal disabled. Plan performs no provisioning or activation.');
-    if(args.includes('--owned-system')) console.log('Opt-in owned System (ARM64 only; other host architectures fail before build): verify existing Docker authority and installed AppArmor profile; provision three private loopback listeners and activate only after readiness. Plan performs no provisioning or activation; .env is unchanged by System integration.');
+    if(args.includes('--owned-system')) console.log('Opt-in owned System (ARM64 only; other host architectures fail before build): verify selected local Docker authority, prepare a missing owned AppArmor profile or verify the existing profile, then provision three private loopback listeners and activate only after readiness. Plan performs no provisioning or activation; .env is unchanged by System integration.');
     if(args.includes('--repair')) console.log('Existing-install repair: verify the private environment and provisioning manifest, install locked application/client dependencies, install a missing Puppeteer browser, rebuild/verify renderers, verify LangChain/LangGraph, local llama3.1:8b generation and the embedding cache, then run the supported additive database phase. Preserve administrator credentials, environment values and learner data. Plan makes no changes.');
     console.log(args.includes('--upgrade') || args.includes('--repair')
       ? `Additive upgrade: require the existing private environment and provisioning manifest; bind local PostgreSQL and ordinary MCP sidecars to a verified local Docker daemon unless externally managed; preserve all credentials and settings; provision appended PostgreSQL stores and apply pending migrations/default-only seeds to every configured store; atomically append their configuration; validate the configured private password-reset recovery key or provision it once and append its path when absent. ${args.includes('--repair') ? 'Repair additionally prepares local dependencies, browser and model before this database phase.' : 'No packages, model, browser, administrator, AWS assets or existing data are changed.'}`

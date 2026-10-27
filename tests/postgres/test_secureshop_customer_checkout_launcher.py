@@ -697,7 +697,7 @@ class V29AgencyBrowserLauncherContract(unittest.TestCase):
         self.assertEqual(LAUNCHER.V29_AGENCY_TEST,
                          'tests/postgres/secureshopCustomerCheckoutRendered.integration.test.js')
         self.assertEqual(LAUNCHER.V29_AGENCY_TEST_SHA256,
-                         '8acaded422b2db41d353088d4c462ab3c155f583a786399b01a63f059e253a1c')
+                         '879f06e727c5ec59b80bf75339f2afd814694e91fd6f0331689e42eea3b72c52')
         root = HERE.parents[1]
         self.assertEqual(LAUNCHER.validate_v29_agency_pins(root, LAUNCHER.digest),
                          (LAUNCHER.V29_AGENCY_TEST,))

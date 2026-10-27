@@ -37,6 +37,34 @@ function createTurnRequestsRepository({ pool }) {
     } finally { client.release(); }
   }
   return Object.freeze({
+    // Closed workflow lookup. General conversation history is never moderation
+    // recovery authority, even when its message happens to be identical.
+    async lookupReviewModerationRequest({ requestId, binding, message }) {
+      const b = createConversationBinding(binding, { id: binding.shopUserId, role: binding.role });
+      if (b.role !== 'merchant' || typeof requestId !== 'string'
+          || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)) throw fail('INVALID_ARGUMENT');
+      const client = await pool.connect();
+      try {
+        const rows = (await client.query(`SELECT tr.session_id,tr.request_id,tr.request_hash,tr.request_version,
+            tr.status,tr.result_json
+          FROM secureshop_agents.turn_requests tr
+          JOIN secureshop_agents.agent_sessions s ON s.id=tr.session_id
+          WHERE tr.request_id=$1 AND s.conversation_purpose='review_moderation'
+            AND s.authority_mode='launch_bound' AND s.binding_state='active'
+            AND ${columns.map((column, i) => `s.${column}=$${i + 2}`).join(' AND ')} LIMIT 2`,
+        [requestId.toLowerCase(),b.launchId,b.scenarioId,b.generation,b.platformOwnerId,
+          b.platformSessionId,b.shopUserId,b.role])).rows;
+        if (rows.length !== 1) return rows.length ? Object.freeze({status:'conflict'}) : null;
+        const row = rows[0];
+        let expected;
+        try { expected = createTurnRequest({sessionId:row.session_id,requestId:row.request_id,
+          binding:b,message,version:row.request_version}); }
+        catch (error) { if (error?.code === 'TURN_VERSION_UNAVAILABLE') return Object.freeze({status:'conflict'}); throw error; }
+        if (expected.hash !== row.request_hash || !['started','uncertain','completed'].includes(row.status))
+          return Object.freeze({status:'conflict'});
+        return Object.freeze({sessionId:row.session_id,status:row.status,result:row.result_json});
+      } finally { client.release(); }
+    },
     // A completed MCP turn must be located before refreshing a mutable remote
     // schema. This read never claims a request or provisions a conversation.
     async lookupMcpRequest({ requestId, binding, purpose }) {

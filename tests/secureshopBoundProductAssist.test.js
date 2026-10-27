@@ -20,7 +20,7 @@ const similarDto = Object.freeze({ results: [{ id: 8, name: 'Related source', ca
   retrieved_context: [{ text: 'target-owned manual context' }] });
 
 function memoryFixture({ provider, toolResult, launches: launchesOverride, productToolsFactory,
-  coordinator: coordinatorOverride, assessmentFactory, personaAuthority, modeAuthority, toolPolicyRepository, promptPolicyRepository, taskPoliciesEnabled, policySearch } = {}) {
+  coordinator: coordinatorOverride, assessmentFactory, personaAuthority, modeAuthority, toolPolicyRepository, promptPolicyRepository, taskPoliciesEnabled, policySearch, reuseBoundSession=false } = {}) {
   const sessions = new Map();
   const messages = new Map();
   const traces = [];
@@ -30,6 +30,7 @@ function memoryFixture({ provider, toolResult, launches: launchesOverride, produ
   const conversationRepository = {
     async getBoundSession(id) { return sessions.get(id) || null; },
     async acquireBoundSession({ id, binding, purpose }) {
+      if(reuseBoundSession){const old=[...sessions.values()].find(row=>row.purpose===purpose&&require('node:util').isDeepStrictEqual(row.binding,binding));if(old)return old;}
       const row = { id, binding, purpose, state: 'pending' };
       sessions.set(id, row);
       return row;
@@ -506,10 +507,17 @@ test('fixed product graph preserves descriptive questions and rejects changed pr
  const modeAuthority=createFeatureModeAuthority({progress:{getEvaluationScope:async()=>({mode:'fixed',generation:0,modeStamp:stamp})},launches:{assertCurrent:async()=>{}}});
  const personaAuthority={capture:({scope:s,...identity})=>({binding:{...s,...identity},async assertRemoteAdmission(){},async withPersonaEffect(work){return work({});},async withCrossStoreEffect(work){return work();}})};
  const catalog={getProduct:async()=>{lookups++;return{product:{id:7,name:'Ceramic mug',price:12.5,stock_quantity:4,category:'Home',description:'A glazed ceramic mug keeps tea warm.'}};}};
- const make=(provider)=>memoryFixture({provider,personaAuthority,modeAuthority,taskPoliciesEnabled:true,policySearch:{search:async()=>{throw Error('fixed must not retrieve policy text');}},productToolsFactory:input=>createSecureShopBoundProductTools({...input,catalog})});
+ const make=(provider)=>memoryFixture({provider,personaAuthority,modeAuthority,reuseBoundSession:true,taskPoliciesEnabled:true,policySearch:{search:async()=>{throw Error('fixed must not retrieve policy text');}},productToolsFactory:input=>createSecureShopBoundProductTools({...input,catalog})});
  const base=realProvider(),provider={...base,async finalResponse(args){assert.match(args.messages.at(-1).content,/glazed ceramic mug keeps tea warm/);assert.match(args.messages.at(-1).content,/untrusted_catalog_text/);return base.finalResponse(args);}};
  const input={scope,persona,personaSession:{sessionId:'91000000-0000-4000-8000-000000000001',authorityVersion:'1'},productId:7};
- const f=make(provider),result=await f.assist.summary(input);assert.equal(result.modeCapability.effectiveMode,'fixed');assert.match(result.description,/glazed ceramic mug/);assert.equal(result.price,12.5);
+ const f=make(provider),question={...input,message:'What material is this mug?',requestId:require('node:crypto').randomUUID()},result=await f.assist.question(question);assert.equal(result.modeCapability.effectiveMode,'fixed');assert.equal(result.modeCapability.policyVersion,'bounded-product-data-and-catalog-neighbors-v1');assert.equal(result.answer,'Actual graph summary.');
+ const questionLookups=lookups;assert.deepEqual(await f.assist.question({...question,sessionId:result.sessionId}),result);assert.equal(lookups,questionLookups,'Existing descriptive question replay performs no new tool effect');
+ const summaryProvider={...base,async finalResponse(args){assert.doesNotMatch(JSON.stringify(args.messages),/glazed ceramic mug|Ceramic mug|untrusted_catalog_text/);assert.match(args.messages.at(-1).content,/fixed_summary_numeric_facts_v1/);return base.finalResponse(args);}};
+ provider.finalResponse=summaryProvider.finalResponse;
+ provider.chat=async args=>{assert.doesNotMatch(JSON.stringify(args.messages),/glazed ceramic mug|What material|Actual graph summary/);return base.chat(args);};
+ const summary=await f.assist.summary({...input,sessionId:result.sessionId});assert.equal(summary.modeCapability.policyVersion,'fixed-summary-numeric-facts-v1');assert.equal(summary.description,null);assert.equal(summary.price,12.5);assert.equal(summary.stock_quantity,4);assert.equal(summary.summary,'Actual graph summary.');
+ assert.equal(f.sessions.size,1,'Real bound-session reuse does not import prior descriptive history into turn-local Summary');
+ assert.deepEqual(await f.assist.question({...question,sessionId:result.sessionId}),result,'Summary specialization leaves original question replay valid');
  const before=lookups;await assert.rejects(make(realProvider({productId:8})).assist.summary(input));assert.equal(lookups,before);
  await assert.rejects(make({...base,async chat(args){assert.deepEqual(args.tools.map(row=>row.agent+'.'+row.tool),['summarizer.summarize_product']);return{...(await base.chat(args)),tool_uses:[{id:'forbidden',name:'system.run_diagnostics',args:{command:'arbitrary'}}]};}}).assist.summary(input));assert.equal(lookups,before);
  const stale=make({...base,async chat(args){const result=await base.chat(args);stamp='two';return result;}});await assert.rejects(stale.assist.summary(input),{code:'ANALYTICS_MODE_STALE'});assert.equal(lookups,before);

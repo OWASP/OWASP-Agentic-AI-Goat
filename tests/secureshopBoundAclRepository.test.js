@@ -514,6 +514,44 @@ test('fresh union capability is customer-only and does not activate legacy merch
  assert.equal(f.state().operations.length,0);
 });
 
+for(const enforcement of [true,false])test(`v39 list-read upgrade denies one new admin permission and retains v38 choices with enforcement ${enforcement}`,async()=>{
+ const R=require('../server/services/secureshopBoundAclRegistry'),f=fixture(),admin=input('admin');
+ await f.repo.readPolicy(admin);
+ f.state().head={policy_version:'8',enforcement_enabled:enforcement,registry_sha256:R.MCP_LIST_PREDECESSOR_REGISTRY_SHA256};
+ const prior={tool_key:R.MCP_DESCRIBE_KEY,role:'admin',allowed:false};
+ f.state().overrides.push(prior);
+ const history={operation_id:randomUUID(),receipt_json:{version:'7'}};
+ f.state().operations.push(history);
+ const policy=await f.repo.readPolicy(admin);
+ assert.equal(policy.version,'9');assert.equal(policy.enforcement,enforcement);
+ assert.equal(policy.rows.find(row=>row.toolKey===R.MCP_LIST_KEY).allowed.admin,false);
+ assert.equal(policy.rows.find(row=>row.toolKey===R.MCP_DESCRIBE_KEY).allowed.admin,false);
+ assert.deepEqual(f.state().upgrades[0].overridesBefore,[{toolKey:R.MCP_DESCRIBE_KEY,role:'admin',allowed:false}]);
+ assert.deepEqual(f.state().upgrades[0].addedDenials,[{toolKey:R.MCP_LIST_KEY,role:'admin'}]);
+ assert.deepEqual(f.state().operations,[history]);
+ assert.deepEqual(await f.repo.readPolicy(admin),policy);assert.equal(f.state().upgrades.length,1);
+ const declaredTools=R.REGISTRY.filter(row=>row.workflow==='admin-assistant')
+  .map(row=>{const[agent,tool]=row.toolKey.split('.');return{agent,tool};});
+ declaredTools.push({agent:'mcp-registry',tool:'register'},{agent:'mcp-registry',tool:'describe_tools'},
+  {agent:'mcp-registry',tool:'list_servers'});
+ const admitted=await f.repo.admitTool({...admin,workflow:'admin-registration-assistant',declaredTools,
+  agent:'mcp-registry',tool:'list_servers',runId:randomUUID(),invocationId:'list',args:{}});
+ assert.equal(admitted.allowed,false);assert.equal(admitted.action,enforcement?'block':'dispatch');
+ assert.equal(admitted.policyViolation,'denied-by-acl');
+ for(const role of ['customer','merchant'])await assert.rejects(f.repo.admitTool({...admin,...input(role),
+  workflow:'admin-registration-assistant',declaredTools,agent:'mcp-registry',tool:'list_servers',
+  runId:randomUUID(),invocationId:'list',args:{}}),{code:'ACL_TOOL_UNAVAILABLE'});
+});
+test('v39 refuses a forged v38 override for the not-yet-supported list permission',async()=>{
+ const R=require('../server/services/secureshopBoundAclRegistry'),f=fixture(),admin=input('admin');
+ await f.repo.readPolicy(admin);
+ f.state().head.registry_sha256=R.MCP_LIST_PREDECESSOR_REGISTRY_SHA256;
+ f.state().overrides.push({tool_key:R.MCP_LIST_KEY,role:'admin',allowed:true});
+ await assert.rejects(f.repo.readPolicy(admin),{code:'ACL_REGISTRY_MISMATCH'});
+ assert.equal(f.state().upgrades.length,0);
+ assert.equal(f.state().head.registry_sha256,R.MCP_LIST_PREDECESSOR_REGISTRY_SHA256);
+});
+
 for(const enforcement of [true,false])test(`current lookup/preview/role upgrade preserves exact populated v33 policy with enforcement ${enforcement}`,async()=>{
  const R=require('../server/services/secureshopBoundAclRegistry'),f=fixture(),admin=input('admin');
  await f.repo.readPolicy(admin);
@@ -527,7 +565,8 @@ for(const enforcement of [true,false])test(`current lookup/preview/role upgrade 
  assert.equal(policy.rows.find(row=>row.toolKey===R.USER_LOOKUP_KEY).allowed.admin,false);
  assert.equal(policy.rows.find(row=>row.toolKey==='admin.users_search').allowed.admin,false);
  assert.deepEqual(f.state().upgrades[0].overridesBefore,[{toolKey:'admin.users_search',role:'admin',allowed:false}]);
- assert.deepEqual(f.state().upgrades[0].addedDenials,[{toolKey:R.USER_LOOKUP_KEY,role:'admin'},{toolKey:R.UPLOAD_PREVIEW_KEY,role:'customer'},{toolKey:R.AGENCY_ROLE_KEY,role:'customer'}]);
+ assert.deepEqual(f.state().upgrades[0].addedDenials,denialsFor(R.USER_LOOKUP_PREDECESSOR_REGISTRY_SHA256));
+ assert.deepEqual(f.state().upgrades[0].addedDenials.filter(row=>row.toolKey===R.MCP_DESCRIBE_KEY),[{toolKey:R.MCP_DESCRIBE_KEY,role:'admin'}]);
  assert.deepEqual(f.state().operations,[historical]);
  assert.deepEqual(await f.repo.readPolicy(admin),policy);assert.equal(f.state().upgrades.length,1);
  const changed=await f.repo.mutate(mutation(admin,'34',{kind:'permission',toolKey:R.USER_LOOKUP_KEY,role:'admin',allowed:true}));
@@ -598,7 +637,7 @@ for(const enforcement of [true,false])test(`current preview/role upgrade preserv
  assert.equal(policy.rows.find(x=>x.toolKey===R.UPLOAD_PREVIEW_KEY).allowed.customer,false);
  assert.equal(policy.rows.find(x=>x.toolKey==='uploads.upload_avatar').allowed.customer,false);
  assert.equal(policy.rows.find(x=>x.toolKey===R.USER_LOOKUP_KEY).allowed.admin,true);
- assert.deepEqual(f.state().upgrades[0].addedDenials,[{toolKey:R.UPLOAD_PREVIEW_KEY,role:'customer'},{toolKey:R.AGENCY_ROLE_KEY,role:'customer'}]);assert.deepEqual(f.state().operations,[history]);
+ assert.deepEqual(f.state().upgrades[0].addedDenials,denialsFor(R.UPLOAD_PREVIEW_PREDECESSOR_REGISTRY_SHA256));assert.deepEqual(f.state().operations,[history]);
  assert.deepEqual(await f.repo.readPolicy(admin),policy);assert.equal(f.state().upgrades.length,1);
  for(const role of ['merchant','admin'])await assert.rejects(f.repo.mutate(mutation(admin,'35',{kind:'permission',toolKey:R.UPLOAD_PREVIEW_KEY,role,allowed:true})),{code:'INVALID_ARGUMENT'});
  await f.repo.mutate(mutation(admin,'35',{kind:'permission',toolKey:R.UPLOAD_PREVIEW_KEY,role:'customer',allowed:true}));
@@ -615,7 +654,7 @@ for(const enforcement of [false,true])test(`v36 customer role denial preserves v
  const receipt=await f.repo.admitTool(request());
  assert.equal(receipt.allowed,false);assert.equal(receipt.action,enforcement?'block':'dispatch');assert.equal(receipt.policyViolation,'denied-by-acl');
  assert.deepEqual(f.state().upgrades[0],historical);assert.deepEqual(f.state().overrides[0],override);
- assert.deepEqual(f.state().upgrades[1].addedDenials,[{toolKey:R.AGENCY_ROLE_KEY,role:'customer'}]);
+ assert.deepEqual(f.state().upgrades[1].addedDenials,denialsFor(R.AGENCY_ROLE_PREDECESSOR_REGISTRY_SHA256));
  assert.deepEqual(f.state().upgrades[1].overridesBefore,[{toolKey:override.tool_key,role:override.role,allowed:false}]);
  const policy=await f.repo.readPolicy(actor),row=policy.rows.find(row=>row.toolKey===R.AGENCY_ROLE_KEY);
  assert.deepEqual(row.allowed,{customer:false,merchant:false,admin:true});assert.equal(f.state().upgrades.length,2);

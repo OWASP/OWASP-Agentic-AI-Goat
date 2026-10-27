@@ -145,8 +145,7 @@ function createSecureShopBoundPersonaAuth({ repository, launches, jwtSecret, per
       jwtid: jti, expiresIn: Math.max(1, Math.floor((expiresAtMs - currentTime) / 1000)),
     });
   }
-  const service = {
-    async establishSession({ scope, shopPrincipal, ip = null, userAgent = null } = {}) {
+  async function issueStandaloneSession({ scope, shopPrincipal, ip = null, userAgent = null }, additional = null) {
       // Only the standalone auth service can mint this private-branded context.
       // A request body with the same fields must never become shop authority.
       const principal = require('./secureshopStandaloneAuth').assertSecureShopStandalonePrincipal(shopPrincipal);
@@ -173,6 +172,7 @@ function createSecureShopBoundPersonaAuth({ repository, launches, jwtSecret, per
         persona: sessionActor, expiresAt, ip: metadata(ip, MAX_IP_BYTES),
         userAgent: metadata(userAgent, MAX_USER_AGENT_BYTES), credentialVersion: 1,
         authorityVersion: effective.authority_version,
+        additionalSession: Boolean(additional), sourceJti: additional?.jti,
         bootstrap: { principalId: principal.principalId,
           authSessionId: principal.authSessionId,
           executionSessionId: principal.sessionId,
@@ -191,6 +191,15 @@ function createSecureShopBoundPersonaAuth({ repository, launches, jwtSecret, per
       }
       return Object.freeze({ ok: true, token, user: publicUser(sessionActor),
         expiresAt: established.expiresAt });
+  }
+  const service = {
+    async establishSession(input = {}) { return issueStandaloneSession(input); },
+    async establishAdditionalSession({ scope, shopPrincipal, token, ip = null, userAgent = null } = {}) {
+      const principal = require('./secureshopStandaloneAuth').assertSecureShopStandalonePrincipal(shopPrincipal);
+      const current = await authenticate(token, scope);
+      if (current.user.id !== principal.shopUserId || current.user.username !== principal.username)
+        throw fail('SHOP_AUTH_INVALID');
+      return issueStandaloneSession({ scope, shopPrincipal: principal, ip, userAgent }, current);
     },
     async login({ scope, username, password, ip = null, userAgent = null } = {}) {
       const trusted = createLaunchScope(scope);

@@ -40,11 +40,11 @@ test('policy wrapper retains existing persona and external policy content', () =
 });
 
 const completedRun = { stopReason: 'end_turn', hops: [] };
-test('completed exact general request replays without conversation or model work', async () => {
+test('completed exact moderation request replays without conversation or model work', async () => {
   let checks = 0;
   const f = fixture({
     checkCurrent: async () => { checks++; },
-    journal: { async lookupGeneralRequest(input) {
+    journal: { async lookupReviewModerationRequest(input) {
       assert.equal(input.requestId, requestId); assert.match(input.message, /up to 100/);
       return { status: 'completed', result: completedRun };
     } },
@@ -59,7 +59,7 @@ test('completed versioned request replays the exact bounded batch projection', a
     complete: true, continuationRequired: true,
   } } };
   const f = fixture({ checkCurrent: async () => {}, journal: {
-    async lookupGeneralRequest() { return { status: 'completed', result: stored }; },
+    async lookupReviewModerationRequest() { return { status: 'completed', result: stored }; },
   } });
   const result = await f.service.moderateReviews({ scope, persona: { id: 5, role: 'merchant' },
     requestId, limit: 7 });
@@ -71,12 +71,12 @@ test('completed versioned request replays the exact bounded batch projection', a
 
 test('started, uncertain and hash conflicts fail before model admission', async () => {
   for (const status of ['started', 'uncertain', 'conflict']) {
-    const f = fixture({ journal: { async lookupGeneralRequest() { return { status }; } } });
+    const f = fixture({ journal: { async lookupReviewModerationRequest() { return { status }; } } });
     await assert.rejects(f.service.moderateReviews({ scope, persona: { id: 5, role: 'merchant' }, requestId }),
       { code: status === 'conflict' ? 'TURN_REQUEST_CONFLICT' : 'TURN_RECOVERY_REQUIRED' });
     assert.deepEqual(f.calls, []);
   }
-  const unknown = fixture({ journal: { async lookupGeneralRequest() { return { status: 'mystery' }; } } });
+  const unknown = fixture({ journal: { async lookupReviewModerationRequest() { return { status: 'mystery' }; } } });
   await assert.rejects(unknown.service.moderateReviews({ scope, persona: { id: 5, role: 'merchant' }, requestId }), { code: 'TURN_REQUEST_CONFLICT' });
   assert.deepEqual(unknown.calls, []);
 });
@@ -85,7 +85,7 @@ test('authority loss after legacy lookup prevents replay or new admission', asyn
   let checks = 0;
   const f = fixture({
     checkCurrent: async () => { checks++; if (checks === 2) throw Object.assign(new Error('stale'), { code: 'STALE_LAUNCH' }); },
-    journal: { async lookupGeneralRequest() { return { status: 'completed', result: completedRun }; } },
+    journal: { async lookupReviewModerationRequest() { return { status: 'completed', result: completedRun }; } },
   });
   await assert.rejects(f.service.moderateReviews({ scope, persona: { id: 5, role: 'merchant' }, requestId }), { code: 'STALE_LAUNCH' });
   assert.deepEqual(f.calls, []); assert.equal(checks, 2);
@@ -95,14 +95,14 @@ test('cancellation during final authority check prevents replay return', async (
   const controller = new AbortController(); let checks = 0;
   const f = fixture({
     checkCurrent: async () => { checks++; if (checks === 3) controller.abort(); },
-    journal: { async lookupGeneralRequest() { return { status: 'completed', result: completedRun }; } },
+    journal: { async lookupReviewModerationRequest() { return { status: 'completed', result: completedRun }; } },
   });
   await assert.rejects(f.service.moderateReviews({ scope, persona: { id: 5, role: 'merchant' }, requestId, signal: controller.signal }), { name: 'AbortError' });
   assert.deepEqual(f.calls, []);
 });
 
 test('foreign binding is treated as no match and remains undisclosed', async () => {
-  const f = fixture({ journal: { async lookupGeneralRequest(input) {
+  const f = fixture({ journal: { async lookupReviewModerationRequest(input) {
     assert.equal(input.binding.platformOwnerId, 4); return null;
   } } });
   await f.service.moderateReviews({ scope, persona: { id: 5, role: 'merchant' }, requestId });

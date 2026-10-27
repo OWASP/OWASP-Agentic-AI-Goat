@@ -3,6 +3,7 @@ import json
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,6 +23,23 @@ class PricingListenerPublication(unittest.TestCase):
         listener.save = lambda: None
         return listener
 
+    def test_current_host_constructor_requires_no_home_override(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / 'tasks/tmp') as temporary:
+            evidence = Path(temporary) / 'evidence'
+            evidence.mkdir(mode=0o700)
+            environment = {'PATH': '/usr/bin:/bin', 'TMPDIR': str(ROOT / 'tasks/tmp')}
+            with mock.patch.object(listener_module.PricingOwnedListener, 'js', return_value='workspace-id'), \
+                 mock.patch.object(listener_module.PricingOwnedListener, 'save'):
+                listener = listener_module.PricingOwnedListener(
+                    workspace=ROOT, evidence=evidence, docker=['/bin/false'], node='/bin/false',
+                    environment=environment,
+                    ssh=['/usr/bin/ssh', '-F', 'config', '-o', 'BatchMode=yes', 'host', '-p', '1', '--'],
+                    qualification_nonce='abcdef123456')
+            self.assertEqual(listener.env, environment)
+            self.assertNotIn('HOME', listener.env)
+            self.assertEqual(listener.home, evidence / 'pricing-private-home')
+            self.assertTrue(listener.home.is_dir())
+            self.assertEqual(listener.home_identity, (listener.home.stat().st_dev, listener.home.stat().st_ino))
     def workspace_id(self):
         return subprocess.run(
             [
