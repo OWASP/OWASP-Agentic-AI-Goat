@@ -1,14 +1,17 @@
 import importlib.util
 import io
+import json
 import os
 from pathlib import Path
 import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import unittest
 from contextlib import redirect_stdout
 from types import SimpleNamespace
+from unittest.mock import patch
 
 
 RUNNER = Path(__file__).with_name("run-ctf-stages-route-isolated.py")
@@ -24,6 +27,7 @@ class FakeChild:
         self._owned_pgid = 43210
         self._owned_sid = 43210
         self._owned_uid = 501
+        self._owned_birth = (123, 456)
         self._owned_name = "ctf_stages_route_test"
 
     def poll(self):
@@ -34,6 +38,189 @@ class FakeChild:
 
 
 class CtfStagesRouteLauncherTests(unittest.TestCase):
+    def test_ten_content_direct_node_test_flag_is_selector_scoped(self):
+        node, test_file = Path("/owned/node"), Path("/owned/test.js")
+        self.assertEqual(MODULE.child_test_command(node, test_file, ten_content=True),
+            [str(node), "--test", "--test-isolation=none", "--test-reporter=tap",
+             str(test_file)])
+        self.assertEqual(MODULE.child_test_command(node, test_file),
+            [str(node), "--test", "--test-reporter=tap", str(test_file)])
+
+    def test_ten_content_browser_roster_fails_closed_before_allocation(self):
+        own = {"pid": os.getpid(), "pgid": 12, "sessionId": 12,
+               "arguments": ("python",)}
+        self.assertTrue(MODULE.ctf_complete_roster(records=lambda: [own]))
+        with self.assertRaisesRegex(RuntimeError, "omitted launcher"):
+            MODULE.ctf_complete_roster(records=lambda: [])
+        with self.assertRaisesRegex(RuntimeError, "profile/group remains"):
+            MODULE.ctf_complete_roster(profile=Path("/owned/ctf-profile"), pgid=34,
+                records=lambda: [own, {"pid": 90, "pgid": 34,
+                    "sessionId": 34, "arguments": ("chrome",)}])
+        with self.assertRaisesRegex(RuntimeError, "profile/group remains"):
+            MODULE.ctf_complete_roster(profile=Path("/owned/ctf-profile"), pgid=34,
+                records=lambda: [own, {"pid": 90, "pgid": 88,
+                    "sessionId": 88, "arguments": ("chrome", "--user-data-dir=/owned/ctf-profile")}])
+        with self.assertRaisesRegex(RuntimeError, "inventory denied"):
+            MODULE.ctf_complete_roster(records=lambda: (_ for _ in ()).throw(
+                RuntimeError("inventory denied")))
+
+    def test_ten_content_browser_record_ack_binds_original_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            executable = root / "chrome"
+            executable.write_bytes(b"controlled chrome")
+            child = FakeChild()
+            child.pid = os.getpid()
+            child._owned_birth = (123, 456)
+            profile = root / "content-profile"
+            record = {"schemaVersion": 2, "processes": [{"kind": "ctf_ten_content_browser",
+                "pid": 99123, "parentPid": child.pid, "uid": os.getuid(),
+                "pgid": child.pid, "sessionId": child.pid, "birth": [111, 222],
+                "executablePath": str(executable), "executableSha256": MODULE.sha256(executable)}]}
+            path = root / "birth.json"
+            ack = root / "ack.json"
+            MODULE.write_private_json(path, record)
+            row = record["processes"][0]
+            with patch.object(MODULE, "validate_ctf_browser_birth", return_value=row):
+                self.assertEqual(MODULE.acknowledge_ctf_browser(path, ack, child,
+                    executable, profile, stop=threading.Event(),
+                    deadline=MODULE.time.monotonic() + 30), row)
+            self.assertEqual(json.loads(ack.read_text()), {"schemaVersion": 1,
+                "recordSha256": MODULE.sha256(path), "parentPid": child.pid,
+                "browserPid": row["pid"], "profile": str(profile)})
+            ack.unlink()
+            path.chmod(0o644)
+            with self.assertRaisesRegex(RuntimeError, "Private CTF browser birth record"):
+                MODULE.acknowledge_ctf_browser(path, ack, child,
+                    executable, profile, stop=threading.Event(),
+                    deadline=MODULE.time.monotonic() + 30)
+
+            # The browser starts after DB and seed setup, not at Node launch.
+            # A record arriving after 15 seconds is valid within the existing
+            # whole-child deadline; no additional child/model time is granted.
+            path.unlink()
+            clock = [0.0]
+            def later_sleep(_duration):
+                clock[0] += 1.0
+                if clock[0] == 16.0:
+                    MODULE.write_private_json(path, record)
+            with patch.object(MODULE.time, "monotonic", side_effect=lambda: clock[0]), \
+                    patch.object(MODULE, "validate_ctf_browser_birth", return_value=row):
+                self.assertEqual(MODULE.acknowledge_ctf_browser(path, ack, child,
+                    executable, profile, stop=threading.Event(), deadline=30.0,
+                    sleep=later_sleep), row)
+            ack.unlink()
+            path.unlink()
+            clock[0] = 0.0
+            with patch.object(MODULE.time, "monotonic", side_effect=lambda: clock[0]):
+                with self.assertRaisesRegex(RuntimeError, "not independently acknowledged"):
+                    MODULE.acknowledge_ctf_browser(path, ack, child,
+                        executable, profile, stop=threading.Event(), deadline=15.0,
+                        sleep=lambda _duration: clock.__setitem__(0, clock[0] + 1.0))
+
+    def test_ten_content_browser_birth_rejects_wrong_parent_profile_or_birth(self):
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory) / "chrome"
+            executable.write_bytes(b"controlled chrome")
+            child = FakeChild()
+            child._owned_uid = os.getuid()
+            profile = Path(directory) / "content-profile"
+            parent = SimpleNamespace(pid=child.pid, ppid=1, uid=os.getuid(),
+                ruid=os.getuid(), pgid=child.pid, start_sec=123, start_usec=456,
+                status=1)
+            browser = SimpleNamespace(pid=99123, ppid=child.pid, uid=os.getuid(),
+                ruid=os.getuid(), pgid=child.pid, start_sec=111, start_usec=222,
+                status=1)
+            rows = {child.pid: parent, browser.pid: browser}
+            api = SimpleNamespace(identity=lambda pid: rows.get(pid),
+                arguments=lambda _pid: (str(executable), f"--user-data-dir={profile}"))
+            record = {"schemaVersion": 2, "processes": [{"kind": "ctf_ten_content_browser",
+                "pid": browser.pid, "parentPid": child.pid, "uid": os.getuid(),
+                "pgid": child.pid, "sessionId": child.pid, "birth": [111, 222],
+                "executablePath": str(executable), "executableSha256": MODULE.sha256(executable)}]}
+            with patch.object(MODULE, "process_inventory",
+                    return_value=SimpleNamespace(SZOMB=5)):
+                self.assertEqual(MODULE.validate_ctf_browser_birth(record, child,
+                    executable, profile, api=api, getsid=lambda _pid: child.pid),
+                    record["processes"][0])
+                for key, value in (("parentPid", child.pid + 1),
+                                   ("pgid", child.pid + 1),
+                                   ("birth", [111, 223])):
+                    changed = json.loads(json.dumps(record))
+                    changed["processes"][0][key] = value
+                    with self.subTest(key=key), self.assertRaises(RuntimeError):
+                        MODULE.validate_ctf_browser_birth(changed, child,
+                            executable, profile, api=api, getsid=lambda _pid: child.pid)
+                wrong_arguments = SimpleNamespace(identity=api.identity,
+                    arguments=lambda _pid: (str(executable), "--user-data-dir=/foreign"))
+                with self.assertRaisesRegex(RuntimeError, "executable/profile"):
+                    MODULE.validate_ctf_browser_birth(record, child,
+                        executable, profile, api=wrong_arguments, getsid=lambda _pid: child.pid)
+
+    def test_preview_browser_birth_accepts_only_the_exact_preview_kind_and_profile(self):
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory) / "chrome"
+            executable.write_bytes(b"controlled chrome")
+            child = FakeChild()
+            child._owned_uid = os.getuid()
+            profile = Path(directory) / "preview-profile"
+            parent = SimpleNamespace(pid=child.pid, ppid=1, uid=os.getuid(),
+                ruid=os.getuid(), pgid=child.pid, start_sec=123, start_usec=456, status=1)
+            browser = SimpleNamespace(pid=99124, ppid=child.pid, uid=os.getuid(),
+                ruid=os.getuid(), pgid=child.pid, start_sec=111, start_usec=222, status=1)
+            api = SimpleNamespace(identity=lambda pid: {child.pid: parent, browser.pid: browser}.get(pid),
+                arguments=lambda _pid: (str(executable), f"--user-data-dir={profile}"))
+            record = {"schemaVersion": 2, "processes": [{"kind": "ctf_preview_browser",
+                "pid": browser.pid, "parentPid": child.pid, "uid": os.getuid(),
+                "pgid": child.pid, "sessionId": child.pid, "birth": [111, 222],
+                "executablePath": str(executable), "executableSha256": MODULE.sha256(executable)}]}
+            with patch.object(MODULE, "process_inventory", return_value=SimpleNamespace(SZOMB=5)):
+                self.assertEqual(MODULE.validate_ctf_browser_birth(record, child, executable, profile,
+                    kind="ctf_preview_browser", api=api, getsid=lambda _pid: child.pid), record["processes"][0])
+                learner_profile = Path(directory) / "learner-entry-hint-profile"
+                learner_record = json.loads(json.dumps(record))
+                learner_record["processes"][0]["kind"] = "ctf_learner_entry_hint_browser"
+                learner_api = SimpleNamespace(identity=api.identity,
+                    arguments=lambda _pid: (str(executable), f"--user-data-dir={learner_profile}"))
+                self.assertEqual(MODULE.validate_ctf_browser_birth(learner_record, child, executable, learner_profile,
+                    kind="ctf_learner_entry_hint_browser", api=learner_api, getsid=lambda _pid: child.pid), learner_record["processes"][0])
+                attempt_profile = Path(directory) / "learner-attempt-gate-profile"
+                attempt_record = json.loads(json.dumps(record))
+                attempt_record["processes"][0]["kind"] = "ctf_learner_attempt_gate_browser"
+                attempt_api = SimpleNamespace(identity=api.identity,
+                    arguments=lambda _pid: (str(executable), f"--user-data-dir={attempt_profile}"))
+                self.assertEqual(MODULE.validate_ctf_browser_birth(attempt_record, child, executable, attempt_profile,
+                    kind="ctf_learner_attempt_gate_browser", api=attempt_api, getsid=lambda _pid: child.pid), attempt_record["processes"][0])
+                fixed_profile = Path(directory) / "fixed-practice-profile"
+                fixed_record = json.loads(json.dumps(record))
+                fixed_record["processes"][0]["kind"] = "ctf_fixed_practice_browser"
+                fixed_api = SimpleNamespace(identity=api.identity,
+                    arguments=lambda _pid: (str(executable), f"--user-data-dir={fixed_profile}"))
+                self.assertEqual(MODULE.validate_ctf_browser_birth(fixed_record, child, executable, fixed_profile,
+                    kind="ctf_fixed_practice_browser", api=fixed_api, getsid=lambda _pid: child.pid), fixed_record["processes"][0])
+                with self.assertRaisesRegex(RuntimeError, "Unrecognized"):
+                    MODULE.validate_ctf_browser_birth(record, child, executable, profile,
+                        kind="ctf_preview_browser_wrong", api=api, getsid=lambda _pid: child.pid)
+                wrong_profile = SimpleNamespace(identity=api.identity,
+                    arguments=lambda _pid: (str(executable), "--user-data-dir=/foreign"))
+                with self.assertRaisesRegex(RuntimeError, "executable/profile"):
+                    MODULE.validate_ctf_browser_birth(record, child, executable, profile,
+                        kind="ctf_preview_browser", api=wrong_profile, getsid=lambda _pid: child.pid)
+
+    def test_ten_content_short_tmp_parent_is_bounded_and_repository_owned(self):
+        source = Path(__file__).resolve().parents[2]
+        parent = MODULE.ten_content_short_tmp_parent(source)
+        self.assertEqual(parent, source / "tasks/tmp")
+        self.assertLessEqual(len(str(parent).encode()) + len("/c-") + 8, 80)
+        with tempfile.TemporaryDirectory() as directory:
+            fake = Path(directory)
+            (fake / "tasks").mkdir()
+            outside = fake / "outside"
+            outside.mkdir()
+            (fake / "tasks/tmp").symlink_to(outside, target_is_directory=True)
+            with self.assertRaisesRegex(RuntimeError, "repository-owned"):
+                MODULE.ten_content_short_tmp_parent(fake)
+
     def test_stage6_adoption_is_current_main_without_source_copy_or_browser(self):
         argv = self.required_args() + ["--ctf-stage6-adoption",
             "--content-source-manifest-sha256", "a" * 64,
@@ -54,7 +241,9 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
             MODULE.parse_args(argv + ["--browser-executable", "/owned/chrome"])
 
     def test_ten_content_main_workspace_closed_selector(self):
-        argv = self.required_args() + ["--ctf-ten-content", "--browser-executable", "/owned/chrome",
+        image_id = "sha256:" + "a" * 64
+        argv = self.required_args() + ["--ctf-ten-content", "--image-id", image_id,
+            "--browser-executable", "/owned/chrome",
             "--browser-sha256", "a" * 64, "--client-source-sha256", "b" * 64,
             "--client-dependency-sha256", "c" * 64, "--client-build-sha256", "d" * 64, "--client-build-output-sha256", "h" * 64,
             "--client-build-report-sha256", "e" * 64, "--client-build-report", "/owned/report.json", "--client-build-input-sha256", "f" * 64,
@@ -68,9 +257,187 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         env = MODULE.database_environment(selected, urls)
         self.assertEqual(len(env), 10)
         self.assertEqual(MODULE.delivery_role(selected), "dvaia_ctf_delivery")
+        self.assertEqual(MODULE.parse_args(argv).image_id, image_id)
         for missing in (("--client-build-sha256",), ("--browser-executable", "/owned/chrome", "--browser-sha256", "a" * 64, "--client-source-sha256", "b" * 64, "--client-dependency-sha256", "c" * 64)):
             with self.assertRaises(SystemExit):
                 MODULE.parse_args(self.required_args() + ["--ctf-ten-content", *missing])
+        for extra in ([], ["--image-id", "sha256:" + "g" * 64],
+                      ["--image-id", "sha256:" + "a" * 63]):
+            with self.assertRaises(SystemExit):
+                MODULE.parse_args(self.required_args() + ["--ctf-ten-content", *extra])
+        with self.assertRaises(SystemExit):
+            MODULE.parse_args(self.required_args() + ["--ctf-current-read", "--image-id", image_id])
+
+    def test_config_rendered_main_workspace_closed_selector(self):
+        image_id = "sha256:" + "a" * 64
+        argv = self.required_args() + ["--ctf-config-rendered", "--image-id", image_id,
+            "--browser-executable", "/owned/chrome", "--browser-sha256", "a" * 64,
+            "--client-source-sha256", "b" * 64, "--client-dependency-sha256", "c" * 64,
+            "--client-build-sha256", "d" * 64, "--client-build-output-sha256", "h" * 64,
+            "--client-build-report-sha256", "e" * 64, "--client-build-report", "/owned/report.json",
+            "--client-build-input-sha256", "f" * 64, "--client-build-recorder-sha256", "i" * 64,
+            "--content-source-manifest-sha256", "g" * 64,
+            "--docker-daemon-id", "2c9da9a7-1f8c-490b-af98-87bbf6bf83db"]
+        args = MODULE.parse_args(argv)
+        selected = MODULE.qualification_selection(args, "a" * 12)
+        self.assertEqual(selected["mode"], "ctf_config_rendered_controlled")
+        self.assertEqual(selected["test"], "tests/postgres/ctfAuthorityApplication.integration.test.js")
+        self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (480, 360, 120))
+        self.assertTrue(MODULE.main_no_copy_selection(args))
+        self.assertEqual(MODULE.delivery_role(selected), "dvaia_ctf_delivery")
+        self.assertEqual(len(selected["databases"]), 4)
+        urls = {name: {role: f"postgres://{role}/{name}" for role in ("runtime", "migration", "delivery")}
+            for name in selected["databases"]}
+        self.assertEqual(len(MODULE.database_environment(selected, urls)), 10)
+        for suffix in (("--stage-end", "3"), ("--target-stage", "6"), ("--candidate-set", "reviewer-boundary-v1")):
+            with self.assertRaises(SystemExit):
+                MODULE.parse_args(argv + list(suffix))
+
+    def test_preview_rendered_main_workspace_closed_selector(self):
+        image_id = "sha256:" + "a" * 64
+        argv = self.required_args() + ["--ctf-preview-rendered", "--image-id", image_id,
+            "--browser-executable", "/owned/chrome", "--browser-sha256", "a" * 64,
+            "--client-source-sha256", "b" * 64, "--client-dependency-sha256", "c" * 64,
+            "--client-build-sha256", "d" * 64, "--client-build-output-sha256", "h" * 64,
+            "--client-build-report-sha256", "e" * 64, "--client-build-report", "/owned/report.json",
+            "--client-build-input-sha256", "f" * 64, "--client-build-recorder-sha256", "i" * 64,
+            "--content-source-manifest-sha256", "g" * 64,
+            "--docker-daemon-id", "2c9da9a7-1f8c-490b-af98-87bbf6bf83db"]
+        args = MODULE.parse_args(argv)
+        selected = MODULE.qualification_selection(args, "a" * 12)
+        self.assertEqual(selected["mode"], "ctf_preview_rendered_controlled")
+        self.assertEqual(selected["test"], "tests/postgres/ctfAuthorityApplication.integration.test.js")
+        self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (480, 360, 120))
+        self.assertEqual(selected["environment"], {"CTF_PREVIEW_RENDERED_ISOLATED": "1", "CTF_RECOVERY_RENDERED_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
+        self.assertTrue(MODULE.main_no_copy_selection(args))
+        self.assertEqual(MODULE.delivery_role(selected), "dvaia_ctf_delivery")
+        self.assertEqual(len(selected["databases"]), 4)
+        urls = {name: {role: f"postgres://{role}/{name}" for role in ("runtime", "migration", "delivery")}
+            for name in selected["databases"]}
+        self.assertEqual(len(MODULE.database_environment(selected, urls)), 10)
+        for suffix in (("--stage-end", "3"), ("--target-stage", "6"), ("--candidate-set", "reviewer-boundary-v1")):
+            with self.assertRaises(SystemExit):
+                MODULE.parse_args(argv + list(suffix))
+
+    def test_learner_entry_hint_rendered_closed_selector(self):
+        image_id = "sha256:" + "a" * 64
+        argv = self.required_args() + ["--ctf-learner-entry-hint-rendered", "--image-id", image_id,
+            "--browser-executable", "/owned/chrome", "--browser-sha256", "a" * 64,
+            "--client-source-sha256", "b" * 64, "--client-dependency-sha256", "c" * 64,
+            "--client-build-sha256", "d" * 64, "--client-build-output-sha256", "h" * 64,
+            "--client-build-report-sha256", "e" * 64, "--client-build-report", "/owned/report.json",
+            "--client-build-input-sha256", "f" * 64, "--client-build-recorder-sha256", "i" * 64,
+            "--content-source-manifest-sha256", "g" * 64,
+            "--docker-daemon-id", "2c9da9a7-1f8c-490b-af98-87bbf6bf83db"]
+        args = MODULE.parse_args(argv)
+        selected = MODULE.qualification_selection(args, "a" * 12)
+        self.assertEqual(selected["mode"], "ctf_learner_entry_hint_rendered_controlled")
+        self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (480, 180, 120))
+        self.assertEqual(selected["environment"], {"CTF_LEARNER_ENTRY_HINT_RENDERED_ISOLATED": "1", "CTF_RECOVERY_RENDERED_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
+        self.assertTrue(MODULE.main_no_copy_selection(args)); self.assertEqual(MODULE.delivery_role(selected), "dvaia_ctf_delivery")
+        self.assertEqual(len(selected["databases"]), 4)
+        for suffix in (("--stage-end", "3"), ("--target-stage", "6"), ("--candidate-set", "reviewer-boundary-v1")):
+            with self.assertRaises(SystemExit): MODULE.parse_args(argv + list(suffix))
+
+    def test_learner_attempt_gate_rendered_closed_selector(self):
+        image_id = "sha256:" + "a" * 64
+        argv = self.required_args() + ["--ctf-learner-attempt-gate-rendered", "--image-id", image_id,
+            "--browser-executable", "/owned/chrome", "--browser-sha256", "a" * 64,
+            "--client-source-sha256", "b" * 64, "--client-dependency-sha256", "c" * 64,
+            "--client-build-sha256", "d" * 64, "--client-build-output-sha256", "h" * 64,
+            "--client-build-report-sha256", "e" * 64, "--client-build-report", "/owned/report.json",
+            "--client-build-input-sha256", "f" * 64, "--client-build-recorder-sha256", "i" * 64,
+            "--content-source-manifest-sha256", "g" * 64,
+            "--docker-daemon-id", "2c9da9a7-1f8c-490b-af98-87bbf6bf83db"]
+        args = MODULE.parse_args(argv)
+        selected = MODULE.qualification_selection(args, "a" * 12)
+        self.assertEqual(selected["mode"], "ctf_learner_attempt_gate_rendered_controlled")
+        self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (480, 360, 120))
+        self.assertEqual(selected["environment"], {"CTF_LEARNER_ATTEMPT_GATE_RENDERED_ISOLATED": "1", "CTF_RECOVERY_RENDERED_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
+        self.assertTrue(MODULE.main_no_copy_selection(args)); self.assertEqual(MODULE.delivery_role(selected), "dvaia_ctf_delivery")
+        self.assertEqual(len(selected["databases"]), 4)
+        self.assertTrue(all(name.startswith("dvaia_test_ctf_learner_attempt_gate_") for name in selected["databases"]))
+        urls = {name: {role: f"postgres://{role}/{name}" for role in ("runtime", "migration", "delivery")} for name in selected["databases"]}
+        self.assertEqual(len(MODULE.database_environment(selected, urls)), 10)
+        for suffix in (("--stage-end", "3"), ("--target-stage", "6"), ("--candidate-set", "reviewer-boundary-v1")):
+            with self.assertRaises(SystemExit): MODULE.parse_args(argv + list(suffix))
+
+    def test_fixed_practice_rendered_closed_selector(self):
+        image_id = "sha256:" + "a" * 64
+        argv = self.required_args() + ["--ctf-fixed-practice-rendered", "--image-id", image_id,
+            "--browser-executable", "/owned/chrome", "--browser-sha256", "a" * 64,
+            "--client-source-sha256", "b" * 64, "--client-dependency-sha256", "c" * 64,
+            "--client-build-sha256", "d" * 64, "--client-build-output-sha256", "h" * 64,
+            "--client-build-report-sha256", "e" * 64, "--client-build-report", "/owned/report.json",
+            "--client-build-input-sha256", "f" * 64, "--client-build-recorder-sha256", "i" * 64,
+            "--content-source-manifest-sha256", "g" * 64,
+            "--docker-daemon-id", "2c9da9a7-1f8c-490b-af98-87bbf6bf83db"]
+        args = MODULE.parse_args(argv)
+        selected = MODULE.qualification_selection(args, "a" * 12)
+        self.assertEqual(selected["mode"], "ctf_fixed_practice_rendered_controlled")
+        self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (480, 120, 120))
+        self.assertEqual(selected["environment"], {"CTF_FIXED_PRACTICE_RENDERED_ISOLATED": "1", "CTF_RECOVERY_RENDERED_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
+        self.assertTrue(MODULE.main_no_copy_selection(args)); self.assertEqual(MODULE.delivery_role(selected), "dvaia_ctf_delivery")
+        self.assertEqual(len(selected["databases"]), 4)
+        self.assertTrue(all(name.startswith("dvaia_test_ctf_fixed_practice_") for name in selected["databases"]))
+        urls = {name: {role: f"postgres://{role}/{name}" for role in ("runtime", "migration", "delivery")} for name in selected["databases"]}
+        self.assertEqual(len(MODULE.database_environment(selected, urls)), 10)
+        for suffix in (("--stage-end", "3"), ("--target-stage", "6"), ("--candidate-set", "reviewer-boundary-v1")):
+            with self.assertRaises(SystemExit): MODULE.parse_args(argv + list(suffix))
+
+    def test_current_host_postgres_image_inspect_requires_exact_identity_platform_and_version(self):
+        image_id = "sha256:" + "a" * 64
+        base = {"Id": image_id, "Os": "linux", "Architecture": "arm64",
+                "Config": {"Env": ["PG_MAJOR=18", "PG_VERSION=18.1-1.pgdg13+1"]}}
+        seen = []
+        def runner(command, **kwargs):
+            seen.append((command, kwargs))
+            return SimpleNamespace(stdout=json.dumps(base))
+        self.assertEqual(MODULE.validate_current_host_postgres_image(["docker", "--host", "owned"],
+            image_id, {"TMPDIR": "/owned"}, runner=runner),
+            {"id": image_id, "os": "linux", "architecture": "arm64",
+             "postgresMajor": "18", "postgresVersion": "18.1-1.pgdg13+1"})
+        self.assertEqual(seen[0][0], ["docker", "--host", "owned", "image", "inspect",
+            image_id, "--format", "{{json .}}"])
+        for changed in ({**base, "Id": "sha256:" + "b" * 64},
+                        {**base, "Architecture": "amd64"},
+                        {**base, "Config": {"Env": ["PG_MAJOR=17", "PG_VERSION=17.1"]}},
+                        {**base, "Config": {"Env": ["PG_MAJOR=18"]}}):
+            with self.subTest(changed=changed), self.assertRaises(RuntimeError):
+                MODULE.validate_current_host_postgres_image(["docker"], image_id, {},
+                    runner=lambda *_args, **_kwargs: SimpleNamespace(stdout=json.dumps(changed)))
+
+    def test_ten_content_runtime_environment_is_repo_private_without_home(self):
+        with tempfile.TemporaryDirectory() as directory:
+            runtime = Path(directory) / "runtime"
+            runtime.mkdir(mode=0o700)
+            env = MODULE.main_no_copy_environment(runtime, repository_only=True)
+            self.assertNotIn("HOME", env)
+            for name in ("TMPDIR", "TMP", "TEMP", "XDG_CACHE_HOME",
+                         "XDG_CONFIG_HOME", "DOCKER_CONFIG", "PUPPETEER_CACHE_DIR"):
+                self.assertTrue(Path(env[name]).is_relative_to(runtime), name)
+            self.assertFalse((runtime / "home").exists())
+            legacy = MODULE.main_no_copy_environment(runtime)
+            self.assertEqual(legacy["HOME"], str(runtime / "home"))
+
+    def test_ten_content_run_parent_is_private_repository_storage(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            tasks = source / "tasks"
+            tasks.mkdir()
+            parent = tasks / "qualification"
+            parent.mkdir(mode=0o700)
+            self.assertEqual(MODULE.ten_content_run_parent(source), parent)
+            parent.chmod(0o755)
+            with self.assertRaisesRegex(RuntimeError, "private repository storage"):
+                MODULE.ten_content_run_parent(source)
+            parent.chmod(0o700)
+            foreign = tasks / "foreign"
+            foreign.mkdir(mode=0o700)
+            parent.rmdir()
+            parent.symlink_to(foreign, target_is_directory=True)
+            with self.assertRaisesRegex(RuntimeError, "canonical repository storage"):
+                MODULE.ten_content_run_parent(source)
 
     def test_prebuilt_build_manifest_is_exact_and_read_only(self):
         with tempfile.TemporaryDirectory() as d:
@@ -90,6 +457,963 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
             report.write_text('{"qualified":true}\n')
             with self.assertRaisesRegex(RuntimeError, "report pin"):
                 MODULE.validate_frontend_build_report(Path(d), report, "0" * 64, "1" * 64, "2" * 64, "3" * 64)
+
+    def test_ten_content_repository_build_report_is_exact_and_private(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory)
+            parent = source / "tasks/qualification"
+            parent.mkdir(parents=True, mode=0o700)
+            run = parent / "frontend-build-controlled"
+            run.mkdir(mode=0o700)
+            report_path = run / "report.json"
+            report_path.write_text("{}")
+            node = source / "tasks/runtime/node/node_modules/node/bin/node"
+            node.parent.mkdir(parents=True)
+            node.write_bytes(b"controlled node")
+            npm = source / "readonly-npm-cli.js"
+            npm.write_bytes(b"controlled npm")
+            report = {"repositoryOnly": True, "workspace": str(source),
+                "outputRoot": str(source / "client/build"),
+                "command": [str(node), str(npm), "--prefix", "client", "run", "build"],
+                "runtimePins": {"node": {"path": str(node), "sha256": MODULE.sha256(node)},
+                    "npm": {"path": str(npm), "sha256": MODULE.sha256(npm)}}}
+            MODULE.validate_repo_build_provenance(report, source, report_path, npm_path=npm)
+            for changed in ({**report, "repositoryOnly": False},
+                            {**report, "outputRoot": str(source / "other-build")},
+                            {**report, "runtimePins": {**report["runtimePins"], "npm": {"path": str(npm), "sha256": "0" * 64}}},
+                            {**report, "command": [str(node), str(npm), "run", "build"]}):
+                with self.subTest(changed=changed), self.assertRaises(RuntimeError):
+                    MODULE.validate_repo_build_provenance(changed, source, report_path, npm_path=npm)
+            wrong_run = parent / "unreviewed"; wrong_run.mkdir(mode=0o700)
+            with self.assertRaisesRegex(RuntimeError, "repository-only"):
+                MODULE.validate_repo_build_provenance(report, source, wrong_run / "report.json", npm_path=npm)
+            link = parent / "frontend-build-link"
+            link.symlink_to(run, target_is_directory=True)
+            with self.assertRaisesRegex(RuntimeError, "repository-only"):
+                MODULE.validate_repo_build_provenance(report, source, link / "report.json", npm_path=npm)
+            run.chmod(0o755)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_repo_build_provenance(report, source, report_path, npm_path=npm)
+
+    def test_blocklist_q05_receipt_is_separate_and_fail_closed(self):
+        valid = {"version": 1, "profile": "ctf-blocklist-q05", "modelCalls": 0,
+            "judgeCalls": 0, "postCounts": {"technique": 1, "payload": 1},
+            "browserPostCounts": {"technique": 1, "payload": 1},
+            "cancelPostCounts": {"browser": {"technique": 0, "payload": 0},
+                                 "server": {"technique": 0, "payload": 0}},
+            "facts": {name: True for name in ("cancelNoPost", "cancelStoresUnchanged",
+                "techniqueClearedBothStores", "payloadClearedBothStores",
+                "pendingAbaNoStaleUiOrRecovery")},
+            "dialogTimeAba": {"noPost": True, "eventsObserved": 2,
+                "postCounts": {"browser": {"technique": 0, "payload": 0},
+                               "server": {"technique": 0, "payload": 0}}},
+            "pendingAba": {"responseReleased": True, "componentRetired": False,
+                "eventsObserved": 2}, "unexpectedApiPaths": [], "siblingPreserved": True,
+            "stage": "complete"}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ctf-blocklist-q05-result.json"
+            path.write_text(json.dumps(valid))
+            self.assertEqual(MODULE.validate_blocklist_q05_receipt(path), valid)
+            variants = [
+                {**valid, "postCounts": {"technique": 2, "payload": 1}},
+                {**valid, "postCounts": {"technique": True, "payload": 1}},
+                {**valid, "browserPostCounts": {"technique": 2, "payload": 1}},
+                {**valid, "cancelPostCounts": {"browser": {"technique": 1, "payload": 0},
+                                                 "server": {"technique": 0, "payload": 0}}},
+                {**valid, "modelCalls": 1},
+                {**valid, "facts": {**valid["facts"], "cancelNoPost": False}},
+                {**valid, "dialogTimeAba": {"noPost": False, "eventsObserved": 2}},
+                {**valid, "stage": "seed"},
+                {**valid, "pendingAba": {**valid["pendingAba"], "responseReleased": False}},
+                {**valid, "unexpectedApiPaths": ["/unexpected"]},
+                {**valid, "siblingPreserved": False},
+                {**valid, "extra": True},
+            ]
+            for value in variants:
+                with self.subTest(value=value):
+                    path.write_text(json.dumps(value))
+                    with self.assertRaises(RuntimeError):
+                        MODULE.validate_blocklist_q05_receipt(path)
+            path.unlink()
+            with self.assertRaisesRegex(RuntimeError, "missing"):
+                MODULE.validate_blocklist_q05_receipt(path)
+            other = Path(directory) / "other.json"; other.write_text(json.dumps(valid))
+            path.symlink_to(other)
+            with self.assertRaisesRegex(RuntimeError, "noncanonical"):
+                MODULE.validate_blocklist_q05_receipt(path)
+
+    def test_participant_reset_q05_receipt_exact_private_recovery_and_effect_join(self):
+        operation = "123e4567-e89b-42d3-a456-426614174000"
+        valid = {"version": 2, "profile": "ctf-participant-reset-q05",
+            "modelCalls": 0, "judgeCalls": 0, "targetId": 3010,
+            "browserPosts": 1, "serverPosts": 1,
+            "facts": {name: True for name in ("cancelNoPost", "cancelStateUnchanged",
+                "modalAbaNoPost", "modalAbaStateUnchanged",
+                "currentProgressClearedBothStores", "registrationRetained",
+                "sharedPayloadPreserved", "siblingPreserved",
+                "sameIdRecoveryNoSecondPost")},
+            "operationId": operation, "commitAckLost": True,
+            "firstOperationReadLost": True, "firstOperationReadStatus": 202,
+            "firstOperationReadFinished": True, "browserReadFailureObserved": True,
+            "parkedBeforeCheck": True,
+            "operationReadDrops": 1, "originalPostStatus": 202,
+            "outbox": {"operationId": operation, "kind": "owner_reset", "ownerId": "3010"},
+            "sameIdGets": 2, "unexpectedApiPaths": [], "generationBefore": "0",
+            "generationAfter": "1", "stage": "complete"}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ctf-participant-reset-q05-result.json"
+            def write(value):
+                path.write_text(json.dumps(value), encoding="utf-8")
+                path.chmod(0o600)
+            write(valid)
+            self.assertEqual(MODULE.validate_participant_reset_q05_receipt(path), valid)
+            variants = [
+                {**valid, "version": 1},
+                {**valid, "modelCalls": 1}, {**valid, "judgeCalls": True},
+                {**valid, "browserPosts": 0}, {**valid, "serverPosts": 2},
+                {**valid, "targetId": 1001}, {**valid, "operationReadDrops": 2},
+                {**valid, "originalPostStatus": 200},
+                {**valid, "firstOperationReadStatus": 503},
+                {**valid, "sameIdGets": 1}, {**valid, "commitAckLost": False},
+                {**valid, "firstOperationReadLost": False},
+                {**valid, "firstOperationReadFinished": False},
+                {**valid, "browserReadFailureObserved": False},
+                {**valid, "parkedBeforeCheck": False},
+                {**valid, "facts": {**valid["facts"], "siblingPreserved": False}},
+                {**valid, "outbox": {**valid["outbox"], "operationId": str(__import__('uuid').uuid4())}},
+                {**valid, "outbox": {**valid["outbox"], "kind": "owner_remove"}},
+                {**valid, "operationId": operation.upper()},
+                {**valid, "generationAfter": "2"},
+                {**valid, "generationBefore": "01"},
+                {**valid, "unexpectedApiPaths": ["/unexpected"]},
+                {**valid, "stage": "pending"}, {**valid, "extra": True},
+            ]
+            for index, value in enumerate(variants):
+                with self.subTest(index=index):
+                    write(value)
+                    with self.assertRaises(RuntimeError):
+                        MODULE.validate_participant_reset_q05_receipt(path)
+            write(valid)
+            path.chmod(0o644)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_participant_reset_q05_receipt(path)
+            path.chmod(0o600)
+            Path(directory).chmod(0o755)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_participant_reset_q05_receipt(path)
+            Path(directory).chmod(0o700)
+            wrong_name = Path(directory) / "unreviewed-reset.json"
+            wrong_name.write_text(json.dumps(valid), encoding="utf-8")
+            wrong_name.chmod(0o600)
+            with self.assertRaisesRegex(RuntimeError, "noncanonical"):
+                MODULE.validate_participant_reset_q05_receipt(wrong_name)
+            path.unlink()
+            foreign = Path(directory) / "foreign.json"
+            foreign.write_text(json.dumps(valid))
+            path.symlink_to(foreign)
+            with self.assertRaisesRegex(RuntimeError, "noncanonical"):
+                MODULE.validate_participant_reset_q05_receipt(path)
+            path.unlink()
+            with self.assertRaisesRegex(RuntimeError, "missing"):
+                MODULE.validate_participant_reset_q05_receipt(path)
+
+    def test_participant_remove_q05_receipt_is_private_exact_and_does_not_claim_recovery(self):
+        operation = "123e4567-e89b-42d3-a456-426614174000"
+        registration = "223e4567-e89b-42d3-a456-426614174000"
+        valid = {"version": 1, "profile": "ctf-participant-remove-q05",
+            "modelCalls": 0, "judgeCalls": 0, "targetId": 3010,
+            "oldParticipantId": 3010, "newParticipantId": 3012,
+            "mountedActorId": "909", "mountedSessionId": "707",
+            "comparisonActorId": "1002", "learnerSessionId": "808",
+            "preRemovalRows": {"participant": 1, "progress": 1, "attempts": 0,
+                "technique": 0, "leaderboard": 1, "events": 2, "sessions": 1,
+                "binding": 1, "currentIdentityProgress": 1},
+            "browserPosts": 1, "removeOutboxCount": 1,
+            "originalPostStatus": 200,
+            "facts": {key: True for key in ("cancelNoPost", "cancelStateUnchanged",
+                "modalAbaNoPost", "modalAbaStateUnchanged", "removedCurrentCtfState",
+                "oldRegistrationInactive", "historicalIdentityRetained",
+                "sharedPayloadPreserved", "siblingPreserved", "reregisteredFresh",
+                "noMutationReplay")},
+            "dialogTimeAba": {"noPost": True, "eventsObserved": 2},
+            "removeOutbox": {"operationId": operation, "kind": "owner_remove",
+                "ownerId": "3010", "actorId": "909", "sessionId": "707"},
+            "registrationOutbox": {"operationId": registration, "kind": "register",
+                "ownerId": "3010", "actorId": "3010", "sessionId": "808",
+                "disposition": "reactivate", "oldParticipantId": "3010"},
+            "generationBefore": "2", "generationRemoved": "3",
+            "generationReregistered": "4", "unexpectedApiPaths": [], "stage": "complete"}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ctf-participant-remove-q05-result.json"
+            def write(value):
+                path.write_text(json.dumps(value), encoding="utf-8")
+                path.chmod(0o600)
+            write(valid)
+            self.assertEqual(MODULE.validate_participant_remove_q05_receipt(path), valid)
+            variants = [
+                {**valid, "version": True}, {**valid, "profile": "ctf-ten-content"},
+                {**valid, "modelCalls": True}, {**valid, "judgeCalls": 1},
+                {**valid, "browserPosts": 2}, {**valid, "removeOutboxCount": 0},
+                {**valid, "originalPostStatus": 503}, {**valid, "targetId": 1001},
+                {**valid, "oldParticipantId": 1001}, {**valid, "newParticipantId": 3010},
+                {**valid, "mountedActorId": "1002"},
+                {**valid, "comparisonActorId": "909"},
+                {**valid, "mountedSessionId": "708"},
+                {**valid, "learnerSessionId": "809"},
+                {**valid, "preRemovalRows": {**valid["preRemovalRows"], "progress": 0}},
+                {**valid, "preRemovalRows": {**valid["preRemovalRows"], "attempts": True}},
+                {**valid, "facts": {**valid["facts"], "siblingPreserved": False}},
+                {**valid, "facts": {**valid["facts"], "attemptsDeleted": True}},
+                {**valid, "dialogTimeAba": {"noPost": True, "eventsObserved": True}},
+                {**valid, "removeOutbox": {**valid["removeOutbox"], "kind": "owner_reset"}},
+                {**valid, "removeOutbox": {**valid["removeOutbox"], "actorId": "1002"}},
+                {**valid, "removeOutbox": {**valid["removeOutbox"], "sessionId": "708"}},
+                {**valid, "registrationOutbox": {**valid["registrationOutbox"], "operationId": operation}},
+                {**valid, "registrationOutbox": {**valid["registrationOutbox"], "disposition": "active_recovery"}},
+                {**valid, "registrationOutbox": {**valid["registrationOutbox"], "sessionId": "809"}},
+                {**valid, "generationBefore": "02"}, {**valid, "generationRemoved": "2"},
+                {**valid, "generationReregistered": "5"},
+                {**valid, "unexpectedApiPaths": [{"path": "/other"}]},
+                {**valid, "sameIdRecovery": True}, {**valid, "stage": "pending"},
+            ]
+            for index, value in enumerate(variants):
+                with self.subTest(index=index):
+                    write(value)
+                    with self.assertRaises(RuntimeError):
+                        MODULE.validate_participant_remove_q05_receipt(path)
+            write(valid)
+            path.write_text(json.dumps(valid).replace('"version": 1', '"version":1,"version":1', 1))
+            with self.assertRaisesRegex(RuntimeError, "unreadable"):
+                MODULE.validate_participant_remove_q05_receipt(path)
+            write(valid)
+            path.chmod(0o644)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_participant_remove_q05_receipt(path)
+            path.chmod(0o600)
+            Path(directory).chmod(0o755)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_participant_remove_q05_receipt(path)
+            Path(directory).chmod(0o700)
+            linked = Path(directory) / "linked.json"
+            os.link(path, linked)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_participant_remove_q05_receipt(path)
+            linked.unlink()
+            path.unlink()
+            path.symlink_to(linked)
+            with self.assertRaisesRegex(RuntimeError, "noncanonical"):
+                MODULE.validate_participant_remove_q05_receipt(path)
+            path.unlink()
+            with self.assertRaisesRegex(RuntimeError, "missing"):
+                MODULE.validate_participant_remove_q05_receipt(path)
+
+    def test_participant_ban_q05_receipt_is_private_exact_and_distinct(self):
+        valid = {"version": 1, "profile": "ctf-participant-ban-unban-q05",
+            "modelCalls": 0, "judgeCalls": 0, "targetId": 3011,
+            "browserPostCounts": {"ban": 1, "unban": 1},
+            "serverOperationCounts": {"ban": 1, "unban": 1},
+            "cancelPostCounts": {"ban": 0, "unban": 0},
+            "abaPostCounts": {"ban": 0, "unban": 0},
+            "abaEvents": {"ban": 2, "unban": 2},
+            "observedPaths": {"ban": "/api/ctf/admin/participants/3011/ban",
+                "unban": "/api/ctf/admin/participants/3011/unban"},
+            "flags": {"before": False, "afterBan": True, "afterUnban": False},
+            "facts": {key: True for key in ("cancelNoPost", "cancelStateUnchanged",
+                "abaNoPost", "abaStateUnchanged", "banDurableBothStores",
+                "unbanDurableBothStores", "reloadBan", "reloadUnban",
+                "targetEvidencePreserved", "platformPreserved", "siblingPreserved",
+                "operationsApplied", "noSecondPost")},
+            "unexpectedApiPaths": [], "stage": "complete"}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ctf-participant-ban-q05-result.json"
+            def write(value):
+                path.write_text(json.dumps(value), encoding="utf-8")
+                path.chmod(0o600)
+            write(valid)
+            self.assertEqual(MODULE.validate_participant_ban_q05_receipt(path), valid)
+            variants = [
+                {**valid, "version": True}, {**valid, "profile": "ctf-ten-content"},
+                {**valid, "modelCalls": True}, {**valid, "judgeCalls": 1},
+                {**valid, "targetId": 3010},
+                {**valid, "browserPostCounts": {"ban": 2, "unban": 1}},
+                {**valid, "serverOperationCounts": {"ban": 1, "unban": 0}},
+                {**valid, "cancelPostCounts": {"ban": 1, "unban": 0}},
+                {**valid, "abaPostCounts": {"ban": 0, "unban": 1}},
+                {**valid, "abaEvents": {"ban": 1, "unban": 2}},
+                {**valid, "abaEvents": {"ban": True, "unban": 2}},
+                {**valid, "observedPaths": {"ban": None, "unban": valid["observedPaths"]["unban"]}},
+                {**valid, "observedPaths": {"ban": "/api/ctf/admin/participants/1001/ban",
+                    "unban": valid["observedPaths"]["unban"]}},
+                {**valid, "observedPaths": {"ban": valid["observedPaths"]["ban"]}},
+                {**valid, "flags": {"before": False, "afterBan": False, "afterUnban": False}},
+                {**valid, "flags": {"before": 0, "afterBan": True, "afterUnban": False}},
+                {**valid, "facts": {**valid["facts"], "reloadUnban": False}},
+                {**valid, "facts": {**valid["facts"], "sameIdRecovery": True}},
+                {**valid, "unexpectedApiPaths": ["/api/ctf/unexpected"]},
+                {**valid, "stage": "pending"}, {**valid, "operationId": "fabricated"},
+            ]
+            for index, value in enumerate(variants):
+                with self.subTest(index=index):
+                    write(value)
+                    with self.assertRaises(RuntimeError):
+                        MODULE.validate_participant_ban_q05_receipt(path)
+            write(valid)
+            path.write_text(json.dumps(valid).replace('"version": 1', '"version":1,"version":1', 1))
+            with self.assertRaisesRegex(RuntimeError, "unreadable"):
+                MODULE.validate_participant_ban_q05_receipt(path)
+            write(valid)
+            path.chmod(0o644)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_participant_ban_q05_receipt(path)
+            path.chmod(0o600)
+            Path(directory).chmod(0o755)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_participant_ban_q05_receipt(path)
+            Path(directory).chmod(0o700)
+            linked = Path(directory) / "linked.json"
+            os.link(path, linked)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_participant_ban_q05_receipt(path)
+            linked.unlink()
+            path.unlink()
+            path.symlink_to(linked)
+            with self.assertRaisesRegex(RuntimeError, "noncanonical"):
+                MODULE.validate_participant_ban_q05_receipt(path)
+            path.unlink()
+            with self.assertRaisesRegex(RuntimeError, "missing"):
+                MODULE.validate_participant_ban_q05_receipt(path)
+
+    def test_teaching_save_q05_receipt_requires_exact_physical_and_distinct_restore_proof(self):
+        first = "123e4567-e89b-42d3-a456-426614174000"
+        second = "223e4567-e89b-42d3-a456-426614174000"
+        direct = {"originalStatus": 200, "resolvedStatus": 200, "sameIdGets": 0,
+            "operationId": first, "sequence": "51", "browserAckOperationId": None,
+            "ackMessage": "Stage updated"}
+        recovered = {"scope": "content-equivalence-only", "originalStatus": 202,
+            "resolvedStatus": 200, "sameIdGets": 1, "operationId": second,
+            "sequence": "52", "browserAckOperationId": second, "ackMessage": None}
+        facts = ("cancelNoPut", "cancelNoEffect", "dialogAbaNoPut", "dialogAbaNoEffect",
+            "confirmedOnePhysicalPut", "physicalRequestFiveFieldsAndBearer", "fiveFieldsExact",
+            "canonicalProjectionApplied", "actorSessionBound", "learnerMutationDenied",
+            "guardianAndScoringUnchanged", "siblingPreserved", "adminHintsAndSolutionVisible",
+            "learnerObjectiveVisible", "learnerRawHintsAndSolutionAbsent",
+            "restoreContentEquivalent", "restorationGuardianAndScoringUnchanged")
+        valid = {"version": 1, "profile": "ctf-teaching-save-q05", "modelCalls": 0,
+            "judgeCalls": 0, "targetStageId": 2, "siblingStageId": 3,
+            "mountedActorId": "909", "mountedSessionId": "707",
+            "observedPath": "/api/ctf/admin/stages/2/content", "browserPuts": 1,
+            "fixtureDeniedPuts": 1, "fixtureRestorePuts": 1,
+            "dialogTimeAba": {"eventsObserved": 2, "noPut": True},
+            "confirmed": direct, "restore": recovered,
+            "facts": {key: True for key in facts},
+            "excluded": ["byte-identical-undo", "provenance-rollback"],
+            "unexpectedApiPaths": [], "stage": "complete"}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ctf-teaching-save-q05-result.json"
+            def write(value):
+                path.write_text(json.dumps(value), encoding="utf-8")
+                path.chmod(0o600)
+            write(valid)
+            self.assertEqual(MODULE.validate_teaching_save_q05_receipt(path), valid)
+            direct_restore = {**recovered, "originalStatus": 200, "sameIdGets": 0,
+                "browserAckOperationId": None, "ackMessage": "Stage updated"}
+            recovered_confirm = {**direct, "originalStatus": 202, "sameIdGets": 1,
+                "browserAckOperationId": first, "ackMessage": None}
+            for positive in ({**valid, "restore": direct_restore},
+                             {**valid, "confirmed": recovered_confirm}):
+                write(positive)
+                self.assertEqual(MODULE.validate_teaching_save_q05_receipt(path), positive)
+            variants = [
+                {**valid, "version": True}, {**valid, "profile": "ctf-ten-content"},
+                {**valid, "modelCalls": True}, {**valid, "judgeCalls": 1},
+                {**valid, "targetStageId": 3}, {**valid, "targetStageId": 2.0},
+                {**valid, "siblingStageId": 2}, {**valid, "siblingStageId": 3.0},
+                {**valid, "mountedActorId": "0"}, {**valid, "mountedSessionId": 707},
+                {**valid, "observedPath": "/api/ctf/admin/stages/3/content"},
+                {**valid, "browserPuts": 2}, {**valid, "fixtureDeniedPuts": 0},
+                {**valid, "fixtureRestorePuts": True},
+                {**valid, "dialogTimeAba": {"eventsObserved": 1, "noPut": True}},
+                {**valid, "dialogTimeAba": {"eventsObserved": True, "noPut": True}},
+                {**valid, "dialogTimeAba": {"eventsObserved": 2, "noPut": False}},
+                {**valid, "confirmed": {**direct, "originalStatus": 202}},
+                {**valid, "confirmed": {**direct, "resolvedStatus": 202}},
+                {**valid, "confirmed": {**direct, "sameIdGets": True}},
+                {**valid, "confirmed": {**direct, "browserAckOperationId": first}},
+                {**valid, "confirmed": {**direct, "ackMessage": None}},
+                {**valid, "confirmed": {**direct, "operationId": first.upper()}},
+                {**valid, "restore": {**recovered, "sameIdGets": 0}},
+                {**valid, "restore": {**recovered, "browserAckOperationId": first}},
+                {**valid, "restore": {**recovered, "scope": "byte-identical-undo"}},
+                {**valid, "restore": {**recovered, "operationId": first}},
+                {**valid, "restore": {**recovered, "sequence": "51"}},
+                {**valid, "restore": {**recovered, "sequence": "052"}},
+                {**valid, "facts": {**valid["facts"], "learnerMutationDenied": False}},
+                {**valid, "facts": {**valid["facts"], "physicalRequestFiveFieldsAndBearer": False}},
+                {**valid, "facts": {**valid["facts"], "restorationGuardianAndScoringUnchanged": False}},
+                {**valid, "excluded": ["byte-identical-undo"]},
+                {**valid, "unexpectedApiPaths": ["/api/ctf/unexpected"]},
+                {**valid, "stage": "pending"}, {**valid, "sameIdRecovery": True},
+            ]
+            for index, value in enumerate(variants):
+                with self.subTest(index=index):
+                    write(value)
+                    with self.assertRaises(RuntimeError):
+                        MODULE.validate_teaching_save_q05_receipt(path)
+            write(valid)
+            path.write_text(json.dumps(valid).replace('"version": 1', '"version":1,"version":1', 1))
+            with self.assertRaisesRegex(RuntimeError, "unreadable"):
+                MODULE.validate_teaching_save_q05_receipt(path)
+            write(valid)
+            path.chmod(0o644)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_teaching_save_q05_receipt(path)
+            path.chmod(0o600)
+            Path(directory).chmod(0o755)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_teaching_save_q05_receipt(path)
+            Path(directory).chmod(0o700)
+            linked = Path(directory) / "linked.json"
+            os.link(path, linked)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_teaching_save_q05_receipt(path)
+            linked.unlink()
+            path.unlink()
+            path.symlink_to(linked)
+            with self.assertRaisesRegex(RuntimeError, "noncanonical"):
+                MODULE.validate_teaching_save_q05_receipt(path)
+            path.unlink()
+            with self.assertRaisesRegex(RuntimeError, "missing"):
+                MODULE.validate_teaching_save_q05_receipt(path)
+
+
+    def test_advanced_stage_save_q05_receipt_requires_exact_physical_and_distinct_restore_proof(self):
+        first = "123e4567-e89b-42d3-a456-426614174000"
+        second = "223e4567-e89b-42d3-a456-426614174000"
+        direct = {"originalStatus": 200, "resolvedStatus": 200, "sameIdGets": 0,
+            "operationId": first, "sequence": "51", "browserAckOperationId": None,
+            "ackMessage": "Stage updated"}
+        recovered = {"scope": "content-equivalence-only", "originalStatus": 202,
+            "resolvedStatus": 200, "sameIdGets": 1, "operationId": second,
+            "sequence": "52", "browserAckOperationId": second, "ackMessage": None}
+        facts = ("cancelNoPut", "cancelNoEffect", "dialogAbaNoPut", "dialogAbaNoEffect",
+            "confirmedOnePhysicalPut", "nineFieldsAndCapturedBearer", "canonicalProjectionApplied",
+            "policyAndScoreChanged", "siblingPreserved", "restoreContentEquivalent", "noModelOrJudge")
+        valid = {"version": 1, "profile": "ctf-advanced-stage-save-q05", "modelCalls": 0,
+            "judgeCalls": 0, "targetStageId": 2, "siblingStageId": 3,
+            "mountedActorId": "909", "mountedSessionId": "707",
+            "observedPath": "/api/ctf/admin/stages/2", "browserPuts": 1,
+            "fixtureRestorePuts": 1, "dialogTimeAba": {"eventsObserved": 2, "noPut": True},
+            "confirmed": direct, "restore": recovered, "facts": {key: True for key in facts},
+            "excluded": ["byte-identical-undo", "provenance-rollback", "model-qualification"],
+            "unexpectedApiPaths": [], "stage": "complete"}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ctf-advanced-stage-save-q05-result.json"
+            def write(value):
+                path.write_text(json.dumps(value), encoding="utf-8")
+                path.chmod(0o600)
+            write(valid)
+            self.assertEqual(MODULE.validate_advanced_stage_save_q05_receipt(path), valid)
+            direct_restore = {**recovered, "originalStatus": 200, "sameIdGets": 0,
+                "browserAckOperationId": None, "ackMessage": "Stage updated"}
+            recovered_confirm = {**direct, "originalStatus": 202, "sameIdGets": 1,
+                "browserAckOperationId": first, "ackMessage": None}
+            for positive in ({**valid, "restore": direct_restore},
+                             {**valid, "confirmed": recovered_confirm}):
+                write(positive)
+                self.assertEqual(MODULE.validate_advanced_stage_save_q05_receipt(path), positive)
+            variants = [
+                {**valid, "version": True}, {**valid, "profile": "ctf-teaching-save-q05"},
+                {**valid, "modelCalls": 1}, {**valid, "judgeCalls": True},
+                {**valid, "targetStageId": 3}, {**valid, "siblingStageId": 2},
+                {**valid, "mountedActorId": "0"}, {**valid, "mountedSessionId": 707},
+                {**valid, "observedPath": "/api/ctf/admin/stages/2/content"},
+                {**valid, "browserPuts": 2}, {**valid, "fixtureRestorePuts": 0},
+                {**valid, "dialogTimeAba": {"eventsObserved": 1, "noPut": True}},
+                {**valid, "confirmed": {**direct, "originalStatus": 202}},
+                {**valid, "confirmed": {**direct, "resolvedStatus": 202}},
+                {**valid, "confirmed": {**direct, "sameIdGets": True}},
+                {**valid, "confirmed": {**direct, "browserAckOperationId": first}},
+                {**valid, "confirmed": {**direct, "ackMessage": None}},
+                {**valid, "restore": {**recovered, "sameIdGets": 0}},
+                {**valid, "restore": {**recovered, "browserAckOperationId": first}},
+                {**valid, "restore": {**recovered, "scope": "byte-identical-undo"}},
+                {**valid, "restore": {**recovered, "operationId": first}},
+                {**valid, "restore": {**recovered, "sequence": "51"}},
+                {**valid, "facts": {**valid["facts"], "nineFieldsAndCapturedBearer": False}},
+                {**valid, "facts": {**valid["facts"], "policyAndScoreChanged": False}},
+                {**valid, "excluded": ["byte-identical-undo", "provenance-rollback"]},
+                {**valid, "unexpectedApiPaths": ["/api/ctf/unexpected"]},
+                {**valid, "stage": "pending"}, {**valid, "sameIdRecovery": True},
+            ]
+            for index, value in enumerate(variants):
+                with self.subTest(index=index):
+                    write(value)
+                    with self.assertRaises(RuntimeError):
+                        MODULE.validate_advanced_stage_save_q05_receipt(path)
+            write(valid)
+            path.write_text(json.dumps(valid).replace('"version": 1', '"version":1,"version":1', 1))
+            with self.assertRaisesRegex(RuntimeError, "unreadable"):
+                MODULE.validate_advanced_stage_save_q05_receipt(path)
+            write(valid)
+            path.chmod(0o644)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_advanced_stage_save_q05_receipt(path)
+            path.chmod(0o600)
+            Path(directory).chmod(0o755)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_advanced_stage_save_q05_receipt(path)
+            Path(directory).chmod(0o700)
+            linked = Path(directory) / "linked.json"
+            os.link(path, linked)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_advanced_stage_save_q05_receipt(path)
+            linked.unlink()
+            path.unlink()
+            path.symlink_to(linked)
+            with self.assertRaisesRegex(RuntimeError, "noncanonical"):
+                MODULE.validate_advanced_stage_save_q05_receipt(path)
+            path.unlink()
+            with self.assertRaisesRegex(RuntimeError, "missing"):
+                MODULE.validate_advanced_stage_save_q05_receipt(path)
+
+
+    def test_stage_active_q05_receipt_requires_exact_availability_and_distinct_restore_proof(self):
+        first = "123e4567-e89b-42d3-a456-426614174000"
+        second = "223e4567-e89b-42d3-a456-426614174000"
+        direct = {"originalStatus": 200, "resolvedStatus": 200, "sameIdGets": 0,
+            "operationId": first, "sequence": "51", "browserAckOperationId": None,
+            "ackMessage": "Stage updated"}
+        recovered = {"scope": "content-equivalence-only", "originalStatus": 202,
+            "resolvedStatus": 200, "sameIdGets": 1, "operationId": second,
+            "sequence": "52", "browserAckOperationId": second, "ackMessage": None}
+        facts = ("cancelNoPut", "cancelNoEffect", "dialogAbaNoPut", "dialogAbaNoEffect",
+            "confirmedOnePhysicalPut", "capturedBearerAndBody", "canonicalProjectionApplied",
+            "targetAvailabilityChanged", "nonAvailabilityFieldsUnchanged", "siblingPreserved",
+            "restoreContentEquivalent", "noModelOrJudge")
+        valid = {"version": 1, "profile": "ctf-stage-active-q05", "modelCalls": 0,
+            "judgeCalls": 0, "targetStageId": 2, "siblingStageId": 3,
+            "mountedActorId": "909", "mountedSessionId": "707", "originalActive": 1,
+            "confirmedActive": 0, "observedPath": "/api/ctf/admin/stages/2", "browserPuts": 1,
+            "fixtureRestorePuts": 1, "dialogTimeAba": {"eventsObserved": 2, "noPut": True},
+            "confirmed": direct, "restore": recovered, "facts": {key: True for key in facts},
+            "excluded": ["byte-identical-undo", "provenance-rollback", "model-qualification"],
+            "unexpectedApiPaths": [], "stage": "complete"}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ctf-stage-active-q05-result.json"
+            def write(value):
+                path.write_text(json.dumps(value), encoding="utf-8")
+                path.chmod(0o600)
+            write(valid)
+            self.assertEqual(MODULE.validate_stage_active_q05_receipt(path), valid)
+            direct_restore = {**recovered, "originalStatus": 200, "sameIdGets": 0,
+                "browserAckOperationId": None, "ackMessage": "Stage updated"}
+            recovered_confirm = {**direct, "originalStatus": 202, "sameIdGets": 1,
+                "browserAckOperationId": first, "ackMessage": None}
+            for positive in ({**valid, "restore": direct_restore},
+                             {**valid, "confirmed": recovered_confirm}):
+                write(positive)
+                self.assertEqual(MODULE.validate_stage_active_q05_receipt(path), positive)
+            variants = [
+                {**valid, "version": True}, {**valid, "profile": "ctf-advanced-stage-save-q05"},
+                {**valid, "modelCalls": 1}, {**valid, "judgeCalls": True},
+                {**valid, "targetStageId": 2.0}, {**valid, "siblingStageId": 3.0},
+                {**valid, "originalActive": True}, {**valid, "originalActive": 0},
+                {**valid, "confirmedActive": False}, {**valid, "confirmedActive": 1},
+                {**valid, "mountedActorId": "0"}, {**valid, "mountedSessionId": 707},
+                {**valid, "observedPath": "/api/ctf/admin/stages/2/content"},
+                {**valid, "browserPuts": 2}, {**valid, "fixtureRestorePuts": 0},
+                {**valid, "dialogTimeAba": {"eventsObserved": 1, "noPut": True}},
+                {**valid, "confirmed": {**direct, "originalStatus": 202}},
+                {**valid, "confirmed": {**direct, "resolvedStatus": 202}},
+                {**valid, "confirmed": {**direct, "sameIdGets": True}},
+                {**valid, "confirmed": {**direct, "browserAckOperationId": first}},
+                {**valid, "restore": {**recovered, "sameIdGets": 33}},
+                {**valid, "restore": {**recovered, "browserAckOperationId": first}},
+                {**valid, "restore": {**recovered, "scope": "byte-identical-undo"}},
+                {**valid, "restore": {**recovered, "operationId": first}},
+                {**valid, "restore": {**recovered, "sequence": "51"}},
+                {**valid, "facts": {**valid["facts"], "targetAvailabilityChanged": False}},
+                {**valid, "facts": {**valid["facts"], "noModelOrJudge": False}},
+                {**valid, "excluded": ["byte-identical-undo", "provenance-rollback"]},
+                {**valid, "unexpectedApiPaths": ["/api/ctf/unexpected"]},
+                {**valid, "stage": "pending"}, {**valid, "sameIdRecovery": True},
+            ]
+            for index, value in enumerate(variants):
+                with self.subTest(index=index):
+                    write(value)
+                    with self.assertRaises(RuntimeError):
+                        MODULE.validate_stage_active_q05_receipt(path)
+            write(valid)
+            path.write_text(json.dumps(valid).replace('"version": 1', '"version":1,"version":1', 1))
+            with self.assertRaisesRegex(RuntimeError, "unreadable"):
+                MODULE.validate_stage_active_q05_receipt(path)
+            write(valid)
+            path.chmod(0o644)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_stage_active_q05_receipt(path)
+            path.chmod(0o600)
+            Path(directory).chmod(0o755)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_stage_active_q05_receipt(path)
+            Path(directory).chmod(0o700)
+            linked = Path(directory) / "linked.json"
+            os.link(path, linked)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_stage_active_q05_receipt(path)
+            linked.unlink()
+            path.unlink()
+            path.symlink_to(linked)
+            with self.assertRaisesRegex(RuntimeError, "noncanonical"):
+                MODULE.validate_stage_active_q05_receipt(path)
+            path.unlink()
+            with self.assertRaisesRegex(RuntimeError, "missing"):
+                MODULE.validate_stage_active_q05_receipt(path)
+
+
+    def test_stage_delete_q05_receipt_requires_owned_nonvacuous_delete_evidence(self):
+        create_id = "123e4567-e89b-42d3-a456-426614174000"
+        start_id = "223e4567-e89b-42d3-a456-426614174000"
+        delete_id = "323e4567-e89b-42d3-a456-426614174000"
+        direct = lambda operation_id, sequence, message: {"originalStatus": 200,
+            "resolvedStatus": 200, "sameIdGets": 0, "operationId": operation_id,
+            "sequence": sequence, "browserAckOperationId": None, "ackMessage": message}
+        created = direct(create_id, "51", "Stage created")
+        started = direct(start_id, "52", "Stage started successfully")
+        deleted = {"originalStatus": 202, "resolvedStatus": 200, "sameIdGets": 1,
+            "operationId": delete_id, "sequence": "53", "browserAckOperationId": delete_id,
+            "ackMessage": None}
+        facts = ("cancelNoDelete", "cancelNoEffect", "dialogAbaNoDelete", "dialogAbaNoEffect",
+            "confirmedOnePhysicalDelete", "capturedBearerAndEmptyBody", "canonicalCreateAndStart",
+            "progressAndEventPopulated", "canonicalDeleteProjection", "progressAndEventCascaded",
+            "identityBindingTombstoned", "canonicalTenAndSiblingPreserved", "historyPreserved",
+            "noModelOrJudge")
+        valid = {"version": 1, "profile": "ctf-stage-delete-q05", "stageNumber": 11,
+            "stageOrder": 0, "targetStageId": 11, "mountedActorId": "909",
+            "mountedSessionId": "707", "learnerActorId": "3011", "learnerSessionId": "606",
+            "observedPath": "/api/ctf/admin/stages/11", "browserDeletes": 1,
+            "setup": {"create": created, "start": started}, "confirmed": deleted,
+            "dialogTimeAba": {"eventsObserved": 2, "noDelete": True}, "preProgressRows": 1,
+            "preEventRows": 1, "facts": {key: True for key in facts},
+            "excluded": ["attempts-nonvacuity", "judgment-deletion", "model-qualification",
+                         "byte-identical-database-undo"], "unexpectedApiPaths": [],
+            "stage": "complete", "modelCalls": 0, "judgeCalls": 0}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ctf-stage-delete-q05-result.json"
+            def write(value):
+                path.write_text(json.dumps(value), encoding="utf-8")
+                path.chmod(0o600)
+            write(valid)
+            self.assertEqual(MODULE.validate_stage_delete_q05_receipt(path), valid)
+            direct_delete = direct(delete_id, "53", "Stage deleted")
+            recovered_create = {**created, "originalStatus": 202, "sameIdGets": 1,
+                "browserAckOperationId": create_id, "ackMessage": None}
+            for positive in ({**valid, "confirmed": direct_delete},
+                             {**valid, "setup": {"create": recovered_create, "start": started}}):
+                write(positive)
+                self.assertEqual(MODULE.validate_stage_delete_q05_receipt(path), positive)
+            variants = [
+                {**valid, "version": True}, {**valid, "profile": "ctf-stage-active-q05"},
+                {**valid, "stageNumber": 11.0}, {**valid, "stageOrder": False},
+                {**valid, "targetStageId": 11.0}, {**valid, "targetStageId": 10},
+                {**valid, "mountedActorId": "0"}, {**valid, "learnerActorId": 3011},
+                {**valid, "learnerActorId": "3012"},
+                {**valid, "observedPath": "/api/ctf/admin/stages/12"},
+                {**valid, "browserDeletes": True}, {**valid, "preProgressRows": 0},
+                {**valid, "preEventRows": True},
+                {**valid, "dialogTimeAba": {"eventsObserved": 1, "noDelete": True}},
+                {**valid, "setup": {"create": created}},
+                {**valid, "setup": {"create": {**created, "sameIdGets": 1}, "start": started}},
+                {**valid, "setup": {"create": {**created, "operationId": start_id}, "start": started}},
+                {**valid, "confirmed": {**deleted, "sameIdGets": 33}},
+                {**valid, "confirmed": {**deleted, "browserAckOperationId": create_id}},
+                {**valid, "confirmed": {**deleted, "sequence": "52"}},
+                {**valid, "facts": {**valid["facts"], "historyPreserved": False}},
+                {**valid, "excluded": ["attempts-nonvacuity", "judgment-deletion"]},
+                {**valid, "unexpectedApiPaths": ["/api/ctf/unexpected"]},
+                {**valid, "modelCalls": 1}, {**valid, "judgeCalls": True},
+                {**valid, "stage": "failed"}, {**valid, "extra": True},
+            ]
+            for index, value in enumerate(variants):
+                with self.subTest(index=index):
+                    write(value)
+                    with self.assertRaises(RuntimeError):
+                        MODULE.validate_stage_delete_q05_receipt(path)
+            write(valid)
+            path.write_text(json.dumps(valid).replace('"version": 1', '"version":1,"version":1', 1))
+            with self.assertRaisesRegex(RuntimeError, "unreadable"):
+                MODULE.validate_stage_delete_q05_receipt(path)
+            write(valid)
+            path.chmod(0o644)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_stage_delete_q05_receipt(path)
+            path.chmod(0o600)
+            Path(directory).chmod(0o755)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_stage_delete_q05_receipt(path)
+            Path(directory).chmod(0o700)
+            linked = Path(directory) / "linked.json"
+            os.link(path, linked)
+            with self.assertRaisesRegex(RuntimeError, "not private"):
+                MODULE.validate_stage_delete_q05_receipt(path)
+            linked.unlink()
+            path.unlink()
+            path.symlink_to(linked)
+            with self.assertRaisesRegex(RuntimeError, "noncanonical"):
+                MODULE.validate_stage_delete_q05_receipt(path)
+            path.unlink()
+            with self.assertRaisesRegex(RuntimeError, "missing"):
+                MODULE.validate_stage_delete_q05_receipt(path)
+
+
+    def test_config_q05_receipt_requires_all_keys_and_independent_restores(self):
+        keys = ["ctf_enabled", "ctf_visible_to_students", "student_leaderboard_visible", "public_leaderboard_visible", "ctf_registration_open", "ctf_max_participants", "ctf_time_limit", "leaderboard_update_interval", "ctf_nav_visible", "ctf_show_technique_feedback", "ctf_show_attempt_counter", "ctf_hint_gating_attempts", "ctf_hint_cost_1", "ctf_hint_cost_2", "ctf_hint_cost_3"]
+        def operation(number, sequence, *, restore=False):
+            value = {"originalStatus": 200, "resolvedStatus": 200, "sameIdGets": 0,
+                "operationId": f"{number:08x}-e89b-42d3-a456-426614174000", "sequence": str(sequence),
+                "browserAckOperationId": None, "ackMessage": "Configuration updated successfully"}
+            return {"scope": "content-equivalence-only", **value, "contentEquivalent": True} if restore else value
+        durable = {"canonicalProjectionApplied": True, "actorSessionBound": True,
+            "dbValueMatches": True, "adminGetMatches": True, "publicGetMatches": True}
+        cases = []
+        for index, key in enumerate(keys):
+            cases.append({"key": key, "previous": "false", "proposed": "true",
+                "cancel": {"noPost": True, "unchanged": True},
+                "dialogTimeAba": {"eventsObserved": 2, "noPost": True, "unchanged": True},
+                "confirmed": operation(index * 2 + 1, index * 2 + 1), "durable": durable,
+                "restore": operation(index * 2 + 2, index * 2 + 2, restore=True), "siblingPreserved": True})
+        receipt = {"version": 1, "profile": "ctf-config-q05", "mountedActorId": "1002",
+            "mountedSessionId": "2002", "keys": keys, "cases": cases,
+            "facts": {key: True for key in ("cancelNoPost", "dialogAbaNoPost", "onePhysicalPostPerKey", "canonicalProjectionReadback", "distinctRestoreOperations", "siblingStageProgressHistoryPreserved", "noPreview", "noMutationRetry", "noModelJudgeOrCredit")},
+            "excluded": ["byte-identical-undo", "provenance-rollback", "model-qualification", "original-55-content"],
+            "unexpectedApiPaths": [], "browserActions": 1200, "apiRequests": 1200,
+            "stage": "complete", "modelCalls": 0, "judgeCalls": 0}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "ctf-config-q05-result.json"
+            def write(value): path.write_text(json.dumps(value), encoding="utf-8"); path.chmod(0o600)
+            write(receipt)
+            self.assertEqual(MODULE.validate_config_q05_receipt(path), receipt)
+            variants = [
+                {**receipt, "keys": keys[:-1]}, {**receipt, "browserActions": 1201},
+                {**receipt, "browserActions": 0}, {**receipt, "apiRequests": 0},
+                {**receipt, "apiRequests": True}, {**receipt, "modelCalls": 1},
+                {**receipt, "cases": [{**cases[0], "key": "wrong"}, *cases[1:]]},
+                {**receipt, "cases": [{**cases[0], "cancel": {"noPost": 1, "unchanged": True}}, *cases[1:]]},
+                {**receipt, "cases": [{**cases[0], "cancel": {"noPost": True, "unchanged": "true"}}, *cases[1:]]},
+                {**receipt, "cases": [{**cases[0], "confirmed": {**cases[0]["confirmed"], "sameIdGets": 1}}, *cases[1:]]},
+                {**receipt, "cases": [{**cases[0], "restore": {**cases[0]["restore"], "operationId": cases[0]["confirmed"]["operationId"]}}, *cases[1:]]},
+                {**receipt, "facts": {**receipt["facts"], "noPreview": False}},
+            ]
+            for value in variants:
+                write(value)
+                with self.assertRaises(RuntimeError): MODULE.validate_config_q05_receipt(path)
+            write(receipt)
+            path.write_text(json.dumps(receipt).replace('"version": 1', '"version":1,"version":1', 1))
+            with self.assertRaisesRegex(RuntimeError, "unreadable"): MODULE.validate_config_q05_receipt(path)
+
+
+    def test_preview_q05_receipt_requires_stage_one_bounded_provider_diagnostics_and_no_effect(self):
+        cases = {
+            "cancel": {"browserPosts": 0, "serverPosts": 0, "providerStarts": 0,
+                "uiPublished": False, "stateInvariant": True},
+            "dialogAba": {"browserPosts": 0, "serverPosts": 0, "providerStarts": 0,
+                "uiPublished": False, "stateInvariant": True, "eventsObserved": 2},
+            "singleFlight": {"browserPosts": 1, "serverPosts": 1, "providerStarts": 1,
+                "uiPublished": True, "stateInvariant": True, "status": 200},
+            "postDispatchClose": {"browserPosts": 1, "serverPosts": 1, "providerStarts": 1,
+                "uiPublished": False, "stateInvariant": True, "clientAborted": True},
+        }
+        receipt = {"version": 1, "profile": "ctf-preview-q05", "targetStageId": 1,
+            "siblingStageId": 2, "mountedActorId": "1002", "mountedSessionId": "2002",
+            "cases": cases, "providerDiagnostics": {"kind": "controlled-synthetic-transport",
+                "physicalStarted": 2, "completed": 1, "clientAborted": 1, "maxPhysicalCalls": 2},
+            "storeWitness": {key: True for key in ("targetStageUnchanged", "siblingStageUnchanged",
+                "progressUnchanged", "attemptsUnchanged", "judgmentsUnchanged", "historyUnchanged", "outboxUnchanged")},
+            "facts": {key: True for key in ("cancelNoPostOrProvider", "dialogAbaNoPostOrProvider",
+                "singleFlightOnePostOneProvider", "closeAbortsProviderWithoutPublication",
+                "stage1NoLanguageOrOutputDefense", "allDurableStateUnchanged",
+                "noObjectiveJudgeOrCredit", "providerDiagnosticsNotQualification")},
+            "excluded": ["model-qualification", "objective-judge", "gameplay-credit", "outbox-operation-recovery"],
+            "unexpectedApiPaths": [], "browserActions": 7, "apiRequests": 4,
+            "stage": "complete", "judgeCalls": 0, "genuineCredit": 0}
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory).chmod(0o700)
+            path = Path(directory) / "ctf-preview-q05-result.json"
+            def write(value): path.write_text(json.dumps(value), encoding="utf-8"); path.chmod(0o600)
+            write(receipt)
+            self.assertEqual(MODULE.validate_preview_q05_receipt(path), receipt)
+            variants = [
+                {**receipt, "targetStageId": 2}, {**receipt, "browserActions": 0},
+                {**receipt, "providerDiagnostics": {**receipt["providerDiagnostics"], "physicalStarted": True}},
+                {**receipt, "providerDiagnostics": {**receipt["providerDiagnostics"], "clientAborted": 0}},
+                {**receipt, "cases": {**cases, "cancel": {**cases["cancel"], "serverPosts": 1}}},
+                {**receipt, "cases": {**cases, "dialogAba": {**cases["dialogAba"], "eventsObserved": True}}},
+                {**receipt, "cases": {**cases, "singleFlight": {**cases["singleFlight"], "uiPublished": False}}},
+                {**receipt, "cases": {**cases, "postDispatchClose": {**cases["postDispatchClose"], "clientAborted": 1}}},
+                {**receipt, "storeWitness": {**receipt["storeWitness"], "outboxUnchanged": False}},
+                {**receipt, "facts": {**receipt["facts"], "providerDiagnosticsNotQualification": False}},
+                {**receipt, "judgeCalls": 1}, {**receipt, "genuineCredit": 1},
+            ]
+            for value in variants:
+                write(value)
+                with self.assertRaises(RuntimeError): MODULE.validate_preview_q05_receipt(path)
+            write(receipt)
+            path.write_text(json.dumps(receipt).replace('"version": 1', '"version":1,"version":1', 1))
+            with self.assertRaisesRegex(RuntimeError, "unreadable"): MODULE.validate_preview_q05_receipt(path)
+
+    def test_learner_entry_hint_q05_receipt_requires_ordered_operations_and_no_scoring(self):
+        def operation(number, sequence):
+            return {"originalStatus": 200, "resolvedStatus": 200, "sameIdGets": 0,
+                "operationId": f"{number:08x}-e89b-42d3-a456-426614174000", "sequence": str(sequence)}
+        register, start, hint = operation(1, 1), operation(2, 2), operation(3, 3)
+        receipt = {"version": 1, "profile": "ctf-learner-entry-hint-q05", "actorId": "1002", "sessionId": "2002", "participantId": "1002", "stageId": 1, "siblingOwnerId": 1001,
+            "prerequisite": {"hintGate": "0", "source": "pre-bootstrap-config", "defaultAttemptGateProven": False},
+            "browserPosts": {"register": 1, "start": 1, "hint": 1}, "serverPosts": {"register": 1, "start": 1, "hint": 1},
+            "operations": {"register": register, "start": start, "hint": hint}, "startOperationIds": [start["operationId"]],
+            "hintDialog": {"cancelPosts": 0, "abaPosts": 0, "abaEventsObserved": 2, "cancelStateUnchanged": True, "abaStateUnchanged": True},
+            "facts": {key: True for key in ("physicalJoin", "physicalStageCard", "automaticStart", "hintCancelNoPost", "hintAbaNoPost", "onePhysicalHintPurchase", "actorSessionOutboxBound", "canonicalProjectionBound", "durableProgressBound", "nonemptySiblingPreserved", "noScoredAttemptOrCredit")},
+            "storeWitness": {key: True for key in ("ownerRegistered", "stageStarted", "oneHintPurchased", "costApplied", "siblingBeforeNonempty", "siblingUnchanged", "attemptsUnchanged", "judgmentsUnchanged", "siblingLeaderboardUnchanged")},
+            "unexpectedApiPaths": [], "browserActions": 10, "apiRequests": 8, "modelCalls": 0, "judgeCalls": 0, "genuineCredit": 0,
+            "excluded": ["default-attempt-gate", "scored-attempt", "fixed-practice", "model-qualification", "objective-judge", "gameplay-credit"], "stage": "complete"}
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory).chmod(0o700); path = Path(directory) / "ctf-learner-entry-hint-q05-result.json"
+            def write(value): path.write_text(json.dumps(value), encoding="utf-8"); path.chmod(0o600)
+            write(receipt); self.assertEqual(MODULE.validate_learner_entry_hint_q05_receipt(path), receipt)
+            variants = [
+                {**receipt, "stageId": 2}, {**receipt, "browserPosts": {"register": 1, "start": 0, "hint": 1}},
+                {**receipt, "serverPosts": {"register": 1, "start": 2, "hint": 1}},
+                {**receipt, "startOperationIds": [register["operationId"]]},
+                {**receipt, "hintDialog": {**receipt["hintDialog"], "abaPosts": 1}},
+                {**receipt, "storeWitness": {**receipt["storeWitness"], "attemptsUnchanged": False}},
+                {**receipt, "facts": {**receipt["facts"], "noScoredAttemptOrCredit": False}}, {**receipt, "modelCalls": 1},
+            ]
+            for value in variants:
+                write(value)
+                with self.assertRaises(RuntimeError): MODULE.validate_learner_entry_hint_q05_receipt(path)
+
+    def test_learner_attempt_gate_q05_receipt_requires_three_controlled_scored_attempts(self):
+        def attempt(ordinal, judge_calls):
+            base = ordinal * 3
+            return {"ordinal": ordinal,
+                "runId": f"{base:08x}-e89b-42d3-a456-426614174000",
+                "admissionId": f"{base + 1:08x}-e89b-42d3-a456-426614174000",
+                "decisionId": f"{base + 2:08x}-e89b-42d3-a456-426614174000",
+                "requestStatus": 202, "publicationStatus": 200, "verdict": "fail", "accepted": False,
+                "guardianCalls": 1, "judgeCalls": judge_calls, "sameIdGets": 1,
+                "recoveryResumePosts": 0, "recoveryAuthorizePosts": 0,
+                "ownerSessionBound": True, "decisionApplied": True, "publicationCurrent": True, "noProviderReplay": True}
+        attempts = [attempt(1, 1), attempt(2, 1), attempt(3, 1)]
+        receipt = {"version": 1, "profile": "ctf-learner-attempt-gate-q05", "transport": "controlled-synthetic",
+            "actorId": "2402", "sessionId": "2002", "participantId": "3402", "stageId": 1, "siblingOwnerId": 1001,
+            "gate": {"configured": 3, "initialAttempts": 0, "initialHintVisible": False, "deniedStatus": 409,
+                "deniedError": "Hint availability changed; refresh stage status", "deniedOutboxDelta": 0,
+                "deniedProgressUnchanged": True, "deniedProviderCalls": 0,
+                "afterAttempts": [{"count": 1, "hintVisible": False, "status": "in_progress"}, {"count": 2, "hintVisible": False, "status": "in_progress"}, {"count": 3, "hintVisible": True, "status": "in_progress"}], "afterThirdHintVisible": True},
+            "attempts": attempts, "browserPosts": {"register": 1, "start": 1, "attempt": 3, "hint": 0, "resume": 0, "authorize": 0},
+            "serverPosts": {"register": 1, "start": 1, "attempt": 3, "hint": 1, "resume": 0, "authorize": 0},
+            "lifecycle": {"register": {"operationId": "0000000a-e89b-42d3-a456-426614174000", "sequence": "1", "originalStatus": 200},
+                "start": {"operationId": "0000000b-e89b-42d3-a456-426614174000", "sequence": "2", "originalStatus": 202}},
+            "reset": {"operationId": "0000000c-e89b-42d3-a456-426614174000", "sequence": "9", "originalStatus": 200,
+                "deniedStatus": 409, "deniedError": "CTF request is no longer current", "generationBefore": "0", "generationAfter": "1"},
+            "providerCalls": {"guardian": 3, "judge": 3, "total": 6},
+            "storeWitness": {key: True for key in ("progressAttemptsThree", "threeAttemptRows", "threeJudgmentRows", "noCompletion", "noHintPurchased", "identityBindingCurrent", "siblingBeforeNonempty", "siblingUnchanged", "resetReferenceFenced", "historicalEvidenceRetained")},
+            "facts": {key: True for key in ("physicalJoinAndStart", "defaultGateIsThree", "lockedHintBeforeAttempts", "canonicalHintDenialBeforeAttempts", "threePhysicalScoredSubmissions", "sameReferenceRecoveryNoResubmit", "gateUnlockOnlyAfterThirdAttempt", "mountedSessionBound", "canonicalAttemptProjectionBound", "nonemptySiblingUnchanged", "noActualModelOrGenuineCreditClaim")},
+            "excluded": ["actual-model-qualification", "guaranteed-secret-extraction", "genuine-gameplay-credit", "fixed-practice", "post-reset-credit"], "unexpectedApiPaths": [], "browserActions": 20, "apiRequests": 20, "genuineCredit": 0, "stage": "complete"}
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory).chmod(0o700); path = Path(directory) / "ctf-learner-attempt-gate-q05-result.json"
+            def write(value): path.write_text(json.dumps(value), encoding="utf-8"); path.chmod(0o600)
+            write(receipt); self.assertEqual(MODULE.validate_learner_attempt_gate_q05_receipt(path), receipt)
+            recovered = json.loads(json.dumps(receipt))
+            recovered["attempts"][0]["recoveryResumePosts"] = 1
+            recovered["attempts"][0]["recoveryAuthorizePosts"] = 1
+            recovered["browserPosts"]["resume"] = recovered["browserPosts"]["authorize"] = 1
+            recovered["serverPosts"]["resume"] = recovered["serverPosts"]["authorize"] = 1
+            write(recovered); self.assertEqual(MODULE.validate_learner_attempt_gate_q05_receipt(path), recovered)
+            variants = [
+                {**receipt, "transport": "actual-model"}, {**receipt, "stageId": 2},
+                {**receipt, "browserPosts": {"register": 1, "start": 1, "attempt": 2, "hint": 0, "resume": 0, "authorize": 0}},
+                {**receipt, "browserPosts": {"register": 1, "start": 2, "attempt": 3, "hint": 0, "resume": 0, "authorize": 0}},
+                {**receipt, "providerCalls": {"guardian": 3, "judge": 3, "total": 7}},
+                {**receipt, "providerCalls": {"guardian": 3.0, "judge": 3, "total": 6}},
+                {**receipt, "attempts": [attempts[0], attempts[0], attempts[2]]},
+                {**receipt, "attempts": [{**attempts[0], "requestStatus": 202.0}, *attempts[1:]]},
+                {**receipt, "attempts": [{**attempts[0], "publicationStatus": 200.0}, *attempts[1:]]},
+                {**receipt, "lifecycle": {**receipt["lifecycle"], "start": {**receipt["lifecycle"]["start"], "operationId": receipt["lifecycle"]["register"]["operationId"]}}},
+                {**receipt, "reset": {**receipt["reset"], "deniedStatus": 503}},
+                {**receipt, "reset": {**receipt["reset"], "generationAfter": "0"}},
+                {**receipt, "reset": {**receipt["reset"], "sequence": "2"}},
+                {**receipt, "gate": {**receipt["gate"], "afterThirdHintVisible": False}},
+                {**receipt, "gate": {**receipt["gate"], "initialAttempts": False}},
+                {**receipt, "gate": {**receipt["gate"], "deniedOutboxDelta": False}},
+                {**receipt, "gate": {**receipt["gate"], "afterAttempts": [{**receipt["gate"]["afterAttempts"][0], "count": True}, *receipt["gate"]["afterAttempts"][1:]]}},
+                {**receipt, "attempts": [{**attempts[0], "ordinal": True}, *attempts[1:]]},
+                {**receipt, "attempts": [{**attempts[0], "guardianCalls": True}, *attempts[1:]]},
+                {**receipt, "attempts": [{**attempts[0], "recoveryResumePosts": True}, *attempts[1:]]},
+                {**receipt, "attempts": [{**attempts[0], "recoveryAuthorizePosts": 2}, *attempts[1:]]},
+                {**receipt, "browserPosts": {**receipt["browserPosts"], "resume": 1}},
+                {**receipt, "browserPosts": {**receipt["browserPosts"], "authorize": True}},
+                {**receipt, "storeWitness": {**receipt["storeWitness"], "threeAttemptRows": False}},
+                {**receipt, "facts": {**receipt["facts"], "noActualModelOrGenuineCreditClaim": False}},
+                {**receipt, "actorId": "1002"}, {**receipt, "participantId": "1001"},
+                {**receipt, "genuineCredit": 1}, {**receipt, "browserActions": 801},
+            ]
+            for value in variants:
+                write(value)
+                with self.assertRaises(RuntimeError): MODULE.validate_learner_attempt_gate_q05_receipt(path)
+
+    def test_fixed_practice_q05_receipt_requires_exact_canonical_staleness_receipt(self):
+        cases = {
+            "modeSelection": {"browserPosts": 0, "serverPosts": 0, "providerStarts": 0, "responsePublished": False, "stateInvariant": True},
+            "submit": {"browserPosts": 1, "serverPosts": 1, "providerStarts": 1, "responsePublished": True, "status": 200, "scoringEligible": False, "protectedContextIncluded": False, "serverSecretProvided": False},
+            "staleBeforeDispatch": {"browserPosts": 0, "serverPosts": 0, "providerStarts": 0, "responsePublished": False, "stateInvariant": True},
+            "staleBeforeProvider": {"browserPosts": 1, "serverPosts": 1, "providerStarts": 0, "responsePublished": False, "status": 409, "stateInvariant": True},
+            "staleAfterDispatch": {"browserPosts": 1, "serverPosts": 1, "providerStarts": 1, "responsePublished": False, "status": 409, "stateInvariant": True},
+        }
+        phases = ("pre-provider-stale", "pre-provider-restore", "post-provider-stale", "post-provider-restore")
+        authority = [{"phase": phase, "operationId": f"0000000{index}-e89b-42d3-a456-426614174000",
+            "sequence": str(index), "actorId": "1001", "sessionId": "2001", "stageId": 1}
+            for index, phase in enumerate(phases, 1)]
+        witness = ("attemptsUnchanged", "progressUnchanged", "judgmentsUnchanged", "leaderboardUnchanged",
+            "authorityOutboxExact", "siblingBeforeNonempty", "siblingUnchanged", "controlledFixtureCleaned")
+        facts = ("visibleFixedModeDisclosureBeforeSubmit", "modeSelectionNoDispatch", "oneBoundPracticePost",
+            "staleBeforeDispatchNoProviderOrPublication", "staleBeforeProviderNoProviderOrPublication",
+            "staleAfterDispatchNoPublication", "unscoredPublicContextBoundary",
+            "noAttemptProgressJudgeLeaderboardCreditWrites", "noAutomaticRetryOrOperationRecovery",
+            "nonemptySiblingPreserved", "canonicalAuthorityStalenessBound",
+            "onlyExpectedAuthorityOutboxMutations", "controlledProviderNotQualification")
+        receipt = {"version": 1, "profile": "ctf-fixed-practice-q05", "actorId": "2403", "sessionId": "2002",
+            "participantId": "3402", "stageId": 1, "siblingOwnerId": "1001", "cases": cases,
+            "providerDiagnostics": {"kind": "controlled-synthetic-provider", "physicalStarted": 2, "completed": 1, "staleAfterDispatch": 1, "maxPhysicalCalls": 2},
+            "storeWitness": {key: True for key in witness}, "facts": {key: True for key in facts},
+            "excluded": ["native-browser-proof", "actual-model-qualification", "objective-judge", "gameplay-credit", "operation-id-recovery", "automatic-retry"],
+            "cleanup": {"providerDrained": True, "ownedBrowserHandles": 0, "ownedStoreHandles": 0},
+            "authorityOperations": authority, "unexpectedApiPaths": [], "browserActions": 12, "apiRequests": 9,
+            "stage": "complete", "judgeCalls": 0, "genuineCredit": 0}
+        with tempfile.TemporaryDirectory() as directory:
+            Path(directory).chmod(0o700); path = Path(directory) / "ctf-fixed-practice-q05-result.json"
+            def write(value): path.write_text(json.dumps(value), encoding="utf-8"); path.chmod(0o600)
+            write(receipt); self.assertEqual(MODULE.validate_fixed_practice_q05_receipt(path), receipt)
+            variants = [
+                {**receipt, "profile": "actual-model"},
+                {**receipt, "cases": {**cases, "submit": {**cases["submit"], "status": 202}}},
+                {**receipt, "cases": {**cases, "submit": {**cases["submit"], "browserPosts": True}}},
+                {**receipt, "providerDiagnostics": {**receipt["providerDiagnostics"], "physicalStarted": 3}},
+                {**receipt, "providerDiagnostics": {**receipt["providerDiagnostics"], "completed": True}},
+                {**receipt, "authorityOperations": [*authority[:2], {**authority[2], "sequence": "2"}, authority[3]]},
+                {**receipt, "authorityOperations": [{**authority[0], "stageId": 2}, *authority[1:]]},
+                {**receipt, "authorityOperations": authority[:3]},
+                {**receipt, "actorId": "2402"},
+                {**receipt, "authorityOperations": [authority[0], {**authority[1], "actorId": "1002"}, *authority[2:]]},
+                {**receipt, "authorityOperations": [authority[0], {**authority[1], "sessionId": "2003"}, *authority[2:]]},
+                {**receipt, "authorityOperations": [{**operation, "actorId": "2403", "sessionId": "2002"} for operation in authority]},
+                {**receipt, "cleanup": {**receipt["cleanup"], "ownedBrowserHandles": 1}},
+                {**receipt, "facts": {**receipt["facts"], "canonicalAuthorityStalenessBound": False}},
+                {**receipt, "browserActions": 241},
+                {**receipt, "judgeCalls": True},
+            ]
+            for value in variants:
+                write(value)
+                with self.assertRaises(RuntimeError): MODULE.validate_fixed_practice_q05_receipt(path)
+
 
     def test_maintenance_lease_closed_isolation(self):
         argv = self.required_args() + ["--application-maintenance-lease"]
@@ -722,6 +2046,67 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         for flags in (["--ctf-decision-recovery"],["--ctf-decision-projection"],["--ctf-decision-schema"],["--ctf-projection-worker"], ["--ctf-lifecycle-schema"], ["--authority-schema-only"], ["--target-stage", "8"], ["--candidate-set", "reviewer-boundary-v1"]):
             with self.assertRaises(SystemExit): MODULE.parse_args(argv + flags)
 
+    def test_current_0155_publication_is_distinct_repository_only_four_store_cohort(self):
+        args = self.required_args() + ["--ctf-publication-current",
+            "--image-id", "sha256:" + "a" * 64,
+            "--content-source-manifest-sha256", "b" * 64,
+            "--docker-daemon-id", "owned-daemon"]
+        parsed = MODULE.parse_args(args)
+        self.assertTrue(MODULE.main_no_copy_selection(parsed))
+        selected = MODULE.qualification_selection(parsed, "a1b2c3d4e5f6")
+        self.assertEqual(selected["mode"], "ctf_publication_current_controlled")
+        self.assertEqual(selected["test"], "tests/postgres/ctfAuthenticatedPublicationCurrent.integration.test.js")
+        self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (300, 480, 120))
+        self.assertEqual(selected["environment"], {"CTF_PUBLICATION_CURRENT_NATIVE": "1", "AWS_EC2_METADATA_DISABLED": "true"})
+        self.assertEqual(selected["databases"], tuple(
+            f"dvaia_test_ctf_publication_current_{state}_{kind}_a1b2c3d4e5f6"
+            for state in ("f", "p") for kind in ("i", "c")))
+        self.assertTrue(all(len(name.encode()) <= 63 for name in selected["databases"]))
+        self.assertEqual(MODULE.delivery_role(selected), "dvaia_ctf_delivery")
+        urls = {name: {role: f"{name}-{role}" for role in ("runtime", "migration", "delivery")}
+            for name in selected["databases"]}
+        env = MODULE.database_environment(selected, urls)
+        expected = {f"PG_CTF_PUBLICATION_CURRENT_{state}_{kind}_{role}_URL"
+            for state in ("FRESH", "POPULATED") for kind in ("IDENTITY", "CTF")
+            for role in ("RUNTIME", "MIGRATION")}
+        expected |= {f"PG_CTF_PUBLICATION_CURRENT_{state}_CTF_DELIVERY_URL"
+            for state in ("FRESH", "POPULATED")}
+        self.assertEqual(set(env), expected)
+        self.assertEqual(len(set(env.values())), 10)
+        self.assertEqual(MODULE.qualification_selection(MODULE.parse_args(self.required_args() +
+            ["--ctf-current-publication"]), "a1b2c3d4e5f6")["test"],
+            "tests/postgres/ctfCurrentPublication.integration.test.js")
+        for extra in (["--ctf-current-publication"], ["--ctf-production-runtime"],
+                ["--browser-executable", "/owned/browser"], ["--client-build-sha256", "c" * 64],
+                ["--candidate-set", "reviewer-boundary-v1"], ["--target-stage", "8"]):
+            with self.subTest(extra=extra), self.assertRaises(SystemExit): MODULE.parse_args(args + extra)
+        for omitted in ("--image-id", "--content-source-manifest-sha256", "--docker-daemon-id"):
+            cut = args[:]
+            index = cut.index(omitted)
+            del cut[index:index + 2]
+            with self.subTest(omitted=omitted), self.assertRaises(SystemExit): MODULE.parse_args(cut)
+        with patch.object(MODULE, "run_qualification", side_effect=AssertionError("allocation forbidden")):
+            self.assertEqual(MODULE.main(args), 0)
+
+    def test_current_0155_source_pins_are_exact_and_preallocation(self):
+        root = RUNNER.parents[2]
+        self.assertIsNone(MODULE.assert_current_publication_source(root))
+        with tempfile.TemporaryDirectory() as directory:
+            fake = Path(directory)
+            for relative in MODULE.CURRENT_PUBLICATION_SOURCE_PINS:
+                target = fake / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes((root / relative).read_bytes())
+            self.assertIsNone(MODULE.assert_current_publication_source(fake))
+            fixture = fake / "tests/postgres/ctfAuthenticatedPublicationCurrent.integration.test.js"
+            fixture.write_bytes(fixture.read_bytes() + b"\n// drift\n")
+            with self.assertRaisesRegex(RuntimeError, "source pin mismatch"):
+                MODULE.assert_current_publication_source(fake)
+            fixture.unlink()
+            fixture.symlink_to(root / "tests/postgres/ctfAuthenticatedPublicationCurrent.integration.test.js")
+            with self.assertRaisesRegex(RuntimeError, "source pin mismatch"):
+                MODULE.assert_current_publication_source(fake)
+
     def test_decision_recovery_four_isolated_pairs_no_inference(self):
         argv = self.required_args() + ["--ctf-decision-recovery"]
         selected = MODULE.qualification_selection(MODULE.parse_args(argv), "abc")
@@ -796,12 +2181,12 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         identities = []
         child = FakeChild(returncode=1)
         result = MODULE.stop_group(child, group_exists=lambda _pgid, env=None: next(states),
-            check_identity=lambda pgid, sid, uid, env=None: identities.append((pgid, sid, uid)),
+            check_identity=lambda pgid, sid, uid, env=None, birth=None: identities.append((pgid, sid, uid, birth)),
             killpg=lambda pgid, sig: signals.append((pgid, sig)),
             monotonic=lambda: 0, sleep=lambda _seconds: None)
         self.assertEqual(result, 1)
         self.assertEqual(signals, [(43210, MODULE.signal.SIGTERM)])
-        self.assertEqual(identities, [(43210, 43210, 501)])
+        self.assertEqual(identities, [(43210, 43210, 501, (123, 456))])
 
     def test_stop_group_rejects_foreign_owner_before_signaling(self):
         signals = []
@@ -810,15 +2195,73 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         def runner(command, **kwargs):
             probes.append(command)
             return SimpleNamespace(returncode=0, stdout="43211 43210 502\n")
-        def check(pgid, sid, uid, env=None):
+        def check(pgid, sid, uid, env=None, birth=None):
             return MODULE.assert_group_identity(pgid, sid, uid, env=env,
-                runner=runner, getsid=lambda pid: sessions.append(pid) or sid)
+                runner=runner, getsid=lambda pid: sessions.append(pid) or sid, birth=birth)
         with self.assertRaisesRegex(RuntimeError, "foreign process owner"):
             MODULE.stop_group(FakeChild(), group_exists=lambda _pgid, env=None: True,
                 check_identity=check, killpg=lambda *args: signals.append(args))
         self.assertEqual(probes, [["ps", "-axo", "pid=,pgid=,uid="]])
         self.assertEqual(signals, [])
         self.assertEqual(sessions, [])
+
+    @unittest.skipUnless(sys.platform == "darwin", "Darwin current-host process inspection")
+    def test_current_host_group_probe_uses_fail_closed_libproc_not_ps(self):
+        from unittest.mock import patch
+        with patch.object(MODULE, "native_owned_group_members", return_value=[43210]) as inspector:
+            self.assertTrue(MODULE.process_group_exists(43210))
+            with patch.object(MODULE, "native_leader_birth", return_value=(123, 456)):
+                MODULE.assert_group_identity(43210, 43210, os.getuid(), birth=(123, 456))
+            self.assertEqual(inspector.call_count, 2)
+        with patch.object(MODULE, "native_owned_group_members", return_value=[]) as inspector:
+            self.assertFalse(MODULE.process_group_exists(43210))
+            with self.assertRaisesRegex(RuntimeError, "foreign process session"):
+                MODULE.assert_group_identity(43210, 43211, os.getuid(), birth=(123, 456))
+            self.assertEqual(inspector.call_count, 1)
+        with patch.object(MODULE, "native_owned_group_members", side_effect=RuntimeError("foreign birth")):
+            with self.assertRaisesRegex(RuntimeError, "foreign birth"):
+                MODULE.process_group_exists(43210)
+
+    @unittest.skipUnless(sys.platform == "darwin", "Darwin current-host process inspection")
+    def test_group_signal_requires_original_launch_birth_even_after_poll(self):
+        from unittest.mock import patch
+        child = FakeChild(returncode=0)
+        child._owned_birth = None
+        with patch.object(MODULE.os, "killpg") as signals:
+            with self.assertRaisesRegex(RuntimeError, "launch birth"):
+                MODULE.stop_group(child)
+        signals.assert_not_called()
+        child._owned_birth = (123, 456)
+        with patch.object(MODULE, "native_owned_group_members", return_value=[child.pid]), \
+                patch.object(MODULE, "native_leader_birth", return_value=(123, 457)), \
+                patch.object(MODULE.os, "killpg") as signals:
+            with self.assertRaisesRegex(RuntimeError, "birth changed"):
+                MODULE.stop_group(child)
+        signals.assert_not_called()
+        with patch.object(MODULE, "native_owned_group_members", return_value=[child.pid]), \
+                patch.object(MODULE, "native_leader_birth", side_effect=RuntimeError("leader missing")), \
+                patch.object(MODULE.os, "killpg") as signals:
+            with self.assertRaisesRegex(RuntimeError, "leader missing"):
+                MODULE.stop_group(child)
+        signals.assert_not_called()
+
+    @unittest.skipUnless(sys.platform == "darwin", "Darwin current-host process inspection")
+    def test_live_owned_group_is_inspectable_inside_repository_wrapper(self):
+        child = subprocess.Popen([sys.executable, "-B", "-c", "import sys; sys.stdin.read()"],
+            stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            start_new_session=True, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+        child._owned_sid = child.pid
+        child._owned_uid = os.getuid()
+        try:
+            birth = MODULE.capture_launch_birth(child)
+            self.assertEqual(len(birth), 2)
+            self.assertIn(child.pid, MODULE.native_owned_group_members(child.pid))
+            self.assertTrue(MODULE.process_group_exists(child.pid))
+            MODULE.assert_group_identity(child.pid, child.pid, os.getuid(), birth=birth)
+        finally:
+            child.stdin.close()
+            child.wait(timeout=5)
+        self.assertFalse(MODULE.process_group_exists(child.pid))
 
     def test_operation_recovery_closed_selector(self):
         args = MODULE.parse_args(self.required_args() + ["--ctf-operation-recovery"])

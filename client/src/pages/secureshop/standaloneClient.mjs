@@ -12,6 +12,14 @@ const DISPOSITIONS = new Set(['not_pass', 'awarded', 'already_complete', 'stale_
 const SHA256 = /^[a-f0-9]{64}$/;
 const shopUserId = value => Number.isSafeInteger(value) && value >= 1 && value <= 2147483647;
 const RESET_CONFIRMATION = 'RESET_SHARED_PRACTICE';
+const EXTERNAL_MAIL = `${AUTH}/external-mail`;
+const SHARKLASERS = /^[a-z0-9][a-z0-9._+-]{0,63}@sharklasers\.com$/;
+const GMAIL = /^[a-z0-9][a-z0-9._+-]{0,63}@gmail\.com$/;
+const sharklasers = value => typeof value === 'string' && SHARKLASERS.test(value)
+  && !value.split('@')[0].endsWith('.') && !value.includes('..');
+const gmail = value => typeof value === 'string' && GMAIL.test(value)
+  && !value.split('@')[0].endsWith('.') && !value.includes('..');
+const externalMailText = operationId => `This is a manually requested SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n`;
 
 const exact = (value, keys) => value && typeof value === 'object' && !Array.isArray(value)
   && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
@@ -265,15 +273,57 @@ function practiceRecoveryReceipt(value, resetId) {
   return value;
 }
 
+function externalMailReadiness(value) {
+  if (exact(value, ['version', 'available', 'reason']) && value.version === 1
+    && value.available === false && value.reason === 'not_configured') return value;
+  if (!exact(value, ['version', 'available', 'scopeKey', 'sender', 'templateVersion', 'limits'])
+    || value.version !== 1 || value.available !== true || !SHA256.test(value.scopeKey)
+    || !gmail(value.sender)
+    || value.templateVersion !== 'synthetic-test-v1'
+    || !exact(value.limits, ['ownerPerHour', 'senderPerHour'])
+    || !Number.isSafeInteger(value.limits.ownerPerHour) || value.limits.ownerPerHour < 0
+    || !Number.isSafeInteger(value.limits.senderPerHour) || value.limits.senderPerHour < 0) {
+    throw new Error('External test send readiness was not verified');
+  }
+  return value;
+}
+
+function externalMailOperation(value, operationId, scopeKey, recipient = null) {
+  if (exact(value, ['version', 'operationId', 'state']) && value.version === 1
+    && value.operationId === operationId && value.state === 'not_found') return value;
+  const preview = value?.preview, smtp = value?.smtp;
+  if (!exact(value, ['version', 'operationId', 'scopeKey', 'requestSha256', 'state', 'preview', 'expiresAt', 'smtp'])
+    || value.version !== 1 || value.operationId !== operationId || value.scopeKey !== scopeKey
+    || !SHA256.test(value.requestSha256)
+    || !['prepared', 'cancelled', 'expired', 'dispatching', 'smtp_accepted', 'rejected_before_dispatch', 'unknown'].includes(value.state)
+    || !exact(preview, ['sender', 'recipient', 'subject', 'text'])
+    || !gmail(preview.sender)
+    || !sharklasers(preview.recipient)
+    || (recipient !== null && preview.recipient !== recipient)
+    || preview.subject !== 'SecureShop synthetic delivery test'
+    || preview.text !== externalMailText(operationId)
+    || typeof value.expiresAt !== 'string' || !Number.isFinite(Date.parse(value.expiresAt))
+    || !(smtp === null || exact(smtp, ['smtpAccepted', 'deliveryConfirmed', 'messageId', 'acceptedRecipient'])
+      && smtp.smtpAccepted === true && smtp.deliveryConfirmed === false
+      && typeof smtp.messageId === 'string' && smtp.messageId.length > 0 && smtp.messageId.length <= 998
+      && !/[\r\n]/.test(smtp.messageId)
+      && smtp.acceptedRecipient === preview.recipient)
+    || (value.state === 'smtp_accepted') !== (smtp !== null)) {
+    throw new Error('External test send operation was not verified');
+  }
+  return value;
+}
+
 export function createStandaloneShopClient({ fetchImpl = globalThis.fetch } = {}) {
   if (typeof fetchImpl !== 'function') throw new TypeError('Shop fetch required');
-  const request = async (path, { method = 'GET', body, launch, personaToken, signal } = {}) => {
+  const request = async (path, { method = 'GET', body, launch, personaToken, signal,
+    registeredCookie = false } = {}) => {
     if (personaToken !== undefined && (typeof launch !== 'string' || !BEARER.test(launch)
       || typeof personaToken !== 'string' || personaToken.length > 8192
       || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(personaToken))) {
       throw new TypeError('Current private shop authority required');
     }
-    const response = await fetchImpl(path, { method, credentials: launch ? 'omit' : 'include', redirect: 'error', signal,
+    const response = await fetchImpl(path, { method, credentials: registeredCookie || !launch ? 'include' : 'omit', redirect: 'error', signal,
       headers: { Accept: 'application/json', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         ...(launch ? { 'X-DVAIA-SecureShop-Launch': launch } : {}),
         ...(personaToken ? { Authorization: `Bearer ${personaToken}` } : {}) },
@@ -292,6 +342,40 @@ export function createStandaloneShopClient({ fetchImpl = globalThis.fetch } = {}
     return data;
   };
   return Object.freeze({
+    async getExternalMailReadiness(launch, personaToken, signal) {
+      return externalMailReadiness(await request(`${EXTERNAL_MAIL}/readiness`,
+        { launch, personaToken, registeredCookie: true, signal }));
+    },
+    async prepareExternalMail(launch, personaToken, { operationId, recipient, scopeKey }, signal) {
+      if (!UUID.test(operationId || '') || operationId !== operationId.toLowerCase()
+        || !sharklasers(recipient) || !SHA256.test(scopeKey || '')) {
+        throw new TypeError('Reviewed external test send draft required');
+      }
+      return externalMailOperation(await request(`${EXTERNAL_MAIL}/prepare`, { method: 'POST', launch,
+        personaToken, registeredCookie: true, body: { version: 1, operationId, recipient, scopeKey }, signal }), operationId, scopeKey, recipient);
+    },
+    async confirmExternalMail(launch, personaToken, { operationId, requestSha256, scopeKey }, signal) {
+      if (!UUID.test(operationId || '') || operationId !== operationId.toLowerCase()
+        || !SHA256.test(requestSha256 || '') || !SHA256.test(scopeKey || '')) {
+        throw new TypeError('Reviewed external test send required');
+      }
+      return externalMailOperation(await request(`${EXTERNAL_MAIL}/confirm`, { method: 'POST', launch,
+        personaToken, registeredCookie: true, body: { version: 1, operationId, requestSha256 }, signal }), operationId, scopeKey);
+    },
+    async cancelExternalMail(launch, personaToken, { operationId, requestSha256, scopeKey }, signal) {
+      if (!UUID.test(operationId || '') || operationId !== operationId.toLowerCase()
+        || !SHA256.test(requestSha256 || '') || !SHA256.test(scopeKey || '')) {
+        throw new TypeError('Reviewed external test send required');
+      }
+      return externalMailOperation(await request(`${EXTERNAL_MAIL}/cancel`, { method: 'POST', launch,
+        personaToken, registeredCookie: true, body: { version: 1, operationId, requestSha256 }, signal }), operationId, scopeKey);
+    },
+    async getExternalMailOperation(launch, personaToken, operationId, scopeKey, signal) {
+      if (!UUID.test(operationId || '') || operationId !== operationId.toLowerCase()
+        || !SHA256.test(scopeKey || '')) throw new TypeError('Saved external test send required');
+      return externalMailOperation(await request(`${EXTERNAL_MAIL}/operations/${operationId}`,
+        { launch, personaToken, registeredCookie: true, signal }), operationId, scopeKey);
+    },
     async getBoundAdminScope(launch, personaToken, signal) {
       const value = await request('/api/secureshop/admin/users?page=1&pageSize=1',
         { launch, personaToken, signal });

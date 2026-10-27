@@ -763,6 +763,7 @@ function GeneralHelpTask({ userId, token, instance, composerTarget, scrollContai
       authorityKey={JSON.stringify([token, latestTurnId])} transport={transport}
       onConfirmed={refreshPaymentChoices} />
     <PracticeAddressSetup key={`address-${latestTurnId || 'no-turn'}`} setup={addressSetup} entryPoint="chat"
+      interactionBlocked={busy || !!stream.pending || !!stream.completedPagePending}
       authorityKey={JSON.stringify([token, latestTurnId])} transport={transport}
       onConfirmed={refreshAddressChoices} />
     <PracticeProfileUpdate proposal={profileProposal} entryPoint="chat"

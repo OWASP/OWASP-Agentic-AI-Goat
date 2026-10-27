@@ -263,16 +263,13 @@ test('full bound review runtime persists one assessed local decision and replays
     assert.equal((await conversationRepository.getTrace(
       sessions.rows[0].id, binding, 100, 'review_moderation')).length, trace.length);
 
-    const historicalSessionId = randomUUID();
-    assert.deepEqual(await conversationRepository.createPendingBoundSession({
-      id: historicalSessionId, binding, purpose: 'general',
-    }), { id: historicalSessionId });
-    assert.equal(await conversationRepository.activateBoundSession(
-      historicalSessionId, binding, 'general'), true);
+    // Legacy unscoped moderation replay still belongs to its actual workflow;
+    // a general conversation is never a moderation recovery source.
+    const historicalSessionId = sessions.rows[0].id;
     const historicalMessage = 'Moderate up to 10 pending reviews according to the review moderation policy. '
       + 'Read the pending reviews, apply your decisions with the tools, and report the actual results. '
       + 'Stop when there are no pending reviews or you have considered 10 reviews.';
-    async function seedGeneralRequest(id, message = historicalMessage, state = 'completed') {
+    async function seedModerationRequest(id, message = historicalMessage, state = 'completed') {
       const claimed = await journal.claim({ sessionId: historicalSessionId, requestId: id,
         binding, message });
       assert.equal(claimed.status, 'claimed');
@@ -285,7 +282,7 @@ test('full bound review runtime persists one assessed local decision and replays
       }
     }
     const historicalRequestId = randomUUID();
-    await seedGeneralRequest(historicalRequestId);
+    await seedModerationRequest(historicalRequestId);
     const beforeHistoricalReplay = {
       modelCalls: modelInputs.length,
       assessmentEvents: assessmentEvents.length,
@@ -298,22 +295,22 @@ test('full bound review runtime persists one assessed local decision and replays
     assert.equal(historicalResponse.status, 200);
     assert.deepEqual(await historicalResponse.json(), { ...first, replayed: true });
     assert.equal(modelInputs.length, beforeHistoricalReplay.modelCalls,
-      'completed general-session replay does not call the provider');
+      'completed moderation-session replay does not call the provider');
     assert.equal(assessmentEvents.length, beforeHistoricalReplay.assessmentEvents,
-      'completed general-session replay does not create assessment work');
+      'completed moderation-session replay does not create assessment work');
     assert.equal(Number((await identityRuntime.query(
       'SELECT count(*)::int AS count FROM graph_runtime.effects')).rows[0].count),
-    beforeHistoricalReplay.effects, 'completed general-session replay does not create effects');
+    beforeHistoricalReplay.effects, 'completed moderation-session replay does not create effects');
     assert.equal(Number((await agentsPool.query(
       'SELECT count(*)::int AS count FROM secureshop_agents.agent_trace')).rows[0].count),
-    beforeHistoricalReplay.traces, 'completed general-session replay does not append traces');
+    beforeHistoricalReplay.traces, 'completed moderation-session replay does not append traces');
 
-    const denied = async (id, expectedStatus) => {
+    const denied = async (id, conflict = false) => {
       const response = await moderate(id);
-      assert.equal(response.status, expectedStatus);
-      assert.deepEqual(await response.json(), { error: expectedStatus === 409
+      assert.equal(response.status, 409);
+      assert.deepEqual(await response.json(), { error: conflict
         ? 'This request ID was already used for a different action'
-        : 'Review service unavailable' });
+        : 'Moderation outcome is unresolved. Check the saved request; do not repeat it.' });
       assert.equal(modelInputs.length, beforeHistoricalReplay.modelCalls);
       assert.equal(assessmentEvents.length, beforeHistoricalReplay.assessmentEvents);
       assert.equal(Number((await identityRuntime.query(
@@ -324,14 +321,14 @@ test('full bound review runtime persists one assessed local decision and replays
       beforeHistoricalReplay.traces);
     };
     const startedRequestId = randomUUID();
-    await seedGeneralRequest(startedRequestId, historicalMessage, 'started');
-    await denied(startedRequestId, 503);
+    await seedModerationRequest(startedRequestId, historicalMessage, 'started');
+    await denied(startedRequestId);
     const uncertainRequestId = randomUUID();
-    await seedGeneralRequest(uncertainRequestId, historicalMessage, 'uncertain');
-    await denied(uncertainRequestId, 503);
+    await seedModerationRequest(uncertainRequestId, historicalMessage, 'uncertain');
+    await denied(uncertainRequestId);
     const conflictRequestId = randomUUID();
-    await seedGeneralRequest(conflictRequestId, `${historicalMessage} Conflicting historical bytes.`, 'started');
-    await denied(conflictRequestId, 409);
+    await seedModerationRequest(conflictRequestId, `${historicalMessage} Conflicting historical bytes.`, 'started');
+    await denied(conflictRequestId, true);
 
     const aliceRows = await fetch(`${base}/merchant/reviews?page=1&per_page=25`,
       { headers: headers(alice, 'alice-merchant') }).then(response => response.json());

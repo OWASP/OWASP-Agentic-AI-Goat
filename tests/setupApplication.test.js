@@ -801,9 +801,10 @@ test('fresh setup seeds generated files after databases and publishes an explici
       ownedPolicyRenderer:true,enableOwnedPolicyRenderer:true,
       provisionOwnedPolicyRenderer:async args=>{assert.deepEqual(Object.keys(args).sort(),['activate','architecture','environment','home','platform','root']);assert.equal(args.root,await fs.realpath(root));assert.equal(args.home,homeDirectory);assert.equal(args.platform,process.platform);assert.equal(args.architecture,process.arch);assert.equal(args.activate,true);assert.deepEqual(args.environment,{ LEGACY_SENSITIVE_FILES_ROOT: fixtureRoot, MCP_SIDECARS_AUTOSTART: 'false', MCP_WORKSHOP_AUTOSTART: 'false', IPI_EMAIL_PROVIDER: 'gmail', ...preservedAssets });await assert.rejects(fs.stat(path.join(root,'.env')),{code:'ENOENT'});return{ready:true,enabled:true,baseUrl:'http://127.0.0.1:8098'};},
       setupOwnedMcpRegistry:async args=>{assert(commands.some(row=>row.args[0]==='controlled-scoped-initializer'));await assert.rejects(fs.stat(path.join(root,'.env')),{code:'ENOENT'});assert.equal(args.requested,true);assert.equal(args.explicitActivation,false);return{requested:true,activationEnabled:false};},
+      preflightOwnedMcpRegistryArchitecture:async()=>({architecture:'arm64',dockerHost:'unix:///var/run/docker.sock'}),
       adminUrl: 'postgresql://controlled.invalid/postgres',
       processEnvironment: { LEGACY_SENSITIVE_FILES_ROOT: fixtureRoot, MCP_SIDECARS_AUTOSTART: 'false', MCP_WORKSHOP_AUTOSTART: 'false', IPI_EMAIL_PROVIDER: 'gmail', ...preservedAssets },
-      ensureDockerAuthority: async () => { throw Error('No Docker expected'); },
+      ensureDockerAuthority: async args => { assert.equal(args.persist,false);return{authority:{host:'unix:///var/run/docker.sock'}}; },
       loadTicketRenderer: () => ({ component: { id: 'SecureShop.AdminTicketBody', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64) } }),
       loadSearchEchoRenderer: () => ({ component: { id: 'SecureShop.SearchEcho', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64) } }),
       loadPolicyOutputRenderer: () => ({ component: { id: 'SecureShop.PolicyFinalResponse', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64) } }),
@@ -977,6 +978,7 @@ test('registry setup follows migrations, preserves disabled preference and fails
   let initialized=false, calls=0;
   const options={root:value.root,homeDirectory:value.homeDirectory,upgrade:true,ownedMcpRegistry:true,processEnvironment:{},
     adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',ensureDockerAuthority:existingDockerAuthority,
+    preflightOwnedMcpRegistryArchitecture:async()=>({architecture:'arm64',dockerHost:'unix:///tmp/docker-fixture.sock'}),
     provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),
     provision:async()=>({status:'existing',plan,configuration:value.configuration}),initializeApplication:async()=>{initialized=true;},
     setupOwnedMcpRegistry:async args=>{calls++;assert.equal(initialized,true);assert.equal(args.requested,true);assert.equal(args.explicitActivation,false);assert.equal(args.root,value.root);assert.equal(args.homeDirectory,value.homeDirectory);assert.equal(args.applicationEnvironment.SECURESHOP_AGENTS_DATABASE_URL,value.configuration.SECURESHOP_AGENTS_DATABASE_URL);return{requested:true,activationEnabled:false};}};
@@ -989,6 +991,51 @@ test('registry setup follows migrations, preserves disabled preference and fails
   assert.deepEqual(await fs.readFile(envPath),saved);
   const omitted=await setup({...options,ownedMcpRegistry:false,setupOwnedMcpRegistry:()=>assert.fail('unrequested registry')});
   assert.deepEqual(omitted.ownedRegistry,{requested:false,activationEnabled:false});
+});
+
+test('requested registry rejects unsupported selected daemon before local PostgreSQL, Mailpit or application provisioning', async t => {
+  const root=await temporary(t),homeDirectory=await temporary(t),steps=[];
+  const selected={host:'unix:///var/run/docker.sock'};
+  await assert.rejects(actualSetup({root,homeDirectory,install:false,ensureModel:false,
+    ownedMcpRegistry:true,processEnvironment:{IPI_EMAIL_PROVIDER:'gmail',MCP_SIDECARS_AUTOSTART:'false'},
+    prepareRuntime:async()=>({}),
+    ensureDockerAuthority:async args=>{steps.push('authority');assert.equal(args.persist,false);return{authority:selected};},
+    preflightOwnedMcpRegistryArchitecture:async args=>{steps.push('architecture');assert.equal(args.dockerAuthority,selected);throw Object.assign(Error('unsupported selected daemon'),{code:'REGISTRY_BUILD_AMD64_UNQUALIFIED'});},
+    setupLocalPostgres:async()=>assert.fail('no PostgreSQL container before registry architecture'),
+    setupLocalMailpit:async()=>assert.fail('no Mailpit before registry architecture'),
+    provision:async()=>assert.fail('no application database or role provisioning before registry architecture'),
+    runDatabasePhase:async()=>assert.fail('no migrations before registry architecture'),
+  }),{code:'REGISTRY_BUILD_AMD64_UNQUALIFIED'});
+  assert.deepEqual(steps,['authority','architecture']);
+});
+
+test('unrequested registry never probes Docker architecture', async t => {
+  const root=await temporary(t),homeDirectory=await temporary(t),steps=[];
+  const result=await actualSetup({root,homeDirectory,install:false,ensureModel:false,
+    adminUrl:'postgresql://controlled.invalid/postgres',
+    processEnvironment:{IPI_EMAIL_PROVIDER:'gmail',MCP_SIDECARS_AUTOSTART:'false'},
+    prepareRuntime:async()=>({}),
+    ensureDockerAuthority:async()=>assert.fail('unrequested registry must not select Docker'),
+    preflightOwnedMcpRegistryArchitecture:async()=>assert.fail('unrequested registry must not inspect architecture'),
+    runDatabasePhase:async()=>{steps.push('database-phase');return'observed';},
+    provision:async()=>{steps.push('provision');return{configuration:{}};},
+  });
+  assert.equal(result,'observed');
+  assert.deepEqual(steps,['provision','database-phase']);
+});
+
+test('requested registry upgrade checks architecture before its database phase', async t => {
+  const plan=provisioningPlan(),value=await upgradeFixture(t,plan),steps=[];
+  await assert.rejects(actualSetup({root:value.root,homeDirectory:value.homeDirectory,
+    upgrade:true,ownedMcpRegistry:true,processEnvironment:{},
+    adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',
+    ensureDockerAuthority:async args=>{steps.push('authority');assert.equal(args.persist,false);return{authority:{host:'unix:///var/run/docker.sock'}};},
+    preflightOwnedMcpRegistryArchitecture:async()=>{steps.push('architecture');throw Object.assign(Error('unsupported selected daemon'),{code:'REGISTRY_BUILD_AMD64_UNQUALIFIED'});},
+    runDatabasePhase:async()=>assert.fail('no upgrade database phase before registry architecture'),
+    provision:async()=>assert.fail('no upgrade provision before registry architecture'),
+  }),{code:'REGISTRY_BUILD_AMD64_UNQUALIFIED'});
+  assert.deepEqual(steps,['authority','architecture']);
+  assert.deepEqual(await fs.readFile(path.join(value.root,'.env')),value.original);
 });
 
 test('policy renderer setup preserves disabled state and publishes activation only after exact readiness',async t=>{
@@ -1052,6 +1099,7 @@ test('combined SecureShop opt-in carries registry preparation to the validated d
   const plan=provisioningPlan(),value=await upgradeFixture(t,plan);
   const result=await actualSetup({root:value.root,homeDirectory:value.homeDirectory,upgrade:true,qualifiedSecureShop:true,ownedSystem:true,
     processEnvironment:{},adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',ensureDockerAuthority:existingDockerAuthority,
+    preflightOwnedMcpRegistryArchitecture:async()=>({architecture:'arm64',dockerHost:'unix:///tmp/docker-fixture.sock'}),
     preflightQualifiedSystem:async()=>{},setupOwnedMcpRegistry:async()=>{},
     runDatabasePhase:async(request,dependencies)=>{require('../scripts/install/setup-database-phase').validateRequest(request);assert.equal(request.context.ownedMcpRegistry,true);assert.equal(request.context.enableOwnedMcpRegistry,false);assert.equal(typeof dependencies.setupOwnedMcpRegistry,'function');return 'observed';}});
   assert.equal(result,'observed');

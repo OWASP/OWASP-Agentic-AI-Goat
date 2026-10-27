@@ -6,6 +6,8 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const path=require('node:path');
+const fs=require('node:fs');
+const {Module,createRequire}=require('node:module');
 const {randomUUID}=require('node:crypto');
 const {Pool}=require('pg');
 const {migrate}=require('../../db/postgres/migrate');
@@ -19,7 +21,8 @@ const {createManualRagSourceAdapter}=require('../../server/database/postgres/sec
 const PREFIX='PG_SECURESHOP_MANUAL_RAG_SOURCE_';
 const ENABLED=process.env.SECURESHOP_MANUAL_RAG_SOURCE_NATIVE==='1'&&process.env.PG_TEST_DISPOSABLE==='yes';
 const ROOT=path.resolve(__dirname,'../..');
-const STORES={IDENTITY:'identity',AGENTS:'secureshop_agents',REVIEW:'secureshop_review'};
+const STORES={IDENTITY:'identity',AGENTS:'secureshop_agents',REVIEW:'secureshop_review',FRESH_REVIEW:'secureshop_review'};
+const PRIVATE_MIGRATION='0055_private_manual_original_preimages.sql';
 const TITLE='native manual RAG source adapter joins historical uploader and current consumer using immutable SQL evidence';
 function urls(){
  const databases=new Set(),ports=new Set();const result={};
@@ -40,6 +43,18 @@ function urls(){
 }
 function pool(url){return new Pool({connectionString:url.href,max:3,connectionTimeoutMillis:5000,
  statement_timeout:30000,lock_timeout:10000,idle_in_transaction_session_timeout:30000});}
+function beforePrivateMigration(){
+ const filename=require.resolve('../../db/postgres/migrate'),localRequire=createRequire(filename);
+ const originalFs=require('node:fs/promises'),loaded=new Module(filename,module);
+ loaded.filename=filename;
+ loaded.require=name=>name==='node:fs/promises'?{
+  async readdir(directory,...args){assert.equal(path.resolve(directory),path.join(ROOT,'db/postgres/workshop-migrations/secureshop_review'));
+   return (await originalFs.readdir(directory,...args)).filter(name=>name<PRIVATE_MIGRATION);},
+  readFile:(...args)=>originalFs.readFile(...args),
+ }:localRequire(name);
+ loaded._compile(fs.readFileSync(filename,'utf8'),filename);
+ return loaded.exports;
+}
 async function grant(runtime,birth,sceneId,grantId,execution){
  await runtime.query(`INSERT INTO secureshop_review.scene_execution_grants
   (grant_id,scene_id,scene_generation,target_id,launch_id,scenario_id,generation,original_platform_owner_id,original_platform_session_id)
@@ -79,14 +94,18 @@ async function seedTurn(agents,identity,original,purpose,originKey,origin,{aband
  return result;
 }
 
-test(TITLE,{skip:!ENABLED,timeout:180000},async t=>{
+if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:180000},async t=>{
  assert.equal(process.cwd(),ROOT);assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE||'/'),ROOT);
  const pairs=urls(),pools={},all=[];
  t.after(async()=>{const ended=await Promise.allSettled(all.map(p=>p.end()));assert.deepEqual(ended.filter(r=>r.status==='rejected'),[],'all owned pools close');});
  for(const [key,store] of Object.entries(STORES)){
   const runtime=pool(pairs[key].runtime),migration=pool(pairs[key].migration);all.push(runtime,migration);pools[key]={runtime,migration};
   const directory=path.join(ROOT,'db/postgres',store==='identity'?'identity-migrations':`workshop-migrations/${store}`);
-  await migrate(migration,directory);assert.deepEqual(await migrate(migration,directory),[]);
+  const loader=key==='REVIEW'?beforePrivateMigration():{migrate};
+  const applied=await loader.migrate(migration,directory);
+  assert.deepEqual(await loader.migrate(migration,directory),[]);
+  if(key==='FRESH_REVIEW')assert.ok(applied.includes(PRIVATE_MIGRATION),'fresh schema applies private migration');
+  if(key==='REVIEW')assert.equal(applied.at(-1),'0054_owned_listing_image_optimize.sql');
   assert.equal((await runtime.query('SELECT current_user AS role')).rows[0].role,`dvaia_${store}_runtime`);
  }
  const f=fixture(),p=f.proof,r=p.receipt;
@@ -156,4 +175,7 @@ test(TITLE,{skip:!ENABLED,timeout:180000},async t=>{
  const retained=(await review.query('SELECT receipt_sha256 FROM secureshop_review.product_target_manual_ingests WHERE operation_id=$1',[r.operationId])).rows;
  assert.equal(retained[0].receipt_sha256.toString('hex'),captured.receipt.receiptSha256);
  assert.deepEqual((await review.query('SELECT * FROM secureshop_review.product_target_products WHERE target_id=$1',[sibling.targetId])).rows,siblingBefore);
+ const privateFacts=await require('./secureshopProtectedManualSourceNative').runProtectedManualSourceStorage(pools);
+ console.log('V31_PRIVATE_STORAGE_FACTS '+JSON.stringify(privateFacts));
 });
+module.exports={grant,seedTurn};

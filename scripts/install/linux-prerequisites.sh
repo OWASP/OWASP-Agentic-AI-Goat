@@ -113,6 +113,7 @@ install_linux_prerequisites() {
   }
 
   ensure_linux_compose
+  ensure_linux_buildx
 
   if ! command -v ollama >/dev/null 2>&1; then
     tmp="$(mktemp -d)" || die 'Cannot create Ollama download directory.'
@@ -150,4 +151,15 @@ ensure_linux_compose() {
     as_root apt-get install -y --no-install-recommends "$compose_package"
     docker compose version >/dev/null 2>&1 || die 'Docker Compose v2 installation did not provide the required Docker CLI plugin.'
   fi
+}
+
+ensure_linux_buildx() {
+  docker buildx version >/dev/null 2>&1 && return 0
+  local package buildx_package=''
+  for package in docker-buildx docker-buildx-plugin; do
+    if apt-cache show "$package" >/dev/null 2>&1; then buildx_package="$package"; break; fi
+  done
+  [[ -n "$buildx_package" ]] || die 'Docker Buildx is required for owned image builds but is unavailable from configured apt repositories.'
+  as_root apt-get install -y --no-install-recommends "$buildx_package"
+  docker buildx version >/dev/null 2>&1 || die 'Docker Buildx installation did not provide the required Docker CLI plugin.'
 }

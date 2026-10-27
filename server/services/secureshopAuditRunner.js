@@ -61,7 +61,9 @@ function createSecureShopAuditRunner({turns,conversations,journal,executeJob,beg
             if(beginAssessment&&[assessment?.consume,assessment?.outcome].some(fn=>typeof fn!=='function'))
               throw new TypeError('Audit assessment lifecycle unavailable');
             const result=await executeJob({scope:binding,persona:trustedPersona,
-              requestId:request.requestId,requestedCount,boundary:protectedBoundary,assessment,includeChatEvidence:requestContext!==undefined},
+              requestId:request.requestId,requestedCount,boundary:protectedBoundary,assessment,includeChatEvidence:requestContext!==undefined,
+              ...(conversationPurpose===SECURESHOP_CONVERSATION_PURPOSES.auditUnbounded
+                ?{workerBudget:()=>timing.remainingWorkerMs(auditDeadline)}:{})},
               ...(personaFence?[personaFence]:[]));
             await checkAuthority();
             if(result?.runId!==boundary.identity?.runId||result.objectiveCredit!==false

@@ -21,8 +21,17 @@ import { createReviewLifecycle } from '../utils/reviewLifecycle.mjs';
 import { getBridgeFetchMetadata } from '../bridge/fetchAdapter.mjs';
 import { useProductSimilar } from '../hooks/useProductSimilar.js';
 import { useProductSummary } from '../hooks/useProductSummary.js';
+import { trustedTurnMode } from '../utils/turnModeCapability.mjs';
 
 const REVIEW_PAGE_SIZE = 20;
+const FIXED_FACTS_SUMMARY_POLICY = 'fixed-summary-numeric-facts-v1';
+
+function isFixedFactsSummary(modeCapability) {
+  const mode = trustedTurnMode(modeCapability);
+  return mode?.featureId === 'product_assist'
+    && mode.effectiveMode === 'fixed'
+    && mode.policyVersion === FIXED_FACTS_SUMMARY_POLICY;
+}
 
 
 /**
@@ -60,6 +69,9 @@ export default function Product() {
     shopUserId:isAuthed && user?.role === 'customer' ? user.id : null,
     authorityKey:token, transport:summaryTransport });
   const { summary, loading:summaryLoading, error:summaryError } = summaryOperation;
+  // This label comes exclusively from the server-issued capability attached to
+  // the saved summary. The model's answer never establishes its own trust mode.
+  const fixedFactsSummary = isFixedFactsSummary(summary?.modeCapability);
 
   const [reviews, setReviews] = useState([]);
   const [reviewTotal, setReviewTotal] = useState(0);
@@ -504,6 +516,10 @@ export default function Product() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           <Sparkles size={16} color="var(--signal)" />
           <div className="ss-card__meta" style={{ margin: 0 }}>AI Summary</div>
+          {fixedFactsSummary && <div role="status" data-testid="fixed-facts-summary-label"
+            style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--kelp)' }}>
+            Fixed · price and stock only · description withheld
+          </div>}
           {summary && <div style={{ opacity: 0.6, fontSize: 11, fontFamily: 'var(--mono)' }}>
             · Summary response ·{' '}
             <a

@@ -103,6 +103,14 @@ test('listing edit preview and confirmation CAS one overlay, immutable receipt, 
   assert.equal(first.status, 'completed'); assert.equal(first.replayed, false);
   assert.equal(first.scopeKey, f.scopeKey); assert.equal(first.catalogRevision, '3');
   assert.equal(f.state.writes, 1); assert.equal(f.state.audits.length, 1);
+  assert.equal(f.state.audits[0].action,'listing_edit_confirm');
+  const provenance=JSON.parse(f.state.audits[0].paramsJson);
+  assert.deepEqual(provenance.confirmedDescription,{version:1,text:'Original text',
+    sha256:contract.listingEditDigest('Original text'),personaSessionId:personaSession.sessionId.toLowerCase(),
+    authorityVersion:personaSession.authorityVersion});
+  assert.equal(provenance.operationId,operationId);
+  assert.equal(provenance.scopeKey,f.scopeKey);
+  assert.equal(provenance.afterSha256,first.afterSha256);
   assert.equal(f.state.descriptionHtml, null);
   assert.equal(f.state.price, 13.75);
   assert.deepEqual(contract.validateListingEditReceipt(first, operationId), first);

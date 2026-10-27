@@ -25,6 +25,54 @@ bash scripts/install/Mac/install-macos.sh --plan
 
 Use the Linux path for its preview. After setup succeeds, run `./start_all.sh`, open `http://localhost:3000`, and use the administrator credentials in the private file printed by setup. Stop application processes with `./stop_all.sh`. The launcher locates supported Node installations in standard Homebrew or `/usr/local/bin` paths without editing shell profiles.
 
+The OS wrappers also forward the optional strict policy-renderer flags. These
+are explicit SecureShop capability requests, not part of ordinary setup:
+
+```bash
+# Preview the paired policy-renderer capability without changing the host
+bash scripts/install/Mac/install-macos.sh --plan --owned-policy-renderer --enable-owned-policy-renderer
+
+# Linux uses the same paired flags
+bash scripts/install/Linux/install-linux.sh --owned-policy-renderer --enable-owned-policy-renderer
+```
+
+`--enable-owned-policy-renderer` requires `--owned-policy-renderer`. The
+renderer is supported only when application setup verifies both ARM64 and the
+selected Docker daemon; the wrapper deliberately does not guess that from the
+host shell architecture.
+
+### Optional owned MCP registry
+
+The owned MCP registry is a separate SecureShop capability, rather than a
+requirement for the ordinary workshop install. Request its preparation through
+the matching OS wrapper:
+
+```bash
+# Preview without downloads, image builds, provisioning, or activation
+bash scripts/install/Mac/install-macos.sh --plan --owned-mcp-registry
+
+# Fresh macOS or Ubuntu/Debian setup with readiness-gated registry activation
+bash scripts/install/Mac/install-macos.sh --owned-mcp-registry
+bash scripts/install/Linux/install-linux.sh --owned-mcp-registry
+
+# Explicitly enable an already staged registry after its readiness checks pass
+bash scripts/install/Mac/install-macos.sh --enable-owned-mcp-registry
+bash scripts/install/Linux/install-linux.sh --enable-owned-mcp-registry
+```
+
+The registry is ARM64-only: the selected Docker daemon, not merely the host
+CPU, must report ARM64. Its first preparation streams a manifest-verified
+20-file build context to that daemon; it can download the pinned base image and
+its build dependencies when they are absent. Those Docker layers and the
+registry's private state are normal end-user installation state, not
+repository-only qualification storage. Existing staged installations preserve
+their disabled preference unless explicit enablement is requested.
+
+The wrapper and controlled installer tests cover flag forwarding and
+fail-closed prerequisites. They do not establish a cold macOS or Linux host
+qualification for this optional service; platform profile/daemon readiness is
+still verified during setup.
+
 ## Initial accounts
 
 A fresh platform database starts with these two public training accounts:
@@ -101,6 +149,22 @@ The levels are enforced by the server: **Level 1 — instructor** supports permi
 
 The shared `npm run setup` command assumes native prerequisites are installed and Ollama is running. `--no-install` skips npm installation only; framework/model/browser checks still run. It never suppresses prerequisite installation in an OS wrapper.
 
+The macOS and Linux wrappers verify both Docker Compose v2 and Buildx CLI
+plugins. On macOS, missing plugins are installed through Homebrew and exposed
+under `DOCKER_CONFIG` (or the normal user Docker directory), without replacing
+existing plugins or Docker configuration. Linux uses the configured apt
+repositories and stops if an installed package does not provide a usable plugin.
+Fresh macOS setup checks its selected Colima profile; it does not start Docker
+Desktop as a fallback. Repair keeps the existing daemon selection.
+
+The optional owned MCP registry streams its 20 manifest-verified source files
+to the selected local Docker daemon. Build layers stay in that daemon's storage;
+no second source checkout is needed. Activation requires both general runtime
+health and the tracked registration capability. Its image remains ARM64-only;
+general Intel macOS/Linux installer support does not qualify this optional
+service on AMD64. Neither these checks nor controlled tests establish a new
+clean-machine or actual-model qualification.
+
 No `.env` is overwritten. An existing `.env`, including a symlink, stops the OS wrapper before package changes. Existing installations follow the [migration runbook](../modernization/local-existing-installation-upgrade.md); removing `.env` is not an upgrade strategy. Interrupted fresh setup preserves its private provisioning state for diagnosis and never deletes existing databases.
 
 ## Repair an existing installation
@@ -119,6 +183,32 @@ Stop the application, keep its recorded Docker daemon running, and use the match
 On Linux, adding Docker group membership continues setup in a refreshed user process. Existing terminal/login sessions need sign-out/sign-in before using Docker directly. Docker-group membership grants powerful host access; use a trusted local workshop account. If sudo policy prevents group refresh, sign in again and rerun.
 
 Exercise visibility and objective availability are separate administrator controls. In **Manage Objectives**, use **Enable Available Objectives** or individual switches; hint/solution controls do not enable objectives. SecureShop objectives start disabled. Curriculum qualification does not provision their optional services: enable only objectives whose required local capabilities are available. Pending objectives remain excluded by the server.
+
+### Optional owned System profile preparation
+
+Explicit `--owned-system` setup on supported ARM64 Linux or macOS uses the
+existing exact `dvaia-mcp-sandbox` AppArmor profile. Combined
+`--qualified-secureshop --owned-system` preflight is read-only: it can report a
+missing or unloaded exact profile as requiring preparation. It rejects a
+conflicting profile, symlink, wrong owner or unsafe mode before installation.
+Fresh combined setup selects the fixed Linux Docker socket or the selected
+owned Colima profile before this check, then passes that same explicit endpoint
+to subsequent provisioning. Existing installations retain their recorded
+daemon; conflicting explicit endpoints or profiles are rejected. An unrelated
+active Docker context is never used as a fallback.
+
+During authorized setup or repair, the installer first verifies the recorded
+Docker daemon. It then prepares the profile on that Linux host or the selected
+Colima guest, checks its parser and exact bytes, loads it, and requires enforce
+mode before System provisioning. An already matching enforced profile is
+reused. Publication never overwrites an existing profile; conflicts require
+operator recovery rather than an automatic replacement. No new or broader
+profile is introduced.
+
+`--plan` does not install or load a profile. Normal startup and `startExisting`
+remain verification-only: a missing or changed prerequisite stops startup and
+requires explicit setup/repair. These paths have controlled test coverage;
+this does not claim a completed clean-host installation.
 
 ### Optional owned strict policy renderer
 
@@ -149,6 +239,19 @@ profile. Windows and x86-64 fail closed. The managed listener defaults to
 renderer boundary does not claim outer network-egress isolation. The documented
 surface has controlled test coverage, but a completed cold-host or native
 platform qualification is not claimed.
+
+The renderer's source manifest pins its local build context and its Dockerfile
+pins the Node base image. A first build can still need that base image and the
+Dockerfile's Debian build packages: `--pull=false` prevents an implicit base
+image refresh, but it does not make those dependencies available offline. The
+plan reports this requirement and does not build, pull, or activate anything.
+
+Normal end-user installation intentionally uses supported host and private
+application state, including package-manager/Docker storage and the private
+workspace setup directory under the user's home directory. That is different
+from a repository-only qualification run: such a run must use its separately
+controlled repository-local runtime, cache, and evidence configuration rather
+than invoking an OS installer against the host.
 
 ## Services and recovery
 

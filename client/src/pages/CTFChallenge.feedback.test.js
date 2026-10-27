@@ -82,6 +82,7 @@ async function submitAttempt(node, payload = 'controlled learner prompt') {
   });
   await flush();
 }
+function retainedSubmit(form){const props=form[Object.keys(form).find(key=>key.startsWith('__reactProps$'))];expect(typeof props?.onSubmit).toBe('function');return props.onSubmit;}
 
 beforeEach(() => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
@@ -128,6 +129,82 @@ test.each([
   expect(node.textContent).toContain('2Attempts Made');
 
   act(() => root.unmount());
+});
+
+test.each([
+ ['vulnerable','/attempt',{aiResponse:'one guardian response',attemptNumber:2},'one guardian response'],
+ ['fixed','/practice',{response:'one fixed response',mode:'fixed',practice:true,unscored:true,scoringEligible:false,protectedContextIncluded:false,serverSecretProvided:false},'one fixed response'],
+])('two %s submits in one render append one learner prompt and one response',async(mode,path,result,responseText)=>{
+ const {node,root}=await renderStartedChallenge();
+ if(mode==='fixed')await act(async()=>[...node.querySelectorAll('button')].find(button=>button.textContent==='Fixed practice').click());
+ const textarea=node.querySelector('textarea');
+ await act(async()=>{
+  Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(textarea,'one learner prompt');
+  textarea.dispatchEvent(new Event('input',{bubbles:true}));
+ });
+ axios.post.mockResolvedValue({data:result});
+ const form=textarea.closest('form');
+ await act(async()=>{
+  form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+  form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+ });
+ await flush();
+ expect(axios.post.mock.calls.filter(([url])=>url.endsWith(path))).toHaveLength(1);
+ expect(node.textContent.split('one learner prompt')).toHaveLength(2);
+ expect(node.textContent.split(responseText)).toHaveLength(2);
+ act(()=>root.unmount());
+});
+
+test('lost attempt response keeps the retained submit locked until pending result is dismissed',async()=>{
+ const {node,root}=await renderStartedChallenge();
+ const textarea=node.querySelector('textarea');
+ await act(async()=>{Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(textarea,'parked prompt');textarea.dispatchEvent(new Event('input',{bubbles:true}));});
+ const oldSubmit=retainedSubmit(textarea.closest('form'));
+ axios.post.mockRejectedValueOnce(new Error('lost response'));
+ act(()=>{void oldSubmit({preventDefault(){}});});await flush();
+ expect(node.textContent).toContain('Outcome unknown');
+ act(()=>{void oldSubmit({preventDefault(){}});});await flush();
+ expect(axios.post.mock.calls.filter(([url])=>url.endsWith('/attempt'))).toHaveLength(1);
+ expect(node.textContent.split('parked prompt')).toHaveLength(2);
+ await act(async()=>[...node.querySelectorAll('button')].find(button=>button.textContent==='Dismiss pending result').click());await flush();
+ axios.post.mockResolvedValueOnce({data:{aiResponse:'later current response',attemptNumber:2}});
+ await submitAttempt(node,'new prompt');
+ expect(axios.post.mock.calls.filter(([url])=>url.endsWith('/attempt'))).toHaveLength(2);
+ act(()=>root.unmount());
+});
+test('terminal attempt error releases the claim for a later explicit submit',async()=>{
+ jest.spyOn(console,'error').mockImplementation(()=>{});
+ const {node,root}=await renderStartedChallenge();
+ axios.post.mockRejectedValueOnce({response:{status:400,data:{error:'request rejected'}}});
+ await submitAttempt(node,'first prompt');
+ axios.post.mockResolvedValueOnce({data:{aiResponse:'later response',attemptNumber:2}});
+ await submitAttempt(node,'second prompt');
+ expect(axios.post.mock.calls.filter(([url])=>url.endsWith('/attempt'))).toHaveLength(2);
+ expect(node.textContent).toContain('later response');
+ act(()=>root.unmount());
+});
+test('prior stage completion cannot reopen a pending replacement stage attempt',async()=>{
+ const {node,root,navigateToStage}=await renderStartedChallenge();
+ let finishOld,finishNew;
+ axios.post.mockImplementationOnce(()=>new Promise(resolve=>{finishOld=resolve;}));
+ await submitAttempt(node,'prior stage prompt');
+ const nextStage={...stage,id:6,stage_number:6,stage_name:'Replacement stage'};
+ axios.post.mockResolvedValueOnce({data:{stage:nextStage,attemptsSoFar:0,purchasedHints:[]}});
+ axios.get.mockResolvedValueOnce({data:{config:{}}});
+ await act(async()=>navigateToStage(nextStage));await flush();
+ const textarea=node.querySelector('textarea');
+ await act(async()=>{Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(textarea,'replacement prompt');textarea.dispatchEvent(new Event('input',{bubbles:true}));});
+ const newSubmit=retainedSubmit(textarea.closest('form'));
+ axios.post.mockImplementationOnce(()=>new Promise(resolve=>{finishNew=resolve;}));
+ act(()=>{void newSubmit({preventDefault(){}});});await flush();
+ await act(async()=>finishOld({data:{aiResponse:'late prior stage response',attemptNumber:99}}));await flush();
+ act(()=>{void newSubmit({preventDefault(){}});});await flush();
+ expect(axios.post.mock.calls.filter(([url])=>url==='/api/ctf/stage/6/attempt')).toHaveLength(1);
+ expect(node.textContent.split('replacement prompt')).toHaveLength(2);
+ await act(async()=>finishNew({data:{aiResponse:'replacement response',attemptNumber:1}}));await flush();
+ expect(node.textContent.split('replacement response')).toHaveLength(2);
+ expect(node.textContent).not.toContain('late prior stage response');
+ act(()=>root.unmount());
 });
 
 test('reconciles a counted 503 attempt and unlocks hints from the known gate without claiming it was uncounted', async () => {

@@ -7,6 +7,10 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import {readManualPending,saveManualPending,clearManualPending,verifyManualReceipt,recoverManualPending} from '../../utils/manualReviewOperation.mjs';
 import { createBoundReviewRequests } from '../../utils/boundReviewRequests.mjs';
+import { getBridgeFetchMetadata } from '../../bridge/fetchAdapter.mjs';
+import { shopStorage, SHOP_TOKEN_KEY } from '../../utils/shopStorage.mjs';
+import { createReviewModerationReferenceStore, verifyReviewModerationHistory,
+  verifyReviewModerationLookup } from '../../utils/reviewModerationReference.mjs';
 
 /**
  * Merchant Reviews — M8 Wave 2B.
@@ -27,7 +31,24 @@ export default function MerchantReviews() {
   const reduced = useReducedMotion();
   const { user, token } = useAuth();
   const reviewRequests = useRef(null);
-  if (!reviewRequests.current) reviewRequests.current = createBoundReviewRequests();
+  const transportRef = useRef(null);
+  if (!reviewRequests.current || transportRef.current !== globalThis.fetch) {
+    transportRef.current = globalThis.fetch;
+    reviewRequests.current = createBoundReviewRequests({ fetchImpl: transportRef.current });
+  }
+  const authorityRef = useRef({ id: user?.id, role: user?.role, token,
+    transport: transportRef.current, epoch: 0 });
+  if (authorityRef.current.id !== user?.id || authorityRef.current.role !== user?.role
+    || authorityRef.current.token !== token || authorityRef.current.transport !== transportRef.current) {
+    authorityRef.current = { id: user?.id, role: user?.role, token,
+      transport: transportRef.current, epoch: authorityRef.current.epoch + 1 };
+  }
+  const authorityEpoch = authorityRef.current.epoch;
+  const moderationStore = useRef(null);
+  if (!moderationStore.current) moderationStore.current = createReviewModerationReferenceStore();
+  const [moderationPending, setModerationPending] = useState(null);
+  const [moderationStorageBlocked, setModerationStorageBlocked] = useState(false);
+  const [moderationContinuationVerifiedEpoch, setModerationContinuationVerifiedEpoch] = useState(null);
   const [manualCapability,setManualCapability]=useState(null);
   const [manualPending,setManualPending]=useState(null);
   const [manualRetry,setManualRetry]=useState(false);
@@ -54,7 +75,7 @@ export default function MerchantReviews() {
   const mountedRef = useRef(true);
   const latestLoadRef = useRef(null);
   const moderationContinuationRef = useRef(null);
-  const filterKey = `${user?.id || ''}|${user?.role || ''}|${token || ''}|${status}|${productId}|${minRating}|${maxRating}`;
+  const filterKey = `${user?.id || ''}|${user?.role || ''}|${token || ''}|${authorityEpoch}|${status}|${productId}|${minRating}|${maxRating}`;
   const filterKeyRef = useRef(filterKey);
   filterKeyRef.current = filterKey;
   const listCurrent = loadedFilterKey === filterKey;
@@ -71,7 +92,18 @@ export default function MerchantReviews() {
     setBusy(false);
     setModerationResult(null);
     setActionFeedback(null);setManualCapability(null);setManualPending(null);setManualRetry(false);
-  }, [user?.id, user?.role, token]);
+    setModerationContinuationVerifiedEpoch(null);
+    if (reviewRequests.current.bound) {
+      try {
+        if (typeof token !== 'string' || !token
+          || shopStorage.getItem(SHOP_TOKEN_KEY) !== token
+          || getBridgeFetchMetadata(transportRef.current)?.boundReviews !== true)
+          throw new Error('Review authority unavailable');
+        setModerationPending(moderationStore.current.read()); setModerationStorageBlocked(false);
+      }
+      catch { setModerationPending(null); setModerationStorageBlocked(true); }
+    } else { setModerationPending(null); setModerationStorageBlocked(false); }
+  }, [user?.id, user?.role, token, authorityEpoch]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -137,7 +169,236 @@ export default function MerchantReviews() {
 
   useEffect(() => { load(); }, [load]);
 
+  const refreshModerationReference = () => {
+    try {
+      if (typeof authorityRef.current.token !== 'string' || !authorityRef.current.token
+        || shopStorage.getItem(SHOP_TOKEN_KEY) !== authorityRef.current.token
+        || getBridgeFetchMetadata(authorityRef.current.transport)?.boundReviews !== true)
+        throw new Error('Review authority unavailable');
+      const saved = moderationStore.current.read();
+      setModerationPending(saved);
+      setModerationStorageBlocked(false);
+      return saved;
+    } catch {
+      setModerationPending(null);
+      setModerationStorageBlocked(true);
+      return null;
+    }
+  };
+  const moderationReceipt = async (requests, requestId, requestedLimit, recoveryScopeKey, signal) => {
+    const query = new URLSearchParams({ limit: String(requestedLimit) });
+    if (recoveryScopeKey) query.set('recoveryScopeKey', recoveryScopeKey);
+    return readResponse(requests.fetch(`/api/secureshop/merchant/reviews/moderation/${requestId}?${query}`, {
+      signal, headers: { accept: 'application/json' },
+    }), 'Saved moderation status unavailable');
+  };
+  const moderationHistory = async (requests, reference, signal, assertCurrent) => {
+    const lookups = [];
+    for (const [requestId, requestedLimit] of reference.completed) {
+      assertCurrent();
+      lookups.push(await moderationReceipt(requests, requestId, requestedLimit,
+        reference.recoveryScopeKey, signal));
+      assertCurrent();
+    }
+    verifyReviewModerationHistory(reference, lookups);
+    return lookups;
+  };
+  const reportModerationHistory = (reference, lookups) => {
+    const totals = verifyReviewModerationHistory(reference, lookups);
+    const decisions = lookups.flatMap(value => value.result.decisions);
+    return { ...totals, decisions };
+  };
+  const runBoundModeration = async (continueSaved = false) => {
+    if (actionInFlightRef.current || manualPending || listLoading || listError
+      || moderationStorageBlocked || (continueSaved && moderationContinuationVerifiedEpoch !== authorityEpoch)) return;
+    const requests = reviewRequests.current;
+    if (!requests.bound || requests.fetch !== reviewRequests.current.fetch) return;
+    actionInFlightRef.current = true;
+    const actionId = ++actionRequestRef.current;
+    const authority = authorityRef.current;
+    const startingFilterKey = filterKeyRef.current;
+    const controller = new AbortController();
+    actionAbortRef.current = controller;
+    const assertCurrent = () => {
+      if (!mountedRef.current || actionRequestRef.current !== actionId
+        || authorityRef.current.epoch !== authority.epoch
+        || authorityRef.current.transport !== authority.transport
+        || filterKeyRef.current !== startingFilterKey || controller.signal.aborted
+        || globalThis.fetch !== authority.transport
+        || getBridgeFetchMetadata(authority.transport)?.boundReviews !== true
+        || shopStorage.getItem(SHOP_TOKEN_KEY) !== authority.token) {
+        throw new DOMException('Review authority changed', 'AbortError');
+      }
+      return true;
+    };
+    setBusy(true); setActionFeedback(null); setModerationResult(null);
+    try {
+      assertCurrent();
+      let reference = moderationStore.current.read();
+      if (reference?.pending || (continueSaved && !reference)
+        || (!continueSaved && reference)) {
+        throw new Error(reference?.pending
+          ? 'A saved moderation batch needs a status check before another action.'
+          : 'Check or continue the saved moderation before starting a new action.');
+      }
+      let history = reference
+        ? await moderationHistory(requests, reference, controller.signal, assertCurrent) : [];
+      if (reference && !verifyReviewModerationHistory(reference, history).canContinue) {
+        throw new Error('Saved moderation has no authorized continuation. Check its status first.');
+      }
+      const originalActionId = reference?.actionId || crypto.randomUUID();
+      while (true) {
+        assertCurrent();
+        const totals = reference ? reportModerationHistory(reference, history)
+          : { considered: 0, processed: 0, decisions: [], remaining: 100 };
+        if (!totals.remaining) break;
+        const requestId = crypto.randomUUID();
+        const requestedLimit = totals.remaining;
+        const preflight = await moderationReceipt(requests, requestId, requestedLimit,
+          reference?.recoveryScopeKey, controller.signal);
+        assertCurrent();
+        verifyReviewModerationLookup(preflight, {
+          requestId, requestedLimit,
+          ...(reference ? { recoveryScopeKey: reference.recoveryScopeKey } : {}),
+        });
+        reference = reference
+          ? await moderationStore.current.reserveNextPost({ requestId, requestedLimit },
+            preflight, history, { assertCurrent })
+          : await moderationStore.current.reserveInitialPost({ actionId: originalActionId,
+            requestId }, preflight, { assertCurrent });
+        assertCurrent();
+        setModerationPending(reference);
+        const body = { request_id: requestId, limit: requestedLimit,
+          recoveryScopeKey: reference.recoveryScopeKey };
+        await readResponse(requests.fetch('/api/secureshop/merchant/reviews/moderate-all', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body), signal: controller.signal,
+        }), 'Moderation outcome is unknown');
+        assertCurrent();
+        const receipt = await moderationReceipt(requests, requestId, requestedLimit,
+          reference.recoveryScopeKey, controller.signal);
+        assertCurrent();
+        const observed = moderationStore.current.observePending(receipt);
+        if (observed.state !== 'completed') {
+          setActionFeedback({ kind: 'error', message: 'Moderation outcome is not yet confirmed. Check the saved batch; it will not be posted again.' });
+          return;
+        }
+        const recorded = await moderationStore.current.recordCompleted(receipt, history,
+          { assertCurrent });
+        assertCurrent();
+        reference = recorded.reference;
+        history = [...history, receipt];
+        setModerationPending(reference);
+        const aggregate = reportModerationHistory(reference, history);
+        setModerationResult({ processed: aggregate.processed, decisions: aggregate.decisions,
+          batch: { considered: aggregate.considered } });
+        if (aggregate.canContinue) { setModerationContinuationVerifiedEpoch(authority.epoch); continue; }
+        await latestLoadRef.current();
+        assertCurrent();
+        await moderationStore.current.finish(history, { assertCurrent });
+        assertCurrent();
+        setModerationPending(null);
+        setModerationContinuationVerifiedEpoch(null);
+        setActionFeedback(receipt.result.ok
+          ? { kind: 'success', message: moderationSuccessMessage(aggregate) }
+          : { kind: 'error', message: boundedText(receipt.result.stopReason)
+            || `Moderation stopped after ${aggregate.processed} review(s).` });
+        return;
+      }
+    } catch (error) {
+      if (mountedRef.current && actionRequestRef.current === actionId
+        && authorityRef.current.epoch === authority.epoch) {
+        refreshModerationReference();
+        setActionFeedback({ kind: 'error', message: boundedMessage(error,
+          'Moderation outcome is unknown. Check the saved batch before another action.') });
+      }
+    } finally {
+      if (actionRequestRef.current === actionId) {
+        actionAbortRef.current = null; actionInFlightRef.current = false;
+        if (mountedRef.current) setBusy(false);
+      }
+    }
+  };
+  const checkSavedModeration = async () => {
+    if (actionInFlightRef.current || moderationStorageBlocked || !reviewRequests.current.bound) return;
+    const requests = reviewRequests.current;
+    actionInFlightRef.current = true;
+    const actionId = ++actionRequestRef.current;
+    const authority = authorityRef.current;
+    const controller = new AbortController();
+    actionAbortRef.current = controller;
+    const assertCurrent = () => {
+      if (!mountedRef.current || actionRequestRef.current !== actionId
+        || authorityRef.current.epoch !== authority.epoch
+        || authorityRef.current.transport !== authority.transport || controller.signal.aborted
+        || globalThis.fetch !== authority.transport
+        || getBridgeFetchMetadata(authority.transport)?.boundReviews !== true
+        || shopStorage.getItem(SHOP_TOKEN_KEY) !== authority.token) {
+        throw new DOMException('Review authority changed', 'AbortError');
+      }
+      return true;
+    };
+    setBusy(true); setActionFeedback(null);
+    try {
+      assertCurrent();
+      let reference = moderationStore.current.read();
+      if (!reference) throw new Error('No saved moderation is available in this shop scene.');
+      let history = await moderationHistory(requests, reference, controller.signal, assertCurrent);
+      if (reference.pending) {
+        const { requestId, requestedLimit } = reference.pending;
+        assertCurrent();
+        const receipt = await moderationReceipt(requests, requestId, requestedLimit,
+          reference.recoveryScopeKey, controller.signal);
+        assertCurrent();
+        const observed = moderationStore.current.observePending(receipt);
+        if (observed.state !== 'completed') {
+          setActionFeedback({ kind: 'error', message: 'No completed moderation receipt observed yet. The saved batch remains unresolved; no POST was sent.' });
+          return;
+        }
+        const recorded = await moderationStore.current.recordCompleted(receipt, history,
+          { assertCurrent });
+        assertCurrent();
+        reference = recorded.reference;
+        history = [...history, receipt];
+      }
+      const aggregate = reportModerationHistory(reference, history);
+      assertCurrent();
+      setModerationPending(reference);
+      setModerationResult({ processed: aggregate.processed, decisions: aggregate.decisions,
+        batch: { considered: aggregate.considered } });
+      if (aggregate.canContinue) {
+        setModerationContinuationVerifiedEpoch(authority.epoch);
+        setActionFeedback({ kind: 'success', message: `Saved moderation verified. Continue the remaining ${aggregate.remaining} review(s) only if you choose to.` });
+      } else {
+        await latestLoadRef.current();
+        assertCurrent();
+        await moderationStore.current.finish(history, { assertCurrent });
+        assertCurrent();
+        setModerationPending(null);
+        setModerationContinuationVerifiedEpoch(null);
+        const last = history[history.length - 1].result;
+        setActionFeedback(last.ok
+          ? { kind: 'success', message: moderationSuccessMessage(aggregate) }
+          : { kind: 'error', message: boundedText(last.stopReason)
+            || `Moderation stopped after ${aggregate.processed} review(s).` });
+      }
+    } catch (error) {
+      if (mountedRef.current && actionRequestRef.current === actionId
+        && authorityRef.current.epoch === authority.epoch) {
+        refreshModerationReference();
+        setActionFeedback({ kind: 'error', message: boundedMessage(error,
+          'Saved moderation remains unresolved; no POST was sent.') });
+      }
+    } finally {
+      if (actionRequestRef.current === actionId) {
+        actionAbortRef.current = null; actionInFlightRef.current = false;
+        if (mountedRef.current) setBusy(false);
+      }
+    }
+  };
+
   const runModerationAll = async () => {
+    if (reviewRequests.current.bound) return runBoundModeration(false);
     if (manualPending || actionInFlightRef.current || listLoading || listError) return;
     actionInFlightRef.current = true;
     const actionId = actionRequestRef.current + 1;
@@ -398,6 +659,10 @@ export default function MerchantReviews() {
           <p className="ss-mono" style={{ opacity: 0.7, maxWidth: '68ch' }}>
             {reviewRequests.current.bound ? <>
               This shop sends pending reviews through an actual model decision loop.
+              {' '}Clicking Moderate pending lets the model approve or reject up to 100
+              pending reviews for your products, in batches. The filters only change
+              the displayed list, not which pending reviews this action considers.
+              {' '}
               Review text is untrusted content; compare the model's observed tool actions with
               the trusted product-feedback policy.
             </> : <>
@@ -412,7 +677,8 @@ export default function MerchantReviews() {
           <button className="ss-btn ss-btn--ghost" onClick={load} aria-label="Refresh" disabled={listLoading}>
             <RefreshCw size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Refresh
           </button>
-          <button className="ss-btn" disabled={busy || !!manualPending || listLoading || !!listError} onClick={runModerationAll} data-testid="reviews-moderate-all">
+          <button className="ss-btn" disabled={busy || !!manualPending || listLoading || !!listError
+            || (reviewRequests.current.bound && (!!moderationPending || moderationStorageBlocked))} onClick={runModerationAll} data-testid="reviews-moderate-all">
             <Sparkles size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             {busy ? 'Moderating…' : 'Moderate pending'}
           </button>
@@ -435,6 +701,16 @@ export default function MerchantReviews() {
       )}
 
       {reviewRequests.current.bound && !manualCapability && !listLoading && !listError && <div role="status" className="ss-mono">Manual decisions are unavailable for this launch.</div>}
+      {reviewRequests.current.bound && moderationStorageBlocked && <div role="alert" className="ss-mono">Saved moderation storage is unavailable. No new moderation batch can be sent.</div>}
+      {reviewRequests.current.bound && moderationPending && <div role="status" className="ss-mono">
+        {moderationPending.pending
+          ? 'A saved moderation batch has an unverified outcome. It will not be posted again.'
+          : 'Saved moderation is ready for a deliberate continuation or final status check.'}
+        {' '}<button className="ss-btn" disabled={busy} onClick={checkSavedModeration}>Check saved moderation</button>
+        {!moderationPending.pending && moderationContinuationVerifiedEpoch === authorityEpoch
+          && <button className="ss-btn" disabled={busy || listLoading || !!listError}
+          onClick={() => runBoundModeration(true)}>Continue remaining</button>}
+      </div>}
       {manualPending && <div role="status" className="ss-mono">A saved review decision awaits verification. <button className="ss-btn" disabled={busy} onClick={()=>manualAction(manualPending,true)}>Refresh decision status</button>{manualRetry && <button className="ss-btn" disabled={busy} onClick={()=>manualAction(manualPending)}>Retry saved decision</button>}</div>}
 
       <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--rule)' }}>

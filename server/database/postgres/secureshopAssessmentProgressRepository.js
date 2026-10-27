@@ -1,18 +1,20 @@
 'use strict';
-const {isAssessmentReleaseAllowed}=require('../../config/secureshopCurriculum');
+const {resolveAssessmentReleaseAdmission}=require('../../services/secureshopAssessmentReleaseAdmission');
 
 const { assertSecureShopStandaloneAuthPrincipal } = require('../../services/secureshopStandaloneAuth');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const fail = code => Object.assign(new Error('Shop progress unavailable'), { code });
 
-function createSecureShopAssessmentProgressRepository({ pool, executionTenantSlug = 'default' } = {}) {
+function createSecureShopAssessmentProgressRepository({ pool, executionTenantSlug = 'default', assessmentReleaseAdmission } = {}) {
   if (typeof pool?.connect !== 'function' || typeof executionTenantSlug !== 'string'
       || !/^[a-z][a-z0-9_-]{0,63}$/.test(executionTenantSlug)) {
     throw new TypeError('Shop progress database and execution tenant required');
   }
+  const release = resolveAssessmentReleaseAdmission(assessmentReleaseAdmission, { identityPool: pool });
 
   async function consistent(work) {
+    await release.assertCurrent();
     const client = await pool.connect();
     let discard;
     try {
@@ -104,7 +106,7 @@ function createSecureShopAssessmentProgressRepository({ pool, executionTenantSlu
         throw fail('SHOP_PROGRESS_UNAVAILABLE');
       }
       generations.set(row.principalId, row.generation);
-      if (row.objectiveId === null || !isAssessmentReleaseAllowed(row.objectiveId)) continue;
+      if (row.objectiveId === null || !release.isAllowed(row.objectiveId)) continue;
       if (typeof row.objectiveId !== 'string' || typeof row.label !== 'string'
           || typeof row.completed !== 'boolean') throw fail('SHOP_PROGRESS_UNAVAILABLE');
       objectives.push(Object.freeze({ objectiveId: row.objectiveId,

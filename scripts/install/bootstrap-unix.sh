@@ -39,6 +39,8 @@ OWNED_COUPONS=false
 QUALIFIED_SECURESHOP=false
 OWNED_MCP_REGISTRY=false
 ENABLE_MCP_REGISTRY=false
+OWNED_POLICY_RENDERER=false
+ENABLE_POLICY_RENDERER=false
 for argument in "$@"; do
   case "$argument" in
     --plan) PLAN=true ;;
@@ -55,7 +57,9 @@ for argument in "$@"; do
     --qualified-secureshop) QUALIFIED_SECURESHOP=true ;;
     --owned-mcp-registry) OWNED_MCP_REGISTRY=true ;;
     --enable-owned-mcp-registry) OWNED_MCP_REGISTRY=true; ENABLE_MCP_REGISTRY=true ;;
-    --help) echo 'Usage: OS installer [--plan] [--no-install] [--upgrade|--repair] [--owned-analytics] [--owned-coupons] [--enable-owned-analytics] [--owned-system] [--owned-listings] [--enable-owned-listings] [--owned-pricing] [--qualified-secureshop] [--owned-mcp-registry] [--enable-owned-mcp-registry]. --upgrade is database-only; --repair also prepares missing local prerequisites and locked dependencies.'; exit 0 ;;
+    --owned-policy-renderer) OWNED_POLICY_RENDERER=true ;;
+    --enable-owned-policy-renderer) ENABLE_POLICY_RENDERER=true ;;
+    --help) echo 'Usage: OS installer [--plan] [--no-install] [--upgrade|--repair] [--owned-analytics] [--owned-coupons] [--enable-owned-analytics] [--owned-system] [--owned-listings] [--enable-owned-listings] [--owned-pricing] [--qualified-secureshop] [--owned-mcp-registry] [--enable-owned-mcp-registry] [--owned-policy-renderer] [--enable-owned-policy-renderer]. --upgrade is database-only; --repair also prepares missing local prerequisites and locked dependencies.'; exit 0 ;;
     *) die "Unknown installation argument: $argument" ;;
   esac
 done
@@ -65,6 +69,9 @@ if "$QUALIFIED_SECURESHOP" && ! "$OWNED_SYSTEM"; then
 fi
 if "$ENABLE_LISTINGS" && ! "$OWNED_LISTINGS"; then
   die '--enable-owned-listings requires --owned-listings.'
+fi
+if "$ENABLE_POLICY_RENDERER" && ! "$OWNED_POLICY_RENDERER"; then
+  die '--enable-owned-policy-renderer requires --owned-policy-renderer.'
 fi
 if "$PLAN"; then
   if "$OWNED_MCP_REGISTRY" || "$QUALIFIED_SECURESHOP"; then
@@ -77,6 +84,15 @@ if "$PLAN"; then
   fi
   if "$OWNED_PRICING"; then
     echo 'Owned Pricing opt-in: delegates readiness and existing prerequisite checks to application setup; preserves existing configuration and data. Plan performs no provisioning or activation.'
+  fi
+  if "$OWNED_POLICY_RENDERER"; then
+    echo 'Owned strict policy renderer: ARM64 macOS/Linux only. Application setup verifies the actual Node and selected Docker-daemon architecture before renderer provisioning; this wrapper does not infer it from uname.'
+    echo 'Its pinned Node base image and Debian build packages may require network access when absent. The renderer source manifest and Docker --pull=false do not make a cold build offline. Plan performs no build, provisioning or activation.'
+    if "$ENABLE_POLICY_RENDERER"; then
+      echo 'Owned strict policy renderer explicit enablement: activates only after the paired private renderer is provisioned, source-bound and ready.'
+    else
+      echo 'Owned strict policy renderer preparation preserves an existing disabled preference.'
+    fi
   fi
   if "$OWNED_LISTINGS"; then
     if "$ENABLE_LISTINGS"; then
@@ -96,7 +112,7 @@ if "$PLAN"; then
     fi
   fi
   if "$OWNED_SYSTEM"; then
-    echo 'Owned System opt-in: requires the reviewed local Docker authority and enforced sandbox profile; currently qualified on ARM64 only. These prerequisites are not automatically established by this flag.'
+    echo 'Owned System opt-in: ARM64 only. Explicit setup verifies the selected local Docker authority and prepares a missing exact sandbox profile before private service provisioning; conflicts fail closed. Plan performs no installation or activation.'
   fi
   if "$UPGRADE"; then
     if "$REPAIR"; then
@@ -164,6 +180,11 @@ command -v git >/dev/null || die 'Git installation failed.'
 command -v ollama >/dev/null || die 'Ollama installation failed.'
 wait_for_local_ollama
 if [[ -z "${PG_ADMIN_DATABASE_URL:-}" ]]; then
-  docker info >/dev/null 2>&1 || die 'Docker is unavailable for PostgreSQL provisioning; check the service and user permissions.'
+  if [[ "$EXPECTED_OS" == Darwin ]]; then
+    docker --context "$DVAIA_MCP_OWNED_COLIMA_PROFILE" info >/dev/null 2>&1 ||
+      die 'The selected Colima Docker daemon is unavailable for PostgreSQL provisioning; inspect that profile and rerun.'
+  else
+    docker info >/dev/null 2>&1 || die 'Docker is unavailable for PostgreSQL provisioning; check the service and user permissions.'
+  fi
 fi
 exec npm run setup -- ${INSTALL_ARGS[@]+"${INSTALL_ARGS[@]}"}

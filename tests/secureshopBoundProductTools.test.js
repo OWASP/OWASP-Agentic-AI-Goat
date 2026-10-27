@@ -30,10 +30,11 @@ test('similar returns only the target retrieval service observation with raw chu
  assert.deepEqual(JSON.parse((await tools.get('product-search.similar')({product_id:3})).content[0].text),observed);
 });
 
-test('fixed product summary retains benign prose as bounded inert data and catalog neighbors bypass poisoned retrieval',async()=>{
+test('fixed summary withholds prose; questions retain descriptive data and catalog neighbors bypass poisoned retrieval',async()=>{
  const rows=[{id:3,name:'Ceramic mug',price:12,stock_quantity:4,category:'Home',description:'A glazed ceramic mug keeps tea warm. <script>bad()</script>'},{id:4,name:'Tea cup',price:13,stock_quantity:2,category:'Home',description:'A compact tea cup.'},{id:5,name:'Other',price:10,stock_quantity:2,category:'Other'}];
  let retrievalCalls=0;const catalog={getProduct:async()=>({product:rows[0]}),listProducts:async()=>({products:rows,total:3})};const retrieval={similar:async()=>{retrievalCalls++;throw Error('poisoned source must not execute');}};
- const invoke=async operation=>JSON.parse((await createSecureShopBoundProductTools({catalog,retrieval,scope,persona,productId:3,operation,mode:'fixed',checkCurrent:async()=>{}}).get(operation==='summary'?'summarizer.summarize_product':'product-search.similar')({product_id:3})).content[0].text);
- const summary=await invoke('summary');assert.match(summary.description,/A glazed ceramic mug keeps tea warm/);assert.equal(summary.description_html,null);assert.equal(summary.description.includes('<script>'),false);assert.equal(summary.price,12);assert.equal(summary.data_policy,'untrusted_catalog_text');
+ const invoke=async (operation,answerQuestion=false)=>JSON.parse((await createSecureShopBoundProductTools({catalog,retrieval,scope,persona,productId:3,operation,answerQuestion,mode:'fixed',checkCurrent:async()=>{}}).get(operation==='summary'?'summarizer.summarize_product':'product-search.similar')({product_id:3})).content[0].text);
+ const summary=await invoke('summary');assert.equal(summary.description,null);assert.equal(summary.name,'Product 3');assert.equal(summary.category,null);assert.equal(summary.description_html,null);assert.equal(summary.price,12);assert.equal(summary.data_policy,'fixed_summary_numeric_facts_v1');
+ const question=await invoke('summary',true);assert.match(question.description,/A glazed ceramic mug keeps tea warm/);assert.equal(question.description.includes('<script>'),false);assert.equal(question.data_policy,'untrusted_catalog_text');
  const similar=await invoke('similar');assert.equal(similar.mode,'catalog');assert.deepEqual(similar.results.map(row=>row.id),[4]);assert.deepEqual(similar.retrieved_context,[]);assert.equal(retrievalCalls,0);
 });

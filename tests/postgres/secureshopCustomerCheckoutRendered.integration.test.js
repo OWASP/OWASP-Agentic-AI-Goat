@@ -10,11 +10,13 @@ const path = require('node:path');
 const os = require('node:os');
 const { randomUUID } = require('node:crypto');
 const commerceContract = require('../../server/services/secureshopConversationalCommerceContract');
+const { recoveredOrderVisible } = require('../fixtures/secureshopManualCheckoutReceiptWitness');
 const { Pool } = require('pg');
 const { migrate } = require('../../db/postgres/migrate');
 
 const CART_LIFECYCLE = process.env.SECURESHOP_CUSTOMER_CART_LIFECYCLE_NATIVE === '1';
 const CHECKOUT_FENCES = process.env.SECURESHOP_CUSTOMER_CHECKOUT_FENCES_NATIVE === '1';
+const MANUAL_CHECKOUT = process.env.SECURESHOP_CUSTOMER_MANUAL_CHECKOUT_NATIVE === '1';
 const V01_AUDIT = process.env.SECURESHOP_V01_AUDIT_BROWSER_NATIVE === '1';
 const V29_AGENCY = process.env.SECURESHOP_V29_AGENCY_BROWSER_NATIVE === '1';
 const V07_POLYGLOT = process.env.SECURESHOP_V07_POLYGLOT_BROWSER_NATIVE === '1';
@@ -26,6 +28,7 @@ const V19_SUMMARY = process.env.SECURESHOP_V19_FILE_SUMMARY_BROWSER_NATIVE === '
 const V19_DIAGNOSTIC = process.env.SECURESHOP_V19_FILE_SUMMARY_DIAGNOSTIC_NATIVE === '1';
 if (V19_DIAGNOSTIC && !V19_SUMMARY) throw new Error('V19 diagnostic requires the V19 rendered cohort');
 const V19 = V19_SUMMARY ? require('../fixtures/secureshopV19RenderedCohort') : null;
+const V19_BROWSER_ADMISSION = V19_SUMMARY ? require('../fixtures/secureshopV19BrowserAdmission') : null;
 const UPLOAD_BROWSER = V07_POLYGLOT || V06_UPLOAD || V08_SVG || V46_TRAVERSAL;
 const CHECKOUT_LIFECYCLE = process.env.SECURESHOP_CUSTOMER_CHECKOUT_NATIVE === '1' || V01_AUDIT;
 const PAYMENT_SETUP = process.env.SECURESHOP_CUSTOMER_PAYMENT_SETUP_NATIVE === '1';
@@ -35,9 +38,10 @@ const REFUND_HANDOFF = process.env.SECURESHOP_CUSTOMER_REFUND_HANDOFF_NATIVE ===
 const OLDER_ORDERS = process.env.SECURESHOP_CUSTOMER_OLDER_ORDERS_NATIVE === '1';
 const PRODUCT_DETAILS = process.env.SECURESHOP_CUSTOMER_PRODUCT_DETAILS_NATIVE === '1';
 const STOCK_REJECTION = process.env.SECURESHOP_CUSTOMER_OUT_OF_STOCK_NATIVE === '1';
-if ([V29_AGENCY, V44_PATH_SUMMARY, V19_SUMMARY, V07_POLYGLOT, V06_UPLOAD, V08_SVG, V46_TRAVERSAL, CHECKOUT_FENCES, CART_LIFECYCLE, CHECKOUT_LIFECYCLE, PAYMENT_SETUP, ADDRESS_SETUP, PROFILE, REFUND_HANDOFF, OLDER_ORDERS, PRODUCT_DETAILS, STOCK_REJECTION].filter(Boolean).length > 1)
+if ([V29_AGENCY, V44_PATH_SUMMARY, V19_SUMMARY, V07_POLYGLOT, V06_UPLOAD, V08_SVG, V46_TRAVERSAL, CHECKOUT_FENCES, MANUAL_CHECKOUT, CART_LIFECYCLE, CHECKOUT_LIFECYCLE, PAYMENT_SETUP, ADDRESS_SETUP, PROFILE, REFUND_HANDOFF, OLDER_ORDERS, PRODUCT_DETAILS, STOCK_REJECTION].filter(Boolean).length > 1)
   throw new Error('Customer checkout, cart, payment, address, profile, refund, and product-detail gates are mutually exclusive');
 const PREFIX = STOCK_REJECTION ? 'PG_SECURESHOP_CUSTOMER_OUT_OF_STOCK_'
+  : MANUAL_CHECKOUT ? 'PG_SECURESHOP_CUSTOMER_CHECKOUT_'
   : PRODUCT_DETAILS ? 'PG_SECURESHOP_CUSTOMER_PRODUCT_DETAILS_'
   : OLDER_ORDERS ? 'PG_SECURESHOP_CUSTOMER_OLDER_ORDERS_'
   : REFUND_HANDOFF ? 'PG_SECURESHOP_CUSTOMER_REFUND_HANDOFF_'
@@ -122,6 +126,11 @@ function addressResultCode(result) {
   try { return addressDiagnosticCode(JSON.parse(text)?.code); } catch { return null; }
 }
 const CHECKOUT_FENCES_SCOPE = 'current-main customer checkout stock and price quote invalidation, two-tab recovery of one confirmation, and later real-session denial with actual local llama3.1:8b';
+const MANUAL_CHECKOUT_SCOPE = 'current-main direct Checkout page prepare, explicit confirm, committed lost acknowledgement, exact saved GET, and isolated owner and sibling effects with zero actor and Judge calls';
+const MANUAL_CHECKOUT_FLAGS = ['passed', 'isolatedStores', 'physicalPrepareOnce', 'zeroEffectBeforeConfirm',
+  'explicitReviewedConfirmOnce', 'committedAckLost', 'failedGetRetainsPending', 'fullReloadExactGetOnly',
+  'oneJournalAndOrderEffect', 'siblingPreserved', 'foreignSessionDenied', 'resetSessionDenied',
+  'noActorJudgeOrCredit', 'fixtureCleaned'];
 const CHECKOUT_FENCES_FLAGS = ['isolatedStores', 'modelPreparedThreeQuotes', 'renderedStockStaleNoEffect',
   'renderedPriceStaleNoEffect', 'renderedFreshQuoteCurrentFacts', 'renderedTwoTabRecoveryOneEffect',
   'exactDuplicateReceipt', 'changedPrepareIntentDenied', 'laterRealSessionDenied', 'noObjectiveCredit', 'fixtureCleaned'];
@@ -185,12 +194,12 @@ const PRODUCT_FLAGS = ['isolatedStores', 'seededSimilarOwnedProducts', 'rendered
 const STOCK_FLAGS = ['isolatedStores', 'seededZeroStockProducts', 'renderedAmbiguousProductChoices',
   'modelSelectedRejectedAdd', 'renderedSavedStockRejection', 'exactGetRecoveryNoReplay',
   'siblingRejectionPrivate', 'noCommerceOrJudgeEffect', 'controlledRestockReplay', 'fixtureCleaned'];
-const SCOPE = V29_AGENCY ? V29_SCOPE : V44_PATH_SUMMARY ? V44_SCOPE : V19_SUMMARY ? V19.SCOPE : V46_TRAVERSAL ? V46_SCOPE : V08_SVG ? V08_SCOPE : V07_POLYGLOT ? V07_SCOPE : V06_UPLOAD ? V06_SCOPE : CHECKOUT_FENCES ? CHECKOUT_FENCES_SCOPE : STOCK_REJECTION ? STOCK_SCOPE : PRODUCT_DETAILS ? PRODUCT_SCOPE : OLDER_ORDERS ? OLDER_ORDERS_SCOPE : REFUND_HANDOFF ? REFUND_SCOPE : ADDRESS_SETUP ? ADDRESS_SCOPE : PROFILE ? PROFILE_SCOPE
+const SCOPE = V29_AGENCY ? V29_SCOPE : V44_PATH_SUMMARY ? V44_SCOPE : V19_SUMMARY ? V19.SCOPE : V46_TRAVERSAL ? V46_SCOPE : V08_SVG ? V08_SCOPE : V07_POLYGLOT ? V07_SCOPE : V06_UPLOAD ? V06_SCOPE : MANUAL_CHECKOUT ? MANUAL_CHECKOUT_SCOPE : CHECKOUT_FENCES ? CHECKOUT_FENCES_SCOPE : STOCK_REJECTION ? STOCK_SCOPE : PRODUCT_DETAILS ? PRODUCT_SCOPE : OLDER_ORDERS ? OLDER_ORDERS_SCOPE : REFUND_HANDOFF ? REFUND_SCOPE : ADDRESS_SETUP ? ADDRESS_SCOPE : PROFILE ? PROFILE_SCOPE
   : PAYMENT_SETUP ? PAYMENT_SCOPE : CART_LIFECYCLE ? CART_SCOPE : CHECKOUT_SCOPE;
-const FLAGS = V29_AGENCY ? V29_FLAGS : V44_PATH_SUMMARY ? V44_FLAGS : V19_SUMMARY ? V19.FLAGS : V46_TRAVERSAL ? V46_FLAGS : V08_SVG ? V08_FLAGS : V07_POLYGLOT ? V07_FLAGS : V06_UPLOAD ? V06_FLAGS : CHECKOUT_FENCES ? CHECKOUT_FENCES_FLAGS : STOCK_REJECTION ? STOCK_FLAGS : PRODUCT_DETAILS ? PRODUCT_FLAGS : OLDER_ORDERS ? OLDER_ORDERS_FLAGS : REFUND_HANDOFF ? REFUND_FLAGS : ADDRESS_SETUP ? ADDRESS_FLAGS : PROFILE ? PROFILE_FLAGS
+const FLAGS = V29_AGENCY ? V29_FLAGS : V44_PATH_SUMMARY ? V44_FLAGS : V19_SUMMARY ? V19.FLAGS : V46_TRAVERSAL ? V46_FLAGS : V08_SVG ? V08_FLAGS : V07_POLYGLOT ? V07_FLAGS : V06_UPLOAD ? V06_FLAGS : MANUAL_CHECKOUT ? MANUAL_CHECKOUT_FLAGS : CHECKOUT_FENCES ? CHECKOUT_FENCES_FLAGS : STOCK_REJECTION ? STOCK_FLAGS : PRODUCT_DETAILS ? PRODUCT_FLAGS : OLDER_ORDERS ? OLDER_ORDERS_FLAGS : REFUND_HANDOFF ? REFUND_FLAGS : ADDRESS_SETUP ? ADDRESS_FLAGS : PROFILE ? PROFILE_FLAGS
   : PAYMENT_SETUP ? PAYMENT_FLAGS : CART_LIFECYCLE ? CART_FLAGS : V01_AUDIT ? V01_CHECKOUT_FLAGS : CHECKOUT_FLAGS;
-const ENABLED = (V29_AGENCY || V44_PATH_SUMMARY || V19_SUMMARY || UPLOAD_BROWSER || V01_AUDIT || CHECKOUT_FENCES || CART_LIFECYCLE || CHECKOUT_LIFECYCLE || PAYMENT_SETUP || ADDRESS_SETUP || PROFILE || REFUND_HANDOFF || OLDER_ORDERS || PRODUCT_DETAILS || STOCK_REJECTION)
-  && process.env.PG_TEST_DISPOSABLE === 'yes' && process.env.LIVE_OLLAMA_TEST === '1'
+const ENABLED = (V29_AGENCY || V44_PATH_SUMMARY || V19_SUMMARY || UPLOAD_BROWSER || V01_AUDIT || CHECKOUT_FENCES || MANUAL_CHECKOUT || CART_LIFECYCLE || CHECKOUT_LIFECYCLE || PAYMENT_SETUP || ADDRESS_SETUP || PROFILE || REFUND_HANDOFF || OLDER_ORDERS || PRODUCT_DETAILS || STOCK_REJECTION)
+  && process.env.PG_TEST_DISPOSABLE === 'yes' && (MANUAL_CHECKOUT || process.env.LIVE_OLLAMA_TEST === '1')
   && Object.keys(STORES).every(store => ['MIGRATION', 'RUNTIME']
     .every(role => process.env[`${PREFIX}${store}_${role}_URL`]));
 
@@ -225,7 +234,7 @@ async function frameFor(page) {
     return frame && !frame.detached ? frame : null;
   }, 'shop frame');
 }
-async function click(frame, text) {
+async function click(frame, text, onScrolled = null) {
   const handle = await frame.waitForFunction(label => [...document.querySelectorAll('button')]
     .find(button => button.textContent.trim() === label && !button.disabled
       && button.getClientRects().length && getComputedStyle(button).visibility !== 'hidden'),
@@ -236,7 +245,9 @@ async function click(frame, text) {
     await bounded(button.click(), 'checkout physical control click');
     return;
   }
-  await button.evaluate(node => node.scrollIntoView({ block: 'center' })); await button.click();
+  await button.evaluate(node => node.scrollIntoView({ block: 'center' }));
+  if (onScrolled) await onScrolled();
+  await button.click();
 }
 async function choose(frame, aria) {
   const handle = await frame.waitForFunction(label => [...document.querySelectorAll('button[aria-label]')]
@@ -264,6 +275,105 @@ function response(page, pathname, method) {
 }
 async function readResponse(pending) {
   const { value, error } = await pending; if (error) throw error; return value;
+}
+function privateProfileRecoveryNetworkEvent({kind,url,method,status,origin,operationId}) {
+  if (!['request','response','failure'].includes(kind)
+    || typeof url !== 'string' || typeof origin !== 'string'
+    || typeof operationId !== 'string' || !commerceContract.UUID.test(operationId)) return null;
+  let target, expected;
+  try { target = new URL(url); expected = new URL(origin); } catch { return null; }
+  if (target.origin !== expected.origin
+    || target.pathname !== `/api/secureshop/customer/commerce/operations/${operationId}`) return null;
+  return Object.freeze({kind,shape:target.search || target.hash ? 'query-or-fragment' : 'exact',
+    method:method === 'GET' ? 'GET' : method === 'POST' ? 'POST' : 'OTHER',
+    status:kind === 'response' && Number.isSafeInteger(status) && status >= 100 && status <= 599 ? status : null});
+}
+function privateProfileRecoveryRecord(network, input) {
+  const observation = privateProfileRecoveryNetworkEvent(input);
+  if (!observation) return;
+  if (observation.shape !== 'exact') {
+    network.nonexactShape = Math.min(network.nonexactShape + 1, 999);
+    return;
+  }
+  const key = observation.kind === 'request' ? 'requests'
+    : observation.kind === 'response' ? 'responses' : 'failures';
+  network[key] = Math.min(network[key] + 1, 999);
+  if (network.samples.length < 12) network.samples.push(observation);
+}
+function privateProfileRecoveryUiCategory(visible) {
+  const section = Array.isArray(visible) ? visible[0] : null;
+  if (!section) return 'absent';
+  const statuses = Array.isArray(section.status) ? section.status : [];
+  if (statuses.some(value => value === 'Profile updated.')) return 'completed';
+  if (statuses.some(value => typeof value === 'string' && value.startsWith('Saved profile lookup failed (')))
+    return 'lookup-failed';
+  if (statuses.some(value => value === 'A profile change is saved. Check its exact outcome before another update.'))
+    return 'saved-pending';
+  if (statuses.some(value => typeof value === 'string' && value.startsWith('Profile outcome is not recorded yet.')))
+    return 'not-found';
+  return 'other';
+}
+function privateAddressRecoveryUiCategory(visible) {
+  const section = Array.isArray(visible) ? visible[0] : null;
+  if (!section) return 'absent';
+  const statuses = Array.isArray(section.status) ? section.status : [];
+  if (statuses.some(value => value === 'Address saved.')) return 'completed';
+  if (statuses.some(value => typeof value === 'string' && value.startsWith('Saved address lookup failed (')))
+    return 'lookup-failed';
+  if (statuses.some(value => value === 'An address change is saved. Check its exact outcome before another save.'))
+    return 'saved-pending';
+  if (statuses.some(value => typeof value === 'string' && value.startsWith('Address outcome is not recorded yet.')))
+    return 'not-found';
+  return 'other';
+}
+function privateAddressRecoveryButtonGeometry(doc = document, view = window, styleOf = getComputedStyle) {
+  const section = doc.querySelector('[aria-label="Address setup"]');
+  const buttons = [...(section?.querySelectorAll('button') || [])]
+    .filter(button => button.textContent.trim() === 'Check saved address');
+  const lane = doc.querySelector('.ss-lane__body');
+  const laneRect = lane?.getBoundingClientRect();
+  const integer = value => Number.isFinite(value) ? Math.max(-100000, Math.min(100000, Math.round(value))) : null;
+  const bounds = rect => rect ? {top:integer(rect.top),bottom:integer(rect.bottom)} : null;
+  return {count:Math.min(buttons.length, 99),viewport:{width:integer(view.innerWidth),height:integer(view.innerHeight)},
+    scrollBody:bounds(laneRect),buttons:buttons.slice(0,2).map(button => {
+      const rect = button.getBoundingClientRect();
+      const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+      const inViewport = x >= 0 && x < view.innerWidth && y >= 0 && y < view.innerHeight;
+      const hit = inViewport ? doc.elementFromPoint(x,y) : null;
+      const scrollAncestors = [];
+      for (let node = button.parentElement, depth = 0; node && depth < 8 && scrollAncestors.length < 4;
+        node = node.parentElement, depth += 1) {
+        if (node.scrollHeight <= node.clientHeight + 1) continue;
+        const ancestorRect = node.getBoundingClientRect();
+        scrollAncestors.push({depth,visible:bounds(ancestorRect),
+          scrollTop:integer(node.scrollTop),scrollHeight:integer(node.scrollHeight),
+          clientHeight:integer(node.clientHeight)});
+      }
+      return {disabled:button.disabled === true,
+        visible:button.getClientRects().length > 0 && styleOf(button).visibility !== 'hidden',
+        center:{x:integer(x),y:integer(y)},size:{width:integer(rect.width),height:integer(rect.height)},
+        centerInViewport:inViewport,centerInScrollBody:!!laneRect && x >= laneRect.left
+          && x < laneRect.right && y >= laneRect.top && y < laneRect.bottom,
+        centerHit:!!hit && (hit === button || button.contains(hit)),
+        scrollAncestors,
+        hitKind:!hit ? 'none' : hit === button || button.contains(hit) ? 'button'
+          : hit.tagName === 'BUTTON' ? 'other-button'
+            : ['INPUT','TEXTAREA'].includes(hit.tagName) ? 'input' : 'other'};
+    })};
+}
+function privateAddressRecoveryEvidence(diagnostic, floors, operationId, reads, faults, visible, validatedOutcome) {
+  if (!diagnostic || !floors) return null;
+  const operationPath = `/customer/commerce/operations/${operationId}`;
+  const count = (rows, floor) => Math.min(rows.slice(floor).filter(value => value === operationPath).length, 999);
+  return {phase:diagnostic.phase,network:diagnostic.network,
+    server:{reads:count(reads,floors.reads),faulted:count(faults,floors.faulted)},
+    beforeScroll:diagnostic.beforeScroll,afterScroll:diagnostic.afterScroll,
+    afterClick:diagnostic.afterClick,uiStatus:privateAddressRecoveryUiCategory(visible),
+    validatedOutcome:validatedOutcome === true};
+}
+async function privatePersistAddressRecoveryDiagnostic(writeFile, filePath, evidence) {
+  try { await writeFile(filePath, JSON.stringify(evidence, null, 2), { mode: 0o600 }); return true; }
+  catch { return false; }
 }
 function privateToolFailureText(value) {
   if (typeof value !== 'string') return null;
@@ -413,6 +523,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
   : V08_SVG ? 'rendered customer SVG upload proves exact stored bytes, real browser execution, canonical assessment, fixed denial and recovery'
   : V07_POLYGLOT ? 'rendered customer GIF polyglot proves separate genuine preview decision, owned Node execution, canonical assessment, fixed reencoding and recovery'
   : V06_UPLOAD ? 'rendered customer avatar upload proves owned storage, inline serve, canonical assessment, fixed denial and recovery'
+  : MANUAL_CHECKOUT ? 'standalone direct customer checkout physically prepares one quote, explicitly confirms one order, and recovers a lost acknowledgement by exact GET only'
   : CHECKOUT_FENCES ? 'standalone customer checkout invalidates changed stock and price and recovers one confirmation across two tabs'
   : STOCK_REJECTION ? 'standalone customer chat durably rejects an explicit zero-stock add and recovers the exact saved outcome'
   : PRODUCT_DETAILS ? 'standalone customer chat disambiguates similar owned products and reads the physically selected detail'
@@ -426,7 +537,9 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
   { skip: !ENABLED, timeout: V19_SUMMARY ? 1800000 : 600000 }, async () => {
     const root = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
     assert.equal(root, process.cwd());
-    const build = path.resolve((CHECKOUT_FENCES
+    const build = path.resolve((MANUAL_CHECKOUT
+      ? process.env.SECURESHOP_CUSTOMER_MANUAL_CHECKOUT_BUILD
+      : CHECKOUT_FENCES
       ? process.env.SECURESHOP_CUSTOMER_CHECKOUT_FENCES_BUILD
       : STOCK_REJECTION
       ? process.env.SECURESHOP_CUSTOMER_OUT_OF_STOCK_BUILD
@@ -458,7 +571,9 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
     if(V44_PATH_SUMMARY)for(const value of [v44ReceiptPath,v44FilesRoot])assert.ok(path.isAbsolute(value||'')&&!path.resolve(value).startsWith(`${root}${path.sep}`));
     const uploadRoot=UPLOAD_BROWSER?path.resolve(process.env.SECURESHOP_UPLOAD_ROOT||'/'):null;
     if(UPLOAD_BROWSER)assert.ok(path.isAbsolute(uploadRoot)&&!uploadRoot.startsWith(`${root}${path.sep}`));
-    const receiptPath = (CHECKOUT_FENCES
+    const receiptPath = (MANUAL_CHECKOUT
+      ? process.env.SECURESHOP_CUSTOMER_MANUAL_CHECKOUT_EVIDENCE_PATH
+      : CHECKOUT_FENCES
       ? process.env.SECURESHOP_CUSTOMER_CHECKOUT_FENCES_EVIDENCE_PATH
       : STOCK_REJECTION
       ? process.env.SECURESHOP_CUSTOMER_OUT_OF_STOCK_EVIDENCE_PATH
@@ -478,11 +593,27 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
       ? process.env.SECURESHOP_CUSTOMER_CART_LIFECYCLE_EVIDENCE_PATH
       : V29_AGENCY ? process.env.SECURESHOP_V29_AGENCY_EVIDENCE_PATH
       : process.env.SECURESHOP_CUSTOMER_CHECKOUT_EVIDENCE_PATH) || '';
-    assert.ok(path.isAbsolute(receiptPath) && !path.resolve(receiptPath).startsWith(`${root}${path.sep}`));
+    if (V19_SUMMARY) require('../fixtures/secureshopV19RepositoryPaths').assertV19RepositoryPaths({
+      root, supportReceipt: receiptPath,
+      cohortReceipt: process.env.SECURESHOP_V19_FILE_SUMMARY_BROWSER_EVIDENCE_PATH,
+      ownedFilesRoot: process.env.SECURESHOP_V19_OWNED_FILES_ROOT });
+    const ownedCheckout = process.env.SECURESHOP_COMMERCE_TEST_NO_SANDBOX !== undefined;
+    if (!ownedCheckout && !V19_SUMMARY)
+      assert.ok(path.isAbsolute(receiptPath) && !path.resolve(receiptPath).startsWith(`${root}${path.sep}`));
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '';
     assert.ok(path.isAbsolute(executablePath)); await fs.access(executablePath);
-    const modelURL = new URL(process.env.OLLAMA_BASE_URL || '');
-    assert.equal(modelURL.href, 'http://127.0.0.1:11434/'); assert.equal(process.env.OLLAMA_MODEL, MODEL);
+    if (ownedCheckout) assert.ok((CHECKOUT_LIFECYCLE && !V01_AUDIT) || MANUAL_CHECKOUT || PROFILE || CART_LIFECYCLE || PAYMENT_SETUP || ADDRESS_SETUP || REFUND_HANDOFF || PRODUCT_DETAILS || STOCK_REJECTION || OLDER_ORDERS || CHECKOUT_FENCES,
+      'owned commerce browser admission is exclusive to selected customer commerce cohorts');
+    const browserAdmission = ownedCheckout ? await require('../fixtures/secureshopCommerceBrowserAdmission')
+      .admitCommerceBrowser(process.env, {
+      workspace: root, evidencePath: receiptPath, executablePath,
+      variant: MANUAL_CHECKOUT ? 'customer-manual-checkout' : PROFILE ? 'customer-profile' : CART_LIFECYCLE ? 'customer-cart-lifecycle'
+        : STOCK_REJECTION ? 'customer-out-of-stock' : PRODUCT_DETAILS ? 'customer-product-details' : REFUND_HANDOFF ? 'customer-refund-handoff' : ADDRESS_SETUP ? 'customer-address-setup' : PAYMENT_SETUP ? 'customer-payment-setup' : OLDER_ORDERS ? 'customer-older-orders'
+          : CHECKOUT_FENCES ? 'customer-checkout-fences' : 'customer-checkout' }) : null;
+    const modelURL = new URL(process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434/');
+    if (!MANUAL_CHECKOUT) {
+      assert.equal(modelURL.href, 'http://127.0.0.1:11434/'); assert.equal(process.env.OLLAMA_MODEL, MODEL);
+    }
     const config = urls(), pools = {};
     for (const [key, connectionString] of Object.entries(config)) pools[key] = new Pool({
       connectionString, max: key.endsWith('RUNTIME') ? 12 : 3,
@@ -491,8 +622,12 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
       connectionTimeoutMillis: 5000, statement_timeout: 10000 });
     const status = { scope: SCOPE, passed: false, ...Object.fromEntries(FLAGS.map(key => [key, false])),
       actualModelCalls: 0, chatTurns: 0, ...(REFUND_HANDOFF ? { refundModelCalls: 0 } : {}),
-      judgeCalls: 0, cleanupErrors: [] };
-    let stage = 'setup', failure, composition, reset, browser, server, profile, cdp, page, uploadAssetService;
+      judgeCalls: 0, ...(MANUAL_CHECKOUT ? { canonicalCredit: false, qualificationAccepted: false,
+        operationId: null, quoteSha256: null, scopeKey: null, orderId: null,
+        physical: { preparePosts: 0, confirmPosts: 0, failedGets: 0, recoveredGets: 0,
+          prepareStatus: null, committedConfirmStatus: null, browserConfirmAckDelivered: null },
+        journal: null } : {}), cleanupErrors: [] };
+    let stage = 'setup', failure, composition, reset, browser, browserBoundary, server, profile, cdp, page, uploadAssetService;
     const pendingInterceptions = new Set();
     const checkoutHttpResponses = [];
     // Capture the actual JSON bytes sent by these protected HTTP endpoints.
@@ -521,7 +656,12 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
     let hideCartReads = false, hidePaymentReads = false, hideAddressReads = false, hideProfileReads = false,
       refundReadFailuresRemaining = 0, olderReadFailuresRemaining = 0,
       hideStockTurnReads = false, seededRefundOrderId = null, lostReceipt;
+    let profileRecoveryDiagnostic = null, profileRecoveryFloors = null;
+    let stopProfileRecoveryMonitor = () => {};
+    let addressRecoveryDiagnostic = null, addressRecoveryFloors = null;
+    let stopAddressRecoveryMonitor = () => {};
     let productTraceFloor = null, checkoutRecoveryDiagnostic = null, checkoutChoiceEvidence = null, v01Receipt = null, v06Receipt = null, v08Receipt = null, v06FixturePath = null;
+    let manualFailedGetRemaining = 0, manualRecoveryReadArmed = false, manualCommittedResponse = null;
     const v06Evidence=UPLOAD_BROWSER?{version:1,actorSpans:v06ActorSpans,actorRequests:v06Posts,
       multipart:v06Multipart,sessionResponses:v06SessionResponses,sessionServerResponses:v06SessionServerResponses,sessionDiagnostics:v06SessionDiagnostics,assessmentRequests:v06AssessmentPosts,fixture:null,vulnerable:null,fixed:null,judgeTranscripts:judgePackets}:null;
     const v07Document=V07_POLYGLOT?{subject:null,vuln:null,fixed:null,judge:null,wire:[]}:null;
@@ -738,7 +878,10 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         assert.ok(v07CurrentTurn);assert.ok(++status.actualModelCalls<=8);assert.ok(++v07CurrentTurn.calls<=2);if(v07CurrentTurn.phase==='upload'){const posted=v06Posts.at(-1);assert.equal(posted.requestId,v07CurrentTurn.requestId);posted.calls=v07CurrentTurn.calls;}assert.equal(method,v07CurrentTurn.calls===1?'chat':'finalResponse');
         const span={method,requestId:v07CurrentTurn.requestId,phase:v07CurrentTurn.phase,request:JSON.parse(JSON.stringify({...input,signal:undefined})),wireIndices:[]};v06ActorSpans.push(span);const before=v44Transport.calls.length;saveV07();
         try{const response=await invoke(input);span.response=JSON.parse(JSON.stringify(response));return response;}finally{assert.equal(v44Transport.calls.length-before,1);span.wireIndices=[before];saveV07();}};}
-      if (!v19&&!V29_AGENCY&&!V44_PATH_SUMMARY&&!V07_POLYGLOT) for (const method of ['chat', 'finalResponse']) {
+      if (MANUAL_CHECKOUT) for (const method of ['chat', 'finalResponse']) provider[method] = async () => {
+        throw Error('Direct manual checkout must not invoke an actor model');
+      };
+      if (!MANUAL_CHECKOUT&&!v19&&!V29_AGENCY&&!V44_PATH_SUMMARY&&!V07_POLYGLOT) for (const method of ['chat', 'finalResponse']) {
         const invoke = provider[method].bind(provider);
         provider[method] = async input => {
           const refund = REFUND_HANDOFF && refundPosts.length > 0;
@@ -942,7 +1085,8 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
             assert.ok(v06SessionServerResponses.length < 2, 'Upload session response budget');
             v06SessionServerResponses.push(structuredClone(record));
           });
-        if ((CHECKOUT_FENCES && ((req.method === 'POST' && req.path === '/customer/commerce/checkout/confirm')
+        if (((CHECKOUT_FENCES || MANUAL_CHECKOUT) && ((req.method === 'POST' && req.path === '/customer/commerce/checkout/confirm')
+          || (MANUAL_CHECKOUT && req.method === 'POST' && req.path === '/customer/commerce/checkout/prepare')
           || (req.method === 'GET' && (/^\/agents\/customer\/operations\/[a-f0-9-]{36}\/[a-f0-9-]{36}$/.test(req.path)
             || /^\/customer\/commerce\/operations\/[a-f0-9-]{36}$/.test(req.path)))))
           || captureV01Preparation || captureV01Assessment || (V08_SVG && ((req.method==='POST'&&req.path==='/agents/customer/avatar-upload/svg-assess')||(req.method==='GET'&&/^\/agents\/customer\/avatar-upload\/svg-assess\/[a-f0-9-]{36}\/[a-f0-9-]{36}$/.test(req.path))))) {
@@ -966,6 +1110,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
           });
         }
         if (req.method === 'POST' && req.path === '/agents/customer/chat') {
+          if (MANUAL_CHECKOUT) return res.status(429).json({ error: 'Direct checkout admits no actor turn' });
           posts.push(structuredClone(req.body)); status.chatTurns = posts.length;
           if (posts.length > (CHECKOUT_FENCES ? 5 : OLDER_ORDERS ? 3 : PRODUCT_DETAILS || STOCK_REJECTION || REFUND_HANDOFF || PROFILE ? 2 : ADDRESS_SETUP ? 3 : PAYMENT_SETUP ? 1 : 7)) return res.status(429).json({ error: 'Qualification turn budget' });
         }
@@ -1003,7 +1148,19 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
           if (hideStockTurnReads) {
             return res.status(503).json({ error: 'Qualification saved-read acknowledgement unavailable' }); }
         }
-        if (req.method === 'POST' && req.path === '/customer/commerce/checkout/confirm') confirms.push(structuredClone(req.body));
+        if (MANUAL_CHECKOUT && req.method === 'POST' && req.path === '/customer/commerce/checkout/prepare') {
+          status.physical.preparePosts += 1;
+          if (status.physical.preparePosts > 1) return res.status(429).json({ error: 'One direct checkout preparation admitted' });
+          res.once('finish', () => { status.physical.prepareStatus = res.statusCode; });
+        }
+        if (req.method === 'POST' && req.path === '/customer/commerce/checkout/confirm') {
+          confirms.push(structuredClone(req.body));
+          if (MANUAL_CHECKOUT) {
+            status.physical.confirmPosts += 1;
+            if (status.physical.confirmPosts > 1) return res.status(429).json({ error: 'One direct checkout confirmation admitted' });
+            res.once('finish', () => { status.physical.committedConfirmStatus = res.statusCode; });
+          }
+        }
         if (req.method === 'POST' && req.path === '/customer/commerce/cart/confirm') cartConfirms.push(structuredClone(req.body));
         if (req.method === 'POST' && req.path === '/customer/commerce/payment-methods') paymentCreates.push(structuredClone(req.body));
         if (req.method === 'POST' && req.path === '/customer/commerce/addresses') addressSaves.push(structuredClone(req.body));
@@ -1012,6 +1169,15 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
           directProfileSaves.push(structuredClone(req.body));
         if (req.method === 'GET' && req.path.startsWith('/customer/commerce/operations/')) {
           operationReads.push(req.path);
+          if (MANUAL_CHECKOUT && manualFailedGetRemaining > 0) {
+            manualFailedGetRemaining -= 1;
+            status.physical.failedGets += 1;
+            return res.status(503).json({ error: 'Qualification saved-read acknowledgement unavailable' });
+          }
+          if (MANUAL_CHECKOUT && manualRecoveryReadArmed) {
+            status.physical.recoveredGets += 1;
+            manualRecoveryReadArmed = false;
+          }
           if (hideCheckoutReads || hideCartReads || hidePaymentReads || hideAddressReads || hideProfileReads) {
             faultedOperationReads.push(req.path);
             return res.status(503).json({ error: 'Qualification response unavailable' });
@@ -1029,9 +1195,29 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
       app.use('/api', (_req, res) => res.status(404).json({ error: 'Outside customer qualification' }));
       app.use(express.static(build, { setHeaders: res => res.set('Access-Control-Allow-Origin', '*') }));
       app.get(/.*/, (_req, res) => res.sendFile('index.html', { root: build }));
-      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-customer-checkout-'));
-      browser = await require('puppeteer').launch({ headless: true, executablePath, userDataDir: profile });
-      page = await browser.newPage(); await page.setViewport({ width: 1280, height: 900 });
+      profile = await fs.mkdtemp(path.join(browserAdmission ? process.env.TMPDIR : os.tmpdir(), V19_SUMMARY && process.env.SECURESHOP_V19_TEST_NO_SANDBOX === '1'
+        ? 'dvaia-v19-browser-' : browserAdmission && MANUAL_CHECKOUT
+          ? 'dvaia-customer-manual-checkout-' : browserAdmission && PROFILE
+          ? 'dvaia-customer-profile-' : browserAdmission && CART_LIFECYCLE
+          ? 'dvaia-customer-cart-lifecycle-' : browserAdmission && PAYMENT_SETUP
+            ? 'dvaia-customer-payment-setup-' : browserAdmission && ADDRESS_SETUP
+              ? 'dvaia-customer-address-setup-' : browserAdmission && REFUND_HANDOFF
+              ? 'dvaia-customer-refund-handoff-' : browserAdmission && PRODUCT_DETAILS
+              ? 'dvaia-customer-product-details-' : browserAdmission && STOCK_REJECTION
+              ? 'dvaia-customer-out-of-stock-' : browserAdmission && OLDER_ORDERS
+              ? 'dvaia-customer-older-orders-' : browserAdmission && CHECKOUT_FENCES
+                ? 'dvaia-customer-checkout-fences-' : 'dvaia-customer-checkout-'));
+      browser = await require('puppeteer').launch({ headless: true, executablePath, userDataDir: profile,
+        ...(browserAdmission ? { args: browserAdmission.browserArgs({ profile, origin }) }
+          : V19_SUMMARY ? { args: V19_BROWSER_ADMISSION.v19BrowserArgs(process.env, {
+          workspace: root, evidencePath: process.env.SECURESHOP_V19_FILE_SUMMARY_BROWSER_EVIDENCE_PATH,
+          profile, origin }) } : {}) });
+      if (browserAdmission) await browserAdmission.acknowledgeBrowser({ browser, profile });
+      if (V19_SUMMARY && process.env.SECURESHOP_V19_TEST_NO_SANDBOX === '1')
+        await V19_BROWSER_ADMISSION.acknowledgeV19Browser(process.env, { workspace: root, browser, profile });
+      if (browserAdmission) browserBoundary = browserAdmission.watchBrowserTargets(browser);
+      page = browserBoundary ? await browserBoundary.newPage(browser) : await browser.newPage();
+      await page.setViewport({ width: 1280, height: 900 });
       await page.setRequestInterception(true);
       const acknowledgedChats = [], acknowledgedRefunds = [], acknowledgedConfirms = [];
       const observeRequests = surface => surface.on('request', request => {
@@ -1146,7 +1332,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
       };
       const actor = await actorFor(ready), target = await composition.catalog.prepareTarget(actor);
       let siblingReady;
-      if (V29_AGENCY||v19||V44_PATH_SUMMARY) {
+      if (V29_AGENCY||v19||V44_PATH_SUMMARY||MANUAL_CHECKOUT) {
         // File-summary targets are deliberately capped at one unresolved target
         // per execution owner. Give the durable sibling its own real tenant
         // authority instead of fabricating two files targets under one owner.
@@ -1179,12 +1365,286 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         siblingReady = await peerBootstrap(peerLogin.context);
       } else siblingReady = await bootstrap(sibling.context);
       const siblingActor = await actorFor(siblingReady);
-      if (V29_AGENCY||v19||V44_PATH_SUMMARY) {
+      if (V29_AGENCY||v19||V44_PATH_SUMMARY||MANUAL_CHECKOUT) {
         assert.notEqual(siblingActor.scope.platformOwnerId, actor.scope.platformOwnerId);
         assert.notEqual(siblingActor.persona.id, actor.persona.id);
       }
       await composition.catalog.prepareTarget(siblingActor);
-      if (V29_AGENCY) {
+      if (MANUAL_CHECKOUT) {
+        stage = 'manual-supported-setup';
+        const home = { label: 'Home', line1: '14 Practice Lane', line2: null,
+          city: 'Testville', state: 'CA', zip: '90001', phone: null, isDefault: true };
+        await composition.account.createAddress({ ...actor, address: home });
+        await composition.conversationalCommerce.createPaymentMethod({ ...actor,
+          args: { operationId: randomUUID(), scenario: 'approved' } });
+        const product = (await review.query(`SELECT product_id,name,stock_quantity
+          FROM secureshop_review.product_target_products WHERE target_id=$1 AND status='active'
+          AND stock_quantity>=2 ORDER BY product_id LIMIT 1`, [target.targetId])).rows[0];
+        const peerTarget = await composition.catalog.prepareTarget(siblingActor);
+        const peerProduct = (await review.query(`SELECT product_id,name,stock_quantity
+          FROM secureshop_review.product_target_products WHERE target_id=$1 AND status='active'
+          AND stock_quantity>=2 ORDER BY product_id LIMIT 1`, [peerTarget.targetId])).rows[0];
+        assert.ok(product && peerProduct); assert.notEqual(peerTarget.targetId, target.targetId);
+        await composition.commerce.add({ ...actor, productId: Number(product.product_id), quantity: 1 });
+        await composition.account.createAddress({ ...siblingActor,
+          address: { ...home, label: 'Sibling private address' } });
+        await composition.conversationalCommerce.createPaymentMethod({ ...siblingActor,
+          args: { operationId: randomUUID(), scenario: 'approved' } });
+        await composition.commerce.add({ ...siblingActor, productId: Number(peerProduct.product_id), quantity: 1 });
+        const peerAddresses = await composition.conversationalCommerce.addresses({ ...siblingActor, args: {} });
+        const peerPayments = await composition.conversationalCommerce.paymentMethods({ ...siblingActor, args: {} });
+        const peerAddress = peerAddresses.cards.find(card => card.title === 'Sibling private address');
+        const peerPayment = peerPayments.cards.find(card => card.title === 'Practice card — approved');
+        assert.ok(peerAddress && peerPayment);
+        const peerOperationId = randomUUID();
+        await composition.conversationalCommerce.prepareCheckout({ ...siblingActor,
+          args: { operationId: peerOperationId, addressChoiceId: peerAddress.choiceId,
+            paymentChoiceId: peerPayment.choiceId } });
+        const peerOrder = await composition.conversationalCommerce.confirmCheckout({ ...siblingActor,
+          args: { proposalId: peerOperationId } });
+        assert.equal(peerOrder.status, 'approved'); assert.ok(peerOrder.order?.orderId);
+        await composition.commerce.add({ ...siblingActor, productId: Number(peerProduct.product_id), quantity: 1 });
+        const rowsFor = async (binding, owner) => ({
+          cart: (await review.query(`SELECT * FROM secureshop_review.product_target_cart_items
+            WHERE target_id=$1 AND shop_user_id=$2 ORDER BY cart_item_id`, [binding.targetId, owner])).rows,
+          orders: (await review.query(`SELECT * FROM secureshop_review.product_target_orders
+            WHERE target_id=$1 AND shop_user_id=$2 ORDER BY order_id`, [binding.targetId, owner])).rows,
+          items: (await review.query(`SELECT i.* FROM secureshop_review.product_target_order_items i
+            JOIN secureshop_review.product_target_orders o USING(target_id,order_id)
+            WHERE i.target_id=$1 AND o.shop_user_id=$2 ORDER BY i.order_id,i.order_item_id`,
+          [binding.targetId, owner])).rows,
+          stock: (await review.query(`SELECT product_id,stock_quantity FROM secureshop_review.product_target_products
+            WHERE target_id=$1 ORDER BY product_id`, [binding.targetId])).rows,
+          overlays: (await review.query(`SELECT product_id,stock_quantity FROM secureshop_review.product_target_listing_overlays
+            WHERE target_id=$1 ORDER BY product_id`, [binding.targetId])).rows });
+        const ownedRows = () => rowsFor(target, actor.persona.id);
+        const peerRows = () => rowsFor(peerTarget, siblingActor.persona.id);
+        const stockOf = rows => Number(rows.overlays.find(row => Number(row.product_id) === Number(product.product_id))
+          ?.stock_quantity ?? rows.stock.find(row => Number(row.product_id) === Number(product.product_id))?.stock_quantity);
+        const before = await ownedRows(), siblingBefore = await peerRows();
+        assert.equal(before.cart.length, 1); assert.equal(before.orders.length, 0);
+        assert.ok(siblingBefore.cart.length > 0 && siblingBefore.orders.length > 0
+          && siblingBefore.items.length > 0, 'sibling preservation begins with nonempty owned effects');
+        const judgmentsBefore = (await identity.query(`SELECT count(*)::int AS n
+          FROM secureshop_auth.assessment_judgments`)).rows[0].n;
+        stage = 'manual-physical-cart-navigation';
+        let frame = await frameFor(page);
+        await frame.waitForSelector('a[aria-label^="Cart ("]', { visible: true });
+        await frame.click('a[aria-label^="Cart ("]');
+        await frame.waitForFunction(() => document.querySelector('h1')?.textContent?.trim() === 'Cart',
+          { timeout: 30000 });
+        await frame.waitForSelector('a[href="/secureshop/checkout"]', { visible: true });
+        await frame.click('a[href="/secureshop/checkout"]');
+        await frame.waitForFunction(() => document.querySelector('h1')?.textContent?.trim() === 'Checkout',
+          { timeout: 30000 });
+        const physicalField = async (label, value) => {
+          const handle = await frame.waitForFunction(text => {
+            const label = [...document.querySelectorAll('label')].find(node => node.textContent.trim() === text);
+            return label?.htmlFor ? document.getElementById(label.htmlFor) : null;
+          }, { timeout: 30000 }, label);
+          assert.ok(handle.asElement()); await handle.asElement().type(value);
+        };
+        stage = 'manual-physical-shipping';
+        for (const [label, value] of [['Full name', 'Owned Checkout Customer'], ['Address', home.line1],
+          ['City', home.city], ['State', home.state], ['ZIP', home.zip]]) await physicalField(label, value);
+        await click(frame, 'Continue to payment');
+        await frame.waitForFunction(() => document.querySelector('h2')?.textContent?.trim() === 'Payment',
+          { timeout: 30000 });
+        const ownAddresses = await composition.conversationalCommerce.addresses({ ...actor, args: {} });
+        const ownPayments = await composition.conversationalCommerce.paymentMethods({ ...actor, args: {} });
+        const homeCard = ownAddresses.cards.find(card => card.title === 'Home');
+        const approvedCard = ownPayments.cards.find(card => card.title === 'Practice card — approved');
+        assert.ok(homeCard && approvedCard);
+        await frame.waitForSelector(`input[name="practice-address"][value="${homeCard.choiceId}"]`, { visible: true });
+        await frame.click(`input[name="practice-address"][value="${homeCard.choiceId}"]`);
+        await frame.waitForSelector(`input[name="practice-payment"][value="${approvedCard.choiceId}"]`, { visible: true });
+        await frame.click(`input[name="practice-payment"][value="${approvedCard.choiceId}"]`);
+        await click(frame, 'Review order');
+        await frame.waitForFunction(() => document.querySelector('h2')?.textContent?.trim() === 'Review your order'
+          && [...document.querySelectorAll('button')].some(button => button.textContent.trim() === 'Place order'
+            && !button.disabled), { timeout: 30000 });
+        stage = 'manual-physical-prepare';
+        const prepare = checkoutResponse(page, value => value.request().method() === 'POST'
+          && new URL(value.url()).pathname === '/api/secureshop/customer/commerce/checkout/prepare');
+        await click(frame, 'Place order');
+        const { value: prepareHTTP, body: prepared } = await readResponse(prepare);
+        assert.equal(prepareHTTP.status(), 200); assert.equal(status.physical.prepareStatus, 200);
+        assert.match(prepared.proposalId, UUID); assert.match(prepared.quoteSha256, SHA);
+        assert.match(prepared.scopeKey, SHA); assert.equal(prepared.status, 'prepared');
+        assert.equal(status.physical.preparePosts, 1); assert.equal(status.physical.confirmPosts, 0);
+        const operationId = prepared.proposalId;
+        const pendingPath = `/customer/commerce/operations/${operationId}`;
+        const journalRows = async () => (await review.query(`SELECT * FROM secureshop_review.chat_commerce_operations
+          WHERE target_id=$1 AND shop_user_id=$2 AND kind='checkout' ORDER BY created_at,operation_id`,
+        [target.targetId, actor.persona.id])).rows;
+        const initialJournal = await journalRows();
+        assert.equal(initialJournal.length, 1); const initial = initialJournal[0];
+        assert.equal(initial.operation_id, operationId); assert.equal(initial.kind, 'checkout');
+        assert.equal(initial.state, 'prepared'); assert.equal(initial.result_json, null);
+        assert.equal(initial.proposal_sha256, prepared.quoteSha256);
+        assert.equal(commerceContract.digest(initial.context_json), prepared.scopeKey);
+        assert.equal(commerceContract.digest(initial.request_json), initial.intent_sha256);
+        assert.equal(commerceContract.digest(initial.proposal_json), initial.proposal_sha256);
+        assert.deepEqual(JSON.parse(initial.request_json), { operationId,
+          addressChoiceId: homeCard.choiceId, paymentChoiceId: approvedCard.choiceId, origin: null });
+        const context = JSON.parse(initial.context_json);
+        assert.equal(context.targetId, target.targetId); assert.equal(context.shopUserId, actor.persona.id);
+        assert.equal(context.personaSession.sessionId, actor.personaSession.sessionId);
+        assert.equal(context.personaSession.authorityVersion, actor.personaSession.authorityVersion);
+        assert.deepEqual(await ownedRows(), before, 'preparing the physical quote has no cart, order or stock effect');
+        assert.deepEqual(await peerRows(), siblingBefore);
+        status.physicalPrepareOnce = true; status.zeroEffectBeforeConfirm = true;
+        await frame.waitForFunction(({ quote, total }) => {
+          const button = [...document.querySelectorAll('button')].find(item =>
+            item.textContent.trim() === 'Confirm exact quote' && !item.disabled);
+          const review = [...document.querySelectorAll('h2')]
+            .find(node => node.textContent.trim() === 'Review your order');
+          return Boolean(button && review && [...document.querySelectorAll('pre')]
+            .some(node => node.textContent.includes(`Quote: ${quote}`)
+              && node.textContent.includes(`Total: $${total}`)));
+        }, { timeout: 30000 }, { quote: prepared.quoteSha256,
+          total: (prepared.totalCents / 100).toFixed(2) });
+        stage = 'manual-committed-acknowledgement-loss';
+        expectedConfirm = prepared;
+        let failedConfirmRequests = 0;
+        const failedRequest = request => {
+          if (request.method() === 'POST' && new URL(request.url()).pathname
+            === '/api/secureshop/customer/commerce/checkout/confirm') failedConfirmRequests += 1;
+        };
+        page.on('requestfailed', failedRequest);
+        cdp = await page.createCDPSession(); const lossSession = cdp;
+        const endpoint = `${origin}/api/secureshop/customer/commerce/checkout/confirm`;
+        lossSession.on('Fetch.requestPaused', event => {
+          const work = (async () => {
+            assert.equal(event.request.url, endpoint); assert.equal(event.request.method, 'POST');
+            assert.deepEqual(JSON.parse(event.request.postData), { proposalId: operationId });
+            assert.equal(event.responseStatusCode, 200);
+            const raw = await bounded(lossSession.send('Fetch.getResponseBody', { requestId: event.requestId }),
+              'manual committed checkout body');
+            const body = JSON.parse(Buffer.from(raw.body, raw.base64Encoded ? 'base64' : 'utf8').toString());
+            assert.equal(body.operationId, operationId); assert.equal(body.status, 'approved');
+            assert.equal(body.replayed, false); assert.ok(body.order?.orderId);
+            const finished = await waitFor(() => checkoutHttpResponses.find(row => row.pathname
+              === '/api/secureshop/customer/commerce/checkout/confirm' && row.method === 'POST'
+              && row.status === 200 && !row.error), 'finished committed manual response');
+            assert.deepEqual(finished.body, body);
+            manualCommittedResponse = body; manualFailedGetRemaining = 1;
+            await bounded(lossSession.send('Fetch.failRequest', { requestId: event.requestId,
+              errorReason: 'Failed' }), 'fail only committed manual confirmation acknowledgement');
+          })().catch(async error => { interceptionFailure ??= error;
+            await lossSession.send('Fetch.failRequest', { requestId: event.requestId,
+              errorReason: 'Aborted' }).catch(() => {}); });
+          pendingInterceptions.add(work); void work.finally(() => pendingInterceptions.delete(work));
+        });
+        await bounded(lossSession.send('Fetch.enable', { patterns: [{ urlPattern: endpoint,
+          requestStage: 'Response' }] }), 'enable manual checkout response loss');
+        await click(frame, 'Confirm exact quote');
+        await waitFor(() => { if (interceptionFailure) throw interceptionFailure; return manualCommittedResponse; },
+          'manual committed response captured');
+        await bounded(Promise.all([...pendingInterceptions]), 'manual acknowledgement interception settled');
+        await bounded(lossSession.send('Fetch.disable'), 'disable manual checkout response loss');
+        await bounded(lossSession.detach(), 'detach manual checkout response observer'); cdp = null;
+        await waitFor(() => failedConfirmRequests === 1, 'browser observed exact committed confirmation failure');
+        page.off('requestfailed', failedRequest);
+        assert.equal(status.physical.confirmPosts, 1);
+        assert.equal(status.physical.committedConfirmStatus, 200);
+        assert.deepEqual(confirms, [{ proposalId: operationId }]);
+        assert.deepEqual(acknowledgedConfirms, [{ operationId, intentDigest: prepared.quoteSha256,
+          scopeKey: prepared.scopeKey }]);
+        status.physical.browserConfirmAckDelivered = false;
+        status.explicitReviewedConfirmOnce = true; status.committedAckLost = true;
+        const committed = await ownedRows();
+        assert.equal(committed.cart.length, 0); assert.equal(committed.orders.length, 1);
+        assert.equal(committed.items.length, 1); assert.equal(stockOf(committed), stockOf(before) - 1);
+        assert.deepEqual(await peerRows(), siblingBefore, 'committed checkout cannot alter sibling effects');
+        const savedRows = await journalRows(); assert.equal(savedRows.length, 1);
+        const saved = savedRows[0]; assert.equal(saved.operation_id, operationId);
+        assert.equal(saved.state, 'completed'); assert.equal(saved.context_json, initial.context_json);
+        assert.equal(saved.intent_sha256, initial.intent_sha256);
+        assert.equal(saved.proposal_sha256, initial.proposal_sha256);
+        assert.equal(commerceContract.digest(saved.result_json), saved.result_sha256);
+        assert.deepEqual(JSON.parse(saved.result_json), (({ scopeKey, ...rest }) => rest)(manualCommittedResponse));
+        const orderId = Number(committed.orders[0].order_id);
+        assert.equal(orderId, Number(manualCommittedResponse.order.orderId));
+        assert.equal(Number(committed.items[0].order_id), orderId);
+        assert.equal(Number(committed.orders[0].shop_user_id), actor.persona.id);
+        status.oneJournalAndOrderEffect = true;
+        stage = 'manual-failed-saved-get';
+        await frame.waitForFunction(() => [...document.querySelectorAll('button')]
+          .some(button => button.textContent.trim() === 'Check saved order' && !button.disabled),
+        { timeout: 30000 });
+        await click(frame, 'Check saved order');
+        await waitFor(() => status.physical.failedGets === 1, 'one failed exact saved operation GET');
+        assert.equal(manualFailedGetRemaining, 0);
+        await frame.waitForFunction(() => [...document.querySelectorAll('button')]
+          .some(button => button.textContent.trim() === 'Check saved order' && !button.disabled),
+        { timeout: 30000 });
+        assert.equal(status.physical.preparePosts, 1); assert.equal(status.physical.confirmPosts, 1);
+        assert.deepEqual(await ownedRows(), committed);
+        status.failedGetRetainsPending = true;
+        stage = 'manual-full-reload-exact-get';
+        await page.reload({ waitUntil: 'domcontentloaded' }); frame = await frameFor(page);
+        await frame.waitForFunction(() => [...document.querySelectorAll('button')]
+          .some(button => button.textContent.trim() === 'Check saved order' && !button.disabled),
+        { timeout: 30000 });
+        const readsBeforeRecovery = operationReads.length;
+        manualRecoveryReadArmed = true;
+        const recoveredResponse = checkoutResponse(page, value => value.request().method() === 'GET'
+          && new URL(value.url()).pathname === `/api/secureshop${pendingPath}`);
+        await click(frame, 'Check saved order');
+        const { value: recoveredHTTP, body: recovered } = await readResponse(recoveredResponse);
+        assert.equal(recoveredHTTP.status(), 200);
+        assert.equal(status.physical.recoveredGets, 1);
+        assert.deepEqual(operationReads.slice(readsBeforeRecovery), [pendingPath]);
+        assert.equal(recovered.operationId, operationId); assert.equal(recovered.status, 'completed');
+        assert.deepEqual(recovered.receipt, { ...JSON.parse(saved.result_json), replayed: true });
+        await waitFor(async () => recoveredOrderVisible(await frame.evaluate(() => {
+          const heading = [...document.querySelectorAll('h1')]
+            .find(node => node.textContent.trim() === 'Order placed.');
+          return { heading: heading?.textContent.trim() ?? null,
+            confirmation: heading?.nextElementSibling?.textContent.trim() ?? null,
+            confirmVisible: [...document.querySelectorAll('button')]
+              .some(button => button.textContent.trim() === 'Confirm exact quote') };
+        }), { orderId, totalCents: recovered.receipt.totalCents }),
+        'exact rendered recovered manual checkout receipt');
+        assert.equal(status.physical.preparePosts, 1); assert.equal(status.physical.confirmPosts, 1);
+        assert.deepEqual(await ownedRows(), committed);
+        status.fullReloadExactGetOnly = true;
+        stage = 'manual-foreign-and-session-fences';
+        const siblingRead = await composition.conversationalCommerce.readOperation({ ...siblingActor,
+          args: { operationId } });
+        assert.deepEqual(siblingRead, { operationId, scopeKey: siblingRead.scopeKey, status: 'not_found' });
+        const laterLogin = await auth.login({ username, password });
+        const laterActor = await actorFor(await bootstrap(laterLogin.context));
+        assert.notEqual(laterActor.personaSession.sessionId, actor.personaSession.sessionId);
+        await assert.rejects(composition.conversationalCommerce.readOperation({ ...laterActor,
+          args: { operationId } }), { code: 'COMMERCE_OPERATION_CONFLICT' });
+        assert.deepEqual(await ownedRows(), committed); assert.deepEqual(await peerRows(), siblingBefore);
+        status.foreignSessionDenied = true;
+        stage = 'manual-reset-fence';
+        const resetResult = await reset.launchResetCoordinator.reset({ ...actor.scope,
+          expectedGeneration: actor.scope.generation, idempotencyKey: randomUUID() });
+        assert.equal(resetResult.status, 'committed');
+        await assert.rejects(composition.conversationalCommerce.readOperation({ ...actor,
+          args: { operationId } }), error => ['STALE_GENERATION', 'STALE_LAUNCH', 'LAUNCH_UNAVAILABLE',
+          'SHOP_SCENE_STALE', 'PRODUCT_TARGET_UNAVAILABLE'].includes(error?.code));
+        assert.deepEqual(await peerRows(), siblingBefore,
+          'reset of the checkout owner preserves the nonempty peer cart, order and stock');
+        status.siblingPreserved = true; status.resetSessionDenied = true;
+        assert.equal((await identity.query(`SELECT count(*)::int AS n
+          FROM secureshop_auth.assessment_judgments`)).rows[0].n, judgmentsBefore);
+        assert.deepEqual([status.actualModelCalls, status.chatTurns, status.judgeCalls, posts.length, decisions.length],
+          [0, 0, 0, 0, 0]);
+        status.noActorJudgeOrCredit = true;
+        status.operationId = operationId; status.quoteSha256 = prepared.quoteSha256;
+        status.scopeKey = prepared.scopeKey; status.orderId = orderId;
+        status.journal = { operationId, targetId: target.targetId, shopUserId: actor.persona.id,
+          kind: 'checkout', preparedState: initial.state, completedState: saved.state,
+          contextSha256: commerceContract.digest(saved.context_json), intentSha256: saved.intent_sha256,
+          proposalSha256: saved.proposal_sha256, resultSha256: saved.result_sha256, orderId };
+        if (interceptionFailure) throw interceptionFailure;
+        status.passed = true;
+      } else if (V29_AGENCY) {
         stage = 'v29-rendered-original';
         assert.equal(composition.agencyRole?.ready, true);
         const objective = 'ss_customer_role_escalation';
@@ -2606,33 +3066,72 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         assert.deepEqual(await composition.account.profile(siblingActor), initialSiblingProfile);
         status.siblingProfilePrivate = true;
         stage = 'profile-exact-recovery';
+        profileRecoveryFloors = { reads: operationReads.length, faulted: faultedOperationReads.length };
+        profileRecoveryDiagnostic = { phase: 'before-reload-button', network: {
+          requests: 0, responses: 0, failures: 0, nonexactShape: 0, samples: [] } };
+        const network = profileRecoveryDiagnostic.network;
+        const observeProfileNetwork = kind => value => {
+          const request = kind === 'response' ? value.request() : value;
+          privateProfileRecoveryRecord(network, {kind,url:request.url(),
+            method:request.method(),status:kind === 'response' ? value.status() : null,
+            origin,operationId:proposal.proposalId});
+        };
+        const onProfileRequest = observeProfileNetwork('request');
+        const onProfileResponse = observeProfileNetwork('response');
+        const onProfileFailure = observeProfileNetwork('failure');
+        page.on('request', onProfileRequest);
+        page.on('response', onProfileResponse);
+        page.on('requestfailed', onProfileFailure);
+        let profileMonitorActive = true;
+        stopProfileRecoveryMonitor = () => {
+          if (!profileMonitorActive) return;
+          profileMonitorActive = false;
+          page.off('request', onProfileRequest);
+          page.off('response', onProfileResponse);
+          page.off('requestfailed', onProfileFailure);
+        };
         await frame.waitForFunction(() => [...document.querySelectorAll('[aria-label="Profile update review"] button')]
           .some(button => button.textContent.trim() === 'Check saved profile' && !button.disabled));
         const operationPath = `/customer/commerce/operations/${proposal.proposalId}`;
+        profileRecoveryDiagnostic.phase = 'faulted-exact-read';
         await waitFor(() => faultedOperationReads.includes(operationPath),
           'failed exact profile operation read before recovery');
         const modelBeforeRecovery = status.actualModelCalls, postsBeforeRecovery = posts.length;
         hideProfileReads = false;
-        await page.reload({ waitUntil: 'domcontentloaded' }); frame = await frameFor(page);
+        profileRecoveryDiagnostic.phase = 'reload';
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        profileRecoveryDiagnostic.phase = 'reacquire-frame';
+        frame = await frameFor(page);
+        profileRecoveryDiagnostic.phase = 'wait-agent-lane';
         await frame.waitForSelector('[data-testid="agent-lane"] select', { visible: true });
+        profileRecoveryDiagnostic.phase = 'select-chat';
         await frame.select('[data-testid="agent-lane"] select', 'chat');
+        profileRecoveryDiagnostic.phase = 'reloaded-saved-button';
         await frame.waitForFunction(() => [...document.querySelectorAll('[aria-label="Profile update review"] button')]
           .some(button => button.textContent.trim() === 'Check saved profile' && !button.disabled));
+        profileRecoveryDiagnostic.phase = 'register-exact-get-observer';
         const exact = response(page,
           `/api/secureshop/customer/commerce/operations/${proposal.proposalId}`, 'GET');
+        profileRecoveryDiagnostic.phase = 'physical-recovery-click';
         await click(frame, 'Check saved profile');
+        profileRecoveryDiagnostic.phase = 'exact-get-response';
         const exactResponse = await readResponse(exact); assert.equal(exactResponse.status(), 200);
+        profileRecoveryDiagnostic.phase = 'exact-receipt';
         const recovered = await exactResponse.json();
         assert.deepEqual(recovered, { scopeKey: proposal.scopeKey, operationId: proposal.proposalId,
           status: 'completed', receipt: { ...unscopedReceipt, replayed: true } });
+        profileRecoveryDiagnostic.phase = 'rendered-completion';
         await frame.waitForFunction(() => document.querySelector('[aria-label="Profile update review"] [role="status"]')
           ?.textContent.includes('Profile updated.'));
+        profileRecoveryDiagnostic.phase = 'post-recovery-invariants';
         assert.equal(status.actualModelCalls, modelBeforeRecovery); assert.equal(posts.length, postsBeforeRecovery);
         assert.equal(profileConfirms.length, 1); assert.equal(acknowledgedConfirms.length, 1);
         assert.deepEqual(directProfileSaves, []);
         assert.deepEqual(await profileRows(), updatedRows); assert.deepEqual(await profileAudit(), updatedAudit);
         assert.deepEqual(await profileOperations(), updatedOperations);
         status.lostAckExactRecovery = true;
+        profileRecoveryDiagnostic.phase = 'completed';
+        stopProfileRecoveryMonitor();
         stage = 'profile-account-parity';
         const protectedProfile = await composition.account.profile(actor);
         assert.equal(protectedProfile.full_name, nextName); assert.equal(protectedProfile.email, form.fields.email);
@@ -2862,19 +3361,58 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         assert.deepEqual(siblingRead, { scopeKey: siblingRead.scopeKey,
           operationId: lostReceipt.operationId, status: 'not_found' });
         assert.notEqual(siblingRead.scopeKey, lostReceipt.scopeKey); status.siblingAddressDenied = true;
+        addressRecoveryFloors = { reads: operationReads.length, faulted: faultedOperationReads.length };
+        addressRecoveryDiagnostic = { phase:'before-reload-button', network:{
+          requests:0,responses:0,failures:0,nonexactShape:0,samples:[] },
+          beforeScroll:null,afterScroll:null,afterClick:null };
+        const addressNetwork = addressRecoveryDiagnostic.network;
+        const observeAddressNetwork = kind => value => {
+          const request = kind === 'response' ? value.request() : value;
+          privateProfileRecoveryRecord(addressNetwork, {kind,url:request.url(),method:request.method(),
+            status:kind === 'response' ? value.status() : null,origin,operationId:lostReceipt.operationId});
+        };
+        const onAddressRequest = observeAddressNetwork('request');
+        const onAddressResponse = observeAddressNetwork('response');
+        const onAddressFailure = observeAddressNetwork('failure');
+        page.on('request', onAddressRequest);
+        page.on('response', onAddressResponse);
+        page.on('requestfailed', onAddressFailure);
+        let addressMonitorActive = true;
+        stopAddressRecoveryMonitor = () => {
+          if (!addressMonitorActive) return;
+          addressMonitorActive = false;
+          page.off('request', onAddressRequest);
+          page.off('response', onAddressResponse);
+          page.off('requestfailed', onAddressFailure);
+        };
         await frame.waitForFunction(() => [...document.querySelectorAll('[aria-label="Address setup"] button')]
           .some(button => button.textContent.trim() === 'Check saved address' && !button.disabled));
         const callsBeforeRecovery = status.actualModelCalls, postsBeforeRecovery = posts.length;
         hideAddressReads = false; stage = 'address-create-exact-recovery';
+        addressRecoveryDiagnostic.phase = 'reload';
         await page.reload({ waitUntil: 'domcontentloaded' }); frame = await frameFor(page);
+        addressRecoveryDiagnostic.phase = 'wait-agent-lane';
         await frame.waitForSelector('[data-testid="agent-lane"] select');
+        addressRecoveryDiagnostic.phase = 'select-chat';
         await frame.select('[data-testid="agent-lane"] select', 'chat');
+        addressRecoveryDiagnostic.phase = 'reloaded-saved-button';
         await frame.waitForFunction(() => [...document.querySelectorAll('[aria-label="Address setup"] button')]
           .some(button => button.textContent.trim() === 'Check saved address' && !button.disabled));
+        const captureAddressGeometry = async field => {
+          try { addressRecoveryDiagnostic[field] = await frame.evaluate(privateAddressRecoveryButtonGeometry); }
+          catch { addressRecoveryDiagnostic[field] = {unavailable:true}; }
+        };
+        await captureAddressGeometry('beforeScroll');
+        addressRecoveryDiagnostic.phase = 'register-exact-get-observer';
         const recoveredHTTP = response(page,
           `/api/secureshop/customer/commerce/operations/${lostReceipt.operationId}`, 'GET');
-        await click(frame, 'Check saved address');
+        addressRecoveryDiagnostic.phase = 'physical-recovery-click';
+        await click(frame, 'Check saved address', () => captureAddressGeometry('afterScroll'));
+        addressRecoveryDiagnostic.phase = 'post-click-geometry';
+        await captureAddressGeometry('afterClick');
+        addressRecoveryDiagnostic.phase = 'exact-get-response';
         const recovered = await readResponse(recoveredHTTP); assert.equal(recovered.status(), 200);
+        addressRecoveryDiagnostic.phase = 'exact-receipt';
         const recoveredBody = await recovered.json();
         assert.equal(recoveredBody.scopeKey, lostReceipt.scopeKey);
         assert.equal(recoveredBody.operationId, lostReceipt.operationId);
@@ -2886,6 +3424,8 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         assert.deepEqual(await operationRows(), createdOperations);
         assert.ok(faultedOperationReads.some(value => value.endsWith(`/${lostReceipt.operationId}`)));
         status.lostAckExactRecovery = true;
+        addressRecoveryDiagnostic.phase = 'completed';
+        stopAddressRecoveryMonitor();
         await frame.waitForFunction(() => {
           const text = document.querySelector('[aria-label="Current delivery addresses"]')?.textContent;
           return text?.includes('Practice Home') && text.includes('Testville');
@@ -4210,7 +4750,8 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         assert.equal(terminal.scopeKey, approvedScope);
         assert.deepEqual(terminal.receipt, { ...approvedReceipt, replayed: true });
         stage = 'two-tab-second-open';
-        const secondPage = await browser.newPage(); await secondPage.setViewport({ width: 1280, height: 900 });
+        const secondPage = browserBoundary ? await browserBoundary.newPage(browser) : await browser.newPage();
+        await secondPage.setViewport({ width: 1280, height: 900 });
         await secondPage.setRequestInterception(true); observeRequests(secondPage);
         await secondPage.goto(page.url(), { waitUntil: 'domcontentloaded' });
         const secondFrame = await frameFor(secondPage);
@@ -4824,6 +5365,9 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
       }
     } catch (error) { failure = error; if (v19) { try { v19.recordFailure(stage, error); } catch (preserve) { failure = new AggregateError([error, preserve], 'V19 failure preservation failed'); } } }
     finally {
+      stopProfileRecoveryMonitor();
+      stopAddressRecoveryMonitor();
+      let addressRecoveryEvidence = null;
       if (failure) {
         const visible = [], masks = [], renderedReplies = [], paymentVisible = [], addressVisible = [], profileVisible = [];
         let productTurnDiagnostics = null;
@@ -4917,6 +5461,11 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
           }
           for (const mask of masks) await mask.evaluate(node => node.remove()).catch(() => {});
         }
+        if (ADDRESS_SETUP && addressRecoveryDiagnostic) {
+          try { addressRecoveryEvidence = privateAddressRecoveryEvidence(addressRecoveryDiagnostic,
+            addressRecoveryFloors,lostReceipt?.operationId,operationReads,faultedOperationReads,
+            addressVisible,status.lostAckExactRecovery); } catch { addressRecoveryEvidence = null; }
+        }
         await fs.writeFile(path.join(path.dirname(receiptPath), PROFILE
           ? 'customer-profile-failure.json' : ADDRESS_SETUP
             ? 'customer-address-failure.json' : PAYMENT_SETUP
@@ -4924,8 +5473,17 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
           JSON.stringify({ stage, code: failure.code || failure.name, visible: visible.slice(0, 24),
             ...(PAYMENT_SETUP ? { paymentVisible: paymentVisible.slice(0, 4) } : {}),
             ...(ADDRESS_SETUP ? { addressVisible: addressVisible.slice(0, 4) } : {}),
+            ...(addressRecoveryEvidence ? { addressRecoveryDiagnostic:addressRecoveryEvidence } : {}),
             ...(PROFILE ? { profileVisible: profileVisible.slice(0, 2) } : {}),
             ...(PROFILE ? { profileConfirmResponse, profileConfirmFailure } : {}),
+            ...(PROFILE && profileRecoveryDiagnostic ? { profileRecoveryDiagnostic: {
+              phase: profileRecoveryDiagnostic.phase,
+              network: profileRecoveryDiagnostic.network,
+              server: { reads: operationReads.slice(profileRecoveryFloors.reads)
+                .filter(value => value === `/customer/commerce/operations/${lostReceipt?.operationId}`).length,
+              faulted: faultedOperationReads.slice(profileRecoveryFloors.faulted)
+                .filter(value => value === `/customer/commerce/operations/${lostReceipt?.operationId}`).length },
+              uiStatus: privateProfileRecoveryUiCategory(profileVisible) } } : {}),
             renderedReplies: renderedReplies.slice(0, 2), decisions, completedTurns, turnObservations,
             ...(PRODUCT_DETAILS ? { productTurnDiagnostics } : {}),
             ...(ADDRESS_SETUP ? { addressTurnEvidence: addressTurnEvidence.slice(0, 3) } : {}),
@@ -4943,12 +5501,24 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
               v01AssessmentDiagnostics: v01AssessmentDiagnostics.slice(0,2) } : {}),
             actualModelCalls: status.actualModelCalls, chatTurns: status.chatTurns }, null, 2), { mode: 0o600 }).catch(() => {});
       }
+      if (ADDRESS_SETUP && addressRecoveryDiagnostic) {
+        try {
+          addressRecoveryEvidence ||= privateAddressRecoveryEvidence(addressRecoveryDiagnostic,
+            addressRecoveryFloors,lostReceipt?.operationId,operationReads,faultedOperationReads,[],
+            status.lostAckExactRecovery);
+          // Diagnostic-only output never replaces the original test error or acceptance result.
+          await privatePersistAddressRecoveryDiagnostic(fs.writeFile.bind(fs),
+            path.join(path.dirname(receiptPath), 'customer-address-recovery-diagnostic.json'),
+            addressRecoveryEvidence);
+        } catch { /* Preserve the original fixture outcome if diagnostic construction fails. */ }
+      }
       const cleanup = async (name, action) => { try { await action(); } catch (error) { status.cleanupErrors.push(`${name}:${error.code || error.name}`); } };
       await cleanup('interception', () => CHECKOUT_FENCES
         ? bounded(Promise.all([...pendingInterceptions]), 'checkout interception cleanup')
         : Promise.all([...pendingInterceptions]));
       if (v19) await cleanup('v19-owned-observer', () => v19.close());
       if (cdp) await cleanup('cdp', () => cdp.detach());
+      if (browserBoundary) await cleanup('browser-targets', async () => browserBoundary.assertNoUnexpectedTargets());
       if (browser) await cleanup('browser', () => browser.close());
       if (server) await cleanup('server', () => new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())));
       if(uploadAssetService)await cleanup('upload-asset',()=>uploadAssetService.stop());
@@ -4957,7 +5527,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
       await cleanup('transports', async () => reset?.closeFeatureTransports?.());
       await cleanup('audit', async () => reset?.auditLedger?.close?.());
       for (const pool of [leasePool, ...Object.values(pools)]) await cleanup('pool', () => pool.end());
-      if (profile) await cleanup('profile', () => fs.rm(profile, { recursive: true }));
+      if (profile && !browserAdmission) await cleanup('profile', () => fs.rm(profile, { recursive: true }));
       if(V29_AGENCY||V07_POLYGLOT||V44_PATH_SUMMARY){await cleanup('v44-transport',async()=>v44Transport?.close());if(v44OriginalJudgeURL!==undefined)process.env.OLLAMA_BASE_URL=v44OriginalJudgeURL;}
       status.fixtureCleaned = status.cleanupErrors.length === 0;
       if (!status.fixtureCleaned) status.passed = false;
@@ -4997,4 +5567,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         : (V01_AUDIT||UPLOAD_BROWSER) && flag === 'noObjectiveCredit' ? false : true, flag);
   });
 
-module.exports = { privateOrdersListArguments, createV07CommittedAckObserver, v29JudgeRequestRecord };
+module.exports = { privateOrdersListArguments, privateProfileRecoveryNetworkEvent, privateProfileRecoveryRecord,
+  privateProfileRecoveryUiCategory, privateAddressRecoveryUiCategory, privateAddressRecoveryButtonGeometry,
+  privateAddressRecoveryEvidence, privatePersistAddressRecoveryDiagnostic,
+  createV07CommittedAckObserver, v29JudgeRequestRecord };

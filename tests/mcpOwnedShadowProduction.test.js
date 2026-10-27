@@ -1,4 +1,5 @@
 'use strict';
+const profileDigest=p=>require('node:crypto').createHash('sha256').update(require('../sidecars/sandbox-runner/owned-shadow/profile').renderOwnedShadowProfile(p.profile)).digest('hex');
 const test=require('node:test'),assert=require('node:assert/strict');
 const {plan}=require('../scripts/install/mcp-owned-shadow');
 const config=require('../server/services/mcp/ownedShadowManagedConfiguration');
@@ -46,6 +47,7 @@ test('staged Linux provision keeps token private and never enables or migrates',
    calls.push({file,args,stage:options.stage});let stdout='';
    if(options.stage==='profile-existing-state')return {exitCode:1,stdout:''};
    if(options.stage==='profile-trust')stdout='0:0:600:regular file\n';
+   if(options.stage==='profile-published-digest')stdout=profileDigest(p);
    if(options.stage==='profile-verify')stdout=p.profile+' (enforce)\n';
    if(options.stage==='shadow-image')stdout=JSON.stringify([{Id:'sha256:'+'b'.repeat(64)}]);
    if(options.stage==='shadow-volume-inspect')stdout=JSON.stringify([{Labels:{'dvaia.shadow.owner':p.profile}}]);
@@ -108,7 +110,7 @@ test('repeat provisioning rejects privileged, host-network and extra-mount drift
   const baseline={Image:image,Config:{User:'10001:10001',Labels:{'dvaia.shadow.owner':p.profile},Env:[`MCP_OWNED_SHADOW_TOKEN=${token}`,'MCP_OWNED_SHADOW_ROOT=/state/targets',`MCP_OWNED_TARGET_APPARMOR_PROFILE=${p.profile}`]},HostConfig:{Privileged:false,NetworkMode:'default',SecurityOpt:[`apparmor=${p.profile}`,'seccomp=unconfined'],PortBindings:{'8092/tcp':[{HostIp:'127.0.0.1',HostPort:'8094'}]}},Mounts:[{Type:'volume',Name:p.volume,Destination:'/state',RW:true}]};
   for(const mutate of [v=>v.HostConfig.Privileged=true,v=>v.HostConfig.NetworkMode='host',v=>v.Mounts.push({Type:'bind',Destination:'/private'})]){
    const found=structuredClone(baseline);mutate(found);let readinessCalled=false;
-   const run=async(_file,_args,{stage})=>{let stdout='';if(stage==='profile-existing-state')return{exitCode:1,stdout};if(stage==='profile-trust')stdout='0:0:600:regular file\n';if(stage==='profile-verify')stdout=p.profile+' (enforce)\n';if(stage==='shadow-image')stdout=JSON.stringify([{Id:image}]);if(stage==='shadow-existing')stdout='owned-id';if(stage==='shadow-inspect')stdout=JSON.stringify([found]);return{exitCode:0,stdout};};
+   const run=async(_file,_args,{stage})=>{let stdout='';if(stage==='profile-existing-state')return{exitCode:1,stdout};if(stage==='profile-trust')stdout='0:0:600:regular file\n';if(stage==='profile-published-digest')stdout=profileDigest(p);if(stage==='profile-verify')stdout=p.profile+' (enforce)\n';if(stage==='shadow-image')stdout=JSON.stringify([{Id:image}]);if(stage==='shadow-existing')stdout='owned-id';if(stage==='shadow-inspect')stdout=JSON.stringify([found]);return{exitCode:0,stdout};};
    await assert.rejects(require('../scripts/install/mcp-owned-shadow').provision({root,home,platform:'linux',commandEnv:{},run,serviceFactory:()=>{readinessCalled=true;return{};}}),/CONTAINER_CONFLICT/);assert.equal(readinessCalled,false);
   }
  }finally{await fs.rm(home,{recursive:true,force:true});}

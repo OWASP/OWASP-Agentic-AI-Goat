@@ -44,7 +44,7 @@ async function buildCaSecret({environment,temp,secrets=[]}) {
   return ['--secret','id=npm_ca,src='+file];
 }
 
-async function verifyProfile({p,authority,root,home,platform,run}) {
+function profileLocation({authority,root,home,platform}) {
   let location;
   if(platform==='linux')location=localProfilePlan({root,home,platform});
   else {
@@ -55,14 +55,46 @@ async function verifyProfile({p,authority,root,home,platform,run}) {
     location=localProfilePlan({root,home,platform,colimaProfile:'colima-'+selected});
   }
   if(location.dockerHost!==authority.host)throw fail('SYSTEM_INSTALL_PROFILE_AUTHORITY_CONFLICT');
-  const command=async args=>{
+  return location;
+}
+async function verifyProfile({p,authority,root,home,platform,run,allowPreparation=false}) {
+  const location=profileLocation({authority,root,home,platform});
+  if(platform==='darwin'){
+    const result=await run('ssh',['-F',location.sshConfig,location.sshHost,require('./mcp-owned-provision')._internals.REMOTE_DAEMON_COMMAND],{timeoutMs:10000,maxOutputBytes:4096,stage:'profile-remote-authority'});
+    let id;try{if(result.exitCode!==0||typeof result.stdout!=='string'||Buffer.byteLength(result.stdout)>4096)throw Error();id=JSON.parse(result.stdout);}catch{throw fail('SYSTEM_INSTALL_PROFILE_AUTHORITY_CONFLICT');}
+    if(id!==authority.daemonId)throw fail('SYSTEM_INSTALL_PROFILE_AUTHORITY_CONFLICT');
+  }
+  const command=async(args,allowAbsent=false)=>{
     const file=platform==='linux'?'sudo':'ssh';
     const argv=platform==='linux'?['--non-interactive',...args]:['-F',location.sshConfig,location.sshHost,'sudo','--non-interactive',...args];
-    const result=await run(file,argv,{timeoutMs:10000,maxOutputBytes:1048576});if(result.exitCode!==0)throw fail('SYSTEM_INSTALL_PROFILE_UNAVAILABLE');return result.stdout;
+    const result=await run(file,argv,{timeoutMs:10000,maxOutputBytes:1048576,allowExitCodes:allowAbsent?[0,1]:[0]});if(allowAbsent&&result.exitCode===1)return null;if(result.exitCode!==0)throw fail('SYSTEM_INSTALL_PROFILE_UNAVAILABLE');return result.stdout;
   };
+  // test -e alone misses dangling links. No missing/unloaded profile is accepted
+  // by startup; only explicit setup's read-only preflight may plan preparation.
+  if(await command(['test','-L',location.destination],true)!==null)throw fail('SYSTEM_INSTALL_PROFILE_CONFLICT');
+  if(await command(['test','-e',location.destination],true)===null){
+    if(allowPreparation)return Object.freeze({profileVerified:false,profilePreparationRequired:true});
+    throw fail('SYSTEM_INSTALL_PROFILE_UNAVAILABLE');
+  }
+  if((await command(['stat','-c','%u:%g:%a:%F',location.destination])).trim()!=='0:0:600:regular file')throw fail('SYSTEM_INSTALL_PROFILE_CONFLICT');
   const digest=(await command(['sha256sum',location.destination])).trim().split(/\s+/)[0];
   const profiles=(await command(['cat','/sys/kernel/security/apparmor/profiles'])).split(/\r?\n/);
-  if(digest!==p.profile.sha256||!profiles.includes(p.profile.name+' (enforce)'))throw fail('SYSTEM_INSTALL_PROFILE_CONFLICT');
+  if(digest!==p.profile.sha256)throw fail('SYSTEM_INSTALL_PROFILE_CONFLICT');
+  const enforced=profiles.includes(p.profile.name+' (enforce)');
+  if(!enforced&&!allowPreparation)throw fail('SYSTEM_INSTALL_PROFILE_CONFLICT');
+  return Object.freeze({profileVerified:enforced,profilePreparationRequired:!enforced});
+}
+
+async function prepareProfile(options) {
+  // Authority is reverified here, not inferred from a receipt or the selected
+  // Colima name. The read-only inspection rejects conflicts before loading.
+  const {authority,run}=options;
+  await verifyDockerAuthority({authority,environment:options.environment||{},execute:async(file,args,o)=>{
+    const r=await run(file,args,{timeoutMs:o.timeout||30000,maxOutputBytes:1048576});if(r.exitCode!==0)throw fail('SYSTEM_INSTALL_AUTHORITY_CHANGED');return r;
+  }});
+  const state=await verifyProfile({...options,allowPreparation:true});
+  if(state.profilePreparationRequired)await require('./mcp-owned-provision').installProfileOnly({plan:profileLocation(options),run,expectedDaemonId:authority.daemonId});
+  return verifyProfile(options);
 }
 
 function inspectContainer(found,{mode,p,value,image,network,labels,restartVolume}) {
@@ -92,6 +124,7 @@ async function provision(options={}) {
   const authority=await readLocalDockerAuthority({directory:path.dirname(p.managedPath),workspaceId:p.workspaceId,platform});
   if(!authority||authorityDigest(authority)!==p.dockerAuthoritySha256)throw fail('SYSTEM_INSTALL_AUTHORITY_CHANGED');
   await verifyDockerAuthority({authority,execute,environment});
+  if(!options.verifyProfile)await prepareProfile({p,authority,root,home,platform,run,environment});
   await (options.verifyProfile||verifyProfile)({p,authority,root,home,platform,run});
   const docker=async(args,{timeoutMs=30000,allowMissing=false}={})=>{
     let result;try{result=await run('docker',['--host',authority.host,...args],{timeoutMs,maxOutputBytes:1048576});}
@@ -268,4 +301,4 @@ async function startExisting(options={}) {
   samePrivateState();
   return Object.freeze({ready:true,enabled:true,containerIds:Object.freeze(accepted.map(item=>item.id))});
 }
-module.exports={prepare:plan,provision,startExisting,_internals:{createRunner,verifyProfile,inspectContainer,buildCaSecret}};
+module.exports={prepare:plan,provision,startExisting,_internals:{createRunner,verifyProfile,prepareProfile,profileLocation,inspectContainer,buildCaSecret}};

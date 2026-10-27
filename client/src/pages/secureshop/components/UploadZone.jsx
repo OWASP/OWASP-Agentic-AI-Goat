@@ -1,4 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { getBridgeFetchMetadata } from '../bridge/fetchAdapter.mjs';
+import { useProductManualUpload } from './useProductManualUpload.js';
+import { useAccountAvatarUpload } from './useAccountAvatarUpload.js';
 
 /**
  * UploadZone — drag-drop file uploader with the intentionally weak UX from
@@ -13,7 +16,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
  *   onUploaded: (result) => void
  *   label?: string
  */
-export default function UploadZone({ kind = 'avatar', scopeId = 1, onUploaded, label = null }) {
+export default function UploadZone({ kind = 'avatar', scopeId = 1, onUploaded, label = null,
+  accountAvatar = false,
+  authToken, merchantId, transport = globalThis.fetch }) {
+  const boundManual = kind === 'product_manual' && getBridgeFetchMetadata(transport) !== null;
+  const manual = useProductManualUpload({ enabled: boundManual, productId: scopeId,
+    merchantId, authToken, transport, onUploaded });
+  const avatar = useAccountAvatarUpload({ enabled: accountAvatar && kind === 'avatar',
+    ownerId: scopeId, authToken, transport, onUploaded });
   const [file, setFile] = useState(null);
   const [filename, setFilename] = useState('');
   const [isPublic, setIsPublic] = useState(true);
@@ -47,7 +57,7 @@ export default function UploadZone({ kind = 'avatar', scopeId = 1, onUploaded, l
       requestRef.current?.controller.abort();
       requestRef.current = null;
     };
-  }, [kind, scopeId]);
+  }, [kind, scopeId, accountAvatar && authToken, accountAvatar && transport]);
 
   useEffect(() => () => {
     mountedRef.current = false;
@@ -71,6 +81,14 @@ export default function UploadZone({ kind = 'avatar', scopeId = 1, onUploaded, l
 
   const upload = async () => {
     if (!file || requestRef.current) return;
+    if (boundManual) {
+      await manual.uploadManual({ file, filename, isPublic });
+      return;
+    }
+    if (accountAvatar) {
+      await avatar.uploadAvatar({ file, filename, isPublic });
+      return;
+    }
     const selectedFile = file;
     const selectedScopeId = scopeId;
     const generation = ++requestGenerationRef.current;
@@ -126,6 +144,12 @@ export default function UploadZone({ kind = 'avatar', scopeId = 1, onUploaded, l
       <div className="ss-card__meta" style={{ marginBottom: 8 }}>
         {label || `Upload → ${kind}`}
       </div>
+      {kind === 'product_manual' && <p aria-label="Product manual upload consequence"
+        style={{ fontSize: 13, lineHeight: 1.5, margin: '0 0 12px' }}>
+        Uploading stores and indexes this file for product #{scopeId} in the manuals corpus.
+        Its contents may influence later product answers and recommendations.
+        The public/private selection is lesson metadata, not a confidentiality guarantee.
+      </p>}
       <input
         ref={inputRef}
         type="file"
@@ -140,10 +164,28 @@ export default function UploadZone({ kind = 'avatar', scopeId = 1, onUploaded, l
           <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
           public
         </label>
-        <button type="button" className="ss-btn" onClick={upload} disabled={!file || uploading} style={{ padding: '6px 14px' }}>
-          {uploading ? 'Uploading…' : 'Upload'}
+        <button type="button" className="ss-btn" onClick={upload}
+          disabled={!file || uploading || manual.blocked || (accountAvatar && avatar.blocked)} style={{ padding: '6px 14px' }}>
+          {uploading || (boundManual && manual.busy) || (accountAvatar && avatar.busy) ? 'Uploading…' : 'Upload'}
         </button>
       </div>
+
+      {boundManual && manual.pending && <div role="status" className="ss-mono" style={{ marginTop: 12 }}>
+        A saved upload has an unresolved outcome. Check it before any new upload.
+        <button type="button" className="ss-btn ss-btn--ghost ss-btn--sm" onClick={manual.checkSaved}
+          disabled={manual.busy} style={{ marginLeft: 8 }}>Check saved upload</button>
+      </div>}
+      {boundManual && manual.error && <div role="alert" className="ss-mono" style={{ marginTop: 8 }}>
+        {manual.error}
+      </div>}
+      {accountAvatar && avatar.pending && <div role="status" className="ss-mono" style={{ marginTop: 12 }}>
+        A saved avatar upload has an unresolved outcome. Check it before another upload.
+        <button type="button" className="ss-btn ss-btn--ghost ss-btn--sm" onClick={avatar.checkSaved}
+          disabled={avatar.busy} style={{ marginLeft: 8 }}>Check saved upload</button>
+      </div>}
+      {accountAvatar && avatar.error && <div role="alert" className="ss-mono" style={{ marginTop: 8 }}>
+        {avatar.error}
+      </div>}
 
       {file && (
         <div style={{ marginTop: 12 }}>
@@ -161,11 +203,11 @@ export default function UploadZone({ kind = 'avatar', scopeId = 1, onUploaded, l
         </div>
       )}
 
-      {lastResult && (
+      {(boundManual ? manual.result : accountAvatar ? avatar.result : lastResult) && (
         <pre className="ss-mono" style={{
           marginTop: 12, padding: 10, background: 'var(--carbon)', color: 'var(--paper)',
           fontSize: 11, overflowX: 'auto', maxHeight: 200,
-        }}>{JSON.stringify(lastResult, null, 2)}</pre>
+        }}>{JSON.stringify(boundManual ? manual.result : accountAvatar ? avatar.result : lastResult, null, 2)}</pre>
       )}
     </div>
   );

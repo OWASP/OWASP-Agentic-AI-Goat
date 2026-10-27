@@ -27,17 +27,30 @@
  */
 
 const { createSupervisorGraph } = require('../../../agent-runtime/secureshopSupervisorGraph');
-const runGraph = createSupervisorGraph({
-  store: require('../sessionStore.js'),
-  Trace: require('../trace.js').Trace,
-  buildBasePrompt: require('./basePrompt.js').buildBasePrompt,
-  buildPolicyBlock: require('./policyLoader.js').buildPolicyBlock,
-  checkToolAcl: require('../toolAcl.js').checkToolAcl,
-});
 const MAX_STEPS = Number(process.env.SS_AGENT_MAX_STEPS || 8);
 const MAX_PARALLEL_TOOLS = Number(process.env.SS_AGENT_MAX_PARALLEL_TOOLS || 4);
-async function run(sessionId, userMessage, opts = {}) {
-  return runGraph(sessionId, userMessage, { ...opts, role: opts.role || 'customer' },
-    { maxSteps: MAX_STEPS, maxParallelTools: MAX_PARALLEL_TOOLS });
+// Trusted composition dependencies, never request fields. The original prompt,
+// policy loader, catalog selection and loop limits are shared by both paths.
+function createCustomerSupervisor({store,Trace,checkToolAcl,disclosureCapability}) {
+  if(!store||typeof Trace!=='function'||typeof checkToolAcl!=='function')throw new TypeError('Trusted customer dependencies required');
+  const runGraph=createSupervisorGraph({store,Trace,checkToolAcl,
+    buildBasePrompt:require('./basePrompt.js').buildBasePrompt,
+    buildPolicyBlock:require('./policyLoader.js').buildPolicyBlock});
+  return Object.freeze({async run(sessionId,userMessage,opts={}){
+    if(disclosureCapability!==undefined){
+      const boundary=require('../../secureshopCustomerDisclosureAuthority').disclosureFor(disclosureCapability,
+        {sessionId,role:opts.role||'customer',callerId:opts.callerId});
+      await boundary.check();
+      const protectedGraph=createSupervisorGraph({store,Trace,checkToolAcl,
+        buildBasePrompt:boundary.buildBasePrompt,buildPolicyBlock:boundary.buildPolicyBlock});
+      return protectedGraph(sessionId,userMessage,{...opts,role:'customer',manifest:boundary.manifest,
+        provider:boundary.provider(opts.provider,opts.check||boundary.check)},
+        {maxSteps:MAX_STEPS,maxParallelTools:MAX_PARALLEL_TOOLS});
+    }
+    return runGraph(sessionId,userMessage,{...opts,role:opts.role||'customer'},
+      {maxSteps:MAX_STEPS,maxParallelTools:MAX_PARALLEL_TOOLS});
+  }});
 }
-module.exports = { customerSupervisor: { run }, MAX_STEPS, MAX_PARALLEL_TOOLS };
+const customerSupervisor=createCustomerSupervisor({store:require('../sessionStore.js'),
+  Trace:require('../trace.js').Trace,checkToolAcl:require('../toolAcl.js').checkToolAcl});
+module.exports = { customerSupervisor, createCustomerSupervisor, MAX_STEPS, MAX_PARALLEL_TOOLS };

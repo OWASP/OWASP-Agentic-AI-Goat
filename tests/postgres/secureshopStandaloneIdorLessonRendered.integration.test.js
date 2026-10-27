@@ -9,12 +9,14 @@ const fs = require('node:fs/promises');
 const fsSync = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { browserArgs, acknowledgeBrowser, selectIdorLesson, authenticateOwnerHeaders } = require('../fixtures/secureshopIdorBrowserAdmission');
 const { randomUUID, createHash } = require('node:crypto');
 const { Pool } = require('pg');
 const { migrate } = require('../../db/postgres/migrate');
 const { IDOR_BROWSER_SCOPE, IDOR_BROWSER_FLAGS, assertCardsMatchBirth,
   assertSavedLesson, assertOriginalLessonTurn, assertOriginalActorWire,
-  assertIdorBrowserReceipt } =
+  assertIdorBrowserReceipt, assertPrivateIdorEvidencePath,
+  admitDisposableIdorCandidate } =
   require('../fixtures/secureshopIdorLessonRenderedQualification');
 
 const ROOT = path.resolve(__dirname, '../..');
@@ -117,8 +119,10 @@ async function snapshot(pool, table, scope, objective) {
 }
 function headersFrom(request) {
   const headers = request.headers();
-  assert.match(headers.authorization || '', /^Bearer [A-Za-z0-9_.-]+$/);
-  assert.match(headers['x-dvaia-secureshop-launch'] || '', /^[A-Za-z0-9_-]{43}$/);
+  assert.ok(/^Bearer [A-Za-z0-9_.-]+$/.test(headers.authorization || ''),
+    'physical request requires bearer authorization');
+  assert.ok(/^[A-Za-z0-9_-]{43}$/.test(headers['x-dvaia-secureshop-launch'] || ''),
+    'physical request requires launch authorization');
   return { authorization: headers.authorization,
     'x-dvaia-secureshop-launch': headers['x-dvaia-secureshop-launch'] };
 }
@@ -135,8 +139,8 @@ test(TEST_TITLE,
     assert.equal(process.cwd(), ROOT, 'current checkout required');
     assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
     const evidencePath = process.env.SECURESHOP_CUSTOMER_IDOR_LESSON_EVIDENCE_PATH || '';
-    assert.ok(path.isAbsolute(evidencePath));
-    assert.ok(!path.resolve(evidencePath).startsWith(`${ROOT}${path.sep}`));
+    assertPrivateIdorEvidencePath(evidencePath, { root: ROOT,
+      dockerHost: process.env.DOCKER_HOST, cartOnly: V10_ONLY });
     const build = path.resolve(process.env.SECURESHOP_CUSTOMER_IDOR_LESSON_BUILD || '/');
     assert.equal(build, path.join(ROOT, 'client/build'));
     await fs.access(path.join(build, 'index.html'));
@@ -192,6 +196,15 @@ test(TEST_TITLE,
       status.isolatedStores = true;
       const identity = pools.IDENTITY_RUNTIME, agents = pools.AGENTS_RUNTIME;
       const review = pools.REVIEW_RUNTIME, commerce = pools.COMMERCE_RUNTIME;
+      const assessmentReleaseAdmission = V10_ONLY ? undefined : await require(
+        '../../server/services/secureshopAssessmentReleaseAdmission')
+        .createDisposableAssessmentReleaseAdmission({
+          stores: Object.fromEntries(Object.entries(STORES).map(([key]) => [key.toLowerCase(), {
+            runtimePool: pools[`${key}_RUNTIME`], migrationPool: pools[`${key}_MIGRATION`],
+            runtimeUrl: urls[`${key}_RUNTIME`], migrationUrl: urls[`${key}_MIGRATION`],
+          }])),
+          objectiveIds: [OBJECTIVES.order_status],
+        });
       const auth = require('../../server/services/secureshopStandaloneAuth')
         .createSecureShopStandaloneAuthService({ repository:
           require('../../server/database/postgres/secureshopStandaloneAuthRepository')
@@ -231,15 +244,17 @@ test(TEST_TITLE,
       assert.equal(siblingPrincipal.ownerId, peerTenant.owner_id);
       const administrator = await auth.login({ username: 'student_admin', password: 'student123' });
       const assessmentCatalog = require('../../server/services/secureshopAssessmentCatalog')
-        .createSecureShopAssessmentCatalog({ pool: identity, authService: auth });
-      for (const objectiveId of ACTIVE_OBJECTIVES) {
-        const objective = (await assessmentCatalog.list(administrator.context)).objectives
-          .find(row => row.objectiveId === objectiveId);
-        assert.equal(objective?.qualification, 'native-model');
-        assert.equal(objective.enabled, false);
-        assert.equal((await assessmentCatalog.set(administrator.context,
-          { objectiveId, enabled: true, expectedRevision: objective.revision })).enabled, true);
-      }
+        .createSecureShopAssessmentCatalog({ pool: identity, authService: auth,
+          assessmentReleaseAdmission });
+      const candidate = await admitDisposableIdorCandidate({
+        migration: pools.IDENTITY_MIGRATION, catalog: assessmentCatalog,
+        administratorContext: administrator.context,
+        curriculum: require('../../server/config/secureshopCurriculum'),
+        activeObjectiveIds: ACTIVE_OBJECTIVES,
+      });
+      assert.equal(candidate.fixtureLocalCandidateAdmission, !V10_ONLY);
+      assert.equal(candidate.publicOrderQualification, 'pending');
+      assert.equal(candidate.publicOrderDefaultEnabled, false);
       status.canonicalObjectivesEnabled = true;
       const progress = require('../../server/database/postgres/workshopProgressRepository')
         .createWorkshopProgressRepository(identity);
@@ -271,7 +286,7 @@ test(TEST_TITLE,
             .readJudgeProviderConfig(configuredJudge));
       const grading = await require('../../server/services/secureshopGradingBootstrap')
         .createSecureShopGradingBootstrap({ identityPool: identity, agentsPool: agents,
-          progress, resetComposition: reset, judge,
+          progress, resetComposition: reset, judge, assessmentReleaseAdmission,
           expectedIdentityDatabase: new URL(urls.IDENTITY_RUNTIME).pathname.slice(1),
           expectedAgentsDatabase: new URL(urls.AGENTS_RUNTIME).pathname.slice(1) });
       const scenes = require('../../server/services/secureshopScenes').createSecureShopScenes({
@@ -312,6 +327,7 @@ test(TEST_TITLE,
         .createSecureShopBoundReviewComposition({ identityPool: identity, agentsPool: agents,
           reviewPool: review, commercePool: commerce, resetComposition: reset,
           gradingBootstrap: grading, scenes, modeAuthority, couponDependencies,
+          assessmentReleaseAdmission,
           personaInboxFeature: require('../../server/services/secureshopPersonaInboxActivationPolicy')
             .activationPolicy(process.env).requested, toolPolicyRepository,
           fixtures: [], requiredObjectives: ACTIVE_OBJECTIVES, judge,
@@ -346,6 +362,7 @@ test(TEST_TITLE,
           .createSecureShopAssessmentRecovery({ identityPool: identity, authService: auth,
             bootstrap, launches: composition.launches, personaAuth: composition.personaAuth,
             personaAuthority: grading.personaAuthority, modeAuthority, scenes,
+            assessmentReleaseAdmission,
             qualifyIdorModel: require('../../server/services/secureshopModelQualification')
               .createSecureShopModelQualifier(provider), judge }),
         cartImport: require('../../server/services/secureshopStandaloneCartImport')
@@ -394,7 +411,14 @@ test(TEST_TITLE,
       app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
       profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-customer-idor-browser-'));
       browser = await require('puppeteer').launch({ headless: true,
-        userDataDir: profile, executablePath });
+        userDataDir: profile, executablePath, args: browserArgs(process.env, {
+          workspace: ROOT,
+          evidencePath: process.env.SECURESHOP_CUSTOMER_IDOR_LESSON_EVIDENCE_PATH,
+          profile, origin,
+        }) });
+      if (process.env.SECURESHOP_IDOR_LESSON_TEST_NO_SANDBOX === '1') {
+        await acknowledgeBrowser(process.env, { workspace: ROOT, browser, profile });
+      }
       page = await browser.newPage();
       await page.setViewport({ width: 1280, height: 900 });
       page.on('pageerror', error => pageErrors.push(error.message.slice(0, 160)));
@@ -435,13 +459,15 @@ test(TEST_TITLE,
       stage = 'initial-lesson-cards';
       await select.select('idor');
       await frame.waitForSelector('section[aria-label="Customer access control lesson"]');
-      const ownerHeaders = headersFrom(await cardsRequestPromise);
+      let ownerHeaders = headersFrom(await cardsRequestPromise);
       assert.equal((await initialCardsResponse).status(), 503,
         'the initial read cannot provision an isolated lesson scene');
-      const scope = await composition.launches.resolveCapability(
-        ownerHeaders['x-dvaia-secureshop-launch']);
-      const actor = await composition.personaAuth.authenticateBoundToken({ scope,
-        token: ownerHeaders.authorization.slice(7) });
+      const ownerAuthority = await authenticateOwnerHeaders(composition, ownerHeaders);
+      const { scope, actor } = ownerAuthority;
+      async function refreshOwner(request) {
+        const current = await authenticateOwnerHeaders(composition, headersFrom(request), ownerAuthority.identity);
+        ownerHeaders = current.headers;
+      }
       const persona = { id: actor.user.id, role: 'customer' };
       const personaSession = { sessionId: actor.sessionId,
         authorityVersion: actor.authorityVersion };
@@ -462,6 +488,8 @@ test(TEST_TITLE,
       await physicalButton(page, 'Shop settings');
       await page.waitForSelector('aside[aria-label="Shop settings"]', { hidden: true });
       frame = await frameFor(page);
+      // Mode changes remount the customer lane and reset its selected task.
+      await selectIdorLesson(frame);
       const prepareRequestPromise = page.waitForRequest(request =>
         new URL(request.url()).pathname === `${PATH}/prepare`
           && request.method() === 'POST', { timeout: 20000 });
@@ -471,8 +499,7 @@ test(TEST_TITLE,
       await frame.waitForFunction(() => document.querySelectorAll(
         'section[aria-label="Customer access control lesson"] button').length === 2,
       { timeout: 20000 });
-      assert.deepEqual(headersFrom(prepareRequest), ownerHeaders,
-        'physical preparation must use the same current owner authority');
+      await refreshOwner(prepareRequest);
       const lessonRepository = require('../../server/database/postgres/secureshopBoundIdorLessonRepository')
         .createSecureShopBoundIdorLessonRepository(review, { modeAuthority,
           readVictimIdentity: require('../../server/database/postgres/secureshopBoundIdorLessonRepository')
@@ -562,7 +589,9 @@ test(TEST_TITLE,
         void response.catch(() => {});
         await physicalButton(frame, label,
           'section[aria-label="Customer access control lesson"] button');
-        assert.equal((await response).status(), 200);
+        const turnResponse = await response;
+        assert.equal(turnResponse.status(), 200);
+        await refreshOwner(turnResponse.request());
         assert.equal(status.roleTurns, postsBefore + 1);
         const submitted = requests.filter(row => row.method === 'POST'
           && row.path === '/agents/customer/idor/chat').at(-1)?.body;
@@ -662,9 +691,12 @@ test(TEST_TITLE,
       frame = await frameFor(page);
       await page.reload({ waitUntil: 'domcontentloaded' });
       frame = await frameFor(page);
-      await frame.waitForSelector('select[id^="agent-lane-task-customer-"]', { visible: true });
-      await frame.select('select[id^="agent-lane-task-customer-"]', 'idor');
-      await frame.waitForSelector('section[aria-label="Customer access control lesson"]');
+      const vulnerableCardsRequest = page.waitForRequest(request =>
+        new URL(request.url()).pathname === `${PATH}/cards` && request.method() === 'GET',
+      { timeout: 20000 });
+      void vulnerableCardsRequest.catch(() => {});
+      await selectIdorLesson(frame);
+      await refreshOwner(await vulnerableCardsRequest);
       const vulnerableCards = await protectedGet(origin, `${PATH}/cards`, ownerHeaders);
       assertCardsMatchBirth(vulnerableCards.cards, birth);
       assert.equal(vulnerableCards.modeCapability.effectiveMode, 'vuln');
@@ -725,7 +757,12 @@ test(TEST_TITLE,
       await frame.waitForSelector('select[id^="agent-lane-task-customer-"]', { visible: true });
       await frame.select('select[id^="agent-lane-task-customer-"]', 'idor');
       await frame.waitForSelector('section[aria-label="Saved access-control lesson request"]');
+      const recoveredRequest = page.waitForRequest(request =>
+        new URL(request.url()).pathname === replayTurn.savedPath && request.method() === 'GET',
+      { timeout: 20000 });
+      void recoveredRequest.catch(() => {});
       await physicalButton(frame, 'Check saved request');
+      await refreshOwner(await recoveredRequest);
       await frame.waitForFunction(() => document.querySelector(
         'section[aria-label="Saved access-control lesson request"]')
         ?.textContent.includes('Saved customer request · completed'), { timeout: 20000 });

@@ -8,7 +8,7 @@ function createCtfAuthorityAttemptRoute({runtime,coordinator}){
  if(typeof coordinator?.run!=='function')throw TypeError('CTF coordinator required');
  const limits=new Map(),inputs=new WeakMap();
  const authenticated=(req,res)=>{if(!id(req.user?.id)||!id(req.identitySession?.id)){res.status(401).json({error:'Authentication required'});return false;}return true;};
- const error=(res,e)=>{const status=e?.code==='42501'?403:e?.code==='SESSION_REVOKED'||['28000','28P01'].includes(e?.code)?401:e?.name==='AbortError'?409:Number.isInteger(e?.statusCode)&&e.statusCode>=400&&e.statusCode<=599?e.statusCode:503;return res.status(status).json({error:status===401?'Session is no longer current':status===409?'CTF request is no longer current':'CTF service temporarily unavailable'});};
+ const error=(res,e)=>{const status=e?.code==='42501'?403:e?.code==='SESSION_REVOKED'||['28000','28P01'].includes(e?.code)?401:e?.code==='PCT01'||e?.name==='AbortError'?409:Number.isInteger(e?.statusCode)&&e.statusCode>=400&&e.statusCode<=599?e.statusCode:503;return res.status(status).json({error:status===401?'Session is no longer current':status===409?'CTF request is no longer current':'CTF service temporarily unavailable'});};
  const send=(res,value)=>{if(!value||!Number.isInteger(value.status)||value.status<200||value.status>599||!value.body)throw Error('Invalid CTF runtime response');return res.status(value.status).json(value.body);};
  const coordinated=ownerWorkflowRoute(coordinator,req=>req.user.id,async(req,res)=>{
   const execution=getOwnerExecution();

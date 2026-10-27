@@ -41,6 +41,7 @@ const PRODUCT_PATCH = shape({
   image_url: ANY,
 });
 const LISTINGS_CHAT_SOURCE = shape({ sessionId: ANY, requestId: ANY, proposalId: ANY });
+const MANUAL_LISTING = shape({ name: ANY, description: ANY, price: ANY, category: ANY, images: ANY, templateSource: ANY });
 const listingsBody = (...keys) => Object.freeze({ keys: Object.freeze([...keys, 'chatSource']), nested: Object.freeze({ chatSource: LISTINGS_CHAT_SOURCE }), emitEmpty: false });
 const CUSTOMER_CHAT_BODY = Object.freeze({
   keys: Object.freeze(['sessionId', 'message', 'requestId', 'selection', 'catalogContinuation']),
@@ -119,6 +120,10 @@ const OPERATIONS = Object.freeze({
     { params: ['id'], body: body('sessionId', 'requestId'), requiredBody: true }),
   'catalog.product.similarSaved': operation('/api/secureshop/products/:id/similar/sessions/:sessionId/requests/:requestId', 'GET',
     { params: ['id', 'sessionId', 'requestId'] }),
+  'uploads.productManual.receipt': operation('/api/secureshop/uploads/product-manual/receipt', 'GET',
+    { query: ['productId', 'sha256', 'sizeBytes', 'filename', 'mime', 'public', 'recoveryScopeKey'] }),
+  'uploads.avatar.operation': operation('/api/secureshop/uploads/avatar/operations/:requestId', 'GET',
+    { params: ['requestId'] }),
 
   'cart.get': operation('/api/secureshop/cart', 'GET', { query: ['user_id'] }),
   'cart.add': operation('/api/secureshop/cart', 'POST', { body: body('product_id', 'quantity') }),
@@ -350,6 +355,13 @@ const OPERATIONS = Object.freeze({
   'merchant.listings.browserRetry': operation('/api/secureshop/merchant/listings/browser-retry', 'POST', { body: body('requestId', 'rewriteOperationId', 'saveOperationId', 'evaluationId') }),
   'merchant.listings.browserAttempt': operation('/api/secureshop/merchant/listings/browser-attempt', 'POST', { body: body('requestId', 'rewriteOperationId', 'saveOperationId') }),
   'merchant.listings.readiness': operation('/api/secureshop/merchant/listings/readiness'),
+  'merchant.listings.manualReadiness': operation('/api/secureshop/merchant/listings/manual/readiness'),
+  'merchant.listings.manualCreatePreview': operation('/api/secureshop/merchant/listings/manual/create/preview', 'POST', { body: Object.freeze({ keys: Object.freeze(['listing']), nested: Object.freeze({ listing: MANUAL_LISTING }), emitEmpty: false }), requiredBody: true }),
+  'merchant.listings.manualEditPreview': operation('/api/secureshop/merchant/listings/manual/edit/preview', 'POST', { body: Object.freeze({ keys: Object.freeze(['productId', 'listing']), nested: Object.freeze({ listing: MANUAL_LISTING }), emitEmpty: false }), requiredBody: true }),
+  'merchant.listings.manualCreateConfirm': operation('/api/secureshop/merchant/listings/manual/create/confirm', 'POST', { body: body('operationId', 'preview'), requiredBody: true }),
+  'merchant.listings.manualEditConfirm': operation('/api/secureshop/merchant/listings/manual/edit/confirm', 'POST', { body: body('operationId', 'preview'), requiredBody: true }),
+  'merchant.listings.manualCreateOperation': operation('/api/secureshop/merchant/listings/manual/create/operations/:operationId', 'GET', { params: ['operationId'] }),
+  'merchant.listings.manualEditOperation': operation('/api/secureshop/merchant/listings/manual/edit/operations/:operationId', 'GET', { params: ['operationId'] }),
   'merchant.listings.templateReadiness': operation('/api/secureshop/merchant/listings/template-readiness'),
   'merchant.listings.templateRender': operation('/api/secureshop/merchant/listings/template-render', 'POST', { body: body('operationId', 'productId') }),
   'merchant.listings.templateOperation': operation('/api/secureshop/merchant/listings/template-operations/:operationId', 'GET', { params: ['operationId'] }),
@@ -358,7 +370,9 @@ const OPERATIONS = Object.freeze({
   'merchant.listings.rewriteSaved': operation('/api/secureshop/merchant/listings/rewrite-saves/:saveOperationId', 'GET', { params: ['saveOperationId'], query: ['sessionId','requestId','proposalId','rewriteOperationId'] }),
   'merchant.listings.rewriteSave': operation('/api/secureshop/merchant/listings/rewrite-save', 'POST', { body: Object.freeze({ keys: Object.freeze(['rewriteOperationId', 'saveOperationId', 'productId', 'item', 'chatSource']), nested: Object.freeze({ chatSource: LISTINGS_CHAT_SOURCE, item: shape({ name: ANY, description: ANY, price: ANY, category: ANY, images: ANY, templateSource: ANY }) }), emitEmpty: false }) }),
   'merchant.reviews.list': operation('/api/secureshop/merchant/reviews', 'GET', { query: ['status', 'per_page', 'product_id', 'min_rating', 'max_rating'] }),
-  'merchant.reviews.moderateAll': operation('/api/secureshop/merchant/reviews/moderate-all', 'POST', { body: body('request_id', 'limit') }),
+  'merchant.reviews.moderateAll': operation('/api/secureshop/merchant/reviews/moderate-all', 'POST', { body: body('request_id', 'limit', 'recoveryScopeKey') }),
+  'merchant.reviews.moderationReceipt': operation('/api/secureshop/merchant/reviews/moderation/:requestId', 'GET',
+    { params: ['requestId'], query: ['limit', 'recoveryScopeKey'] }),
   'merchant.reviews.operation': operation('/api/secureshop/merchant/reviews/operations/:operationId', 'GET', {params:['operationId']}),
   'merchant.reviews.approve': operation('/api/secureshop/merchant/reviews/:id/approve', 'POST', { params: ['id'], body:body('operationId') }),
   'merchant.reviews.reject': operation('/api/secureshop/merchant/reviews/:id/reject', 'POST', { params: ['id'], body: body('reason','operationId') }),
@@ -446,6 +460,7 @@ const OPERATIONS = Object.freeze({
 });
 
 const SEPARATE = Object.freeze([
+  Object.freeze({ name: 'uploads.avatar.create', method: 'POST', path: '/api/secureshop/uploads/avatar', responseKind: 'json', bodyKind: 'multipart', compiler: 'compileBridgeOperation' }),
   Object.freeze({ name: 'agent.customer.avatarTraversal.run', method: 'POST', path: '/api/secureshop/agents/customer/avatar-upload/path-traversal/run', responseKind: 'json', bodyKind: 'multipart', compiler: 'compileBridgeOperation' }),
   Object.freeze({ name: 'agent.customer.avatarUpload.run', method: 'POST', path: '/api/secureshop/agents/customer/avatar-upload/run', responseKind: 'json', bodyKind: 'multipart', compiler: 'compileBridgeOperation' }),
   Object.freeze({ name: 'agent.customer.fileSummary.run', method: 'POST', path: '/api/secureshop/agents/customer/file-summary/run', responseKind: 'json', bodyKind: 'multipart', compiler: 'compileBridgeOperation' }),
@@ -625,6 +640,37 @@ export function compileOperation(name, input = {}) {
   const query = clean.query === undefined ? Object.create(null) : clean.query;
   assertExactKeys(params, spec.params, 'params');
   assertExactKeys(query, spec.query, 'query');
+  if (name === 'uploads.avatar.operation' && (clean.body !== undefined
+    || typeof params.requestId !== 'string' || !UUID.test(params.requestId)
+    || params.requestId !== params.requestId.toLowerCase())) fail('Account avatar operation invalid');
+  if (name === 'uploads.productManual.receipt') {
+    if (clean.body !== undefined) fail('Product manual receipt cannot have a body');
+    const required = ['productId', 'sha256', 'sizeBytes', 'filename', 'mime', 'public'];
+    if (required.some(key => !Object.hasOwn(query, key))
+      || typeof query.productId !== 'string' || !/^[1-9][0-9]*$/.test(query.productId)
+      || !Number.isSafeInteger(Number(query.productId)) || Number(query.productId) > 2147483647
+      || typeof query.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(query.sha256)
+      || typeof query.sizeBytes !== 'string' || !/^[1-9][0-9]*$/.test(query.sizeBytes)
+      || !Number.isSafeInteger(Number(query.sizeBytes)) || Number(query.sizeBytes) > 20 * 1024 * 1024
+      || typeof query.filename !== 'string' || !query.filename.trim() || !query.filename.isWellFormed()
+      || new TextEncoder().encode(query.filename).byteLength > 255 || /[\x00-\x1f\x7f]/.test(query.filename)
+      || typeof query.mime !== 'string' || !query.mime.trim() || !query.mime.isWellFormed()
+      || new TextEncoder().encode(query.mime).byteLength > 128 || /[\x00-\x1f\x7f]/.test(query.mime)
+      || !['true', 'false'].includes(query.public)
+      || (Object.hasOwn(query, 'recoveryScopeKey')
+        && (typeof query.recoveryScopeKey !== 'string' || !/^[a-f0-9]{64}$/.test(query.recoveryScopeKey))))
+      fail('Product manual receipt query invalid');
+  }
+  if (name === 'merchant.reviews.moderationReceipt') {
+    if (clean.body !== undefined || typeof params.requestId !== 'string'
+      || !UUID.test(params.requestId) || params.requestId !== params.requestId.toLowerCase()
+      || Object.keys(query).some(key => !['limit', 'recoveryScopeKey'].includes(key))
+      || !Object.hasOwn(query, 'limit') || typeof query.limit !== 'string'
+      || !/^(?:[1-9]|[1-9][0-9]|100)$/.test(query.limit)
+      || (Object.hasOwn(query, 'recoveryScopeKey')
+        && (typeof query.recoveryScopeKey !== 'string' || !/^[a-f0-9]{64}$/.test(query.recoveryScopeKey))))
+      fail('Review moderation receipt query invalid');
+  }
 
   if(name==='merchant.listings.rewriteSaved') {
     const keys=Object.keys(query).sort().join(',');
@@ -704,6 +750,16 @@ export function compileOperation(name, input = {}) {
     if (name === 'lab.policyHtml.assess'
       && [bodyValue.session_id, bodyValue.request_id].some(value => !UUID.test(value || '')))
       fail('Policy output assessment source invalid');
+    if (name === 'merchant.reviews.moderateAll'
+      && (typeof bodyValue.request_id !== 'string' || !UUID.test(bodyValue.request_id)
+        || bodyValue.request_id !== bodyValue.request_id.toLowerCase()
+        || (bodyValue.limit !== undefined && (!Number.isInteger(bodyValue.limit)
+          || bodyValue.limit < 1 || bodyValue.limit > 100))
+        || (bodyValue.recoveryScopeKey !== undefined
+          && (typeof bodyValue.recoveryScopeKey !== 'string'
+            || !/^[a-f0-9]{64}$/.test(bodyValue.recoveryScopeKey)
+            || !Number.isInteger(bodyValue.limit)))))
+      fail('Review moderation request invalid');
     if (['agent.admin.assistant.mcpManifestAssess', 'agent.admin.assistant.mcpDiscoveryAssess',
       'agent.admin.assistant.systemDiagnosticAssess'].includes(name)
       && spec.body.keys.some(key => typeof bodyValue[key] !== 'string' || !UUID.test(bodyValue[key])))

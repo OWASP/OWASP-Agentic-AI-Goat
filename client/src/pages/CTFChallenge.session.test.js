@@ -14,9 +14,10 @@ const stage = { id: 5, stage_number: 5, stage_name: 'Session stage', ai_guardian
 const started = (hint, attempts = 1) => ({ data: { stage, purchasedHints: [hint], hintsAvailable: true, hintsUsed: 1, hintPenaltyTotal: 10, attemptsSoFar: attempts } });
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 let node, root, navigate, currentPath;
+let mockAuthRevision;
 async function flush() { await act(async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); }); }
 function Nav() { navigate = useNavigate(); currentPath = useLocation().pathname; return null; }
-function render(user) { act(() => root.render(<SessionProvider value={{ user }}><MemoryRouter initialEntries={[{ pathname: '/ctf/challenge', state: { stage } }]}><Nav /><CTFChallenge /></MemoryRouter></SessionProvider>)); }
+function render(user) { act(() => root.render(<SessionProvider value={{ user, getAuthRevision: () => mockAuthRevision }}><MemoryRouter initialEntries={[{ pathname: '/ctf/challenge', state: { stage } }]}><Nav /><CTFChallenge /></MemoryRouter></SessionProvider>)); }
 async function submit(text) {
   await act(async () => { const el = node.querySelector('textarea'); Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(el, text); el.dispatchEvent(new Event('input', { bubbles: true })); });
   await act(async () => node.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
@@ -24,6 +25,7 @@ async function submit(text) {
 }
 beforeEach(() => {
   global.IS_REACT_ACT_ENVIRONMENT = true; Element.prototype.scrollIntoView = jest.fn();
+  mockAuthRevision = 0;
   localStorage.setItem('token', 'owner-a'); axios.post.mockReset(); axios.get.mockReset();
   axios.get.mockResolvedValue({ data: { config: { ctf_show_attempt_counter: 'true', ctf_hint_cost_2: '10' } } });
   node = document.createElement('div'); document.body.appendChild(node); root = createRoot(node);
@@ -109,4 +111,28 @@ test('old owner completed-stage response cannot redirect replacement session', a
   old.resolve({ data: { alreadyCompleted: true } }); await flush();
   expect(currentPath).toBe('/ctf/challenge'); expect(node.textContent).toContain('replacement active stage');
   expect(node.querySelector('textarea').disabled).toBe(false);
+});
+test('same-token auth revision starts a new CTF session and discards the old attempt response',async()=>{
+ const old=deferred();axios.post.mockResolvedValueOnce(started('old session hint')).mockReturnValueOnce(old.promise);
+ render({id:1});await flush();await submit('old prompt');
+ const oldSession=axios.post.mock.calls.find(call=>call[0].endsWith('/attempt'))[1].sessionToken;
+ axios.post.mockResolvedValueOnce(started('renewed session hint'));
+ mockAuthRevision+=1;render({id:1});await flush();
+ expect(axios.post.mock.calls.filter(call=>call[0].endsWith('/start'))).toHaveLength(2);
+ old.resolve({data:{aiResponse:'late old answer',success:true,message:'old completion'}});await flush();
+ expect(node.textContent).toContain('renewed session hint');
+ expect(node.textContent).not.toContain('late old answer');
+ expect(node.textContent).not.toContain('old session hint');
+ axios.post.mockResolvedValueOnce({data:{aiResponse:'renewed answer',attemptNumber:2}});
+ await submit('new prompt');
+ const attempts=axios.post.mock.calls.filter(call=>call[0].endsWith('/attempt'));
+ expect(attempts[1][1].sessionToken).not.toBe(oldSession);
+});
+test('ready challenge cannot submit through retained form after auth revision changes',async()=>{
+ axios.post.mockResolvedValueOnce(started('ready session hint'));render({id:1});await flush();
+ await act(async()=>{const el=node.querySelector('textarea');Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(el,'typed before revision');el.dispatchEvent(new Event('input',{bubbles:true}));});
+ mockAuthRevision+=1;
+ await act(async()=>node.querySelector('form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+ await flush();
+ expect(axios.post.mock.calls.filter(call=>call[0].endsWith('/attempt'))).toHaveLength(0);
 });

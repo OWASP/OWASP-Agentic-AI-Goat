@@ -5,6 +5,7 @@ import { safeShopRoute } from './bridge/guestRouting.mjs';
 import { STANDALONE_SESSION_CHANNEL } from './bridge/standaloneIntents.mjs';
 import { ASSESSMENT_PANEL_CHANNEL } from './bridge/assessmentPanelIntent.mjs';
 import { PASSWORD_RESET_PANEL_CHANNEL } from './bridge/passwordResetIntent.mjs';
+import { EXTERNAL_MAIL_PANEL_CHANNEL } from './bridge/externalMailIntent.mjs';
 import { requestBoundCartReadback } from './bridge/cartRefresh.mjs';
 import { handleAuditCsvExport } from './bridge/auditCsvExport.mjs';
 import { REGISTERED_PASSWORD_RESET_RESOLVED_EVENT, registeredPasswordResetRecoveryState } from './bridge/registeredPasswordResetRecovery.mjs';
@@ -14,6 +15,7 @@ import SecureShopStandaloneObjectivesControl from './SecureShopStandaloneObjecti
 import SecureShopStandaloneAssessmentsControl from './SecureShopStandaloneAssessmentsControl.jsx';
 import SecureShopStandaloneProgressControl from './SecureShopStandaloneProgressControl.jsx';
 import SecureShopStandalonePasswordReset from './SecureShopStandalonePasswordReset.jsx';
+import SecureShopStandaloneExternalMail from './SecureShopStandaloneExternalMail.jsx';
 import './theme.css';
 
 const ROUTE_CHANNEL = 'dvaia-secureshop-bound-route-v1';
@@ -127,6 +129,7 @@ export default function SecureShopStandaloneBound({ client, user, onSessionInten
   const resetPriorFocus = useRef(null);
   const [assessmentFocusId, setAssessmentFocusId] = useState(null);
   const [passwordResetRequest, setPasswordResetRequest] = useState(null);
+  const [externalMailOpen, setExternalMailOpen] = useState(false);
   const storageRef = useRef(null);
   if (!storageRef.current) {
     try { storageRef.current = window.sessionStorage; } catch { /* Guest intent stays unavailable. */ }
@@ -191,6 +194,11 @@ export default function SecureShopStandaloneBound({ client, user, onSessionInten
       const data = event.data;
       const nonce = new URL(frame.src).hash.slice(1);
       if (!data || data.nonce !== nonce) return;
+      if (Object.keys(data).length === 3 && data.channel === EXTERNAL_MAIL_PANEL_CHANNEL
+        && data.type === 'open' && user?.role === 'merchant' && state.status === 'ready') {
+        setExternalMailOpen(true);
+        return;
+      }
       if (handleAuditCsvExport(event, { frame, route: routeRef.current,
         allowed: state.status === 'ready' && user?.role === 'admin' })) return;
       if (Object.keys(data).length === 4 && data.channel === ROUTE_CHANNEL && data.type === 'route') {
@@ -499,6 +507,8 @@ export default function SecureShopStandaloneBound({ client, user, onSessionInten
         {user?.role === 'admin' && <SecureShopStandalonePasswordReset key={user.principalId}
           client={client} controller={controller.current} user={user} request={passwordResetRequest}
           onClose={() => setPasswordResetRequest(null)} />}
+        {user?.role === 'merchant' && <button type="button" className="ss-btn ss-btn--ghost ss-btn--sm"
+          onClick={() => setExternalMailOpen(true)}>Send external test email</button>}
         {user?.role === 'admin' && <section style={{ borderTop: '1px solid var(--rule)', marginTop: 16, paddingTop: 16 }}>
           <strong className="ss-display">Shared practice reset</strong>
           {resetCheck === 'loading' && <p role="status">Checking reset availability…</p>}
@@ -511,6 +521,10 @@ export default function SecureShopStandaloneBound({ client, user, onSessionInten
           </>}
         </section>}
       </aside>}
+      {user?.role === 'merchant' && <SecureShopStandaloneExternalMail
+        key={`${user.principalId}:${state.launch?.launchId}:${state.launch?.generation}`}
+        controller={controller.current} user={user} open={externalMailOpen}
+        onClose={() => setExternalMailOpen(false)} />}
     </>}
     {resetConfirm && <div className="ss-root ss-modal-backdrop" style={{ position: 'absolute', zIndex: 5 }}
       onMouseDown={event => { if (event.target === event.currentTarget && !resetLock.current) setResetConfirm(false); }}>

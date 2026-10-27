@@ -3,6 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
+const fs = require('node:fs/promises');
+const path = require('node:path');
 const { createSecureShopBoundGateway } = require('../server/routes/secureshop/boundGateway');
 const { createBoundReviewsRouter } = require('../server/routes/secureshop/boundReviews');
 const { createBoundPromptPolicyService } = require('../server/services/secureshopBoundPromptPolicyService');
@@ -18,7 +20,7 @@ const siblingLaunchScope = Object.freeze({ launchId: '10000000-0000-4000-8000-00
   scenarioId: '20000000-0000-4000-8000-000000000092', generation: 2,
   platformOwnerId: 92, platformSessionId: 902 });
 
-async function fixture(t,{resolveCapabilityOverride, boundDispatch=false, customerChatRouter, couponProbeRouter, avatarUploadRouter, fileSummaryRouter, filePathSummaryRouter, productSearchRouter, orderStatusRouter, idorLessonRouter, ticketAgentRouter, searchEchoRouter, commerceOverrides, ownedMcpService, mcpTrustRouter, systemConfigRouter, systemDiagnosticRouter, systemRestartRouter, adminAssistantRuntime, personaAuthOverrides, catalogOverrides, accountOverrides, admin, personaObservations, promptPolicies, promptPolicyTaskTargets, assertLaunchCurrent = async () => {}}={}) {
+async function fixture(t,{resolveCapabilityOverride, boundDispatch=false, customerChatRouter, couponProbeRouter, avatarUploadRouter, accountAvatar, productManualIngestion, fileSummaryRouter, filePathSummaryRouter, productSearchRouter, orderStatusRouter, idorLessonRouter, ticketAgentRouter, searchEchoRouter, commerceOverrides, ownedMcpService, mcpTrustRouter, systemConfigRouter, systemDiagnosticRouter, systemRestartRouter, adminAssistantRuntime, personaAuthOverrides, catalogOverrides, accountOverrides, admin, personaObservations, promptPolicies, promptPolicyTaskTargets, assertLaunchCurrent = async () => {}}={}) {
   const calls = []; let legacyCalls = 0; let launchCalls = 0;
   const launches = { assertCurrent: assertLaunchCurrent, async resolveCapability(value) {
     launchCalls += 1;
@@ -137,7 +139,7 @@ async function fixture(t,{resolveCapabilityOverride, boundDispatch=false, custom
   app.use(express.json());
   const browserRouter = express.Router();
   const gateway = createSecureShopBoundGateway({ launches, authenticatePersona,
-    personaAuth, reviewsRouter, browserRouter, customerChatRouter, couponProbeRouter, avatarUploadRouter, fileSummaryRouter, filePathSummaryRouter, productSearchRouter, orderStatusRouter, idorLessonRouter, catalog, commerce, account, admin, personaObservations, promptPolicies, promptPolicyTaskTargets,
+    personaAuth, reviewsRouter, browserRouter, customerChatRouter, couponProbeRouter, avatarUploadRouter, accountAvatar, productManualIngestion, fileSummaryRouter, filePathSummaryRouter, productSearchRouter, orderStatusRouter, idorLessonRouter, catalog, commerce, account, admin, personaObservations, promptPolicies, promptPolicyTaskTargets,
     ...(systemConfigRouter?{systemConfigRouter}:{}),
     ...(systemDiagnosticRouter?{systemDiagnosticRouter}:{}),
     ...(systemRestartRouter?{systemRestartRouter}:{}),
@@ -259,6 +261,150 @@ for (const [option, endpoint] of [['systemConfigRouter','config-read'],['systemD
 function headers(role = 'customer', id = 41, launch = launchBearer) {
   return { authorization: `Bearer ${role}-${id}`, 'x-dvaia-secureshop-launch': launch };
 }
+
+test('separate bound Account avatar multipart admits all roles without changing merchant manual authority', async t => {
+  const observed = [];
+  const requestId = '70000000-0000-4000-8000-000000000041';
+  const accountAvatar = {
+    async upload(input) {
+      observed.push(['post', input]);
+      return { ok: true, kind: 'avatar', scope_id: String(input.persona.id),
+        requestId: input.requestId, status: 'completed',
+        operationId: '80000000-0000-4000-8000-000000000041',
+        filename: input.filename, mime: input.mime, size_bytes: input.bytes.length,
+        public: input.public, is_traversal: input.filename.includes('....//'), replayed: false };
+    },
+    async read(input) {
+      observed.push(['get', input]);
+      return { ok: false, kind: 'avatar', scope_id: String(input.persona.id),
+        requestId: input.requestId, status: 'uncertain', operationId: null,
+        filename: '', mime: '', size_bytes: 0, public: false,
+        is_traversal: false, replayed: false };
+    }
+  };
+  const f = await fixture(t, { accountAvatar });
+  const form = scope => {
+    const body = new FormData();
+    body.append('file', new Blob(['<svg>test</svg>'], { type: 'image/svg+xml' }), '....//chosen.svg');
+    body.append('kind', 'avatar'); body.append('scope_id', String(scope));
+    body.append('mime', 'image/svg+xml'); body.append('public', 'true');
+    body.append('requestId', requestId);
+    return body;
+  };
+  for (const role of ['customer', 'merchant', 'admin']) {
+    const response = await fetch(`${f.base}/uploads/avatar`, { method: 'POST',
+      headers: headers(role, 41), body: form(41) });
+    assert.equal(response.status, 200);
+    const receipt = await response.json();
+    assert.equal(receipt.filename, '....//chosen.svg');
+    assert.equal(receipt.mime, 'image/svg+xml');
+    assert.equal(receipt.public, true);
+    assert.equal(receipt.is_traversal, true);
+    assert.equal(receipt.scope_id, '41');
+    assert.equal(receipt.requestId, requestId);
+  }
+  assert.equal(observed.length, 3);
+  assert.deepEqual(observed.map(([, value]) => value.persona.role), ['customer', 'merchant', 'admin']);
+  assert.ok(observed.every(([, value]) => value.filename === '....//chosen.svg'
+    && value.personaSession.sessionId === currentSessionId));
+  for (const [role, scope] of [['customer', 42], ['merchant', 42], ['admin', 42]]) {
+    const denied = await fetch(`${f.base}/uploads/avatar`, { method: 'POST',
+      headers: headers(role, 41), body: form(scope) });
+    assert.equal(denied.status, 400);
+  }
+  assert.equal(observed.length, 3);
+  const read = await fetch(`${f.base}/uploads/avatar/operations/${requestId}`, {
+    headers: headers('customer', 41) });
+  assert.equal(read.status, 200);
+  assert.equal((await read.json()).status, 'uncertain');
+  assert.equal(observed.length, 4);
+  const manual = await fetch(`${f.base}/uploads`, { method: 'POST',
+    headers: headers('customer', 41), body: form(41) });
+  assert.equal(manual.status, 503, 'avatar route cannot broaden the existing manual route');
+  assert.equal(observed.length, 4);
+  assert.equal(f.legacyCalls(), 0);
+});
+
+test('actual Account avatar multipart reaches owner journal and legacy sink inside private operation root', async t => {
+  const directory = await fs.mkdtemp(path.join(__dirname, '../tasks/tmp/account-avatar-gateway-'));
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const environment = { SECURESHOP_UPLOAD_ROOT: directory };
+  const { createSceneBinding } = require('../server/services/secureshopSceneBinding');
+  const { normalizeAdmission, normalizeEffect } = require('../server/services/secureshopBoundUploadReceipt');
+  const { createSecureShopBoundAccountAvatar } = require('../server/services/secureshopBoundAccountAvatar');
+  const execution = launchScope, target = createSceneBinding({ ...execution,
+    targetId: '50000000-0000-4000-8000-000000000041' }, {
+    sceneId: '60000000-0000-4000-8000-000000000041', sceneGeneration: 2,
+    grantId: '70000000-0000-4000-8000-000000000041', execution,
+    withLease: work => work()
+  });
+  const admissions = [], effects = new Map();
+  const service = createSecureShopBoundAccountAvatar({
+    pool: { async query() { return { rows: [] }; } },
+    launches: { async assertCurrent() {} }, resolveTarget: async () => target,
+    personaAuthority: { async capture(input) { return {
+      binding: { ...execution, personaId: input.personaId, role: input.role,
+        sessionId: input.sessionId, authorityVersion: input.authorityVersion },
+      async assertRemoteAdmission() {} };
+    } },
+    modeAuthority: { async capture() { return {
+      snapshot: { mode: 'vuln', generation: 1, modeStamp: 'a'.repeat(64) },
+      async assertCurrent() {} };
+    }, assertToken: value => value },
+    journal: { async claim(value) { const admitted = normalizeAdmission(value);
+      admissions.push(admitted); return admitted; },
+    async recordEffect(admitted, value) { const effect = normalizeEffect(value, admitted);
+      effects.set(admitted.operationId, effect); return effect; } },
+    effects: { async find(admitted) { return effects.get(admitted.operationId) || null; } },
+    writer: require('../server/services/secureshopUploadWriter').createSecureShopUploadWriter({ environment }),
+    traversalWriter: require('../server/services/secureshopV46TraversalWriter').createSecureShopV46TraversalWriter({ environment }),
+    read: require('../server/services/secureshopUploadAssetReader').createSecureShopUploadAssetReader({ environment }),
+    readTraversal: require('../server/services/secureshopV46TraversalAssetReader').createSecureShopV46TraversalAssetReader({ environment })
+  });
+  const f = await fixture(t, { accountAvatar: service });
+  const body = new FormData();
+  body.append('file', new Blob(['<svg>owned</svg>'], { type: 'image/svg+xml' }), '....//picked.svg');
+  for (const [key, value] of Object.entries({ kind: 'avatar', scope_id: '41',
+    mime: 'image/svg+xml', public: 'true', requestId: '80000000-0000-4000-8000-000000000041' }))
+    body.append(key, value);
+  const response = await fetch(`${f.base}/uploads/avatar`, { method: 'POST',
+    headers: headers('customer', 41), body });
+  assert.equal(response.status, 200);
+  const receipt = await response.json();
+  assert.equal(receipt.status, 'completed');
+  assert.equal(receipt.filename, '....//picked.svg');
+  assert.equal(receipt.public, true);
+  assert.equal(receipt.is_traversal, true);
+  assert.equal(admissions.length, 1);
+  const effect = effects.get(receipt.operationId);
+  assert.equal(effect.file.storedVirtualPath,
+    `operations/${admissions[0].storageKey}/avatars/picked.svg`);
+  assert.deepEqual(await fs.readFile(path.join(directory, effect.file.storedVirtualPath)),
+    Buffer.from('<svg>owned</svg>'));
+});
+
+test('enabled merchant manual route still denies other roles before parser or service effects', async t => {
+  let manualCalls = 0, avatarCalls = 0;
+  const f = await fixture(t, {
+    productManualIngestion: { async upload() { manualCalls += 1; throw Error('unexpected manual write'); },
+      async readReceipt() { manualCalls += 1; throw Error('unexpected manual read'); } },
+    accountAvatar: { async upload() { avatarCalls += 1; throw Error('unexpected avatar write'); },
+      async read() { avatarCalls += 1; throw Error('unexpected avatar read'); } }
+  });
+  for (const role of ['customer', 'admin']) {
+    const body = new FormData();
+    body.append('file', new Blob(['x']), 'chosen.txt');
+    body.append('kind', 'product_manual');
+    body.append('scope_id', '41');
+    body.append('mime', 'text/plain');
+    body.append('public', 'true');
+    const response = await fetch(`${f.base}/uploads`, { method: 'POST',
+      headers: headers(role, 41), body });
+    assert.equal(response.status, 403);
+  }
+  assert.equal(manualCalls, 0);
+  assert.equal(avatarCalls, 0);
+});
 
 test('missing launch delegates unchanged while body and query authority cannot select bound mode', async t => {
   const f = await fixture(t);

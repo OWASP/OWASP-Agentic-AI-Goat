@@ -79,6 +79,8 @@ test('merchant product selection appears in the portaled composer', async () => 
     expect(form.querySelector('p[role="status"]')?.textContent)
       .toContain('Selected product for this message: Owned Pricing Fixture');
     expect(form.querySelector('p[role="status"] button')?.textContent).toContain('Clear selection');
+    expect(slot.querySelector('[id^="lane-merchant-assistant-"]')?.closest('form'))
+      .toBe(form);
     expect(node.textContent).not.toContain('Selected product for this message: Owned Pricing Fixture');
   } finally { slot.remove(); }
 });
@@ -160,6 +162,29 @@ test('merchant Next products uses saved request and read-only product retains de
   assistant.turns = [{ ...assistant.turns[0], catalogPage: null }];
   await render('merchant');
   expect(node.querySelector('[aria-label="Next merchant products"]')).toBeNull();
+});
+
+test('completed latest active merchant product exposes enabled Use; read-only, stale and locked do not', async () => {
+  const makeTurn = (requestId, readOnly = false) => ({ sessionId: requestId, requestId,
+    status: 'done', user: 'Search', reply: 'Saved', hops: [], cards: [{ version: 1,
+      kind: 'merchant_product', choiceId: requestId, title: 'Owned lamp', detail: 'Owned', readOnly }] });
+  const first = makeTurn('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+  assistant.turns = [first];
+  await render('merchant');
+  const use = () => node.querySelector('[aria-label="Use Owned lamp in next message"]');
+  expect(use()).not.toBeNull(); expect(use().disabled).toBe(false);
+  assistant.turns = [first, makeTurn('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')];
+  await render('merchant');
+  const buttons = [...node.querySelectorAll('[aria-label="Use Owned lamp in next message"]')];
+  expect(buttons).toHaveLength(2); expect(buttons[0].disabled).toBe(true);
+  expect(buttons[1].disabled).toBe(false);
+  assistant.status = 'thinking';
+  await render('merchant');
+  expect([...node.querySelectorAll('[aria-label="Use Owned lamp in next message"]')]
+    .every(button => button.disabled)).toBe(true);
+  assistant.status = 'idle'; assistant.turns = [makeTurn('cccccccc-cccc-4ccc-8ccc-cccccccccccc', true)];
+  await render('merchant');
+  expect(use()).toBeNull();
 });
 
 test('a delayed role answer cannot erase a newer composer draft', async () => {

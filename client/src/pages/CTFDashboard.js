@@ -68,16 +68,20 @@ const getDifficultyStyle = (level) => {
 
 const CTFDashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, getAuthRevision } = useAuth();
   const token = localStorage.getItem('token');
+  const authRevision = typeof getAuthRevision === 'function' ? getAuthRevision() : null;
   const ownerRef = useRef(null);
-  if (!ownerRef.current || ownerRef.current.token !== token || ownerRef.current.userId !== user?.id) {
-    ownerRef.current = { token, userId: user?.id, revision: Symbol('ctf-session') };
+  if (!ownerRef.current || ownerRef.current.token !== token || ownerRef.current.userId !== user?.id
+      || ownerRef.current.authRevision !== authRevision) {
+    ownerRef.current = { token, userId: user?.id, authRevision, revision: Symbol('ctf-session') };
   }
   const owner = ownerRef.current;
   const mounted = useRef(false);
-  const current = () => mounted.current && ownerRef.current === owner && localStorage.getItem('token') === owner.token;
-  const recovery = useCtfRecovery(owner.revision);
+  const current = () => mounted.current && ownerRef.current === owner
+    && localStorage.getItem('token') === owner.token
+    && (typeof getAuthRevision === 'function' ? getAuthRevision() : null) === owner.authRevision;
+  const recovery = useCtfRecovery(owner.revision, current);
 
   const [ctfConfig, setCtfConfig] = useState({});
   const [stages, setStages] = useState([]);

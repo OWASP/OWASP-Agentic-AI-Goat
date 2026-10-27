@@ -1,10 +1,15 @@
 """Resource-free controls for the V03 actual browser launcher."""
 import ast
+import copy
+import hashlib
 import importlib.util
 import json
+import os
 import signal
 import subprocess
 import sys
+import tempfile
+import types
 from pathlib import Path
 from unittest.mock import patch
 
@@ -36,6 +41,339 @@ def constants():
             try: values[node.targets[0].id] = ast.literal_eval(node.value)
             except (ValueError, TypeError): pass
     return values
+
+
+def test_v03_private_fd_flags_are_exclusive_and_native_gate_remains_closed():
+    launcher = load_launcher('v03_private_fd_selection')
+    base = dict(cohort=launcher.V03_OPTIMIZE_BROWSER, plan=False,
+        v03_private_run_id='a'*32, v03_private_plan_sha256='b'*64,
+        v03_private_channel_fd=3, v03_private_admission_fd=4,
+        listings_image_id=None, listings_runtime_digest=None)
+    assert launcher.v03_private_selected(types.SimpleNamespace(**base)) is True
+    assert launcher.V03_PRIVATE_MAIN_LIVE_ENABLED is False
+    try:
+        launcher.validate_static(types.SimpleNamespace(**base))
+    except RuntimeError as error:
+        assert str(error) == 'V03 private parent MAIN admission remains closed'
+    else:
+        raise AssertionError('V03 private MAIN must remain closed before producer review')
+    for change in (dict(cohort='standalone-listings-browser'),
+                   dict(v03_private_plan_sha256=None),
+                   dict(v03_private_channel_fd=5),
+                   dict(v03_private_admission_fd=5),
+                   dict(listings_image_id='sha256:'+'c'*64),
+                   dict(listings_runtime_digest='d'*64)):
+        row = types.SimpleNamespace(**{**base, **change})
+        try:
+            launcher.v03_private_selected(row)
+        except RuntimeError as error:
+            assert str(error) == 'Exact V03 private parent FD admission required'
+        else:
+            raise AssertionError('Invalid or mixed V03 parent authority was admitted')
+    historical = types.SimpleNamespace(cohort=launcher.V03_OPTIMIZE_BROWSER)
+    assert launcher.v03_private_selected(historical) is False
+
+
+def test_private_pg_authority_precedes_creation_and_binding_precedes_readiness():
+    text = SOURCE.read_text()
+    start = text.index("stage = 'v03-private-parent-admission'", text.index('def main('))
+    intent = text.index('v03_private_facade.postgres_create_intent(', start)
+    create = text.index("stage = 'container-create'", start)
+    bind = text.index('v03_private_facade.bind_postgres(', create)
+    ready = text.index("stage = 'postgres-tcp-readiness'", create)
+    assert start < intent < create < bind < ready
+    assert text.count("stage = 'v03-private-parent-admission'") == 1
+
+
+def test_private_work_exit_is_not_qualification_and_requires_local_cleanup_handoff():
+    launcher = load_launcher('v03_pending_work_exit')
+    cleanup = {'browserProfilesAbsent': True, 'browserProcessesAbsent': True,
+        'v03Private': {'handoffAccepted': True, 'evidenceDebt': False,
+                       'cleanupPending': True, 'qualificationComplete': False}}
+    assert launcher.v03_private_work_succeeded(True, None, cleanup, [], []) is True
+    for key in ('browserProfilesAbsent', 'browserProcessesAbsent'):
+        assert launcher.v03_private_work_succeeded(True, None, {**cleanup, key: False}, [], []) is False
+    for change in ({'handoffAccepted': False}, {'evidenceDebt': True}, {'qualificationComplete': True}):
+        altered = {**cleanup, 'v03Private': {**cleanup['v03Private'], **change}}
+        assert launcher.v03_private_work_succeeded(True, None, altered, [], []) is False
+    assert launcher.v03_private_work_succeeded(True, {'type': 'failure'}, cleanup, [], []) is False
+    assert launcher.v03_private_work_succeeded(True, None, cleanup, ['debt'], []) is False
+    assert launcher.v03_private_work_succeeded(True, None, cleanup, [], ['fd']) is False
+    assert 'receipt.update(passed=False, qualificationComplete=False, cleanupPending=True,' in SOURCE.read_text()
+
+
+def test_v03_private_facade_receives_main_captured_pins_not_packet_values():
+    launcher = load_launcher('v03_private_facade_admission')
+    source = SOURCE.parents[2]
+    node = source / 'tasks/runtime/node/node_modules/node/bin/node'
+    node_sha = launcher.digest(node)
+    args = types.SimpleNamespace(cohort=launcher.V03_OPTIMIZE_BROWSER,
+        v03_private_run_id='a'*32, v03_private_plan_sha256='b'*64,
+        v03_private_channel_fd=3, v03_private_admission_fd=4,
+        listings_image_id=None, listings_runtime_digest=None, node=str(node))
+    import v03_private_executors
+    sentinel = object()
+    with patch.object(launcher, 'V03_PRIVATE_MAIN_LIVE_ENABLED', True), \
+         patch.object(v03_private_executors.V03PrivateExecutors,
+             'from_admission_fds', return_value=sentinel) as consume:
+        pins = {'sourcePins': {'tests/postgres/v03_private_executors.py': 'c'*64}}
+        assert launcher.v03_private_admit(args, source, pins, node_sha) is sentinel
+        consume.assert_called_once_with(root=str(source), run_id='a'*32,
+            plan_sha256='b'*64, source_pins={**pins['sourcePins'],
+                'tasks/runtime/node/node_modules/node/bin/node': node_sha},
+            channel_fd=3, admission_fd=4)
+    try:
+        launcher.v03_private_admit(args, source, {'sourcePins': {}}, node_sha)
+    except RuntimeError as error:
+        assert str(error) == 'V03 private parent MAIN admission remains closed'
+    else:
+        raise AssertionError('V03 private facade must stay live-gated closed')
+
+
+def fresh_v03_control():
+    launcher = load_launcher('v03_fresh_control')
+    root = SOURCE.parents[2]
+    approved = copy.deepcopy(launcher.V03_OPTIMIZE_FRESH_APPROVED)
+    args = types.SimpleNamespace(v03_native_proof_kind='current-host-v1')
+    for key, path_field, hash_field in (
+        ('tap', 'v03_native_receipt', 'v03_native_receipt_sha256'),
+        ('result', 'v03_native_result', 'v03_native_result_sha256'),
+        ('sourceAdmission', 'v03_source_admission', 'v03_source_admission_sha256'),
+        ('terminal', 'v03_outer_terminal', 'v03_outer_terminal_sha256'),
+        ('full', 'v03_independent_full', 'v03_independent_full_sha256')):
+        setattr(args, path_field, str(root / approved[key][0]))
+        setattr(args, hash_field, approved[key][1])
+    return launcher, root, approved, args
+
+
+def synthetic_v03_control():
+    """Sealed small in-memory documents: ordinary controls need no private run history."""
+    launcher = load_launcher('v03_fresh_synthetic')
+    root = SOURCE.parents[2]
+    prefix = 'tasks/tmp/v03-synthetic-controlled'
+    pack = lambda value: json.dumps(value, sort_keys=True, separators=(',', ':')).encode()
+    sha = lambda data: hashlib.sha256(data).hexdigest()
+    paths = {key:f'{prefix}/{key}.json' for key in ('sourceAdmission','admission','result','terminal','full')}
+    paths['tap'] = f'{prefix}/owned-command-0.stdout.log'
+    source_map = dict(launcher.V03_OPTIMIZE_NATIVE_PINS)
+    dependencies = {'controlled':'dependency'}
+    source_sha, dependencies_sha = sha(pack(source_map)), sha(pack(dependencies))
+    run_id = '1' * 32
+    node = str(root / 'tasks/runtime/node/node_modules/node/bin/node')
+    docker = str(root / 'tasks/runtime/container/bin/docker')
+    python = '/controlled/producer-python'
+    outer_python = '/controlled/outer-python'
+    fixture_argv = [node,'--test','--test-concurrency=1','--test-reporter=tap',
+                    str(root / launcher.V03_OPTIMIZE_NATIVE_TEST)]
+    admission = {'schema':'v03-prerequisite-current-host-admission-v1','runId':run_id,
+        'sourceSha256':source_sha,'dependenciesSha256':dependencies_sha,
+        'fixture':launcher.V03_OPTIMIZE_NATIVE_TEST,
+        'assertions':list(launcher.V03_OPTIMIZE_NATIVE_ASSERTIONS),'sourceRoot':str(root),
+        'executables':{node:'2'*64,docker:'3'*64},'python':{'path':python,'sha256':'4'*64},
+        'daemonId':'controlled-daemon','dockerHost':'controlled-docker-host',
+        'imageId':'controlled-image','profile':'controlled-profile',
+        'evidenceParent':str(root / 'tasks/qualification'),'wrapperSha256':'6'*64}
+    tap_lines = ['TAP version 13']
+    for number, title in enumerate(launcher.V03_OPTIMIZE_NATIVE_ASSERTIONS,1):
+        tap_lines += [f'# Subtest: {title}',f'ok {number} - {title}']
+    tap_lines += ['1..2','# tests 2','# pass 2','# fail 0','# cancelled 0','# skipped 0']
+    tap = ('\n'.join(tap_lines)+'\n').encode()
+    documents = {paths['admission']:pack(admission),paths['tap']:tap}
+    artifact_names = ('source-before.json','source-after.json',
+                      'dependencies-before.json','dependencies-after.json')
+    for name in artifact_names:
+        documents[f'{prefix}/{name}'] = pack(source_map if name.startswith('source') else dependencies)
+    artifacts = {name:{'bytes':len(documents[f'{prefix}/{name}']),
+                       'sha256':sha(documents[f'{prefix}/{name}'])} for name in artifact_names}
+    artifacts['admission.json'] = {'bytes':len(documents[paths['admission']]),
+                                    'sha256':sha(documents[paths['admission']])}
+    canonical = ['/controlled/producer','--v03-run-id',run_id,'--v03-admission',
+                 str(root / paths['admission']),'--v03-admission-sha256',sha(documents[paths['admission']])]
+    admission['argvSha256'] = sha(pack(canonical[:-4]))
+    documents[paths['admission']] = pack(admission)
+    artifacts['admission.json'] = {'bytes':len(documents[paths['admission']]),
+                                   'sha256':sha(documents[paths['admission']])}
+    canonical[-1] = artifacts['admission.json']['sha256']
+    source_admission = {'version':1,'runId':run_id,'sourceSha256':source_sha,
+        'dependenciesSha256':dependencies_sha,'sourceBeforeAfterEqual':True,
+        'dependenciesBeforeAfterEqual':True,'nativeStarted':False,'artifacts':artifacts,
+        'physicalArgv':[outer_python,'-B',*canonical],'canonicalRunCommand':canonical,
+        'explicitPins':{},'executables':{node:'2'*64,docker:'3'*64,python:'4'*64,outer_python:'5'*64}}
+    documents[paths['sourceAdmission']] = pack(source_admission)
+    children = []
+    original_hashes = {}
+    for index in range(26):
+        child = {'phase':'work','requestedArgv':fixture_argv if index == 0 else ['controlled',str(index)],
+                 'closed':True,'groupAbsent':True,'terminalPublished':True,'errors':[],
+                 'evidenceDebt':False,'overflow':False,'exitCode':0 if index == 0 else 2,
+                 'birth':[index,1], 'output':[
+                    {'path':str(root / paths['tap']),'capturedSha256':sha(tap),
+                     'capturedBytes':len(tap),'observedBytes':len(tap),'truncated':False},
+                    {'path':str(root / f'{prefix}/owned-command-0.stderr.log'),
+                     'capturedSha256':sha(b''),'capturedBytes':0,'observedBytes':0,'truncated':False}]
+                    if index == 0 else []}
+        if index == 0:
+            child['argv'] = fixture_argv
+            child['actualArgv'] = [python,'-B',str(root / 'tests/postgres/secureshop_v03_fsize_exec.py'),
+                                   '2'*64,'--',*fixture_argv]
+            child['wrapperSha256'] = '6'*64
+        relative = f'{prefix}/owned-command-{index}-terminal.json'
+        documents[relative] = pack(child)
+        child['terminalSha256'] = sha(documents[relative])
+        original_hashes[relative] = child['terminalSha256']
+        children.append(child)
+    lease = {'commands':{'work':26,'cleanup':0}}
+    result = {'schema':'v03-prerequisite-current-host-v1','version':1,'suite':'v03',
+        'runId':run_id,'admissionSha256':sha(documents[paths['admission']]),'admission':admission,
+        'fixture':launcher.V03_OPTIMIZE_NATIVE_TEST,'expectedTests':2,'exitCode':0,
+        'cleanupErrors':[],'originalAssertions':list(launcher.V03_OPTIMIZE_NATIVE_ASSERTIONS),
+        'observedAssertions':list(launcher.V03_OPTIMIZE_NATIVE_ASSERTIONS),
+        'tapCounts':{'tests':2,'pass':2,'fail':0,'skipped':0,'cancelled':0},
+        'passed':True,'qualificationComplete':True,'sourceUnchanged':True,
+        'dependenciesUnchanged':True,'containerAbsent':True,'childGroupsAbsent':True,
+        'actualModel':False,'actualNetworkEffects':False,'actualUpload':False,
+        'browser':False,'graph':False,'judgeOrCredit':False,'sourceCopies':False,
+        'sourceHashes':source_map,'sourceHashesAfter':source_map,
+        'dependencyInventorySha256':dependencies_sha,'stdoutSha256':sha(tap),
+        'stderrSha256':sha(b''),'currentHostOwnership':{'children':children},
+        'daemonId':'controlled-daemon','containerId':'controlled-container','lease':lease,
+        'sourceRoot':str(root),'dockerHost':'controlled-docker-host',
+        'postgresImage':'controlled-image'}
+    result['currentHostOwnership'].update(profile='controlled-profile',
+        evidenceParent=str(root / 'tasks/qualification'))
+    documents[paths['result']] = pack(result)
+    outer = {'runId':run_id,'exitCode':0,'joined':True,'coordinatorFailure':None}
+    documents[paths['terminal']] = pack(outer)
+    for key in ('sourceAdmission','result','tap','terminal'):
+        original_hashes[paths[key]] = sha(documents[paths[key]])
+    full = {'kind':'independent-v03-original-prerequisite-current-closure','runId':run_id,
+        'originalExitCode':0,'originalError':None,'runMatches':[],
+        'fullCurrentClosureVerified':True,'qualificationPassed':True,
+        'sourceDependenciesUnchanged':True,'imageUnchanged':True,
+        'sourceDigest':source_sha,'dockerDaemon':'controlled-daemon',
+        'exactPgAbsent':'controlled-container','originalLease':lease,
+        'originalFileHashes':original_hashes}
+    documents[paths['full']] = pack(full)
+    approved = {'runId':run_id,'sourceSha256':source_sha,'dependenciesSha256':dependencies_sha,
+                **{key:(rel,sha(documents[rel])) for key,rel in paths.items()}}
+    args = types.SimpleNamespace(v03_native_proof_kind='current-host-v1')
+    for key,path_field,hash_field in (
+        ('tap','v03_native_receipt','v03_native_receipt_sha256'),
+        ('result','v03_native_result','v03_native_result_sha256'),
+        ('sourceAdmission','v03_source_admission','v03_source_admission_sha256'),
+        ('terminal','v03_outer_terminal','v03_outer_terminal_sha256'),
+        ('full','v03_independent_full','v03_independent_full_sha256')):
+        setattr(args,path_field,str(root / paths[key]))
+        setattr(args,hash_field,approved[key][1])
+    def reader(source,raw,relative,expected,limit):
+        assert str(raw) == str(source / relative)
+        data = documents[relative]
+        assert sha(data) == expected and len(data) <= limit
+        return data
+    return launcher,root,approved,args,documents,reader
+
+
+def test_v03_fresh_exact_accepted_prerequisite_and_historical_dispatch():
+    launcher, root, approved, args, documents, reader = synthetic_v03_control()
+    with patch.object(launcher, 'v03_fresh_private_bytes', side_effect=reader):
+        accepted = launcher.validate_v03_fresh_native_receipt(args, root, approved)
+    assert accepted['proofKind'] == 'current-host-v1'
+    assert accepted['counts'] == {'tests':2, 'pass':2, 'fail':0, 'skipped':0, 'cancelled':0}
+    legacy = types.SimpleNamespace(v03_native_receipt='old.tap', v03_native_receipt_sha256='old',
+        v03_native_result='old.json', v03_native_result_sha256='old')
+    sentinel = object()
+    with patch.object(launcher, 'validate_v03_historical_native_receipt', return_value=sentinel) as old:
+        assert launcher.validate_v03_native_receipt(legacy, root) is sentinel
+        old.assert_called_once_with(legacy, root)
+    args.v03_independent_full_sha256 = '0' * 64
+    with patch.object(launcher, 'v03_fresh_private_bytes', side_effect=reader):
+        try: launcher.validate_v03_fresh_native_receipt(args, root, approved)
+        except RuntimeError as error: assert 'digest' in str(error)
+        else: assert False, 'wrong FULL digest admitted'
+    if os.environ.get('SECURESHOP_V03_ACCEPTED_PROOF_CONTROL') == '1':
+        actual, actual_root, _, actual_args = fresh_v03_control()
+        assert actual.validate_v03_native_receipt(actual_args, actual_root)['proofKind'] == 'current-host-v1'
+
+
+def test_v03_fresh_resealed_semantic_denials():
+    launcher, root, approved, args, base_documents, original_reader = synthetic_v03_control()
+    for target, mutate, expected, reseal_child in (
+        ('result', lambda row: row.update(runId='0' * 32), 'result', False),
+        ('result', lambda row: row['currentHostOwnership']['children'][0].update(groupAbsent=False), 'child', False),
+        ('result', lambda row: row['sourceHashes'].update({launcher.V03_OPTIMIZE_NATIVE_TEST:'0' * 64}), 'result', False),
+        ('result', lambda row: row.update(daemonId='wrong-daemon'), 'result', False),
+        ('result', lambda row: row['currentHostOwnership'].update(profile='wrong-profile'), 'child', False),
+        ('result', lambda row: row['currentHostOwnership']['children'][0]['actualArgv'].__setitem__(0,'wrong-python'), 'wrapper', True),
+        ('sourceAdmission', lambda row: row.update(version=2), 'source admission', False),
+        ('terminal', lambda row: row.update(exitCode=1), 'terminal', False),
+        ('full', lambda row: row.update(originalLease={}), 'terminal', False),
+        ('full', lambda row: row.update(exactPgAbsent='wrong-container'), 'terminal', False)):
+        candidate = copy.deepcopy(approved)
+        option = copy.deepcopy(args)
+        documents = dict(base_documents)
+        relative = candidate[target][0]
+        row = json.loads(documents[relative])
+        mutate(row)
+        terminal_update = None
+        if reseal_child:
+            terminal_rel = str(Path(candidate['result'][0]).parent / 'owned-command-0-terminal.json')
+            child = row['currentHostOwnership']['children'][0]
+            terminal_update = json.dumps({k:v for k,v in child.items() if k != 'terminalSha256'},
+                                         sort_keys=True,separators=(',', ':')).encode()
+            child['terminalSha256'] = hashlib.sha256(terminal_update).hexdigest()
+            documents[terminal_rel] = terminal_update
+        encoded = json.dumps(row, sort_keys=True, separators=(',', ':')).encode()
+        digest = hashlib.sha256(encoded).hexdigest()
+        candidate[target] = (relative, digest)
+        documents[relative] = encoded
+        if target in ('result', 'terminal', 'sourceAdmission'):
+            full_rel = candidate['full'][0]
+            full_row = json.loads(documents[full_rel])
+            full_row['originalFileHashes'][relative] = digest
+            if terminal_update is not None:
+                full_row['originalFileHashes'][terminal_rel] = hashlib.sha256(terminal_update).hexdigest()
+            full_encoded = json.dumps(full_row, sort_keys=True, separators=(',', ':')).encode()
+            candidate['full'] = (full_rel, hashlib.sha256(full_encoded).hexdigest())
+            documents[full_rel] = full_encoded
+        for key, field in (('result', 'v03_native_result_sha256'),
+                           ('sourceAdmission', 'v03_source_admission_sha256'),
+                           ('terminal', 'v03_outer_terminal_sha256'),
+                           ('full', 'v03_independent_full_sha256')):
+            setattr(option, field, candidate[key][1])
+        def sealed_reader(source, raw, rel, sha, limit):
+            data = documents.get(rel)
+            if data is None: return original_reader(source, raw, rel, sha, limit)
+            assert hashlib.sha256(data).hexdigest() == sha
+            assert len(data) <= limit
+            return data
+        with patch.object(launcher, 'v03_fresh_private_bytes', side_effect=sealed_reader):
+            try: launcher.validate_v03_fresh_native_receipt(option, root, candidate)
+            except RuntimeError as error: assert expected in str(error), (target, error)
+            else: assert False, f'resealed {target} semantic mutation admitted'
+
+
+def test_v03_fresh_reader_nonblocking_fifo_alias_and_ancestor_denials():
+    launcher, root, _, _, _, _ = synthetic_v03_control()
+    with tempfile.TemporaryDirectory(dir=root / 'tasks/tmp') as temp:
+        folder = Path(temp)
+        fifo = folder / 'evidence.json'
+        os.mkfifo(fifo, 0o600)
+        relative = fifo.relative_to(root).as_posix()
+        try: launcher.v03_fresh_private_bytes(root, fifo, relative, '0' * 64, 4096)
+        except RuntimeError as error: assert 'Private bounded' in str(error)
+        else: assert False, 'FIFO open must fail without blocking or a writer'
+        actual = folder / 'real'
+        actual.mkdir()
+        alias = folder / 'alias'
+        alias.symlink_to(actual, target_is_directory=True)
+        target = alias / 'evidence.json'
+        try: launcher.v03_fresh_private_bytes(root, target, target.relative_to(root).as_posix(), '0' * 64, 4096)
+        except RuntimeError as error: assert 'alias' in str(error)
+        else: assert False, 'symlink ancestor admitted'
+        rewritten = str(fifo.parent) + '/./evidence.json'
+        try: launcher.v03_fresh_private_bytes(root, rewritten, relative, '0' * 64, 4096)
+        except RuntimeError as error: assert 'path and bound' in str(error)
+        else: assert False, 'noncanonical caller path admitted'
 
 def test_v03_exact_cohort_and_reviewed_pins():
     value = constants()
@@ -246,10 +584,17 @@ def test_unrelated_live_cohorts_are_preserved():
     source = SOURCE.read_text()
     assert 'LIVE_BROWSER_COHORTS = (V03_OPTIMIZE_BROWSER,) + LIVE_BROWSER_COHORTS' in source
     assert value['V01_AUDIT_BROWSER'] == 'customer-checkout-audit-v01-browser'
-    assert value['V01_AUDIT_TEST_SHA256'] == '86b869c86f2ab7cd06c7508ae113f2888ddff49a2d2b7f64832381781d2c7262'
+    # Preserve the pre-V03 MAIN contract; V01 source freshness is checked by its
+    # own launcher tests, not by this unrelated-cohort preservation assertion.
+    assert value['V01_AUDIT_TEST_SHA256'] == 'a166f9cb63705a110236082a660edcc442a8362c4a37b0f31aede130a6f744c9'
     assert value['V06_UPLOAD_BROWSER'] == 'customer-avatar-upload-v06-browser'
-    assert source.count('validate_v06_upload_pins(source, digest)') == 1
-    assert source.count('validate_v06_upload_pins(source,digest)') == 1
+    v06_calls = [node for node in ast.walk(ast.parse(source)) if isinstance(node, ast.Call)
+                 and isinstance(node.func, ast.Name) and node.func.id == 'validate_v06_upload_pins']
+    assert len(v06_calls) == 2
+    assert all(len(call.args) == 2 and not call.keywords
+               and all(isinstance(arg, ast.Name) and arg.id == name
+                       for arg, name in zip(call.args, ('source', 'digest')))
+               for call in v06_calls)
     for phrase in ["'containerNameAbsent': cleanup.get('containerNameAbsent')",
                    "'containerIdAbsent': cleanup.get('containerIdAbsent')",
                    "'browserProfilesAbsent': cleanup.get('browserProfilesAbsent')",

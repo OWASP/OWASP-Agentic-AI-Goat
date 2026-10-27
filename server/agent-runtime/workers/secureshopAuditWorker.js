@@ -3,6 +3,7 @@ const fs = require('node:fs/promises');
 const { constants } = require('node:fs');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
+const { performance } = require('node:perf_hooks');
 const { createSecureShopAuditSummaryGraph } = require('../secureshopAuditSummaryGraph');
 const { createSecureShopModelQualifier } = require('../../services/secureshopModelQualification');
 const { OllamaProvider } = require('../../services/secureshop/providers/ollamaProvider');
@@ -14,13 +15,19 @@ const diagnostics = new WeakMap();
 function workerDiagnostic(error) {
   return diagnostics.get(error) || { version: 1, code: 'AUDIT_WORKER_FAILED', stage: 'worker', phase: null };
 }
-async function withGraphDiagnostics({ provider, signal }, run) {
+async function withGraphDiagnostics({ provider, signal, transportBudget }, run) {
   let phase = null, providerFailed = false;
   const observed = Object.create(provider);
   for (const [method, label] of [['chat', 'decision'], ['finalResponse', 'final']]) {
     observed[method] = async (...args) => {
       phase = label; providerFailed = false;
-      try { return await provider[method](...args); }
+      try {
+        if(transportBudget){
+          const transportTimeoutMs=transportBudget();
+          args[0]={...args[0],transportTimeoutMs};
+        }
+        return await provider[method](...args);
+      }
       catch (error) { providerFailed = true; throw error; }
     };
   }
@@ -70,7 +77,7 @@ async function writeArtifacts(directory, values, maximum = MAX_ARTIFACT_BYTES) {
   return artifacts;
 }
 async function execute(input, { admitTool } = {}) {
-  const { directory, manifest, baseUrl, model, persona, taskRequestVersion = 1 } = input;
+  const { directory, manifest, baseUrl, model, persona, taskRequestVersion = 1, graphTimeoutMs } = input;
   require('../../services/secureshopAuditSummaryTaskPrompt')
     .createAuditSummaryTaskPrompt({ version: taskRequestVersion, requestedCount: 1 });
   const promptPolicySnapshot=input.promptPolicySnapshot===undefined?undefined:require('../../services/secureshopPromptPolicySnapshot').validatePolicySnapshot(input.promptPolicySnapshot);
@@ -81,7 +88,9 @@ async function execute(input, { admitTool } = {}) {
       || !Number.isSafeInteger(manifest.rowCount) || manifest.rowCount < 0 || manifest.rowCount > manifest.requestedCount
       || ![manifest.logSha256, manifest.sourcesSha256].every(value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value))
       || typeof manifest.runId !== 'string' || !manifest.runId || typeof model !== 'string' || !model
-      || typeof baseUrl !== 'string') throw new Error('AUDIT_WORKER_INVALID_INPUT');
+      || typeof baseUrl !== 'string'
+      || taskRequestVersion===2&&(!Number.isSafeInteger(graphTimeoutMs)||graphTimeoutMs<5000||graphTimeoutMs>180000)
+      || taskRequestVersion===1&&graphTimeoutMs!==undefined) throw new Error('AUDIT_WORKER_INVALID_INPUT');
   const directoryStat = await fs.lstat(directory);
   if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink()) throw new Error('AUDIT_WORKER_INVALID_INPUT');
   const sourceBytes = await verifiedFile(path.join(directory, 'sources.json'), manifest.sourcesSha256);
@@ -91,8 +100,14 @@ async function execute(input, { admitTool } = {}) {
   let observation;
   const messages = [], traces = [], effects = [];
   const provider = new OllamaProvider({ baseUrl, model });
-  const graphSignal = AbortSignal.timeout(90000);
-  const result = await withGraphDiagnostics({ provider, signal: graphSignal }, async observedProvider => {
+  const graphSignal = AbortSignal.timeout(taskRequestVersion===2?graphTimeoutMs:90000);
+  const graphDeadline=taskRequestVersion===2?performance.now()+graphTimeoutMs:undefined;
+  const transportBudget=graphDeadline===undefined?undefined:()=>{
+    const remaining=Math.min(175000,Math.floor(graphDeadline-performance.now()-5000));
+    if(remaining<1000)throw Object.assign(new Error('Audit provider deadline exhausted'),{name:'TimeoutError'});
+    return remaining;
+  };
+  const result = await withGraphDiagnostics({ provider, signal: graphSignal, transportBudget }, async observedProvider => {
   const run = createSecureShopAuditSummaryGraph({ provider: observedProvider, qualifyModel: createSecureShopModelQualifier(provider),
     taskRequestVersion,
     Trace: class { record(row) { traces.push(row); } async flush() {} },

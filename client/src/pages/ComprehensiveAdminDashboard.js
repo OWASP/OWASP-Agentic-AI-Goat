@@ -883,8 +883,15 @@ const ProgressItem = styled.div`
   }
 `;
 
+const emptyAdministratorDraft = () => ({ username: '', email: '', fullName: '', password: '',
+  confirmPassword: '', adminLevel: 1,
+  permissions: ['challenge_management', 'view_analytics', 'manage_progress'] });
+const emptyStudentDraft = () => ({ username: '', email: '', password: '', confirmPassword: '',
+  full_name: '', role: 'student' });
+const emptySelfPasswordDraft = () => ({ currentPassword: '', newPassword: '', confirmPassword: '' });
+
 const ComprehensiveAdminDashboard = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, getAuthRevision } = useAuth();
   const resetActorRef = useRef(user?.id);
   resetActorRef.current = user?.id;
   useEffect(() => {
@@ -927,6 +934,8 @@ const ComprehensiveAdminDashboard = () => {
   const canViewAgentRuns = Array.isArray(user?.permissions) && user.permissions.includes('view_analytics');
   const hasUserManagementPermission = Array.isArray(user?.permissions)
     && user.permissions.includes('user_management');
+  const accountAccessPermissionRef = useRef(Number(user?.adminLevel) >= 1 && hasUserManagementPermission);
+  accountAccessPermissionRef.current = Number(user?.adminLevel) >= 1 && hasUserManagementPermission;
   const canManageProgress = Array.isArray(user?.permissions)
     && user.permissions.includes('manage_progress');
   const resetPermissionRef = useRef(canManageProgress);
@@ -941,6 +950,10 @@ const ComprehensiveAdminDashboard = () => {
     enabled: canViewActiveUsers && activeSection === 'dashboard'});
   const canDeleteStudents = Number(user?.adminLevel) >= 2 && hasUserManagementPermission;
   const canCreateAdministrators = Number(user?.adminLevel) >= 2 && hasUserManagementPermission;
+  const deactivationPermissionRef = useRef(canCreateAdministrators);
+  deactivationPermissionRef.current = canCreateAdministrators;
+  const adminRosterPermissionRef = useRef(hasUserManagementPermission);
+  adminRosterPermissionRef.current = hasUserManagementPermission;
   const deleteStudentPermissionTitle = Number(user?.adminLevel) < 2
     ? 'Student deletion requires administrator level 2.'
     : !hasUserManagementPermission
@@ -985,22 +998,52 @@ const ComprehensiveAdminDashboard = () => {
   const [loadingStudent, setLoadingStudent] = useState(false);
   const [securitySettingsModalOpen, setSecuritySettingsModalOpen] = useState(false);
   const [userManagementModalOpen, setUserManagementModalOpen] = useState(false);
+  const [accountAccessConfirm, setAccountAccessConfirm] = useState(null);
+  const [accountAccessStatus, setAccountAccessStatus] = useState(null);
+  const stagedAccountAccessRef = useRef(null);
+  const pendingAccountAccessRef = useRef(null);
+  const lockedUsersLoadGenerationRef = useRef(0);
   const [userManagementTab, setUserManagementTab] = useState('administrators');
+  const userManagementModalOpenRef = useRef(userManagementModalOpen);
+  userManagementModalOpenRef.current = userManagementModalOpen;
+  const userManagementTabRef = useRef(userManagementTab);
+  userManagementTabRef.current = userManagementTab;
   const [adminAccounts, setAdminAccounts] = useState([]);
+  const adminRosterGenerationRef = useRef(0);
   const [adminAccountsLoading, setAdminAccountsLoading] = useState(false);
   const [adminAccountsError, setAdminAccountsError] = useState('');
   const [managementStudentsLoading, setManagementStudentsLoading] = useState(false);
   const [managementStudentsError, setManagementStudentsError] = useState('');
   const [editingAdministrator, setEditingAdministrator] = useState(null);
+  const editingAdministratorRef = useRef(editingAdministrator);
+  editingAdministratorRef.current = editingAdministrator;
+  const [administratorEditStage, setAdministratorEditStage] = useState(null);
+  const [administratorEditOutcome, setAdministratorEditOutcome] = useState(null);
+  const stagedAdministratorEditRef = useRef(null);
+  const pendingAdministratorEditRef = useRef(null);
   const [deactivatingAdministrator, setDeactivatingAdministrator] = useState(null);
+  const [deactivationOutcome, setDeactivationOutcome] = useState(null);
+  const stagedDeactivationRef = useRef(null);
+  const pendingDeactivationRef = useRef(null);
   const [administratorMutationPending, setAdministratorMutationPending] = useState(false);
   const [createAdministratorOpen, setCreateAdministratorOpen] = useState(false);
   const [creatingAdministrator, setCreatingAdministrator] = useState(false);
-  const [newAdministrator, setNewAdministrator] = useState({ username: '', email: '', fullName: '',
-    password: '', confirmPassword: '', adminLevel: 1,
-    permissions: ['challenge_management', 'view_analytics', 'manage_progress'] });
+  const [newAdministrator, setNewAdministrator] = useState(emptyAdministratorDraft);
+  const newAdministratorRef = useRef(newAdministrator);
+  newAdministratorRef.current = newAdministrator;
+  const [administratorCreateStage, setAdministratorCreateStage] = useState(null);
+  const [administratorCreateOutcome, setAdministratorCreateOutcome] = useState(null);
+  const stagedAdministratorCreateRef = useRef(null);
+  const pendingAdministratorCreateRef = useRef(null);
   const [systemLogsModalOpen, setSystemLogsModalOpen] = useState(false);
   const [changePasswordModalOpen, setChangePasswordModalOpen] = useState(false);
+  const [selfPasswordStage, setSelfPasswordStage] = useState(null);
+  const [selfPasswordOutcome, setSelfPasswordOutcome] = useState(null);
+  const [selfPasswordPending, setSelfPasswordPending] = useState(false);
+  const stagedSelfPasswordRef = useRef(null);
+  const pendingSelfPasswordRef = useRef(null);
+  const selfPasswordPermissionRef = useRef(Number(user?.adminLevel) >= 1);
+  selfPasswordPermissionRef.current = Number(user?.adminLevel) >= 1;
   const [securitySettings, setSecuritySettings] = useState({});
   const [systemLogs, setSystemLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
@@ -1026,11 +1069,132 @@ const ComprehensiveAdminDashboard = () => {
   });
   
   const [editStudentModalOpen, setEditStudentModalOpen] = useState(false);
+  const [studentEditStage, setStudentEditStage] = useState(null);
+  const [studentEditOutcome, setStudentEditOutcome] = useState(null);
+  const stagedStudentEditRef = useRef(null);
   const [deleteStudentModalOpen, setDeleteStudentModalOpen] = useState(false);
   const [changeStudentPasswordModalOpen, setChangeStudentPasswordModalOpen] = useState(false);
+  const [studentPasswordStage, setStudentPasswordStage] = useState(null);
+  const [studentPasswordOutcome, setStudentPasswordOutcome] = useState(null);
+  const [studentPasswordPending, setStudentPasswordPending] = useState(false);
+  const stagedStudentPasswordRef = useRef(null);
+  const pendingStudentPasswordRef = useRef(null);
   const [createStudentModalOpen, setCreateStudentModalOpen] = useState(false);
+  const [studentCreateStage, setStudentCreateStage] = useState(null);
+  const [studentCreateOutcome, setStudentCreateOutcome] = useState(null);
+  const stagedStudentCreateRef = useRef(null);
+  const pendingStudentAccountMutationRef = useRef(null);
+  const [studentAccountMutationPending, setStudentAccountMutationPending] = useState(false);
   const [studentToEdit, setStudentToEdit] = useState(null);
   const [studentToDelete, setStudentToDelete] = useState(null);
+  const [studentDeletionPending, setStudentDeletionPending] = useState(false);
+  const stagedStudentDeletionRef = useRef(null);
+  const studentDeletionPendingRef = useRef(false);
+  const studentDeletionMountedRef = useRef(true);
+  const studentDeletionEpochRef = useRef(0);
+  const authorityStorageEpochRef = useRef(0);
+  const getAuthRevisionRef = useRef(getAuthRevision);
+  getAuthRevisionRef.current = getAuthRevision;
+  const captureAdminAuthority = () => {
+    try {
+      const token = localStorage.getItem('token');
+      return token && resetActorRef.current != null ? {
+        token, actorId: resetActorRef.current,
+        revision: getAuthRevisionRef.current ? getAuthRevisionRef.current() : null,
+        storageEpoch: authorityStorageEpochRef.current,
+      } : null;
+    } catch { return null; }
+  };
+  const isCurrentAdminAuthority = authority => {
+    try {
+      return !!authority && authority.token === localStorage.getItem('token')
+        && authority.actorId === resetActorRef.current
+        && authority.storageEpoch === authorityStorageEpochRef.current
+        && (authority.revision === null || (getAuthRevisionRef.current
+          && authority.revision === getAuthRevisionRef.current()));
+    } catch { return false; }
+  };
+  useEffect(() => {
+    studentDeletionMountedRef.current = true;
+    const onStorage = event => {
+      if (event.storageArea !== localStorage || (event.key !== 'token' && event.key !== null)) return;
+      authorityStorageEpochRef.current += 1;
+      studentDeletionEpochRef.current += 1;
+      stagedStudentDeletionRef.current = null;
+      setStudentToDelete(null);
+      setDeleteStudentModalOpen(false);
+      stagedStudentPasswordRef.current = null;
+      setStudentPasswordStage(null);
+      setStudentPasswordOutcome(null);
+      setStudentForPasswordChange(null);
+      setChangeStudentPasswordModalOpen(false);
+      setPasswordChangeData({ newPassword: '', confirmPassword: '' });
+      stagedSelfPasswordRef.current = null;
+      setSelfPasswordStage(null);
+      setSelfPasswordOutcome(null);
+      setChangePasswordModalOpen(false);
+      setPasswords(emptySelfPasswordDraft());
+      stagedStudentCreateRef.current = null;
+      stagedStudentEditRef.current = null;
+      setStudentCreateStage(null);
+      setStudentEditStage(null);
+      setStudentCreateOutcome(null);
+      setStudentEditOutcome(null);
+      setCreateStudentModalOpen(false);
+      setEditStudentModalOpen(false);
+      setStudentToEdit(null);
+      setNewStudent(emptyStudentDraft());
+      bulkResetEpochRef.current += 1;
+      stagedBulkResetRef.current = null;
+      setResetConfirm(null);
+      setResettingWorkshop({});
+      stagedAccountAccessRef.current = null;
+      setAccountAccessConfirm(null);
+      setAccountAccessStatus(null);
+      stagedBulkVisibilityRef.current = null;
+      setBulkVisibilityConfirm(null);
+      setBulkVisibilityOutcome(null);
+      lockedUsersLoadGenerationRef.current += 1;
+      setLockedUsers([]);
+      if (activeSectionRef.current === 'locked-users') void fetchLockedUsers();
+      stagedDeactivationRef.current = null;
+      setDeactivatingAdministrator(null);
+      setDeactivationOutcome(null);
+      stagedAdministratorEditRef.current = null;
+      setAdministratorEditStage(null);
+      setEditingAdministrator(null);
+      setAdministratorEditOutcome(null);
+      stagedAdministratorCreateRef.current = null;
+      setAdministratorCreateStage(null);
+      setAdministratorCreateOutcome(null);
+      setCreateAdministratorOpen(false);
+      setNewAdministrator(emptyAdministratorDraft());
+      adminRosterGenerationRef.current += 1;
+      setAdminAccounts([]);
+      if (userManagementModalOpenRef.current && userManagementTabRef.current === 'administrators')
+        void loadAdminAccounts();
+    };
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      studentDeletionMountedRef.current = false;
+      studentDeletionEpochRef.current += 1;
+      stagedStudentDeletionRef.current = null;
+      stagedStudentPasswordRef.current = null;
+      stagedSelfPasswordRef.current = null;
+      stagedStudentCreateRef.current = null;
+      stagedStudentEditRef.current = null;
+      bulkResetEpochRef.current += 1;
+      stagedBulkResetRef.current = null;
+      stagedAccountAccessRef.current = null;
+      stagedBulkVisibilityRef.current = null;
+      lockedUsersLoadGenerationRef.current += 1;
+      stagedDeactivationRef.current = null;
+      stagedAdministratorEditRef.current = null;
+      stagedAdministratorCreateRef.current = null;
+      adminRosterGenerationRef.current += 1;
+    };
+  }, []);
   const [editFormData, setEditFormData] = useState({
     username: '',
     email: '',
@@ -1040,24 +1204,21 @@ const ComprehensiveAdminDashboard = () => {
     department: '',
     phone: ''
   });
-  const [newStudent, setNewStudent] = useState({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    full_name: '',
-    role: 'student'
-  });
+  const editFormDataRef = useRef(editFormData);
+  editFormDataRef.current = editFormData;
+  const [newStudent, setNewStudent] = useState(emptyStudentDraft);
+  const newStudentRef = useRef(newStudent);
+  newStudentRef.current = newStudent;
   const [studentForPasswordChange, setStudentForPasswordChange] = useState(null);
   const [passwordChangeData, setPasswordChangeData] = useState({
     newPassword: '',
     confirmPassword: ''
   });
-  const [passwords, setPasswords] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
+  const passwordChangeDataRef = useRef(passwordChangeData);
+  passwordChangeDataRef.current = passwordChangeData;
+  const [passwords, setPasswords] = useState(emptySelfPasswordDraft);
+  const passwordsRef = useRef(passwords);
+  passwordsRef.current = passwords;
   const [solutionData, setSolutionData] = useState({
     solution_title: '',
     solution_description: '',
@@ -1119,6 +1280,10 @@ const ComprehensiveAdminDashboard = () => {
 
   // Bulk challenge toggle state
   const [bulkTogglingChallenges, setBulkTogglingChallenges] = useState(false);
+  const [bulkVisibilityConfirm, setBulkVisibilityConfirm] = useState(null);
+  const [bulkVisibilityOutcome, setBulkVisibilityOutcome] = useState(null);
+  const stagedBulkVisibilityRef = useRef(null);
+  const pendingBulkVisibilityRef = useRef(null);
 
   // Per-workshop objective visibility toggles
   const [workshopObjectives, setWorkshopObjectives] = useState({}); // { workshopKey: [{objective_id, is_enabled}] }
@@ -1166,7 +1331,99 @@ const ComprehensiveAdminDashboard = () => {
   }, [canonicalConfig, snapshotReadSequence]);
 
   const [resettingWorkshop, setResettingWorkshop] = useState({}); // { workshopKey: bool }
-  const [resetConfirm, setResetConfirm] = useState(null); // { workshopKey, workshopName } | null — in-app reset confirmation
+  const [resetConfirm, setResetConfirm] = useState(null); // Staged workshop and administrator authority
+  const stagedBulkResetRef = useRef(null);
+  const bulkResetEpochRef = useRef(0);
+  const bulkResetPendingRef = useRef(null);
+  const resetAuthRevision = getAuthRevisionRef.current ? getAuthRevisionRef.current() : null;
+  useEffect(() => {
+    const staged = stagedBulkResetRef.current;
+    if (staged && (!isCurrentAdminAuthority(staged.authority) || !resetPermissionRef.current)) {
+      bulkResetEpochRef.current += 1;
+      stagedBulkResetRef.current = null;
+      setResetConfirm(null);
+    }
+  }, [exerciseIdentity, resetAuthRevision]);
+  useEffect(() => {
+    const staged = stagedAccountAccessRef.current;
+    if (staged && (!isCurrentAdminAuthority(staged.authority) || !accountAccessPermissionRef.current)) {
+      stagedAccountAccessRef.current = null;
+      setAccountAccessConfirm(null);
+      setAccountAccessStatus(null);
+    }
+  }, [exerciseIdentity, resetAuthRevision]);
+  useEffect(() => {
+    const staged = stagedBulkVisibilityRef.current;
+    if (staged && (!isCurrentAdminAuthority(staged.authority) || !challengePermissionRef.current
+      || activeSection !== 'exercises')) {
+      stagedBulkVisibilityRef.current = null;
+      setBulkVisibilityConfirm(null);
+      setBulkVisibilityOutcome(null);
+    }
+  }, [exerciseIdentity, resetAuthRevision, activeSection]);
+  useEffect(() => {
+    const selfPassword = stagedSelfPasswordRef.current;
+    if (selfPassword && (!isCurrentAdminAuthority(selfPassword.authority)
+      || !selfPasswordPermissionRef.current || activeSection !== 'settings')) {
+      stagedSelfPasswordRef.current = null;
+      setSelfPasswordStage(null);
+      setSelfPasswordOutcome(null);
+      setChangePasswordModalOpen(false);
+      setPasswords(emptySelfPasswordDraft());
+    }
+    const createStage = stagedStudentCreateRef.current;
+    if (createStage && (!isCurrentAdminAuthority(createStage.authority)
+      || !accountAccessPermissionRef.current || activeSection !== 'students')) {
+      stagedStudentCreateRef.current = null;
+      setStudentCreateStage(null);
+      setStudentCreateOutcome(null);
+      setCreateStudentModalOpen(false);
+      setNewStudent(emptyStudentDraft());
+    }
+    const editStage = stagedStudentEditRef.current;
+    if (editStage && (!isCurrentAdminAuthority(editStage.authority)
+      || !accountAccessPermissionRef.current || activeSection !== 'students')) {
+      stagedStudentEditRef.current = null;
+      setStudentEditStage(null);
+      setStudentEditOutcome(null);
+      setStudentToEdit(null);
+      setEditStudentModalOpen(false);
+    }
+    const passwordStage = stagedStudentPasswordRef.current;
+    if (passwordStage && (!isCurrentAdminAuthority(passwordStage.authority)
+      || !accountAccessPermissionRef.current || activeSection !== 'students')) {
+      stagedStudentPasswordRef.current = null;
+      setStudentPasswordStage(null);
+      setStudentPasswordOutcome(null);
+      setStudentForPasswordChange(null);
+      setChangeStudentPasswordModalOpen(false);
+      setPasswordChangeData({ newPassword: '', confirmPassword: '' });
+    }
+    const staged = stagedDeactivationRef.current;
+    if (staged && (!isCurrentAdminAuthority(staged.authority) || !deactivationPermissionRef.current
+      || !userManagementModalOpen || userManagementTab !== 'administrators' || activeSection !== 'settings')) {
+      stagedDeactivationRef.current = null;
+      setDeactivatingAdministrator(null);
+      setDeactivationOutcome(null);
+    }
+    const edit = stagedAdministratorEditRef.current;
+    if (edit && (!isCurrentAdminAuthority(edit.authority) || !deactivationPermissionRef.current
+      || !userManagementModalOpen || userManagementTab !== 'administrators' || activeSection !== 'settings')) {
+      stagedAdministratorEditRef.current = null;
+      setAdministratorEditStage(null);
+      setEditingAdministrator(null);
+      setAdministratorEditOutcome(null);
+    }
+    const create = stagedAdministratorCreateRef.current;
+    if (create && (!isCurrentAdminAuthority(create.authority) || !deactivationPermissionRef.current
+      || !userManagementModalOpen || userManagementTab !== 'administrators' || activeSection !== 'settings')) {
+      stagedAdministratorCreateRef.current = null;
+      setAdministratorCreateStage(null);
+      setAdministratorCreateOutcome(null);
+      setCreateAdministratorOpen(false);
+      setNewAdministrator(emptyAdministratorDraft());
+    }
+  }, [exerciseIdentity, resetAuthRevision, userManagementModalOpen, userManagementTab, activeSection]);
 
   // Workshop signup random email toggle state
   const [randomEmailEnabled, setRandomEmailEnabled] = useState(false);
@@ -1181,88 +1438,157 @@ const ComprehensiveAdminDashboard = () => {
   const initialConfigLoadRef = useRef(null);
 
   // Load locked users data
-  const fetchLockedUsers = async () => {
+  const fetchLockedUsers = async (authority = captureAdminAuthority(), reportError = true) => {
+    const generation = ++lockedUsersLoadGenerationRef.current;
+    const current = () => studentDeletionMountedRef.current && generation === lockedUsersLoadGenerationRef.current
+      && isCurrentAdminAuthority(authority);
+    if (!authority) {
+      setLockedUsers([]);
+      setLoadingLockedUsers(false);
+      return;
+    }
     try {
       setLoadingLockedUsers(true);
-      const token = localStorage.getItem('token');
       const response = await axios.get('/api/admin/users/locked', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${authority.token}` }
       });
 
-      if (response.data.success) {
+      if (current() && response.data.success && Array.isArray(response.data.lockedUsers)) {
         setLockedUsers(response.data.lockedUsers || []);
       }
     } catch (error) {
-      console.error('Failed to fetch locked users:', error);
-      toast.error('Failed to fetch locked users: ' + (error.response?.data?.error || error.message));
+      if (current()) {
+        console.error('Failed to fetch locked users:', error);
+        if (reportError) toast.error('Failed to fetch locked users: ' + (error.response?.data?.error || error.message));
+      }
     } finally {
-      setLoadingLockedUsers(false);
+      if (current()) setLoadingLockedUsers(false);
     }
   };
 
-  // Lock a specific user (manual admin lock — blocks login with a clear message
-  // and surfaces the user in the Locked Users list).
-  const lockUser = async (userId, username) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`/api/admin/users/${userId}/lock`, {}, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.data.success) {
-        toast.success(`${username || 'User'} locked`);
-        fetchLockedUsers();
-        loadDashboardData(true);
-      }
-    } catch (error) {
-      console.error('Failed to lock user:', error);
-      toast.error('Failed to lock user: ' + (error.response?.data?.error || error.message));
-    }
+  const closeAccountAccessConfirm = staged => {
+    if (stagedAccountAccessRef.current !== staged || pendingAccountAccessRef.current === staged) return;
+    stagedAccountAccessRef.current = null;
+    setAccountAccessConfirm(null);
+    setAccountAccessStatus(null);
   };
-
-  // Unlock a specific user
-  const unlockUser = async (userId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post(`/api/admin/users/${userId}/unlock`, {}, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.data.success) {
-        toast.success(response.data.message);
-        // Refresh locked users list
-        fetchLockedUsers();
-        // Also refresh students list to show updated status
-        loadDashboardData(true);
-      }
-    } catch (error) {
-      console.error('Failed to unlock user:', error);
-      toast.error('Failed to unlock user: ' + (error.response?.data?.error || error.message));
-    }
+  const stageAccountAccess = (action, target) => {
+    if (!accountAccessPermissionRef.current || stagedAccountAccessRef.current || pendingAccountAccessRef.current) return;
+    const authority = captureAdminAuthority();
+    if (!authority) return;
+    const staged = { action, target: { id: target.id, username: target.username || `User ${target.id}` }, authority, consumed: false };
+    stagedAccountAccessRef.current = staged;
+    setAccountAccessStatus(null);
+    setAccountAccessConfirm(staged);
   };
-
-  // Bulk toggle all challenges
-  const bulkToggleChallenges = async (enabled) => {
+  const lockUser = (userId, username) => stageAccountAccess('lock', { id: userId, username });
+  const unlockUser = (userId, username) => stageAccountAccess('unlock', { id: userId, username });
+  const confirmAccountAccess = async staged => {
+    if (stagedAccountAccessRef.current !== staged || staged.consumed || pendingAccountAccessRef.current
+      || !accountAccessPermissionRef.current || !isCurrentAdminAuthority(staged.authority)) return;
+    staged.consumed = true;
+    pendingAccountAccessRef.current = staged;
+    setAccountAccessStatus({ kind: 'pending' });
+    const current = () => studentDeletionMountedRef.current && stagedAccountAccessRef.current === staged
+      && isCurrentAdminAuthority(staged.authority) && accountAccessPermissionRef.current;
+    const headers = { Authorization: `Bearer ${staged.authority.token}` };
     try {
-      setBulkTogglingChallenges(true);
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/api/admin/challenges/bulk-toggle',
-        { enabled },
-        {
-          headers: { 'Authorization': `Bearer ${token}` }
-        }
-      );
-
-      if (response.data.success) {
-        toast.success(response.data.message);
-        // Refresh challenges list
-        loadDashboardData(true);
-      }
+      const response = await axios.post(`/api/admin/users/${staged.target.id}/${staged.action}`, {}, { headers });
+      if (!current()) return;
+      if (response.data?.success !== true) throw new Error('The server did not acknowledge the account change.');
+      toast.success(`${staged.target.username} ${staged.action === 'lock' ? 'locked' : 'unlocked'}`);
+      stagedAccountAccessRef.current = null;
+      setAccountAccessConfirm(null);
+      setAccountAccessStatus(null);
+      // A self-lock can revoke this very session; the acknowledged result remains valid even if this read fails.
+      await fetchLockedUsers(staged.authority, false);
     } catch (error) {
-      console.error('Failed to bulk toggle challenges:', error);
-      toast.error('Failed to bulk toggle challenges: ' + (error.response?.data?.error || error.message));
+      if (!current()) return;
+      if (error.response?.status >= 400 && error.response.status < 500 && error.response.status !== 408) {
+        setAccountAccessStatus({ kind: 'rejected', message: error.response.data?.error || 'The server rejected this account change.' });
+        return;
+      }
+      // A failed or lost acknowledgement does not establish whether the mutation committed.
+      try {
+        const detail = await axios.get(`/api/admin/users/${staged.target.id}`, { headers });
+        if (!current()) return;
+        const account = detail.data?.user;
+        if (!detail.data?.success || !account || String(account.id) !== String(staged.target.id))
+          throw new Error('Target account details were unavailable.');
+        const lockUntil = account.account_locked_until;
+        if (lockUntil !== null && (typeof lockUntil !== 'string' || !lockUntil.trim()
+          || !Number.isFinite(Date.parse(lockUntil)))) throw new Error('Invalid account lock timestamp.');
+        const locked = lockUntil !== null && Date.parse(lockUntil) > Date.now();
+        setAccountAccessStatus({ kind: 'unknown', observed: locked ? 'locked' : 'unlocked' });
+      } catch (readError) {
+        if (current()) setAccountAccessStatus({ kind: 'unknown', observed: null });
+      }
     } finally {
-      setBulkTogglingChallenges(false);
+      if (pendingAccountAccessRef.current === staged) pendingAccountAccessRef.current = null;
+    }
+  };
+
+  // Capture authority at render time so a retained button callback cannot stage B's session.
+  const bulkVisibilityRenderAuthority = captureAdminAuthority();
+  const stageBulkVisibility = enabled => {
+    if (!studentDeletionMountedRef.current || !challengePermissionRef.current
+      || activeSectionRef.current !== 'exercises' || !isCurrentAdminAuthority(bulkVisibilityRenderAuthority)
+      || stagedBulkVisibilityRef.current || pendingBulkVisibilityRef.current) return;
+    const staged = { enabled, authority: bulkVisibilityRenderAuthority, consumed: false };
+    stagedBulkVisibilityRef.current = staged;
+    setBulkVisibilityConfirm(staged);
+    setBulkVisibilityOutcome(null);
+  };
+  const closeBulkVisibility = staged => {
+    if (stagedBulkVisibilityRef.current !== staged || pendingBulkVisibilityRef.current === staged) return;
+    stagedBulkVisibilityRef.current = null;
+    setBulkVisibilityConfirm(null);
+    setBulkVisibilityOutcome(null);
+  };
+  const confirmBulkVisibility = async staged => {
+    if (!studentDeletionMountedRef.current || stagedBulkVisibilityRef.current !== staged
+      || staged.consumed || pendingBulkVisibilityRef.current || !challengePermissionRef.current
+      || activeSectionRef.current !== 'exercises' || !isCurrentAdminAuthority(staged.authority)) return;
+    staged.consumed = true;
+    pendingBulkVisibilityRef.current = staged;
+    setBulkTogglingChallenges(true);
+    setBulkVisibilityOutcome({ kind: 'pending' });
+    const current = () => studentDeletionMountedRef.current && stagedBulkVisibilityRef.current === staged
+      && challengePermissionRef.current && activeSectionRef.current === 'exercises'
+      && isCurrentAdminAuthority(staged.authority);
+    try {
+      const response = await axios.post('/api/admin/challenges/bulk-toggle', { enabled: staged.enabled },
+        { headers: { Authorization: `Bearer ${staged.authority.token}` } });
+      if (!current()) return;
+      const data = response.data;
+      const validRevision = (typeof data?.revision === 'string' && /^\d+$/.test(data.revision))
+        || (typeof data?.revision === 'number' && Number.isSafeInteger(data.revision) && data.revision >= 0);
+      const validSnapshot = data?.exercises && typeof data.exercises === 'object' && !Array.isArray(data.exercises)
+        && Object.entries(data.exercises).every(([key, item]) => item && typeof item === 'object'
+          && !Array.isArray(item) && item.workshopKey === key
+          && typeof item.isVisible === 'boolean' && item.isVisible === staged.enabled);
+      const validAck = response.status === 200 && data?.success === true && data.enabled === staged.enabled
+        && typeof data.changed === 'boolean' && Number.isSafeInteger(data.affectedCount)
+        && data.affectedCount >= 0 && data.affectedCount <= Object.keys(data.exercises || {}).length
+        && data.changed === (data.affectedCount > 0)
+        && validRevision && validSnapshot;
+      if (!validAck) throw new Error('The server response did not confirm the visibility change.');
+      stagedBulkVisibilityRef.current = null;
+      setBulkVisibilityConfirm(null);
+      setBulkVisibilityOutcome(null);
+      toast.success(`All catalog-active exercises ${staged.enabled ? 'enabled' : 'disabled'}${data.changed ? '' : ' (already in this state)'}.`);
+      void loadDashboardData(true, () => studentDeletionMountedRef.current
+        && challengePermissionRef.current && activeSectionRef.current === 'exercises'
+        && isCurrentAdminAuthority(staged.authority));
+    } catch (error) {
+      if (!current()) return;
+      setBulkVisibilityOutcome({ kind: error.response?.status >= 400 && error.response.status < 500
+        && error.response.status !== 408 ? 'rejected' : 'unknown' });
+    } finally {
+      if (pendingBulkVisibilityRef.current === staged) {
+        pendingBulkVisibilityRef.current = null;
+        if (studentDeletionMountedRef.current) setBulkTogglingChallenges(false);
+      }
     }
   };
 
@@ -1701,12 +2027,20 @@ const ComprehensiveAdminDashboard = () => {
       }
     }
 
-    // Load locked users when accessing locked-users section
-    if (activeSection === 'locked-users') {
-      fetchLockedUsers();
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSection]); // Only run when activeSection changes
+
+  useEffect(() => {
+    if (activeSection === 'locked-users') {
+      setLockedUsers([]);
+      void fetchLockedUsers();
+    }
+    else {
+      lockedUsersLoadGenerationRef.current += 1;
+      setLoadingLockedUsers(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection, exerciseIdentity, resetAuthRevision]);
   
   // Set up auto-refresh for real-time data
   useEffect(() => {
@@ -1752,7 +2086,7 @@ const ComprehensiveAdminDashboard = () => {
     }
   }, [editingSolution]);
 
-  const loadDashboardData = async (silent = false) => {
+  const loadDashboardData = async (silent = false, isCurrent = () => true) => {
     const requestId = ++dashboardRequestRef.current;
     if (!silent) {
       setLoading(true);
@@ -1772,7 +2106,7 @@ const ComprehensiveAdminDashboard = () => {
           timeout: 30000 
         }) : Promise.resolve(null)
       ]);
-      if (requestId !== dashboardRequestRef.current) return;
+      if (requestId !== dashboardRequestRef.current || !isCurrent()) return;
       
       // Validate and set challenges data (CTF is managed separately in CTF Management)
       if (challengesResponse.data && challengesResponse.data.success) {
@@ -1814,7 +2148,7 @@ const ComprehensiveAdminDashboard = () => {
         });
       }
     } catch (error) {
-      if (requestId !== dashboardRequestRef.current) return;
+      if (requestId !== dashboardRequestRef.current || !isCurrent()) return;
       console.error('Error loading dashboard data:', error);
       console.error('Error details:', error.response?.data);
       
@@ -1834,7 +2168,7 @@ const ComprehensiveAdminDashboard = () => {
         setStudents([]);
       }
     } finally {
-      if (requestId === dashboardRequestRef.current && !silent) {
+      if (requestId === dashboardRequestRef.current && isCurrent() && !silent) {
         setLoading(false);
       }
     }
@@ -2045,10 +2379,11 @@ const ComprehensiveAdminDashboard = () => {
     }
   };
 
-  const refreshResetCounts = async (token, actorId) => {
+  const refreshResetCounts = async (token, actorId, isCurrent = () => true) => {
     const requestId = ++dashboardRequestRef.current;
     const generation = ++configReconcileGenerationRef.current;
-    const current = () => resetActorRef.current === actorId && resetPermissionRef.current && localStorage.getItem('token') === token;
+    const current = () => isCurrent() && resetActorRef.current === actorId
+      && resetPermissionRef.current && localStorage.getItem('token') === token;
     if (!current()) throw new Error('Administrator session changed');
     const config = { headers: { Authorization: `Bearer ${token}` } };
     const [challengeResponse, studentResponse] = await Promise.all([
@@ -2067,27 +2402,52 @@ const ComprehensiveAdminDashboard = () => {
 
   // Opens the in-app confirmation modal (replaces the native window.confirm alert)
   const resetAllStudentsForWorkshop = (workshopKey, workshopName) => {
-    setResetConfirm({ workshopKey, workshopName });
+    if (!resetPermissionRef.current || bulkResetPendingRef.current != null) return;
+    const authority = captureAdminAuthority();
+    if (!authority) return;
+    const staged = { workshopKey, workshopName, authority };
+    stagedBulkResetRef.current = staged;
+    setResetConfirm(staged);
+  };
+
+  const closeBulkResetConfirm = staged => {
+    if (stagedBulkResetRef.current !== staged) return;
+    stagedBulkResetRef.current = null;
+    bulkResetEpochRef.current += 1;
+    setResetConfirm(null);
   };
 
   // Runs the actual bulk reset after the admin confirms in the in-app modal
-  const confirmResetAllStudents = async () => {
-    if (!resetConfirm || !resetPermissionRef.current) return;
-    const { workshopKey, workshopName } = resetConfirm;
+  const confirmResetAllStudents = async staged => {
+    if (!staged || stagedBulkResetRef.current !== staged || bulkResetPendingRef.current != null) return;
+    if (!resetPermissionRef.current || !isCurrentAdminAuthority(staged.authority)) {
+      closeBulkResetConfirm(staged);
+      return;
+    }
+    const { workshopKey, workshopName, authority } = staged;
+    stagedBulkResetRef.current = null;
     setResetConfirm(null);
+    const actionEpoch = ++bulkResetEpochRef.current;
+    bulkResetPendingRef.current = actionEpoch;
+    const current = () => actionEpoch === bulkResetEpochRef.current
+      && isCurrentAdminAuthority(authority) && resetPermissionRef.current;
     setResettingWorkshop(prev => ({ ...prev, [workshopKey]: true }));
     try {
-      const token = localStorage.getItem('token');
       const apiKey = toWorkshopKey(workshopKey);
-      await runAdminBulkReset({ api: axios, actorId: user.id, token, workshopKey: apiKey,
-        isCurrent: () => resetActorRef.current === user.id && resetPermissionRef.current && localStorage.getItem('token') === token,
-        onCommit: () => refreshResetCounts(token, user.id) });
-      toast.success(`Student progress reset completed for "${workshopName}"`);
+      await runAdminBulkReset({ api: axios, actorId: authority.actorId, token: authority.token, workshopKey: apiKey,
+        isCurrent: current,
+        onCommit: () => refreshResetCounts(authority.token, authority.actorId, current) });
+      if (current()) toast.success(`Student progress reset completed for "${workshopName}"`);
     } catch (err) {
-      console.error('Bulk reset failed', err);
-      toast.error(err.response?.data?.error || err.message || 'Failed to reset all student progress');
+      if (current()) {
+        console.error('Bulk reset failed', err);
+        toast.error(err.response?.data?.error || err.message || 'Failed to reset all student progress');
+      }
     } finally {
-      setResettingWorkshop(prev => ({ ...prev, [workshopKey]: false }));
+      if (bulkResetPendingRef.current === actionEpoch) {
+        bulkResetPendingRef.current = null;
+        if (studentDeletionMountedRef.current) setResettingWorkshop(prev => ({ ...prev, [workshopKey]: false }));
+      }
     }
   };
 
@@ -2294,31 +2654,58 @@ const ComprehensiveAdminDashboard = () => {
     }
   };
 
-  const loadAdminAccounts = async () => {
+  const loadAdminAccounts = async (authority = captureAdminAuthority()) => {
+    const generation = ++adminRosterGenerationRef.current;
+    const current = () => studentDeletionMountedRef.current && generation === adminRosterGenerationRef.current
+      && isCurrentAdminAuthority(authority) && adminRosterPermissionRef.current;
+    if (!authority || !adminRosterPermissionRef.current) {
+      setAdminAccounts([]);
+      setAdminAccountsLoading(false);
+      return;
+    }
     setAdminAccountsLoading(true);
     setAdminAccountsError('');
+    setAdminAccounts([]);
     try {
-      const token = localStorage.getItem('token');
       const response = await axios.get('/api/admin/users?role=administrators&includeInactive=true&limit=200', {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${authority.token}` }
       });
-      setAdminAccounts(response.data.users || []);
+      if (current() && Array.isArray(response.data?.users)) setAdminAccounts(response.data.users);
     } catch (error) {
-      setAdminAccountsError(error.response?.data?.error || 'Failed to load administrators. Try again.');
+      if (current()) setAdminAccountsError(error.response?.data?.error || 'Failed to load administrators. Try again.');
     } finally {
-      setAdminAccountsLoading(false);
+      if (current()) setAdminAccountsLoading(false);
     }
   };
+
+  useEffect(() => {
+    adminRosterGenerationRef.current += 1;
+    setAdminAccounts([]);
+    if (userManagementModalOpen && userManagementTab === 'administrators' && hasUserManagementPermission)
+      void loadAdminAccounts();
+    else setAdminAccountsLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userManagementModalOpen, userManagementTab, exerciseIdentity, resetAuthRevision]);
 
   const handleUserManagement = () => {
     if (!hasUserManagementPermission) return;
     setUserManagementTab('administrators');
     setUserManagementModalOpen(true);
-    loadAdminAccounts();
   };
 
   const openManagementStudents = async () => {
     if (!canManageProgress) return;
+    if (pendingDeactivationRef.current || pendingAdministratorEditRef.current || pendingAdministratorCreateRef.current) return;
+    if (stagedDeactivationRef.current) {
+      stagedDeactivationRef.current = null;
+      setDeactivatingAdministrator(null);
+      setDeactivationOutcome(null);
+    }
+    stagedAdministratorEditRef.current = null;
+    setAdministratorEditStage(null);
+    setEditingAdministrator(null);
+    setAdministratorEditOutcome(null);
+    closeAdministratorCreate(stagedAdministratorCreateRef.current);
     setUserManagementTab('students');
     setManagementStudentsLoading(true);
     setManagementStudentsError('');
@@ -2350,40 +2737,120 @@ const ComprehensiveAdminDashboard = () => {
     document.getElementById(`user-management-${next}-tab`)?.focus();
   };
 
-  const handleCreateAdministrator = async (event) => {
+  const closeAdministratorCreate = stage => {
+    if (stagedAdministratorCreateRef.current !== stage || pendingAdministratorCreateRef.current === stage) return;
+    stagedAdministratorCreateRef.current = null;
+    setAdministratorCreateStage(null);
+    setAdministratorCreateOutcome(null);
+    setCreateAdministratorOpen(false);
+    setNewAdministrator(emptyAdministratorDraft());
+  };
+  const stageAdministratorCreate = () => {
+    if (stagedAdministratorCreateRef.current) {
+      closeAdministratorCreate(stagedAdministratorCreateRef.current);
+      return;
+    }
+    if (!deactivationPermissionRef.current || pendingAdministratorCreateRef.current
+      || pendingAdministratorEditRef.current || pendingDeactivationRef.current) return;
+    const authority = captureAdminAuthority();
+    if (!authority) return;
+    closeAdministratorEdit(stagedAdministratorEditRef.current);
+    closeAdministratorDeactivation(stagedDeactivationRef.current);
+    const stage = { authority, consumed: false };
+    stagedAdministratorCreateRef.current = stage;
+    setAdministratorCreateStage(stage);
+    setAdministratorCreateOutcome(null);
+    setNewAdministrator(emptyAdministratorDraft());
+    setCreateAdministratorOpen(true);
+  };
+  const updateAdministratorCreate = (stage, change) => {
+    const permitted = () => studentDeletionMountedRef.current && stagedAdministratorCreateRef.current === stage
+      && !stage?.consumed && !pendingAdministratorCreateRef.current && !pendingAdministratorEditRef.current
+      && !pendingDeactivationRef.current && deactivationPermissionRef.current
+      && isCurrentAdminAuthority(stage.authority) && userManagementModalOpenRef.current
+      && userManagementTabRef.current === 'administrators';
+    if (!permitted()) return;
+    setNewAdministrator(current => permitted() ? { ...current, ...change(current) } : current);
+  };
+  const handleCreateAdministrator = async (event, stage) => {
     event.preventDefault();
-    if (!canCreateAdministrators || creatingAdministrator) return;
-    if (newAdministrator.password !== newAdministrator.confirmPassword) {
+    if (!studentDeletionMountedRef.current || stagedAdministratorCreateRef.current !== stage || stage.consumed || pendingAdministratorCreateRef.current
+      || pendingAdministratorEditRef.current || pendingDeactivationRef.current
+      || !deactivationPermissionRef.current || !isCurrentAdminAuthority(stage.authority)
+      || !userManagementModalOpenRef.current || userManagementTabRef.current !== 'administrators') return;
+    const draft = newAdministratorRef.current;
+    if (draft.password !== draft.confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
-    if (newAdministrator.password.length < 8 || !newAdministrator.permissions.length) {
+    if (draft.password.length < 8 || !draft.permissions.length) {
       toast.error('Enter a password of at least 8 characters and select a permission');
       return;
     }
+    const submitted = { username: draft.username, email: draft.email, fullName: draft.fullName,
+      password: draft.password, adminLevel: Number(draft.adminLevel), permissions: [...draft.permissions] };
+    stage.consumed = true;
+    pendingAdministratorCreateRef.current = stage;
     setCreatingAdministrator(true);
+    setAdministratorCreateOutcome({ kind: 'pending' });
+    const current = () => studentDeletionMountedRef.current && stagedAdministratorCreateRef.current === stage
+      && isCurrentAdminAuthority(stage.authority) && deactivationPermissionRef.current
+      && userManagementModalOpenRef.current && userManagementTabRef.current === 'administrators';
     try {
-      const token = localStorage.getItem('token');
-      await axios.post('/api/admin/administrators', {
-        username: newAdministrator.username, email: newAdministrator.email,
-        fullName: newAdministrator.fullName, password: newAdministrator.password,
-        adminLevel: Number(newAdministrator.adminLevel), permissions: newAdministrator.permissions
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      const response = await axios.post('/api/admin/administrators', submitted,
+        { headers: { Authorization: `Bearer ${stage.authority.token}` } });
+      if (!current()) return;
+      const created = response.data?.user, grants = response.data?.permissions;
+      const expectedFullName = submitted.fullName === '' ? null : submitted.fullName.trim();
+      if (response.status !== 201 || response.data?.success !== true
+        || !Number.isSafeInteger(created?.id) || created.id <= 0
+        || created?.username !== submitted.username.trim() || created?.email !== submitted.email.trim()
+        || created?.full_name !== expectedFullName || Number(created?.admin_level) !== submitted.adminLevel
+        || created?.role !== 'admin' || (created?.is_active !== 1 && created?.is_active !== true)
+        || !Array.isArray(grants) || grants.length !== submitted.permissions.length
+        || !submitted.permissions.every(permission => grants.includes(permission)))
+        throw new Error('The server did not acknowledge this administrator creation.');
       toast.success('Administrator created successfully');
+      stagedAdministratorCreateRef.current = null;
+      setAdministratorCreateStage(null);
+      setAdministratorCreateOutcome(null);
       setCreateAdministratorOpen(false);
-      setNewAdministrator({ username: '', email: '', fullName: '', password: '', confirmPassword: '',
-        adminLevel: 1, permissions: ['challenge_management', 'view_analytics', 'manage_progress'] });
-      await loadAdminAccounts();
+      setNewAdministrator(emptyAdministratorDraft());
+      await loadAdminAccounts(stage.authority);
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to create administrator');
+      if (!current()) return;
+      const status = error.response?.status;
+      if (status >= 400 && status < 500 && status !== 408 && status !== 409) {
+        setAdministratorCreateOutcome({ kind: 'rejected' });
+        toast.error('Administrator creation was rejected.');
+      } else {
+        setAdministratorCreateOutcome({ kind: 'unknown' });
+      }
     } finally {
-      setCreatingAdministrator(false);
+      if (pendingAdministratorCreateRef.current === stage) {
+        pendingAdministratorCreateRef.current = null;
+        if (studentDeletionMountedRef.current) {
+          if (stagedAdministratorCreateRef.current === stage)
+            setNewAdministrator(currentDraft => ({ ...currentDraft, password: '', confirmPassword: '' }));
+          setCreatingAdministrator(false);
+        }
+      }
     }
   };
 
   const beginAdministratorEdit = (account) => {
+    if (!deactivationPermissionRef.current || pendingDeactivationRef.current || pendingAdministratorEditRef.current
+      || pendingAdministratorCreateRef.current) return;
+    const authority = captureAdminAuthority();
+    if (!authority) return;
+    stagedDeactivationRef.current = null;
     setDeactivatingAdministrator(null);
-    setCreateAdministratorOpen(false);
+    setDeactivationOutcome(null);
+    closeAdministratorCreate(stagedAdministratorCreateRef.current);
+    const stage = { id: account.id, authority, consumed: false };
+    stagedAdministratorEditRef.current = stage;
+    setAdministratorEditStage(stage);
+    setAdministratorEditOutcome(null);
     setEditingAdministrator({
       id: account.id, username: account.username || '', email: account.email || '',
       fullName: account.full_name || '', adminLevel: Number(account.admin_level),
@@ -2392,60 +2859,193 @@ const ComprehensiveAdminDashboard = () => {
     });
   };
 
-  const handleUpdateAdministrator = async (event) => {
+  const closeAdministratorEdit = stage => {
+    if (stagedAdministratorEditRef.current !== stage || pendingAdministratorEditRef.current === stage) return;
+    stagedAdministratorEditRef.current = null;
+    setAdministratorEditStage(null);
+    setEditingAdministrator(null);
+    setAdministratorEditOutcome(null);
+  };
+  const updateAdministratorEdit = (stage, change) => {
+    const permitted = () => studentDeletionMountedRef.current && stagedAdministratorEditRef.current === stage
+      && !stage?.consumed && !pendingAdministratorEditRef.current && !pendingDeactivationRef.current
+      && !pendingAdministratorCreateRef.current
+      && deactivationPermissionRef.current && isCurrentAdminAuthority(stage.authority)
+      && userManagementModalOpenRef.current && userManagementTabRef.current === 'administrators';
+    if (!permitted()) return;
+    setEditingAdministrator(current => {
+      if (!permitted() || !current || String(current.id) !== String(stage.id)) return current;
+      return { ...current, ...change(current) };
+    });
+  };
+  const handleUpdateAdministrator = async (event, stage) => {
     event.preventDefault();
-    if (!canCreateAdministrators || administratorMutationPending || !editingAdministrator) return;
-    if (!editingAdministrator.permissions.length) {
+    if (stagedAdministratorEditRef.current !== stage || stage.consumed || pendingAdministratorEditRef.current
+      || pendingDeactivationRef.current || pendingAdministratorCreateRef.current || !deactivationPermissionRef.current
+      || !isCurrentAdminAuthority(stage.authority) || !userManagementModalOpenRef.current
+      || userManagementTabRef.current !== 'administrators') return;
+    const form = editingAdministratorRef.current;
+    if (!form || String(form.id) !== String(stage.id)) return;
+    if (!form.permissions.length) {
       toast.error('Select at least one permission');
       return;
     }
+    const changes = { username: form.username, email: form.email, fullName: form.fullName,
+      adminLevel: form.adminLevel, permissions: [...form.permissions], isActive: form.isActive };
+    stage.consumed = true;
+    pendingAdministratorEditRef.current = stage;
     setAdministratorMutationPending(true);
+    setAdministratorEditOutcome({ kind: 'pending' });
+    const current = () => studentDeletionMountedRef.current && stagedAdministratorEditRef.current === stage
+      && isCurrentAdminAuthority(stage.authority) && deactivationPermissionRef.current
+      && userManagementModalOpenRef.current && userManagementTabRef.current === 'administrators';
+    const headers = { Authorization: `Bearer ${stage.authority.token}` };
     try {
-      const token = localStorage.getItem('token');
-      const { id, ...changes } = editingAdministrator;
-      await axios.put(`/api/admin/administrators/${id}`, changes, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.put(`/api/admin/administrators/${stage.id}`, changes, { headers });
+      if (!current()) return;
+      const updated = response.data?.user;
+      const expectedName = changes.fullName === '' ? null : changes.fullName.trim();
+      const returnedPermissions = response.data?.permissions;
+      if (response.data?.success !== true || String(updated?.id) !== String(stage.id)
+        || updated?.username !== changes.username.trim() || updated?.email !== changes.email.trim()
+        || updated?.full_name !== expectedName || Number(updated?.admin_level) !== Number(changes.adminLevel)
+        || ![0, 1, false, true].includes(updated?.is_active)
+        || (updated?.is_active === 1 || updated?.is_active === true) !== changes.isActive
+        || !Array.isArray(returnedPermissions) || returnedPermissions.length !== changes.permissions.length
+        || !changes.permissions.every(permission => returnedPermissions.includes(permission)))
+        throw new Error('The server did not acknowledge this administrator update.');
       toast.success('Administrator updated');
+      stagedAdministratorEditRef.current = null;
+      setAdministratorEditStage(null);
       setEditingAdministrator(null);
-      if (Number(id) === Number(user?.id)) {
+      setAdministratorEditOutcome(null);
+      if (String(stage.id) === String(stage.authority.actorId)) {
         setUserManagementModalOpen(false);
-        await handleLogout();
+        try { Promise.resolve(logout()).catch(() => {}); } catch (logoutError) { /* local sign-out still navigates */ }
+        navigate('/workshop-login');
       } else {
-        await loadAdminAccounts();
+        await loadAdminAccounts(stage.authority);
       }
     } catch (error) {
-      toast.error(error.response?.data?.code === 'LAST_ADMIN'
-        ? 'At least one active level 2 administrator with user management permission must remain.'
-        : error.response?.data?.error || 'Failed to update administrator');
+      if (!current()) return;
+      const code = error.response?.data?.code;
+      if (code === 'LAST_ADMIN' || (error.response?.status >= 400 && error.response.status < 500
+        && error.response.status !== 408)) {
+        const message = code === 'LAST_ADMIN'
+          ? 'At least one active level 2 administrator with user management permission must remain.'
+          : error.response?.data?.error || 'Failed to update administrator';
+        setAdministratorEditOutcome({ kind: 'rejected', message });
+        toast.error(message);
+        return;
+      }
+      try {
+        const detail = await axios.get(`/api/admin/users/${stage.id}`, { headers });
+        if (!current()) return;
+        const observed = detail.data?.user;
+        if (!detail.data?.success || !observed || String(observed.id) !== String(stage.id)
+          || typeof observed.username !== 'string' || !observed.username.trim()
+          || ![0, 1, false, true].includes(observed.is_active))
+          throw new Error('Target account state unavailable.');
+        setAdministratorEditOutcome({ kind: 'unknown', observed: {
+          username: observed.username, active: observed.is_active === 1 || observed.is_active === true,
+        } });
+      } catch (readError) {
+        if (current()) setAdministratorEditOutcome({ kind: 'unknown', observed: null });
+      }
     } finally {
-      setAdministratorMutationPending(false);
+      if (pendingAdministratorEditRef.current === stage) {
+        pendingAdministratorEditRef.current = null;
+        if (studentDeletionMountedRef.current) setAdministratorMutationPending(false);
+      }
     }
   };
 
-  const handleDeactivateAdministrator = async () => {
-    if (!canCreateAdministrators || administratorMutationPending || !deactivatingAdministrator) return;
+  const closeAdministratorDeactivation = staged => {
+    if (stagedDeactivationRef.current !== staged || pendingDeactivationRef.current === staged) return;
+    stagedDeactivationRef.current = null;
+    setDeactivatingAdministrator(null);
+    setDeactivationOutcome(null);
+  };
+  const closeUserManagementModal = () => {
+    if (pendingDeactivationRef.current || pendingAdministratorEditRef.current || pendingAdministratorCreateRef.current) return;
+    closeAdministratorDeactivation(stagedDeactivationRef.current);
+    closeAdministratorEdit(stagedAdministratorEditRef.current);
+    closeAdministratorCreate(stagedAdministratorCreateRef.current);
+    setUserManagementModalOpen(false);
+  };
+  const stageAdministratorDeactivation = account => {
+    if (!deactivationPermissionRef.current || administratorMutationPending || pendingDeactivationRef.current
+      || pendingAdministratorEditRef.current || pendingAdministratorCreateRef.current) return;
+    const authority = captureAdminAuthority();
+    if (!authority) return;
+    const staged = { id: account.id, username: account.username, authority, consumed: false };
+    stagedDeactivationRef.current = staged;
+    closeAdministratorEdit(stagedAdministratorEditRef.current);
+    closeAdministratorCreate(stagedAdministratorCreateRef.current);
+    setEditingAdministrator(null);
+    setDeactivationOutcome(null);
+    setDeactivatingAdministrator(staged);
+  };
+  const handleDeactivateAdministrator = async staged => {
+    if (stagedDeactivationRef.current !== staged || staged.consumed || pendingDeactivationRef.current
+      || pendingAdministratorEditRef.current || pendingAdministratorCreateRef.current
+      || !deactivationPermissionRef.current || !isCurrentAdminAuthority(staged.authority)
+      || !userManagementModalOpenRef.current || userManagementTabRef.current !== 'administrators') return;
+    staged.consumed = true;
+    pendingDeactivationRef.current = staged;
     setAdministratorMutationPending(true);
+    setDeactivationOutcome({ kind: 'pending' });
+    const current = () => studentDeletionMountedRef.current && stagedDeactivationRef.current === staged
+      && isCurrentAdminAuthority(staged.authority) && deactivationPermissionRef.current
+      && userManagementModalOpenRef.current && userManagementTabRef.current === 'administrators';
+    const headers = { Authorization: `Bearer ${staged.authority.token}` };
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`/api/admin/administrators/${deactivatingAdministrator.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.delete(`/api/admin/administrators/${staged.id}`, { headers });
+      if (!current()) return;
+      const acknowledged = response.data?.success === true && String(response.data?.user?.id) === String(staged.id)
+        && (response.data.user.is_active === 0 || response.data.user.is_active === false);
+      if (!acknowledged) throw new Error('The server did not acknowledge deactivation of this administrator.');
       toast.success('Administrator deactivated');
-      const deactivatedSelf = Number(deactivatingAdministrator.id) === Number(user?.id);
+      stagedDeactivationRef.current = null;
       setDeactivatingAdministrator(null);
-      if (deactivatedSelf) {
+      setDeactivationOutcome(null);
+      if (String(staged.id) === String(staged.authority.actorId)) {
         setUserManagementModalOpen(false);
-        await handleLogout();
+        // Local logout begins synchronously; its later network completion must not navigate a replacement session.
+        try { Promise.resolve(logout()).catch(() => {}); } catch (logoutError) { /* local sign-out still navigates */ }
+        navigate('/workshop-login');
       } else {
-        await loadAdminAccounts();
+        await loadAdminAccounts(staged.authority);
       }
     } catch (error) {
-      toast.error(error.response?.data?.code === 'LAST_ADMIN'
-        ? 'At least one active level 2 administrator with user management permission must remain.'
-        : error.response?.data?.error || 'Failed to deactivate administrator');
+      if (!current()) return;
+      const code = error.response?.data?.code;
+      if (code === 'LAST_ADMIN' || (error.response?.status >= 400 && error.response.status < 500
+        && error.response.status !== 408)) {
+        const message = code === 'LAST_ADMIN'
+          ? 'At least one active level 2 administrator with user management permission must remain.'
+          : error.response?.data?.error || 'Failed to deactivate administrator';
+        setDeactivationOutcome({ kind: 'rejected', message });
+        toast.error(message);
+        return;
+      }
+      try {
+        const detail = await axios.get(`/api/admin/users/${staged.id}`, { headers });
+        if (!current()) return;
+        const observed = detail.data?.user;
+        if (!detail.data?.success || !observed || String(observed.id) !== String(staged.id)
+          || ![0, 1, false, true].includes(observed.is_active))
+          throw new Error('Target account state unavailable.');
+        setDeactivationOutcome({ kind: 'unknown', observed: observed.is_active === 0 || observed.is_active === false
+          ? 'inactive' : 'active' });
+      } catch (readError) {
+        if (current()) setDeactivationOutcome({ kind: 'unknown', observed: null });
+      }
     } finally {
-      setAdministratorMutationPending(false);
+      if (pendingDeactivationRef.current === staged) {
+        pendingDeactivationRef.current = null;
+        if (studentDeletionMountedRef.current) setAdministratorMutationPending(false);
+      }
     }
   };
 
@@ -2464,39 +3064,87 @@ const ComprehensiveAdminDashboard = () => {
   };
 
   const handleChangePassword = () => {
+    if (!studentDeletionMountedRef.current || !selfPasswordPermissionRef.current
+      || activeSectionRef.current !== 'settings' || stagedSelfPasswordRef.current
+      || pendingSelfPasswordRef.current) return;
+    const authority = captureAdminAuthority();
+    if (!authority) return;
+    const stage = { authority, consumed: false };
+    stagedSelfPasswordRef.current = stage;
+    setSelfPasswordStage(stage);
+    setSelfPasswordOutcome(null);
+    setPasswords(emptySelfPasswordDraft());
     setChangePasswordModalOpen(true);
   };
 
-  const handlePasswordSubmit = async (e) => {
+  const closeSelfPassword = stage => {
+    if (stagedSelfPasswordRef.current !== stage || pendingSelfPasswordRef.current === stage) return;
+    stagedSelfPasswordRef.current = null;
+    setSelfPasswordStage(null);
+    setSelfPasswordOutcome(null);
+    setChangePasswordModalOpen(false);
+    setPasswords(emptySelfPasswordDraft());
+  };
+  const updateSelfPassword = (stage, change) => {
+    const permitted = () => studentDeletionMountedRef.current && stagedSelfPasswordRef.current === stage
+      && !stage?.consumed && !pendingSelfPasswordRef.current && selfPasswordPermissionRef.current
+      && activeSectionRef.current === 'settings' && isCurrentAdminAuthority(stage.authority);
+    if (!permitted()) return;
+    setPasswords(current => permitted() ? { ...current, ...change } : current);
+  };
+  const handlePasswordSubmit = async (e, stage) => {
     e.preventDefault();
-    
-    if (passwords.newPassword !== passwords.confirmPassword) {
+    if (!studentDeletionMountedRef.current || stagedSelfPasswordRef.current !== stage || stage.consumed
+      || pendingSelfPasswordRef.current || !selfPasswordPermissionRef.current
+      || activeSectionRef.current !== 'settings' || !isCurrentAdminAuthority(stage.authority)) return;
+    const draft = passwordsRef.current;
+    if (draft.newPassword !== draft.confirmPassword) {
       toast.error('New password and confirmation do not match');
       return;
     }
 
-    if (passwords.newPassword.length < 8) {
+    if (draft.newPassword.length < 8) {
       toast.error('New password must be at least 8 characters long');
       return;
     }
-
+    const submitted = { currentPassword: draft.currentPassword, newPassword: draft.newPassword,
+      confirmPassword: draft.confirmPassword };
+    stage.consumed = true;
+    pendingSelfPasswordRef.current = stage;
+    setSelfPasswordPending(true);
+    setSelfPasswordOutcome({ kind: 'pending' });
+    setPasswords(emptySelfPasswordDraft());
+    const current = () => studentDeletionMountedRef.current && stagedSelfPasswordRef.current === stage
+      && selfPasswordPermissionRef.current && activeSectionRef.current === 'settings'
+      && isCurrentAdminAuthority(stage.authority);
     try {
-      await axios.post('/api/admin/account/change-password', {
-        currentPassword: passwords.currentPassword,
-        newPassword: passwords.newPassword,
-        confirmPassword: passwords.confirmPassword
-      });
-
-      toast.success('Password changed successfully');
+      const response = await axios.post('/api/admin/account/change-password', submitted,
+        { headers: { Authorization: `Bearer ${stage.authority.token}` } });
+      if (!current()) return;
+      if (response.status !== 200 || response.data?.success !== true
+        || !Number.isSafeInteger(response.data?.sessionsRevoked) || response.data.sessionsRevoked < 0)
+        throw new Error('Password change was not acknowledged.');
+      stagedSelfPasswordRef.current = null;
+      setSelfPasswordStage(null);
+      setSelfPasswordOutcome(null);
       setChangePasswordModalOpen(false);
-      setPasswords({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
+      toast.success('Password changed. Your sessions were revoked; sign in again.');
+      // logout clears local authority synchronously. Navigate now so a newer login cannot be redirected later.
+      try {
+        const pendingLogout = logout();
+        navigate('/workshop-login');
+        void Promise.resolve(pendingLogout).catch(() => {});
+      } catch { navigate('/workshop-login'); }
     } catch (error) {
-      console.error('Password change error:', error);
-      toast.error(error.response?.data?.error || 'Failed to change password');
+      if (!current()) return;
+      const status = error.response?.status;
+      setSelfPasswordOutcome({ kind: status >= 400 && status < 500 && status !== 408 && status !== 409
+        ? 'rejected' : 'unknown' });
+    } finally {
+      if (pendingSelfPasswordRef.current === stage) {
+        pendingSelfPasswordRef.current = null;
+        if (studentDeletionMountedRef.current) setSelfPasswordPending(false);
+      }
     }
   };
 
@@ -2540,17 +3188,6 @@ const ComprehensiveAdminDashboard = () => {
     } catch (error) {
       console.error('Error saving security settings:', error);
       toast.error('Failed to save security settings');
-    }
-  };
-
-  const submitPasswordChange = async (passwords) => {
-    try {
-      await axios.post('/api/admin/account/change-password', passwords);
-      toast.success('Password changed successfully');
-      setChangePasswordModalOpen(false);
-    } catch (error) {
-      console.error('Error changing password:', error);
-      toast.error(error.response?.data?.error || 'Failed to change password');
     }
   };
 
@@ -3233,8 +3870,30 @@ const ComprehensiveAdminDashboard = () => {
   };
 
   // Student Management Functions
+  const captureStudentDeletionAuthority = captureAdminAuthority;
+  const isCurrentStudentDeletionAuthority = isCurrentAdminAuthority;
+  const closeDeleteStudentModal = () => {
+    studentDeletionEpochRef.current += 1;
+    stagedStudentDeletionRef.current = null;
+    setDeleteStudentModalOpen(false);
+    setStudentToDelete(null);
+  };
+  useEffect(() => {
+    const staged = stagedStudentDeletionRef.current;
+    if (staged && !isCurrentStudentDeletionAuthority(staged.authority)) closeDeleteStudentModal();
+  }, [exerciseIdentity]);
   const handleEditStudent = (student) => {
-    setStudentToEdit(student);
+    if (!studentDeletionMountedRef.current || !accountAccessPermissionRef.current || activeSectionRef.current !== 'students'
+      || pendingStudentAccountMutationRef.current || pendingStudentPasswordRef.current
+      || stagedStudentCreateRef.current || stagedStudentEditRef.current || stagedStudentPasswordRef.current) return;
+    const authority = captureAdminAuthority();
+    if (!authority) return;
+    const target = { id: student.id, username: student.username, email: student.email };
+    const stage = { target, authority, consumed: false };
+    stagedStudentEditRef.current = stage;
+    setStudentEditStage(stage);
+    setStudentEditOutcome(null);
+    setStudentToEdit(target);
     setEditFormData({
       username: student.username || '',
       email: student.email || '',
@@ -3247,69 +3906,214 @@ const ComprehensiveAdminDashboard = () => {
     setEditStudentModalOpen(true);
   };
 
+  const closeStudentEdit = stage => {
+    if (stagedStudentEditRef.current !== stage || pendingStudentAccountMutationRef.current === stage) return;
+    stagedStudentEditRef.current = null;
+    setStudentEditStage(null);
+    setStudentEditOutcome(null);
+    setStudentToEdit(null);
+    setEditStudentModalOpen(false);
+  };
+  const updateStudentEdit = (stage, change) => {
+    const permitted = () => studentDeletionMountedRef.current && stagedStudentEditRef.current === stage
+      && !stage?.consumed && !pendingStudentAccountMutationRef.current && !pendingStudentPasswordRef.current
+      && accountAccessPermissionRef.current && activeSectionRef.current === 'students'
+      && isCurrentAdminAuthority(stage.authority);
+    if (!permitted()) return;
+    setEditFormData(current => permitted() ? { ...current, ...change } : current);
+  };
+
   const handleDeleteStudent = (student) => {
     if (!canDeleteStudents) {
       toast.error(deleteStudentPermissionTitle);
       return;
     }
-    setStudentToDelete(student);
+    if (studentDeletionPendingRef.current) return;
+    const authority = captureStudentDeletionAuthority();
+    if (!authority) return;
+    const target = { id: student.id, username: student.username,
+      email: student.email, full_name: student.full_name };
+    stagedStudentDeletionRef.current = { target, authority };
+    setStudentToDelete(target);
     setDeleteStudentModalOpen(true);
   };
 
   const handleChangeStudentPassword = (student) => {
-    setStudentForPasswordChange(student);
+    if (!studentDeletionMountedRef.current || !accountAccessPermissionRef.current || activeSectionRef.current !== 'students'
+      || pendingStudentPasswordRef.current || pendingStudentAccountMutationRef.current
+      || stagedStudentCreateRef.current || stagedStudentEditRef.current || stagedStudentPasswordRef.current) return;
+    const authority = captureAdminAuthority();
+    if (!authority || !Number.isSafeInteger(Number(student?.id)) || Number(student.id) <= 0) return;
+    const target = { id: student.id, username: student.username, email: student.email };
+    const stage = { target, authority, consumed: false };
+    stagedStudentPasswordRef.current = stage;
+    setStudentPasswordStage(stage);
+    setStudentPasswordOutcome(null);
+    setPasswordChangeData({ newPassword: '', confirmPassword: '' });
+    setStudentForPasswordChange(target);
     setChangeStudentPasswordModalOpen(true);
   };
 
-  const updateStudent = async (studentId, updatedData) => {
+  const closeStudentPassword = stage => {
+    if (stagedStudentPasswordRef.current !== stage || pendingStudentPasswordRef.current === stage) return;
+    stagedStudentPasswordRef.current = null;
+    setStudentPasswordStage(null);
+    setStudentPasswordOutcome(null);
+    setStudentForPasswordChange(null);
+    setChangeStudentPasswordModalOpen(false);
+    setPasswordChangeData({ newPassword: '', confirmPassword: '' });
+  };
+
+  const updateStudentPassword = (stage, change) => {
+    const permitted = () => studentDeletionMountedRef.current && stagedStudentPasswordRef.current === stage
+      && !stage?.consumed && !pendingStudentPasswordRef.current && accountAccessPermissionRef.current
+      && activeSectionRef.current === 'students' && isCurrentAdminAuthority(stage.authority);
+    if (!permitted()) return;
+    setPasswordChangeData(current => permitted() ? { ...current, ...change } : current);
+  };
+
+  const updateStudent = async stage => {
+    if (!studentDeletionMountedRef.current || stagedStudentEditRef.current !== stage || stage.consumed
+      || pendingStudentAccountMutationRef.current || pendingStudentPasswordRef.current
+      || !accountAccessPermissionRef.current || activeSectionRef.current !== 'students'
+      || !isCurrentAdminAuthority(stage.authority)) return;
+    const updatedData = { ...editFormDataRef.current };
+    stage.consumed = true;
+    pendingStudentAccountMutationRef.current = stage;
+    setStudentAccountMutationPending(true);
+    setStudentEditOutcome({ kind: 'pending' });
+    const current = () => studentDeletionMountedRef.current && stagedStudentEditRef.current === stage
+      && accountAccessPermissionRef.current && activeSectionRef.current === 'students'
+      && isCurrentAdminAuthority(stage.authority);
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(`/api/admin/students/${studentId}`, updatedData, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await axios.put(`/api/admin/students/${stage.target.id}`, updatedData, {
+        headers: { 'Authorization': `Bearer ${stage.authority.token}` }
       });
-      await loadDashboardData(true); // Reload student data silently
+      if (!current()) return;
+      const acknowledged = response.data?.user;
+      if (response.status !== 200 || response.data?.success !== true || response.data?.changes !== 1
+        || acknowledged?.id !== stage.target.id || acknowledged?.role !== 'student'
+        || acknowledged?.admin_level !== 0 || acknowledged?.username !== updatedData.username
+        || acknowledged?.email !== updatedData.email || acknowledged?.full_name !== updatedData.full_name
+        || acknowledged?.department !== updatedData.department || acknowledged?.phone !== updatedData.phone
+        || acknowledged?.is_active !== (updatedData.is_active ? 1 : 0))
+        throw new Error('Student update was not acknowledged.');
+      stagedStudentEditRef.current = null;
+      setStudentEditStage(null);
+      setStudentEditOutcome(null);
       setEditStudentModalOpen(false);
       setStudentToEdit(null);
       toast.success('Student updated successfully');
+      void loadDashboardData(true, () => studentDeletionMountedRef.current
+        && isCurrentAdminAuthority(stage.authority) && accountAccessPermissionRef.current
+        && activeSectionRef.current === 'students');
     } catch (error) {
-      console.error('Error updating student:', error);
-      toast.error(error.response?.data?.error || 'Failed to update student');
+      if (!current()) return;
+      const status = error.response?.status;
+      setStudentEditOutcome({ kind: status >= 400 && status < 500 && status !== 408 && status !== 409
+        ? 'rejected' : 'unknown' });
+    } finally {
+      if (pendingStudentAccountMutationRef.current === stage) {
+        pendingStudentAccountMutationRef.current = null;
+        if (studentDeletionMountedRef.current) setStudentAccountMutationPending(false);
+      }
     }
   };
 
-  const deleteStudent = async (studentId) => {
+  const deleteStudent = async (stagedFromDialog) => {
+    const staged = stagedStudentDeletionRef.current;
     if (!canDeleteStudents) {
       toast.error(deleteStudentPermissionTitle);
       return;
     }
+    if (!staged || staged !== stagedFromDialog || studentDeletionPendingRef.current) return;
+    if (!isCurrentStudentDeletionAuthority(staged.authority)
+        || staged.target.id !== studentToDelete?.id) {
+      closeDeleteStudentModal();
+      toast.error('Session changed. Review the student deletion again.');
+      return;
+    }
+    studentDeletionPendingRef.current = true;
+    stagedStudentDeletionRef.current = null;
+    setStudentDeletionPending(true);
+    const actionEpoch = ++studentDeletionEpochRef.current;
+    const current = () => actionEpoch === studentDeletionEpochRef.current
+      && isCurrentStudentDeletionAuthority(staged.authority);
+    const retireIfStale = () => {
+      if (!current()) {
+        // No new deletion can be staged while this request is pending.
+        if (studentDeletionMountedRef.current) closeDeleteStudentModal();
+        return true;
+      }
+      return false;
+    };
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`/api/admin/students/${studentId}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      await axios.delete(`/api/admin/students/${staged.target.id}`, {
+        headers: { 'Authorization': `Bearer ${staged.authority.token}` }
       });
-      await loadDashboardData(true); // Reload student data silently
-      setDeleteStudentModalOpen(false);
-      setStudentToDelete(null);
+      if (retireIfStale()) return;
+      await loadDashboardData(true, current); // Reload only under the original authority
+      if (retireIfStale()) return;
+      closeDeleteStudentModal();
       toast.success('Student deleted successfully');
     } catch (error) {
+      if (retireIfStale()) return;
       console.error('Error deleting student:', error);
-      toast.error(error.response?.data?.error || 'Failed to delete student');
+      closeDeleteStudentModal();
+      toast.error(error.response?.data?.error
+        || 'Deletion result could not be confirmed. Refresh students before deciding whether to act again.');
+    } finally {
+      studentDeletionPendingRef.current = false;
+      if (studentDeletionMountedRef.current) setStudentDeletionPending(false);
     }
   };
 
-  const changeStudentPassword = async (studentId, passwordData) => {
+  const changeStudentPassword = async stage => {
+    if (!studentDeletionMountedRef.current || stagedStudentPasswordRef.current !== stage || stage.consumed
+      || pendingStudentPasswordRef.current || pendingStudentAccountMutationRef.current || !accountAccessPermissionRef.current
+      || activeSectionRef.current !== 'students' || !isCurrentAdminAuthority(stage.authority)) return;
+    const draft = passwordChangeDataRef.current;
+    if (draft.newPassword !== draft.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    if (draft.newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters long');
+      return;
+    }
+    const passwordData = { newPassword: draft.newPassword, confirmPassword: draft.confirmPassword };
+    stage.consumed = true;
+    pendingStudentPasswordRef.current = stage;
+    setStudentPasswordPending(true);
+    setStudentPasswordOutcome({ kind: 'pending' });
+    setPasswordChangeData({ newPassword: '', confirmPassword: '' });
+    const current = () => studentDeletionMountedRef.current && stagedStudentPasswordRef.current === stage
+      && accountAccessPermissionRef.current && activeSectionRef.current === 'students'
+      && isCurrentAdminAuthority(stage.authority);
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`/api/admin/students/${studentId}/change-password`, passwordData, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const response = await axios.post(`/api/admin/students/${stage.target.id}/change-password`, passwordData, {
+        headers: { 'Authorization': `Bearer ${stage.authority.token}` }
       });
-      setChangeStudentPasswordModalOpen(false);
+      if (!current()) return;
+      if (response.status !== 200 || response.data?.success !== true
+        || !Number.isSafeInteger(response.data?.sessionsRevoked) || response.data.sessionsRevoked < 0)
+        throw new Error('Student password rotation was not acknowledged.');
+      stagedStudentPasswordRef.current = null;
+      setStudentPasswordStage(null);
+      setStudentPasswordOutcome(null);
       setStudentForPasswordChange(null);
-      setPasswordChangeData({ newPassword: '', confirmPassword: '' });
-      toast.success('Student password changed successfully');
+      setChangeStudentPasswordModalOpen(false);
+      toast.success('Student password changed; existing student sessions were revoked');
     } catch (error) {
-      console.error('Error changing student password:', error);
-      toast.error(error.response?.data?.error || 'Failed to change student password');
+      if (!current()) return;
+      const status = error.response?.status;
+      setStudentPasswordOutcome({ kind: status >= 400 && status < 500 && status !== 408 && status !== 409
+        ? 'rejected' : 'unknown' });
+    } finally {
+      if (pendingStudentPasswordRef.current === stage) {
+        pendingStudentPasswordRef.current = null;
+        if (studentDeletionMountedRef.current) setStudentPasswordPending(false);
+      }
     }
   };
 
@@ -3332,45 +4136,92 @@ const ComprehensiveAdminDashboard = () => {
     setSolutionEditModalOpen(true);
   };
 
-  const handleCreateStudent = async (e) => {
+  const closeStudentCreate = stage => {
+    if (stagedStudentCreateRef.current !== stage || pendingStudentAccountMutationRef.current === stage) return;
+    stagedStudentCreateRef.current = null;
+    setStudentCreateStage(null);
+    setStudentCreateOutcome(null);
+    setCreateStudentModalOpen(false);
+    setNewStudent(emptyStudentDraft());
+  };
+  const openStudentCreate = () => {
+    if (!studentDeletionMountedRef.current || !accountAccessPermissionRef.current || activeSectionRef.current !== 'students'
+      || pendingStudentAccountMutationRef.current || pendingStudentPasswordRef.current
+      || stagedStudentCreateRef.current || stagedStudentEditRef.current || stagedStudentPasswordRef.current) return;
+    const authority = captureAdminAuthority();
+    if (!authority) return;
+    const stage = { authority, consumed: false };
+    stagedStudentCreateRef.current = stage;
+    setStudentCreateStage(stage);
+    setStudentCreateOutcome(null);
+    setNewStudent(emptyStudentDraft());
+    setCreateStudentModalOpen(true);
+  };
+  const updateStudentCreate = (stage, change) => {
+    const permitted = () => studentDeletionMountedRef.current && stagedStudentCreateRef.current === stage
+      && !stage?.consumed && !pendingStudentAccountMutationRef.current && !pendingStudentPasswordRef.current
+      && accountAccessPermissionRef.current && activeSectionRef.current === 'students'
+      && isCurrentAdminAuthority(stage.authority);
+    if (!permitted()) return;
+    setNewStudent(current => permitted() ? { ...current, ...change } : current);
+  };
+  const handleCreateStudent = async (e, stage) => {
     e.preventDefault();
-    
-    if (newStudent.password !== newStudent.confirmPassword) {
+    if (!studentDeletionMountedRef.current || stagedStudentCreateRef.current !== stage || stage.consumed
+      || pendingStudentAccountMutationRef.current || pendingStudentPasswordRef.current
+      || !accountAccessPermissionRef.current || activeSectionRef.current !== 'students'
+      || !isCurrentAdminAuthority(stage.authority)) return;
+    const draft = newStudentRef.current;
+    if (draft.password !== draft.confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
 
-    if (newStudent.password.length < 8) {
+    if (draft.password.length < 8) {
       toast.error('Password must be at least 8 characters long');
       return;
     }
-
+    if (draft.role !== 'student') return;
+    const submitted = { username: draft.username, email: draft.email, password: draft.password,
+      full_name: draft.full_name, role: 'student' };
+    stage.consumed = true;
+    pendingStudentAccountMutationRef.current = stage;
+    setStudentAccountMutationPending(true);
+    setStudentCreateOutcome({ kind: 'pending' });
+    setNewStudent(current => ({ ...current, password: '', confirmPassword: '' }));
+    const current = () => studentDeletionMountedRef.current && stagedStudentCreateRef.current === stage
+      && accountAccessPermissionRef.current && activeSectionRef.current === 'students'
+      && isCurrentAdminAuthority(stage.authority);
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.post('/api/admin/students', {
-        username: newStudent.username,
-        email: newStudent.email,
-        password: newStudent.password,
-        full_name: newStudent.full_name,
-        role: newStudent.role
-      }, { headers: { 'Authorization': `Bearer ${token}` } });
-
+      const response = await axios.post('/api/admin/students', submitted,
+        { headers: { 'Authorization': `Bearer ${stage.authority.token}` } });
+      if (!current()) return;
+      const created = response.data?.user;
+      if (response.status !== 201 || response.data?.success !== true
+        || !Number.isSafeInteger(created?.id) || created.id <= 0
+        || created.username !== submitted.username || created.email !== submitted.email
+        || created.full_name !== submitted.full_name || created.role !== 'student'
+        || created.admin_level !== 0 || created.is_active !== 1)
+        throw new Error('Student creation was not acknowledged.');
+      stagedStudentCreateRef.current = null;
+      setStudentCreateStage(null);
+      setStudentCreateOutcome(null);
       toast.success('Student created successfully');
       setCreateStudentModalOpen(false);
-      setNewStudent({
-        username: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-        full_name: '',
-        role: 'student'
-      });
-
-      // Reload students data
-      loadDashboardData(true);
+      setNewStudent(emptyStudentDraft());
+      void loadDashboardData(true, () => studentDeletionMountedRef.current
+        && isCurrentAdminAuthority(stage.authority) && accountAccessPermissionRef.current
+        && activeSectionRef.current === 'students');
     } catch (error) {
-      console.error('Create student error:', error);
-      toast.error(error.response?.data?.error || 'Failed to create student');
+      if (!current()) return;
+      const status = error.response?.status;
+      setStudentCreateOutcome({ kind: status >= 400 && status < 500 && status !== 408 && status !== 409
+        ? 'rejected' : 'unknown' });
+    } finally {
+      if (pendingStudentAccountMutationRef.current === stage) {
+        pendingStudentAccountMutationRef.current = null;
+        if (studentDeletionMountedRef.current) setStudentAccountMutationPending(false);
+      }
     }
   };
 
@@ -3641,7 +4492,7 @@ const ComprehensiveAdminDashboard = () => {
   // In-app reset confirmation — replaces the native window.confirm() alert box.
   const renderResetConfirmModal = () => {
     if (!resetConfirm) return null;
-    const close = () => setResetConfirm(null);
+    const close = () => closeBulkResetConfirm(resetConfirm);
     return (
       <ModalOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
         <ModalContent
@@ -3672,11 +4523,94 @@ const ComprehensiveAdminDashboard = () => {
               Cancel
             </button>
             <button
-              onClick={confirmResetAllStudents}
+              onClick={() => confirmResetAllStudents(resetConfirm)}
               style={{ padding: '0.55rem 1.1rem', borderRadius: '8px', border: 'none', background: '#e53e3e', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
             >
               Reset Progress
             </button>
+          </ModalFooter>
+        </ModalContent>
+      </ModalOverlay>
+    );
+  };
+
+  const renderAccountAccessConfirmModal = () => {
+    if (!accountAccessConfirm) return null;
+    const staged = accountAccessConfirm;
+    const close = () => closeAccountAccessConfirm(staged);
+    const locking = staged.action === 'lock';
+    return (
+      <ModalOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
+        <ModalContent role="dialog" aria-label="Confirm account access change"
+          initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          onClick={event => event.stopPropagation()} style={{ maxWidth: '480px' }}>
+          <ModalHeader>
+            <h2>{locking ? 'Lock account' : 'Unlock account'}</h2>
+            <button type="button" aria-label="Close account access confirmation" disabled={accountAccessStatus?.kind === 'pending'} onClick={close}><FiX /></button>
+          </ModalHeader>
+          <ModalBody>
+            <p>{locking ? 'Lock' : 'Unlock'} <strong>{staged.target.username}</strong>?</p>
+            <p>{locking
+              ? 'Locking blocks new login and revokes all active sessions, including yours if this is your account.'
+              : 'Unlocking permits a new login and clears failed login attempts. It does not restore revoked sessions.'}</p>
+            {accountAccessStatus?.kind === 'pending' && <p role="status">Changing account access…</p>}
+            {accountAccessStatus?.kind === 'unknown' && <p role="alert">
+              The request outcome could not be confirmed.
+              {accountAccessStatus.observed
+                ? ` A fresh account read shows this account is currently ${accountAccessStatus.observed}; this does not prove this request made the change.`
+                : ' Current account status could not be read.'}
+              {' '}Close this dialog and start a new confirmation before any further change.
+            </p>}
+            {accountAccessStatus?.kind === 'rejected' && <p role="alert">
+              The server rejected this account change: {accountAccessStatus.message}
+            </p>}
+          </ModalBody>
+          <ModalFooter>
+            <SecondaryButton type="button" disabled={accountAccessStatus?.kind === 'pending'} onClick={close}>
+              {accountAccessStatus?.kind === 'unknown' || accountAccessStatus?.kind === 'rejected' ? 'Close' : 'Cancel'}
+            </SecondaryButton>
+            {!staged.consumed && <ActionButton type="button" variant={locking ? 'danger' : undefined}
+              onClick={() => confirmAccountAccess(staged)}>{locking ? 'Confirm Lock' : 'Confirm Unlock'}</ActionButton>}
+          </ModalFooter>
+        </ModalContent>
+      </ModalOverlay>
+    );
+  };
+
+  const renderBulkVisibilityConfirmModal = () => {
+    if (!bulkVisibilityConfirm) return null;
+    const staged = bulkVisibilityConfirm;
+    const close = () => closeBulkVisibility(staged);
+    const verb = staged.enabled ? 'Enable' : 'Disable';
+    return (
+      <ModalOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
+        <ModalContent role="dialog" aria-label="Confirm all exercise visibility change"
+          initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          onClick={event => event.stopPropagation()} style={{ maxWidth: '500px' }}>
+          <ModalHeader>
+            <h2>{verb} all exercises?</h2>
+            <button type="button" aria-label="Close all exercise visibility confirmation"
+              disabled={bulkVisibilityOutcome?.kind === 'pending'} onClick={close}><FiX /></button>
+          </ModalHeader>
+          <ModalBody>
+            <p>This {staged.enabled ? 'shows' : 'hides'} all catalog-active exercises to learners, including those outside the current filtered list.</p>
+            <p>Effective access to objectives, hints, and solutions follows exercise visibility. This does not delete exercises, reset learner progress, or change their configured gates.</p>
+            {staged.enabled && <p>Enable All can be rejected if any active exercise fails the server readiness checks.</p>}
+            {bulkVisibilityOutcome?.kind === 'pending' && <p role="status">Changing exercise visibility…</p>}
+            {bulkVisibilityOutcome?.kind === 'unknown' && <p role="alert">
+              The request outcome could not be confirmed. This dialog cannot retry it; close and review current visibility before a new confirmation.
+            </p>}
+            {bulkVisibilityOutcome?.kind === 'rejected' && <p role="alert">
+              The server rejected this visibility change. No automatic retry was sent.
+            </p>}
+          </ModalBody>
+          <ModalFooter>
+            <SecondaryButton type="button" disabled={bulkVisibilityOutcome?.kind === 'pending'} onClick={close}>
+              {staged.consumed ? 'Close' : 'Cancel'}
+            </SecondaryButton>
+            {!staged.consumed && <ActionButton type="button" onClick={() => confirmBulkVisibility(staged)}>
+              Confirm {verb} All
+            </ActionButton>}
           </ModalFooter>
         </ModalContent>
       </ModalOverlay>
@@ -3692,15 +4626,15 @@ const ComprehensiveAdminDashboard = () => {
         <h2><FiBookOpen /> Exercises Management</h2>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <ActionButton
-            onClick={() => bulkToggleChallenges(true)}
-            disabled={bulkTogglingChallenges || challenges.length === 0}
+            onClick={() => stageBulkVisibility(true)}
+            disabled={bulkTogglingChallenges || !!bulkVisibilityConfirm || !canManageChallenges}
             style={{ background: '#48bb78', color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
             <FiToggleRight /> Enable All
           </ActionButton>
           <ActionButton
-            onClick={() => bulkToggleChallenges(false)}
-            disabled={bulkTogglingChallenges || challenges.length === 0}
+            onClick={() => stageBulkVisibility(false)}
+            disabled={bulkTogglingChallenges || !!bulkVisibilityConfirm || !canManageChallenges}
             style={{ background: '#f56565', color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
             <FiToggleLeft /> Disable All
@@ -3866,7 +4800,7 @@ const ComprehensiveAdminDashboard = () => {
           >
             <FiRefreshCw />
           </ActionButton>
-          <ActionButton onClick={() => setCreateStudentModalOpen(true)}>
+          <ActionButton onClick={openStudentCreate}>
             <FiPlus /> Create New Student
           </ActionButton>
         </div>
@@ -3983,8 +4917,8 @@ const ComprehensiveAdminDashboard = () => {
       </SectionHeader>
 
       <p style={{ color: '#718096', marginBottom: '1.5rem' }}>
-        Manage users who are locked due to failed login attempts or rate limiting.
-        Unlock users to grant them immediate access.
+        Review manually locked and rate-limited accounts. Unlocking clears the lock and failed attempts
+        so an active account can sign in again; revoked sessions are not restored.
       </p>
 
       {loadingLockedUsers ? (
@@ -4062,7 +4996,8 @@ const ComprehensiveAdminDashboard = () => {
                   </td>
                   <td>
                     <ActionButton
-                      onClick={() => unlockUser(user.id)}
+                      onClick={() => unlockUser(user.id, user.username)}
+                      disabled={!accountAccessPermissionRef.current}
                       style={{
                         padding: '0.4rem 0.8rem',
                         fontSize: '0.8rem',
@@ -6144,7 +7079,7 @@ const ComprehensiveAdminDashboard = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      onClick={() => setUserManagementModalOpen(false)}
+      onClick={closeUserManagementModal}
     >
       <UserManagementContent
         role="dialog"
@@ -6157,7 +7092,7 @@ const ComprehensiveAdminDashboard = () => {
       >
         <ModalHeader>
           <h2 id="user-management-title">User Management</h2>
-          <button aria-label="Close user management" onClick={() => setUserManagementModalOpen(false)}>
+          <button aria-label="Close user management" onClick={closeUserManagementModal}>
             <FiX />
           </button>
         </ModalHeader>
@@ -6183,45 +7118,48 @@ const ComprehensiveAdminDashboard = () => {
               Level 1 can manage permitted teaching tasks. Level 2 is required for administrator grants and protected actions; both levels need explicit permissions.
             </p>
             {canCreateAdministrators && (
-              <ActionButton type="button" onClick={() => {
-                setEditingAdministrator(null);
-                setCreateAdministratorOpen(!createAdministratorOpen);
-              }}>
+              <ActionButton type="button" onClick={stageAdministratorCreate}>
                 {createAdministratorOpen ? 'Cancel administrator creation' : 'Add administrator'}
               </ActionButton>
             )}
             {canCreateAdministrators && createAdministratorOpen && (
-              <AdministratorForm onSubmit={handleCreateAdministrator}>
+              <AdministratorForm onSubmit={event => handleCreateAdministrator(event, administratorCreateStage)}>
                 <AdministratorFields>
                 <AdministratorField>
                 <label htmlFor="new-admin-username">Username</label>
                 <input id="new-admin-username" required minLength={3} maxLength={50} value={newAdministrator.username}
-                  onChange={event => setNewAdministrator({ ...newAdministrator, username: event.target.value })} />
+                  onChange={event => { const value = event.target.value;
+                    updateAdministratorCreate(administratorCreateStage, () => ({ username: value })); }} />
                 </AdministratorField>
                 <AdministratorField>
                 <label htmlFor="new-admin-email">Email</label>
                 <input id="new-admin-email" type="email" required value={newAdministrator.email}
-                  onChange={event => setNewAdministrator({ ...newAdministrator, email: event.target.value })} />
+                  onChange={event => { const value = event.target.value;
+                    updateAdministratorCreate(administratorCreateStage, () => ({ email: value })); }} />
                 </AdministratorField>
                 <AdministratorField>
                 <label htmlFor="new-admin-name">Full name</label>
                 <input id="new-admin-name" value={newAdministrator.fullName}
-                  onChange={event => setNewAdministrator({ ...newAdministrator, fullName: event.target.value })} />
+                  onChange={event => { const value = event.target.value;
+                    updateAdministratorCreate(administratorCreateStage, () => ({ fullName: value })); }} />
                 </AdministratorField>
                 <AdministratorField>
                 <label htmlFor="new-admin-password">Password</label>
                 <input id="new-admin-password" type="password" required minLength={8} value={newAdministrator.password}
-                  onChange={event => setNewAdministrator({ ...newAdministrator, password: event.target.value })} />
+                  onChange={event => { const value = event.target.value;
+                    updateAdministratorCreate(administratorCreateStage, () => ({ password: value })); }} />
                 </AdministratorField>
                 <AdministratorField>
                 <label htmlFor="new-admin-confirm-password">Confirm password</label>
                 <input id="new-admin-confirm-password" type="password" required value={newAdministrator.confirmPassword}
-                  onChange={event => setNewAdministrator({ ...newAdministrator, confirmPassword: event.target.value })} />
+                  onChange={event => { const value = event.target.value;
+                    updateAdministratorCreate(administratorCreateStage, () => ({ confirmPassword: value })); }} />
                 </AdministratorField>
                 <AdministratorField>
                 <label htmlFor="new-admin-level">Administrator level</label>
                 <select id="new-admin-level" value={newAdministrator.adminLevel}
-                  onChange={event => setNewAdministrator({ ...newAdministrator, adminLevel: Number(event.target.value) })}>
+                  onChange={event => { const value = Number(event.target.value);
+                    updateAdministratorCreate(administratorCreateStage, () => ({ adminLevel: value })); }}>
                   <option value={1}>Level 1 — instructor</option>
                   <option value={2}>Level 2 — elevated administrator</option>
                 </select>
@@ -6238,45 +7176,59 @@ const ComprehensiveAdminDashboard = () => {
                   ].map(([value, label]) => (
                     <AdministratorChoice key={value}>
                       <input type="checkbox" value={value} checked={newAdministrator.permissions.includes(value)}
-                        onChange={event => setNewAdministrator({ ...newAdministrator,
-                          permissions: event.target.checked
-                            ? [...newAdministrator.permissions, value]
-                            : newAdministrator.permissions.filter(permission => permission !== value) })} />
+                        onChange={event => { const checked = event.target.checked;
+                          updateAdministratorCreate(administratorCreateStage, current => ({
+                            permissions: checked
+                              ? current.permissions.includes(value) ? current.permissions : [...current.permissions, value]
+                              : current.permissions.filter(permission => permission !== value),
+                          })); }} />
                       {label}
                     </AdministratorChoice>
                   ))}
                   </div>
                 </AdministratorPermissions>
+                {administratorCreateOutcome?.kind === 'unknown' && <p role="alert">
+                  The creation outcome could not be confirmed. No account ID was acknowledged.
+                  Check the current administrator roster before deciding whether to start a new creation.
+                  Do not assume a matching username proves this request committed.
+                </p>}
+                {administratorCreateOutcome?.kind === 'rejected' && <p role="alert">The server rejected this creation.</p>}
                 <AdministratorActions>
-                <ActionButton type="submit" disabled={creatingAdministrator}>
+                <ActionButton type="submit" disabled={creatingAdministrator || administratorCreateStage?.consumed}>
                   {creatingAdministrator ? 'Creating…' : 'Create administrator'}
                 </ActionButton>
+                {(administratorCreateOutcome?.kind === 'unknown' || administratorCreateOutcome?.kind === 'rejected') &&
+                  <SecondaryButton type="button" onClick={() => closeAdministratorCreate(administratorCreateStage)}>Close</SecondaryButton>}
                 </AdministratorActions>
               </AdministratorForm>
             )}
             {canCreateAdministrators && editingAdministrator && (
-              <AdministratorForm onSubmit={handleUpdateAdministrator}>
+              <AdministratorForm onSubmit={event => handleUpdateAdministrator(event, administratorEditStage)}>
                 <h4>Edit administrator: {adminAccounts.find(account => account.id === editingAdministrator.id)?.username}</h4>
                 <AdministratorFields>
                 <AdministratorField>
                 <label htmlFor="edit-admin-username">Username</label>
                 <input id="edit-admin-username" required minLength={3} maxLength={50} value={editingAdministrator.username}
-                  onChange={event => setEditingAdministrator({ ...editingAdministrator, username: event.target.value })} />
+                  onChange={event => { const value = event.target.value;
+                    updateAdministratorEdit(administratorEditStage, () => ({ username: value })); }} />
                 </AdministratorField>
                 <AdministratorField>
                 <label htmlFor="edit-admin-email">Email</label>
                 <input id="edit-admin-email" type="email" required value={editingAdministrator.email}
-                  onChange={event => setEditingAdministrator({ ...editingAdministrator, email: event.target.value })} />
+                  onChange={event => { const value = event.target.value;
+                    updateAdministratorEdit(administratorEditStage, () => ({ email: value })); }} />
                 </AdministratorField>
                 <AdministratorField>
                 <label htmlFor="edit-admin-name">Full name</label>
                 <input id="edit-admin-name" value={editingAdministrator.fullName}
-                  onChange={event => setEditingAdministrator({ ...editingAdministrator, fullName: event.target.value })} />
+                  onChange={event => { const value = event.target.value;
+                    updateAdministratorEdit(administratorEditStage, () => ({ fullName: value })); }} />
                 </AdministratorField>
                 <AdministratorField>
                 <label htmlFor="edit-admin-level">Administrator level</label>
                 <select id="edit-admin-level" value={editingAdministrator.adminLevel}
-                  onChange={event => setEditingAdministrator({ ...editingAdministrator, adminLevel: Number(event.target.value) })}>
+                  onChange={event => { const value = Number(event.target.value);
+                    updateAdministratorEdit(administratorEditStage, () => ({ adminLevel: value })); }}>
                   <option value={1}>Level 1 — instructor</option>
                   <option value={2}>Level 2 — elevated administrator</option>
                 </select>
@@ -6293,10 +7245,12 @@ const ComprehensiveAdminDashboard = () => {
                   ].map(([value, label]) => (
                     <AdministratorChoice key={value}>
                       <input type="checkbox" value={value} checked={editingAdministrator.permissions.includes(value)}
-                        onChange={event => setEditingAdministrator({ ...editingAdministrator,
-                          permissions: event.target.checked
-                            ? [...editingAdministrator.permissions, value]
-                            : editingAdministrator.permissions.filter(permission => permission !== value) })} />
+                        onChange={event => { const checked = event.target.checked;
+                          updateAdministratorEdit(administratorEditStage, current => ({
+                            permissions: checked
+                              ? current.permissions.includes(value) ? current.permissions : [...current.permissions, value]
+                              : current.permissions.filter(permission => permission !== value),
+                          })); }} />
                       {label}
                     </AdministratorChoice>
                   ))}
@@ -6304,22 +7258,33 @@ const ComprehensiveAdminDashboard = () => {
                 </AdministratorPermissions>
                 <AdministratorChoice htmlFor="edit-admin-active">
                   <input id="edit-admin-active" type="checkbox" checked={editingAdministrator.isActive}
-                    onChange={event => setEditingAdministrator({ ...editingAdministrator, isActive: event.target.checked })} />
+                    onChange={event => { const checked = event.target.checked;
+                      updateAdministratorEdit(administratorEditStage, () => ({ isActive: checked })); }} />
                   Active (reactivate a deactivated account here)
                 </AdministratorChoice>
                 <p style={{ color: '#718096' }}>The last active level 2 administrator with user management permission cannot be removed. Editing your own account signs you out so your permissions can refresh.</p>
+                {administratorEditOutcome?.kind === 'unknown' && <p role="alert">
+                  The update outcome could not be confirmed.
+                  {administratorEditOutcome.observed
+                    ? ` A fresh account read shows ${administratorEditOutcome.observed.username} is currently ${administratorEditOutcome.observed.active ? 'active' : 'inactive'}; this does not prove this update made the change. Permission changes could not be confirmed.`
+                    : ' Current account state could not be read.'}
+                  {' '}Close this form and start a new edit before any further update.
+                </p>}
+                {administratorEditOutcome?.kind === 'rejected' && <p role="alert">The server rejected this update: {administratorEditOutcome.message}</p>}
                 <AdministratorActions>
-                <ActionButton type="submit" disabled={administratorMutationPending}>
+                <ActionButton type="submit" disabled={administratorMutationPending || administratorEditStage?.consumed}>
                   {administratorMutationPending ? 'Saving…' : 'Save administrator'}
                 </ActionButton>
                 <SecondaryButton type="button" disabled={administratorMutationPending}
-                  onClick={() => setEditingAdministrator(null)}>Cancel</SecondaryButton>
+                  onClick={() => closeAdministratorEdit(administratorEditStage)}>
+                  {administratorEditOutcome?.kind === 'unknown' || administratorEditOutcome?.kind === 'rejected' ? 'Close' : 'Cancel'}
+                </SecondaryButton>
                 </AdministratorActions>
               </AdministratorForm>
             )}
             {adminAccountsLoading && <p role="status">Loading administrators…</p>}
             {adminAccountsError && <div role="alert" style={{ color: '#9b2c2c', marginTop: '1rem' }}>
-              {adminAccountsError} <SecondaryButton type="button" onClick={loadAdminAccounts}>Retry</SecondaryButton>
+              {adminAccountsError} <SecondaryButton type="button" onClick={() => loadAdminAccounts()}>Retry</SecondaryButton>
             </div>}
             {!adminAccountsLoading && !adminAccountsError && adminAccounts.length === 0 &&
               <p role="status">No administrators found.</p>}
@@ -6336,7 +7301,7 @@ const ComprehensiveAdminDashboard = () => {
                           onClick={() => beginAdministratorEdit(account)}>Edit</SecondaryButton>{' '}
                         {Boolean(account.is_active) && <SecondaryButton type="button"
                           disabled={administratorMutationPending}
-                          onClick={() => { setEditingAdministrator(null); setDeactivatingAdministrator(account); }}>
+                          onClick={() => stageAdministratorDeactivation(account)}>
                           Deactivate
                         </SecondaryButton>}
                       </>}
@@ -6349,12 +7314,22 @@ const ComprehensiveAdminDashboard = () => {
               <div role="dialog" aria-label="Deactivate administrator" style={{ marginTop: '1rem', padding: '1rem', background: '#fff5f5', borderRadius: '8px' }}>
                 <h4>Deactivate {deactivatingAdministrator.username}?</h4>
                 <p>This removes sign-in access and revokes sessions. The account and its audit and learner evidence are retained. You can reactivate it from Edit. Deactivating your own account signs you out.</p>
-                <ActionButton type="button" variant="danger" disabled={administratorMutationPending}
-                  onClick={handleDeactivateAdministrator}>
+                {deactivationOutcome?.kind === 'unknown' && <p role="alert">
+                  The request outcome could not be confirmed.
+                  {deactivationOutcome.observed
+                    ? ` A fresh account read shows this administrator is currently ${deactivationOutcome.observed}; this does not prove this request made the change.`
+                    : ' Current account status could not be read.'}
+                  {' '}Close this dialog and start a new confirmation before any further change.
+                </p>}
+                {deactivationOutcome?.kind === 'rejected' && <p role="alert">The server rejected deactivation: {deactivationOutcome.message}</p>}
+                {!deactivatingAdministrator.consumed && <ActionButton type="button" variant="danger" disabled={administratorMutationPending}
+                  onClick={() => handleDeactivateAdministrator(deactivatingAdministrator)}>
                   {administratorMutationPending ? 'Deactivating…' : 'Confirm deactivation'}
-                </ActionButton>{' '}
+                </ActionButton>}{' '}
                 <SecondaryButton type="button" disabled={administratorMutationPending}
-                  onClick={() => setDeactivatingAdministrator(null)}>Cancel</SecondaryButton>
+                  onClick={() => closeAdministratorDeactivation(deactivatingAdministrator)}>
+                  {deactivationOutcome?.kind === 'unknown' || deactivationOutcome?.kind === 'rejected' ? 'Close' : 'Cancel'}
+                </SecondaryButton>
               </div>
             )}
           </div>}
@@ -6363,7 +7338,7 @@ const ComprehensiveAdminDashboard = () => {
             style={{ marginBottom: '2rem' }}>
             <h3>Students</h3>
             <p style={{ color: '#718096' }}>View and lock accounts here. The Students page has create, edit, and deletion controls.</p>
-            <ActionButton type="button" onClick={() => { setUserManagementModalOpen(false); navigate('/admin/students'); }}>
+            <ActionButton type="button" onClick={() => { closeUserManagementModal(); navigate('/admin/students'); }}>
               Manage students
             </ActionButton>
             {managementStudentsLoading && <p role="status">Loading students…</p>}
@@ -6511,12 +7486,14 @@ const ComprehensiveAdminDashboard = () => {
   );
 
   const renderChangePasswordModal = () => {
+    if (!selfPasswordStage) return null;
+    const stage = selfPasswordStage;
     return (
       <ModalOverlay
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={() => setChangePasswordModalOpen(false)}
+        onClick={() => closeSelfPassword(stage)}
       >
         <ModalContent
           initial={{ scale: 0.9, opacity: 0 }}
@@ -6527,12 +7504,13 @@ const ComprehensiveAdminDashboard = () => {
         >
           <ModalHeader>
             <h2>Change Password</h2>
-            <button onClick={() => setChangePasswordModalOpen(false)}>
+            <button type="button" aria-label="Close own password change" onClick={() => closeSelfPassword(stage)}>
               <FiX />
             </button>
           </ModalHeader>
           <ModalBody>
-            <form onSubmit={handlePasswordSubmit}>
+            <form onSubmit={event => handlePasswordSubmit(event, stage)}>
+              <p>Changing your password revokes your current sessions. You will need to sign in again.</p>
               <div style={{ marginBottom: '1.5rem' }}>
                 <label style={{ 
                   display: 'block', 
@@ -6545,7 +7523,7 @@ const ComprehensiveAdminDashboard = () => {
                 <input
                   type="password"
                   value={passwords.currentPassword}
-                  onChange={(e) => setPasswords({...passwords, currentPassword: e.target.value})}
+                  onChange={(e) => updateSelfPassword(stage, { currentPassword: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -6569,7 +7547,7 @@ const ComprehensiveAdminDashboard = () => {
                 <input
                   type="password"
                   value={passwords.newPassword}
-                  onChange={(e) => setPasswords({...passwords, newPassword: e.target.value})}
+                  onChange={(e) => updateSelfPassword(stage, { newPassword: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -6594,7 +7572,7 @@ const ComprehensiveAdminDashboard = () => {
                 <input
                   type="password"
                   value={passwords.confirmPassword}
-                  onChange={(e) => setPasswords({...passwords, confirmPassword: e.target.value})}
+                  onChange={(e) => updateSelfPassword(stage, { confirmPassword: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -6607,15 +7585,21 @@ const ComprehensiveAdminDashboard = () => {
                 />
               </div>
               
+              {selfPasswordOutcome?.kind === 'unknown' && <p role="alert">
+                The password-change outcome could not be confirmed. Your sessions may have been revoked.
+                No automatic retry or credential check was made. Sign in again or contact an administrator before another change.
+              </p>}
+              {selfPasswordOutcome?.kind === 'rejected' && <p role="alert">The password change was rejected.</p>}
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                 <ActionButton 
                   type="button"
-                  onClick={() => setChangePasswordModalOpen(false)}
+                  onClick={() => closeSelfPassword(stage)}
+                  disabled={selfPasswordPending}
                   style={{ background: '#6b7280' }}
                 >
-                  Cancel
+                  {selfPasswordOutcome?.kind === 'unknown' || selfPasswordOutcome?.kind === 'rejected' ? 'Close' : 'Cancel'}
                 </ActionButton>
-                <ActionButton type="submit">
+                <ActionButton type="submit" disabled={selfPasswordPending || stage.consumed}>
                   <FiSave /> Change Password
                 </ActionButton>
               </div>
@@ -6827,9 +7811,10 @@ const ComprehensiveAdminDashboard = () => {
   };
 
   const renderCreateStudentModal = () => {
+    if (!studentCreateStage) return null;
+    const stage = studentCreateStage;
     const handleSubmit = (e) => {
-      e.preventDefault();
-      handleCreateStudent(e);
+      void handleCreateStudent(e, stage);
     };
 
     return (
@@ -6837,7 +7822,7 @@ const ComprehensiveAdminDashboard = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={() => setCreateStudentModalOpen(false)}
+        onClick={() => closeStudentCreate(stage)}
       >
         <ModalContent
           initial={{ scale: 0.9, opacity: 0 }}
@@ -6848,7 +7833,7 @@ const ComprehensiveAdminDashboard = () => {
         >
           <ModalHeader>
             <h2>Create New Student</h2>
-            <button onClick={() => setCreateStudentModalOpen(false)}>
+            <button type="button" aria-label="Close student creation" onClick={() => closeStudentCreate(stage)}>
               <FiX />
             </button>
           </ModalHeader>
@@ -6863,7 +7848,7 @@ const ComprehensiveAdminDashboard = () => {
                   <input
                     type="text"
                     value={newStudent.username}
-                    onChange={(e) => setNewStudent({...newStudent, username: e.target.value})}
+                    onChange={(e) => updateStudentCreate(stage, { username: e.target.value })}
                     required
                     style={{
                       width: '100%',
@@ -6885,7 +7870,7 @@ const ComprehensiveAdminDashboard = () => {
                   <input
                     type="email"
                     value={newStudent.email}
-                    onChange={(e) => setNewStudent({...newStudent, email: e.target.value})}
+                    onChange={(e) => updateStudentCreate(stage, { email: e.target.value })}
                     required
                     style={{
                       width: '100%',
@@ -6909,7 +7894,7 @@ const ComprehensiveAdminDashboard = () => {
                   <input
                     type="password"
                     value={newStudent.password}
-                    onChange={(e) => setNewStudent({...newStudent, password: e.target.value})}
+                    onChange={(e) => updateStudentCreate(stage, { password: e.target.value })}
                     required
                     style={{
                       width: '100%',
@@ -6931,7 +7916,7 @@ const ComprehensiveAdminDashboard = () => {
                   <input
                     type="password"
                     value={newStudent.confirmPassword}
-                    onChange={(e) => setNewStudent({...newStudent, confirmPassword: e.target.value})}
+                    onChange={(e) => updateStudentCreate(stage, { confirmPassword: e.target.value })}
                     required
                     style={{
                       width: '100%',
@@ -6954,7 +7939,7 @@ const ComprehensiveAdminDashboard = () => {
                 <input
                   type="text"
                   value={newStudent.full_name}
-                  onChange={(e) => setNewStudent({...newStudent, full_name: e.target.value})}
+                  onChange={(e) => updateStudentCreate(stage, { full_name: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -6974,7 +7959,7 @@ const ComprehensiveAdminDashboard = () => {
                 </label>
                 <select
                   value={newStudent.role}
-                  onChange={(e) => setNewStudent({...newStudent, role: e.target.value})}
+                  onChange={(e) => updateStudentCreate(stage, { role: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -6989,10 +7974,16 @@ const ComprehensiveAdminDashboard = () => {
                 </select>
               </div>
 
+              {studentCreateOutcome?.kind === 'unknown' && <p role="alert">
+                Student creation could not be confirmed. No account ID was acknowledged. A matching name is not proof
+                that this request succeeded. No automatic retry was made; inspect the roster before acting again.
+              </p>}
+              {studentCreateOutcome?.kind === 'rejected' && <p role="alert">Student creation was rejected.</p>}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '2rem' }}>
                 <button
                   type="button"
-                  onClick={() => setCreateStudentModalOpen(false)}
+                  onClick={() => closeStudentCreate(stage)}
+                  disabled={studentAccountMutationPending}
                   style={{
                     padding: '0.75rem 1.5rem',
                     border: '2px solid #e2e8f0',
@@ -7004,10 +7995,11 @@ const ComprehensiveAdminDashboard = () => {
                     transition: 'all 0.2s'
                   }}
                 >
-                  Cancel
+                  {studentCreateOutcome?.kind === 'unknown' || studentCreateOutcome?.kind === 'rejected' ? 'Close' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
+                  disabled={studentAccountMutationPending || stage.consumed}
                   style={{
                     padding: '0.75rem 1.5rem',
                     border: 'none',
@@ -7030,11 +8022,12 @@ const ComprehensiveAdminDashboard = () => {
   };
 
   const renderEditStudentModal = () => {
-    if (!studentToEdit) return null;
+    if (!studentToEdit || !studentEditStage) return null;
+    const stage = studentEditStage;
 
     const handleSubmit = (e) => {
       e.preventDefault();
-      updateStudent(studentToEdit.id, editFormData);
+      void updateStudent(stage);
     };
 
     return (
@@ -7042,7 +8035,7 @@ const ComprehensiveAdminDashboard = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={() => setEditStudentModalOpen(false)}
+        onClick={() => closeStudentEdit(stage)}
       >
         <ModalContent
           initial={{ scale: 0.9, opacity: 0 }}
@@ -7053,7 +8046,7 @@ const ComprehensiveAdminDashboard = () => {
         >
           <ModalHeader>
             <h2>Edit Student Profile</h2>
-            <button onClick={() => setEditStudentModalOpen(false)}>
+            <button type="button" aria-label="Close student edit" onClick={() => closeStudentEdit(stage)}>
               <FiX />
             </button>
           </ModalHeader>
@@ -7068,7 +8061,7 @@ const ComprehensiveAdminDashboard = () => {
                   <input
                     type="text"
                     value={editFormData.username}
-                    onChange={(e) => setEditFormData({...editFormData, username: e.target.value})}
+                    onChange={(e) => updateStudentEdit(stage, { username: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -7087,7 +8080,7 @@ const ComprehensiveAdminDashboard = () => {
                   <input
                     type="email"
                     value={editFormData.email}
-                    onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                    onChange={(e) => updateStudentEdit(stage, { email: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -7107,7 +8100,7 @@ const ComprehensiveAdminDashboard = () => {
                 <input
                   type="text"
                   value={editFormData.full_name}
-                  onChange={(e) => setEditFormData({...editFormData, full_name: e.target.value})}
+                  onChange={(e) => updateStudentEdit(stage, { full_name: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -7125,7 +8118,7 @@ const ComprehensiveAdminDashboard = () => {
                   </label>
                   <select
                     value={editFormData.role}
-                    onChange={(e) => setEditFormData({...editFormData, role: e.target.value})}
+                    onChange={(e) => updateStudentEdit(stage, { role: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -7143,7 +8136,7 @@ const ComprehensiveAdminDashboard = () => {
                     type="checkbox"
                     id="is_active"
                     checked={editFormData.is_active}
-                    onChange={(e) => setEditFormData({...editFormData, is_active: e.target.checked})}
+                    onChange={(e) => updateStudentEdit(stage, { is_active: e.target.checked })}
                     style={{ marginRight: '0.5rem' }}
                   />
                   <label htmlFor="is_active" style={{ fontWeight: '500', color: '#374151' }}>
@@ -7151,6 +8144,10 @@ const ComprehensiveAdminDashboard = () => {
                   </label>
                 </div>
               </div>
+              {!editFormData.is_active && <p>
+                Deactivating this student revokes active sessions. Reactivating later permits a fresh sign-in;
+                it does not restore revoked sessions.
+              </p>}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
                 <div>
@@ -7160,7 +8157,7 @@ const ComprehensiveAdminDashboard = () => {
                   <input
                     type="text"
                     value={editFormData.department}
-                    onChange={(e) => setEditFormData({...editFormData, department: e.target.value})}
+                    onChange={(e) => updateStudentEdit(stage, { department: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -7178,7 +8175,7 @@ const ComprehensiveAdminDashboard = () => {
                   <input
                     type="tel"
                     value={editFormData.phone}
-                    onChange={(e) => setEditFormData({...editFormData, phone: e.target.value})}
+                    onChange={(e) => updateStudentEdit(stage, { phone: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -7190,15 +8187,21 @@ const ComprehensiveAdminDashboard = () => {
                 </div>
               </div>
               
+              {studentEditOutcome?.kind === 'unknown' && <p role="alert">
+                Student update could not be confirmed. The current account state is not proof this request succeeded.
+                No automatic retry was made; review the student before starting a new update.
+              </p>}
+              {studentEditOutcome?.kind === 'rejected' && <p role="alert">Student update was rejected.</p>}
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                 <ActionButton 
                   type="button"
-                  onClick={() => setEditStudentModalOpen(false)}
+                  onClick={() => closeStudentEdit(stage)}
+                  disabled={studentAccountMutationPending}
                   style={{ background: '#6b7280' }}
                 >
-                  Cancel
+                  {studentEditOutcome?.kind === 'unknown' || studentEditOutcome?.kind === 'rejected' ? 'Close' : 'Cancel'}
                 </ActionButton>
-                <ActionButton type="submit">
+                <ActionButton type="submit" disabled={studentAccountMutationPending || stage.consumed}>
                   <FiSave /> Update Student
                 </ActionButton>
               </div>
@@ -7211,13 +8214,14 @@ const ComprehensiveAdminDashboard = () => {
 
   const renderDeleteStudentModal = () => {
     if (!studentToDelete) return null;
+    const stagedFromDialog = stagedStudentDeletionRef.current;
 
     return (
       <ModalOverlay
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={() => setDeleteStudentModalOpen(false)}
+        onClick={closeDeleteStudentModal}
       >
         <ModalContent
           initial={{ scale: 0.9, opacity: 0 }}
@@ -7228,7 +8232,7 @@ const ComprehensiveAdminDashboard = () => {
         >
           <ModalHeader>
             <h2>Delete Student</h2>
-            <button onClick={() => setDeleteStudentModalOpen(false)}>
+            <button onClick={closeDeleteStudentModal}>
               <FiX />
             </button>
           </ModalHeader>
@@ -7291,23 +8295,24 @@ const ComprehensiveAdminDashboard = () => {
             <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
               <ActionButton 
                 type="button"
-                onClick={() => setDeleteStudentModalOpen(false)}
+                onClick={closeDeleteStudentModal}
                 style={{ background: '#6b7280' }}
               >
                 Cancel
               </ActionButton>
               <ActionButton 
                 variant="danger"
-                disabled={!canDeleteStudents}
+                disabled={!canDeleteStudents || studentDeletionPending}
                 title={deleteStudentPermissionTitle}
-                onClick={() => {
+                onClick={event => {
                   if (!canDeleteStudents) {
                     toast.error(deleteStudentPermissionTitle);
                     return;
                   }
-                  const input = document.getElementById('delete-confirmation');
-                  if (input.value === 'DELETE') {
-                    deleteStudent(studentToDelete.id);
+                  const input = event.currentTarget.parentElement?.parentElement
+                    ?.querySelector('#delete-confirmation');
+                  if (input?.value === 'DELETE') {
+                    deleteStudent(stagedFromDialog);
                   } else {
                     toast.error('Please type DELETE to confirm');
                   }
@@ -7323,19 +8328,12 @@ const ComprehensiveAdminDashboard = () => {
   };
 
   const renderChangeStudentPasswordModal = () => {
-    if (!studentForPasswordChange) return null;
+    if (!studentForPasswordChange || !studentPasswordStage) return null;
+    const stage = studentPasswordStage;
 
     const handleSubmit = (e) => {
       e.preventDefault();
-      if (passwordChangeData.newPassword !== passwordChangeData.confirmPassword) {
-        toast.error('Passwords do not match');
-        return;
-      }
-      if (passwordChangeData.newPassword.length < 8) {
-        toast.error('Password must be at least 8 characters long');
-        return;
-      }
-      changeStudentPassword(studentForPasswordChange.id, passwordChangeData);
+      void changeStudentPassword(stage);
     };
 
     return (
@@ -7343,7 +8341,7 @@ const ComprehensiveAdminDashboard = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={() => setChangeStudentPasswordModalOpen(false)}
+        onClick={() => closeStudentPassword(stage)}
       >
         <ModalContent
           initial={{ scale: 0.9, opacity: 0 }}
@@ -7354,7 +8352,7 @@ const ComprehensiveAdminDashboard = () => {
         >
           <ModalHeader>
             <h2>Change Student Password</h2>
-            <button onClick={() => setChangeStudentPasswordModalOpen(false)}>
+            <button type="button" onClick={() => closeStudentPassword(stage)} aria-label="Close student password change">
               <FiX />
             </button>
           </ModalHeader>
@@ -7370,6 +8368,9 @@ const ComprehensiveAdminDashboard = () => {
               <p style={{ margin: 0, color: '#1e40af' }}>
                 <strong>Student:</strong> {studentForPasswordChange.username} ({studentForPasswordChange.email})
               </p>
+              <p style={{ margin: '0.5rem 0 0', color: '#1e40af' }}>
+                Changing this password revokes the student&apos;s existing sessions. They will need to sign in again.
+              </p>
             </div>
 
             <form onSubmit={handleSubmit}>
@@ -7380,7 +8381,7 @@ const ComprehensiveAdminDashboard = () => {
                 <input
                   type="password"
                   value={passwordChangeData.newPassword}
-                  onChange={(e) => setPasswordChangeData({...passwordChangeData, newPassword: e.target.value})}
+                  onChange={(e) => updateStudentPassword(stage, { newPassword: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -7401,7 +8402,7 @@ const ComprehensiveAdminDashboard = () => {
                 <input
                   type="password"
                   value={passwordChangeData.confirmPassword}
-                  onChange={(e) => setPasswordChangeData({...passwordChangeData, confirmPassword: e.target.value})}
+                  onChange={(e) => updateStudentPassword(stage, { confirmPassword: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '0.75rem',
@@ -7415,15 +8416,21 @@ const ComprehensiveAdminDashboard = () => {
                 />
               </div>
               
+              {studentPasswordOutcome?.kind === 'unknown' && <p role="alert">
+                The password-change outcome could not be confirmed. The request may have changed the password and revoked sessions.
+                No automatic retry was made. Contact the student or review the account before starting a new change.
+              </p>}
+              {studentPasswordOutcome?.kind === 'rejected' && <p role="alert">The password change was rejected.</p>}
               <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
                 <ActionButton 
                   type="button"
-                  onClick={() => setChangeStudentPasswordModalOpen(false)}
+                  onClick={() => closeStudentPassword(stage)}
+                  disabled={studentPasswordPending}
                   style={{ background: '#6b7280' }}
                 >
-                  Cancel
+                  {studentPasswordOutcome?.kind === 'unknown' || studentPasswordOutcome?.kind === 'rejected' ? 'Close' : 'Cancel'}
                 </ActionButton>
-                <ActionButton type="submit">
+                <ActionButton type="submit" disabled={studentPasswordPending || stage.consumed}>
                   <FiSave /> Change Password
                 </ActionButton>
               </div>
@@ -8184,6 +9191,8 @@ const ComprehensiveAdminDashboard = () => {
           workshopKey={toWorkshopKey(solutionEditor.workshopKey)} objectiveId={solutionEditor.objectiveId}
           solution={solutionEditor.solution} onSave={saveUniversalSolutionEditor} onCancel={() => setSolutionEditor(null)} />}
       </AnimatePresence>
+      {accountAccessConfirm && renderAccountAccessConfirmModal()}
+      {bulkVisibilityConfirm && renderBulkVisibilityConfirmModal()}
     </AdminContainer>
   );
 };

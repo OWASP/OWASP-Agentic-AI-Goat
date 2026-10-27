@@ -220,17 +220,19 @@ const RECEIPT_SELECT = `SELECT i.*,r.runtime_fingerprint,
 // immutable snapshot table. Turn metadata receives this compact reference only.
 const PREIMAGE_CAPTURE = `SELECT operation_id,target_id,document_digest,receipt_sha256,runtime_receipt_sha256
  FROM secureshop_review.capture_product_manual_preimage($1::uuid,$2::uuid,$3::jsonb)`;
+const PRIVATE_PREIMAGE_CAPTURE = `SELECT operation_id,target_id,document_digest,receipt_sha256,runtime_receipt_sha256
+ FROM secureshop_review.capture_private_product_manual_preimage($1::uuid,$2::uuid,$3::jsonb)`;
 const ineligible = reason => Object.freeze({ eligible: false, reason });
 function digest(row, name) {
   return Buffer.isBuffer(row?.[name]) && row[name].length === 32 ? row[name].toString('hex') : null;
 }
-async function captureManualLineage(client, scope, input, accepted) {
+async function captureManualLineage(client, scope, input, accepted, privateSource = false) {
   if (!scope.scene) return ineligible('legacy_receipt');
   // A replay must preserve its already-saved producer metadata; it must never
   // fabricate a historical preimage from float vectors or a current head.
   if (accepted.replayed) return ineligible('replayed_without_original');
-  if (!accepted.isPublic) return ineligible('private_manual');
-  const rows = (await client.query(PREIMAGE_CAPTURE,
+  if (accepted.isPublic !== !privateSource) return ineligible(privateSource ? 'public_manual' : 'private_manual');
+  const rows = (await client.query(privateSource ? PRIVATE_PREIMAGE_CAPTURE : PREIMAGE_CAPTURE,
     [input.operationId, scope.targetId, JSON.stringify(input.chunks)])).rows;
   if (rows.length !== 1) return ineligible('missing_original');
   const row = rows[0];
@@ -323,15 +325,19 @@ function createSecureShopBoundManualIngestRepository(pool, { checkCurrent, audit
           outcome: 'completed', sourceKind: 'manual_ingest', sourceId: input.operationId,
         });
         const lineage = capture ? await captureManualLineage(client, scope, input, accepted) : null;
+        const protectedLineage = capture === 'protected' && accepted.isPublic === false
+          ? await captureManualLineage(client, scope, input, accepted, true) : null;
         await assertSceneGrant(client, scope);
         await checkCurrent(current);
         await trusted();
-        return capture ? Object.freeze({ receipt: accepted, lineage }) : accepted;
+        return capture ? Object.freeze({ receipt: accepted, lineage,
+          ...(protectedLineage ? {protectedLineage} : {}) }) : accepted;
       }));
   }
   return Object.freeze({
     appendManual: (value, requested, options) => appendManual(value, requested, options, false),
     appendManualWithLineage: (value, requested, options) => appendManual(value, requested, options, true),
+    appendManualWithProtectedLineage: (value, requested, options) => appendManual(value, requested, options, 'protected'),
     async readReceipt(value, requested = {}) {
       const scope = binding(value);
       const current = executionScope(scope);

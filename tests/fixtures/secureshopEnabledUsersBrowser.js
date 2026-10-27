@@ -5,13 +5,23 @@ const path = require('node:path');
 
 // Actual platform login and opaque-frame navigation against the enabled index.
 // No credential injection, model calls or substitute API handlers.
-async function qualifyEnabledUsersBrowser({ origin, user, password, root, prepareMcpTools }) {
+async function qualifyEnabledUsersBrowser({ origin, user, password, root, prepareMcpTools, prepareAclRecovery, currentHost = null }) {
   const browser = await require('puppeteer').launch({ headless: true,
-    userDataDir: path.join(root, 'users-browser'),
+    userDataDir: currentHost ? currentHost.profile : path.join(root, 'users-browser'),
     args: ['--disable-background-networking'],
   });
   const errors = [], blocked = [];
+  let aclRecovery, closing, primary;
+  const close = () => closing || (closing = browser.close());
+  const abortBrowser = () => { void close().catch(() => {}); };
   try {
+    if (currentHost) {
+      const pid = browser.process().pid;
+      fs.writeFileSync(process.env.ACL_PERMISSION_RESOURCE_JOURNAL, JSON.stringify({
+        resources: {browser: {pid, profile: currentHost.profile,
+          executable: process.env.PUPPETEER_EXECUTABLE_PATH}}}), {mode:0o600, flag:'wx'});
+      await currentHost.awaitBrowserAck(pid);
+    }
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 1100 });
     await require('./fullBackendRenderedSecureShop').configurePage(page, origin, blocked, errors);
@@ -40,7 +50,14 @@ async function qualifyEnabledUsersBrowser({ origin, user, password, root, prepar
     await frame.click('button[type="submit"]');
     const loginResponse = await personaLogin;
     assert.equal(loginResponse.status(), 200);
-    assert.equal((await loginResponse.json()).user.role, 'admin');
+    const persona = await loginResponse.json();
+    assert.equal(persona.user.role, 'admin');
+    if (prepareAclRecovery) {
+      aclRecovery = await prepareAclRecovery(loginResponse.request().headers(), persona.token);
+      aclRecovery.closeBrowser = close;
+      aclRecovery.signal.addEventListener('abort', abortBrowser, {once:true});
+      aclRecovery.signal.throwIfAborted(); aclRecovery.check();
+    }
     const mcpFixture=prepareMcpTools?await prepareMcpTools(loginResponse.request().headers()):null;
     await frame.waitForSelector('a[href="/secureshop/admin"]');
     await frame.click('a[href="/secureshop/admin"]');
@@ -66,9 +83,25 @@ async function qualifyEnabledUsersBrowser({ origin, user, password, root, prepar
     assert.equal(target.role, 'customer');
     const selector = '[aria-label="Change role for student_customer"]';
     await frame.waitForSelector(selector);
+    const mutationRequests = [];
+    page.on('request', request => {
+      if (request.method() === 'POST' && /\/api\/secureshop\/admin\/users\/\d+\/(role|ban)$/.test(new URL(request.url()).pathname))
+        mutationRequests.push(request.url());
+    });
+    await frame.select(selector, 'merchant');
+    await frame.waitForSelector('[aria-label="Confirm user change"]');
+    assert.match(await frame.$eval('[aria-label="Confirm user change"]', node => node.textContent), /student_customer.*customer to merchant/);
+    assert.equal(mutationRequests.length, 0, 'role selection must have no effect before confirmation');
+    await frame.click('[aria-label="Confirm user change"] button:first-of-type');
+    await frame.waitForFunction(() => !document.querySelector('[aria-label="Confirm user change"]'));
+    assert.equal(mutationRequests.length, 0, 'cancel must not submit a user operation');
+    assert.equal(await frame.$eval(selector, node => node.value), 'customer');
+    await frame.select(selector, 'merchant');
+    await frame.waitForSelector('[aria-label="Confirm user change"]');
+    assert.equal(mutationRequests.length, 0, 'restaged role remains pre-effect');
     const roleResponse = response(`/api/secureshop/admin/users/${target.id}/role`, 'POST');
     const receiptResponse = page.waitForResponse(r => r.url().startsWith(origin + '/api/secureshop/admin/users/operations/') && r.request().method() === 'GET');
-    await frame.select(selector, 'merchant');
+    await frame.click('[aria-label="Confirm user change"] button:last-of-type');
     const roleResult = await roleResponse;
     assert.equal(roleResult.status(), 200);
     const role = await roleResult.json();
@@ -82,7 +115,12 @@ async function qualifyEnabledUsersBrowser({ origin, user, password, root, prepar
     }, {}, selector);
     const banResponse = response(`/api/secureshop/admin/users/${target.id}/ban`, 'POST');
     const banReceiptResponse = page.waitForResponse(r => r.url().startsWith(origin + '/api/secureshop/admin/users/operations/') && r.request().method() === 'GET');
+    await frame.type('[aria-label="Ban reason (audit-log)"]', 'Owned administrator ban reason');
     await frame.select(selector, 'banned');
+    await frame.waitForSelector('[aria-label="Confirm user change"]');
+    assert.match(await frame.$eval('[aria-label="Confirm user change"]', node => node.textContent), /Owned administrator ban reason/);
+    assert.equal(mutationRequests.length, 1, 'ban selection must not submit before confirmation');
+    await frame.click('[aria-label="Confirm user change"] button:last-of-type');
     const banResult = await banResponse;
     assert.equal(banResult.status(), 200);
     const ban = await banResult.json();
@@ -95,7 +133,7 @@ async function qualifyEnabledUsersBrowser({ origin, user, password, root, prepar
       const row = control?.parentElement?.parentElement;
       return !control?.disabled && row?.children[4]?.innerText.startsWith('banned ');
     }, {}, selector);
-    const accessControl = await require('./secureshopEnabledAclBrowser').qualifyEnabledAclBrowser({page,frame,origin});
+    const accessControl = await require('./secureshopEnabledAclBrowser').qualifyEnabledAclBrowser({page,frame,origin,permissionRecovery:aclRecovery});
     let mcpTools;
     if(mcpFixture){
       await frame.click('a[href="/secureshop/admin/mcp"]');
@@ -121,7 +159,24 @@ async function qualifyEnabledUsersBrowser({ origin, user, password, root, prepar
       roleChanged: true, banned: true, opaqueFrame: true, mcpTools, passwordReset, syntheticLookup, accessControl, errors, blocked };
     fs.writeFileSync(path.join(root, 'enabled-users-browser-result.json'), JSON.stringify(result, null, 2), { mode: 0o600 });
     return result;
-  } finally { await browser.close(); }
+  } catch (error) { primary = error; throw error; } finally {
+    if (!aclRecovery) { await browser.close(); }
+    else {
+      aclRecovery.signal.removeEventListener('abort', abortBrowser);
+      let timer;
+      try {
+        await Promise.race([close(), new Promise((_, reject) => {
+          timer = setTimeout(() => reject(Error('ACL_BROWSER_CLOSE_DEADLINE')),
+            Math.max(0, aclRecovery.deadline - Date.now()));
+        })]);
+      } catch (error) {
+        const retained = primary || error;
+        retained.cleanupDebt = true;
+        retained.cleanupFailureCount = (retained.cleanupFailureCount || 0) + 1;
+        if (!primary) throw retained;
+      } finally { clearTimeout(timer); }
+    }
+  }
 }
 module.exports = { qualifyEnabledUsersBrowser };
 

@@ -3,7 +3,12 @@ import axios from 'axios';
 import { canCheckCtfRecovery, createCtfRecoveryState, isCtfRecoveryCancelled, recoveryCancelled, recoveryNeeded, resolveCtfRecovery } from './ctfRecovery';
 
 // References live only in this mounted page; bearer credentials are never persisted.
-export default function useCtfRecovery(scope) {
+export default function useCtfRecovery(scope, isScopeCurrent) {
+  const scopeRef = useRef(null);
+  if (!scopeRef.current || !Object.is(scopeRef.current.value, scope)) {
+    scopeRef.current = { value: scope };
+  }
+  const owner = scopeRef.current;
   const active = useRef(new Set());
   const actions = useRef(new Map());
   const mounted = useRef(true);
@@ -20,6 +25,13 @@ export default function useCtfRecovery(scope) {
   }, [scope]);
   function request(method, url, data, config = {}) {
     const headers = Object.freeze({ ...(config.headers || {}) });
+    // A retained callback belongs to the scope that rendered it, even when a
+    // later scope uses the same bearer token. Reject before dedup or reset.
+    const controller = new AbortController();
+    const current = () => mounted.current && scopeRef.current === owner && !controller.signal.aborted
+      && (!isScopeCurrent || isScopeCurrent())
+      && headers.Authorization === (localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : undefined);
+    if (!current()) return Promise.reject(recoveryCancelled());
     const actionKey = JSON.stringify([method, url, data]);
     const existing = actions.current.get(actionKey);
     if (existing && existing.headers.Authorization === headers.Authorization) return existing.promise;
@@ -27,10 +39,6 @@ export default function useCtfRecovery(scope) {
       for (const job of [...active.current]) job.finish(recoveryCancelled());
     }
 
-    const controller = new AbortController();
-    const current = () => mounted.current && !controller.signal.aborted
-      && headers.Authorization === (localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : undefined);
-    if (!current()) return Promise.reject(recoveryCancelled());
     let job;
     const promise = new Promise((resolve, reject) => {
       job = { headers, controller, settled: false, state: null, parked: false, checking: false, message: '', check: null,

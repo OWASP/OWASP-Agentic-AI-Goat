@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import Checkout from './Checkout';
 import { SHOP_CHECKOUT_KEY, SHOP_PRACTICE_PAYMENT_KEY } from '../utils/shopStorage.mjs';
+import { recoveredOrderVisible } from '../../../../../tests/fixtures/secureshopManualCheckoutReceiptWitness';
 
 let auth; let cart; let toast; let persisted; let fetchMock; let confirmMode; let flushReject; let legacyReference; let operationHttp404; let malformedReceipt; let confirmDispatched;
 jest.mock('../context/AuthContext', () => ({ useAuth: () => auth }));
@@ -37,6 +38,13 @@ const input = label => [...node.querySelectorAll('input')].find(value => value.c
 const set = async (label, value) => act(async () => { const target = input(label); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(target, value); target.dispatchEvent(new Event('input', { bubbles: true })); });
 const button = text => [...node.querySelectorAll('button')].find(value => value.textContent.includes(text));
 const click = async text => act(async () => button(text).click());
+const renderedReceipt = () => {
+  const heading = [...node.querySelectorAll('h1')]
+    .find(value => value.textContent.trim() === 'Order placed.');
+  return { heading: heading?.textContent.trim() ?? null,
+    confirmation: heading?.nextElementSibling?.textContent.trim() ?? null,
+    confirmVisible: Boolean(button('Confirm exact quote')) };
+};
 const submit = async () => act(async () => { node.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); });
 async function reachReview() {
   await set('Address', '1 Main St'); await set('City', 'Town'); await set('State', 'CA'); await set('ZIP', '90210');
@@ -151,6 +159,7 @@ test('approved bound confirmation persists proposal identity, then uses exact GE
   expect(toast.error).not.toHaveBeenCalled();
   expect(persisted.has(SHOP_CHECKOUT_KEY)).toBe(false); expect(cart.clear).toHaveBeenCalledTimes(1);
   expect(node.textContent).toContain('Order placed.');
+  expect(recoveredOrderVisible(renderedReceipt(), { orderId: 71, totalCents: 1000 })).toBe(false);
 });
 
 test('declined confirmation keeps the cart and removes the exact pending reference', async () => {
@@ -176,6 +185,14 @@ test('lost confirmation response retains the exact pending proposal and remount 
   await act(async () => root.render(<MemoryRouter><Checkout /></MemoryRouter>)); await settle(); await click('Check saved order'); await settle();
   expect(calls.slice(before).every(([, method]) => method === 'GET')).toBe(true);
   expect(calls.slice(before).some(([url]) => String(url).includes(`/customer/commerce/operations/${proposalId}`))).toBe(true);
+  expect(recoveredOrderVisible(renderedReceipt(), { orderId: 71, totalCents: 1000 })).toBe(true);
+  expect(recoveredOrderVisible(renderedReceipt(), { orderId: 72, totalCents: 1000 })).toBe(false);
+  expect(recoveredOrderVisible(renderedReceipt(), { orderId: 71, totalCents: 1100 })).toBe(false);
+  expect(recoveredOrderVisible({ ...renderedReceipt(), confirmVisible: true },
+    { orderId: 71, totalCents: 1000 })).toBe(false);
+  expect(recoveredOrderVisible({ ...renderedReceipt(),
+    confirmation: 'Your order #71 is confirmed for $10.00. A confirmation is on its way.',
+  }, { orderId: 71, totalCents: 1000 })).toBe(false);
 });
 
 test('an old bound checkout reference falls back only to its exact legacy receipt GET', async () => {

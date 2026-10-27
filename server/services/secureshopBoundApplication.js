@@ -87,6 +87,7 @@ async function createSecureShopBoundApplication({ engine, shopEnabled, authentic
     ? standaloneReadiness(composition, { personaInboxFeature, mcpTrustFeature, ssrfFeature }) : null;
   const gateway = require('../routes/secureshop/boundGateway').createSecureShopBoundGateway({
     launches: composition.launches, authenticatePersona: composition.personaAuth?.authenticatePersona,
+    standaloneAuth: composition.standaloneAuth?.service,
     personaAuth: composition.personaAuth, reviewsRouter: composition.router, catalog: composition.catalog,
     commerce: composition.commerce, account: composition.account, admin: composition.admin,
     ...(composition.scenes ? { scenes: composition.scenes } : {}),
@@ -129,6 +130,7 @@ async function createSecureShopBoundApplication({ engine, shopEnabled, authentic
     ...(composition.roleAssistants?.merchant?.ready ? { merchantAssistantRouter: composition.roleAssistants.merchant.router } : {}),
     ...(composition.roleAssistants?.admin?.ready ? { adminAssistantRouter: composition.roleAssistants.admin.router } : {}),
     ...(composition.productManualIngestion ? { productManualIngestion: composition.productManualIngestion } : {}),
+    ...(composition.accountAvatar ? { accountAvatar: composition.accountAvatar } : {}),
     ...(auditSummaryFeature ? { auditSummary: composition.auditSummary } : {}),
     ...(auditSummaryFeature && composition.auditUnbounded ? { auditUnbounded: composition.auditUnbounded } : {}),
     ...(composition.productAssist ? { productAssist: composition.productAssist } : {}),

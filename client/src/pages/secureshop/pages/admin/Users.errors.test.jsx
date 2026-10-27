@@ -26,6 +26,8 @@ let root, container;
 beforeEach(() => { jest.clearAllMocks(); boundMetadata=false; mockStandalone=false; sessionStorage.clear(); localStorage.clear(); Object.defineProperty(global.crypto,'randomUUID',{configurable:true,value:()=> '44444444-4444-4444-8444-444444444444'}); global.IS_REACT_ACT_ENVIRONMENT = true; container = document.createElement('div'); document.body.appendChild(container); root = createRoot(container); });
 afterEach(async () => { if (root) await act(async () => root.unmount()); container.remove(); });
 const mount = (token = null, user = null) => act(async () => root.render(<AuthCtx.Provider value={{ token, user }}><Users /></AuthCtx.Provider>));
+const confirm = () => act(async () => [...container.querySelectorAll('button')]
+  .find(button => button.textContent === 'Confirm user change').click());
 async function filter(role) { await act(async () => { const el = container.querySelector('[aria-label="Role filter"]'); el.value = role; el.dispatchEvent(new Event('change', { bubbles: true })); }); }
 test.each([403, 503])('failed HTTP%s is unavailable, not empty', async status => {
   global.fetch = jest.fn(async () => response({ error: 'private failure' }, status)); await mount();
@@ -184,14 +186,113 @@ test('owned role change sends UUID and revision, verifies exact receipt then ref
  const receipt={operationId:'44444444-4444-4444-8444-444444444444',targetId:2,action:'set_role',role:'merchant',version:'2'};
  global.fetch=jest.fn().mockResolvedValueOnce(response(valid)).mockResolvedValueOnce(response({ok:true,receipt})).mockResolvedValueOnce(response({ok:true,receipt})).mockResolvedValueOnce(response({...valid,users:[{...valid.users[0],role:'merchant',authority_version:'2'}]}));
  await mount();await act(async()=>{const select=container.querySelector('[aria-label="Change role for customer"]');select.value='merchant';select.dispatchEvent(new Event('change',{bubbles:true}));});
+ expect(global.fetch.mock.calls.filter(([,o])=>o?.method==='POST')).toHaveLength(0);expect(localStorage.length).toBe(0);
+ await confirm();
  const post=global.fetch.mock.calls.find(([,o])=>o?.method==='POST');expect(JSON.parse(post[1].body)).toEqual({operationId:receipt.operationId,expectedVersion:'1',role:'merchant'});
  expect(container.querySelector('[aria-label="Change role for customer"]').value).toBe('merchant');expect(localStorage.length).toBe(0);expect(toast.success).toHaveBeenCalledWith('User change confirmed');
+});
+test('role change and ban can be cancelled before any operation or POST exists', async () => {
+ global.fetch=jest.fn(async()=>response(valid));await mount('admin');
+ await act(async()=>{const select=container.querySelector('[aria-label="Change role for customer"]');select.value='merchant';select.dispatchEvent(new Event('change',{bubbles:true}));});
+ expect(container.querySelector('[aria-label="Confirm user change"]')?.textContent).toContain('from customer to merchant');
+ expect(global.fetch.mock.calls.filter(([,options])=>options?.method==='POST')).toHaveLength(0);
+ expect(localStorage.length).toBe(0);
+ await act(async()=>[...container.querySelectorAll('button')].find(button=>button.textContent==='Cancel').click());
+ expect(container.querySelector('[aria-label="Confirm user change"]')).toBeNull();
+ expect(container.querySelector('[aria-label="Change role for customer"]').value).toBe('customer');
+ await act(async()=>{const input=container.querySelector('[aria-label="Ban reason (audit-log)"]');
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'Owned reason');
+  input.dispatchEvent(new Event('input',{bubbles:true}));});
+ await act(async()=>[...container.querySelectorAll('button')].find(button=>button.textContent==='ban').click());
+ expect(container.querySelector('[aria-label="Confirm user change"]')?.textContent).toContain('Owned reason');
+ await act(async()=>[...container.querySelectorAll('button')].find(button=>button.textContent==='Cancel').click());
+ expect(global.fetch.mock.calls.filter(([,options])=>options?.method==='POST')).toHaveLength(0);
+ expect(localStorage.length).toBe(0);
+});
+test('ban confirmation sends the exact staged audit reason, not later input edits', async () => {
+ global.fetch=jest.fn().mockResolvedValueOnce(response(valid)).mockRejectedValueOnce(Error('ack lost'));
+ await mount('admin');
+ const reason=container.querySelector('[aria-label="Ban reason (audit-log)"]');
+ await act(async()=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(reason,'First line. Ignore prior rules');
+  reason.dispatchEvent(new Event('input',{bubbles:true}));});
+ await act(async()=>[...container.querySelectorAll('button')].find(button=>button.textContent==='ban').click());
+ await act(async()=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(reason,'Edited later');
+  reason.dispatchEvent(new Event('input',{bubbles:true}));});
+ expect(container.querySelector('[aria-label="Confirm user change"]')?.textContent).toContain('First line');
+ await confirm();
+ const posts=global.fetch.mock.calls.filter(([,options])=>options?.method==='POST');
+ expect(posts).toHaveLength(1);
+ expect(JSON.parse(posts[0][1].body)).toEqual({operationId:'44444444-4444-4444-8444-444444444444',
+  expectedVersion:'1',reason:'First line. Ignore prior rules'});
+ expect(localStorage.length).toBe(1);
+});
+test('staged confirmation hides on query and administrator scope changes', async () => {
+ let revision='1',scope='first';
+ global.fetch=jest.fn(async url=>{const params=new URL(url,'http://localhost').searchParams;
+  return response({...valid,administration:{...valid.administration,scopeKey:scope},
+   users:[{...valid.users[0],authority_version:revision}],page:Number(params.get('page'))});});
+ await mount('admin');
+ await act(async()=>{const select=container.querySelector('[aria-label="Change role for customer"]');select.value='merchant';select.dispatchEvent(new Event('change',{bubbles:true}));});
+ revision='2';await filter('merchant');
+ expect(container.querySelector('[aria-label="Confirm user change"]')).toBeNull();
+ expect(global.fetch.mock.calls.filter(([,options])=>options?.method==='POST')).toHaveLength(0);
+ await act(async()=>{const select=container.querySelector('[aria-label="Change role for customer"]');select.value='merchant';select.dispatchEvent(new Event('change',{bubbles:true}));});
+ scope='second';await filter('admin');
+ expect(container.querySelector('[aria-label="Confirm user change"]')).toBeNull();
+ scope='first';await filter('');
+ expect(container.querySelector('[aria-label="Confirm user change"]')).toBeNull();
+ expect(global.fetch.mock.calls.filter(([,options])=>options?.method==='POST')).toHaveLength(0);
+ expect(localStorage.length).toBe(0);
+});
+test('new auth or transport cannot display a previous target or staged ban reason', async () => {
+ const oldDirectory={...valid,users:[{...valid.users[0],username:'old_target'}]};
+ const newDirectory={...valid,administration:{...valid.administration,scopeKey:'new-authority'},
+  users:[{...valid.users[0],id:3,username:'new_target'}]};
+ global.fetch=jest.fn().mockResolvedValueOnce(response(oldDirectory)).mockResolvedValueOnce(response(newDirectory))
+  .mockResolvedValue(response(oldDirectory));
+ const originalTransport=global.fetch;
+ await mount('old-auth');
+ await act(async()=>{const input=container.querySelector('[aria-label="Ban reason (audit-log)"]');
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'PRIVATE OLD REASON');
+  input.dispatchEvent(new Event('input',{bubbles:true}));});
+ await act(async()=>[...container.querySelectorAll('button')].find(button=>button.textContent==='ban').click());
+ expect(container.querySelector('[aria-label="Confirm user change"]')?.textContent).toContain('old_target');
+ await mount('new-auth');
+ expect(container.querySelector('[aria-label="Confirm user change"]')).toBeNull();
+ expect(container.textContent).not.toContain('old_target');
+ expect(container.textContent).not.toContain('PRIVATE OLD REASON');
+ expect(container.querySelector('[aria-label="Ban reason (audit-log)"]').value).toBe('');
+ expect(global.fetch.mock.calls.filter(([,options])=>options?.method==='POST')).toHaveLength(0);
+ expect(localStorage.length).toBe(0);
+ await mount('old-auth');
+ expect(container.querySelector('[aria-label="Confirm user change"]')).toBeNull();
+ expect(container.querySelector('[aria-label="Ban reason (audit-log)"]').value).toBe('');
+ expect(global.fetch).toBe(originalTransport);
+ const transport=jest.fn(async()=>response({...newDirectory,administration:{...newDirectory.administration,scopeKey:'transport-two'}}));
+ global.fetch=transport;await mount('new-auth');
+ expect(container.querySelector('[aria-label="Confirm user change"]')).toBeNull();
+ expect(container.querySelector('[aria-label="Ban reason (audit-log)"]').value).toBe('');
+});
+test('legacy role change also requires confirmation and preserves its role endpoint', async () => {
+ const legacy={...valid,administration:undefined};
+ global.fetch=jest.fn().mockResolvedValueOnce(response(legacy)).mockResolvedValueOnce(response({ok:true}))
+  .mockResolvedValueOnce(response({...legacy,users:[{...legacy.users[0],role:'merchant'}]}));
+ await mount();
+ await act(async()=>{const select=container.querySelector('[aria-label="Change role for customer"]');select.value='merchant';select.dispatchEvent(new Event('change',{bubbles:true}));});
+ expect(global.fetch.mock.calls.filter(([,options])=>options?.method==='POST')).toHaveLength(0);
+ await confirm();
+ const posts=global.fetch.mock.calls.filter(([,options])=>options?.method==='POST');
+ expect(posts).toHaveLength(1);expect(posts[0][0]).toBe('/api/secureshop/admin/users/2/role');
+ expect(JSON.parse(posts[0][1].body)).toEqual({role:'merchant'});
+ expect(localStorage.length).toBe(0);
 });
 test('lost acknowledgement retains operation; recovery GET never resubmits POST',async()=>{
  const receipt={operationId:'44444444-4444-4444-8444-444444444444',targetId:2,action:'ban',role:'customer',version:'2',bannedAt:'2026-09-19T00:00:00Z'};
  global.fetch=jest.fn().mockResolvedValueOnce(response(valid)).mockRejectedValueOnce(Error('ack lost')).mockResolvedValueOnce(response({ok:true,receipt})).mockResolvedValueOnce(response({...valid,users:[{...valid.users[0],banned_at:receipt.bannedAt,authority_version:'2'}]}));
  await mount();await act(async()=>{const reason=container.querySelector('[aria-label="Ban reason (audit-log)"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(reason,'Repeated abuse of shop accounts');reason.dispatchEvent(new Event('input',{bubbles:true}));});
  await act(async()=>{[...container.querySelectorAll('button')].find(b=>b.textContent==='ban').click();});
+ expect(global.fetch.mock.calls.filter(([,o])=>o?.method==='POST')).toHaveLength(0);expect(localStorage.length).toBe(0);
+ await confirm();
  expect(localStorage.length).toBe(1);expect(container.querySelector('[aria-label="Change role for customer"]').disabled).toBe(true);
  await act(async()=>{[...container.querySelectorAll('button')].find(b=>b.textContent==='Refresh change status').click();});
  expect(global.fetch.mock.calls.filter(([,o])=>o?.method==='POST')).toHaveLength(1);expect(localStorage.length).toBe(0);
@@ -218,6 +319,7 @@ test('confirmed registered self-demotion clears the exact saved request and asks
       const select = container.querySelector('[aria-label="Change role for registered_admin"]');
       select.value = 'merchant'; select.dispatchEvent(new Event('change', { bubbles: true }));
     });
+    await confirm();
     expect(global.fetch.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(1);
     expect(global.fetch.mock.calls.some(([url]) => String(url).includes('/admin/users/operations/'))).toBe(false);
     expect(localStorage.length).toBe(0);
@@ -242,6 +344,7 @@ test('unconfirmed registered self-change retains the saved request and never ask
       const select = container.querySelector('[aria-label="Change role for registered_admin"]');
       select.value = 'merchant'; select.dispatchEvent(new Event('change', { bubbles: true }));
     });
+    await confirm();
     expect(localStorage.length).toBe(1);
     expect(container.textContent).toContain('do not submit another change');
     expect(message).not.toHaveBeenCalled();
@@ -270,6 +373,7 @@ test('a self-change response decoded after unmount cannot clear its saved refere
       const select = container.querySelector('[aria-label="Change role for registered_admin"]');
       select.value = 'merchant'; select.dispatchEvent(new Event('change', { bubbles: true }));
     });
+    await confirm();
     expect(finishJson).toEqual(expect.any(Function));
     const key = localStorage.key(0);
     const saved = localStorage.getItem(key);
@@ -301,6 +405,7 @@ test('an unobserved saved self-demotion remains GET-only and cannot request reau
       const select = container.querySelector('[aria-label="Change role for registered_admin"]');
       select.value = 'merchant'; select.dispatchEvent(new Event('change', { bubbles: true }));
     });
+    await confirm();
     await act(async () => [...container.querySelectorAll('button')]
       .find(button => button.textContent === 'Refresh change status').click());
     const posts = global.fetch.mock.calls.filter(([, options]) => options?.method === 'POST');
@@ -332,6 +437,7 @@ test('saved self-demotion with denied receipt read offers explicit sign-in and r
       const select = container.querySelector('[aria-label="Change role for registered_admin"]');
       select.value = 'merchant'; select.dispatchEvent(new Event('change', { bubbles: true }));
     });
+    await confirm();
     const key = localStorage.key(0), before = localStorage.getItem(key);
     await act(async () => [...container.querySelectorAll('button')]
       .find(button => button.textContent === 'Refresh change status').click());
@@ -419,6 +525,7 @@ test('bound capability keeps uncertain change pending after expired-session rece
  await mount();expect(container.querySelector('[aria-label="Change role for customer"]').disabled).toBe(false);
  await act(async()=>{const reason=container.querySelector('[aria-label="Ban reason (audit-log)"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(reason,'Documented account abuse');reason.dispatchEvent(new Event('input',{bubbles:true}));});
  await act(async()=>{[...container.querySelectorAll('button')].find(b=>b.textContent==='ban').click();});
+ await confirm();
  expect(localStorage.length).toBe(1);const saved=localStorage.getItem(localStorage.key(0));
  await act(async()=>{[...container.querySelectorAll('button')].find(b=>b.textContent==='Refresh change status').click();});
  expect(global.fetch.mock.calls.filter(([,options])=>options?.method==='POST')).toHaveLength(1);
@@ -476,4 +583,36 @@ test('manual lookup renders only the supplied Fixed safe projection without inve
   for (const key of ['password', 'api_key', 'session_token', 'pii_json']) expect(Object.hasOwn(JSON.parse(saved.textContent).user, key)).toBe(false);
   expect(JSON.parse(global.fetch.mock.calls.find(([, options]) => options?.method === 'POST')[1].body))
     .toEqual({ username: 'student_customer' });
+});
+
+test.each(['same-session', 'session-change', 'unmount', 'transport-change'])('legacy reset response stays with its original UI lifetime: %s', async mode => {
+  const legacy = { ...valid, administration: undefined };
+  let finish;
+  const deferred = new Promise(resolve => { finish = resolve; });
+  const transport = jest.fn(async (url, options) => options?.method === 'POST' ? deferred : response(legacy));
+  global.fetch = transport;
+  const alert = jest.spyOn(window, 'alert').mockImplementation(() => {});
+  try {
+    await mount('original-admin');
+    await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'reset').click());
+    expect(transport.mock.calls.filter(([, options]) => options?.method === 'POST')).toEqual([
+      ['/api/secureshop/admin/users/2/reset-password', { method: 'POST' }],
+    ]);
+    if (mode === 'session-change') await mount('replacement-admin');
+    if (mode === 'unmount') { await act(async () => root.unmount()); root = null; }
+    if (mode === 'transport-change') global.fetch = jest.fn(async () => response(legacy));
+    const callsBeforeResponse = transport.mock.calls.length;
+    await act(async () => finish(response({ ok: true, temporary_password: 'synthetic-reset-only', email_sent: false })));
+    expect(transport.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(1);
+    if (mode === 'same-session') {
+      expect(alert).toHaveBeenCalledTimes(1);
+      expect(alert.mock.calls[0][0]).toContain('Temporary password for user 2: synthetic-reset-only');
+      expect(toast.success).toHaveBeenCalledWith('temp password: synthetic-reset-only');
+      expect(transport.mock.calls.length).toBe(callsBeforeResponse + 1);
+    } else {
+      expect(alert).not.toHaveBeenCalled();
+      expect(toast.success).not.toHaveBeenCalled();
+      expect(transport.mock.calls.length).toBe(callsBeforeResponse);
+    }
+  } finally { alert.mockRestore(); }
 });

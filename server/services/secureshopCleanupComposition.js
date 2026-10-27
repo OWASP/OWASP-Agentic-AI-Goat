@@ -204,7 +204,9 @@ function createSecureShopCleanupComposition({ identityPool, agentsPool, reviewPo
   // Registry SQL cleanup remains mandatory even when registry serving is disabled.
   const invocationJournal = registeredInvocation?.journal || require('../database/postgres/secureshopOwnedMcpInvocationJournal').createOwnedMcpInvocationJournal({pool:agentsPool});
   const invocationLifecycle = require('./secureshopOwnedMcpInvocationLifecycle').createOwnedMcpInvocationLifecycle({journal:invocationJournal,cleanupAuthority:authority,manager:ownedMcpInvocationManager});
-  const registryLifecycle = require('./secureshopOwnedMcpRegistryLifecycle').createOwnedMcpRegistryLifecycle({pool:agentsPool,cleanupAuthority:authority,invocationLifecycle});
+  const registrationJournal=registeredInvocation?.registrationJournal||require('../database/postgres/secureshopOwnedMcpRegistrationJournal').createOwnedMcpRegistrationJournal({pool:agentsPool});
+  const registrationLifecycle=require('./secureshopOwnedMcpRegistrationLifecycle').createOwnedMcpRegistrationLifecycle({journal:registrationJournal,client:registeredInvocation?.client,cleanupAuthority:authority});
+  const registryLifecycle = require('./secureshopOwnedMcpRegistryLifecycle').createOwnedMcpRegistryLifecycle({pool:agentsPool,cleanupAuthority:authority,invocationLifecycle,registrationLifecycle});
   const lifecycle = registryLifecycle.decorateConversation(createSecureShopConversationLifecycle({repository:lifecycleRows,turns,cleanupAuthority:authority}));
   const conversationCheckpoint = createSecureShopConversationCleanupCheckpointRepository(identityPool,{
     getOperation: resetId=>authority.getOperation(resetId),readRetirementReceipt:resetId=>lifecycle.readReceipt(resetId),

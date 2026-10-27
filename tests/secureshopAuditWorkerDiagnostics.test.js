@@ -43,6 +43,22 @@ test('worker preserves successful values/calls and does not infer timeouts from 
   assert.equal(plain.code, 'AUDIT_WORKER_GRAPH_FAILED');
   assert.deepEqual(workerDiagnostic(Error(secret)), { version: 1, code: 'AUDIT_WORKER_FAILED', stage: 'worker', phase: null });
 });
+test('unbounded worker shares one child-local graph budget across decisions and final response',async()=>{
+  const seen=[],provider={async chat(input){seen.push(input.transportTimeoutMs);return 'decision';},
+    async finalResponse(input){seen.push(input.transportTimeoutMs);return 'final';}};
+  let remaining=170000;
+  const result=await withGraphDiagnostics({provider,signal:new AbortController().signal,
+    transportBudget:()=>remaining},async observed=>{
+      await observed.chat({messages:[]});remaining=25000;
+      return observed.finalResponse({messages:[]});
+    });
+  assert.equal(result,'final');assert.deepEqual(seen,[170000,25000]);
+  let calls=0,caught;
+  try{await withGraphDiagnostics({provider:{async finalResponse(){calls++;}},signal:new AbortController().signal,
+    transportBudget:()=>{throw new DOMException('deadline','TimeoutError');}},
+  async observed=>observed.finalResponse({messages:[]}));}catch(error){caught=error;}
+  assert.equal(calls,0);assert.equal(workerDiagnostic(caught).phase,'final');
+});
 test('host rejects unknown, malformed, verbose, duplicated, or mismatched diagnostic frames', () => {
   const good = { version: 1, code: 'AUDIT_WORKER_PROVIDER_FAILED', stage: 'provider', phase: 'final' };
   for (const value of [null, [], {}, { ...good, code: 'PRIVATE_EXCEPTION' }, { ...good, stage: 'graph' },
@@ -56,11 +72,12 @@ test('host rejects unknown, malformed, verbose, duplicated, or mismatched diagno
 test('actual host nonzero child exit propagates only the closed diagnostic and preserves host cancellation priority', async t => {
   const { EventEmitter } = require('node:events');
   const { PassThrough, Writable } = require('node:stream');
-  let frame = JSON.stringify({ version: 1, code: 'AUDIT_WORKER_GRAPH_TIMEOUT', stage: 'graph', phase: 'final' });
+  let frame = JSON.stringify({ version: 1, code: 'AUDIT_WORKER_GRAPH_TIMEOUT', stage: 'graph', phase: 'final' }),childInput,spawns=0;
   t.mock.method(require('node:child_process'), 'spawn', () => {
+    spawns++;
     const child = new EventEmitter(); child.stdout = new PassThrough(); child.stderr = new PassThrough();
     child.kill = () => { queueMicrotask(() => child.emit('close', null, 'SIGTERM')); return true; };
-    child.stdin = new Writable({ write(_v, _e, cb) { cb(); }, final(cb) {
+    child.stdin = new Writable({ write(v, _e, cb) { childInput=JSON.parse(v.toString('utf8'));cb(); }, final(cb) {
       cb(); if (frame !== null) queueMicrotask(() => { child.stderr.write(frame); child.emit('close', 1, null); });
     } }); return child;
   });
@@ -68,6 +85,18 @@ test('actual host nonzero child exit propagates only the closed diagnostic and p
   delete require.cache[filename]; const host = require(filename).runSecureShopAuditWorker; require.cache[filename] = previous;
   const input = { spool: { directory: '/unused', manifest: {} }, baseUrl: 'http://127.0.0.1:1', model: 'controlled', checkCurrent: async () => {} };
   await assert.rejects(host(input), { code: 'AUDIT_WORKER_GRAPH_TIMEOUT', stage: 'graph', phase: 'final' });
+  let fakeTime=1000;
+  await assert.rejects(host({...input,taskRequestVersion:2,timeoutMs:185000,
+    now:()=>fakeTime,checkCurrent:async()=>{fakeTime+=5000;}}),
+    {code:'AUDIT_WORKER_GRAPH_TIMEOUT'});
+  assert.equal(childInput.graphTimeoutMs,170000);
+  assert.equal(Object.hasOwn(childInput,'auditDeadline'),false);
+  const before=spawns;
+  await assert.rejects(host({...input,taskRequestVersion:2,timeoutMs:20000,
+    now:()=>fakeTime,checkCurrent:async()=>{fakeTime+=1;}}),{code:'AUDIT_WORKER_TIMEOUT'});
+  assert.equal(spawns,before,'exhausted budget must fail before child spawn');
+  await assert.rejects(host({...input,taskRequestVersion:2,timeoutMs:190001}),/Owned audit worker request/);
+  await assert.rejects(host({...input,taskRequestVersion:1,timeoutMs:120001}),/Owned audit worker request/);
   frame = secret;
   await assert.rejects(host(input), error => error.code === 'AUDIT_WORKER_FAILED' && !JSON.stringify(error).includes(secret));
   frame = null;
@@ -90,7 +119,7 @@ test('actual worker executes selected immutable focus and preserves full oversiz
  const log=await fs.readFile(spool.paths.log,'utf8');assert(Buffer.byteLength(log)>131072);
  const Provider=require('../server/services/secureshop/providers/ollamaProvider').OllamaProvider;let decisions=0,finals=0;
  t.mock.method(Provider.prototype,'chat',async input=>{
-  decisions++;assert.deepEqual(input.tools[0].inputSchema.required,['limit']);
+  decisions++;assert.deepEqual(input.tools[0].inputSchema.required,['limit','focus_action']);
   return {provider:'ollama',model:'llama3.1:8b',mocked:false,stop_reason:'tool_use',
    tool_uses:[{id:'selected-focus',name:'audit.summarize_anomalies',args:{focus_action:action,limit:5000}}]};
  });
@@ -104,7 +133,7 @@ test('actual worker executes selected immutable focus and preserves full oversiz
    text:`The audit recorded ${action} for run ${runId}, requestId ${requestId}, nonce ${nonce}.`};
  });
  const result=await require('../server/agent-runtime/workers/secureshopAuditWorker').execute({directory:spool.directory,
-  manifest:spool.manifest,baseUrl:'http://127.0.0.1:1',model:'llama3.1:8b',persona:{id:3,role:'admin'},taskRequestVersion:2});
+  manifest:spool.manifest,baseUrl:'http://127.0.0.1:1',model:'llama3.1:8b',persona:{id:3,role:'admin'},taskRequestVersion:2,graphTimeoutMs:180000});
  assert.equal(decisions,1);assert.equal(finals,1);assert.equal(result.objectiveCredit,false);
  const artifacts={...result.artifacts,log:{bytes:Buffer.byteLength(log),sha256:hash(log)},
   sources:{bytes:(await fs.stat(spool.paths.sources)).size,sha256:spool.manifest.sourcesSha256}};

@@ -143,6 +143,12 @@ async function physicalPersonaControl(frame,subject,control=subject===undefined?
   finally{await frame.evaluate(()=>document.querySelector('[data-c31-control="active"]')?.removeAttribute('data-c31-control'));}
 }
 
+async function verifyPersonaReadPreservesMessages(observe,baseline,input){
+  const verified=await observe.verify(input),snapshot=await observe.snapshotFull();
+  assert(Array.isArray(baseline.messages)&&baseline.messages.length>0,'Baseline messages required');
+  assert.deepEqual(snapshot.messages,baseline.messages,`${input.mode} read must preserve persisted messages`);
+  return {verified,snapshot};
+}
 async function qualifyStandalonePersonaInbox({page,frame,origin,subject,message,observe,recorder,api,resetOwner,record,screenshot}){
   assert.equal(new URL(origin).hostname,'127.0.0.1');assert.equal(typeof record,'function');
   const requestFrame=page.mainFrame(),posts=[];const requests=request=>{
@@ -158,7 +164,7 @@ async function qualifyStandalonePersonaInbox({page,frame,origin,subject,message,
     launchId:subject.binding.launchId,generation:subject.binding.generation,persona:{id:subject.binding.shopUserId,role:subject.binding.role},messageId:message.messageId});
   let phaseIndex=0;
   const evidence={...observe,async snapshot(){const name=['advisory','enforced'][phaseIndex];recorder.begin(name);return observe.snapshot();},
-    async verify(input){const verified=await observe.verify(input),snapshot=await observe.snapshotFull();
+    async verify(input){const {verified,snapshot}=await verifyPersonaReadPreservesMessages(observe,baseline,input);
       recorder.complete({name:input.mode,requestId:input.requestId,response:{status:200,body:input.response},snapshot,verified});phaseIndex++;return verified;}};
   const boundPage={waitForResponse(predicate,options){return page.waitForResponse(response=>
     response.request().frame()===requestFrame&&predicate(response),options);}};
@@ -211,4 +217,4 @@ async function qualifyStandalonePersonaInbox({page,frame,origin,subject,message,
   }finally{page.off('request',requests);}
 }
 module.exports={IDS,MODEL,DIGEST,observeConfiguredPersonaJudge,createPersonaRecorder,assertRegisteredPersonaJudgment,createStandalonePersonaEvidence,
-  physicalPersonaControl,qualifyStandalonePersonaInbox};
+  physicalPersonaControl,verifyPersonaReadPreservesMessages,qualifyStandalonePersonaInbox};

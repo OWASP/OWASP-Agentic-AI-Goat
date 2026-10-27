@@ -1,11 +1,42 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
-const helper=require('../scripts/install/secureshop-qualified-system-setup');
+const actualHelper=require('../scripts/install/secureshop-qualified-system-setup');
+// These existing tests isolate configuration publication. Profile preparation
+// is exercised without this seam by secureshopSystemProfileSetup.test.js.
+const helper={...actualHelper,prepare:options=>actualHelper.prepare({prepareProfile:async()=>{},...options})};
 const config=require('../server/services/secureshopQualifiedManagedConfiguration');
 const curriculum=require('../server/config/secureshopCurriculum');
 const repo=path.resolve(__dirname,'..');
 function fixture(t){const home=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'qualified-system-')));t.after(()=>fs.rmSync(home,{recursive:true,force:true}));const root=path.join(home,'source');fs.mkdirSync(root);const directory=path.dirname(config.managedPath(root,home));fs.mkdirSync(directory,{recursive:true,mode:0o700});return{root,homeDirectory:home,home,directory,file:config.managedPath(root,home)};}
 function ready(){return{exitCode:0,stdout:'SECURESHOP_ACTIVATION_QUALIFICATION='+JSON.stringify({ready:true,objectiveIds:curriculum.OBJECTIVES.map(r=>r.id),structuralPanels:curriculum.EXERCISES.map(r=>r.id)})+'\n'};}
+test('fresh Linux and Colima selection reaches real read-only preflight without active-context fallback',async t=>{
+ for(const platform of ['linux','darwin']){
+  const f=fixture(t),environment=platform==='darwin'?{DVAIA_MCP_OWNED_COLIMA_PROFILE:'colima-fixture'}:{};
+  const selected=await actualHelper.selectSetupEnvironment({root:repo,home:f.home,platform,environment});
+  const host=platform==='linux'?'unix:///var/run/docker.sock':`unix://${f.home}/.colima/fixture/docker.sock`;
+  assert.equal(selected.DOCKER_HOST,host);assert.equal(environment.DOCKER_HOST,undefined);
+  const calls=[];const result=await actualHelper.preflight({root:repo,home:f.home,platform,architecture:'arm64',environment:selected,
+   run:async(file,args)=>{calls.push({file,args});assert.equal(file,'docker');assert.deepEqual(args,['--host',host,'info','--format','{{json .ID}}']);return{exitCode:0,stdout:'"fixture-daemon"'};},
+   verifyProfile:async({authority,allowPreparation})=>{assert.equal(authority.host,host);assert.equal(authority.daemonId,'fixture-daemon');assert.equal(allowPreparation,true);return{profileVerified:false,profilePreparationRequired:true};}});
+  assert.equal(calls.length,1);assert.equal(result.mutating,false);assert.equal(result.profilePreparationRequired,true);
+  assert.equal(fs.existsSync(path.dirname(config.managedPath(repo,f.home))),false);
+ }
+});
+test('upgrade preserves recorded daemon and rejects explicit conflicts before profile dispatch',async t=>{
+ const f=fixture(t),authorityTools=require('../scripts/local-docker-authority');
+ const authority={version:1,workspaceId:require('../scripts/application-data-root').workspaceId(f.root),host:`unix://${f.home}/.colima/retained/docker.sock`,daemonId:'retained-daemon',source:'environment-host',platform:'darwin'};
+ await authorityTools.writeLocalDockerAuthority({directory:f.directory,authority});
+ const selected=await actualHelper.selectSetupEnvironment({root:f.root,home:f.home,platform:'darwin',environment:{}});
+ assert.equal(selected.DOCKER_HOST,authority.host);assert.equal(selected.DVAIA_MCP_OWNED_COLIMA_PROFILE,'colima-retained');
+ for(const environment of [{DOCKER_HOST:`unix://${f.home}/.colima/other/docker.sock`},{DVAIA_MCP_OWNED_COLIMA_PROFILE:'colima-other'},{DOCKER_CONTEXT:'other'}])await assert.rejects(actualHelper.selectSetupEnvironment({root:f.root,home:f.home,platform:'darwin',environment}),{code:'SYSTEM_INSTALL_PROFILE_AUTHORITY_CONFLICT'});
+ const before=fs.readFileSync(path.join(f.directory,'local-docker.json'));
+ await assert.rejects(actualHelper.preflight({root:f.root,home:f.home,platform:'darwin',architecture:'arm64',environment:selected,run:async()=>({exitCode:0,stdout:'"different-daemon"'}),verifyProfile:async()=>assert.fail('wrong daemon reached profile')}));
+ assert.deepEqual(fs.readFileSync(path.join(f.directory,'local-docker.json')),before);
+});
+test('fresh invalid authorities cannot fall back to the default socket',async t=>{
+ const f=fixture(t);
+ for(const environment of [{DOCKER_CONTEXT:'desktop-linux'},{DOCKER_HOST:'tcp://127.0.0.1:2375'},{DOCKER_HOST:'unix:///tmp/other.sock'},{DVAIA_MCP_OWNED_COLIMA_PROFILE:'../bad'}])await assert.rejects(actualHelper.selectSetupEnvironment({root:f.root,home:f.home,platform:'darwin',environment}));
+});
 test('fresh explicit combined setup stages disabled, validates captured candidate, then activates System; repeat preserves inode',async t=>{
  const f=fixture(t);let probes=0,systems=0;
  const run=async(file,args)=>{probes++;assert.deepEqual(args,['scripts/qualify-secureshop-qualified-activation.js','--candidate-readiness']);const candidate=config.load({root:f.root,home:f.home,file:path.join(f.directory,'secureshop-qualified.candidate.env')});assert.equal(candidate.SS_BOUND_REVIEWS_ENABLED,'true');if(probes===1)assert.equal(config.load(f).SS_BOUND_REVIEWS_ENABLED,'false');return ready();};
@@ -48,7 +79,7 @@ async function controlledSetup(setupModule, options) {
  authority.prepareCtfAuthority=async({maintenanceScope,environment})=>{require('../scripts/lib/application-maintenance-scope').assertApplicationMaintenanceScope(maintenanceScope,environment);return {state:'active',trafficStarted:false};};
  try{return await setupModule.setup({...options,runDatabasePhase:async(request,dependencies)=>{
   const before={...process.env},environment=require('../scripts/install/setup-database-phase').validateRequest(request);Object.assign(process.env,environment);let publish;
-  try{return await require('../scripts/lib/application-maintenance-scope').withApplicationMaintenanceScope({environment,acquire:async()=>({assertHeld(){},async beginMaintenance(){return Object.freeze({epoch:'1'});},async finishMaintenance(){},async close(){}}),drain:async()=>{},afterDrain:async()=>publish()},scope=>setupModule.executeSetupDatabasePhase(request,scope,{...dependencies,runCommand:options.runCommand,initializeApplication:async()=>options.runCommand(process.execPath,['controlled-scoped-initializer']),deferPublication:callback=>{publish=callback;}}));}
+  try{return await require('../scripts/lib/application-maintenance-scope').withApplicationMaintenanceScope({environment,acquire:async()=>({assertHeld(){},async beginMaintenance(){return Object.freeze({epoch:'1'});},async finishMaintenance(){},async close(){}}),drain:async()=>{},afterDrain:async()=>publish()},scope=>setupModule.executeSetupDatabasePhase(request,scope,{...dependencies,runCommand:options.runCommand,initializeApplication:async()=>options.runCommand(process.execPath,['controlled-scoped-initializer']),prepareUploadAssetEnvironment:async()=>({configuration:{SS_BOUND_UPLOAD_ASSETS_ENABLED:'false'},probed:false}),deferPublication:callback=>{publish=callback;}}));}
   finally{for(const key of Object.keys(process.env))if(!(key in before))delete process.env[key];Object.assign(process.env,before);}
  }});}finally{authority.prepareCtfAuthority=original;}
 }
@@ -61,6 +92,8 @@ test('fresh setup wires combined helper after schema/seed, preserves generated p
    const f=fixture(t),order=[];const dependencies=Object.fromEntries(setupModule.REQUIRED_INSTALLED_COMPONENTS.map((name,i)=>[name,`1.2.${i}`]));fs.writeFileSync(path.join(f.root,'package.json'),JSON.stringify({dependencies}));
    for(const [name,version]of Object.entries(dependencies)){const d=path.join(f.root,'node_modules',name);fs.mkdirSync(d,{recursive:true});fs.writeFileSync(path.join(d,'package.json'),JSON.stringify({name,version,main:'index.js'}));fs.writeFileSync(path.join(d,'index.js'),'module.exports={}');if(name==='@modelcontextprotocol/sdk'){fs.mkdirSync(path.join(d,'server'));fs.writeFileSync(path.join(d,'server/index.js'),'module.exports={}');}}
    const options={root:f.root,homeDirectory:f.home,install:false,ensureModel:false,ownedSystem:true,ownedAnalytics:true,qualifiedSecureShop:true,adminUrl:'postgresql://controlled.invalid/postgres',
+    ensureDockerAuthority:async()=>({authority:{version:1,host:'unix:///var/run/docker.sock',daemonId:'controlled-daemon',source:'environment-host'}}),
+    preflightOwnedMcpRegistryArchitecture:async({dockerAuthority})=>{assert.equal(dockerAuthority.daemonId,'controlled-daemon');return{architecture:'arm64'};},
     processEnvironment:{MCP_SIDECARS_AUTOSTART:'false',MCP_WORKSHOP_AUTOSTART:'false',IPI_EMAIL_PROVIDER:'gmail'},
     preflightQualifiedSystem:async()=>{assert.ok(!fs.existsSync(path.join(f.root,'.env')));order.push('preflight');},
     loadProductRenderer: () => ({ componentId: 'SecureShop.Product.Description', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64), renderProductDescription: async product => `<div>${product.description_html}</div>` }), loadMailRenderer: () => ({ component: { id: 'SecureShop.MailMessageBody', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64) } }),

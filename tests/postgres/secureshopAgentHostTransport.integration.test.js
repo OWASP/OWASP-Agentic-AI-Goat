@@ -15,10 +15,24 @@ const {
 const { McpClientPool, AGENT_NAMES } = require('../../server/services/secureshop/mcpClientPool');
 const { connectAgent, disconnect } = require('../../server/services/secureshop/mcpTransport');
 const { AgentHostSupervisor } = require('../../server/services/secureshop/agentHostSupervisor');
+const { ToolManifest } = require('../../server/services/secureshop/toolManifest');
 
 const ROOT = path.resolve(__dirname, '../..');
 const enabled = process.env.SECURESHOP_AGENT_HOST_TRANSPORT_NATIVE === '1'
   && process.env.PG_TEST_DISPOSABLE === 'yes';
+const diagnosticCase = process.env.SECURESHOP_LEGACY_SUPERVISOR_DIAGNOSTIC || null;
+const diagnosticPath = process.env.SECURESHOP_LEGACY_SUPERVISOR_DIAGNOSTIC_PATH || null;
+
+function writeDiagnosticCheckpoint(value) {
+  assert.ok(diagnosticPath && path.isAbsolute(diagnosticPath));
+  const parent = path.dirname(diagnosticPath);
+  assert.equal(fs.realpathSync(parent), parent);
+  assert.ok(parent.startsWith(`${ROOT}${path.sep}`), 'diagnostic evidence must stay in checkout');
+  const temporary = `${diagnosticPath}.${process.pid}.tmp`;
+  fs.writeFileSync(temporary, JSON.stringify(value), { flag: 'wx', mode: 0o600 });
+  try { fs.renameSync(temporary, diagnosticPath); }
+  catch (error) { fs.unlinkSync(temporary); throw error; }
+}
 
 function validateDisposableUrls(env) {
   const stores = [
@@ -96,8 +110,11 @@ async function stopOwnedChild(child) {
 
 test('real PostgreSQL agent host serves all 17 MCP paths and isolates concurrent clients', {
   skip: !enabled,
-  timeout: 120000,
+  timeout: diagnosticCase ? 300000 : 120000,
 }, async t => {
+  assert.ok(diagnosticCase === null || ['V14', 'V30'].includes(diagnosticCase));
+  if (diagnosticCase) assert.equal(typeof diagnosticPath, 'string');
+  else assert.equal(diagnosticPath, null);
   const required = [
     'PG_SECURESHOP_AGENT_HOST_COMMERCE_RUNTIME_URL',
     'PG_SECURESHOP_AGENT_HOST_COMMERCE_MIGRATION_URL',
@@ -175,6 +192,29 @@ test('real PostgreSQL agent host serves all 17 MCP paths and isolates concurrent
   const replacement = await connect('replacement');
   assert.equal((await replacement.listTools()).tools.length, 3);
   assert.equal((await second.listTools()).tools.length, 3);
+
+  if (diagnosticCase) {
+    assert.equal(process.env.DVAIA_ISOLATED_TEST_WORKSPACE, ROOT);
+    assert.equal(process.env.AI_PROVIDER, 'ollama');
+    assert.equal(process.env.OLLAMA_BASE_URL, 'http://127.0.0.1:11434');
+    assert.equal(process.env.OLLAMA_MODEL, 'llama3.1:8b');
+    const username = `legacy-diagnostic-${randomUUID()}`;
+    await commerceMigration.query(
+      'INSERT INTO secureshop.shop_users(username,email,password,role,full_name) VALUES($1,$2,$3,$4,$5)',
+      [username, `${username}@example.invalid`, 'diagnostic-no-login',
+        diagnosticCase === 'V14' ? 'customer' : 'admin', 'Disposable diagnostic persona']);
+    const manifest = new ToolManifest(pool);
+    await manifest.refresh();
+    const result = await require('./secureshopLegacySupervisorActual').run({
+      caseId: diagnosticCase, manifest, onCheckpoint: writeDiagnosticCheckpoint,
+    });
+    assert.equal(result.caseId, diagnosticCase);
+    assert.equal(result.noProgressCredit, true);
+    assert.equal(result.gates.completed, false);
+    assert.equal(result.gates.progressCredit, false);
+    assert.equal(result.diagnosticJudge.verdict, 'unreviewed');
+    writeDiagnosticCheckpoint({ caseId: diagnosticCase, phase: 'complete', receipt: result });
+  }
 
   await pool.close();
   await Promise.allSettled(clients.map(client => disconnect(client)));

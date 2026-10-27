@@ -115,6 +115,22 @@ function createSecureShopLaunchRepository(pool, dependencies = {}) {
     // Purpose-specific private dependency, never a caller-supplied callback.
     // Agents grant may commit first; a failed identity COMMIT leaves a durable
     // unresolved obligation but never returns a dispatchable capability.
+    async admitOwnedMcpRegistration(prepared) {
+      const journal=dependencies.ownedMcpRegistrationJournal;
+      if(typeof journal?.scopeOf!=='function'||typeof journal?.admitPrepared!=='function')
+        throw failure('INVALID_CONFIGURATION','Owned registration admission unavailable');
+      const scope=journal.scopeOf(prepared);
+      return withTransaction(pool,async client=>{
+        await client.query("SET LOCAL statement_timeout='3000ms'");
+        await client.query("SET LOCAL lock_timeout='3000ms'");
+        const context=await lockTrustedContext(client,scope.platformSessionId,scope.platformOwnerId);
+        const launch=await lockLaunch(client,scope.launchId,scope.platformSessionId);
+        const now=await requireFreshActiveContext(client,context);
+        if(launch.status!=='active'||launch.expires_at<=now||Number(launch.generation)!==scope.generation||launch.scenario_id!==scope.scenarioId)
+          throw failure('STALE_GENERATION','Registration launch unavailable');
+        return journal.admitPrepared(prepared);
+      });
+    },
     async admitOwnedMcpInvocation(prepared) {
       const journal = dependencies.ownedMcpInvocationJournal;
       if (typeof journal?.scopeOf !== 'function' || typeof journal?.admitPrepared !== 'function') {

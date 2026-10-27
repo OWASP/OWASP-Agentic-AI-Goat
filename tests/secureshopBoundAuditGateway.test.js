@@ -139,6 +139,32 @@ test('unbounded summary routes use the separate injected service and old summary
   assert.deepEqual(calls,['new-session','new-run']);
 });
 
+test('unbounded summary conceals unavailable conversations with exact 404, not generic 503', async t => {
+  for (const [code, status, message] of [
+    ['CONVERSATION_UNAVAILABLE', 404, 'Conversation unavailable'],
+    ['UNKNOWN_AUDIT_FAILURE', 503, 'Bound SecureShop operation unavailable'],
+  ]) {
+    const calls = [];
+    const auditUnbounded = {
+      async createSession() { throw Error('Unexpected session creation'); },
+      async run(input) {
+        calls.push(input);
+        throw Object.assign(Error('Private diagnostic must not be exposed'), { code });
+      },
+    };
+    const base = await appServer(t, undefined, 'admin', { auditUnbounded });
+    const response = await fetch(`${base}/admin/audit/unbounded-summary`, {
+      method: 'POST', headers: { ...headers(), 'content-type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId, request_id: requestId, limit: 5000 }),
+    });
+    assert.equal(response.status, status);
+    assert.deepEqual(await response.json(), { error: message });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].sessionId, sessionId);
+    assert.equal(calls[0].requestId, requestId);
+  }
+});
+
 test('bound audit gateway admits an admin session and validates the durable summary DTO', async t => {
   const calls = [];
   const base = await appServer(t, {

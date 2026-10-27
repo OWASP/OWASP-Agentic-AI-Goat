@@ -6,6 +6,7 @@ const { withTransaction } = require('./index');
 const { copySceneBinding, executionScope, assertSceneGrant, withSceneLease } = require('../../services/secureshopSceneBinding');
 const edit = require('../../services/secureshopListingEditContract');
 const create = require('../../services/secureshopListingCreateContract');
+const manual = require('../../services/secureshopManualListingContract');
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_PRODUCTS = 256;
@@ -458,7 +459,148 @@ function createSecureShopBoundProductRepository(pool, { checkCurrent, checkClean
       (target_id,product_id,shop_user_id) VALUES($1,$2,$3)`, [binding.targetId, nextId, actor]);
     return Object.freeze({ productId: nextId, sourceSha256 });
   }
+  // Manual operations share atomic business receipts, never assistant source documents.
+  const manualTable = kind => kind === 'create' ? 'owned_merchant_listing_create_receipts' : 'owned_merchant_listing_edit_receipts';
+  function manualReceipt(kind, row, binding, actor, session, key, requestHash) {
+    if (kind === 'create' && (row.receipt_version != null && row.receipt_version !== 1 || row.source_document != null))
+      throw failure('LISTING_CREATE_RECEIPT_INVALID', 'manual receipt cannot contain actor evidence');
+    const value = (kind === 'create' ? createReceipt : editReceipt)(row, binding, actor, session, key, requestHash);
+    return Object.freeze({ ...value, origin: 'manual', kind });
+  }
+  async function manualOwner(client, binding, actor, lock = 'FOR SHARE') {
+    const current = await target(client, binding, lock);
+    if (Number(current.own_merchant_id) !== actor
+        && !require('../../services/secureshopSceneBinding').isSceneMerchant(binding, actor))
+      throw failure('OWNER_MISMATCH', 'merchant listing owner does not match');
+  }
+  async function manualProduct(client, binding, actor, id) {
+    const row = (await client.query(`WITH effective AS (${EFFECTIVE_PRODUCTS}) SELECT * FROM effective
+      WHERE target_id=$1 AND product_id=$2 AND retailer_id=$3 AND archived_at IS NULL`,
+    [binding.targetId, id, actor])).rows[0];
+    if (!row) throw failure('LISTING_EDIT_STALE', 'owned listing unavailable');
+    return row;
+  }
+  async function previewManual(kind, input, actorId, { listing: raw, productId, personaSession } = {}) {
+    const binding = scope(input), actor = integer(actorId, 'actorId');
+    const item = manual.normalizeManualListing(raw), key = manual.manualListingScopeKey(kind, binding, actor, personaSession);
+    if (kind === 'edit') integer(productId, 'productId');
+    await checkCurrent(executionScope(binding));
+    return online(binding, async client => {
+      await manualOwner(client, binding, actor);
+      const common = { version: 1, origin: 'manual', kind, listing: item, scopeKey: key };
+      if (kind === 'create') return manual.makeManualListingPreview({ ...common, currency: 'USD', initialStock: 0, status: 'active' });
+      const row = await manualProduct(client, binding, actor, productId);
+      const observed = effectiveEdit(row), before = manual.manualListingView({ ...observed.before, images: row.images });
+      const provenance = (await client.query(`SELECT source_name,source_description,html_sha256
+        FROM secureshop_review.owned_listing_generated_products WHERE target_id=$1 AND product_id=$2`,
+      [binding.targetId, productId])).rows[0];
+      const invalidatesGeneratedHtml = Boolean(provenance
+        && (item.name !== provenance.source_name || item.description !== provenance.source_description)
+        && crypto.createHash('sha256').update(before.descriptionHtml || '').digest('hex') === provenance.html_sha256);
+      return manual.makeManualListingPreview({ ...common, productId, before,
+        after: manual.manualListingAfter(before, item, invalidatesGeneratedHtml),
+        catalogRevision: await editRevision(client, binding.targetId), expectedSnapshotSha256: observed.snapshotSha256,
+        invalidatesGeneratedHtml });
+    }, { repeatable: true });
+  }
+  async function confirmManual(kind, input, actorId, args = {}, { effectTimeoutMs } = {}) {
+    manual.boundManualListingRequest({ operationId: args.operationId, preview: args.preview });
+    const binding = scope(input), actor = integer(actorId, 'actorId'), operation = uuid(args.operationId, 'operationId');
+    const saved = manual.validateManualListingPreview(args.preview, kind), session = args.personaSession;
+    const key = manual.manualListingScopeKey(kind, binding, actor, session);
+    if (saved.scopeKey !== key) throw failure('SHOP_AUTH_INVALID', 'manual listing scope changed');
+    if (effectTimeoutMs !== undefined && effectTimeoutMs !== 3000) throw failure('INVALID_ARGUMENT', 'Invalid effect timeout');
+    await checkCurrent(executionScope(binding));
+    return online(binding, async client => {
+      if (effectTimeoutMs) await client.query("SELECT set_config('statement_timeout','3000',true),set_config('lock_timeout','3000',true)");
+      await manualOwner(client, binding, actor, 'FOR UPDATE');
+      const existing = (await client.query(`SELECT * FROM secureshop_review.${manualTable(kind)} WHERE operation_id=$1`, [operation])).rows[0];
+      if (existing) {
+        if (kind === 'edit' && Number(existing.product_id) !== saved.productId)
+          throw failure('LISTING_EDIT_OPERATION_CONFLICT', 'manual listing operation differs');
+        return Object.freeze({ ...manualReceipt(kind, existing, binding, actor, session, key, saved.requestSha256), replayed: true });
+      }
+      let productId, sourceSha256, afterSha256, confirmedDescription;
+      if (kind === 'create') {
+        ({ productId, sourceSha256 } = await insertMerchantListing(client, binding, actor, saved.listing));
+      } else {
+        if (await editRevision(client, binding.targetId) !== saved.catalogRevision)
+          throw failure('LISTING_EDIT_STALE', 'listing catalog changed');
+        productId = saved.productId;
+        const row = await manualProduct(client, binding, actor, productId), observed = effectiveEdit(row);
+        const before = manual.manualListingView({ ...observed.before, images: row.images });
+        if (observed.snapshotSha256 !== saved.expectedSnapshotSha256 || !isDeepStrictEqual(before, saved.before))
+          throw failure('LISTING_EDIT_STALE', 'listing snapshot changed');
+        const provenance = (await client.query(`SELECT source_name,source_description,html_sha256
+          FROM secureshop_review.owned_listing_generated_products WHERE target_id=$1 AND product_id=$2`,
+        [binding.targetId, productId])).rows[0];
+        const invalidatesGeneratedHtml = Boolean(provenance
+          && (saved.listing.name !== provenance.source_name || saved.listing.description !== provenance.source_description)
+          && crypto.createHash('sha256').update(before.descriptionHtml || '').digest('hex') === provenance.html_sha256);
+        if (invalidatesGeneratedHtml !== saved.invalidatesGeneratedHtml)
+          throw failure('LISTING_EDIT_STALE', 'generated listing source changed');
+        const next = saved.after;
+        // Keep the existing generated-HTML trigger authoritative; verify the complete result below.
+        await client.query(`INSERT INTO secureshop_review.product_target_listing_overlays
+          (target_id,product_id,shop_user_id,name,description,description_html,price,category,
+           image_url,images,stock_quantity,status,template_source)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+          ON CONFLICT(target_id,product_id) DO UPDATE SET name=EXCLUDED.name,
+           description=EXCLUDED.description,description_html=EXCLUDED.description_html,
+           price=EXCLUDED.price,category=EXCLUDED.category,image_url=EXCLUDED.image_url,
+           images=EXCLUDED.images,stock_quantity=EXCLUDED.stock_quantity,status=EXCLUDED.status,
+           template_source=EXCLUDED.template_source`,
+        [binding.targetId, productId, actor, next.name, next.description, before.descriptionHtml,
+          next.price, next.category, next.imageUrl, JSON.stringify(next.images), Number(row.stock_quantity), row.status, next.templateSource]);
+        const appliedRow = await manualProduct(client, binding, actor, productId), applied = effectiveEdit(appliedRow);
+        if (!isDeepStrictEqual(manual.manualListingView({ ...applied.before, images: appliedRow.images }), next))
+          throw failure('LISTING_EDIT_STALE', 'manual listing result changed');
+        afterSha256 = applied.snapshotSha256;
+        confirmedDescription = { version: 1, text: applied.before.description,
+          sha256: edit.listingEditDigest(applied.before.description),
+          personaSessionId: session.sessionId.toLowerCase(), authorityVersion: session.authorityVersion };
+      }
+      await auditListing(client, binding, actor, `listing_manual_${kind}_confirm`, productId,
+        { origin: 'manual', operationId: operation, requestSha256: saved.requestSha256,
+          ...(kind === 'edit' ? { scopeKey: key, beforeSha256: saved.expectedSnapshotSha256,
+            afterSha256, confirmedDescription } : {}) });
+      const record = { operation_id: operation, target_id: binding.targetId, launch_id: binding.launchId,
+        scenario_id: binding.scenarioId, generation: binding.generation,
+        original_platform_owner_id: binding.platformOwnerId, original_platform_session_id: binding.platformSessionId,
+        scene_id: binding.scene.sceneId, scene_generation: binding.scene.sceneGeneration, grant_id: binding.scene.grantId,
+        merchant_id: actor, persona_session_id: session.sessionId.toLowerCase(), authority_version: session.authorityVersion,
+        product_id: productId, scope_key: Buffer.from(key, 'hex'), request_sha256: Buffer.from(saved.requestSha256, 'hex'),
+        ...(kind === 'create' ? { source_sha256: sourceSha256 } : { catalog_revision: saved.catalogRevision,
+          before_sha256: Buffer.from(saved.expectedSnapshotSha256, 'hex'), after_sha256: Buffer.from(afterSha256, 'hex') }) };
+      record.receipt_sha256 = Buffer.from((kind === 'create' ? createReceiptHash : editReceiptHash)(record), 'hex');
+      // Columns are a closed server-created record, never request-supplied SQL identifiers.
+      const fields = Object.keys(record);
+      const row = (await client.query(`INSERT INTO secureshop_review.${manualTable(kind)}
+        (${fields.join(',')}) VALUES(${fields.map((_, index) => `$${index + 1}`).join(',')}) RETURNING *`, Object.values(record))).rows[0];
+      await checkCurrent(executionScope(binding));
+      return Object.freeze({ ...manualReceipt(kind, row, binding, actor, session, key, saved.requestSha256), replayed: false });
+    });
+  }
+  async function readManual(kind, input, actorId, { operationId, personaSession } = {}) {
+    const binding = scope(input), actor = integer(actorId, 'actorId'), operation = uuid(operationId, 'operationId');
+    const key = manual.manualListingScopeKey(kind, binding, actor, personaSession);
+    await checkCurrent(executionScope(binding));
+    return online(binding, async client => {
+      await manualOwner(client, binding, actor);
+      const row = (await client.query(`SELECT * FROM secureshop_review.${manualTable(kind)}
+        WHERE operation_id=$1 AND target_id=$2 AND merchant_id=$3 AND persona_session_id=$4 AND scope_key=$5`,
+      [operation, binding.targetId, actor, personaSession.sessionId.toLowerCase(), Buffer.from(key, 'hex')])).rows[0];
+      return row ? Object.freeze({ ...manualReceipt(kind, row, binding, actor, personaSession, key), replayed: true })
+        : Object.freeze({ origin: 'manual', kind, operationId: operation, status: 'not_found', scopeKey: key });
+    });
+  }
   return Object.freeze({
+    previewManualListingCreate: (...args) => previewManual('create', ...args),
+    previewManualListingEdit: (...args) => previewManual('edit', ...args),
+    confirmManualListingCreate: (...args) => confirmManual('create', ...args),
+    confirmManualListingEdit: (...args) => confirmManual('edit', ...args),
+    readManualListingCreate: (...args) => readManual('create', ...args),
+    readManualListingEdit: (...args) => readManual('edit', ...args),
     async open(input) {
       const binding = scope(input); await checkCurrent(executionScope(binding));
       return online(binding, async client => {
@@ -865,8 +1007,12 @@ function createSecureShopBoundProductRepository(pool, { checkCurrent, checkClean
         if (JSON.stringify(applied.before) !== JSON.stringify(saved.after))
           throw failure('LISTING_EDIT_STALE', 'listing edit result changed');
         await auditListing(client, binding, actor, 'listing_edit_confirm', saved.productId,
-          { operationId: operation, requestSha256: saved.requestSha256,
-            beforeSha256: saved.expectedSnapshotSha256, afterSha256: applied.snapshotSha256 });
+          { operationId: operation, scopeKey: key, requestSha256: saved.requestSha256,
+            beforeSha256: saved.expectedSnapshotSha256, afterSha256: applied.snapshotSha256,
+            confirmedDescription: { version: 1, text: applied.before.description,
+              sha256: edit.listingEditDigest(applied.before.description),
+              personaSessionId: personaSession.sessionId.toLowerCase(),
+              authorityVersion: personaSession.authorityVersion } });
         const record = { operation_id: operation, target_id: binding.targetId, launch_id: binding.launchId,
           scenario_id: binding.scenarioId, generation: binding.generation,
           original_platform_owner_id: binding.platformOwnerId,

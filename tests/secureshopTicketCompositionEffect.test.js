@@ -24,7 +24,7 @@ async function compositionOptions() {
   const conversationRepository = methods(['acquireBoundSession', 'activateBoundSession',
     'abandonBoundSession', 'getBoundSession', 'appendMessage', 'getMessages', 'getTokens',
     'addTokens', 'appendTraces', 'getTrace', 'getTraceEvents', 'latestTrace', 'personaLatestTrace']);
-  const journal = methods(['lookupGeneralRequest', 'claim', 'complete', 'markUncertain',
+  const journal = methods(['lookupGeneralRequest', 'lookupReviewModerationRequest', 'claim', 'complete', 'markUncertain',
     'readBoundRequest', 'readAuditRequest']);
   const reviewRepository = methods(['provision', 'listReviews', 'listPending', 'submitReview',
     'decide', 'cleanup', 'readCleanupReceipt', 'readSubmission', 'captureReviewAdmissionTime',

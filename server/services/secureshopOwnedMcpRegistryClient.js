@@ -2,6 +2,7 @@
 const {MCP_REGISTRY_CAPABILITY}=require('../../sidecars/sandbox-runner/owned-mcp-registry/http-handler');
 const MAX=512*1024,uncertain=new WeakSet(),fail=code=>Object.assign(new Error('Owned MCP registry executor unavailable'),{code});
 const notDispatched=new WeakMap();
+const registrationNotDispatched=new WeakMap();
 function isOwnedMcpRegistryNotDispatched(error,request){
  try{return notDispatched.get(error)===require('../../sidecars/sandbox-runner/owned-mcp-registry/invoke-protocol').digest(request);}catch{return false;}
 }
@@ -55,6 +56,68 @@ function createOwnedMcpRegistryClient({baseURL,token,fetchImpl=fetch,timeoutMs=1
     ||!/^[a-f0-9]{64}$/.test(value.runtimeDigest||'')||(expectedRuntimeDigest!==undefined&&value.runtimeDigest!==expectedRuntimeDigest))throw fail('MCP_REGISTRY_EXECUTOR_UNAVAILABLE');
   return Object.freeze(value);
  }
+ async function registrationHealth({signal}={}){
+  const value=await call('/secureshop/mcp-registry/registration/health',{signal});
+  if(!value||Object.keys(value).sort().join()!=='instanceId,registrationCapability,runtimeDigest,version'
+    ||value.version!==1||value.registrationCapability!=='owned-mcp-registration-v1'
+    ||typeof value.instanceId!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value.instanceId)
+    ||!/^[a-f0-9]{64}$/.test(value.runtimeDigest||'')
+    ||(expectedRuntimeDigest!==undefined&&value.runtimeDigest!==expectedRuntimeDigest))throw fail('MCP_REGISTRY_EXECUTOR_UNAVAILABLE');
+  return Object.freeze(value);
+ }
+ function registrationIdentity(raw){
+  const contract=require('./secureshopMcpRegistryContract'),q=raw;
+  if(!q||Object.getPrototypeOf(q)!==Object.prototype
+    ||Object.keys(q).sort().join()!=='activeEntries,instanceId,mode,operationId,request,requestSha256,version'
+    ||q.version!==1||!['vuln','fixed'].includes(q.mode)||!Array.isArray(q.activeEntries)
+    ||q.activeEntries.length>32||!['instanceId','operationId'].every(key=>typeof q[key]==='string'
+      &&/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(q[key]))
+    ||!/^[a-f0-9]{64}$/.test(q.requestSha256||''))throw fail('MCP_REGISTRY_EXECUTOR_UNAVAILABLE');
+  const request=contract.normalizeRegistryRequest(q.request);
+  if(request.action!=='register'||request.transport!=='stdio'||request.operationId!==q.operationId
+    ||contract.registryRequestDigest(request)!==q.requestSha256)throw fail('MCP_REGISTRY_EXECUTOR_UNAVAILABLE');
+  return Object.freeze({...q,request});
+ }
+ async function registrationState(raw,{drain=false,signal}={}){
+  const q=raw;
+  if(!q||Object.getPrototypeOf(q)!==Object.prototype||Object.keys(q).sort().join()!=='instanceId,operationId,requestSha256'
+    ||!['instanceId','operationId'].every(key=>typeof q[key]==='string'
+      &&/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(q[key]))
+    ||!/^[a-f0-9]{64}$/.test(q.requestSha256||''))throw fail('MCP_REGISTRY_EXECUTOR_UNAVAILABLE');
+  const value=await call('/secureshop/mcp-registry/registration/'+(drain?'drain':'status'),{method:'POST',body:q,signal});
+  if(!value||Object.keys(value).sort().join()!=='drained,instanceId,operationId,requestSha256,state,version'
+    ||value.version!==1||Object.keys(q).some(key=>value[key]!==q[key])
+    ||!['running','completed','retired','unknown'].includes(value.state)
+    ||value.drained!==['completed','retired'].includes(value.state))throw fail('MCP_REGISTRY_EXECUTOR_UNAVAILABLE');
+  return Object.freeze(value);
+ }
+ async function registerOwned(raw,{signal}={}){
+  const q=registrationIdentity(raw),identity={instanceId:q.instanceId,operationId:q.operationId,requestSha256:q.requestSha256};
+  try{signal?.throwIfAborted();const ready=await registrationHealth({signal});
+   if(ready.instanceId!==q.instanceId)throw fail('MCP_REGISTRY_INSTANCE_CHANGED');signal?.throwIfAborted();}
+  catch(cause){const error=fail('MCP_REGISTRY_REGISTRATION_NOT_DISPATCHED');
+   Object.defineProperty(error,'cause',{value:cause});registrationNotDispatched.set(error,q.requestSha256);throw error;}
+  let postMayStart=false,rejectedBeforeAdmission=false;
+  try{
+   const value=await call('/secureshop/mcp-registry/registration',{method:'POST',body:q,signal,
+    onDispatch:()=>{postMayStart=true;},onRejection:(status,body)=>{
+     rejectedBeforeAdmission=body&&Object.keys(body).join()==='error'&&
+       ((status===429&&body.error==='MCP_REGISTRY_HTTP_CAPACITY')
+        ||(status===409&&body.error==='MCP_REGISTRY_INSTANCE_CHANGED'));}});
+   if(!value||Object.keys(value).sort().join()!=='changes,drained,instanceId,operationId,requestSha256,state,version'
+    ||value.version!==1||Object.keys(identity).some(key=>value[key]!==identity[key])
+    ||value.state!=='completed'||value.drained!==true||!Array.isArray(value.changes))throw fail('MCP_REGISTRY_EXECUTOR_UNAVAILABLE');
+   return Object.freeze(value);
+  }catch(cause){
+   if(!postMayStart||rejectedBeforeAdmission){const error=fail('MCP_REGISTRY_REGISTRATION_NOT_DISPATCHED');
+    Object.defineProperty(error,'cause',{value:cause});registrationNotDispatched.set(error,q.requestSha256);throw error;}
+   let retirement=null;try{retirement=await registrationState(identity,{drain:true});}catch{}
+   const error=Object.assign(new Error('Registry command outcome uncertain'),{
+    code:'MCP_REGISTRY_REGISTRATION_UNCERTAIN',executionBoundary:true,automaticRetry:false,
+    drained:retirement?.drained===true,retirement});
+   Object.defineProperty(error,'cause',{value:cause});uncertain.add(error);throw error;
+  }
+ }
  async function invocationState(raw,{drain=false,signal}={}){
   const q=require('./secureshopOwnedMcpInvocationContract').bounded(raw,1024);
   if(!q||Object.keys(q).sort().join()!=='instanceId,operationId,requestSha256'
@@ -104,6 +167,8 @@ function createOwnedMcpRegistryClient({baseURL,token,fetchImpl=fetch,timeoutMs=1
    Object.defineProperty(error,'cause',{value:cause});uncertain.add(error);throw error;
   }
  }
- return Object.freeze({health,execute,invocationHealth,invocationState,invoke});
+ return Object.freeze({health,execute,invocationHealth,invocationState,invoke,
+  registrationHealth,registrationState,registerOwned});
 }
-module.exports={createOwnedMcpRegistryClient,isOwnedMcpRegistryOutcomeUncertain:error=>uncertain.has(error),isOwnedMcpRegistryNotDispatched};
+module.exports={createOwnedMcpRegistryClient,isOwnedMcpRegistryOutcomeUncertain:error=>uncertain.has(error),isOwnedMcpRegistryNotDispatched,
+ isOwnedMcpRegistryRegistrationNotDispatched:(error,requestSha256)=>registrationNotDispatched.get(error)===requestSha256};

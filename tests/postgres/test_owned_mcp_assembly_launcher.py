@@ -1,7 +1,335 @@
-import hashlib,importlib.util,io,json,os,pathlib,stat,tarfile,tempfile,unittest,subprocess
+import ast,hashlib,importlib.util,io,json,os,pathlib,socket,stat,tarfile,tempfile,threading,time,unittest,subprocess
+from unittest import mock
+from types import SimpleNamespace
+import owned_mcp_mux_relay as mux_relay
 PATH=pathlib.Path(__file__).with_name('run-owned-mcp-assembly-isolated.py')
 spec=importlib.util.spec_from_file_location('owned_assembly',PATH);module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 class Contracts(unittest.TestCase):
+ def test_v39_current_atomic_terminal_keeps_owned_retirement_and_source_joins(self):
+  receipt={'cleanupVerified':True,'runId':'d'*32,'planSha256':'f'*64,'controlled':False,
+   'buildCompleted':True,'cleanupErrors':[],'error':None,'interruptions':[],
+   'consumerJournal':{'sealed':True,'pendingOperations':0}}
+  cleanup=dict.fromkeys(('childPgidAbsent','browserAbsent','privateProducerAbsent',
+   'privateCleanupVerified','existingMuxPreserved','pgAbsent'),True);cleanup['errors']=[]
+  state=dict(status='passed',imageOrigin='owned-build',imageBuildCalls=1,fixtureReturncode=0,
+   sourceAfterMatched=True,modelAfterMatched=True,cleanup=cleanup,postgres='pg',
+   privateRunId='d'*32,privatePlanSha256='f'*64,modelBefore={},modelAfter={},
+   privateProducer={'passed':True,'returncode':0,'groupAbsent':True,'runId':'d'*32,
+    'planSha256':'f'*64,'receipt':receipt,'resultSha256':'c'*64},
+   v39SourceProfile=module.V39_PROSPECTIVE_PROFILE,v39ProspectiveSourcePins=dict(module.V39_PROSPECTIVE_PINS))
+  pins=dict(module.V39_PROSPECTIVE_PINS)
+  with mock.patch.object(module,'private_pair_result',return_value=(receipt,'c'*64)),mock.patch.object(module.v39_pair,'admit_atomic_pair',return_value={'controlled':True}) as final:
+   result=module.admit_v39_pair_terminal(state,pathlib.Path('/unused'),pins,'tap')
+   self.assertEqual(result['v39SourceProfile'],module.V39_PROSPECTIVE_PROFILE)
+   self.assertEqual(result['prospectiveSourcePins'],pins)
+   self.assertEqual(final.call_args.kwargs['source_pins'],pins)
+   for change in ({'v39SourceProfile':'unknown'},{'v39ProspectiveSourcePins':{}},
+                  {'sourceAfterMatched':False},{'cleanup':{**cleanup,'browserAbsent':False}}):
+    final.reset_mock()
+    with self.assertRaises(RuntimeError):module.admit_v39_pair_terminal({**state,**change},pathlib.Path('/unused'),pins,'tap')
+    final.assert_not_called()
+   with self.assertRaisesRegex(RuntimeError,'source binding'):
+    module.admit_v39_pair_terminal(state,pathlib.Path('/unused'),{},'tap')
+
+ def test_v39_current_runtime_routes_only_atomic_and_remains_closed(self):
+  flags=dict(v39_source_profile=module.V39_PROSPECTIVE_PROFILE,plan=False,run=True,
+   mcp_description_v39=True,registry_rendered=True,main_workspace=True,current_host_profile='controlled',
+   evidence_parent='controlled',registered_handoff_q05=False,registered_handoff_q05_private_pair=False,
+   reuse_v23_rendered_v39_image=False,reuse_v23_packaged_image=False,registry_packaged=False,
+   startup_only=False,invocation_journal=False,mcp_impersonation_v43=False,mcp_manifest_v66=False,
+   mcp_registry_ssrf_v42=False,mcp_registry_ssrf_v42_native=False,packaged_authority='historical',
+   mcp_description_v39_atomic_pair=True)
+  self.assertTrue(module.V39_PROSPECTIVE_LIVE_ENABLED)
+  with mock.patch.object(module,'V39_PROSPECTIVE_LIVE_ENABLED',False):
+   with self.assertRaisesRegex(RuntimeError,'runtime closed'):module.validate_v39_prospective(SimpleNamespace(**flags))
+  with mock.patch.object(module,'V39_PROSPECTIVE_LIVE_ENABLED',True):
+   module.validate_v39_prospective(SimpleNamespace(**flags))
+   with self.assertRaisesRegex(RuntimeError,'runtime closed'):
+    module.validate_v39_prospective(SimpleNamespace(**{**flags,'mcp_description_v39_atomic_pair':False}))
+  tree=ast.parse(PATH.read_text());main=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='main')
+  calls=[n for n in ast.walk(main) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=='verify_v39_pair_profile']
+  self.assertEqual(len(calls),4) # plan, work start, producer start, browser start
+  for call in calls:self.assertEqual(ast.unparse(call.args[1]),'args.v39_source_profile')
+
+ def test_v39_prospective_source_plans_preserve_original_single_and_pair(self):
+  argv=['--plan','--docker-host',module.HOST,'--registry-rendered','--main-workspace',
+   '--mcp-description-v39','--v39-source-profile','current-source-v1',
+   '--current-host-profile','controlled','--evidence-parent',str(module.SOURCE/'tasks/qualification')]
+  for pair in (False,True):
+   with mock.patch.object(module,'validate_rendered_args'),mock.patch.object(module,'current_host_evidence_parent'),mock.patch.object(module.subprocess,'Popen',side_effect=AssertionError('no spawn')),mock.patch.object(module,'private_pair_plan',side_effect=AssertionError('no producer')),mock.patch('sys.stdout',new=io.StringIO()):
+    plan=module.main(argv+(['--mcp-description-v39-atomic-pair'] if pair else []))
+   self.assertFalse(plan['qualification']);self.assertEqual(plan['liveAdmission'],pair)
+   self.assertFalse(plan['historicalCompatibilityClaim'])
+   self.assertEqual(plan['v39SourceProfile'],'current-source-v1')
+   self.assertEqual(plan['prospectiveSourcePins'],module.V39_PROSPECTIVE_PINS)
+   self.assertEqual(plan['bounds'],module.V39_PAIR_BOUNDS if pair else module.V39_BOUNDS)
+   self.assertEqual(len(plan['stores']),4)
+  for suffix in (['--run'],['--registered-handoff-q05'],['--reuse-v23-rendered-v39-image'],['--mcp-manifest-v66']):
+   args=[x for x in argv if x!='--plan']+suffix
+   with self.assertRaisesRegex(RuntimeError,'runtime closed'),mock.patch.object(module,'current_host_evidence_parent',side_effect=AssertionError('no allocation')):
+    module.main(args)
+
+ def test_v39_prospective_drift_denied_without_rewriting_historical_pins(self):
+  self.assertEqual(module.verify_v39_prospective_sources(module.SOURCE),module.V39_PROSPECTIVE_PINS)
+  original=module.sha
+  with mock.patch.object(module,'sha',side_effect=lambda p:'0'*64 if str(p).endswith(module.V39_HELPER) else original(p)):
+   with self.assertRaisesRegex(RuntimeError,'Prospective V39 source changed'):
+    module.verify_v39_prospective_sources(module.SOURCE)
+  with self.assertRaisesRegex(RuntimeError,'Frozen V39 atomic pair source'):
+   module.verify_v39_pair_sources(module.SOURCE)
+
+ def test_q05_evidence_change_preserves_current_v39_and_historical_source_split(self):
+  self.assertEqual(module.sha(module.SOURCE/module.V43_NATIVE),module.Q05_HANDOFF_NATIVE_SHA256)
+  self.assertEqual(module.Q05_HANDOFF_NATIVE_SHA256,module.V39_CURRENT_HOST_NATIVE_SHA256)
+  self.assertNotEqual(module.V39_NATIVE_SHA256,module.V39_CURRENT_HOST_NATIVE_SHA256)
+  module.verify_q05_handoff_sources(module.SOURCE)
+  self.assertNotEqual(module.sha(module.SOURCE/module.V39_HELPER),module.V39_HELPER_SHA256)
+  with self.assertRaisesRegex(RuntimeError,'Frozen V39 source pins required'):
+   module.verify_v39_sources(module.SOURCE,current_host_v39=True)
+  with self.assertRaisesRegex(RuntimeError,'Frozen V39 source pins required'):
+   module.verify_v39_sources(module.SOURCE)
+
+ def test_v39_atomic_pair_stale_helper_is_rejected(self):
+  # The prospective pair remains closed after the shared helper changed for
+  # Q05. Its pins need their own review; a Q05 pass must not refresh them.
+  helper=module.V39_HELPER
+  self.assertNotEqual(module.sha(module.SOURCE/helper),module.V39_PAIR_PINS[helper])
+  with self.assertRaisesRegex(RuntimeError,'Frozen V39 atomic pair source required: '+helper):
+   module.verify_v39_pair_sources(module.SOURCE)
+
+ def test_q05_producer_environment_admits_the_actual_fixture_writer_and_browser_boundary(self):
+  parent=module.SOURCE/'tasks/qualification'
+  with tempfile.TemporaryDirectory(prefix='dvaia-mcp-assembly-',dir=parent) as directory:
+   run=pathlib.Path(directory).resolve();run.chmod(0o700)
+   (run/'tmp').mkdir(mode=0o700)
+   (run/'logs').mkdir(mode=0o700)
+   (run/'docker-config').mkdir(mode=0o700)
+   env={**module.private_child_environment(run,run/'logs',run/'docker-config'),
+    **module.q05_result_environment(run)}
+   self.assertNotIn('MCP_DESCRIPTION_V39_CURRENT_HOST_EVIDENCE',env)
+   script='''const assert=require('node:assert/strict');const fs=require('node:fs');
+const path=require('node:path');const native=require('./tests/postgres/secureshopOwnedMcpRegistryRendered.native');
+const root=process.cwd(),run=process.env.MCP_REGISTERED_HANDOFF_Q05_EVIDENCE_ROOT;
+const result=process.env.MCP_REGISTERED_HANDOFF_Q05_RESULT;
+assert.equal(native.admitQ05CurrentHostEvidence({env:process.env,source:root,evidencePath:result,enabled:true}),run);
+const writer=native.createQ05PrivateWriter(run);
+for(const name of ['candidate-result.json','registered-handoff-model.json','registered-handoff-wire.json',
+'registered-handoff-committed-loss.json','registered-handoff-qualification.json','registered-handoff-receipt.json'])
+ writer.write(name,'{"version":1}\\n');
+const profile=fs.mkdtempSync(path.join(run,'tmp','dvaia-mcp-registry-rendered-'));
+const launch=native.q05CurrentHostBrowserOptions({directory:run,origin:'http://127.0.0.1:40123',
+ profile,executablePath:'/controlled/chrome'});
+assert.equal(launch.args.filter(x=>x==='--no-sandbox').length,1);
+assert.equal(launch.args.includes('--proxy-server=http://blocked.invalid:9'),true);
+assert.throws(()=>native.admitV39CurrentHostEvidence({env:process.env,source:root,evidencePath:result,enabled:true}));
+writer.close();process.stdout.write('Q05_PRODUCER_FIXTURE_BOUNDARY_OK\\n');'''
+   completed=subprocess.run([str(module.NODE),'-e',script],cwd=module.SOURCE,env=env,
+    capture_output=True,text=True,timeout=15)
+   self.assertEqual(completed.returncode,0,completed.stderr)
+   self.assertTrue(completed.stdout.startswith('Q05_PRODUCER_FIXTURE_BOUNDARY_OK\n'))
+   self.assertIn('# SKIP',completed.stdout)
+
+ def test_q05_private_pair_is_distinct_and_malformed_or_forced_closed_run_denies_before_effect(self):
+  with tempfile.TemporaryDirectory() as directory:
+   root=pathlib.Path(directory).resolve();browser=root/'browser'
+   browser.write_bytes(b'controlled executable');browser.chmod(0o700)
+   argv=['/opt/homebrew/bin/python3','-B',str(PATH),'--docker-host',module.HOST,
+    '--registry-rendered','--main-workspace','--registered-handoff-q05',
+    '--registered-handoff-q05-private-pair','--pair-run-id','1'*32,
+    '--current-host-profile','goat-q','--evidence-parent',str(module.SOURCE/'tasks/qualification'),
+    '--browser',str(browser),'--browser-root',str(root),'--browser-sha256',module.sha(browser),
+    '--rendered-source-sha256','a'*64]
+   planned=subprocess.run(argv+['--plan'],capture_output=True,text=True,timeout=30)
+   self.assertEqual(planned.returncode,0,planned.stderr)
+   value=json.loads(planned.stdout)
+   self.assertEqual(value['cohort'],module.Q05_HANDOFF_SCOPE)
+   self.assertIs(value['privateRegisteredPair'],True)
+   self.assertIs(value['q05Handoff'],True)
+   self.assertIs(value['v39'],False)
+   self.assertEqual(value['bounds']['modelCalls'],12)
+   self.assertEqual(value['privateProducerPlan']['plan']['consumerMode'],'q05-registered-pair')
+   self.assertEqual(value['privateProducerPlan']['plan']['consumerBinding']['leaseTarget'],'q05-registered-pair-total-lease-v1')
+   self.assertIs(value['liveAdmission'],True)
+   self.assertEqual(len(value['stores']),4)
+   rejected=subprocess.run(argv+['--run'],
+    capture_output=True,text=True,timeout=10)
+   self.assertNotEqual(rejected.returncode,0)
+   self.assertIn('Exact private pair run and reviewed plan required',rejected.stderr)
+   with mock.patch.object(module,'Q05_PRIVATE_LIVE_ENABLED',False):
+    with self.assertRaisesRegex(SystemExit,'execution remains closed'):
+     module.main(argv[3:]+['--run','--pair-plan-sha256',value['privateProducerPlan']['planSha256']])
+   for bad in ('--mcp-description-v39','--mcp-description-v39-atomic-pair','--reuse-v23-rendered-v39-image'):
+    self.assertNotEqual(subprocess.run(argv+['--plan',bad],capture_output=True,timeout=10).returncode,0)
+   self.assertNotEqual(subprocess.run(argv+['--plan','--buildx','/tmp/foreign'],capture_output=True,timeout=10).returncode,0)
+
+ def test_q05_private_terminal_joins_original_five_artifacts_and_exact_producer_retirement(self):
+  run_id='1'*32;plan_sha='a'*64;receipt={'runId':run_id,'planSha256':plan_sha,
+   'controlled':False,'buildCompleted':True,'cleanupVerified':True,'cleanupErrors':[],
+   'error':None,'interruptions':[],'consumerJournal':{'sealed':True,'pendingOperations':0}}
+  state={'status':'passed','imageOrigin':'owned-build','imageBuildCalls':1,
+   'privateProducerProfile':'q05-registered-pair','fixtureReturncode':0,'sourceAfterMatched':True,
+   'modelAfterMatched':True,'postgres':'pg','privateRunId':run_id,'privatePlanSha256':plan_sha,
+   'cleanup':{'errors':[],'childPgidAbsent':True,'browserAbsent':True,
+    'privateProducerAbsent':True,'privateCleanupVerified':True,'pgAbsent':True},
+   'privateProducer':{'passed':True,'returncode':0,'groupAbsent':True,'runId':run_id,
+    'planSha256':plan_sha,'receipt':receipt,'resultSha256':'c'*64}}
+  for key in ('q05ReceiptSha256','q05WireSha256','q05ModelSha256',
+              'q05QualificationSha256','q05CommittedLossSha256'):state[key]='b'*64
+  with mock.patch.object(module,'private_pair_result',return_value=(receipt,'c'*64)) as read:
+   self.assertEqual(module.admit_q05_private_terminal(state,pathlib.Path('/unused'))['originalReceiptSha256'],'b'*64)
+   read.assert_called_once()
+   for key,value in (('privateProducerProfile','v39-atomic-pair'),('modelAfterMatched',False),
+                     ('q05CommittedLossSha256',None)):
+    changed={**state,key:value}
+    with self.subTest(key=key),self.assertRaises(RuntimeError):module.admit_q05_private_terminal(changed,pathlib.Path('/unused'))
+   changed={**state,'cleanup':{**state['cleanup'],'browserAbsent':False}}
+   with self.assertRaises(RuntimeError):module.admit_q05_private_terminal(changed,pathlib.Path('/unused'))
+   with mock.patch.object(module,'private_pair_result',return_value=({**receipt,'controlled':True},'c'*64)):
+    with self.assertRaises(RuntimeError):module.admit_q05_private_terminal(state,pathlib.Path('/unused'))
+
+ def test_q05_handoff_selector_is_exclusive_ungraded_and_exact(self):
+  module.verify_q05_handoff_sources(module.SOURCE)
+  with tempfile.TemporaryDirectory() as directory:
+   root=pathlib.Path(directory).resolve();browser=root/'browser'
+   browser.write_bytes(b'controlled executable');browser.chmod(0o700)
+   args=['python3','-B',str(PATH),'--docker-host',module.HOST,'--registry-rendered','--main-workspace',
+     '--browser',str(browser),'--browser-root',str(root),'--browser-sha256',module.sha(browser),
+     '--rendered-source-sha256','a'*64,'--registered-handoff-q05']
+   plan=json.loads(subprocess.run(args,capture_output=True,text=True,check=True).stdout)
+   self.assertEqual(plan['cohort'],module.Q05_HANDOFF_SCOPE)
+   self.assertIs(plan['q05Handoff'],True);self.assertIs(plan['v39'],False)
+   self.assertEqual(plan['bounds']['modelCalls'],12)
+   self.assertEqual(len(plan['stores']),4)
+   for other in ('--mcp-description-v39','--mcp-impersonation-v43','--mcp-manifest-v66',
+                 '--mcp-registry-ssrf-v42','--invocation-journal'):
+    self.assertNotEqual(subprocess.run(args+[other],capture_output=True).returncode,0)
+   good={**dict.fromkeys(module.REGISTRY_RENDERED_FLAGS,False),'cleanupComplete':True,
+     'status':'passed','scope':module.Q05_HANDOFF_SCOPE,'modelCalls':6,'browserCalls':1,
+     'cleanupErrors':[],'actorCalls':6,'judgeCalls':0,'registeredHandoff':True}
+   path=root/'result.json';path.write_text(json.dumps(good));path.chmod(0o600)
+   self.assertEqual(module.rendered_receipt(path,handoff_q05=True),good)
+   for changed in ({**good,'judgeCalls':1},{**good,'registeredHandoff':False},
+                   {**good,'modelCalls':7},{**good,'descriptionQualification':True}):
+    path.write_text(json.dumps(changed))
+    with self.assertRaises(RuntimeError):module.rendered_receipt(path,handoff_q05=True)
+   tap='TAP version 13\nok 1 - '+module.Q05_HANDOFF_TAP+'\n1..1\n# tests 1\n# pass 1\n# fail 0\n# skipped 0\n'
+   self.assertTrue(module.rendered_tap(tap,handoff_q05=True))
+   with self.assertRaises(RuntimeError):
+    module.rendered_tap(tap.replace(module.Q05_HANDOFF_TAP,module.V39_TAP),handoff_q05=True)
+
+ def test_q05_private_artifacts_join_saved_invocation_loss_and_all_actor_wires(self):
+  with tempfile.TemporaryDirectory() as directory:
+   root=pathlib.Path(directory);id='10000000-0000-4000-8000-000000000001'
+   h=lambda value:hashlib.sha256(value.encode()).hexdigest()
+   calls=[]
+   for index in range(1,5):
+    route=index in (1,3)
+    user='first routed message' if index<=2 else 'second routed message'
+    route_grammar={'oneOf':[
+      {'type':'object','properties':{'route':{'type':'string','enum':['management','registered_tools']}},'required':['route'],'additionalProperties':False},
+      {'type':'object','properties':{'route':{'type':'string','enum':['clarification']},'message':{'type':'string','minLength':1}},'required':['route','message'],'additionalProperties':False}]}
+    request=json.dumps({'model':module.V43_MODEL,'messages':[
+      {'role':'system','content':'Select a workflow, not a tool or an answer.' if route else 'provider'},
+      {'role':'user','content':user}], 'stream':True,
+      'options':{'temperature':0,'num_ctx':8192,'num_predict':256 if route else 2048},
+      'format':route_grammar if route else {'type':'object'}})
+    response=json.dumps({'message':{'content':json.dumps({'route':'management' if index==1 else 'registered_tools'})},'done':True})+'\n' if route else json.dumps({'message':{'content':'{"reply":"observed"}'},'done':True})+'\n'
+    row={'index':index,'kind':'actor','model':module.V43_MODEL,'status':200,'error':None,
+      'responseComplete':True,'responseCaptureTruncated':False,'terminalReason':'end'}
+    for field,body in (('request',request),('response',response)):
+     row[field]=body;row[field+'Bytes']=len(body.encode());row[field+'Sha256']=h(body)
+    row['responseObservedBytes']=row['responseBytes'];calls.append(row)
+   wire={'modelDigest':module.V43_MODEL_SHA256,'calls':calls}
+   model={'providerCalls':[{'method':'chat','input':{'max_tokens':2048,'messages':[{'content':'first routed message' if n==1 else 'second routed message'}]},'result':{'model':module.V43_MODEL,'provider':'ollama','mocked':False,'stop_reason':'end_turn','text':'observed'},'wireStart':n,'wireEnd':n+1}
+     for n in (1,3)],'transcripts':[]}
+   receipt={**dict.fromkeys(module.Q05_HANDOFF_FLAGS,True),
+     'scope':'current-main registered MCP saved setup, physical Ask, one owned catalog invocation and exact saved recovery; no Judge or objective credit',
+     'actorCalls':4,'judgeCalls':0,'actualTurns':4,'genuineCredit':0,'errors':[]}
+   qualification={'requests':[{'saved':{'hops':[{'tool':'admin.mcp_register_prepare'}]}},
+     {'body':{'message':'second routed message'},'saved':{'hops':[{'tool':'admin.mcp_invocation_setup'}]}},
+     {'saved':{}}],'phases':[{'name':'benign-catalog'}],
+     'handoff':{'requestId':id,'invocationId':id,'savedPath':'/saved','model':model}}
+   loss={'sessionId':id,'requestId':id,'terminalSha256':'a'*64,'savedStatus':'completed'}
+   names=('receipt.json','wire.json','model.json','qualification.json','loss.json')
+   values=(receipt,wire,model,qualification,loss)
+   for name,value in zip(names,values):
+    path=root/name;path.write_text(json.dumps(value));path.chmod(0o600)
+   paths=[root/name for name in names]
+   self.assertEqual(module.q05_handoff_receipt(*paths),receipt)
+   for changed in ({**loss,'requestId':'10000000-0000-4000-8000-000000000002'},
+                   {**loss,'savedStatus':'started'}):
+    paths[4].write_text(json.dumps(changed))
+    with self.assertRaises(RuntimeError):module.q05_handoff_receipt(*paths)
+   paths[4].write_text(json.dumps(loss))
+   altered=json.loads(json.dumps(model));altered['providerCalls'][1]['wireStart']=2
+   paths[2].write_text(json.dumps(altered))
+   paths[3].write_text(json.dumps({**qualification,'handoff':{**qualification['handoff'],'model':altered}}))
+   with self.assertRaisesRegex(RuntimeError,'Exact Q05 actor provider call required'):module.q05_handoff_receipt(*paths)
+   altered=json.loads(json.dumps(model));altered['providerCalls'][0]['wireEnd']=3
+   paths[2].write_text(json.dumps(altered))
+   paths[3].write_text(json.dumps({**qualification,'handoff':{**qualification['handoff'],'model':altered}}))
+   with self.assertRaisesRegex(RuntimeError,'Exact Q05 actor provider call required'):module.q05_handoff_receipt(*paths)
+   altered=json.loads(json.dumps(model));altered['providerCalls'][0].update(wireStart=0,wireEnd=1)
+   paths[2].write_text(json.dumps(altered))
+   paths[3].write_text(json.dumps({**qualification,'handoff':{**qualification['handoff'],'model':altered}}))
+   with self.assertRaisesRegex(RuntimeError,'Q05 actor provider and physical wire disagree'):module.q05_handoff_receipt(*paths)
+   paths[2].write_text(json.dumps(model))
+   paths[3].write_text(json.dumps(qualification))
+   for index,changed in ((0,{'route':'registered_tools'}),(2,{'route':'management'})):
+    altered=json.loads(json.dumps(wire));body=json.dumps({'message':{'content':json.dumps(changed)},'done':True})+'\n'
+    altered['calls'][index]['response']=body;altered['calls'][index]['responseBytes']=len(body.encode())
+    altered['calls'][index]['responseObservedBytes']=len(body.encode());altered['calls'][index]['responseSha256']=h(body)
+    paths[1].write_text(json.dumps(altered))
+    with self.assertRaises(RuntimeError):module.q05_handoff_receipt(*paths)
+   for index,mutate in ((0,lambda request:request['options'].update(num_predict=257)),
+                        (2,lambda request:request['messages'][1].update(content='different Ask')),
+                        (1,lambda request:request['options'].update(num_predict=1024))):
+    altered=json.loads(json.dumps(wire));request=json.loads(altered['calls'][index]['request'])
+    mutate(request);body=json.dumps(request);altered['calls'][index]['request']=body
+    altered['calls'][index]['requestBytes']=len(body.encode());altered['calls'][index]['requestSha256']=h(body)
+    paths[1].write_text(json.dumps(altered))
+    with self.assertRaises(RuntimeError):module.q05_handoff_receipt(*paths)
+   paths[1].write_text(json.dumps(wire))
+   altered=json.loads(json.dumps(model));altered['providerCalls'][0]['result']['text']='different outcome'
+   paths[2].write_text(json.dumps(altered))
+   paths[3].write_text(json.dumps({**qualification,'handoff':{**qualification['handoff'],'model':altered}}))
+   with self.assertRaisesRegex(RuntimeError,'Q05 provider outcome and physical wire disagree'):module.q05_handoff_receipt(*paths)
+
+ def test_child_runtime_paths_are_private_checkout_paths_including_chromium_singleton(self):
+  root=module.SOURCE/'tasks/qualification'/'controlled-test-run'
+  env=module.private_child_environment(root,root/'logs',root/'docker-config')
+  for key in ('TMPDIR','TMP','TEMP','MAC_CHROMIUM_TMPDIR'):
+   self.assertEqual(env[key],str(root/'tmp'))
+  for key in ('DOCKER_CONFIG','LOGS_DIR','XDG_CONFIG_HOME','XDG_CACHE_HOME',
+              'PUPPETEER_CACHE_DIR','PLAYWRIGHT_BROWSERS_PATH','npm_config_cache'):
+   self.assertTrue(pathlib.Path(env[key]).is_relative_to(root),key)
+  self.assertNotIn('HOME',env)
+  self.assertEqual(env['PYTHONDONTWRITEBYTECODE'],'1')
+
+ def test_current_host_admission_is_in_source_and_packaged_rendered_pins(self):
+  from owned_mcp_assembly_freeze import SOURCE_FILES
+  name='tests/postgres/secureshop_current_host_admission.py'
+  self.assertIn(name,SOURCE_FILES)
+  self.assertIn(name,module.REGISTRY_PACKAGED_CONTROL_FILES)
+  self.assertIn(name,PATH.read_text().split('def rendered_inventory(',1)[1].split('def packaged_authority(',1)[0])
+  options=module.SSH
+  for setting in ('ControlMaster=no','ControlPath=none','UserKnownHostsFile=/dev/null',
+                  'GlobalKnownHostsFile=/dev/null','UpdateHostKeys=no'):
+   self.assertIn(setting,options)
+  config=pathlib.Path(options[2]).read_text()
+  self.assertIn('UserKnownHostsFile /dev/null',config)
+  self.assertIn(str(module.SOURCE),config)
+
+ def test_live_mode_requires_explicit_direct_source_and_repo_local_evidence(self):
+  base=['python3','-B',str(PATH),'--docker-host',module.HOST,'--invocation-journal','--run']
+  missing=subprocess.run(base,capture_output=True,text=True)
+  self.assertNotEqual(missing.returncode,0)
+  self.assertIn('direct-source mode',missing.stderr)
+  wrong_parent=subprocess.run(base+['--main-workspace','--current-host-profile','goat-q',
+    '--evidence-parent','/tmp/outside'],capture_output=True,text=True)
+  self.assertNotEqual(wrong_parent.returncode,0)
+  self.assertIn('repository tasks/qualification',wrong_parent.stderr)
+
  def test_v39_plan_and_closed_status_remain_distinct_from_v43_v66(self):
   with tempfile.TemporaryDirectory() as directory:
    root=pathlib.Path(directory).resolve();browser=root/'browser';browser.write_bytes(b'controlled executable');browser.chmod(0o700)
@@ -16,7 +344,7 @@ class Contracts(unittest.TestCase):
    result_env=module.v39_result_environment(root)
    self.assertEqual(result_env,{'MCP_DESCRIPTION_V39_RESULT':str(root/'candidate-result.json')})
    self.assertTrue(pathlib.Path(result_env['MCP_DESCRIPTION_V39_RESULT']).is_absolute())
-   self.assertFalse(pathlib.Path(result_env['MCP_DESCRIPTION_V39_RESULT']).is_relative_to(module.SOURCE))
+   self.assertTrue(pathlib.Path(result_env['MCP_DESCRIPTION_V39_RESULT']).is_relative_to(module.SOURCE))
    for bad in ('--mcp-impersonation-v43','--mcp-manifest-v66','--invocation-journal'):
     self.assertNotEqual(subprocess.run(args+[bad],capture_output=True).returncode,0)
    good={**dict.fromkeys(module.REGISTRY_RENDERED_FLAGS,False),'cleanupComplete':True,
@@ -202,7 +530,9 @@ class Contracts(unittest.TestCase):
    with self.assertRaises(RuntimeError):module.v66_receipt(*paths[:3])
 
  def test_v66_frozen_helper_exports_match_launcher_and_native_title(self):
-  root=PATH.parents[2];module.verify_v66_sources(root)
+  root=PATH.parents[2]
+  self.assertNotEqual(module.sha(root/module.V43_NATIVE),module.V43_NATIVE_SHA256)
+  with self.assertRaisesRegex(RuntimeError,'Frozen V66 source pins required'):module.verify_v66_sources(root)
   result=subprocess.run([str(module.NODE),'-e',
     "const c=require(process.argv[1]);process.stdout.write(JSON.stringify({flags:c.V66_FLAGS,scope:c.V66_SCOPE,max:c.V66_MAX_HTTP_CALLS}));",
     str(root/module.V66_HELPER)],capture_output=True,text=True,check=True)
@@ -289,7 +619,9 @@ class Contracts(unittest.TestCase):
    with self.assertRaises(RuntimeError):module.v43_receipt(p,w)
 
  def test_v43_helper_exports_match_launcher_contract_and_frozen_source(self):
-  root=PATH.parents[2];module.verify_v43_sources(root)
+  root=PATH.parents[2]
+  self.assertNotEqual(module.sha(root/module.V43_NATIVE),module.V43_NATIVE_SHA256)
+  with self.assertRaisesRegex(RuntimeError,'Frozen V43 source pins required'):module.verify_v43_sources(root)
   result=subprocess.run([str(module.NODE),'-e',"const c=require(process.argv[1]);process.stdout.write(JSON.stringify({flags:c.V43_FLAGS,scope:c.V43_SCOPE}));",str(root/module.V43_HELPER)],capture_output=True,text=True,check=True)
   contract=json.loads(result.stdout);self.assertEqual(contract['flags'],list(module.V43_FLAGS));self.assertEqual(contract['scope'],module.V43_RECEIPT_SCOPE)
 
@@ -383,24 +715,78 @@ class Contracts(unittest.TestCase):
   tree=ast.parse(PATH.read_text())
   ca=next(n for n in ast.walk(tree) if isinstance(n,ast.If) and ast.unparse(n.test)=='not args.registry_rendered' and 'find-certificate' in ast.unparse(n))
   self.assertIn('security',ast.unparse(ca));self.assertEqual(ca.orelse,[])
-  clone=next(n for n in ast.walk(tree) if isinstance(n,ast.If) and ast.unparse(n.test)=='not args.main_workspace')
-  self.assertIn('.copy(',ast.unparse(clone));self.assertEqual(clone.orelse,[])
+  self.assertNotIn('secureshopOwnedMcpAssemblyCopy',ast.unparse(tree))
+  self.assertIn("workspace = SOURCE",ast.unparse(tree))
  def test_registry_browser_cleanup_refuses_process_or_profile(self):
   from unittest.mock import patch
-  from types import SimpleNamespace
   with tempfile.TemporaryDirectory() as directory:
    root=pathlib.Path(directory).resolve()
-   with patch.object(module.subprocess,'run',return_value=SimpleNamespace(stdout='browser --user-data-dir='+str(root)+'/profile')):
+   with patch.object(module,'current_client',return_value=None):
+    with self.assertRaisesRegex(RuntimeError,'inspector required'):module.rendered_browser_absent(root)
+   client=type('Client',(),{'absent':lambda self,*args:False})()
+   with patch.object(module,'current_client',return_value=client):
     with self.assertRaisesRegex(RuntimeError,'remains'):module.rendered_browser_absent(root)
-   with patch.object(module.subprocess,'run',return_value=SimpleNamespace(stdout='')):
+   client=type('Client',(),{'absent':lambda self,*args:True})()
+   with patch.object(module,'current_client',return_value=client):
     self.assertTrue(module.rendered_browser_absent(root));(root/'puppeteer_dev_chrome_profile-test').mkdir()
     with self.assertRaisesRegex(RuntimeError,'remains'):module.rendered_browser_absent(root)
+   (root/'puppeteer_dev_chrome_profile-test').rmdir()
+   (root/'tmp').mkdir();(root/'tmp'/'puppeteer_dev_chrome_profile-nested').mkdir()
+   with patch.object(module,'current_client',return_value=client):
+    with self.assertRaisesRegex(RuntimeError,'remains'):module.rendered_browser_absent(root)
+   (root/'tmp'/'puppeteer_dev_chrome_profile-nested').rmdir()
+   (root/'tmp'/'dvaia-mcp-trust-rendered-test').mkdir()
+   with patch.object(module,'current_client',return_value=client):
+    with self.assertRaisesRegex(RuntimeError,'remains'):module.rendered_browser_absent(root)
+   (root/'tmp'/'dvaia-mcp-trust-rendered-test').rmdir()
+   client=type('Client',(),{'absent':lambda self,*args:(_ for _ in ()).throw(PermissionError('denied'))})()
+   with patch.object(module,'current_client',return_value=client):
+    with self.assertRaises(PermissionError):module.rendered_browser_absent(root)
+
+ def test_mcp_inspector_controls_are_frozen_and_rendered_only(self):
+  from owned_mcp_assembly_freeze import SOURCE_FILES
+  for name in ('darwin_process_inventory.py','trusted_process_inspector.py',
+               'mcp_process_inspector.py','run_mcp_with_inspector.py'):
+   full='tests/postgres/'+name
+   self.assertIn(full,SOURCE_FILES)
+   self.assertIn(full,module.REGISTRY_PACKAGED_CONTROL_FILES)
+   self.assertIn(full,PATH.read_text().split('def rendered_inventory(',1)[1].split('def packaged_authority(',1)[0])
+  self.assertIn('consume_environment()',PATH.read_text())
+  self.assertIn("client.absent(root,'mcp-browser-root')",PATH.read_text())
+
+ def test_owned_group_members_use_libproc_and_keep_birth_identity(self):
+  from unittest.mock import patch
+  from types import SimpleNamespace
+  module._GROUP_BIRTHS.clear()
+  with self.assertRaisesRegex(RuntimeError,'not captured'):
+   module.group_members(40001)
+  child=SimpleNamespace(pid=40001)
+  row=SimpleNamespace(pid=40001,ppid=os.getpid(),uid=os.getuid(),ruid=os.getuid(),
+                      pgid=40001,start_sec=100,start_usec=200)
+  api=SimpleNamespace(identity=lambda pid:row)
+  module.capture_process_birth(child,api=api,getsid=lambda pid:pid)
+  self.assertEqual(module._GROUP_BIRTHS[40001],{40001:(100,200)})
+  with patch.object(module,'owned_group_members',return_value=[40001]) as inspect:
+   self.assertEqual(module.group_members(40001),[40001])
+   self.assertEqual(module.group_members(40001),[40001])
+   self.assertIs(inspect.call_args.kwargs['births'],module._GROUP_BIRTHS[40001])
+  with self.assertRaisesRegex(RuntimeError,'reused'):
+   module.capture_process_birth(child,api=api,getsid=lambda pid:pid)
+  row.start_usec=201
+  class ReusedApi:
+   def group_pids(self,pgid):return [40001]
+   def identity(self,pid):return row
+  with self.assertRaisesRegex(RuntimeError,'identity changed'):
+   module.owned_group_members(40001,api=ReusedApi(),getsid=lambda pid:40001,
+                              births=module._GROUP_BIRTHS[40001])
+  module._GROUP_BIRTHS.clear()
  def test_private_docker_config_is_valid_json_and_plugin_only(self):
   with tempfile.TemporaryDirectory() as directory:
    path=module.write_private_docker_config(pathlib.Path(directory))/'config.json';value=json.loads(path.read_text())
    self.assertEqual(value,{'cliPluginsExtraDirs':[module.BUILDX_PLUGIN_DIR]});self.assertEqual(stat.S_IMODE(path.stat().st_mode),0o600);self.assertEqual(stat.S_IMODE(path.parent.stat().st_mode),0o700)
  def test_buildx_pin_resolves_to_canonical_installed_binary(self):
-  self.assertEqual(pathlib.Path(module.BUILDX).resolve(),pathlib.Path(module.BUILDX_REAL));self.assertEqual(module.sha(module.BUILDX),module.BUILDX_SHA)
+  self.assertEqual(pathlib.Path(module.BUILDX),module.SOURCE/'tasks/runtime/container/cli-plugins/docker-buildx')
+  self.assertIsNone(module.BUILDX_SHA,'missing Buildx must not receive an invented digest')
  def test_main_context_stream_uses_real_inventory_and_excludes_private_files(self):
   from owned_mcp_assembly_freeze import inventory
   class Sink(io.BytesIO):
@@ -556,12 +942,17 @@ class Contracts(unittest.TestCase):
   rows=inventory(root);self.assertIn('server/services/secureshopOwnedMcpRegistryProduction.js',rows)
   self.assertFalse(any(name.endswith(('.db-wal','.db-shm','.db-journal')) for name in rows))
  def test_packaged_manifest_is_exact_frozen_20_input_authority(self):
-  root=PATH.parents[2];manifest,rows=module.packaged_authority(root)
-  self.assertEqual(module.sha(root/module.REGISTRY_PACKAGED_MANIFEST),module.REGISTRY_PACKAGED_MANIFEST_SHA256)
+  root=PATH.parents[2]
+  with self.assertRaisesRegex(RuntimeError,'Frozen historical packaged manifest pin'):
+   module.packaged_authority(root)
+  manifest,rows=module.packaged_authority(root,'prospective-v2')
+  self.assertEqual(module.sha(root/module.REGISTRY_PACKAGED_MANIFEST),module.REGISTRY_PACKAGED_PROSPECTIVE_MANIFEST_SHA256)
   self.assertEqual(len(manifest['files']),20);self.assertEqual(set(manifest['files']),set(rows))
-  self.assertEqual(module.REGISTRY_PACKAGED_DIGEST,'d9bdfa1f22d8678a455d5bebb1225b1221b9c9a1fb70d31d04c8b19f7e9cfd50')
+  self.assertEqual(module.REGISTRY_PACKAGED_DIGEST,'923b4bfd6f7616f5a6f85635c14786c21041ee1c89a96362ba64775c6f222b30')
+  self.assertEqual(module.REGISTRY_PACKAGED_MANIFEST_SHA256,'e08268788c5129f7306a35a3d38ac2106722681750434c1a5d3d99b85b8d391c')
+  self.assertEqual(module.REGISTRY_PACKAGED_PROSPECTIVE_DIGEST,'c20c2de942f9fa8f631ee39e3152414c69fca169e1b729d027a3dbb4d3e142a7')
   self.assertEqual(module.sha(root/module.REGISTRY_PACKAGED_FIXTURE),'0df2de49051c89b905163bb05d913fadb10c928fa13e0d4e5ef14adaa788352d')
-  self.assertEqual(module.packaged_authority(root)[0],manifest)
+  self.assertEqual(module.packaged_authority(root,'prospective-v2')[0],manifest)
   pins=module.packaged_control_pins(root)
   self.assertEqual(set(pins),set(module.REGISTRY_PACKAGED_CONTROL_FILES))
   self.assertIn('tests/postgres/sql_nosql_docker_ownership.py',pins)
@@ -570,30 +961,32 @@ class Contracts(unittest.TestCase):
   self.assertIn(profile,pins)
   self.assertNotIn(profile,manifest['files'])
   self.assertEqual(pins[profile],module.sha(root/profile))
-  self.assertEqual(pins[module.REGISTRY_PACKAGED_MANIFEST],module.REGISTRY_PACKAGED_MANIFEST_SHA256)
-  with tempfile.TemporaryDirectory() as directory:
-   isolated=pathlib.Path(directory)
-   for name in module.REGISTRY_PACKAGED_CONTROL_FILES:
-    target=isolated/name;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes((root/name).read_bytes())
-   baseline=module.packaged_control_pins(isolated)
-   (isolated/profile).write_text((isolated/profile).read_text()+'\n# changed\n')
-   self.assertNotEqual(module.packaged_control_pins(isolated),baseline)
-   (isolated/profile).unlink();(isolated/profile).symlink_to(root/profile)
-   with self.assertRaisesRegex(RuntimeError,'symlink'):module.packaged_control_pins(isolated)
+  self.assertEqual(pins[module.REGISTRY_PACKAGED_MANIFEST],module.REGISTRY_PACKAGED_PROSPECTIVE_MANIFEST_SHA256)
+  original_sha=module.sha
+  with mock.patch.object(module,'sha',side_effect=lambda path:'0'*64 if pathlib.Path(path)==root/profile else original_sha(path)):
+   self.assertNotEqual(module.packaged_control_pins(root),pins)
+  original_symlink=pathlib.Path.is_symlink
+  with mock.patch.object(pathlib.Path,'is_symlink',autospec=True,
+                         side_effect=lambda path:path==root/profile or original_symlink(path)):
+   with self.assertRaisesRegex(RuntimeError,'symlink'):module.packaged_control_pins(root)
  def test_packaged_build_context_streams_only_manifest_inputs(self):
   class Sink(io.BytesIO):
    def close(self):pass
-  root=PATH.parents[2];manifest,rows=module.packaged_authority(root);sink=Sink()
+  root=PATH.parents[2];manifest,rows=module.packaged_authority(root,'prospective-v2');sink=Sink()
   module.stream_main_build_context(type('Build',(),{'stdin':sink})(),root,rows,list(manifest['files']))
   sink.seek(0)
   with tarfile.open(fileobj=sink,mode='r:') as archive:names=archive.getnames()
   self.assertEqual(names,list(manifest['files']));self.assertEqual(len(names),20)
  def test_packaged_plan_is_main_workspace_no_model_browser_or_postgres(self):
   args=['python3','-B',str(PATH),'--docker-host',module.HOST,'--packaged-only','--main-workspace','--plan']
+  historical=subprocess.run(args,capture_output=True,text=True)
+  self.assertNotEqual(historical.returncode,0);self.assertIn('Frozen historical packaged manifest pin',historical.stderr)
+  args+=['--packaged-authority','prospective-v2']
   plan=json.loads(subprocess.run(args,capture_output=True,text=True,check=True).stdout)
-  self.assertEqual(plan['cohort'],module.REGISTRY_PACKAGED_SCOPE);self.assertIs(plan['sourceCopy'],False)
+  self.assertEqual(plan['cohort'],module.REGISTRY_PACKAGED_PROSPECTIVE_SCOPE);self.assertIs(plan['sourceCopy'],False)
+  self.assertEqual(plan['packagedAuthority'],'prospective-v2')
   self.assertTrue(plan['packaged']);self.assertEqual(plan['fixture'],module.REGISTRY_PACKAGED_FIXTURE)
-  self.assertEqual(plan['manifestSha256'],module.REGISTRY_PACKAGED_MANIFEST_SHA256);self.assertEqual(plan['packageDigest'],module.REGISTRY_PACKAGED_DIGEST)
+  self.assertEqual(plan['manifestSha256'],module.REGISTRY_PACKAGED_PROSPECTIVE_MANIFEST_SHA256);self.assertEqual(plan['packageDigest'],module.REGISTRY_PACKAGED_PROSPECTIVE_DIGEST)
   self.assertEqual(plan['stores'],[]);self.assertEqual(plan['bounds']['postgresBytes'],0)
   self.assertEqual(plan['bounds']['modelCalls'],0);self.assertEqual(plan['bounds']['browserCalls'],0)
   for extra in (['--startup-only'],['--invocation-journal'],['--mcp-impersonation-v43'],['--registry-rendered']):
@@ -604,6 +997,192 @@ class Contracts(unittest.TestCase):
   self.assertNotEqual(subprocess.run([v for v in args if v!='--main-workspace'],capture_output=True).returncode,0)
   alias=[('--registry-packaged' if value=='--packaged-only' else value) for value in args]
   self.assertEqual(json.loads(subprocess.run(alias,capture_output=True,text=True,check=True).stdout),plan)
+
+ def test_packaged_authority_selection_rejects_cross_cohort_and_swapped_pins(self):
+  base=['python3','-B',str(PATH),'--docker-host',module.HOST,'--main-workspace','--plan']
+  prospective=['--registry-packaged','--packaged-authority','prospective-v2']
+  for bad in (['--packaged-authority','prospective-v2'],
+              prospective+['--registry-rendered'],prospective+['--mcp-description-v39'],
+              prospective+['--startup-only'],prospective+['--invocation-journal'],
+              prospective+['--packaged-manifest-sha256',module.REGISTRY_PACKAGED_MANIFEST_SHA256],
+              prospective+['--packaged-authority','historical']):
+   self.assertNotEqual(subprocess.run(base+bad,capture_output=True).returncode,0,bad)
+  for bad in ('unknown','v39',''):
+   self.assertNotEqual(subprocess.run(base+['--registry-packaged','--packaged-authority',bad],capture_output=True).returncode,0,bad)
+  selected=base+prospective+['--packaged-manifest-sha256',module.REGISTRY_PACKAGED_PROSPECTIVE_MANIFEST_SHA256]
+  self.assertEqual(json.loads(subprocess.run(selected,capture_output=True,text=True,check=True).stdout)['packagedAuthority'],'prospective-v2')
+  with mock.patch.dict(module.REGISTRY_PACKAGED_AUTHORITIES,{'prospective-v2':(
+   module.REGISTRY_PACKAGED_MANIFEST_SHA256,module.REGISTRY_PACKAGED_PROSPECTIVE_DIGEST,
+   module.REGISTRY_PACKAGED_PROSPECTIVE_SCOPE)}):
+   with self.assertRaisesRegex(RuntimeError,'prospective-v2 packaged manifest pin'):
+    module.packaged_authority(module.SOURCE,'prospective-v2')
+
+ def test_existing_image_selector_is_prospective_only_with_zero_build_plan(self):
+  base=['python3','-B',str(PATH),'--docker-host',module.HOST,'--main-workspace','--plan']
+  selected=base+['--registry-packaged','--packaged-authority','prospective-v2','--reuse-v23-packaged-image']
+  plan=json.loads(subprocess.run(selected,capture_output=True,text=True,check=True).stdout)
+  self.assertEqual(plan['cohort'],module.REGISTRY_PACKAGED_PROSPECTIVE_SCOPE)
+  self.assertEqual((plan['imageOrigin'],plan['imageBuildCalls']),('existing-v23-imported',0))
+  self.assertIs(plan['qualification'],False)
+  ordinary=json.loads(subprocess.run(selected[:-1],capture_output=True,text=True,check=True).stdout)
+  self.assertEqual((ordinary['imageOrigin'],ordinary['imageBuildCalls']),('owned-build',1))
+  for suffix in (['--registry-packaged','--reuse-v23-packaged-image'],
+                 ['--reuse-v23-packaged-image'],
+                 ['--registry-packaged','--packaged-authority','historical','--reuse-v23-packaged-image'],
+                 ['--registry-packaged','--packaged-authority','prospective-v2','--reuse-v23-packaged-image','--buildx',module.BUILDX],
+                 ['--registry-packaged','--packaged-authority','prospective-v2','--reuse-v23-packaged-image','--buildx-sha256','a'*64]):
+   self.assertNotEqual(subprocess.run(base+suffix,capture_output=True).returncode,0,suffix)
+
+ def test_original_v39_rendered_reuse_is_distinct_from_packaged_and_historical_modes(self):
+  self.assertNotEqual(module.V39_NATIVE_SHA256,module.V39_CURRENT_HOST_NATIVE_SHA256)
+  self.assertEqual(module.sha(module.SOURCE/module.V43_NATIVE),module.V39_CURRENT_HOST_NATIVE_SHA256)
+  self.assertEqual(module.sha(module.SOURCE/module.V39_CURRENT_HOST_TEST),module.V39_CURRENT_HOST_TEST_SHA256)
+  with self.assertRaisesRegex(RuntimeError,'Frozen V39 source pins required'):
+   module.verify_v39_sources(module.SOURCE)
+  module.verify_v39_sources(module.SOURCE,current_host_v39=True)
+  original_sha=module.sha
+  with mock.patch.object(module,'sha',side_effect=lambda path:'0'*64 if pathlib.Path(path)==module.SOURCE/module.V39_CURRENT_HOST_TEST else original_sha(path)):
+   with self.assertRaisesRegex(RuntimeError,'current-host admission test required'):
+    module.verify_v39_sources(module.SOURCE,current_host_v39=True)
+  temporary=tempfile.TemporaryDirectory();self.addCleanup(temporary.cleanup)
+  browser=pathlib.Path(temporary.name)/'controlled-browser'
+  browser.write_bytes(b'controlled plan-time executable');browser.chmod(0o700)
+  base=['/opt/homebrew/bin/python3','-B',str(PATH),'--docker-host',module.HOST,'--main-workspace',
+        '--registry-rendered','--mcp-description-v39','--plan','--browser',str(browser),
+        '--browser-root',str(browser.parent),'--browser-sha256',module.sha(browser),
+        '--rendered-source-sha256','a'*64]
+  chosen=base+['--packaged-authority','prospective-v2','--reuse-v23-rendered-v39-image',
+               '--packaged-manifest-sha256',module.REGISTRY_PACKAGED_PROSPECTIVE_MANIFEST_SHA256]
+  plan=json.loads(subprocess.run(chosen,capture_output=True,text=True,check=True).stdout)
+  self.assertEqual(plan['cohort'],module.V39_SCOPE)
+  self.assertEqual((plan['imageOrigin'],plan['imageBuildCalls']),('existing-v23-imported',0))
+  self.assertEqual(plan['packageDigest'],module.REGISTRY_PACKAGED_PROSPECTIVE_DIGEST)
+  self.assertEqual(len(plan['stores']),4);self.assertIs(plan['qualification'],False)
+  for bad in (chosen+['--registry-packaged'],
+              [value for value in chosen if value!='--mcp-description-v39'],
+              [value for value in chosen if value!='--reuse-v23-rendered-v39-image'],
+              chosen+['--reuse-v23-packaged-image'],chosen+['--buildx',module.BUILDX],
+              [module.REGISTRY_PACKAGED_MANIFEST_SHA256 if value==module.REGISTRY_PACKAGED_PROSPECTIVE_MANIFEST_SHA256 else value for value in chosen]):
+   self.assertNotEqual(subprocess.run(bad,capture_output=True).returncode,0,bad)
+  source=PATH.read_text()
+  self.assertIn("'create',*(['--pull','never'] if using_reused_image else [])",source)
+  self.assertIn("if args.reuse_v23_rendered_v39_image:\n      env.update(MCP_DESCRIPTION_V39_CURRENT_HOST_EVIDENCE='1'",source)
+  self.assertIn("state['reusedPackageIntegrity']=packaged_postflight(SOURCE,'prospective-v2'",source)
+  self.assertIn("if args.reuse_v23_rendered_v39_image:source_contracts += (V39_CURRENT_HOST_TEST,V39_MUX_RELAY)",source)
+
+ def test_existing_v23_image_evidence_and_docker_identity_fail_closed(self):
+  with self.assertRaisesRegex(RuntimeError,'prospective packaged authority'):
+   module.reusable_v23_image(module.SOURCE,'historical')
+  proof=module.reusable_v23_image(module.SOURCE,'prospective-v2')
+  self.assertEqual(proof['runtimeImageId'],module.REUSED_V23_IMAGE['runtimeImageId'])
+  self.assertEqual(proof['packageDigest'],module.REGISTRY_PACKAGED_PROSPECTIVE_DIGEST)
+  self.assertEqual(proof['imageOrigin'],'existing-v23-imported')
+  with mock.patch.dict(module.REUSED_V23_IMAGE,{'archiveBytes':1}):
+   with self.assertRaisesRegex(RuntimeError,'evidence file identity'):
+    module.reusable_v23_image(module.SOURCE,'prospective-v2')
+  good={'Id':proof['runtimeImageId'],'Descriptor':proof['descriptor'],'Architecture':'arm64','Os':'linux',
+        'Config':{'User':'10001:10001','Entrypoint':['node','sidecars/sandbox-runner/owned-mcp-registry/http-listener.js'],
+                  'Labels':{'dvaia.registry.package':proof['packageDigest'],'dvaia.build-run':proof['runId']}},
+        'RepoTags':None,'RepoDigests':None}
+  self.assertIs(module.admit_reused_image_row(good,proof),good)
+  for changed in ({**good,'Id':proof['configImageId']},
+                  {**good,'Descriptor':{**proof['descriptor'],'size':1}},
+                  {**good,'RepoTags':['unexpected:tag']},
+                  {**good,'Config':{**good['Config'],'Labels':{'dvaia.registry.package':proof['packageDigest'],'dvaia.build-run':'other'}}}):
+   with self.assertRaisesRegex(RuntimeError,'identity mismatch'):
+    module.admit_reused_image_row(changed,proof)
+
+ def test_existing_image_inventory_is_complete_and_live_path_never_builds_or_removes_it(self):
+  from types import SimpleNamespace
+  image=module.REUSED_V23_IMAGE['runtimeImageId']
+  rows=image+' <none>:<none>\nsha256:'+'a'*64+' postgres:18\n'
+  def response(argv):return SimpleNamespace(returncode=0,stdout=rows,stderr='')
+  with mock.patch.object(module,'verify_daemon') as verified:
+   self.assertEqual(module.reusable_image_inventory(response),sorted(rows.splitlines()))
+   verified.assert_called_once_with(response,module.DAEMON_ID)
+   for bad in (rows+rows.splitlines()[0]+'\n','invalid\n'):
+    with self.assertRaisesRegex(RuntimeError,'inventory invalid'):
+     module.reusable_image_inventory(lambda argv:SimpleNamespace(returncode=0,stdout=bad,stderr=''))
+   with self.assertRaisesRegex(RuntimeError,'inventory unavailable'):
+    module.reusable_image_inventory(lambda argv:SimpleNamespace(returncode=1,stdout='',stderr='denied'))
+  source=PATH.read_text();tree=ast.parse(source)
+  main=next(node for node in tree.body if isinstance(node,ast.FunctionDef) and node.name=='main')
+  branches=[node for node in ast.walk(main) if isinstance(node,ast.If) and ast.unparse(node.test)=='using_reused_image']
+  self.assertGreaterEqual(len(branches),2)
+  build=next(node for node in ast.walk(main) if isinstance(node,ast.Call) and isinstance(node.func,ast.Attribute)
+             and node.func.attr=='Popen' and any(isinstance(arg,ast.Name) and arg.id=='build_args' for arg in node.args))
+  self.assertFalse(any(build in ast.walk(statement) for branch in branches for statement in branch.body))
+  self.assertIn("using_reused_image=args.reuse_v23_packaged_image or args.reuse_v23_rendered_v39_image",source)
+  self.assertIn("state['cleanup'].update(reused_image_cleanup_postflight(command,tag,reuse_proof,reuse_inventory,errors))",source)
+  self.assertIn("'create',*(['--pull','never'] if using_reused_image else [])",source)
+  expected=ast.dump(ast.parse("state['cleanup'].update(reused_image_cleanup_postflight(command,tag,reuse_proof,reuse_inventory,errors))").body[0])
+  self.assertTrue(any(ast.dump(statement)==expected for branch in branches for statement in branch.body))
+
+ def test_reused_image_postflight_runs_after_prior_cleanup_failure_and_checks_independently(self):
+  proof={**module.REUSED_V23_IMAGE,'descriptor':{'mediaType':'application/vnd.oci.image.manifest.v1+json',
+          'digest':module.REUSED_V23_IMAGE['runtimeImageId'],'size':2827},
+         'packageDigest':module.REGISTRY_PACKAGED_PROSPECTIVE_DIGEST}
+  row={'Id':proof['runtimeImageId'],'Descriptor':proof['descriptor'],'Architecture':'arm64','Os':'linux',
+       'Config':{'User':'10001:10001','Entrypoint':['node','sidecars/sandbox-runner/owned-mcp-registry/http-listener.js'],
+                 'Labels':{'dvaia.registry.package':proof['packageDigest'],'dvaia.build-run':proof['runId']}},
+       'RepoTags':None,'RepoDigests':None}
+  inventory=[proof['runtimeImageId']+' <none>:<none>'];checks=[]
+  def inspect(command,kind,name):
+   checks.append(('inspect',name));return row if name==proof['runtimeImageId'] else None
+  def images(command):checks.append(('all-images',));return list(inventory)
+  errors=['injected network cleanup failure']
+  with mock.patch.object(module,'inspect_resource',side_effect=inspect),mock.patch.object(module,'reusable_image_inventory',side_effect=images):
+   outcome=module.reused_image_cleanup_postflight(lambda argv:None,'owned:tag',proof,inventory,errors)
+  self.assertEqual(outcome,{'imageTagAbsent':True,'existingImagePreserved':True,'allImageInventoryPreserved':True})
+  self.assertEqual(errors,['injected network cleanup failure'])
+  self.assertEqual(checks,[('inspect','owned:tag'),('inspect',proof['runtimeImageId']),('all-images',)])
+  checks.clear();errors=[]
+  def failing_inspect(command,kind,name):
+   checks.append(('inspect',name))
+   if name=='owned:tag':raise RuntimeError('injected tag inspection failure')
+   return row
+  with mock.patch.object(module,'inspect_resource',side_effect=failing_inspect),mock.patch.object(module,'reusable_image_inventory',side_effect=images):
+   outcome=module.reused_image_cleanup_postflight(lambda argv:None,'owned:tag',proof,inventory,errors)
+  self.assertEqual(outcome,{'imageTagAbsent':False,'existingImagePreserved':True,'allImageInventoryPreserved':True})
+  self.assertIn('injected tag inspection failure',errors[0]);self.assertEqual(checks[-1],('all-images',))
+  checks.clear();errors=[]
+  with mock.patch.object(module,'inspect_resource',side_effect=inspect),mock.patch.object(module,'reusable_image_inventory',return_value=['different']):
+   outcome=module.reused_image_cleanup_postflight(lambda argv:None,'owned:tag',proof,inventory,errors)
+  self.assertIs(outcome['allImageInventoryPreserved'],False)
+  self.assertTrue(any('allImageInventoryPreserved' in error for error in errors))
+  tree=ast.parse(PATH.read_text())
+  expected=ast.dump(ast.parse("state['cleanup'].update(reused_image_cleanup_postflight(command,tag,reuse_proof,reuse_inventory,errors))").body[0])
+  handler=ast.dump(ast.parse('try: pass\nexcept Exception as error: errors.append(str(error))').body[0].handlers[0])
+  self.assertTrue(any(isinstance(before,ast.Try) and any(ast.dump(item)==handler for item in before.handlers)
+    and isinstance(after,ast.If) and ast.unparse(after.test)=='using_reused_image'
+    and any(ast.dump(statement)==expected for statement in after.body)
+    for node in ast.walk(tree) for _,body in ast.iter_fields(node) if isinstance(body,list)
+    for before,after in zip(body,body[1:])))
+
+ def test_packaged_prospective_rejects_changed_input_labels_and_postflight_drift(self):
+  root=module.SOURCE;selection='prospective-v2'
+  manifest,rows=module.packaged_authority(root,selection);pins=module.packaged_control_pins(root)
+  expected={'sourceCount':20,'packagedAuthority':selection,'cohort':module.REGISTRY_PACKAGED_PROSPECTIVE_SCOPE,
+            'manifestSha256':module.REGISTRY_PACKAGED_PROSPECTIVE_MANIFEST_SHA256,
+            'packageDigest':module.REGISTRY_PACKAGED_PROSPECTIVE_DIGEST}
+  self.assertEqual(module.packaged_postflight(root,selection,manifest,rows,pins),expected)
+  first=root/next(iter(manifest['files']));original_sha=module.sha
+  with mock.patch.object(module,'sha',side_effect=lambda path:'0'*64 if pathlib.Path(path)==first else original_sha(path)):
+   with self.assertRaisesRegex(RuntimeError,'input digest mismatch'):module.packaged_authority(root,selection)
+   with self.assertRaisesRegex(RuntimeError,'input digest mismatch'):module.packaged_postflight(root,selection,manifest,rows,pins)
+  with mock.patch.object(module,'packaged_control_pins',return_value={**pins,'changed':'0'*64}):
+   with self.assertRaisesRegex(RuntimeError,'controls changed'):module.packaged_postflight(root,selection,manifest,rows,pins)
+  with self.assertRaisesRegex(RuntimeError,'authority or controls changed'):
+   module.packaged_postflight(root,selection,manifest,{**rows,'changed':{}},pins)
+  owner='owned';labels={'dvaia.owner':owner,'dvaia.registry.package':module.REGISTRY_PACKAGED_PROSPECTIVE_DIGEST,
+   'dvaia.registry.authority':selection,'dvaia.registry.cohort':module.REGISTRY_PACKAGED_PROSPECTIVE_SCOPE}
+  module.packaged_image_labels(labels,owner,selection)
+  for field,value in (('dvaia.owner','other'),('dvaia.registry.package',module.REGISTRY_PACKAGED_DIGEST),
+                      ('dvaia.registry.authority','historical'),('dvaia.registry.cohort',module.REGISTRY_PACKAGED_SCOPE)):
+   with self.assertRaisesRegex(RuntimeError,'authority mismatch'):
+    module.packaged_image_labels({**labels,field:value},owner,selection)
+  with self.assertRaisesRegex(RuntimeError,'Unknown packaged authority'):
+   module.packaged_image_labels(labels,owner,'unknown')
  def test_packaged_receipt_is_exact_fixture_schema_and_bounded(self):
   good={'status':'passed','modelCalls':0,'runtimeDigest':'a'*64,'cases':list(module.REGISTRY_PACKAGED_CASES)}
   script="""const c=require('./server/services/secureshopMcpRegistryDiscoveryContract'),q=require('./server/services/secureshopMcpRegistryContract'),{mcpSchemaDigest}=require('./server/services/secureshopMcpSchemaDigest'),{createHash}=require('node:crypto');
@@ -632,9 +1211,9 @@ console.log(JSON.stringify({discoveryReceipt:{version:1,operationId,registryRequ
   import ast
   tree=ast.parse(PATH.read_text());full=PATH.read_text()
   self.assertEqual(module.native_child_argv(registry_packaged=True),[str(module.NODE),module.REGISTRY_PACKAGED_FIXTURE])
-  self.assertIn("'dvaia.registry.package='+REGISTRY_PACKAGED_DIGEST",full)
+  self.assertIn("'dvaia.registry.package='+packaged_digest",full)
   self.assertIn("'exec',executor,'node','/app/'+REGISTRY_PACKAGED_FIXTURE",full)
-  self.assertIn("final_authority,final_rows=packaged_authority(SOURCE)",full)
+  self.assertIn("state['finalIntegrity']=packaged_postflight(SOURCE,args.packaged_authority,authority,source_rows,control_pins)",full)
  def test_v42_native_plan_is_closed_current_main_four_store_no_model_browser(self):
   args=['python3','-B',str(PATH),'--docker-host',module.HOST,'--main-workspace','--mcp-registry-ssrf-v42-native','--plan']
   plan=json.loads(subprocess.run(args,capture_output=True,text=True,check=True).stdout)
@@ -739,4 +1318,157 @@ console.log(JSON.stringify({version:1,original:{binding:p.binding,personaSession
    for part,mutate in [(0,lambda v:v.update(judgeCalls=0)),(1,lambda v:v['calls'][0].update(responseSha256='a'*64)),(2,lambda v:v['transcripts'][0]['calls'][0].update(attempt=2)),(3,lambda v:v['original']['source'].update(requestId='30000000-0000-4000-8000-000000000003')),(3,lambda v:v['fences'].update(activeAfter=[{}]))]:
     changed=json.loads(json.dumps(values));mutate(changed[part]);put(changed)
     with self.assertRaises(RuntimeError):module.v42_receipt(*paths)
+class V39OwnedMuxRelay(unittest.TestCase):
+ def test_closed_mux_admission_rejects_changed_socket_master_config_and_timeout(self):
+  with tempfile.TemporaryDirectory(prefix='m',dir=module.SOURCE/'tasks') as directory:
+   source=pathlib.Path(directory);config=source/'.qualification/ssh_config'
+   generated=source/'tasks/l/colima-goat-q/ssh.config'
+   identity=source/'tasks/l/_config/user';sock=source/mux_relay.MUX_SUFFIX
+   for parent in (config.parent,generated.parent,identity.parent):parent.mkdir(parents=True,exist_ok=True)
+   identity.write_bytes(b'controlled fixture identity path only');identity.chmod(0o600)
+   rows={'IdentityFile':f'"{identity}"','StrictHostKeyChecking':'no','UserKnownHostsFile':'/dev/null',
+         'NoHostAuthenticationForLocalhost':'yes','PreferredAuthentications':'publickey',
+         'Compression':'no','BatchMode':'yes','IdentitiesOnly':'yes','GSSAPIAuthentication':'no',
+         'Ciphers':'"^aes128-gcm@openssh.com,aes256-gcm@openssh.com"','User':'lima',
+         'ControlMaster':'auto','ControlPath':f'"{sock}"','ControlPersist':'yes',
+         'Hostname':'127.0.0.1','Port':'59355'}
+   def contents(host):return f'Host {host}\n'+''.join(f'  {key} {value}\n' for key,value in rows.items())
+   config.write_text(contents('colima-goat-q'))
+   generated.write_text(contents('lima-colima-goat-q'))
+   listener=socket.socket(socket.AF_UNIX);listener.bind(str(sock));sock.chmod(0o600)
+   def run(argv,**kwargs):
+    if '-O' in argv:return SimpleNamespace(stdout='',stderr='Master running (pid=4242)\n')
+    return SimpleNamespace(stdout='ssh 4242 user 3u IPv4 0t0 TCP 127.0.0.1:59384->127.0.0.1:59355 (ESTABLISHED)\n',stderr='')
+   row=SimpleNamespace(uid=os.getuid(),ruid=os.getuid(),start_sec=1234,start_usec=5678)
+   api=SimpleNamespace(identity=lambda pid:row if pid==4242 else None)
+   try:
+    admitted=mux_relay.admit_existing_mux(source,run=run,api=api,pid_path=lambda pid:mux_relay.SSH)
+    self.assertEqual(admitted['masterBirth'],(1234,5678))
+    self.assertEqual(admitted,mux_relay.admit_existing_mux(source,admitted,run=run,api=api,pid_path=lambda pid:mux_relay.SSH))
+    self.assertIn('ProxyCommand=/usr/bin/false',mux_relay.mux_command(admitted))
+    channel=mux_relay.channel_command(admitted,'172.20.0.5',8094)
+    self.assertLess(channel.index('-W'),channel.index('colima-goat-q'))
+    with self.assertRaises(ValueError):mux_relay.channel_command(admitted,'127.0.0.1',8094)
+    with self.assertRaises(ValueError):mux_relay.channel_command(admitted,'172.20.0.5',8095)
+    with self.assertRaisesRegex(RuntimeError,'changed'):
+     mux_relay.admit_existing_mux(source,{**admitted,'masterBirth':(1234,0)},run=run,api=api,pid_path=lambda pid:mux_relay.SSH)
+    with self.assertRaisesRegex(RuntimeError,'master identity'):
+     mux_relay.admit_existing_mux(source,run=run,api=api,pid_path=lambda pid:'/untrusted/ssh')
+    with self.assertRaises(subprocess.TimeoutExpired):
+     mux_relay.admit_existing_mux(source,run=lambda argv,**kw: (_ for _ in ()).throw(subprocess.TimeoutExpired(argv,5)),api=api,pid_path=lambda pid:mux_relay.SSH)
+    sock.chmod(0o666)
+    with self.assertRaisesRegex(RuntimeError,'private Lima mux'):
+     mux_relay.admit_existing_mux(source,run=run,api=api,pid_path=lambda pid:mux_relay.SSH)
+    sock.chmod(0o600)
+    generated.write_text(contents('lima-colima-goat-q').replace('59355','59356'))
+    with self.assertRaisesRegex(RuntimeError,'configuration mismatch'):
+     mux_relay.admit_existing_mux(source,run=run,api=api,pid_path=lambda pid:mux_relay.SSH)
+    generated.write_text(contents('lima-colima-goat-q'))
+    config.write_text(contents('colima-goat-q')+'ProxyJump foreign\n')
+    with self.assertRaisesRegex(RuntimeError,'Closed Lima SSH configuration'):
+     mux_relay.admit_existing_mux(source,run=run,api=api,pid_path=lambda pid:mux_relay.SSH)
+   finally:listener.close();sock.unlink()
+   with self.assertRaises(FileNotFoundError):mux_relay.admit_existing_mux(source,run=run,api=api,pid_path=lambda pid:mux_relay.SSH)
+
+ def test_owned_relay_echoes_bounded_bytes_and_shuts_down_its_listener(self):
+  with socket.socket() as reservation:
+   reservation.bind(('127.0.0.1',0));port=reservation.getsockname()[1]
+  stop=threading.Event();failures=[]
+  def serve():
+   try:mux_relay.serve(module.SOURCE,{},'172.20.0.5',8094,port,stop)
+   except Exception as error:failures.append(error)
+  with mock.patch.object(mux_relay,'admit_existing_mux',return_value={}),mock.patch.object(mux_relay,'channel_command',return_value=['/bin/cat']):
+   worker=threading.Thread(target=serve);worker.start()
+   try:
+    deadline=time.monotonic()+3
+    while True:
+     try:client=socket.create_connection(('127.0.0.1',port),timeout=1);break
+     except ConnectionRefusedError:
+      if time.monotonic()>deadline:raise
+      time.sleep(.02)
+    with client:
+     client.settimeout(2);client.sendall(b'v39');self.assertEqual(client.recv(4),b'v39')
+   finally:
+    stop.set();worker.join(timeout=5)
+   self.assertFalse(worker.is_alive())
+   self.assertEqual(failures,[])
+   with self.assertRaises(ConnectionRefusedError):socket.create_connection(('127.0.0.1',port),timeout=.2)
+
+ def test_channel_setup_failure_reaps_exact_owned_child_and_closes_client(self):
+  client,peer=socket.socketpair()
+  children=set();guard=threading.Lock();stop=threading.Event();spawned=[]
+  original=subprocess.Popen
+  def spawn(*args,**kwargs):
+   child=original(*args,**kwargs);spawned.append(child);return child
+  try:
+   with mock.patch.object(mux_relay.subprocess,'Popen',side_effect=spawn), \
+        mock.patch.object(mux_relay.os,'set_blocking',side_effect=OSError('controlled setup failure')):
+    with self.assertRaisesRegex(OSError,'setup failure'):
+     mux_relay.relay_connection(client,['/bin/cat'],stop,children,guard)
+   self.assertEqual(len(spawned),1)
+   self.assertIsNotNone(spawned[0].poll())
+   self.assertEqual(children,set())
+   self.assertEqual(client.fileno(),-1)
+  finally:peer.close()
+
+ def test_channel_byte_cap_fails_closed_before_forwarding_excess(self):
+  client,peer=socket.socketpair()
+  children=set();stop=threading.Event()
+  try:
+   peer.sendall(b'12345');peer.shutdown(socket.SHUT_WR)
+   with mock.patch.object(mux_relay,'MAX_BYTES_PER_DIRECTION',4):
+    with self.assertRaisesRegex(RuntimeError,'byte cap'):
+     mux_relay.relay_connection(client,['/bin/cat'],stop,children,threading.Lock())
+   self.assertEqual(children,set())
+   self.assertEqual(client.fileno(),-1)
+  finally:peer.close()
+
+ def test_cancel_during_mux_readmission_never_spawns_channel(self):
+  with socket.socket() as reservation:
+   reservation.bind(('127.0.0.1',0));port=reservation.getsockname()[1]
+  stop=threading.Event();failures=[]
+  def serve():
+   try:mux_relay.serve(module.SOURCE,{},'172.20.0.5',8094,port,stop)
+   except Exception as error:failures.append(error)
+  def cancel(*_):stop.set();return {}
+  with mock.patch.object(mux_relay,'admit_existing_mux',side_effect=cancel), \
+       mock.patch.object(mux_relay.subprocess,'Popen') as spawn:
+   worker=threading.Thread(target=serve);worker.start()
+   try:
+    deadline=time.monotonic()+3
+    while True:
+     try:client=socket.create_connection(('127.0.0.1',port),timeout=.2);break
+     except ConnectionRefusedError:
+      if time.monotonic()>deadline:raise
+      time.sleep(.02)
+    client.close()
+   finally:worker.join(timeout=5)
+   self.assertFalse(worker.is_alive());self.assertEqual(failures,[])
+   spawn.assert_not_called()
+
+ def test_thread_start_failure_closes_accepted_socket_and_releases_slot(self):
+  with socket.socket() as reservation:
+   reservation.bind(('127.0.0.1',0));port=reservation.getsockname()[1]
+  errors=[];stop=threading.Event()
+  def serve():
+   try:mux_relay.serve(module.SOURCE,{},'172.20.0.5',8094,port,stop)
+   except Exception as error:errors.append(error)
+  server=threading.Thread(target=serve);server.start()
+  class NoStart:
+   def __init__(self,*,target,args,daemon):self.client=args[0]
+   def start(self):raise RuntimeError('controlled thread start failure')
+  try:
+   with mock.patch.object(mux_relay.threading,'Thread',NoStart):
+    deadline=time.monotonic()+3
+    while True:
+     try:client=socket.create_connection(('127.0.0.1',port),timeout=.2);break
+     except ConnectionRefusedError:
+      if time.monotonic()>deadline:raise
+      time.sleep(.02)
+    with client: self.assertEqual(client.recv(1),b'')
+  finally:server.join(timeout=5)
+  self.assertFalse(server.is_alive())
+  self.assertEqual(len(errors),1)
+  self.assertIn('thread start failure',str(errors[0]))
+
 if __name__=='__main__':unittest.main()

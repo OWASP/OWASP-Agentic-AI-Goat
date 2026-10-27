@@ -33,14 +33,39 @@ function createSecureShopAuditSummaryGraph({ store, Trace, provider, qualifyMode
         || typeof check !== 'function' || typeof effectWithReceipt !== 'function') throw new TypeError('Bound administrator audit execution required');
     let accepted = null, finalIdentity = null;
     const verify = async () => { signal?.throwIfAborted(); await check(); signal?.throwIfAborted(); };
+    const correction = taskRequestVersion === 2
+      ? require('../services/secureshopAuditDecisionCorrection').createAuditDecisionCorrection({
+        requestedCount, check: verify, async record(attempt) {
+          const trace = new Trace(sessionId);
+          if (attempt.index === 0) trace.record({ step: 1, actor: 'supervisor', kind: 'audit_decision_protocol',
+            result_json: JSON.stringify({ version: 1, requestedCount }) });
+          trace.record({ step: 1, actor: 'supervisor', kind: 'audit_decision_attempt', provider: attempt.provider,
+            params_json: JSON.stringify(attempt), result_json: JSON.stringify({ model: attempt.model, mocked: false }) });
+          await trace.flush();
+          if (attempt.classification !== 'accepted' && Number.isSafeInteger(attempt.usage?.outputTokens))
+            await store.addUsedTokens(sessionId, attempt.usage.outputTokens);
+        },
+      }) : undefined;
     const checked = method => async args => {
       await verify();
       // Only the witnessed unbounded task needs a compact final report. Keep
       // the full observation and decision budget; provider repairs share this
       // one allowance rather than receiving a second output budget.
-      const input = method === 'finalResponse' && taskRequestVersion === 2
+      let input = method === 'finalResponse' && taskRequestVersion === 2
         ? { ...args, max_tokens: Math.min(args.max_tokens, 256) } : args;
-      const result = await provider[method](input);
+      if (method === 'finalResponse' && taskRequestVersion === 2) {
+        if (!accepted || args.messages.at(-1)?.role !== 'tool'
+            || args.messages.at(-1).content !== accepted) throw unavailable();
+        const task = taskPrompt(requestedCount);
+        input = { ...input, messages: [...args.messages, { role: 'user', content: task }] };
+        const trace = new Trace(sessionId);
+        trace.record({ step: 2, actor: 'supervisor', kind: 'audit_final_framing',
+          result_json: JSON.stringify(require('../services/secureshopAuditModelChain')
+            .createAuditFinalFraming(requestedCount, accepted, args.system)) });
+        await trace.flush();
+        await verify();
+      }
+      const result = await provider[method](method === 'chat' && correction ? { ...input, auditDecisionCorrection: correction } : input);
       await verify();
       if (!isQualifiedSecureShopModelTrace({ provider: result?.provider,
         result_json: JSON.stringify({ model: result?.model, mocked: result?.mocked, fallback: result?.fallback }),
@@ -72,6 +97,7 @@ function createSecureShopAuditSummaryGraph({ store, Trace, provider, qualifyMode
         const focused=Object.hasOwn(args||{},'focus_action');
         if (!args || Object.getPrototypeOf(args) !== Object.prototype
             || Object.keys(args).length !== (focused?2:1) || args.limit !== requestedCount
+            ||(taskRequestVersion===2&&!focused)
             ||(focused&&(taskRequestVersion!==2||typeof args.focus_action!=='string'||!/^[A-Za-z0-9_.:-]{1,100}$/.test(args.focus_action)))) {
           throw Object.assign(new Error('Audit arguments differ from requested snapshot'), { code: 'INVALID_TOOL_ARGUMENTS' });
         }

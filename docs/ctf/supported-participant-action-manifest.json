@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "scope": "Source-reviewed partition of five advertised participant action variants only; not the complete CTF action denominator.",
+  "authority": "Mounted /api/ctf authority assembled by applicationServer -> ctfAuthorityProduction -> ctfAuthorityApplication -> ctfAuthorityRouter. Legacy server/routes/ctf.js is excluded.",
+  "qualification": "Physical browser, PostgreSQL, configured guardian/Judge, native recovery and objective-credit outcomes remain unverified by this source contract.",
+  "actions": [
+    {
+      "id": "ctf.participant.register",
+      "visibleControl": "Dashboard registration form submit",
+      "uiHandler": "handleRegister",
+      "request": {"method": "POST", "path": "/api/ctf/register"},
+      "dispatcher": {"kind": "register", "path": "runtime.mutate -> facade.execute -> lifecycle.enqueue"},
+      "effect": {"source": "server/database/postgres/ctfProjectionRepository.js", "case": "register", "operations": ["m.admitParticipant", "m.createSession", "m.recordRegistration"]},
+      "confirmation": "Submitting the form is the action; no separate confirmation dialog is advertised.",
+      "consequence": "May admit/reactivate a participant and create a CTF session/registration record; no objective credit at registration.",
+      "applicability": "Manual registration; no model or Objective Judge requirement inferred for this lifecycle effect.",
+      "recovery": "Operation-reference GET /api/ctf/operations/:operationId when supplied can pump a pending projection; it is a consequence continuation, not a read-only status query. References live in mounted-page memory only; lost acknowledgement without reference is unresolved."
+    },
+    {
+      "id": "ctf.participant.start",
+      "visibleControl": "Unlocked dashboard stage selection mounts challenge; initialization automatically starts the stage",
+      "uiHandler": "CTFChallenge.initialize",
+      "request": {"method": "POST", "path": "/api/ctf/stage/:stageId/start"},
+      "dispatcher": {"kind": "start", "path": "runtime.mutate -> facade.execute -> lifecycle.enqueue"},
+      "effect": {"source": "server/database/postgres/ctfProjectionRepository.js", "case": "start", "operations": ["m.startStage", "m.updateParticipantActivity", "m.recordStageStart"]},
+      "confirmation": "No separate start confirmation: challenge initialization sends the request after stage navigation.",
+      "consequence": "May mark progress in_progress and record start; not a stage-completion credit event.",
+      "applicability": "Automatic mount-triggered lifecycle action; no model or Objective Judge requirement inferred for start.",
+      "recovery": "Operation-reference GET /api/ctf/operations/:operationId when supplied can pump a pending projection; references live in mounted-page memory only."
+    },
+    {
+      "id": "ctf.participant.hint",
+      "visibleControl": "Unlock Hint button opens a cost dialog; Unlock confirms the indexed hint",
+      "uiHandler": "CTFChallenge.confirmHint",
+      "request": {"method": "POST", "path": "/api/ctf/stage/:stageId/hint"},
+      "dispatcher": {"kind": "hint", "path": "runtime.mutate -> facade.execute -> lifecycle.enqueue"},
+      "effect": {"source": "server/database/postgres/ctfProjectionRepository.js", "case": "hint", "operations": ["m.purchaseHint"]},
+      "confirmation": "Staged dialog displays cost and effective score; confirmation includes hintIndex. The server prepares current expectedHints and cost.",
+      "consequence": "Increments hints_used and hint_penalty_total; affects a later authorized completion score without itself awarding completion credit.",
+      "applicability": "Manual hint purchase; no model or Objective Judge requirement inferred for the purchase effect.",
+      "recovery": "Operation-reference GET /api/ctf/operations/:operationId when supplied can pump a pending projection; references live in mounted-page memory only."
+    },
+    {
+      "id": "ctf.participant.attempt",
+      "visibleControl": "Vulnerable challenge chat form submit",
+      "uiHandler": "handleSubmit",
+      "request": {"method": "POST", "path": "/api/ctf/stage/:stageId/attempt"},
+      "dispatcher": {"kind": "attemptHandlers.attempt", "path": "ownerWorkflowRoute -> runtime.attempt -> predefense/decision orchestration"},
+      "effect": {"source": "server/database/postgres/ctfDecisionProjectionAdapter.js", "case": "authorized decision", "operations": ["ctf.ctf_attempts INSERT", "ctf.ctf_progress UPDATE", "ctf.ctf_judgments INSERT", "ctf.refresh_authorized_leaderboard"]},
+      "otherEffects": {"source": "server/database/postgres/ctfProjectionRepository.js", "cases": ["admit_attempt", "record_blocked_attempt"], "operations": ["m.incrementAttempts", "m.logAttempt"]},
+      "confirmation": "Chat submission is the action; no separate attempt confirmation dialog.",
+      "consequence": "Blocked, unavailable, failed and pending attempts do not all award credit. Only an accepted authorized decision can set completed progress and authorized score.",
+      "applicability": "Scored vulnerable attempt: configured guardian and canonical Objective Judge path is source-wired; actual model/Judge/effect provenance is unverified.",
+      "recovery": "Attempt references may continue via predefense resume, decision authorize, publications or blocked-publications. Some GET publications can cause consequence publication; not read-only. References are mounted-page memory only."
+    },
+    {
+      "id": "ctf.participant.practice",
+      "visibleControl": "Fixed practice tab plus chat form submit",
+      "uiHandler": "handleSubmit",
+      "request": {"method": "POST", "path": "/api/ctf/stage/:stageId/practice"},
+      "dispatcher": {"kind": "practiceHandler", "path": "ownerWorkflowRoute -> runtime.practiceCapture/revalidate -> configured provider"},
+      "effect": {"source": "server/services/ctfFixedPracticeRoute.js", "case": "unscored response", "operations": ["provider.generateResponse", "runtime.practiceRevalidate", "scoringEligible:false"]},
+      "confirmation": "Selecting Fixed practice mode and submitting chat is the action; no separate confirmation dialog.",
+      "consequence": "Public-context unscored practice response; no scored transcript, completion credit, points or progression on this path.",
+      "applicability": "Configured model is source-wired for practice, but canonical Objective Judge and scored credit are not part of this route; no scored Fixed qualification claim.",
+      "recovery": "Current route returns 200/error, not an operation reference. The shared hook cannot establish durable recovery for a lost practice response."
+    }
+  ],
+  "unresolved": "This partition does not enumerate every CTF route, continuation, physical control or runtime outcome; Q05/Q08 complete-denominator and qualification claims remain open."
+}

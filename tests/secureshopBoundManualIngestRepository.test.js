@@ -331,13 +331,14 @@ test('malformed additive runtime receipt is rejected while original receipt rema
 // Controlled SQL-return fixtures test the same-transaction capture API. The
 // migration owns canonical JSONB storage and the adapter later reconstructs a
 // bounded private proof from that immutable snapshot.
-function lineageFixture({ replayed = false, mutate = () => {} } = {}) {
+function lineageFixture({ replayed = false, mutate = () => {}, isPublic = true } = {}) {
   const sha = value => require('node:crypto').createHash('sha256').update(value).digest('hex');
   const scene = createSceneBinding(binding, { sceneId: '60000000-0000-4000-8000-000000000091',
     sceneGeneration: 3, grantId: '70000000-0000-4000-8000-000000000091',
     execution: binding, withLease: work => work() });
   const requested = input();
-  const expected = row({ receipt_version: 2, scene_id: scene.scene.sceneId, scene_generation: '3',
+  requested.isPublic = isPublic;
+  const expected = row({ is_public:isPublic,receipt_version: 2, scene_id: scene.scene.sceneId, scene_generation: '3',
     scene_grant_id: scene.scene.grantId, execution_launch_id: binding.launchId,
     execution_scenario_id: binding.scenarioId, execution_generation: String(binding.generation),
     execution_platform_owner_id: binding.platformOwnerId, execution_platform_session_id: binding.platformSessionId,
@@ -350,7 +351,7 @@ function lineageFixture({ replayed = false, mutate = () => {} } = {}) {
   const pool = createPool((sql, params) => {
     if (sql.includes('assert_scene_execution_grant')) return { rows: [{ allowed: true }] };
     if (sql.includes('append_product_manual_retrieval_attested_scene')) return { rows: [appendResult(replayed, expected)] };
-    if (sql.includes('capture_product_manual_preimage')) {
+    if (sql.includes('capture_product_manual_preimage') || sql.includes('capture_private_product_manual_preimage')) {
       assert.deepEqual(params, [operationId, binding.targetId, JSON.stringify(requested.chunks)]);
       assert.match(sql, /\$1::uuid,\$2::uuid,\$3::jsonb/);
       return { rows: [capture] };
@@ -367,7 +368,7 @@ function lineageFixture({ replayed = false, mutate = () => {} } = {}) {
   return { scene, requested, pool, repo: repository(pool), proof };
 }
 
-test('private manual capture persists a compact immutable preimage reference in the append transaction', async () => {
+test('public-manual server-side provenance persists a compact immutable preimage reference in the append transaction', async () => {
   const f = lineageFixture();
   const captured = await f.repo.appendManualWithLineage(f.scene, f.requested);
   assert.deepEqual(captured.lineage, f.proof);
@@ -382,7 +383,7 @@ test('private manual capture persists a compact immutable preimage reference in 
   assert.equal(ordinary.pool.events.some(e => e[1]?.includes?.('capture_product_manual_preimage')), false);
 });
 
-test('private manual capture never backfills replay and returns only ineligible references on absent or altered snapshot receipts', async () => {
+test('public-manual server-side provenance never backfills replay and rejects altered snapshot receipts', async () => {
   for (const [options, reason] of [
     [{ replayed: true }, 'replayed_without_original'],
     [{ mutate: row => { row.operation_id = null; } }, 'capture_mismatch'],
@@ -399,10 +400,31 @@ test('private manual capture never backfills replay and returns only ineligible 
   }
 });
 
-test('private manual capture retains post-capture current-authority rollback', async () => {
+test('public-manual server-side provenance retains post-capture current-authority rollback', async () => {
   const f = lineageFixture(); let checks = 0;
   const repo = repository(f.pool, async () => { if (++checks === 2) throw Object.assign(Error('retired'), { code: 'STALE_LAUNCH' }); });
   await assert.rejects(repo.appendManualWithLineage(f.scene, f.requested), { code: 'STALE_LAUNCH' });
   assert.ok(f.pool.events.some(e => e[1] === 'ROLLBACK'));
   assert.equal(f.pool.events.some(e => e[1] === 'COMMIT'), false);
+});
+test('private-manual provenance uses closed private capture while the original public entrypoint stays ineligible',async()=>{
+  const f=lineageFixture({isPublic:false});
+  const result=await f.repo.appendManualWithProtectedLineage(f.scene,f.requested);
+  assert.deepEqual(result.lineage,{eligible:false,reason:'private_manual'});
+  assert.deepEqual(result.protectedLineage,f.proof);
+  assert.equal(f.pool.events.some(e=>e[1]?.includes?.('capture_private_product_manual_preimage')),true);
+  assert.equal(f.pool.events.some(e=>e[1]?.includes?.('capture_product_manual_preimage')),false);
+  const old=lineageFixture({isPublic:false});
+  const denied=await old.repo.appendManualWithLineage(old.scene,old.requested);
+  assert.deepEqual(denied.lineage,{eligible:false,reason:'private_manual'});
+  assert.equal(Object.hasOwn(denied,'protectedLineage'),false);
+  assert.equal(old.pool.events.some(e=>e[1]?.includes?.('capture_')),false);
+  const replay=lineageFixture({isPublic:false,replayed:true});
+  assert.deepEqual((await replay.repo.appendManualWithProtectedLineage(replay.scene,replay.requested)).protectedLineage,
+    {eligible:false,reason:'replayed_without_original'});
+  assert.equal(replay.pool.events.some(e=>e[1]?.includes?.('capture_')),false);
+  const publicInput=lineageFixture();
+  const publicResult=await publicInput.repo.appendManualWithProtectedLineage(publicInput.scene,publicInput.requested);
+  assert.deepEqual(publicResult.lineage,publicInput.proof);
+  assert.equal(Object.hasOwn(publicResult,'protectedLineage'),false);
 });

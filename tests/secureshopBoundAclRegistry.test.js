@@ -95,7 +95,7 @@ test('pricing comparison successor preserves 56 prior capabilities and adds one 
  assert.equal(require('node:crypto').createHash('sha256').update(JSON.stringify({version:19,rows:V19_REGISTRY})).digest('hex'),'ac2df913bae81b4ca258cc6b30f6b62ecee9b975b37d30a13b14e2963b393daf');
  assert.equal(require('node:crypto').createHash('sha256').update(JSON.stringify({version:20,rows:V20_REGISTRY})).digest('hex'),MERCHANT_MAIL_PREDECESSOR_REGISTRY_SHA256);
  assert.equal(require('node:crypto').createHash('sha256').update(JSON.stringify({version:29,rows:V29_REGISTRY})).digest('hex'),'bc8edf04a8a13b42871d01699c19c0782d6093fc190df49c999a8d877228fd71');
- assert.equal(REGISTRY_VERSION,36);assert.equal(REGISTRY_SHA256,'48ac68d48fdf589a234b07dd6f80b1b70d399d4bcfed65d55e2647255750fe56');
+ assert.equal(REGISTRY_VERSION,39);assert.equal(REGISTRY_SHA256,'e16a47c5c7a57a9ee60b4982795e4eb7592cf311fb4e9ee52bbbde6d73cd605f');
  const couponProbe=REGISTRY.find(row=>row.toolKey===COUPON_PROBE_KEY); assert.equal(couponProbe.workflow,'coupon-probe'); assert.deepEqual(couponProbe.defaultAllowed,{customer:true,merchant:false,admin:false}); assert.deepEqual(V27_REGISTRY_UPGRADES[COUPON_PROBE_PREDECESSOR_REGISTRY_SHA256],[COUPON_PROBE_KEY]);
  const couponResolver=createBoundAclResolver({workflow:'coupon-probe',declaredTools:[{agent:'cart',tool:'apply_coupon'}]}); assert.equal(couponResolver.isRoleApplicable('customer'),true); assert.equal(couponResolver.isRoleApplicable('merchant'),false); assert.equal(couponResolver.resolve('cart','apply_coupon').toolKey,COUPON_PROBE_KEY);
  const byRole=[['customer-chat','customer',['user-management.set_role','catalog.search','cart.view',TICKET_PREPARE_KEY,COUPON_PREPARE_KEY,...ADDED_TOOL_KEYS.slice(0,10),ADDRESS_SETUP_KEY,ADDRESS_EDIT_SETUP_KEY,REFUND_SETUP_KEY,...PROFILE_CHAT_KEYS]],
@@ -351,7 +351,7 @@ test('0111 reconstructs exact prior guard, retains historical branches and exten
   assert(v.constraint_additions.includes(`encode(predecessor_sha256,'hex')='${prior}' AND encode(successor_sha256,'hex')='${R.UPLOAD_PREVIEW_PREDECESSOR_REGISTRY_SHA256}' AND jsonb_array_length(added_denials)=${denials.length}`));
  }
  assert.doesNotMatch(sql,/UPDATE secureshop_agents|DELETE FROM|TRUNCATE|GRANT /);
- const readiness=fs.readFileSync(path.join(__dirname,'../server/database/postgres/secureshopBoundToolPolicyReadiness.js'),'utf8');assert(read('0112_upload_preview_registry_successor.sql').includes(v.upgraded_guard_sha256));assert(readiness.includes('bound_tool_registry_successor_v36'));
+ const readiness=fs.readFileSync(path.join(__dirname,'../server/database/postgres/secureshopBoundToolPolicyReadiness.js'),'utf8');assert(read('0112_upload_preview_registry_successor.sql').includes(v.upgraded_guard_sha256));assert(readiness.includes('bound_tool_registry_successor_v39'));
 });
 
 test('v35 preview has its own customer-only declaration and exact unchanged v34 predecessor',()=>{
@@ -369,7 +369,7 @@ test('v35 preview has its own customer-only declaration and exact unchanged v34 
 });
 
 test('0112 exact trigger successor preserves historical guards and adds only complete preview denial edges',()=>{
- const fs=require('node:fs'),path=require('node:path'),H=require('../tasks/reconstruct-secureshop-registry-guard.cjs'),R=require('../server/services/secureshopBoundAclRegistry');
+ const fs=require('node:fs'),path=require('node:path'),H=require('./helpers/secureshopRegistryGuard'),R=require('../server/services/secureshopBoundAclRegistry');
  const dir=path.join(__dirname,'../db/postgres/workshop-migrations/secureshop_agents');let body=H.reconstruct();
  for(const name of ['0108_file_summary_registry_successor.sql','0111_admin_user_lookup_registry_successor.sql','0112_upload_preview_registry_successor.sql']){
   const sql=fs.readFileSync(path.join(dir,name),'utf8'),v=H.constants(sql);assert.equal(H.hash(body),v.old_guard_sha256);
@@ -387,15 +387,15 @@ test('0112 exact trigger successor preserves historical guards and adds only com
     assert(v.constraint_additions.includes(`jsonb_array_length(added_denials)=${denials.length}`));
    }
    assert.doesNotMatch(sql,/UPDATE secureshop_agents|DELETE FROM|TRUNCATE|GRANT /);
-   const readiness=fs.readFileSync(path.join(__dirname,'../server/database/postgres/secureshopBoundToolPolicyReadiness.js'),'utf8');assert(fs.readFileSync(path.join(dir,'0114_customer_agency_role_registry_successor.sql'),'utf8').includes(v.upgraded_guard_sha256));assert(readiness.includes('bound_tool_registry_successor_v36'));
+   const readiness=fs.readFileSync(path.join(__dirname,'../server/database/postgres/secureshopBoundToolPolicyReadiness.js'),'utf8');assert(fs.readFileSync(path.join(dir,'0114_customer_agency_role_registry_successor.sql'),'utf8').includes(v.upgraded_guard_sha256));assert(readiness.includes('bound_tool_registry_successor_v39'));
   }
  }
 });
 
 test('v36 promotes only customer teaching role applicability, retaining legacy defaults and secure admin preparation',()=>{
- const R=require('../server/services/secureshopBoundAclRegistry'),H=require('../tasks/reconstruct-secureshop-registry-guard.cjs');
+ const R=require('../server/services/secureshopBoundAclRegistry'),H=require('./helpers/secureshopRegistryGuard');
  assert.equal(H.hash(JSON.stringify({version:35,rows:V35_REGISTRY})),R.AGENCY_ROLE_PREDECESSOR_REGISTRY_SHA256);
- assert.deepEqual(R.REGISTRY.filter(row=>row.toolKey!==R.AGENCY_ROLE_KEY),V35_REGISTRY.filter(row=>row.toolKey!==R.AGENCY_ROLE_KEY));
+ assert.deepEqual(require('./helpers/secureshopHistoricalRegistry').registryV36Rows(R.REGISTRY).filter(row=>row.toolKey!==R.AGENCY_ROLE_KEY),V35_REGISTRY.filter(row=>row.toolKey!==R.AGENCY_ROLE_KEY));
  const row=R.REGISTRY.find(row=>row.toolKey===R.AGENCY_ROLE_KEY);
  assert.deepEqual(row,{toolKey:'user-management.set_role',workflow:'customer-chat',supported:true,roleApplicability:{customer:true,merchant:false,admin:false},defaultAllowed:{customer:false,merchant:false,admin:true}});
  const declaredTools=R.REGISTRY.filter(row=>row.workflow==='customer-chat').map(row=>{const[agent,tool]=row.toolKey.split('.');return{agent,tool};});
@@ -403,12 +403,12 @@ test('v36 promotes only customer teaching role applicability, retaining legacy d
  assert.equal(resolver.resolve('user-management','set_role'),row);assert.equal(resolver.isRoleApplicable('customer'),true);
  for(const role of ['merchant','admin'])assert.equal(resolver.isRoleApplicable(role),false);
  assert.equal(resolver.resolve('admin','role_change_prepare'),null);
- for(const [prior,keys]of Object.entries(R.PRE_AGENCY_ROLE_REGISTRY_UPGRADES))assert.deepEqual(R.REGISTRY_UPGRADES[prior],[...keys,R.AGENCY_ROLE_KEY]);
- assert.deepEqual(R.REGISTRY_UPGRADES[R.AGENCY_ROLE_PREDECESSOR_REGISTRY_SHA256],[R.AGENCY_ROLE_KEY]);
+ for(const [prior,keys]of Object.entries(R.PRE_AGENCY_ROLE_REGISTRY_UPGRADES))assert.deepEqual(R.PRE_MCP_REGISTRATION_REGISTRY_UPGRADES[prior],[...keys,R.AGENCY_ROLE_KEY]);
+ assert.deepEqual(R.PRE_MCP_REGISTRATION_REGISTRY_UPGRADES[R.AGENCY_ROLE_PREDECESSOR_REGISTRY_SHA256],[R.AGENCY_ROLE_KEY]);
 });
 
 test('0114 reconstructs exact v36 guard, preserving every old edge and admitting only canonical new denials',()=>{
- const fs=require('node:fs'),path=require('node:path'),H=require('../tasks/reconstruct-secureshop-registry-guard.cjs'),R=require('../server/services/secureshopBoundAclRegistry');
+ const fs=require('node:fs'),path=require('node:path'),H=require('./helpers/secureshopRegistryGuard'),R=require('../server/services/secureshopBoundAclRegistry');
  const dir=path.join(__dirname,'../db/postgres/workshop-migrations/secureshop_agents');let body=H.reconstruct();
  for(const name of ['0108_file_summary_registry_successor.sql','0111_admin_user_lookup_registry_successor.sql','0112_upload_preview_registry_successor.sql','0114_customer_agency_role_registry_successor.sql']){
   const sql=fs.readFileSync(path.join(dir,name),'utf8'),v=H.constants(sql),before=body;
@@ -419,22 +419,22 @@ test('0114 reconstructs exact v36 guard, preserving every old edge and admitting
   assert.equal(H.hash(body),v.upgraded_guard_sha256);
   if(!name.startsWith('0114'))continue;
   assert.equal(body.replace(v.old_edge+'\n'+v.new_edges,v.old_edge).replace(v.v36_branch+v.v35_branch,v.v35_branch).replace('\n END IF;'+v.denial_anchor,v.denial_anchor),before);
-  assert.equal(Object.keys(R.REGISTRY_UPGRADES).length,35);
-  for(const [prior,keys]of Object.entries(R.REGISTRY_UPGRADES)){
+  assert.equal(Object.keys(R.PRE_MCP_REGISTRATION_REGISTRY_UPGRADES).length,35);
+  for(const [prior,keys]of Object.entries(R.PRE_MCP_REGISTRATION_REGISTRY_UPGRADES)){
    const denials=R.REGISTRY.filter(row=>keys.includes(row.toolKey)).flatMap(row=>R.ROLES.filter(role=>row.roleApplicability[role]).map(role=>({toolKey:row.toolKey,role})));
-   assert(v.new_edges.includes(`(encode(NEW.predecessor_sha256,'hex')='${prior}' AND encode(NEW.successor_sha256,'hex')='${R.REGISTRY_SHA256}')`));
+   assert(v.new_edges.includes(`(encode(NEW.predecessor_sha256,'hex')='${prior}' AND encode(NEW.successor_sha256,'hex')='${R.MCP_REGISTRATION_PREDECESSOR_REGISTRY_SHA256}')`));
    assert(v.v36_branch.includes(`WHEN '${prior}' THEN '${JSON.stringify(denials)}'::jsonb`));
-   assert(v.constraint_additions.includes(`encode(predecessor_sha256,'hex')='${prior}' AND encode(successor_sha256,'hex')='${R.REGISTRY_SHA256}' AND jsonb_array_length(added_denials)=${denials.length}`));
+   assert(v.constraint_additions.includes(`encode(predecessor_sha256,'hex')='${prior}' AND encode(successor_sha256,'hex')='${R.MCP_REGISTRATION_PREDECESSOR_REGISTRY_SHA256}' AND jsonb_array_length(added_denials)=${denials.length}`));
    assert.deepEqual(denials.filter(row=>row.toolKey===R.AGENCY_ROLE_KEY),[{toolKey:R.AGENCY_ROLE_KEY,role:'customer'}]);
   }
   assert.match(sql,/constraint_def:=regexp_replace\(constraint_def/);
   assert.match(sql,/REVOKE ALL ON FUNCTION secureshop_agents.guard_bound_tool_registry_upgrade\(\) FROM PUBLIC,dvaia_secureshop_agents_runtime/);
   assert.doesNotMatch(sql,/UPDATE secureshop_agents|DELETE FROM|TRUNCATE|GRANT /);
   const readiness=fs.readFileSync(path.join(__dirname,'../server/database/postgres/secureshopBoundToolPolicyReadiness.js'),'utf8');
-  assert(readiness.includes(v.upgraded_guard_sha256));assert(readiness.includes('bound_tool_registry_successor_v36'));
+  assert(fs.readFileSync(path.join(dir,'0116_mcp_registration_registry_successor.sql'),'utf8').includes(v.upgraded_guard_sha256));assert(readiness.includes('bound_tool_registry_successor_v39'));
   const oldSql=fs.readFileSync(path.join(dir,'0112_upload_preview_registry_successor.sql'),'utf8');
   const lengths=text=>text.match(/added_denials\) IN \(([^)]+)\)/)[1].split(',').map(Number);
-  const expected=[...new Set([...lengths(oldSql),...Object.values(R.REGISTRY_UPGRADES).map(keys=>keys.length)])].sort((a,b)=>a-b);
-  assert.deepEqual(lengths(sql),expected);assert(readiness.includes('Object.freeze(['+expected.join(',')+'])'));
+  const expected=[...new Set([...lengths(oldSql),...Object.values(R.PRE_MCP_REGISTRATION_REGISTRY_UPGRADES).map(keys=>keys.length)])].sort((a,b)=>a-b);
+  assert.deepEqual(lengths(sql),expected);assert(readiness.includes('Object.freeze(['+[...expected,78,79,80].join(',')+'])'));
  }
 });

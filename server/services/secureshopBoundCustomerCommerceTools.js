@@ -40,7 +40,7 @@ const COMMERCE_TOOLS = Object.freeze([
   spec('payment', 'methods', 'List synthetic local payment choices; never request card numbers.', EMPTY.properties, []),
   spec('payment', 'create_method', 'Open trusted setup for an approved or declined synthetic practice payment. This creates no payment method; the customer must review and confirm. Never request real card details.',
     { scenario: { type: 'string', enum: ['approved', 'declined'] } }, ['scenario']),
-  spec('checkout', 'prepare', 'Prepare an exact order proposal from selected address and synthetic payment choices. This does not place the order.',
+  spec('checkout', 'prepare', 'Prepare a fresh checkout quote from the customer-selected address and synthetic payment choices. This tool resolves those current owned choices, reads the current cart and effective prices, and checks current stock when preparing the proposal; separate cart.view, account.addresses, and payment.methods reads do not prepare a quote. This does not place an order; the customer must review and confirm in the trusted control.',
     { addressChoiceId: CHOICE, paymentChoiceId: CHOICE }, ['addressChoiceId', 'paymentChoiceId']),
 ]);
 

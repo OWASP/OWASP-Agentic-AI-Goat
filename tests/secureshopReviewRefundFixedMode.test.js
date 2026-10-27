@@ -73,7 +73,7 @@ function reviewRuntimeFixture(responses, onChat = () => {}) {
     async getBoundSession(id) { return sessions.get(id); }, async activateBoundSession() { return true; },
     async getMessages(id) { return messages.get(id) || []; }, async appendMessage(id, _binding, row) { messages.set(id, [...(messages.get(id) || []), row]); },
     async getTokens() { return 0; }, async addTokens() {}, async appendTraces(_id, _binding, rows) { traces.push(...rows); },
-  }, journal: { async lookupGeneralRequest() { return null; }, async claim() { return { status: 'claimed', claimId: 'c' }; },
+  }, journal: { async lookupReviewModerationRequest() { return null; }, async claim() { return { status: 'claimed', claimId: 'c' }; },
     async complete() {}, async markUncertain() {} },
   coordinator: { async reset(_id, work) { return work(); }, async run(_id, _options, work) { return work({
     runId: randomUUID(), ownerKey: 'fixed-review', durableGeneration: '1', async check() {},

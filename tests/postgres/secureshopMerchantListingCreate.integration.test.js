@@ -215,14 +215,14 @@ test('merchant listing create preserves populated history, previews without effe
       assert.deepEqual(await throughReview(reviewDirectory, 46)(pools.REVIEW_MIGRATION, reviewDirectory),
         ['0045_customer_address_receipts.sql', '0046_customer_profile_receipts.sql']);
       assert.deepEqual(await retainedRows(review), committed); assert.deepEqual(await creationRows(), creations);
-      assert.deepEqual(await migrate(pools.REVIEW_MIGRATION, reviewDirectory), [rawMigration]);
+      assert.deepEqual(await throughReview(reviewDirectory, 47)(pools.REVIEW_MIGRATION, reviewDirectory), [rawMigration]);
       const upgraded = await creationRows();
       assert.deepEqual(upgraded.map(({ receipt_version, source_document, ...row }) => {
         assert.equal(receipt_version, 1); assert.equal(source_document, null); return row;
       }), creations);
       assert.deepEqual(await retainedRows(review), committed);
       assert.deepEqual(await catalog.readMerchantListingCreate({ ...owner.context, operationId }), { ...receipt, replayed: true });
-      assert.deepEqual(await migrate(pools.REVIEW_MIGRATION, reviewDirectory), []);
+      assert.deepEqual(await throughReview(reviewDirectory, 47)(pools.REVIEW_MIGRATION, reviewDirectory), []);
       assert.deepEqual(await creationRows(), upgraded); assert.deepEqual(await retainedRows(review), committed);
       const rawLedger = (await pools.REVIEW_MIGRATION.query('SELECT * FROM dvaia_migrations.ledger WHERE name=$1', [rawMigration])).rows;
       assert.equal(rawLedger.length, 1);
@@ -270,6 +270,96 @@ test('merchant listing create preserves populated history, previews without effe
       assert.deepEqual(await retainedRows(review), beforeStale); assert.deepEqual(await creationRows(), receiptsBeforeStale);
       await assert.rejects(pools.REVIEW_MIGRATION.query(`UPDATE secureshop_review.owned_merchant_listing_create_receipts
         SET source_document=source_document WHERE operation_id=$1`, [rawOperation]), { code: '55000' });
+      // Manual business operations: controlled PostgreSQL durability/trigger proof only.
+      // No assistant preparation, model invocation, assessment, or credit is synthesized.
+      const beforeCurrentUpgrade = await retainedRows(review), receiptsBeforeCurrentUpgrade = await creationRows();
+      assert.deepEqual(await migrate(pools.REVIEW_MIGRATION, reviewDirectory), [
+        '0048_owned_idor_lesson_receipts.sql', '0049_bound_support_ticket_receipts.sql',
+        '0050_product_embedding_revision_preimages.sql', '0051_bound_system_restart_full_receipts.sql',
+        '0052_bound_upload_journal.sql', '0053_bound_upload_reconciliation_aliases.sql',
+        '0054_owned_listing_image_optimize.sql',
+        '0055_private_manual_original_preimages.sql',
+      ]);
+      assert.deepEqual(await retainedRows(review), beforeCurrentUpgrade);
+      assert.deepEqual(await creationRows(), receiptsBeforeCurrentUpgrade);
+      assert.deepEqual(await migrate(pools.REVIEW_MIGRATION, reviewDirectory), []);
+      const manualItem = { name: 'Manual owned listing', description: 'Full manual fields', price: 14.25,
+        category: 'manual fixture', images: ['/owned-first.png', '/owned-second.png'], templateSource: '{{ name }}' };
+      const manualReady = await catalog.manualListingReadiness(owner.context);
+      const beforeManual = await retainedRows(review), receiptsBeforeManual = await creationRows();
+      const manualPreview = await catalog.previewManualMerchantListingCreate({ ...owner.context, listing: manualItem });
+      assert.equal(manualPreview.scopeKey, manualReady.createScopeKey);
+      assert.deepEqual(await retainedRows(review), beforeManual); assert.deepEqual(await creationRows(), receiptsBeforeManual);
+      const manualOperation = randomUUID(), manualArgs = { ...owner.context, operationId: manualOperation, preview: manualPreview };
+      // Concurrent identical submissions serialize on the owned target: exactly one effect.
+      const concurrent = await Promise.all([catalog.confirmManualMerchantListingCreate(manualArgs),
+        catalog.confirmManualMerchantListingCreate(manualArgs)]);
+      assert.deepEqual(concurrent.map(row => row.replayed).sort(), [false, true]);
+      const manualReceipt = concurrent.find(row => !row.replayed);
+      assert.deepEqual(concurrent.find(row => row.replayed), { ...manualReceipt, replayed: true });
+      // Discarding the confirm response models a lost client acknowledgement; authoritative GET is sufficient.
+      assert.deepEqual(await catalog.readManualMerchantListingCreate({ ...owner.context, operationId: manualOperation }),
+        { ...manualReceipt, replayed: true });
+      const manualCommitted = await retainedRows(review), manualRows = await creationRows();
+      assert.equal(manualCommitted.products.length, beforeManual.products.length + 1);
+      assert.equal(manualCommitted.owners.length, beforeManual.owners.length + 1);
+      assert.equal(manualCommitted.audits.length, beforeManual.audits.length + 1);
+      assert.equal(manualRows.length, receiptsBeforeManual.length + 1);
+      const manualRow = manualRows.find(row => row.operation_id === manualOperation);
+      assert.equal(manualRow.receipt_version, 1); assert.equal(manualRow.source_document, null);
+      const manualProduct = manualCommitted.products.find(row => row.target_id === owner.target.targetId && row.product_id === manualReceipt.productId);
+      assert.deepEqual(manualProduct.images, manualItem.images); assert.equal(manualProduct.image_url, manualItem.images[0]);
+      assert.equal(manualProduct.template_source, manualItem.templateSource); assert.equal(manualProduct.description_html, null);
+      assert.equal((await catalog.readMerchantListingCreate({ ...owner.context, operationId: manualOperation })).status, 'not_found');
+      assert.equal((await catalog.readManualMerchantListingCreate({ ...owner.context, operationId })).status, 'not_found');
+      await assert.rejects(catalog.readMerchantListingCreateSource({ ...owner.context, operationId: manualOperation }), { code: 'LISTING_CREATE_SOURCE_UNAVAILABLE' });
+      await assert.rejects(catalog.confirmMerchantListingCreate({ ...owner.context, operationId: manualOperation, preview }));
+      await assert.rejects(catalog.confirmManualMerchantListingCreate({ ...owner.context, operationId, preview: manualPreview }));
+      const changedManual = await catalog.previewManualMerchantListingCreate({ ...owner.context, listing: { ...manualItem, images: [] } });
+      await assert.rejects(catalog.confirmManualMerchantListingCreate({ ...manualArgs, preview: changedManual }));
+      await assert.rejects(catalog.confirmManualMerchantListingCreate({ ...manualArgs, ...sibling.context }), { code: 'SHOP_AUTH_INVALID' });
+      assert.equal((await catalog.readManualMerchantListingCreate({ ...sibling.context, operationId: manualOperation })).status, 'not_found');
+      await assert.rejects(catalog.confirmManualMerchantListingCreate({ ...manualArgs,
+        personaSession: { ...owner.context.personaSession, authorityVersion: '999999' } }));
+      assert.deepEqual(await retainedRows(review), manualCommitted); assert.deepEqual(await creationRows(), manualRows);
+      // Controlled provenance row exercises the real existing invalidation trigger, not model evidence.
+      const generatedHtml = 'Controlled generated presentation';
+      // Seed only the mutable presentation overlay, as rewrite publication does.
+      // The product birth snapshot must remain immutable, even for migration roles.
+      await pools.REVIEW_MIGRATION.query(`INSERT INTO secureshop_review.product_target_listing_overlays
+        (target_id,product_id,shop_user_id,name,description,description_html,price,category,
+         image_url,images,stock_quantity,status,template_source)
+        SELECT target_id,product_id,retailer_id,name,description,$3,price,category,
+          image_url,images,stock_quantity,status,template_source
+        FROM secureshop_review.product_target_products WHERE target_id=$1 AND product_id=$2`,
+      [owner.target.targetId, manualReceipt.productId, generatedHtml]);
+      await pools.REVIEW_MIGRATION.query(`INSERT INTO secureshop_review.owned_listing_generated_products
+        (target_id,product_id,rewrite_operation_id,source_name,source_description,source_sha256,html_sha256)
+        VALUES($1,$2,$3,$4,$5,$6,$7)`, [owner.target.targetId, manualReceipt.productId, randomUUID(),
+        manualItem.name, manualItem.description, createHash('sha256').update('controlled fixture source').digest('hex'),
+        createHash('sha256').update(generatedHtml).digest('hex')]);
+      const editedItem = { ...manualItem, name: 'Manual updated listing', images: ['/replacement.png', '/retained-second.png'], templateSource: '{{ description }}' };
+      const manualEditPreview = await catalog.previewManualMerchantListingEdit({ ...owner.context,
+        productId: manualReceipt.productId, listing: editedItem });
+      assert.equal(manualEditPreview.scopeKey, manualReady.editScopeKey);
+      assert.equal(manualEditPreview.invalidatesGeneratedHtml, true); assert.equal(manualEditPreview.after.descriptionHtml, null);
+      const manualEditOperation = randomUUID(), beforeManualEdit = await retainedRows(review);
+      const manualEditArgs = { ...owner.context, operationId: manualEditOperation, preview: manualEditPreview };
+      const editReceipts = await Promise.all([catalog.confirmManualMerchantListingEdit(manualEditArgs), catalog.confirmManualMerchantListingEdit(manualEditArgs)]);
+      assert.deepEqual(editReceipts.map(row => row.replayed).sort(), [false, true]);
+      const manualEditReceipt = editReceipts.find(row => !row.replayed), afterManualEdit = await retainedRows(review);
+      assert.equal(afterManualEdit.edits.length, beforeManualEdit.edits.length + 1);
+      assert.equal(afterManualEdit.audits.length, beforeManualEdit.audits.length + 1);
+      const manualOverlay = afterManualEdit.overlays.find(row => row.target_id === owner.target.targetId && row.product_id === manualReceipt.productId);
+      assert.deepEqual(manualOverlay.images, editedItem.images); assert.equal(manualOverlay.image_url, editedItem.images[0]);
+      assert.equal(manualOverlay.template_source, editedItem.templateSource); assert.equal(manualOverlay.description_html, null);
+      assert.equal((await review.query(`SELECT count(*)::integer AS n FROM secureshop_review.owned_listing_generated_products
+        WHERE target_id=$1 AND product_id=$2`, [owner.target.targetId, manualReceipt.productId])).rows[0].n, 0);
+      assert.deepEqual(await catalog.readManualMerchantListingEdit({ ...owner.context, operationId: manualEditOperation }), { ...manualEditReceipt, replayed: true });
+      assert.equal((await catalog.readMerchantListingEdit({ ...owner.context, operationId: manualEditOperation })).status, 'not_found');
+      assert.equal((await catalog.readManualMerchantListingEdit({ ...owner.context, operationId: oldOperation })).status, 'not_found');
+      await assert.rejects(catalog.confirmManualMerchantListingEdit({ ...manualEditArgs, operationId: randomUUID() }));
+      assert.deepEqual(await retainedRows(review), afterManualEdit, 'stale CAS cannot append overlay, audit or receipt');
       const peerPreview = await catalog.previewMerchantListingCreate({ ...sibling.context, listing: { name: 'Independent sibling listing', price: 4 } });
       const peerOperation = randomUUID(), peerReceipt = await catalog.confirmMerchantListingCreate({ ...sibling.context, operationId: peerOperation, preview: peerPreview });
       const finalRows = await retainedRows(review), finalReceipts = await creationRows();
@@ -277,6 +367,10 @@ test('merchant listing create preserves populated history, previews without effe
         idempotencyKey: 'q31-create-reset-admission' });
       await assert.rejects(catalog.confirmMerchantListingCreate({ ...owner.context, operationId: randomUUID(), preview }));
       await assert.rejects(catalog.readMerchantListingCreate({ ...owner.context, operationId }));
+      await assert.rejects(catalog.manualListingReadiness(owner.context));
+      await assert.rejects(catalog.confirmManualMerchantListingCreate(manualArgs));
+      await assert.rejects(catalog.readManualMerchantListingCreate({ ...owner.context, operationId: manualOperation }));
+      await assert.rejects(catalog.readManualMerchantListingEdit({ ...owner.context, operationId: manualEditOperation }));
       assert.deepEqual(await retainedRows(review), finalRows, 'reset admission/denied create preserves birth data and historical audits');
       assert.deepEqual(await creationRows(), finalReceipts, 'reset admission preserves both immutable receipt versions');
       await assert.rejects(catalog.readMerchantListingCreateSource({ ...owner.context, operationId: rawOperation }));

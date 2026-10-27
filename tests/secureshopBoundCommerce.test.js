@@ -307,6 +307,7 @@ test('profile save reads canonical persona before the cross-store effect lock',a
  assert.deepEqual(events.slice(-3),['save','release','admission']);
 });
 test('conversational recovery reads keep current authority without entering the mutation uncertainty fence',async()=>{
+ const facade=require('../server/services/secureshopConversationalCommerce').createConversationalCommerce;
  const sessionId='40000000-0000-4000-8000-000000000001',operationId='70000000-0000-4000-8000-000000000001';
  const scene=require('../server/services/secureshopSceneBinding').createSceneBinding(target,
   {sceneId:'50000000-0000-4000-8000-000000000001',sceneGeneration:1,
@@ -325,7 +326,8 @@ test('conversational recovery reads keep current authority without entering the 
    async assertRemoteAdmission(){checks++;if(revoked)throw Object.assign(Error('retired'),{code:'SHOP_AUTH_INVALID'});},
    async withCrossStoreEffect(){effects++;throw Error('Read entered effect boundary');}};}}});
  const input={scope,persona:{id:41,role:'customer'},personaSession:{sessionId,authorityVersion:'1'}};
- await assert.rejects(service.conversational({...input,method:'readOperation',args:{operationId}}),error=>error===foreign);
+ await assert.rejects(facade({commerce:service}).readOperation({...input,args:{operationId}}),error=>
+  error===foreign&&error.code==='COMMERCE_OPERATION_CONFLICT');
  assert.equal(checks,3);assert.equal(effects,0);
  await assert.rejects(service.conversational({...input,method:'readTurnOperations',args:{sessionId,requestId:operationId}}),
   {code:'SHOP_AUTH_INVALID'});

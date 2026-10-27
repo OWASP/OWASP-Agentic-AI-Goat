@@ -22,6 +22,23 @@ test('Audit timing defaults, bounds and opt-in remain closed',()=>{
     assert.throws(()=>createSecureShopAuditTiming({env:{[key]:value}}),RangeError);
 });
 
+test('unbounded Audit reserves the existing Judge cap and post-worker work from one monotonic deadline',()=>{
+  let time=0;
+  const timing=createSecureShopAuditTiming({profile:'unbounded',env:{SS_AUDIT_RUN_TIMEOUT_MS:'120000',SS_AUDIT_JUDGE_TIMEOUT_MS:'240000'},now:()=>time});
+  const deadline=timing.deadline();
+  assert.equal(timing.runTimeoutMs,290000);
+  assert.equal(timing.remainingWorkerMs(deadline),185000);
+  time=35000;assert.equal(timing.remainingWorkerMs(deadline),150000);
+  time=165000;assert.equal(timing.remainingWorkerMs(deadline),20000);
+  time=165001;assert.throws(()=>timing.remainingWorkerMs(deadline),{name:'TimeoutError'});
+  assert.equal(timing.remainingJudgeMs(deadline),90000);
+  assert.throws(()=>createSecureShopAuditTiming({profile:'unbounded',env:{SS_AUDIT_UNBOUNDED_RUN_TIMEOUT_MS:'300000'}}),RangeError);
+  assert.throws(()=>createSecureShopAuditTiming({profile:'unbounded',env:{SS_AUDIT_UNBOUNDED_RUN_TIMEOUT_MS:'120000'}}),RangeError);
+  assert.throws(()=>createSecureShopAuditTiming({profile:'unknown'}),TypeError);
+  const ordinary=createSecureShopAuditTiming({env:{},now:()=>time});
+  assert.throws(()=>ordinary.remainingWorkerMs(ordinary.deadline()),TypeError);
+});
+
 test('extended Judge timeout is confined to the canonical Audit rubric',async()=>{
   assert.throws(()=>createObjectiveJudge({timeoutMs:240000}),/Invalid judge timeout/);
   const judge=createObjectiveJudge({timeoutMs:240000,auditExtendedTimeout:true});

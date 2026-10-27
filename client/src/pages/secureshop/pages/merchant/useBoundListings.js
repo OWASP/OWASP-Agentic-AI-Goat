@@ -68,7 +68,7 @@ export function useBoundListings(authToken,transport){
   const e=epoch.current,token=authToken,fetcher=transport,scopeKey=capability?.scopeKey;
   if(!scopeKey||!current(e,token,fetcher))throw Error('Listings session changed');
   const stored=decodeListingsReferences(shopStorage.getItem(KEY)),actual=listingsForScope(stored,scopeKey);
-  const comparable=value=>JSON.stringify(['rewrite','import','optimize','save','template','assessment'].map(key=>value[key]?.length===0?null:value[key]??null));
+  const comparable=value=>JSON.stringify(['rewrite','import','optimize','save','template','manualCreate','manualEdit','assessment'].map(key=>value[key]?.length===0?null:value[key]??null));
   if(comparable(actual)!==comparable(pending.current))throw Error('Saved Listings reference changed. Check its outcome before another action.');
   const raw=JSON.stringify(replaceListingsScope(stored,scopeKey,next));decodeListingsReferences(raw);
   shopStorage.setItem(KEY,raw);await flushShopStorage();

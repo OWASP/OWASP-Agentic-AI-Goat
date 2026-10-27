@@ -77,7 +77,10 @@ function createBoundListings({launches,conversationRepository,journal,coordinato
       const declared=request.action==='import'?(resume?TOOLS.filter(x=>x.tool==='publish'):TOOLS):request.action==='optimize'?[OPTIMIZE_TOOL]:[];
       const runner=createBoundAgentRunner({
         ...promptPolicyRunnerOptions(promptPolicyRepository,personaAuthority,{recipient:'listing'}),
-        ...(toolPolicyRepository&&['import','optimize'].includes(request.action)?{toolPolicyAdmission:require('./secureshopBoundToolPolicyAdmission').createBoundToolPolicyAdmission({repository:toolPolicyRepository,workflow:request.action==='optimize'?'listing-optimize':'listing-import',declaredTools:declared})}:{}),
+        // Policy admission binds the complete immutable workflow catalog. The
+        // phase-specific manifest and checkToolAcl below still expose publish
+        // only during resume; an ACL catalog is not permission to refetch.
+        ...(toolPolicyRepository&&['import','optimize'].includes(request.action)?{toolPolicyAdmission:require('./secureshopBoundToolPolicyAdmission').createBoundToolPolicyAdmission({repository:toolPolicyRepository,workflow:request.action==='optimize'?'listing-optimize':'listing-import',declaredTools:request.action==='import'?TOOLS:declared})}:{}),
         turns,conversations,repository:conversationRepository,journal,provider:checkedProvider,pool:unavailablePool,
         manifest:{getForRole:role=>role==='merchant'?declared:[]},
         buildBasePrompt:()=>request.action==='rewrite'

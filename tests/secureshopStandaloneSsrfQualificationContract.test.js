@@ -253,7 +253,7 @@ test('V27 wire joins exact original tool and structured final model response, ne
   [wires[0],call({answer:original.html},{format:FINAL_RESPONSE_SCHEMA,messages:[]})]])assert.throws(()=>assertPolicyOutputOriginalWire(original,changed));
 });
 
-test('V27 final Judge verifier accepts the real two-criterion producer shape and rejects copied provenance or repair',async()=>{
+for(const satisfied of [[true,true],[false,true],[true,false],[false,false]])test(`V27 configured Judge continuation verifies both original criteria ${satisfied.join('/')} without inventing model proof`,async()=>{
  const {fixture,qualify,browser}=require('./secureshopPolicyFinalHtmlEvidence.test');
  const {validatePolicyFinalHtmlOriginal}=require('../server/services/secureshopPolicyFinalHtmlOriginal');
  const {RUBRIC,buildPolicyFinalHtmlCandidate}=require('../server/services/secureshopPolicyFinalHtmlEvidence');
@@ -265,21 +265,68 @@ test('V27 final Judge verifier accepts the real two-criterion producer shape and
  const wire=[];process.env.JUDGE_PROVIDER='ollama';process.env.JUDGE_MODEL=MODEL;process.env.OLLAMA_BASE_URL='http://127.0.0.1:1';
  global.fetch=async(url,options)=>{assert.equal(new URL(url).origin,'http://127.0.0.1:1');const request=options.body;
   const content=JSON.parse(JSON.parse(request).messages[1].content).evidence[0],id=content.id;
-  const quote=id==='policy_final_source'?content.content.finalResponse:content.content.observation;
-  const response=JSON.stringify({model:MODEL,message:{role:'assistant',content:JSON.stringify({satisfied:true,evidenceRefs:[id],citations:[{evidenceId:id,quote}]})},done:true,done_reason:'stop',prompt_eval_count:20,eval_count:20})+'\n';
+  const quote=id==='policy_final_source'?content.content.finalResponse:content.content.observation,accepted=satisfied[wire.length];
+  assert.equal(typeof accepted,'boolean','No repair or extra criterion call permitted');
+  const response=JSON.stringify({model:MODEL,message:{role:'assistant',content:JSON.stringify({satisfied:accepted,evidenceRefs:accepted?[id]:[],citations:accepted?[{evidenceId:id,quote}]:[]})},done:true,done_reason:'stop',prompt_eval_count:20,eval_count:20})+'\n';
   wire.push({role:'judge',caseId:'attack',status:'returned',request,response,requestSha256:sha(request),responseSha256:sha(response)});
   return new Response(response,{status:200,headers:{'content-type':'application/x-ndjson'}});};
  try{
   const result=await createObjectiveJudge({observeExecutionTranscript:value=>{transcript=value;}})(input);
-  assert.equal(result.verdict,'pass');assert.equal(wire.length,2);const proof=readConfiguredJudgeProvenance(result);assert(proof);
+  const expectedVerdict=satisfied.every(Boolean)?'pass':'fail';
+  assert.equal(result.verdict,expectedVerdict);assert.deepEqual(result.criteria.map(row=>row.satisfied),satisfied);
+  assert.equal(wire.length,2);const proof=readConfiguredJudgeProvenance(result);assert(proof);
   const serialized=JSON.stringify(result),stored={objective_id:RUBRIC.objectiveId,family:RUBRIC.family,scenario:RUBRIC.scenario,rubric_version:RUBRIC.version,
-   verdict:'pass',disposition:'awarded',mode:'vuln',packet:prepared.packet,evidence_digest:prepared.evidenceDigest,result_serialized:serialized,result_digest:sha(serialized),
+   verdict:expectedVerdict,disposition:expectedVerdict==='pass'?'awarded':'not_pass',mode:'vuln',packet:prepared.packet,evidence_digest:prepared.evidenceDigest,result_serialized:serialized,result_digest:sha(serialized),
    result_json:result,judge_result_json:serialized,judge_observations:proof,run_id:b.execution.runId,owner_key:b.execution.ownerKey,owner_generation:'0'};
-  const args={original,stored,result,wire,transcript};assert.equal(assertPolicyOutputJudgment(args).actualModelProof,false);
-  assert.throws(()=>assertPolicyOutputJudgment({...args,result:structuredClone(result)}));
-  for(const change of [s=>{s.judge_observations.calls[1].attempt=2;},s=>{s.packet+=' ';},s=>{s.disposition='not_pass';}]){
-   const changed=structuredClone(stored);change(changed);assert.throws(()=>assertPolicyOutputJudgment({...args,stored:changed}));
+  const args={original,stored,result,wire,transcript},options={expectedVerdict};
+  assert.equal(assertPolicyOutputJudgment(args,options).actualModelProof,false);
+  if(expectedVerdict==='fail')assert.throws(()=>assertPolicyOutputJudgment(args),'Default still requires pass');
+  assert.throws(()=>assertPolicyOutputJudgment({...args,result:structuredClone(result)},options));
+  for(const change of [s=>{s.judge_observations.calls[1].attempt=2;},s=>{s.packet+=' ';},s=>{s.disposition=expectedVerdict==='pass'?'not_pass':'awarded';},s=>{s.verdict='inconclusive';}]){
+   const changed=structuredClone(stored);change(changed);assert.throws(()=>assertPolicyOutputJudgment({...args,stored:changed},options));
   }
-  const changed=structuredClone(transcript);changed.calls[0].disposition='rejected';assert.throws(()=>assertPolicyOutputJudgment({...args,transcript:changed}));
+  const changed=structuredClone(transcript);changed.calls[0].disposition='rejected';assert.throws(()=>assertPolicyOutputJudgment({...args,transcript:changed},options));
+  for(const alter of [w=>w.pop(),w=>w[1].response+=' ',w=>w[0].status='unavailable']){
+   const wireCopy=structuredClone(wire);alter(wireCopy);assert.throws(()=>assertPolicyOutputJudgment({...args,wire:wireCopy},options));
+  }
+  for(const verdict of ['inconclusive','unavailable',null])assert.throws(()=>assertPolicyOutputJudgment(args,{expectedVerdict:verdict}));
  }finally{global.fetch=prior;for(const k of keys)if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k];}
+});
+
+test('V27 terminal continuation binds the exact evaluation and all three credit tables',()=>{
+ const H=require('./fixtures/secureshopStandaloneSsrfQualification');
+ const make=passed=>({outcome:{completed:passed,judgment:{evaluationId:id(91),verdict:passed?'pass':'fail',canRetry:false}},
+  stored:{objective_id:H.POLICY_OUTPUT_OBJECTIVE,evaluation_id:id(91),verdict:passed?'pass':'fail',disposition:passed?'awarded':'not_pass'},
+  credit:Object.fromEntries(['active_assessment_contributions','assessment_contributions','assessment_completions'].map(k=>[k,passed?[{evaluation_id:id(91)}]:[]]))});
+ for(const passed of [false,true]){
+  assert.equal(H.assertPolicyOutputTerminal(make(passed)),passed);
+  for(const mutate of [
+   v=>v.outcome.judgment.evaluationId=id(92),v=>v.outcome.completed=!passed,
+   v=>v.outcome.judgment.verdict='inconclusive',v=>v.stored.verdict='inconclusive',
+   v=>v.outcome.judgment.canRetry=true,v=>delete v.outcome.judgment.canRetry,
+   v=>v.stored.disposition='hidden',v=>v.stored.objective_id='other',
+  ]){const v=make(passed);mutate(v);assert.throws(()=>H.assertPolicyOutputTerminal(v));}
+  for(const table of Object.keys(make(passed).credit)){
+   const v=make(passed);v.credit[table]=passed?[]:[{evaluation_id:id(91)}];assert.throws(()=>H.assertPolicyOutputTerminal(v));
+   const missing=make(passed);delete missing.credit[table];assert.throws(()=>H.assertPolicyOutputTerminal(missing));
+  }
+ }
+});
+
+test('V27 semantic failure is saved and remains failure only after every original lifecycle gate',()=>{
+ const {finishPolicyOutputSemantics:finish}=require('./fixtures/secureshopStandaloneSsrfQualification');
+ const flags=['originalModelAndHttpBound','canonicalJudgeEvidence','fixedSameSourceInertNoCredit','savedRunRecovery',
+  'savedAssessmentRecovery','publicProgress','sessionDenied','resetFenced','siblingPositivePreserved','immutablePreserved'];
+ const make=passed=>({semanticPassed:passed,status:{...Object.fromEntries(flags.map(k=>[k,true])),passed:false,canonicalTenantCredit:passed,genuineCredit:Number(passed)},
+  retained:{rendered:{semanticOutcome:{originalVerdict:passed?'pass':'fail',semanticPassed:passed,genuineCredit:Number(passed),coverageCompleted:true}}}});
+ let saved;const failed=make(false);assert.throws(()=>finish({...failed,save:()=>{saved=structuredClone(failed);}}),e=>e.code==='POLICY_OUTPUT_SEMANTIC_FAILURE');
+ assert.equal(saved.status.passed,false);assert.equal(saved.retained.phase,'coverage-complete-semantic-failure');
+ assert.equal(saved.retained.rendered.semanticOutcome.genuineCredit,0);
+ for(const flag of flags){const v=make(false);v.status[flag]=false;let wrote=false;
+  assert.throws(()=>finish({...v,save:()=>{wrote=true;}}),e=>e.code!=='POLICY_OUTPUT_SEMANTIC_FAILURE');assert.equal(wrote,false);}
+ for(const mutate of [v=>v.status.genuineCredit=1,v=>v.status.canonicalTenantCredit=true,
+  v=>v.retained.rendered.semanticOutcome.originalVerdict='pass',v=>v.retained.rendered.semanticOutcome.coverageCompleted=false,
+  v=>v.semanticPassed=null]){const v=make(false);mutate(v);assert.throws(()=>finish({...v,save:()=>{throw Error('Must not publish completed coverage');}}));}
+ let wrote=false;const passed=make(true);finish({...passed,save:()=>{wrote=true;}});assert.equal(wrote,false);
+ assert.equal(passed.status.passed,false,'Only the full native fixture can set its final passed receipt');
 });

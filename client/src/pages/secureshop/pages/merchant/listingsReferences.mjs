@@ -1,18 +1,21 @@
 import { listingsChatSource } from '../../utils/merchantListingsSetup.mjs';
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const SHA=/^[a-f0-9]{64}$/;
-const actions=['rewrite','import','optimize','save','template'];
+const actions=['rewrite','import','optimize','save','template','manualCreate','manualEdit'];
 const own=(value,key)=>Object.prototype.hasOwnProperty.call(value,key);
 const plain=value=>value&&Object.getPrototypeOf(value)===Object.prototype;
 
 function checkRow(kind,row,scopeKey){
+ const manual=kind==='manualCreate'||kind==='manualEdit';
  const keys=kind==='assessment'
   ?['scopeKey','digest','requestId','rewriteOperationId','saveOperationId',...(row?.retryRequestId!==undefined||row?.evaluationId!==undefined?['retryRequestId','evaluationId']:[])]
+  :manual?['scopeKey','digest','operationId','manualScopeKey','requestSha256',...(kind==='manualEdit'?['productId']:[])]
   :['scopeKey','digest','operationId',...(kind==='template'?['productId']:[]),...(row?.chatSource!==undefined?['chatSource']:[]),...(row?.rewriteOperationId!==undefined?['rewriteOperationId']:[])];
  if(!plain(row)||Object.keys(row).sort().join(',')!==keys.sort().join(',')
   ||keys.some(key=>key!=='productId'&&key!=='chatSource'&&typeof row[key]!=='string')||!SHA.test(row.scopeKey)||!SHA.test(row.digest)
-  ||(kind==='template'&&(!Number.isSafeInteger(row.productId)||row.productId<1||row.productId>2147483647))
-  ||(scopeKey&&row.scopeKey!==scopeKey)||keys.filter(key=>key.endsWith('Id')&&key!=='productId').some(key=>!UUID.test(row[key])))throw Error('Invalid Listings reference');
+  ||(['template','manualEdit'].includes(kind)&&(!Number.isSafeInteger(row.productId)||row.productId<1||row.productId>2147483647))
+  ||(manual&&(!SHA.test(row.manualScopeKey)||!SHA.test(row.requestSha256)))
+  ||(scopeKey&&row.scopeKey!==scopeKey)||keys.filter(key=>key.endsWith('Id')&&key!=='productId'&&key!=='manualScopeKey').some(key=>!UUID.test(row[key])))throw Error('Invalid Listings reference');
  if(row.rewriteOperationId!==undefined&&!['save','assessment'].includes(kind))throw Error('Invalid Listings save reference');
  if(row.chatSource!==undefined){if(!['rewrite','import','optimize','save'].includes(kind))throw Error('Invalid Listings chat reference');listingsChatSource(row.chatSource);}
 }

@@ -16,7 +16,7 @@ const TOOLS = [
   },
   {
     name: 'register',
-    description: 'Register a new MCP server. For SSE transport the server-side runtime fetches ${url}/mcp/list_tools to discover tools. For stdio, stdio_cmd is spawned when SS_ENABLE_REAL_MCP_SPAWN=true.',
+    description: 'Register a new MCP server. For SSE transport the server-side runtime fetches ${url}/mcp/list_tools to discover tools. Stdio commands require the separate owner-scoped isolated executor.',
     inputSchema: {
       type: 'object',
       properties: {

@@ -19,6 +19,12 @@ SPEC.loader.exec_module(LAUNCHER)
 
 
 class OrderStatusBrowserCleanup(unittest.TestCase):
+    def setUp(self):
+        # These fixtures explicitly exercise the retained ps parser.
+        platform = patch.object(LAUNCHER.sys, 'platform', 'linux')
+        platform.start()
+        self.addCleanup(platform.stop)
+
     def test_residual_owned_profile_fails_absence(self):
         with tempfile.TemporaryDirectory() as directory:
             runtime = Path(directory)
@@ -87,7 +93,14 @@ class OrderStatusBrowserCleanup(unittest.TestCase):
         statements = [ast.unparse(node) for node in run_node.body]
         retire = statements.index("stage = f'node-{label}-retire'")
         result = statements.index("stage = f'node-{label}-result'")
-        failed = next(index for index, value in enumerate(statements) if value.startswith('if code != 0:'))
+        # The ordinary nonzero-result guard may be an elif after an explicitly
+        # selected diagnostic failure. Check its AST position, not indentation.
+        failure_guards = [(index, child) for index, statement in enumerate(run_node.body)
+            for child in ast.walk(statement) if isinstance(child, ast.If)
+            and ast.unparse(child.test) == 'code != 0']
+        self.assertEqual(len(failure_guards), 1)
+        failed, guard = failure_guards[0]
+        self.assertTrue(any(isinstance(node, ast.Raise) for node in guard.body))
         self.assertLess(retire, result)
         self.assertLess(result, failed)
 

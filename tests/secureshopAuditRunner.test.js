@@ -72,12 +72,12 @@ function fixture({ failJob = false, failTrace = false, revokeOnFinish = false, a
   };
   const turns = createBoundTurns({ conversations,
     coordinator: createRunCoordinator({ family: 'AuditRunnerTest', ledger }) });
-  const executeJob = async ({ boundary, requestedCount, assessment }, publicationFence) => {
+  const executeJob = async ({ boundary, requestedCount, assessment, workerBudget }, publicationFence) => {
     calls.jobFence=publicationFence;
     calls.job++;
     await boundary.check();
     if (failJob) throw new Error('audit worker failed');
-    await onJob?.();
+    await onJob?.(workerBudget);
     if (assessment && !skipAssessment) await assessment.consume({ runId: boundary.identity.runId });
     return { runId: boundary.identity.runId, summary: 'controlled summary', provider: 'ollama', model: 'controlled',
       requestedCount, rowCount: 0, objectiveCredit: false };
@@ -138,6 +138,20 @@ test('Audit run passes one monotonic deadline to its assessment and bounds the o
   await f.runner.run(input());
   assert.equal(seen,290010);
   time=100010;assert.equal(timing.remainingJudgeMs(seen),180000);
+});
+
+test('unbounded worker budget is sampled after preparation and never exports parent clock origin',async()=>{
+  let time=1000,measured;
+  const timing=require('../server/services/secureshopAuditTiming').createSecureShopAuditTiming({
+    profile:'unbounded',env:{},now:()=>time});
+  const f=fixture({timing,conversationPurpose:PURPOSES.auditUnbounded,onJob:async workerBudget=>{
+    assert.equal(typeof workerBudget,'function');
+    time+=40000;measured=workerBudget();
+  }});
+  await f.runner.run(input());
+  assert.equal(measured,145000);
+  const ordinary=fixture({onJob:async workerBudget=>assert.equal(workerBudget,undefined)});
+  await ordinary.runner.run(input());
 });
 
 test('same request ID with a changed count is a durable request conflict', async () => {

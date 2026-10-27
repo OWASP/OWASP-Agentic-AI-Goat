@@ -601,19 +601,23 @@ const KeyframeStyles = () => (
 /* ─── main component ──────────────────────────────────────────────────────── */
 
 const CTFChallenge = () => {
-  const { user: platformUser } = useAuth();
+  const { user: platformUser, getAuthRevision } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
   const initialStage = location.state?.stage || null;
   const platformToken = localStorage.getItem('token');
+  const authRevision = typeof getAuthRevision === 'function' ? getAuthRevision() : null;
   const ownerRef = useRef(null);
-  if (!ownerRef.current || ownerRef.current.userId !== platformUser?.id || ownerRef.current.token !== platformToken || ownerRef.current.route !== location.key) {
-    ownerRef.current = { userId: platformUser?.id, token: platformToken, route: location.key, revision: (ownerRef.current?.revision || 0) + 1,
+  if (!ownerRef.current || ownerRef.current.userId !== platformUser?.id || ownerRef.current.token !== platformToken
+      || ownerRef.current.route !== location.key || ownerRef.current.authRevision !== authRevision) {
+    ownerRef.current = { userId: platformUser?.id, token: platformToken, route: location.key, authRevision,
+      revision: (ownerRef.current?.revision || 0) + 1,
       sessionToken: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}` };
   }
   const owner = ownerRef.current;
-  const ownerIsCurrent = () => ownerRef.current === owner && localStorage.getItem('token') === owner.token;
+  const ownerIsCurrent = () => ownerRef.current === owner && localStorage.getItem('token') === owner.token
+    && (typeof getAuthRevision === 'function' ? getAuthRevision() : null) === owner.authRevision;
 
 
   const [stage, setStage] = useState(initialStage);
@@ -626,7 +630,7 @@ const CTFChallenge = () => {
   const [loading, setLoading] = useState(false);
   const [accessEpoch, setAccessEpoch] = useState(0);
   const [accessDenied, setAccessDenied] = useState(null);
-  const recovery = useCtfRecovery(`${initialStage?.id}:${owner.revision}:${accessEpoch}`);
+  const recovery = useCtfRecovery(`${initialStage?.id}:${owner.revision}:${accessEpoch}`, ownerIsCurrent);
   const [stageReady, setStageReady] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [attemptNumber, setAttemptNumber] = useState(0);
@@ -648,6 +652,9 @@ const CTFChallenge = () => {
   const redirectTimerRef = useRef(null);
   const rateLimitTimerRef = useRef(null);
   const attemptEpochRef = useRef(0);
+  const attemptClaimRef = useRef(null);
+  const hintClaimRef = useRef(null);
+  const hintDialogRef = useRef(null);
   const lifecycleEpochRef = useRef(0);
   const attemptMountedRef = useRef(true);
   const currentStageRef = useRef(initialStage?.id);
@@ -657,6 +664,9 @@ const CTFChallenge = () => {
     attemptMountedRef.current = true;
     attemptEpochRef.current += 1;
     lifecycleEpochRef.current += 1;
+    attemptClaimRef.current = null;
+    hintClaimRef.current = null;
+    hintDialogRef.current = null;
     setLoading(false);
     setRateLimitSeconds(0);
     setSuccessMessage('');
@@ -672,6 +682,9 @@ const CTFChallenge = () => {
       attemptMountedRef.current = false;
       attemptEpochRef.current += 1;
       lifecycleEpochRef.current += 1;
+      attemptClaimRef.current = null;
+      hintClaimRef.current = null;
+      hintDialogRef.current = null;
       if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
     };
   }, [initialStage?.id, owner.revision]);
@@ -681,6 +694,9 @@ const CTFChallenge = () => {
     if (![401, 403, 423].includes(status)) return false;
     attemptEpochRef.current += 1;
     lifecycleEpochRef.current += 1;
+    attemptClaimRef.current = null;
+    hintClaimRef.current = null;
+    hintDialogRef.current = null;
     setAccessEpoch(value => value + 1);
     setAccessDenied(status);
     setStageReady(false); setLoading(false); setInitializing(false);
@@ -927,8 +943,11 @@ const CTFChallenge = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const trimmed = inputMessage.trim();
-    if (!ownerIsCurrent() || !trimmed || !stageReady || loading || (!isFixedPractice && rateLimitSeconds > 0) || !stage?.id) return;
+    if (!ownerIsCurrent() || !trimmed || !stageReady || loading || attemptClaimRef.current
+        || (!isFixedPractice && rateLimitSeconds > 0) || !stage?.id) return;
 
+    const attemptClaim = {};
+    attemptClaimRef.current = attemptClaim;
     const requestEpoch = ++attemptEpochRef.current;
     const requestStageId = stage.id;
     const requestHeaders = getAuthHeaders();
@@ -1112,7 +1131,10 @@ const CTFChallenge = () => {
         ]);
       }
     } finally {
-      if (isCurrentAttempt()) setLoading(false);
+      if (attemptClaimRef.current === attemptClaim) {
+        attemptClaimRef.current = null;
+        if (isCurrentAttempt()) setLoading(false);
+      }
     }
   };
 
@@ -1124,10 +1146,25 @@ const CTFChallenge = () => {
   };
 
   const selectPracticeMode = (nextMode) => {
-    if (loading || purchasingHint || nextMode === practiceMode) return;
+    if (loading || attemptClaimRef.current || purchasingHint || hintClaimRef.current || nextMode === practiceMode) return;
     setPracticeMode(nextMode);
     setInputMessage('');
   };
+
+  const openHintDialog = () => {
+    if (!ownerIsCurrent() || !stageReady || purchasingHint || hintClaimRef.current || hintDialogRef.current) return;
+    hintDialogRef.current = { index: hintsUsed };
+    setConfirmHintIndex(hintsUsed);
+  };
+  const retireHintDialog = dialog => {
+    if (!dialog || hintDialogRef.current !== dialog) return;
+    hintDialogRef.current = null;
+    setConfirmHintIndex(null);
+  };
+  const cancelHintDialog = dialog => {
+    if (!hintClaimRef.current && !purchasingHint) retireHintDialog(dialog);
+  };
+  const stagedHintDialog = hintDialogRef.current;
 
   if (!initialStage) {
     return null;
@@ -1513,7 +1550,7 @@ const CTFChallenge = () => {
                     <div style={{ padding: '0.75rem', borderRadius: '8px', background: 'rgba(251, 191, 36, 0.08)', border: '1px solid rgba(251, 191, 36, 0.2)', marginTop: purchasedHints.length > 0 ? '0.5rem' : 0 }}>
                       <button
                         type="button"
-                        onClick={() => setConfirmHintIndex(hintsUsed)}
+                        onClick={openHintDialog}
                         disabled={purchasingHint}
                         style={{
                           width: '100%',
@@ -1567,7 +1604,7 @@ const CTFChallenge = () => {
               {confirmHintIndex !== null && (
                 <div
                   style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}
-                  onClick={() => !purchasingHint && setConfirmHintIndex(null)}
+                  onClick={() => cancelHintDialog(stagedHintDialog)}
                   role="presentation"
                 >
                   <div
@@ -1590,7 +1627,7 @@ const CTFChallenge = () => {
                     <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
                       <button
                         type="button"
-                        onClick={() => setConfirmHintIndex(null)}
+                        onClick={() => cancelHintDialog(stagedHintDialog)}
                         disabled={purchasingHint}
                         style={{ padding: '0.6rem 1.2rem', borderRadius: '8px', border: '1px solid #334155', background: 'transparent', color: '#94a3b8', fontSize: '0.85rem', cursor: 'pointer' }}
                       >
@@ -1599,7 +1636,11 @@ const CTFChallenge = () => {
                       <button
                         type="button"
                         onClick={async () => {
-                          if (!ownerIsCurrent() || !stageReady) return;
+                          if (!ownerIsCurrent() || !stageReady || purchasingHint || hintClaimRef.current
+                              || !stagedHintDialog || hintDialogRef.current !== stagedHintDialog
+                              || stagedHintDialog.index !== confirmHintIndex) return;
+                          const hintClaim = {};
+                          hintClaimRef.current = hintClaim;
                           const hintHeaders = getAuthHeaders();
                           const hintStageId = stage.id;
                           const hintEpoch = lifecycleEpochRef.current;
@@ -1618,14 +1659,17 @@ const CTFChallenge = () => {
                             setPurchasedHints((prev) => [...prev, resp.data.hint]);
                             setHintsUsed(resp.data.hintsUsed);
                             setHintPenaltyTotal(resp.data.totalPenalty);
-                            setConfirmHintIndex(null);
+                            retireHintDialog(stagedHintDialog);
                           } catch (err) {
                             if (!isCurrentHint() || isCtfRecoveryCancelled(err)) return;
                             if (retireDeniedContext(err)) return;
                             console.error('Hint purchase failed:', err);
                             alert(err.response?.data?.error || 'Failed to purchase hint');
                           } finally {
-                            if (isCurrentHint()) setPurchasingHint(false);
+                            if (hintClaimRef.current === hintClaim) {
+                              hintClaimRef.current = null;
+                              if (isCurrentHint()) setPurchasingHint(false);
+                            }
                           }
                         }}
                         disabled={purchasingHint}

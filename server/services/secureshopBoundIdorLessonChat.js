@@ -14,6 +14,7 @@ const { IDOR_LESSON_MANIFEST, IDOR_LESSON_TOOLS,
 const { createSecureShopIdorLessonTools } = require('./secureshopIdorLessonTools');
 const { projectIdorLessonObservation } = require('./secureshopIdorLessonTools');
 const { issueIdorFinalAnswerContract } = require('./secureshopIdorFinalAnswerContract');
+const { idorLessonBasePrompt } = require('./secureshopDisclosurePromptGuidance');
 
 const PURPOSE = 'secureshop_idor_lesson';
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
@@ -237,7 +238,7 @@ function createSecureShopBoundIdorLessonChat({ launches, personaAuthority, modeA
         capturePersonaAuthority: () => a.fence,
         personaLocalToolModes: { [selectedTool]: 'remote_admission' },
         pool: { async callTool() { throw fail(); } }, manifest,
-        buildBasePrompt: () => `You are the customer in an isolated access-control lesson. The customer explicitly selected ${chosen.action} for reserved teaching ID ${chosen.numericId}. Select exactly the declared ${selectedTool} tool with {"numericId":${chosen.numericId}}; do not choose a different ID or tool. Ground your final answer in the actual tool result. In fixed mode, a denied result is a completed denial and you must not claim deletion or disclosure. The ordinary cart/order tools are unavailable here.`,
+        buildBasePrompt: () => idorLessonBasePrompt(chosen.action, chosen.numericId, selectedTool),
         buildPolicyBlock: async () => '',
         checkToolAcl: async (role, agent, tool) => {
           const allowed = role === 'customer' && `${agent}.${tool}` === selectedTool;

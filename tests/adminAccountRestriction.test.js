@@ -105,6 +105,39 @@ test('lock and deactivation revoke sessions in their account transaction while r
     'student update must recheck role while holding the mutation row lock');
 });
 
+test('student profile updates preserve submitted strings and normalize only account flags', async () => {
+  const fixture = repositoryFixture();
+  const submitted = { username: ' learner ', email: ' learner@example.invalid ',
+    full_name: '', department: '', phone: '', role: 'student', is_active: false };
+  const updated = await fixture.repository.updateStudent(7, submitted, 2);
+  const write = fixture.statements.find(row => row.sql.startsWith('UPDATE identity.users SET username='));
+  assert.deepEqual(write.values, [
+    submitted.username, submitted.email, '', 'student', 0, '', '', 0, 1, 7,
+  ]);
+  assert.equal(updated.full_name, '');
+  assert.equal(updated.is_active, 0);
+  assertRevokedBeforeCommit(fixture.statements, 'account_deactivated');
+});
+
+test('student creation passes supplied strings unchanged to the insert', async () => {
+  const writes = [];
+  const repository = createPostgresAdminRepository({
+    async query(sql, values) {
+      writes.push({ sql, values });
+      return { rows: [{ id: 8, username: values[0], email: values[1],
+        full_name: values[3], role: values[4], admin_level: values[5] }] };
+    },
+  });
+  const passwordHash = `$2b$12$${'a'.repeat(53)}`;
+  const created = await repository.createUser({ username: ' learner ',
+    email: ' learner@example.invalid ', fullName: '', passwordHash });
+  assert.equal(writes.length, 1);
+  assert.match(writes[0].sql, /INSERT INTO identity\.users/);
+  assert.deepEqual(writes[0].values,
+    [' learner ', ' learner@example.invalid ', passwordHash, '', 'student', 0]);
+  assert.equal(created.full_name, '');
+});
+
 test('an admitted deletion makes every administrative learner mutation unavailable', async () => {
   const fixture = repositoryFixture({ deletionAdmitted: true });
   assert.equal(await fixture.repository.updateStudent(7, { fullName: 'Must remain deleted' }, 2), null);
@@ -135,6 +168,110 @@ async function listen(app, t) {
   t.after(() => new Promise(resolve => { server.close(resolve); server.closeAllConnections(); }));
   return `http://127.0.0.1:${server.address().port}`;
 }
+
+test('self password change binds the actor and returns the actual revocation acknowledgement', async t => {
+  const bcrypt = require('bcryptjs');
+  const currentPassword = 'Synthetic-current-123';
+  const newPassword = 'Synthetic-replacement-456';
+  const originalHash = await bcrypt.hash(currentPassword, 4);
+  const reads = [], rotations = [];
+  let rejectRotation = false;
+  const adapter = { repository: {
+    async findCredentialById(id) {
+      reads.push(id);
+      return { id, password: originalHash };
+    },
+    async rotatePasswordAndRevoke(...args) {
+      rotations.push(args);
+      if (rejectRotation) throw new Error('Password changed concurrently or user missing');
+      return { userId: args[0], sessionsRevoked: 0 };
+    },
+  } };
+  const app = express();
+  app.use(express.json());
+  const operational = new Proxy({}, { get: () => (_req, res) => res.sendStatus(503) });
+  app.use('/api/admin', createPostgresAdminRouter({
+    adapter, auth: authFixture(new Set()), repository: {},
+    stores: { progress: {}, config: {} }, resetService: {}, operational,
+    xssLegacyRepository: {}, deletionService: {},
+  }));
+  const base = await listen(app, t);
+  const request = async body => {
+    const response = await fetch(`${base}/api/admin/account/change-password`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    return { status: response.status, body: await response.json() };
+  };
+  assert.equal((await request({ currentPassword: 'wrong', newPassword })).status, 400);
+  assert.equal((await request({ currentPassword, newPassword: 'short' })).status, 400);
+  assert.equal(rotations.length, 0);
+  const result = await request({ currentPassword, newPassword, userId: 999 });
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.body, {
+    success: true, message: 'Password changed successfully', sessionsRevoked: 0,
+  });
+  assert.deepEqual(reads, [1, 1, 1], 'body target cannot replace the authenticated actor');
+  assert.equal(rotations.length, 1);
+  assert.equal(rotations[0][0], 1);
+  assert.equal(rotations[0][1], originalHash, 'compare-and-swap uses the verified prior hash');
+  assert.equal(await bcrypt.compare(newPassword, rotations[0][2]), true);
+  rejectRotation = true;
+  const failed = await request({ currentPassword, newPassword });
+  assert.equal(failed.status, 500);
+  assert.notEqual(failed.body.success, true, 'a rejected rotation cannot acknowledge success');
+});
+
+test('global exercise visibility checks permission and boolean input and preserves the configuration ACK', async t => {
+  const grants = new Set(), calls = [];
+  let unavailable = false;
+  const snapshot = { revision: '12', changed: false, affectedCount: 0,
+    exercises: { sql_injection_workshop: { workshopKey: 'sql_injection_workshop',
+      isVisible: false, showHints: true, showSolutions: false, objectives: {} } } };
+  const config = {
+    async setAllExerciseVisibility(enabled, actorId) {
+      calls.push({ enabled, actorId });
+      if (unavailable) throw Object.assign(new Error('The bound SecureShop application is not ready for visibility'),
+        { code: 'EXERCISE_NOT_READY', statusCode: 409 });
+      return snapshot;
+    },
+  };
+  const app = express(); app.use(express.json());
+  app.use('/api/admin', createPostgresAdminRouter({
+    adapter: { repository: {} }, auth: authFixture(grants), repository: {},
+    stores: { progress: {}, config }, resetService: {},
+    operational: new Proxy({}, { get: () => (_req, res) => res.sendStatus(503) }),
+    xssLegacyRepository: {}, deletionService: {},
+  }));
+  const base = await listen(app, t);
+  const request = async body => {
+    const response = await fetch(`${base}/api/admin/challenges/bulk-toggle`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+    });
+    return { status: response.status, body: await response.json() };
+  };
+  assert.equal((await request({ enabled: false })).status, 403);
+  assert.deepEqual(calls, []);
+  grants.add('challenge_management');
+  for (const enabled of [null, 'false', 0]) {
+    assert.equal((await request({ enabled })).status, 400);
+  }
+  assert.deepEqual(calls, [], 'invalid flags must not reach the configuration mutation');
+  const result = await request({ enabled: false, actorId: 999 });
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.body, { success: true, enabled: false, ...snapshot },
+    'zero changed rows is an acknowledged no-op, not an operation receipt');
+  assert.deepEqual(calls, [{ enabled: false, actorId: 1 }]);
+  unavailable = true;
+  const denied = await request({ enabled: true });
+  assert.equal(denied.status, 409);
+  assert.equal(denied.body.code, 'EXERCISE_NOT_READY');
+  assert.notEqual(denied.body.success, true);
+  assert.deepEqual(calls[1], { enabled: true, actorId: 1 });
+  grants.delete('challenge_management');
+  assert.equal((await request({ enabled: false })).status, 403);
+  assert.equal(calls.length, 2, 'revoked permission is checked again for subsequent requests');
+});
 
 test('both student reset aliases validate live permissions and student role before reset', async t => {
   const grants = new Set();
@@ -270,4 +407,17 @@ test('student administration aliases require user management and reject non-stud
   assert.equal(await request('/api/admin/students/999/change-password', 'POST', { password: 'Password@123' }), 404);
   assert.equal(calls.rotate, 0, 'admin and missing targets must not reach password mutation');
   assert.equal(calls.credential, 0, 'student aliases must not load credential hashes for invalid targets');
+  const rotated = await fetch(`${base}/api/admin/students/7/change-password`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ newPassword: 'Synthetic-password-123' }),
+  });
+  assert.equal(rotated.status, 200);
+  assert.deepEqual(await rotated.json(), {
+    success: true,
+    message: 'Password changed successfully',
+    sessionsRevoked: 1,
+  }, 'acknowledgement has no target or durable operation receipt');
+  assert.equal(calls.rotate, 1, 'authorized student request rotates once');
+  assert.equal(calls.credential, 0, 'administrative rotation does not expose an old credential');
 });

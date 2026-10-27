@@ -54,9 +54,9 @@ test('0080 preserves every published v19 edge and expected-denial branch, then a
 
 test('readiness pins the latest v36 successor guard while v20 and v22 remain historical',()=>{
   const source=readFileSync(readinessPath,'utf8');
-  assert.match(source,/bound_tool_registry_successor_v36/);
-  assert.match(source,/fdc3c3b3e51dfc3e2feb57c8ab53ffdce131c2c42032feba9db8a2fea5b0c9c2/);
+  assert.match(source,/bound_tool_registry_successor_v37/);
+  assert.match(source,/851ca7a3b08b91dcc124112a2fe2cb01daf9f8c497e8dc445ef077571893ab4e/);
   assert.match(source,/6830fb9d9680c1150204c3f3991345be6692008cae800e035b5e06e6b1549d95/);
   assert.match(readFileSync(join(__dirname,'../db/postgres/workshop-migrations/secureshop_agents/0084_merchant_mail_prepare_registry_successor.sql'),'utf8'),/bound_tool_registry_successor_v22/);
-  assert.match(readFileSync(join(__dirname,'../db/postgres/workshop-migrations/secureshop_agents/0114_customer_agency_role_registry_successor.sql'),'utf8'),/bound_tool_registry_successor_v36/);
+  assert.match(readFileSync(join(__dirname,'../db/postgres/workshop-migrations/secureshop_agents/0116_mcp_registration_registry_successor.sql'),'utf8'),/bound_tool_registry_successor_v37/);
 });

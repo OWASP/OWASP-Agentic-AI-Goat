@@ -170,12 +170,15 @@ export function useCustomerIdorLesson({ shopUserId, authorityKey, transport,
       if (saved) {
         referenceRef.current = saved; setReference(saved); setStatus('unconfirmed');
         const controller = new AbortController();
-        activeRef.current = controller;
+        activeRef.current = controller; setBusy(true);
         void readSaved(saved, controller, epoch).catch(() => {
           if (current(epoch, controller)) {
             setStatus('unconfirmed'); setError('Check the saved lesson request again.');
           }
-        }).finally(() => { if (activeRef.current === controller) activeRef.current = null; });
+        }).finally(() => {
+          if (current(epoch, controller)) setBusy(false);
+          if (activeRef.current === controller) activeRef.current = null;
+        });
       }
     } catch { setError('Saved lesson storage unavailable.'); setStatus('error'); }
     return () => { mountedRef.current = false; epochRef.current += 1;

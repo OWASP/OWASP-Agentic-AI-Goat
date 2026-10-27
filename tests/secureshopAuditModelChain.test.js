@@ -10,6 +10,22 @@ const runId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const requestedCount = 4;
 const summary = '• Suspicious instruction in an audit event.';
 const digest = value => createHash('sha256').update(value).digest('hex');
+test('final framing trace requires exact trusted task, observation, ordering and unique marker; history remains readable',()=>{
+ const {createAuditFinalFraming,auditFinalFramingFromTraces}=require('../server/services/secureshopAuditModelChain');
+ const final={kind:'model_decision',step:2},effect={kind:'local_tool_result',step:1};
+ const payload=createAuditFinalFraming(4,'complete original observation');
+ const marker={kind:'audit_final_framing',actor:'supervisor',step:2,result_json:JSON.stringify(payload)};
+ const rows=[effect,marker,final];
+ assert.deepEqual(auditFinalFramingFromTraces(rows,4,final,payload.observationSha256),payload);
+ assert.equal(auditFinalFramingFromTraces([effect,final],4,final,payload.observationSha256),undefined);
+ for(const mutate of [r=>r.splice(1,0,marker),r=>r.reverse(),r=>{r[1].step=1;},
+  r=>{r[1].result_json=JSON.stringify({...payload,version:2});},
+  r=>{r[1].result_json=JSON.stringify({...payload,taskSha256:'0'.repeat(64)});},
+  r=>{r[1].result_json=JSON.stringify({...payload,observationSha256:'0'.repeat(64)});}]){
+  const changed=structuredClone(rows);mutate(changed);
+  assert.throws(()=>auditFinalFramingFromTraces(changed,4,changed.find(r=>r.kind==='model_decision'),payload.observationSha256));
+ }
+});
 const observation = Object.freeze({ ok: true, requested_count: requestedCount, row_count: 1,
   prompt: 'audit prompt', log_text: 'event log', source_manifest: { logSha256: digest('event log'), sourcesSha256: 's'.repeat(64) } });
 

@@ -14,6 +14,7 @@ function createAuditPolicyParent({ runId, requestedCount, admit, check, send, st
           || message.type !== 'audit_policy_request' || !Number.isSafeInteger(message.step) || message.step < 1 || message.step > 4
           || typeof message.callId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(message.callId)
           || !message.args || !Object.hasOwn(message.args,'limit')||Object.keys(message.args).length!==(focused?2:1)||message.args.limit!==requestedCount
+          ||(taskRequestVersion===2&&!focused)
           ||(focused&&(taskRequestVersion!==2||typeof message.args.focus_action!=='string'||!/^[A-Za-z0-9_.:-]{1,100}$/.test(message.args.focus_action)))) throw fail();
         const invocationId = `${message.step}:${message.callId}`;
         if (seen.has(invocationId)) throw fail();

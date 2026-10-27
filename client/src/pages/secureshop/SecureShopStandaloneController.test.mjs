@@ -43,6 +43,39 @@ const practiceOperationId = '33333333-3333-4333-8333-333333333333';
 const principalId = '4a792aa0-026b-4e76-9520-17ee0252c9aa';
 const practiceRefKey = `dvaia:secureshop:practice-admission:v1:${principalId}`;
 
+test('parent merchant external send fences a retired practice before dispatch but can read old operation status', async () => {
+  const merchantCredential = { ...credential, persona: { ...credential.persona,
+    user: { ...credential.persona.user, role: 'merchant' } } };
+  const h = harness([{ ...scenes[0], isDefault: true }], 'merchant', { principalId });
+  h.client.bootstrap.mockResolvedValue(merchantCredential);
+  const scopeKey = 'a'.repeat(64), oldScope = 'b'.repeat(64);
+  let releaseReadiness;
+  h.client.getExternalMailReadiness = jest.fn().mockImplementationOnce(() => new Promise(resolve => {
+    releaseReadiness = resolve;
+  })).mockResolvedValue({ version: 1, available: true, scopeKey });
+  h.client.prepareExternalMail = jest.fn();
+  h.client.getExternalMailOperation = jest.fn().mockResolvedValue({ state: 'unknown' });
+  try {
+    await h.controller.start(h.host);
+    const operation = { operationId: practiceOperationId, recipient: 'person@sharklasers.com', scopeKey };
+    const pending = h.controller.prepareExternalMail(operation, () => true);
+    h.controller.close();
+    releaseReadiness({ version: 1, available: true, scopeKey });
+    await expect(pending).rejects.toThrow('authority changed');
+    expect(h.client.prepareExternalMail).not.toHaveBeenCalled();
+  } finally { h.close(); }
+  const next = harness([{ ...scenes[0], isDefault: true }], 'merchant', { principalId });
+  next.client.bootstrap.mockResolvedValue(merchantCredential);
+  next.client.getExternalMailOperation = jest.fn().mockResolvedValue({ state: 'unknown' });
+  try {
+    await next.controller.start(next.host);
+    await expect(next.controller.getExternalMailOperation(practiceOperationId, oldScope))
+      .resolves.toEqual({ state: 'unknown' });
+    expect(next.client.getExternalMailOperation).toHaveBeenCalledWith(merchantCredential.bearer,
+      merchantCredential.persona.token, practiceOperationId, oldScope, undefined);
+  } finally { next.close(); }
+});
+
 test('standalone child bridge rejects every teaching reset and reveal operation before transport', async () => {
   for (const name of ['admin.users.resetPassword', 'admin.users.resetRead',
     'admin.users.resetReveal', 'admin.users.resetAcknowledge']) {
@@ -542,6 +575,34 @@ test.each(['saved', 'malformed', 'unreadable', 'array'])('saved or unverifiable 
     expect(h.client.selectScene).not.toHaveBeenCalled();
     expect(localStorage.getItem(`${savedScope}:scene-storage-v1`)).toBe(null);
   } finally { readSpy?.mockRestore(); h.close(); localStorage.clear(); }
+});
+
+test.each([
+  ['manualCreate', false], ['manualCreate', true],
+  ['manualEdit', false], ['manualEdit', true],
+])('saved %s reference (retained=%s) prevents practice switching until explicitly cleared', async (action, retained) => {
+  localStorage.clear();
+  const listingScope = 'a'.repeat(64);
+  const reference = { scopeKey: listingScope, digest: 'b'.repeat(64),
+    operationId: '11111111-1111-4111-8111-111111111111',
+    manualScopeKey: 'c'.repeat(64), requestSha256: 'd'.repeat(64),
+    ...(action === 'manualEdit' ? { productId: 17 } : {}) };
+  const pending = retained ? { retained: [{ scopeKey: listingScope, [action]: reference }] }
+    : { [action]: reference };
+  const h = harness([{ ...scenes[0], isDefault: true }, scenes[1]]);
+  try {
+    await h.controller.start(h.host);
+    const original = JSON.stringify({ ...cleanSnapshot(), [SHOP_LISTINGS_KEY]: JSON.stringify(pending) });
+    localStorage.setItem(savedScope, original);
+    await expect(h.controller.choosePractice()).rejects.toThrow('Check saved operation');
+    expect(h.mountFrame.mock.results[0].value.close).not.toHaveBeenCalled();
+    expect(h.client.selectScene).not.toHaveBeenCalled();
+    expect(localStorage.getItem(savedScope)).toBe(original);
+    const cleared = replaceListingsScope(decodeListingsReferences(JSON.stringify(pending)), listingScope, {});
+    localStorage.setItem(savedScope, JSON.stringify({ ...cleanSnapshot(), [SHOP_LISTINGS_KEY]: JSON.stringify(cleared) }));
+    await h.controller.choosePractice();
+    expect(h.states.at(-1).status).toBe('choose-scene');
+  } finally { h.close(); localStorage.clear(); }
 });
 
 test('completed and cleared Listings references permit choosing a retained practice without rewriting legacy bytes', async () => {

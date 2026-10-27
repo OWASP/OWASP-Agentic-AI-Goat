@@ -12,6 +12,20 @@ const encode=v=>Buffer.from(config.KEYS.map(k=>k+'='+v[k]).join('\n')+'\n');
 function captured(file){let fd;try{fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);const before=fs.fstatSync(fd);if(!before.isFile()||before.uid!==process.getuid()||before.nlink!==1||(before.mode&0o077)||before.size>8192)throw fail('SYSTEM_QUALIFIED_UNTRUSTED');const b=Buffer.alloc(8193),n=fs.readSync(fd,b,0,b.length,0),after=fs.fstatSync(fd),named=fs.lstatSync(file);if(n!==before.size||before.mtimeMs!==after.mtimeMs||before.ctimeMs!==after.ctimeMs||before.ino!==named.ino||before.dev!==named.dev||named.isSymbolicLink())throw fail('SYSTEM_QUALIFIED_UNTRUSTED');return{bytes:b.subarray(0,n),dev:before.dev,ino:before.ino};}catch(e){if(e.code==='ENOENT')return null;throw e;}finally{if(fd!==undefined)fs.closeSync(fd);}}
 function matches(a,b){return(!a&&!b)||!!a&&!!b&&a.dev===b.dev&&a.ino===b.ino&&a.bytes.equals(b.bytes);}
 function checkedExisting(root,home){const file=config.managedPath(root,home),value=captured(file);if(value)config.parse(value.bytes,{root,home});return value;}
+// Read-only selection before preflight. Never inherit an unrelated active
+// Docker context; every later setup consumer receives this same explicit host.
+async function selectSetupEnvironment({root,home=os.homedir(),platform=process.platform,environment=process.env}) {
+ if(!['linux','darwin'].includes(platform)||environment.DOCKER_CONTEXT)throw fail('SYSTEM_INSTALL_PROFILE_AUTHORITY_CONFLICT');
+ const directory=path.dirname(config.managedPath(root,home));
+ const existing=fs.existsSync(directory)?await authorityTools.readLocalDockerAuthority({directory,workspaceId:workspaceId(root),platform}):null;
+ const location=require('./mcp-owned-local').localProfilePlan({root,home,platform,colimaProfile:environment.DVAIA_MCP_OWNED_COLIMA_PROFILE||'colima-default'});
+ const host=existing?.host||environment.DOCKER_HOST||location.dockerHost;
+ if(existing&&environment.DOCKER_HOST&&environment.DOCKER_HOST!==existing.host)throw fail('SYSTEM_INSTALL_PROFILE_AUTHORITY_CONFLICT');
+ if(platform==='darwin'&&environment.DVAIA_MCP_OWNED_COLIMA_PROFILE&&host!==location.dockerHost)throw fail('SYSTEM_INSTALL_PROFILE_AUTHORITY_CONFLICT');
+ authorityTools.assertLocalDockerHost(host,platform);
+ const boundLocation=_internals.profileLocation({authority:{host},root,home,platform});
+ return {...environment,DOCKER_HOST:host,...(platform==='darwin'?{DVAIA_MCP_OWNED_COLIMA_PROFILE:boundLocation.colimaProfile}:{})};
+}
 async function preflight({root,home=os.homedir(),platform=process.platform,architecture=process.arch,environment=process.env,
  run=_internals.createRunner({cwd:root,env:authorityTools.sanitizeDockerEnvironment(environment)}),verifyProfile=_internals.verifyProfile}={}){
  if(architecture!=='arm64'||!['darwin','linux'].includes(platform))throw fail('SYSTEM_INSTALL_PLATFORM_UNQUALIFIED');
@@ -30,8 +44,8 @@ async function preflight({root,home=os.homedir(),platform=process.platform,archi
  const source=sourceManifest(root),template=fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'),'utf8');
  const rendered=require('../render-mcp-sandbox-apparmor').renderMcpSandboxAppArmor(template,'dvaia-mcp-sandbox');
  const p={profile:{name:'dvaia-mcp-sandbox',sha256:hash(rendered)}};
- await verifyProfile({p,authority,root,home,platform,run});
- return Object.freeze({architecture,sourceSha256:source.sha256,dockerAuthoritySha256:authorityTools.authorityDigest(authority),profileVerified:true,mutating:false});
+ const profile=await verifyProfile({p,authority,root,home,platform,run,allowPreparation:true});
+ return Object.freeze({architecture,sourceSha256:source.sha256,dockerAuthoritySha256:authorityTools.authorityDigest(authority),profileVerified:profile?.profileVerified===true,profilePreparationRequired:profile?.profilePreparationRequired===true,mutating:false});
 }
 function replace(file,expected,bytes){if(!matches(captured(file),expected))throw fail('SYSTEM_QUALIFIED_CONFLICT');const temp=file+'.pending-'+crypto.randomBytes(12).toString('hex');let fd;try{fd=fs.openSync(temp,'wx',0o600);fs.writeFileSync(fd,bytes);fs.fsyncSync(fd);fs.closeSync(fd);fd=undefined;if(!matches(captured(file),expected))throw fail('SYSTEM_QUALIFIED_CONFLICT');fs.renameSync(temp,file);const dir=fs.openSync(path.dirname(file),'r');try{fs.fsyncSync(dir);}finally{fs.closeSync(dir);}}finally{if(fd!==undefined)fs.closeSync(fd);try{fs.unlinkSync(temp);}catch(e){if(e.code!=='ENOENT')throw e;}}return captured(file);}
 async function ensureAuthority({root,home,platform,environment,run}) {
@@ -43,10 +57,12 @@ async function ensureAuthority({root,home,platform,environment,run}) {
 }
 async function prepare({root,homeDirectory=os.homedir(),platform=process.platform,environment=process.env,applicationEnvironment,
  run=_internals.createRunner({cwd:root,env:{...environment,...applicationEnvironment,HOME:homeDirectory}}),ensureAuthority:recordAuthority=ensureAuthority,
+ prepareProfile=prepareSelectedProfile,
  activateSystem=require('./secureshop-owned-system-activate').setupOwnedSystem}={}){
  const home=homeDirectory,file=config.managedPath(root,home),previous=checkedExisting(root,home),directory=path.dirname(file);
  require('../../server/services/secureshopPasswordResetKeys').assertPrivateDirectory(directory);
  await recordAuthority({root,home,platform,environment,run});
+ await prepareProfile({root,home,platform,environment,run});
  const lock=file+'.setup-lock';fs.mkdirSync(lock,{mode:0o700});const lockStat=fs.lstatSync(lock);
  let candidate,candidateIdentity,published;
  try{
@@ -77,6 +93,13 @@ async function prepare({root,homeDirectory=os.homedir(),platform=process.platfor
   const now=fs.lstatSync(lock);if(now.ino!==lockStat.ino||now.dev!==lockStat.dev)throw fail('SYSTEM_QUALIFIED_LOCK_CHANGED');fs.rmdirSync(lock);
  }
 }
+async function prepareSelectedProfile({root,home,platform,environment,run}) {
+ const authority=await authorityTools.readLocalDockerAuthority({directory:path.dirname(config.managedPath(root,home)),workspaceId:workspaceId(root),platform});
+ if(!authority)throw fail('SYSTEM_INSTALL_AUTHORITY_REQUIRED');
+ const template=fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'),'utf8');
+ const rendered=require('../render-mcp-sandbox-apparmor').renderMcpSandboxAppArmor(template,'dvaia-mcp-sandbox');
+ await _internals.prepareProfile({root,home,platform,environment,run,authority,p:{profile:{name:'dvaia-mcp-sandbox',sha256:hash(rendered)}}});
+}
 function loadCandidate({root,home=os.homedir()}) {
  const directory=path.dirname(config.managedPath(root,home));
  const assertDirectory=require('../../server/services/secureshopPasswordResetKeys').assertPrivateDirectory;
@@ -88,4 +111,4 @@ function loadCandidate({root,home=os.homedir()}) {
  config.ROOT_KEYS.forEach(key=>assertDirectory(values[key]));
  return values;
 }
-module.exports={preflight,prepare,loadCandidate};
+module.exports={preflight,prepare,loadCandidate,selectSetupEnvironment};

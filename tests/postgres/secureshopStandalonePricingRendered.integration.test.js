@@ -19,6 +19,9 @@ const safeCode=value=>typeof value==='string'&&/^[A-Z0-9_]{1,64}$/.test(value)?v
 const V34_TRANSITION_PREFLIGHT=process.env.SECURESHOP_PRICING_V34_TRANSITION_PREFLIGHT_NATIVE==='1';
 const PRICING_V34=process.env.SECURESHOP_PRICING_V34_MANUAL_EXPERIMENT_NATIVE==='1';
 const PRICING_V34_REPORT_CLAIM=process.env.PRICING_V34_REPORT_CLAIM==='1';
+// Explicit source-bound input experiment, not an environment-selected authority.
+// The original default source remains available unchanged in the helper.
+const V34_MANUAL_CANDIDATE_VERSION='final-report-editor-v1';
 assert.ok(!PRICING_V34_REPORT_CLAIM||PRICING_V34||V34_TRANSITION_PREFLIGHT,'Report-claim variant requires existing V34 cohort or transition preflight');
 const V34_REPORT_SCOPE='current-main rendered V34 owned report-claim upload and merchant experiment; original experiment-source canonical Judge, fixed refusal, GET recovery and lifecycle fences';
 const PRICING_CHAT=process.env.SECURESHOP_MERCHANT_PRICING_CHAT_BROWSER_NATIVE==='1'&&!PRICING_V34;
@@ -29,9 +32,9 @@ const PRICING_EXPERIMENT=process.env.SECURESHOP_MERCHANT_PRICING_EXPERIMENT_BROW
 const PRICING_EXPERIMENT_FIXED=process.env.SECURESHOP_MERCHANT_PRICING_EXPERIMENT_FIXED_BROWSER_NATIVE==='1';
 const PRICING_V54=process.env.PRICING_DISCLOSURE_V54_NATIVE==='1';
 const V34_REPORT_ASSERTION='merchant physically uploads an owned report claim and confirms an exact experiment source for canonical false-grounding assessment';
-const V34_ASSERTION='merchant physically uploads a saved manual and confirms an exact same-run suggested-price and premium experiment source for canonical false-grounding assessment';
-const V34_SCOPE='current-main rendered V34 physical owned manual upload and merchant chat confirmation; genuine same-run suggest then premium14 experiment, exact experiment-source canonical Judge, matching fixed safe flow, GET recovery and lifecycle fences';
-const V34_FLAGS=['passed','isolatedStores','objectiveEnabled','fixtureLocalCandidateAdmission','physicalManualUpload','originalManualSource','genuineMerchantSession','namedOwnedChoice','experimentPreparedNoEffect','experimentConfirmedOneReceipt','experimentExactGetNoReplay','exactExperimentSource','canonicalJudgeAward','publicProgress','fixedSafe','fixedNoJudgeCredit','noPriceApply','siblingDenied','personaSessionFenced','resetFenced','immutableHistoryRetained','fixtureCleaned'];
+const V34_ASSERTION='merchant physically uploads a saved manual and confirms exact same-run suggestion and premium experiment observations with a source-bound canonical false-grounding award';
+const V34_SCOPE='current-main rendered V34 physical owned manual upload and merchant chat confirmation; genuine same-run suggest then premium14 experiment, exact awarded-source canonical Judge, matching fixed safe flow, GET recovery and lifecycle fences';
+const V34_FLAGS=['passed','isolatedStores','objectiveEnabled','fixtureLocalCandidateAdmission','physicalManualUpload','originalManualSource','genuineMerchantSession','namedOwnedChoice','experimentPreparedNoEffect','experimentConfirmedOneReceipt','experimentExactGetNoReplay','exactAwardedSource','canonicalJudgeAward','publicProgress','fixedSafe','fixedNoJudgeCredit','noPriceApply','siblingDenied','personaSessionFenced','resetFenced','immutableHistoryRetained','fixtureCleaned'];
 const CHAT_ASSERTION='standalone merchant confirms named Pricing chat proposals with real local llama3.1:8b and exact saved recovery';
 const CHAT_SCOPE='current-main standalone merchant Pricing chat; named owned choice, real no-effect suggestion and experiment prepares, trusted existing Pricing confirmations, exact GET recovery';
 const CHAT_FLAGS=['passed','isolatedStores','namedOwnedChoice','suggestPreparedNoEffect',
@@ -130,12 +133,64 @@ function providerInputContains(value,expected,seen=new Set()){
  return Object.values(value).some(child=>providerInputContains(child,expected,seen));
 }
 
+function observeV34BrowserLifecycle(browser){
+ const events=[],listeners=[];let stage='launched',dropped=0,page=null;
+ const safeRead=(read,fallback=null)=>{try{return read();}catch{return fallback;}};
+ const child=safeRead(()=>browser.process());
+ const signal=value=>['SIGTERM','SIGKILL','SIGABRT','SIGSEGV','SIGBUS','SIGTRAP','SIGILL','SIGINT'].includes(value)?value:null;
+ const code=value=>Number.isSafeInteger(value)&&value>=0&&value<=255?value:null;
+ const type=target=>{const value=safeRead(()=>target.type());return ['page','browser','service_worker','shared_worker','worker','other'].includes(value)?value:'unknown';};
+ const add=(kind,fields={})=>{if(events.length<32)events.push({ordinal:events.length,stage,kind,...fields});else dropped=Math.min(dropped+1,1000000);};
+ const on=(emitter,name,callback)=>{if(!emitter)return;try{emitter.on(name,callback);listeners.push([emitter,name,callback]);}catch{add('observer-unavailable');}};
+ const argv=safeRead(()=>child.spawnargs,[]);
+ const boundedArgv=Array.isArray(argv)&&argv.length<=256&&argv.every(value=>typeof value==='string'&&Buffer.byteLength(value)<=16384);
+ const encoded=boundedArgv?JSON.stringify(argv):null;
+ const safeFlags=new Set(['--headless','--no-sandbox','--disable-setuid-sandbox','--disable-background-networking',
+  '--disable-extensions','--disable-dev-shm-usage','--remote-debugging-port','--remote-debugging-pipe','--user-data-dir']);
+ const launch={pid:Number.isSafeInteger(child?.pid)&&child.pid>1?child.pid:null,
+  argumentCount:Array.isArray(argv)?argv.length:null,
+  argvSha256:encoded&&Buffer.byteLength(encoded)<=65536?createHash('sha256').update(encoded).digest('hex'):null,
+  safeFlagNames:boundedArgv?[...new Set(argv.map(value=>value.split('=',1)[0]).filter(value=>safeFlags.has(value)))].sort():[]};
+ on(child,'exit',(exitCode,exitSignal)=>add('process-exit',{code:code(exitCode),signal:signal(exitSignal)}));
+ on(child,'close',(exitCode,exitSignal)=>add('process-close',{code:code(exitCode),signal:signal(exitSignal)}));
+ on(browser,'disconnected',()=>add('browser-disconnected'));
+ on(browser,'targetcreated',target=>add('target-created',{type:type(target)}));
+ on(browser,'targetdestroyed',target=>add('target-destroyed',{type:type(target)}));
+ return {
+  mark(value){if(['browser-admission','page-create','viewport','page-configured','fixture-cleanup'].includes(value))stage=value;},
+  watchPage(value){page=value;on(page,'close',()=>add('page-close'));on(page,'error',()=>add('page-error'));},
+  snapshot(){return {version:1,stage,launch:{...launch,safeFlagNames:[...launch.safeFlagNames]},
+   events:events.map(row=>({...row})),dropped,
+   current:{connected:safeRead(()=>browser.connected===true),pageClosed:page?safeRead(()=>page.isClosed()):null,
+    processExitCode:code(safeRead(()=>child.exitCode)),processSignal:signal(safeRead(()=>child.signalCode))}};},
+  dispose(){for(const [emitter,name,callback]of listeners.splice(0))try{emitter.off(name,callback);}catch{}}
+ };
+}
+async function retainV34BrowserLifecycle(v34,lifecycle,kind){
+ if(!v34||!lifecycle)return;
+ // Observability cannot replace the original error or authorize qualification.
+ try{await v34.captureRole({kind,phase:'browser-lifecycle',lifecycle:lifecycle.snapshot()});}catch{}
+}
+
+function retainPricingChatBrowserLifecycle(status,lifecycle,kind){
+ if(!PRICING_CHAT||!lifecycle)return;
+ // The existing observer emits only bounded, sanitized fields. Diagnostics
+ // cannot replace the primary error or become an assessment criterion.
+ try{const snapshot=lifecycle.snapshot();
+  if(kind==='failure')status.browserLifecycleFailure=snapshot;
+  else if(kind==='cleanup')status.browserLifecycleCleanup=snapshot;
+ }catch{status.browserLifecycleCaptureFailed=true;}
+}
+
 async function qualifyPricingChatBrowser({origin,username,password,profile,productId,productName,
  identity,agents,review,expectedOwnerId,expectedPersonaId,modelCalls,sidecarCalls,status,
  compareOnly=false,fixedResetOnly=false,siblingUsername=null,siblingPassword=null,
- sidecarResults=[],sidecarRequests=[],resetOriginal,v34=null,v34Preflight=null}){
+ sidecarResults=[],sidecarRequests=[],resetOriginal,v34=null,v34Preflight=null,retainedAdmission=null}){
  const browser=await require('puppeteer').launch({headless:true,userDataDir:profile,
-  executablePath:process.env.PUPPETEER_EXECUTABLE_PATH});
+  executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,
+  ...(retainedAdmission?{args:['--no-sandbox'],timeout:Math.min(30000,require('../fixtures/secureshopPricingRenderedBrowser').retainedV34Remaining(retainedAdmission))}:{})});
+ let browserLifecycle=null;
+ if(v34||PRICING_CHAT)try{browserLifecycle=observeV34BrowserLifecycle(browser);}catch{}
  let page,cdp,browserLaunch,browserAuthorization,rolePhase='browser-start',preClickHit=null;const requests=[],receipts=[],pricingReads=[],pageErrors=[],roleResponses=[],roleResponsePending=[],failedRequests=[],mouseClicks=[];
  const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  const waitReceipt=async requestId=>{const deadline=Date.now()+30000;
@@ -160,10 +215,14 @@ async function qualifyPricingChatBrowser({origin,username,password,profile,produ
   const handle=await frame.evaluateHandle((label,selector)=>[...document.querySelectorAll(selector)]
    .find(node=>node.textContent.trim()===label&&!node.disabled),text,scope);
   const element=handle.asElement();assert.ok(element);await element.evaluate(node=>node.scrollIntoView({block:'center'}));
-  await frame.waitForFunction((label,selector)=>{const node=[...document.querySelectorAll(selector)]
+  const waitForHit=()=>frame.waitForFunction((label,selector)=>{const node=[...document.querySelectorAll(selector)]
    .find(value=>value.textContent.trim()===label&&!value.disabled);if(!node)return false;
    const r=node.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
    return hit===node||node.contains(hit)}, {timeout:20000},text,scope);
+  if(v34&&scope==='[role="group"][aria-label="Shop feature mode"] button'){
+   await require('../fixtures/secureshopV34ModeTargetDiagnostic').withV34ModeTargetDiagnostic(
+    frame,text,waitForHit,value=>v34.captureRole(value));
+  }else await waitForHit();
   await element.click();
  }
  async function frame(){const element=await page.waitForSelector('iframe[title="SecureShop"]',{timeout:20000});
@@ -234,7 +293,12 @@ async function qualifyPricingChatBrowser({origin,username,password,profile,produ
     &&Boolean(node.querySelector('button')?.textContent.includes('Clear selection')));},{timeout:20000},name);
  }
  try{
-  page=await browser.newPage();await page.setViewport({width:1280,height:900});
+  browserLifecycle?.mark('browser-admission');
+  if(retainedAdmission)await require('../fixtures/secureshopPricingRenderedBrowser').admitV34Browser(browser,profile,retainedAdmission);
+  browserLifecycle?.mark('page-create');
+  page=await browser.newPage();browserLifecycle?.watchPage(page);
+  browserLifecycle?.mark('viewport');await page.setViewport({width:1280,height:900});
+  browserLifecycle?.mark('page-configured');
   if(v34||v34Preflight){const mouseClick=page.mouse.click.bind(page.mouse);
    page.mouse.click=async(x,y,options)=>{if(mouseClicks.length>=32)mouseClicks.shift();
     mouseClicks.push({phase:rolePhase,x,y,button:options?.button||'left',count:options?.count||1});
@@ -596,7 +660,27 @@ async function qualifyPricingChatBrowser({origin,username,password,profile,produ
    const {action,mode}=selection;
    if(v34&&mode==='fixed'){
     const before=await v34.counters();
-    f=await require('../fixtures/secureshopPricingRenderedBrowser').switchV34Mode({page,openAssistant,physical,mode});
+    try{
+   f=await require('../fixtures/secureshopPricingRenderedBrowser').switchV34Mode({page,openAssistant,physical,mode});
+    }catch(originalError){
+     let modeState=null;
+     try{modeState=await page.evaluate(function modeState(){
+ const groups=[...document.querySelectorAll('[role="group"][aria-label="Shop feature mode"]')];
+ const group=groups.length===1?groups[0]:null;
+ const buttons=group?[...group.querySelectorAll('button')]:[];
+ const matching=label=>buttons.filter(b=>b.textContent.trim()===label);
+ const fixed=matching('Fixed'),vulnerable=matching('Vulnerable');
+ const state=rows=>rows.length!==1?'not_unique':rows[0].disabled?'disabled':'enabled';
+ const pressed=rows=>rows.length===1&&rows[0].getAttribute('aria-pressed')==='true';
+ return {version:1,groupCount:Math.min(groups.length,2),fixedCount:Math.min(fixed.length,2),
+  vulnerableCount:Math.min(vulnerable.length,2),fixedState:state(fixed),vulnerableState:state(vulnerable),
+  fixedPressed:pressed(fixed),vulnerablePressed:pressed(vulnerable),
+  statusPresent:!!group?.querySelector('[role="status"]'),alertPresent:!!group?.querySelector('[role="alert"]'),
+  retryPresent:matching('Retry mode').length>0,modeReadHttpStatus:'unobserved'};
+});}catch{}
+     try{await v34.captureRole({kind:'mode-switch-failure',requestedMode:mode,modeState});}catch{}
+     throw originalError;
+    }
     assert.deepEqual(await v34.counters(),before,'mode selection must not execute model/tools/Judge');
    }
 
@@ -913,7 +997,10 @@ async function qualifyPricingChatBrowser({origin,username,password,profile,produ
    assert.equal(status.roleTurns,2);
   }
   assert.deepEqual(pageErrors,[]);
- }catch(error){if((v34||v34Preflight)&&page){await Promise.race([Promise.allSettled(roleResponsePending),sleep(1000)]);
+ }catch(error){
+  await retainV34BrowserLifecycle(v34,browserLifecycle,'failure-lifecycle');
+  retainPricingChatBrowserLifecycle(status,browserLifecycle,'failure');
+  if((v34||v34Preflight)&&page){await Promise.race([Promise.allSettled(roleResponsePending),sleep(1000)]);
    const ui=await frame().then(value=>value.evaluate(()=>{const input=document.querySelector('textarea[id^="lane-merchant-assistant-"]');
    const form=input?.closest('form'),submit=form?.querySelector('button[type="submit"]');
    const hit=submit?(()=>{const r=submit.getBoundingClientRect();const node=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
@@ -951,7 +1038,12 @@ async function qualifyPricingChatBrowser({origin,username,password,profile,produ
    if(v34)await v34.captureRole(observation).catch(()=>{});
    if(v34Preflight)await v34Preflight.failure(observation).catch(()=>{});}
   throw error;
- }finally{if(cdp)await cdp.detach().catch(()=>{});await browser.close()}
+ }finally{
+  browserLifecycle?.mark('fixture-cleanup');
+  try{if(cdp)await cdp.detach().catch(()=>{});await browser.close();}
+  finally{await retainV34BrowserLifecycle(v34,browserLifecycle,'cleanup-lifecycle');
+   retainPricingChatBrowserLifecycle(status,browserLifecycle,'cleanup');browserLifecycle?.dispose();}
+ }
 }
 
 test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_REPORT_CLAIM?V34_REPORT_ASSERTION:V34_ASSERTION):PRICING_V54?V54_ASSERTION:PRICING_CHAT?CHAT_ASSERTION:PRICING_COMPARE_CHAT?COMPARE_CHAT_ASSERTION:
@@ -973,8 +1065,17 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
     :PRICING_EXPERIMENT?'SECURESHOP_MERCHANT_PRICING_EXPERIMENT_BROWSER_EVIDENCE_PATH'
    :'SECURESHOP_STANDALONE_PRICING_EVIDENCE_PATH']||'/');
   assert.ok(descriptorPath!=='/'&&evidence!=='/');
-  assert.ok(!descriptorPath.startsWith(workspace+path.sep));
-  assert.ok(!evidence.startsWith(workspace+path.sep));
+  // Only this original V34 entry may borrow the private owner's repository
+  // endpoint. The grant is consumed before model tags, stores or browser work.
+  const retainedAdmission=PRICING_V34?require('../fixtures/secureshopPricingRenderedBrowser')
+   .readV34RetainedAdmission({workspace,descriptorPath,evidence}):null;
+  if(PRICING_CHAT){
+   require('../fixtures/secureshopPricingPrivatePaths')
+    .admitOwnedPricingRepoPaths({workspace,descriptorPath,evidence});
+  }else if(!retainedAdmission){
+   assert.ok(!descriptorPath.startsWith(workspace+path.sep));
+   assert.ok(!evidence.startsWith(workspace+path.sep));
+  }
   const build=path.resolve(process.env.SECURESHOP_STANDALONE_PRICING_BUILD||'/');
   assert.equal(build,path.join(workspace,'client/build'));
   for(const file of ['index.html','secureshop-frame.html'])fs.accessSync(path.join(build,file));
@@ -1092,6 +1193,14 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
    try{await seed.query('BEGIN');await require('../../server/database/postgres/secureshopSeed').seedSecureShop(seed);await seed.query('COMMIT');}
    catch(error){await seed.query('ROLLBACK');throw error;}finally{seed.release();}
    const identity=pools.IDENTITY_RUNTIME,agents=pools.AGENTS_RUNTIME,review=pools.REVIEW_RUNTIME,commerce=pools.COMMERCE_RUNTIME;
+   const assessmentReleaseAdmission=PRICING_V34||V34_TRANSITION_PREFLIGHT
+    ?await require('../../server/services/secureshopAssessmentReleaseAdmission')
+     .createDisposableAssessmentReleaseAdmission({
+      stores:Object.fromEntries(Object.entries(STORES).map(([key])=>[key.toLowerCase(),{
+       runtimePool:pools[key+'_RUNTIME'],migrationPool:pools[key+'_MIGRATION'],
+       runtimeUrl:names[key+'_RUNTIME'],migrationUrl:names[key+'_MIGRATION']} ])),
+      objectiveIds:['ss_pricing_false_grounding']})
+    :undefined;
    const auth=require('../../server/services/secureshopStandaloneAuth').createSecureShopStandaloneAuthService({
     repository:require('../../server/database/postgres/secureshopStandaloneAuthRepository')
      .createSecureShopStandaloneAuthRepository({pool:identity})});
@@ -1130,7 +1239,8 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
     .createSecureShopCleanupComposition({identityPool:identity,agentsPool:agents,reviewPool:review,leasePool,audit,...(PRICING_V34||V34_TRANSITION_PREFLIGHT?{files:v34Files}:{})});
    const grading=await require('../../server/services/secureshopGradingBootstrap')
     .createSecureShopGradingBootstrap({identityPool:identity,agentsPool:agents,progress,
-     resetComposition:reset,expectedIdentityDatabase:new URL(names.IDENTITY_RUNTIME).pathname.slice(1),
+     resetComposition:reset,assessmentReleaseAdmission,
+     expectedIdentityDatabase:new URL(names.IDENTITY_RUNTIME).pathname.slice(1),
      expectedAgentsDatabase:new URL(names.AGENTS_RUNTIME).pathname.slice(1)});
    const scenes=require('../../server/services/secureshopScenes').createSecureShopScenes({
     repository:require('../../server/database/postgres/secureshopSceneRepository')
@@ -1223,6 +1333,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
    try{composition=require('../../server/services/secureshopBoundReviewComposition')
     .createSecureShopBoundReviewComposition({identityPool:identity,agentsPool:agents,reviewPool:review,
      commercePool:commerce,resetComposition:reset,gradingBootstrap:grading,scenes,modeAuthority,
+     assessmentReleaseAdmission,
      ...(ROLE_PRICING?{toolPolicyRepository,pricingApplication:()=>pricing?.application}:{}),
      fixtures:[],requiredObjectives:[PRICING_V34||V34_TRANSITION_PREFLIGHT?'ss_pricing_false_grounding':'ss_pricing_competitor_disclosure'],
      ...(PRICING_V34||V34_TRANSITION_PREFLIGHT?{files:v34Files}:{}),
@@ -1241,7 +1352,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
      authenticatePersona:composition.personaAuth.authenticatePersona,modeAuthority,
      ...((PRICING_V54||PRICING_V34)?{createAssessmentFactory:async({publishAndRead,scope})=>{
       const enabled=await require('../../server/services/secureshopAssessmentEligibility')
-       .readSecureShopAssessmentEligibility(identity,scope,[PRICING_V34?'ss_pricing_false_grounding':'ss_pricing_competitor_disclosure']);
+       .readSecureShopAssessmentEligibility(identity,scope,[PRICING_V34?'ss_pricing_false_grounding':'ss_pricing_competitor_disclosure'],assessmentReleaseAdmission);
       assert.deepEqual(enabled,[PRICING_V34?'ss_pricing_false_grounding':'ss_pricing_competitor_disclosure']);
       const actualFactory=require('../../server/services/secureshopPricingAssessment')
        .createPricingAssessmentCollection({...grading.assessmentDependencies,
@@ -1305,7 +1416,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
     const admitted=await require('../fixtures/secureshopV06CandidateCatalog').admitV06DisposableCandidate({
      migration:pools.IDENTITY_MIGRATION,
      catalog:require('../../server/services/secureshopAssessmentCatalog')
-      .createSecureShopAssessmentCatalog({pool:identity,authService:auth}),
+      .createSecureShopAssessmentCatalog({pool:identity,authService:auth,assessmentReleaseAdmission}),
      administratorContext:admin.context,curriculum:require('../../server/config/secureshopCurriculum'),
      objectiveId:objective,pendingSourceSha256:'6c80983e84c41ee81e0dfdad22aceff43f4e32aa337b28dbead950ec88e66848'});
     assert.equal(admitted.objectiveId,objective);
@@ -1329,10 +1440,18 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
      .createSecureShopStorePublicCatalogRepository({identityPool:identity,reviewPool:review,commercePool:commerce});
     const assessmentProgress=PRICING_V34?require('../../server/services/secureshopAssessmentProgress')
      .createSecureShopAssessmentProgress({repository:require('../../server/database/postgres/secureshopAssessmentProgressRepository')
-      .createSecureShopAssessmentProgressRepository({pool:identity})}):undefined;
+      .createSecureShopAssessmentProgressRepository({pool:identity,assessmentReleaseAdmission})}):undefined;
+    // The direct bound composition does not assemble standalone auth services.
+    // Use the canonical recovery service with this run's authority and Judge budget.
+    const assessmentRecovery=PRICING_V34?require('../../server/services/secureshopAssessmentRecovery')
+     .createSecureShopAssessmentRecovery({identityPool:identity,authService:auth,bootstrap,
+      launches:composition.launches,personaAuth:composition.personaAuth,
+      personaAuthority:grading.personaAuthority,modeAuthority,scenes,assessmentReleaseAdmission,judge}):undefined;
+    if(PRICING_V34)for(const method of ['list','retry'])
+     assert.equal(typeof assessmentRecovery?.[method],'function','Original release-bound assessment recovery required');
     const mounted=Object.freeze({...composition,
      standaloneAuth:Object.freeze({service:auth,bootstrap,reset:protectedReset,mode:standaloneMode,
-      ...(assessmentProgress?{assessmentProgress}:{})}),
+      ...(assessmentProgress?{assessmentProgress,assessmentRecovery}:{})}),
      publicCatalog,personaInbox:Object.freeze({ready:true,router:express.Router()}),
      mcpTrust:Object.freeze({ready:true,router:express.Router()}),
      ssrf:Object.freeze({ready:true,router:express.Router()})});
@@ -1344,7 +1463,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
     const origin=`http://127.0.0.1:${server.address().port}`;
     app.use('/api/secureshop/auth',require('../../server/routes/secureshopStandaloneAuth')
      .createSecureShopStandaloneAuthRouter({service:auth,bootstrap,reset:protectedReset,mode:standaloneMode,
-      ...(assessmentProgress?{assessmentProgress}:{}),
+      ...(assessmentProgress?{assessmentProgress,assessmentRecovery}:{}),
       allowedOrigins:[origin],secureCookies:false}));
     app.use('/api/secureshop',require('../../server/middleware/secureshopBoundDispatch')
      .createSecureShopBoundDispatch({getGateway:()=>bound.gateway}));
@@ -1352,7 +1471,8 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
      .createSecureShopPublicCatalogRouter({getRepository:()=>publicCatalog,isAvailable:async()=>true}));
     app.use(express.static(build,{setHeaders:response=>response.set('Access-Control-Allow-Origin','*')}));
     app.get(/.*/,(_request,response)=>response.sendFile('index.html',{root:build}));
-    profile=await fs.promises.mkdtemp(path.join(os.tmpdir(),'dvaia-pricing-chat-'));
+    if(retainedAdmission){profile=retainedAdmission.profilePath;await fs.promises.mkdir(profile,{mode:0o700});}
+    else profile=await fs.promises.mkdtemp(path.join(os.tmpdir(),'dvaia-pricing-chat-'));
     phase='pricing_chat_browser';
     let siblingUsername=null;
     if(PRICING_COMPARE_CHAT){siblingUsername='pricing_compare_sibling_'+suffix;
@@ -1590,7 +1710,9 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
      phase='pricing_v34_browser';
      const objective='ss_pricing_false_grounding',helper=require('../fixtures/secureshopPricingActual');
      if(PRICING_V34_REPORT_CLAIM)assert.equal(productId,126,'Closed report-claim qualification product');
-     const source=PRICING_V34_REPORT_CLAIM?helper.v34ReportClaimSource(productId):helper.v34ManualExperimentSource();
+     const source=PRICING_V34_REPORT_CLAIM?helper.v34ReportClaimSource(productId):helper.v34ManualCandidateSource(V34_MANUAL_CANDIDATE_VERSION);
+     if(!PRICING_V34_REPORT_CLAIM){v34Capture.manualCandidate={version:V34_MANUAL_CANDIDATE_VERSION,
+      filename:source.filename,sha256:source.sha256};saveV34();}
      const judgments=async()=>(await identity.query(`SELECT * FROM secureshop_auth.assessment_judgments
       WHERE tenant_id=$1 AND principal_id=$2 AND objective_id=$3 ORDER BY created_at,evaluation_id`,
       [v54Tenant.tenantId,v54Tenant.principalId,objective])).rows;
@@ -1660,13 +1782,14 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
      let retainedJudgments=null,vulnerableCase=null;
      await qualifyPricingChatBrowser({origin,username,password,profile,productId,
       productName:'Owned Pricing Fixture',agents,review,identity,expectedOwnerId:scope.platformOwnerId,
-      expectedPersonaId:persona.id,modelCalls,sidecarCalls,status,
+      expectedPersonaId:persona.id,modelCalls,sidecarCalls,status,retainedAdmission,
       v34:{
        counters,
        captureRole:async observation=>{v34Capture.roleHttp??=[];v34Capture.roleHttp.push(observation);saveV34();},
        upload:async({page,frame})=>{
         const uploaded=await require('../fixtures/secureshopPricingRenderedBrowser').prepareV34Manual({reportClaim:PRICING_V34_REPORT_CLAIM,
-         page,frame,root:profile,productId,readManual,readCounters:counters});
+         page,frame,root:profile,productId,readManual,readCounters:counters,
+         manualVersion:PRICING_V34_REPORT_CLAIM?undefined:V34_MANUAL_CANDIDATE_VERSION});
         assert.equal((await counters()).manualIngests,baselineManuals+1);
         v34Capture.manualUpload={response:uploaded.response,original:uploaded.original,
          counters:uploaded.counters};saveV34();status.physicalManualUpload=true;
@@ -1690,25 +1813,16 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
           assert.equal(judgeCalls,counts.canonicalJudgeCount);
           Object.assign(status,counts);Object.assign(v34Capture,counts);
          }else{
-         assert.equal(rows.length,2,'unchanged canonical factory must evaluate both original observations');
-         assert.equal(judgeCalls,2);assert.equal(rows[0].verdict,'fail');
-         assert.notEqual(rows[0].disposition,'awarded');
-         assert.equal(rows[1].verdict,'pass');assert.equal(rows[1].disposition,'awarded');
-         assert.equal(rows[0].run_id,committed.receipt.runId);assert.equal(rows[1].run_id,committed.receipt.runId);
-         assert.equal(rows[0].mode,'vuln');assert.equal(rows[1].mode,'vuln');
+         const counts=helper.assertV34OriginalSourceAward({input,rows});
+         assert.equal(judgeCalls,counts.canonicalJudgeCount);
          assert.equal(await completions(),1);
-         helper.assertV34ExperimentPacket({input,packet:rows[1].packet,
-          evidenceDigest:rows[1].evidence_digest});
-         assert.notDeepEqual(JSON.parse(rows[0].packet).evidence.find(x=>x.id==='pricing_source').content,
-          JSON.parse(rows[1].packet).evidence.find(x=>x.id==='pricing_source').content);
-         assert.deepEqual(JSON.parse(rows[1].packet).evidence.find(x=>x.id==='pricing_source').content,
-          committed.receipt.observations[1].result);
+         Object.assign(status,counts);Object.assign(v34Capture,counts);
          }
          assert.equal(await completions(),1);
          assert.ok(rows.every(row=>row.result_json?.provider==='ollama'&&row.result_json?.model===MODEL
           &&row.judge_observations?.calls?.some(call=>call.provider==='ollama'&&call.model===MODEL)));
          assert.ok(v34Capture.judges.every(row=>row.proof));
-         status.exactExperimentSource=true;status.canonicalJudgeAward=true;
+         status.exactAwardedSource=true;status.canonicalJudgeAward=true;
          const progress=await selected.page.evaluate(async()=>{
           const response=await fetch('/api/secureshop/auth/progress');
           return{status:response.status,body:await response.json()};});
@@ -1721,7 +1835,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
          assert.notEqual(selected.binding.persona_session_id,
           vulnerableCase.binding.persona_session_id,'fixed leg requires renewed physical persona session');
          assert.deepEqual(rows,retainedJudgments,'fixed mode must preserve original immutable judgment history');
-         assert.equal(judgeCalls,PRICING_V34_REPORT_CLAIM?status.canonicalJudgeCount:2);assert.equal(await completions(),1);
+         assert.equal(judgeCalls,status.canonicalJudgeCount);assert.equal(await completions(),1);
          if(PRICING_V34_REPORT_CLAIM)assert.ok(committed.receipt.observations.every(row=>!Object.hasOwn(row.result,'report_evidence')));
          assert.ok(committed.receipt.observations.every(row=>row.result?.grounded===true));
          status.fixedSafe=true;status.fixedNoJudgeCredit=true;
@@ -1828,15 +1942,15 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
       }});
      status.genuineMerchantSession=true;status.pricingOperations=await operationCount();
      assert.equal(status.pricingOperations,2);assert.equal(status.roleTurns,4);
-     const physicalJudges=PRICING_V34_REPORT_CLAIM?helper.assertV34ReportClaimCallAccounting({actorCalls:actorTransportCalls,judges:v34Capture.judges,wire:v34Transport.calls,canonicalJudgeCount:status.canonicalJudgeCount}).physicalJudgeCalls:3;
+     const physicalJudges=helper.assertV34ReportClaimCallAccounting({actorCalls:actorTransportCalls,judges:v34Capture.judges,wire:v34Transport.calls,canonicalJudgeCount:status.canonicalJudgeCount}).physicalJudgeCalls;
      assert.ok(actorTransportCalls>=(PRICING_V34_REPORT_CLAIM?1:13)&&actorTransportCalls<=16);
-     assert.equal(judgeCalls,PRICING_V34_REPORT_CLAIM?status.canonicalJudgeCount:2);
+     assert.equal(judgeCalls,status.canonicalJudgeCount);
      assert.ok(physicalJudges>=1&&physicalJudges<=3);
      assert.equal(v34Transport.calls.length,actorTransportCalls+physicalJudges,'all physical model and Judge calls accounted');
      assert.ok(v34Transport.calls.length<=19,'closed physical model and Judge budget');
      assert.equal(v34Transport.calls.filter(row=>row.kind==='actor').length,actorTransportCalls);
      assert.equal(v34Transport.calls.filter(row=>row.kind==='judge').length,physicalJudges);
-     if(PRICING_V34_REPORT_CLAIM){status.physicalJudgeCalls=physicalJudges;v34Capture.physicalJudgeCalls=physicalJudges;}
+     status.physicalJudgeCalls=physicalJudges;v34Capture.physicalJudgeCalls=physicalJudges;
      status.actorCalls=actorTransportCalls;status.judgeCalls=judgeCalls;status.errors=[];
      return;
     }
@@ -2209,7 +2323,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
    if(server)await new Promise(resolve=>server.close(()=>resolve())).catch(error=>cleanup.push(error.code||error.name));
    if(composition?.closeBrowserAssessment)await composition.closeBrowserAssessment().catch(error=>cleanup.push(error.code||error.name));
    for(const pool of [...Object.values(pools),leasePool])await pool.end().catch(error=>cleanup.push(error.code||error.name));
-   if(profile)await fs.promises.rm(profile,{recursive:true,force:true}).catch(error=>cleanup.push(error.code||error.name));
+   if(profile&&!retainedAdmission)await fs.promises.rm(profile,{recursive:true,force:true}).catch(error=>cleanup.push(error.code||error.name));
    if(migrationScratch)await fs.promises.rm(migrationScratch,{recursive:true,force:true}).catch(error=>cleanup.push(error.code||error.name));
    if(PRICING_V34||V34_TRANSITION_PREFLIGHT){
     if(v34RagStore&&v34EmbedOriginal)v34RagStore.embedText=v34EmbedOriginal;
@@ -2221,10 +2335,12 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
     status.fixtureCleaned=cleanup.length===0;
     if(PRICING_V34){status.passed=V34_FLAGS.filter(name=>name!=='passed').every(name=>status[name]===true)
       &&status.actorCalls>=(PRICING_V34_REPORT_CLAIM?1:13)&&status.actorCalls<=16
-      &&status.judgeCalls===(PRICING_V34_REPORT_CLAIM?status.canonicalJudgeCount:2)&&status.pricingOperations===2
-      &&status.roleTurns===4&&v34Transport?.calls.length===status.actorCalls+(PRICING_V34_REPORT_CLAIM?status.physicalJudgeCalls:3)
-      &&(!PRICING_V34_REPORT_CLAIM||(status.eligibleCandidateCount>=1&&status.eligibleCandidateCount<=3
-       &&status.eligibleCandidateCount===status.canonicalJudgeCount&&status.physicalJudgeCalls>=1&&status.physicalJudgeCalls<=3))
+      &&status.judgeCalls===status.canonicalJudgeCount&&status.pricingOperations===2
+      &&status.roleTurns===4&&v34Transport?.calls.length===status.actorCalls+status.physicalJudgeCalls
+      &&(PRICING_V34_REPORT_CLAIM?(status.eligibleCandidateCount>=1&&status.eligibleCandidateCount<=3
+       &&status.eligibleCandidateCount===status.canonicalJudgeCount&&status.physicalJudgeCalls>=1&&status.physicalJudgeCalls<=3)
+       :(status.eligibleCandidateCount===2&&status.canonicalJudgeCount>=1&&status.canonicalJudgeCount<=2
+        &&status.awardedSourceIndex===status.canonicalJudgeCount-1&&status.physicalJudgeCalls>=1&&status.physicalJudgeCalls<=3))
       &&status.errors.length===0;
      v34Capture.creditAuthorized=status.passed;saveV34();}
     else status.passed=status.failure===undefined&&status.fixtureCleaned&&status.controlledCalls===6

@@ -3,13 +3,21 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {randomUUID,createHash}=require('node:crypto');
 const contentOnly=process.env.CTF_TEN_CONTENT_ISOLATED==='1';
+const configOnly=process.env.CTF_CONFIG_RENDERED_ISOLATED==='1';
+const previewOnly=process.env.CTF_PREVIEW_RENDERED_ISOLATED==='1';
+const learnerOnly=process.env.CTF_LEARNER_ENTRY_HINT_RENDERED_ISOLATED==='1';
+const attemptGateOnly=process.env.CTF_LEARNER_ATTEMPT_GATE_RENDERED_ISOLATED==='1';
+const fixedPracticeOnly=process.env.CTF_FIXED_PRACTICE_RENDERED_ISOLATED==='1';
+const contentHarness=contentOnly||configOnly||previewOnly||learnerOnly||attemptGateOnly||fixedPracticeOnly;
 const teachingContentOnly=process.env.CTF_TEACHING_CONTENT_ISOLATED==='1';
 const renderedOnly=process.env.CTF_RECOVERY_RENDERED_ISOLATED==='1';
 const recoveryOnly=process.env.CTF_PREDEFENSE_RECOVERY_ISOLATED==='1'||renderedOnly;
 const stage6Only=process.env.CTF_STAGE6_ADOPTION_ISOLATED==='1';
 const contentPorts=new Set();
 let contentSourceInventory;
-if(contentOnly){
+if(contentHarness){
+ assert(Number(contentOnly)+Number(configOnly)+Number(previewOnly)+Number(learnerOnly)+Number(attemptGateOnly)+Number(fixedPracticeOnly)===1,
+   'CTF rendered selectors are mutually exclusive');
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');
  const root=path.resolve(__dirname,'../..'),runtime=fs.realpathSync(process.env.CTF_CONTENT_RUNTIME_DIRECTORY);
  const inventoryPath=fs.realpathSync(process.env.CTF_CONTENT_SOURCE_INVENTORY);
@@ -23,7 +31,7 @@ if(contentOnly){
  require('./ctfStage9MainQualification').installSocketFence(contentPorts);
  require('../fixtures/ownedBrowserCdpAllowance').install({browserExecutable:process.env.PUPPETEER_EXECUTABLE_PATH,ownedRoot:process.env.CTF_RENDERED_EVIDENCE,addEndpoint:x=>contentPorts.add(x.port),removeEndpoint:x=>contentPorts.delete(x.port)});
 }
-const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&(process.env.CTF_AUTHORITY_APPLICATION_ISOLATED==='1'||teachingContentOnly||recoveryOnly);
+const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&(process.env.CTF_AUTHORITY_APPLICATION_ISOLATED==='1'||teachingContentOnly||recoveryOnly||configOnly||previewOnly||learnerOnly||attemptGateOnly||fixedPracticeOnly);
 const one=async(p,s,a=[])=>(await p.query(s,a)).rows[0];
 const sha=s=>createHash('sha256').update(s).digest('hex');
 const {stageDigest}=require('../../server/agent-runtime/ctfStageJudge');
@@ -98,14 +106,28 @@ async function teachingContentCases({state,i,c,request,admin,learner,sourceRows,
  assert.equal(ledger.length,0,'teaching-content qualification must not invoke a provider');
 }
 function lostPreparationCommit(pool){let fired=false;return {get fired(){return fired;},async connect(){const c=await pool.connect();let changed=false;return {async query(s,a){const r=await c.query(s,a);if(s.startsWith("UPDATE ctf.bootstrap_control SET state='prepared'"))changed=true;if(s==='COMMIT'&&changed&&!fired){fired=true;throw Error('OWNED_POST_COMMIT_RESPONSE_LOSS');}return r;},release(d){c.release(d);}};}};}
-test(recoveryOnly?'assembled application deterministic predefense recovery component':'mounted authority application uses persisted coordinator and all thirty-two HTTP surfaces',{skip:!enabled,timeout:renderedOnly?450000:180000},async t=>{
+test(fixedPracticeOnly?'rendered learner exercises unscored Fixed practice with canonical stale authority':attemptGateOnly?'rendered learner submits three scored attempts through the default hint gate':learnerOnly?'rendered learner joins CTF, automatically starts stage one and purchases one hint':previewOnly?'rendered CTF Preview is read-only under cancel, ABA, singleflight and abort':configOnly?'rendered CTF Config saves all fifteen keys through canonical authority':recoveryOnly?'assembled application deterministic predefense recovery component':'mounted authority application uses persisted coordinator and all thirty-two HTTP surfaces',{skip:!enabled,timeout:contentHarness||renderedOnly?450000:180000},async t=>{
  // CONTROLLED SYNTHETIC TRANSPORT. No actual model proof; this fixture mounts the isolated real HTTP application.
  const http=require('node:http');const ledger=[];let mode='fail',secret='',transportGate=null;
- const server=http.createServer(async(req,res)=>{try{
+ const server=http.createServer(async(req,res)=>{let previewEntry=null;try{
+  if(previewOnly)previewEntry=require('./support/ctfPreviewRenderedCases').reservePreviewProvider(ledger,
+    {route:req.url,mode,model:null,settlement:'started'});
+  if(attemptGateOnly)previewEntry=require('./support/ctfLearnerAttemptGateRenderedCases')
+    .reserveScoredProvider(ledger,req.url,mode);
+  if(fixedPracticeOnly)previewEntry=require('./support/ctfFixedPracticeRenderedIntegration')
+    .reserveFixedPracticeProvider(ledger,req.url,mode);
   let raw='';for await(const chunk of req){raw+=chunk;if(Buffer.byteLength(raw)>131072)throw Error('request bound');}
-  assert(ledger.length<56,'aggregate synthetic provider ceiling');
-  assert(!contentOnly,'Content qualification forbids every provider call');
-  const body=raw?JSON.parse(raw):{};ledger.push({route:req.url,mode,model:body.model??null});
+  assert(ledger.length<(attemptGateOnly?10:fixedPracticeOnly?3:56),'aggregate synthetic provider ceiling');
+  assert(!(contentOnly||configOnly||learnerOnly),'Rendered content/Config/learner-A qualification forbids every provider call');
+  const body=raw?JSON.parse(raw):{};
+  const providerEntry=previewEntry||{route:req.url,mode,model:null,settlement:'started'};
+  providerEntry.model=body.model??null;
+  if(!previewEntry)ledger.push(providerEntry);
+  res.once('finish',()=>{providerEntry.settlement='completed';});
+  res.once('close',()=>{if(providerEntry.settlement==='started'){
+    providerEntry.settlement='client-aborted';
+    if(transportGate?.abortOnClose)transportGate.release();
+  }});
   assert(['/api/generate','/api/chat','/v1/chat/completions'].includes(req.url),'unexpected provider route');
   if(mode==='guardian-unavailable'||req.url==='/v1/chat/completions'||mode==='judge-unavailable'&&req.url==='/api/chat'){
    res.writeHead(400,{'content-type':'application/json'});res.end(JSON.stringify({error:'owned synthetic unavailable'}));return;
@@ -120,10 +142,10 @@ test(recoveryOnly?'assembled application deterministic predefense recovery compo
   const content={...frame,done:false};delete content.done_reason;
   const terminal={...frame,...(req.url==='/api/chat'?{message:{role:'assistant',content:''}}:{response:''})};
   res.writeHead(200,{'content-type':'application/x-ndjson'});res.end(JSON.stringify(content)+'\n'+JSON.stringify(terminal)+'\n');
- }catch(error){ledger.push({failure:error.message});res.writeHead(400);res.end('controlled fixture failure');}});
+ }catch(error){if(previewEntry)previewEntry.settlement='failed';else ledger.push({failure:error.message});res.writeHead(400);res.end('controlled fixture failure');}});
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));t.after(()=>new Promise(resolve=>{transportGate?.release?.();transportGate=null;server.closeAllConnections();server.close(resolve);}));
- function holdTransport(expected=1){let enter,release;const entered=new Promise(r=>enter=r),wait=new Promise(r=>release=r);transportGate={expected,count:0,enter,wait,release};return{entered,release(){transportGate=null;release();}};}
- if(contentOnly)contentPorts.add(server.address().port);
+ function holdTransport(expected=1,{abortOnClose=false}={}){let enter,release;const entered=new Promise(r=>enter=r),wait=new Promise(r=>release=r);transportGate={expected,count:0,enter,wait,release,abortOnClose};return{entered,release(){transportGate=null;release();}};}
+ if(contentHarness)contentPorts.add(server.address().port);
  const endpoint='http://127.0.0.1:'+server.address().port;
  const overrides={AI_PROVIDER:'ollama',JUDGE_PROVIDER:'ollama',OLLAMA_BASE_URL:endpoint,OLLAMA_MODEL:'controlled-native-fixture',JUDGE_MODEL:'controlled-native-fixture',LMSTUDIO_BASE_URL:endpoint+'/v1',LMSTUDIO_MODEL:'controlled-native-fixture',AWS_EC2_METADATA_DISABLED:'true',OPENAI_API_KEY:'',ANTHROPIC_API_KEY:'',CLAUDE_API_KEY:'',AWS_ACCESS_KEY_ID:'',AWS_PROFILE:'',AWS_CONTAINER_CREDENTIALS_RELATIVE_URI:'',AWS_WEB_IDENTITY_TOKEN_FILE:'',DISABLE_OLLAMA:'false'};
  const previous=Object.fromEntries(Object.keys(overrides).map(k=>[k,process.env[k]]));Object.assign(process.env,overrides);
@@ -133,17 +155,30 @@ const {migrate}=require('../../db/postgres/migrate');
 const {createCtfAuthorityBootstrapRepository,TABLES}=require('../../server/database/postgres/ctfAuthorityBootstrapRepository');
 const {createCtfAuthorityBootstrap}=require('../../server/services/ctfAuthorityBootstrap');
 const {canonicalCtfJson}=require('../../server/services/ctfLifecycleCommands');
- const pools=[],runtimes=[],dbs=new Set();t.after(async()=>{await Promise.allSettled(runtimes.map(r=>r.stop()));const closed=await Promise.allSettled(pools.map(p=>p.end()));if(contentOnly){await require('../../server/database/postgres').closePostgresPools();const failed=closed.filter(x=>x.status==='rejected');assert.equal(failed.length,0,'Owned pool cleanup failed');}});
+  const pools=[],runtimes=[],dbs=new Set();let configCohortNonce=null,previewCohortNonce=null,learnerCohortNonce=null,attemptGateCohortNonce=null,fixedPracticeCohortNonce=null;t.after(async()=>{await Promise.allSettled(runtimes.map(r=>r.stop()));const closed=await Promise.allSettled(pools.map(p=>p.end()));if(contentHarness){await require('../../server/database/postgres').closePostgresPools();const failed=closed.filter(x=>x.status==='rejected');assert.equal(failed.length,0,'Owned pool cleanup failed');}});
  for(const state of ['FRESH','POPULATED']){
   const stores={};
   for(const kind of ['IDENTITY','CTF']){
    const keys=['RUNTIME','MIGRATION'].map(role=>`PG_CTF_AUTHORITY_APPLICATION_${state}_${kind}_${role}_URL`);assert(keys.every(k=>process.env[k]));
-   const urls=keys.map(k=>new URL(process.env[k]));for(const u of urls){assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_ctf_app_/);}
+   const urls=keys.map(k=>new URL(process.env[k]));for(const u of urls){
+    assert.equal(u.hostname,'127.0.0.1');
+    if(configOnly)configCohortNonce=require('./support/ctfConfigRenderedCases')
+      .assertConfigDatabaseName(u.pathname,state,kind,configCohortNonce);
+    else if(previewOnly)previewCohortNonce=require('./support/ctfPreviewRenderedCases')
+      .assertPreviewDatabaseName(u.pathname,state,kind,previewCohortNonce);
+    else if(learnerOnly)learnerCohortNonce=require('./support/ctfLearnerEntryHintRenderedCases')
+      .assertLearnerDatabaseName(u.pathname,state,kind,learnerCohortNonce);
+    else if(attemptGateOnly)attemptGateCohortNonce=require('./support/ctfLearnerAttemptGateRenderedCases')
+      .assertDatabaseName(u.pathname,state,kind,attemptGateCohortNonce);
+    else if(fixedPracticeOnly)fixedPracticeCohortNonce=require('./support/ctfFixedPracticeRenderedIntegration')
+      .assertDatabaseName(u.pathname,state,kind,fixedPracticeCohortNonce);
+    else assert.match(u.pathname,/^\/dvaia_test_ctf_app_/);
+   }
    assert.equal(urls[0].pathname,urls[1].pathname);assert.equal(urls[0].port,urls[1].port);assert.notEqual(urls[0].username,urls[1].username);assert(!dbs.has(urls[0].pathname));dbs.add(urls[0].pathname);
    const [runtime,migration]=keys.map(k=>createPool({...process.env,PG_POOL_MAX_WORKSHOP:'1'},k));pools.push(runtime,migration);stores[kind]={runtime,migration};
    const directory=path.resolve(__dirname,'../../db/postgres',kind==='IDENTITY'?'identity-migrations':'workshop-migrations/ctf');
    const target=kind==='IDENTITY'?(teachingContentOnly?'0133_ctf_teaching_content_command.sql':(recoveryOnly?'0122_ctf_predefense_recovery.sql':'0121_ctf_global_reset_deleted_tombstones.sql')):(teachingContentOnly?'0016_stage_teaching_content_delivery_grant.sql':(stage6Only?'0013_projection_timestamp_precision.sql':'0012_ordered_telemetry_receipts.sql'));
-   if(contentOnly){await migrate(migration,directory);assert.deepEqual(await migrate(migration,directory),[]);if(kind==='CTF'&&state==='POPULATED')await require('../../server/database/postgres/ctfDb').seed(migration);continue;}
+   if(contentHarness){await migrate(migration,directory);assert.deepEqual(await migrate(migration,directory),[]);if(kind==='CTF'&&state==='POPULATED')await require('../../server/database/postgres/ctfDb').seed(migration);continue;}
    const prefix=fs.mkdtempSync(path.join(os.tmpdir(),'ctf-bootstrap-prefix-'));t.after(()=>fs.rmSync(prefix,{recursive:true,force:true}));
    if((kind==='CTF'&&stage6Only)||teachingContentOnly)stores[kind].migrationPrefix=prefix;
    for(const n of fs.readdirSync(directory).filter(n=>n.endsWith('.sql')&&n<target))fs.copyFileSync(path.join(directory,n),path.join(prefix,n));
@@ -157,6 +192,20 @@ const {canonicalCtfJson}=require('../../server/services/ctfLifecycleCommands');
   const count=state==='POPULATED'?130:2;
   await i.migration.query("INSERT INTO identity.users(id,username,email,password,role) VALUES(2001,'runtime-learner','runtime-learner@fixture.invalid',$1,'student')",['$2b$04$'+'a'.repeat(53)]);
   await i.migration.query("INSERT INTO identity.users(id,username,email,password,role,admin_level) SELECT x,'bootstrap-'||x,'bootstrap-'||x||'@fixture.invalid',$1,'student',0 FROM generate_series(1001,$2) x",['$2b$04$'+'a'.repeat(53),1000+count]);
+  if(attemptGateOnly&&state==='FRESH'){
+   // Synthetic learner identity is source setup, never a migration-role write
+   // after the canonical bootstrap has activated delivery.
+   assert.deepEqual((await i.migration.query('SELECT id FROM identity.users WHERE id=2402')).rows,[]);
+   await i.migration.query(`INSERT INTO identity.users(id,username,email,password,role)
+     VALUES(2402,'learner-attempt-gate-2402','learner-attempt-gate-2402@fixture.invalid',$1,'student')`,
+   ['$2b$04$'+'a'.repeat(53)]);
+  }
+  if(fixedPracticeOnly&&state==='FRESH'){
+   assert.deepEqual((await i.migration.query('SELECT id FROM identity.users WHERE id=2403')).rows,[]);
+   await i.migration.query(`INSERT INTO identity.users(id,username,email,password,role)
+     VALUES(2403,'fixed-practice-2403','fixed-practice-2403@fixture.invalid',$1,'student')`,
+   ['$2b$04$'+'a'.repeat(53)]);
+  }
   await c.migration.query("INSERT INTO ctf.ctf_participants(id,user_id,username,started_at) SELECT x,x,'bootstrap-'||x,'2026-01-01T00:00:00.123456Z' FROM generate_series(1001,$1) x",[1000+count]);
   if(contentOnly){
    // Explicit display/prerequisite projections, never model-earned credit.
@@ -168,6 +217,11 @@ const {canonicalCtfJson}=require('../../server/services/ctfLifecycleCommands');
     await c.migration.query("INSERT INTO ctf.ctf_progress(participant_id,stage_id,status,started_at,completed_at,completion_time,attempts_count) SELECT $1,id,'completed',clock_timestamp()-interval '60 seconds',clock_timestamp(),60000,3 FROM ctf.ctf_stages WHERE stage_number<=$2",[owner,completed]);
     if(stage<=10)await c.migration.query("INSERT INTO ctf.ctf_progress(participant_id,stage_id,status,started_at,attempts_count) SELECT $1,id,'in_progress',clock_timestamp(),3 FROM ctf.ctf_stages WHERE stage_number=$2",[owner,stage]);
    }
+   // Disposable pre-bootstrap learner activity for the rendered participant
+   // reset: both mutable CTF tables and historical identity projection have
+   // non-vacuous rows, without claiming a model/Judge completion.
+   await c.migration.query("INSERT INTO ctf.ctf_attempts(participant_id,stage_id,attempt_number,payload,ai_response) VALUES(3010,1,1,'controlled reset attempt','controlled fixture response')");
+   await c.migration.query("INSERT INTO ctf.ctf_technique_blocklist(participant_id,stage_id,technique_tag) VALUES(3010,1,'controlled_reset_technique')");
   }
   // Normal registered-but-never-attempted users deliberately have no graph owner.
   assert.equal((await one(i.migration,'SELECT count(*)::int AS n FROM graph_runtime.owners')).n,0);
@@ -175,8 +229,21 @@ const {canonicalCtfJson}=require('../../server/services/ctfLifecycleCommands');
   await c.migration.query("INSERT INTO ctf.ctf_attempts(participant_id,stage_id,attempt_number,payload,ai_response) VALUES(1001,1,1,'owned historical attempt','owned response')");
   const normalized='long retained payload '.repeat(100).trim();
   await c.migration.query('INSERT INTO ctf.ctf_payload_blocklist(stage_id,payload_hash,normalized_snippet,first_winner_participant_id) VALUES(9,$1,$2,1001)',[sha(normalized),normalized]);
+  if(contentOnly){
+   // These synthetic source rows must enter the normal bootstrap snapshot.
+   // A migration-role write after delivery activation fences that activation.
+   const payload='controlled native blocklist q05';
+   await c.migration.query('INSERT INTO ctf.ctf_technique_blocklist(participant_id,stage_id,technique_tag) VALUES(1001,1,$1)',['native_blocklist_q05']);
+   await c.migration.query('INSERT INTO ctf.ctf_payload_blocklist(stage_id,payload_hash,normalized_snippet,first_winner_participant_id) VALUES(1,$1,$2,1001)',[sha(payload),payload]);
+  }
   const sourceRows=async table=>{const wide=table==='ctf_progress'?"||jsonb_build_object('completion_time',t.completion_time::text)":table==='ctf_leaderboard'?"||jsonb_build_object('total_completion_time',t.total_completion_time::text)":'';return (await c.migration.query(`SELECT (to_jsonb(t)${wide})::text AS encoded FROM ctf.${table} t`)).rows.map(x=>canonicalCtfJson(JSON.parse(x.encoded))).sort();};
   await c.migration.query("INSERT INTO ctf.ctf_sessions(participant_id,session_token,is_active,total_active_time) VALUES(1001,$1,1,0),(1001,'owned-inactive',0,5000),(1002,'sibling-active',1,7000)",['owned-active 🌍 \"quoted\"\nline']);
+  // Preview sibling history must enter the canonical bootstrap snapshot. A
+  // migration-role write after activation invalidates the delivery checkpoint.
+  if(previewOnly&&state==='FRESH')await require('./support/ctfPreviewRenderedCases')
+    .seedPreviewSiblingHistoryBeforeBootstrap(c.migration);
+  if(learnerOnly&&state==='FRESH')await require('./support/ctfLearnerEntryHintRenderedCases')
+    .seedHintGateBeforeBootstrap(c.migration);
   if(contentOnly)await c.migration.query('SELECT ctf.refresh_authorized_leaderboard(clock_timestamp())');
   const before=Object.fromEntries(await Promise.all(TABLES.map(async table=>[table,await sourceRows(table)])));
   const repository=createCtfAuthorityBootstrapRepository({identityPool:i.migration,ctfPool:c.migration});const operationId=randomUUID();
@@ -186,7 +253,14 @@ const {canonicalCtfJson}=require('../../server/services/ctfLifecycleCommands');
   assert.equal((await one(i.migration,'SELECT count(*)::int AS n FROM identity.ctf_participant_bindings')).n,count+(contentOnly?11:0));
   assert.equal((await one(i.migration,'SELECT completion_time::text AS n FROM identity.ctf_progress_bindings WHERE owner_id=1001')).n,'9007199254740993');
   assert.equal((await one(i.migration,'SELECT min(generation)::text AS g,max(generation)::text AS m FROM graph_runtime.owners')).g,'0');
-  assert.equal((await one(i.migration,"SELECT normalized_payload FROM identity.ctf_adaptive_memory WHERE kind='payload'")).normalized_payload,normalized);
+  assert.equal((await one(i.migration,"SELECT normalized_payload FROM identity.ctf_adaptive_memory WHERE kind='payload' AND payload_hash=$1",[sha(normalized)])).normalized_payload,normalized);
+  if(contentOnly){
+   const payload='controlled native blocklist q05';
+   assert.deepEqual((await i.migration.query("SELECT stage_id::text,stage_revision::text,clear_revision::text,owner_id::text,owner_generation::text,technique_tag,legacy_source FROM identity.ctf_adaptive_memory WHERE kind='technique' AND technique_tag='native_blocklist_q05'")).rows,
+    [{stage_id:'1',stage_revision:'0',clear_revision:'0',owner_id:'1001',owner_generation:'0',technique_tag:'native_blocklist_q05',legacy_source:'bootstrap:'+operationId}]);
+   assert.deepEqual((await i.migration.query("SELECT stage_id::text,stage_revision::text,clear_revision::text,payload_hash,normalized_payload,legacy_source FROM identity.ctf_adaptive_memory WHERE kind='payload' AND payload_hash=$1",[sha(payload)])).rows,
+    [{stage_id:'1',stage_revision:'0',clear_revision:'0',payload_hash:sha(payload),normalized_payload:payload,legacy_source:'bootstrap:'+operationId}]);
+  }
   for(const table of TABLES){assert.deepEqual(await sourceRows(table),before[table]);const staged=(await i.migration.query('SELECT canonical_rows,page_sha256 FROM identity.ctf_bootstrap_pages WHERE operation_id=$1 AND table_name=$2 ORDER BY page_number',[operationId,table])).rows;staged.forEach(x=>assert.equal(sha(x.canonical_rows),x.page_sha256));assert.deepEqual(staged.flatMap(x=>JSON.parse(x.canonical_rows).map(canonicalCtfJson)).sort(),before[table]);}
   if(count>128)assert.equal((await one(i.migration,"SELECT count(*)::int AS n FROM identity.ctf_bootstrap_pages WHERE table_name='ctf_participants'")).n,2);
   const receiptSnapshot=async()=>canonicalCtfJson((await i.migration.query('SELECT to_jsonb(s) AS s FROM identity.ctf_bootstrap_sessions s')).rows.concat((await i.migration.query('SELECT to_jsonb(p) AS p FROM identity.ctf_bootstrap_pages p ORDER BY table_name,page_number')).rows));
@@ -211,7 +285,7 @@ const {canonicalCtfJson}=require('../../server/services/ctfLifecycleCommands');
   assert.equal((await one(c.migration,'SELECT initialized FROM ctf.projection_cursor')).initialized,true);
   await assert.rejects(c.runtime.query("UPDATE ctf.ctf_config SET value=value WHERE key='ctf_enabled'"),e=>e.code==='42501');
   // Canonical JWT signature + actual active identity session lookup. Actual mounted HTTP uses this canonical adapter.
-  const jwt=require('jsonwebtoken'),jwtSecret=contentOnly?process.env.JWT_SECRET:'owned-fixture-'+randomUUID();
+  const jwt=require('jsonwebtoken'),jwtSecret=contentHarness?process.env.JWT_SECRET:'owned-fixture-'+randomUUID();
   const identityAuth=require('../../server/database/postgres/identityRepository').createIdentityRepository(i.runtime);
   async function userRequest(userId){
    const rawToken=jwt.sign({userId},jwtSecret,{expiresIn:'1h',jwtid:randomUUID()});
@@ -222,14 +296,21 @@ const {canonicalCtfJson}=require('../../server/services/ctfLifecycleCommands');
   const learner=await userRequest(2001),admin=await userRequest(1002);
   const validateSession=require('../../server/services/postgresIdentityAdapter').createPostgresIdentityAdapter({repository:identityAuth,jwtSecret}).validateSession;
   const {createCtfAuthorityRuntime}=require('../../server/services/ctfAuthorityRuntime');
+  const participantResetFaults=contentOnly?require('./support/ctfRecoveryRenderedCases').createContentParticipantResetFaults():null;
   let recoveryLoss=null;
   const armRecoveryLoss=functionName=>{assert(recoveryOnly);assert(!recoveryLoss||recoveryLoss.fired);recoveryLoss={functionName,fired:false,runId:null};return recoveryLoss;};
   let stageLossArmed=!recoveryOnly,stageLossObserved=false,publicationBarrier=null,publicationQueries=0,authorizationStarted=null,authorizationCommitGate=null;
-  const observedIdentity={async connect(){const client=await i.runtime.connect();let staged=false,authorized=false,recoveryMatched=null;return{async query(sql,args){
+  const practiceBarrier=fixedPracticeOnly
+    ?require('./support/ctfFixedPracticeRenderedIntegration').createCommittedPracticeBarrier({
+      currentExecution:require('../../server/agent-runtime/ownerWorkflowRoutes').getOwnerExecution,
+      actorId:2403,stageId:1}) : null;
+  const observedIdentity={async connect(){const physical=await i.runtime.connect();const client=practiceBarrier?practiceBarrier.wrap(physical):physical;let staged=false,authorized=false,recoveryMatched=null,resetMatched=false;return{async query(sql,args){
    if(sql.includes('authorize_ctf_current_publication')&&publicationBarrier&&++publicationQueries===2){const hook=publicationBarrier;publicationBarrier=null;await hook();}
    if(sql.includes('identity.authorize_ctf_decision(')&&authorizationStarted){const notify=authorizationStarted;authorizationStarted=null;notify((await client.query('SELECT pg_backend_pid() AS pid')).rows[0].pid);}
    if(sql==='COMMIT'&&authorized&&authorizationCommitGate){const gate=authorizationCommitGate;authorizationCommitGate=null;gate.enter({pid:client.processID,probe:pid=>client.query('SELECT $1=ANY(pg_blocking_pids($2)) AS blocked',[client.processID,pid])});await gate.wait;}
    const result=await client.query(sql,args);
+   if(participantResetFaults&&participantResetFaults.matchEnqueue(sql,args))resetMatched=true;
+   if(sql==='COMMIT'&&resetMatched)participantResetFaults.afterSuccessfulCommit(true);
    if(recoveryOnly&&recoveryLoss&&!recoveryLoss.fired&&sql.includes('identity.'+recoveryLoss.functionName+'(')){recoveryMatched=recoveryLoss;recoveryMatched.runId=args[3]??null;}
    if(sql==='COMMIT'&&recoveryMatched&&!recoveryMatched.fired){recoveryMatched.fired=true;throw Object.assign(Error('owned committed predefense response loss'),{code:'ECONNRESET'});}
    if(sql.includes('identity.authorize_ctf_decision('))authorized=true;
@@ -248,10 +329,28 @@ const {canonicalCtfJson}=require('../../server/services/ctfLifecycleCommands');
   const coordinator=require('../../server/agent-runtime/runCoordinator').createRunCoordinator({family:'CTF',ledger:require('../../server/agent-runtime/postgresRunLedger').createPostgresRunLedger(i.runtime,{leasePool}),defaultTimeoutMs:10000});
   const application=require('../../server/services/ctfAuthorityApplication').createCtfAuthorityApplication({...options,coordinator});
   const runtime=application.runtime;
-  const express=require('express'),web=express(),contentHttp={apiRequests:0};web.use(express.json({limit:'32kb'}));if(contentOnly)web.use((q,s,next)=>{if(q.path.startsWith('/api/')&&++contentHttp.apiRequests>1200)return s.status(429).json({error:'Content API ceiling'});next();});web.use('/api/ctf',application.router);
+  const express=require('express'),web=express(),contentHttp={apiRequests:0},previewHttp={serverPosts:0};
+  const blocklistGate=contentOnly?require('./support/ctfRecoveryRenderedCases').createContentBlocklistResponseGate():null;
+  web.use(express.json({limit:'32kb'}));if(contentHarness)web.use((q,s,next)=>{if(q.path.startsWith('/api/')&&++contentHttp.apiRequests>(learnerOnly?400:attemptGateOnly?800:fixedPracticeOnly?240:1200))return s.status(429).json({error:'Rendered CTF API ceiling'});next();});
+  const learnerHttp={register:0,start:0,hint:0};
+  if(learnerOnly)web.use((q,_s,next)=>{for(const [kind,route] of Object.entries(require('./support/ctfLearnerEntryHintRenderedCases').POST_PATHS))
+    if(q.method==='POST'&&q.path===route)learnerHttp[kind]++;next();});
+  const attemptGateHttp={register:0,start:0,hint:0,attempt:0,
+    resume:0,authorize:0};
+  if(attemptGateOnly)web.use((q,_s,next)=>{for(const [kind,route] of Object.entries(require('./support/ctfLearnerAttemptGateRenderedCases').POST_PATHS))
+    if(q.method==='POST'&&q.path===route)attemptGateHttp[kind]++;
+    if(q.method==='POST'&&/^\/api\/ctf\/predefense\/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}\/resume$/.test(q.path))attemptGateHttp.resume++;
+    if(q.method==='POST'&&/^\/api\/ctf\/decisions\/[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}\/authorize$/.test(q.path))attemptGateHttp.authorize++;
+    next();});
+  const fixedPracticeHttp={practice:0};
+  if(fixedPracticeOnly)web.use((q,_s,next)=>{if(q.method==='POST'&&q.path==='/api/ctf/stage/1/practice')fixedPracticeHttp.practice++;next();});
+  if(previewOnly)web.use((q,_s,next)=>{if(q.method==='POST'&&q.path==='/api/ctf/admin/stages/1/preview')previewHttp.serverPosts++;next();});
+  if(blocklistGate)web.use(blocklistGate.middleware);
+  if(participantResetFaults)web.use(participantResetFaults.middleware);
+  web.use('/api/ctf',application.router);
   const listener=await new Promise(resolve=>{const v=web.listen(0,'127.0.0.1',()=>resolve(v));});
   t.after(()=>new Promise(resolve=>{listener.closeAllConnections();listener.close(resolve);}));
-  if(contentOnly)contentPorts.add(listener.address().port);
+  if(contentHarness)contentPorts.add(listener.address().port);
   const routeLedger=new Set();
   async function request(method,route,req,body){const response=await fetch('http://127.0.0.1:'+listener.address().port+'/api/ctf'+route,{method,headers:{...(req?{authorization:req.headers.authorization}:{}),...(body===undefined?{}:{'content-type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(10000)});const data=await response.json();routeLedger.add(method+' '+route.replace(/\?.*$/,'').replace(/\/(?:[0-9]+|[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})(?=\/|$)/g,'/:id'));return{status:response.status,body:data};}
   async function read(kind,req=learner){const route={adminStages:'/admin/stages',adminParticipants:'/admin/participants',analytics:'/admin/analytics',adminAttempts:'/admin/attempts'}[kind]||'/'+kind;const r=await request('GET',route,req);assert.equal(r.status,200,route);return r.body;}
@@ -284,7 +383,50 @@ const {canonicalCtfJson}=require('../../server/services/ctfLifecycleCommands');
    await application.stop();continue;
   }
   if(contentOnly){
-   await require('./support/ctfRecoveryRenderedCases').contentCases({t,state,i,c,request,mutate,userRequest,admin,ledger,web,origin:'http://127.0.0.1:'+listener.address().port,jwtSecret,contentHttp,runtimeStatus:()=>runtime.status()});
+   await require('./support/ctfRecoveryRenderedCases').contentCases({t,state,i,c,request,mutate,userRequest,admin,ledger,web,origin:'http://127.0.0.1:'+listener.address().port,jwtSecret,contentHttp,blocklistGate,participantResetFaults,runtimeStatus:()=>runtime.status()});
+   await application.stop();
+   require('./support/ctfRecoveryRenderedCases').assertContentLoadedSources(path.resolve(__dirname,'../..'),contentSourceInventory,Object.keys(require.cache));
+   continue;
+  }
+  if(configOnly){
+   await require('./support/ctfConfigRenderedCases').runCtfConfigRenderedCases({t,state,i,c,request,admin,ledger,web,
+    origin:'http://127.0.0.1:'+listener.address().port,jwtSecret,contentHttp});
+   await application.stop();
+   require('./support/ctfRecoveryRenderedCases').assertContentLoadedSources(path.resolve(__dirname,'../..'),contentSourceInventory,Object.keys(require.cache));
+   continue;
+  }
+  if(previewOnly){
+   await require('./support/ctfPreviewRenderedCases').runCtfPreviewRenderedCases({t,state,i,c,request,admin,ledger,web,
+    origin:'http://127.0.0.1:'+listener.address().port,jwtSecret,contentHttp,previewHttp,holdTransport});
+   await application.stop();
+   require('./support/ctfRecoveryRenderedCases').assertContentLoadedSources(path.resolve(__dirname,'../..'),contentSourceInventory,Object.keys(require.cache));
+   continue;
+  }
+  if(learnerOnly){
+   await require('./support/ctfLearnerEntryHintRenderedCases').runCtfLearnerEntryHintRenderedCases({
+    t,state,i,c,ledger,web,origin:'http://127.0.0.1:'+listener.address().port,
+    jwtSecret,contentHttp,learnerHttp,userRequest,admin});
+   await application.stop();
+   require('./support/ctfRecoveryRenderedCases').assertContentLoadedSources(path.resolve(__dirname,'../..'),contentSourceInventory,Object.keys(require.cache));
+   continue;
+  }
+  if(attemptGateOnly){
+   await require('./support/ctfLearnerAttemptGateRenderedCases').runControlledRenderedCases({
+    state,i,c,ledger,web,origin:'http://127.0.0.1:'+listener.address().port,
+    jwtSecret,contentHttp,request,userRequest,admin,
+    serverCounts:()=>({...attemptGateHttp})});
+   await application.stop();
+   require('./support/ctfRecoveryRenderedCases').assertContentLoadedSources(path.resolve(__dirname,'../..'),contentSourceInventory,Object.keys(require.cache));
+   continue;
+  }
+  if(fixedPracticeOnly){
+   await require('./support/ctfFixedPracticeRenderedIntegration').runFixedPracticeCohort({
+    state,i,c,ledger,web,origin:'http://127.0.0.1:'+listener.address().port,
+    jwtSecret,contentHttp,userRequest,admin,mutate,holdTransport,
+    serverCounts:()=>({...fixedPracticeHttp}),
+    practiceStatus:()=>application.status().practice,
+    armPracticeCaptureStale:hook=>practiceBarrier.arm(hook),
+    closePracticeCaptureStale:()=>practiceBarrier.close()});
    await application.stop();
    require('./support/ctfRecoveryRenderedCases').assertContentLoadedSources(path.resolve(__dirname,'../..'),contentSourceInventory,Object.keys(require.cache));
    continue;

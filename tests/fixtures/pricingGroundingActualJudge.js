@@ -35,8 +35,8 @@ async function main(){
  try{
   const admitted=await fetch('http://127.0.0.1:11434/api/tags');assert.equal(admitted.status,200);
   const tags=await admitted.json();assert.equal(tags.models.find(item=>item.name===MODEL)?.digest,DIGEST);
-  const {PRICING_RUBRICS}=require('../../server/services/secureshopPricingAssessment');
-  const rubric={...PRICING_RUBRICS.ss_pricing_false_grounding,mode:'vuln'};
+  const {LEGACY_PRICING_RUBRICS}=require('../../server/services/secureshopPricingAssessment');
+  const rubric={...LEGACY_PRICING_RUBRICS.ss_pricing_false_grounding,mode:'vuln'};
   assert.equal(rubric.version,'secureshop-pricing-grounding-v2');
   assert.equal(rubric.sourceComparison.supportContract,'pricing-grounding-comparison-v1');
   const model=require('../../server/agent-runtime/providers/langchainProvider').createLangChainProvider({provider:'ollama',baseURL:'http://127.0.0.1:11434',model:MODEL});

@@ -14,6 +14,31 @@ test('private env routes both real loadEnv calls and Vite envDir away from confl
  calls.length=0;const normal=evaluate();assert.deepEqual(calls,[client,app]);assert.equal(Object.hasOwn(normal,'envDir'),false);assert.equal(normal.server.port,9992);
  for(const invalid of ['relative',app,client])assert.throws(()=>evaluate(invalid));const link=path.join(root,'link');fs.symlinkSync(privateDir,link);assert.throws(()=>evaluate(link));fs.chmodSync(privateDir,0o755);assert.throws(()=>evaluate(privateDir));
 });
+test('repository-private recorder env requires exact owned output and renderer paths',t=>{
+ const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'vite-repository-private-')));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const app=path.join(root,'checkout'),client=path.join(app,'client'),parent=path.join(app,'tasks/qualification'),run=path.join(parent,'frontend-build-Abc_123'),env=path.join(run,'env');
+ fs.mkdirSync(client,{recursive:true});fs.mkdirSync(parent,{recursive:true,mode:0o700});fs.mkdirSync(run,{mode:0o700});
+ for(const name of ['env','tmp','cache'])fs.mkdirSync(path.join(run,name),{mode:0o700});
+ const values={BUILD_PATH:path.join(run,'output/application'),TMPDIR:path.join(run,'tmp'),XDG_CACHE_HOME:path.join(run,'cache')};
+ for(const [key,name] of [['REVIEW','review'],['PRODUCT_DESCRIPTION','product-description'],['MAIL','mail'],['TICKET','ticket'],['SEARCH_ECHO','search-echo'],['POLICY_OUTPUT','policy-output']])
+  values[`SECURESHOP_${key}_RENDERER_OUT_DIR`]=path.join(run,`output/application/secureshop-${name}-renderer`);
+ const start=source.indexOf('function repositoryPrivateEnvDirectory('),end=source.indexOf('function configuredPort(',start);
+ assert.ok(start>0&&end>start);
+ const check=(value,edits={})=>new Function('path','fs','process','clientRoot',`${source.slice(start,end)}\nreturn privateEnvDirectory;`)(
+  path,fs,{env:{...values,...edits},getuid:()=>process.getuid()},client)(value);
+ assert.equal(check(env),env);
+ for(const [key,changed] of [['BUILD_PATH',path.join(run,'output/other')],['TMPDIR',path.join(root,'tmp')],
+  ['XDG_CACHE_HOME',path.join(root,'cache')],['SECURESHOP_TICKET_RENDERER_OUT_DIR',path.join(root,'ticket')],
+  ['SECURESHOP_POLICY_OUTPUT_RENDERER_OUT_DIR',path.join(root,'policy')]])
+  assert.throws(()=>check(env,{[key]:changed}),/outside source/);
+ const unrelated=path.join(app,'tasks/unrelated/env');fs.mkdirSync(unrelated,{recursive:true,mode:0o700});assert.throws(()=>check(unrelated),/outside source/);
+ fs.writeFileSync(path.join(env,'.env'),'PORT=1\n');assert.throws(()=>check(env),/outside source/);fs.rmSync(path.join(env,'.env'));
+ fs.chmodSync(env,0o755);assert.throws(()=>check(env),/outside source/);fs.chmodSync(env,0o700);
+ fs.chmodSync(parent,0o755);assert.throws(()=>check(env),/outside source/);fs.chmodSync(parent,0o700);
+ const link=path.join(run,'link');fs.symlinkSync(env,link);assert.throws(()=>check(link),/outside source/);
+ const external=path.join(root,'external');fs.mkdirSync(external,{mode:0o700});assert.equal(check(external),external);
+ assert.equal(check(undefined),undefined);
+});
 test('rendered helper creates or adopts only empty private env directory before Vite import',t=>{
  const helper=fs.readFileSync(path.resolve(__dirname,'postgres/xssRenderedViteServer.js'),'utf8');
  const a=helper.indexOf('function privateDirectory('),b=helper.indexOf('\nfunction parseArgs',a),c=helper.indexOf("  const envDir = path.join(writableRoot, 'vite-env');"),d=helper.indexOf('  process.env.PORT =',c);assert(a>=0&&b>a&&c>=0&&d>c);

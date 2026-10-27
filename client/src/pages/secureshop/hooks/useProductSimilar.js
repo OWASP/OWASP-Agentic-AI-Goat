@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { productSimilarReferenceStore } from '../utils/productSimilarReference.mjs';
 import { trustedTurnMode } from '../utils/turnModeCapability.mjs';
+import { discardIgnoredMutationResponse } from '../utils/discardIgnoredMutationResponse.mjs';
 
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const MODES = ['products', 'manuals', 'mixed', 'catalog'];
@@ -123,10 +124,11 @@ export function useProductSimilar({ productId, shopUserId, authorityKey, transpo
       () => current(epoch, controller));
       if (!current(epoch, controller)) return false;
       referenceRef.current = saved; setReference(saved);
-      try { await transport(productPath(selected), { method: 'POST',
+      try { const response = await transport(productPath(selected), { method: 'POST',
         headers: { accept: 'application/json', 'content-type': 'application/json' },
         body: JSON.stringify({ sessionId: saved.sessionId, requestId: saved.requestId }),
-        signal: controller.signal }); }
+        signal: controller.signal });
+        await discardIgnoredMutationResponse(response, {signal:controller.signal}); }
       catch { /* A lost response is resolved only through the protected saved GET. */ }
       if (!current(epoch, controller)) return false;
       return !!await readSaved(saved, controller, epoch);
@@ -149,10 +151,11 @@ export function useProductSimilar({ productId, shopUserId, authorityKey, transpo
       const before = await readSaved(ref, controller, epoch);
       if (!current(epoch, controller) || !before) return false;
       if (before.status !== 'not_found') return before.status === 'completed';
-      try { await transport(productPath(ref.productId), { method: 'POST',
+      try { const response = await transport(productPath(ref.productId), { method: 'POST',
         headers: { accept: 'application/json', 'content-type': 'application/json' },
         body: JSON.stringify({ sessionId: ref.sessionId, requestId: ref.requestId }),
-        signal: controller.signal }); }
+        signal: controller.signal });
+        await discardIgnoredMutationResponse(response, {signal:controller.signal}); }
       catch { /* A lost response is resolved only through the protected saved GET. */ }
       if (!current(epoch, controller)) return false;
       return !!await readSaved(ref, controller, epoch);

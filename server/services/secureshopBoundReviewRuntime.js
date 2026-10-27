@@ -31,7 +31,7 @@ function createBoundReviewRuntime({ launches, reviewRepository, conversationRepo
   objectiveReceipts, workshopProgress, judge, fixtures = [], compatibleFixtures = [], limits,
   validateProduct, enableReviewContentAssessment = false, personaAuthority, personaBindings, toolPolicyRepository, promptPolicyRepository,
   taskPoliciesEnabled = false, modeAuthority = null, resolveProductScene, withProvisionLease,
-  mirrorReviewScene } = {}) {
+  mirrorReviewScene, readRetainedReviewTarget, readRecoveryMode } = {}) {
   if (typeof taskPoliciesEnabled !== 'boolean') throw new TypeError('Bound review task policy configuration required');
   const promptPolicyOptions = require('./secureshopPromptPolicyRunnerOptions').promptPolicyRunnerOptions(promptPolicyRepository, personaAuthority,
     taskPoliciesEnabled ? { recipient: 'review-moderator' } : undefined);
@@ -61,7 +61,7 @@ function createBoundReviewRuntime({ launches, reviewRepository, conversationRepo
   if (enableReviewContentAssessment && (typeof reviewRepository?.readSubmission !== 'function' || typeof reviewRepository?.captureReviewAdmissionTime !== 'function')) {
     throw new TypeError('Bound learner review provenance required');
   }
-  if (typeof journal?.lookupGeneralRequest !== 'function') {
+  if (typeof journal?.lookupReviewModerationRequest !== 'function') {
     throw new TypeError('Bound turn journal replay lookup required');
   }
   let completionService, contentCompletionService;
@@ -135,6 +135,10 @@ function createBoundReviewRuntime({ launches, reviewRepository, conversationRepo
   });
   const configuredLimits = limits || { maxSteps: 8, maxParallelTools: 4 };
   const batchLimit = deriveBoundReviewBatchLimit(configuredLimits);
+  const recoveryBatches = new WeakMap();
+  const recovery = readRetainedReviewTarget === undefined && readRecoveryMode === undefined ? undefined
+    : require('./secureshopReviewModerationRecovery').createReviewModerationRecovery({
+      checkCurrent,personaAuthority,readTarget:readRetainedReviewTarget,readMode:readRecoveryMode});
   const runner = createBoundAgentRunner({ turns, conversations, ...promptPolicyOptions, repository: conversationRepository,
     ...(toolPolicyRepository === undefined ? {} : { toolPolicyAdmission: require('./secureshopBoundToolPolicyAdmission').createBoundToolPolicyAdmission({ repository: toolPolicyRepository, workflow: 'review', declaredTools: boundManifest.getForRole('merchant') }) }),
     journal, conversationPurpose: PURPOSES.reviewModeration,
@@ -147,21 +151,34 @@ function createBoundReviewRuntime({ launches, reviewRepository, conversationRepo
       const authority = assertBoundReviewBatchAuthority(packet.localToolAuthority);
       return authority.shouldEnterFinalResponse();
     },
-    resultMetadata: packet => Object.freeze({ reviewBatch: Object.freeze({
+    resultMetadata: async packet => {
+      const captured = recoveryBatches.get(packet.localToolAuthority);
+      await captured?.authority.check();
+      return Object.freeze({ reviewBatch: Object.freeze({
       ...assertBoundReviewBatchAuthority(packet.localToolAuthority).metadata(),
       runId: packet.execution.runId,
-    }) }),
+      }), ...(captured ? {reviewRecovery:captured.metadata} : {}) });
+    },
     createLocalTools: (binding, _context, localToolAuthority, execution, fence) => new Map(Object.entries(createSecureShopBoundReviewTools({
       repository: reviewRepository, trustedScope: binding,
-      checkCurrent: async scope => { await checkCurrent(scope); await fence?.assertRemoteAdmission(); },
+      checkCurrent: async scope => {
+        await checkCurrent(scope); await fence?.assertRemoteAdmission();
+        await recoveryBatches.get(localToolAuthority)?.authority.check();
+      },
       mode: featureModeForFence(fence)?.effectiveMode || 'vuln',
       ...(fence ? {personaEffectFence:fence,decisionOperation:require('./secureshopReviewDecisionOperation').createReviewDecisionOperation({runId:execution.runId,fence})} : {}),
       auditPersona: { id: binding.shopUserId, role: binding.role },
-      resolveTarget: scope => application.resolveTarget(scope),
+      resolveTarget: async scope => {
+        const captured = recoveryBatches.get(localToolAuthority);
+        if (!captured) return application.resolveTarget(scope);
+        await captured.authority.check();
+        return captured.authority.target;
+      },
       batchAuthority: assertBoundReviewBatchAuthority(localToolAuthority),
     }))),
   });
   const moderation = createBoundReviewModeration({ conversations, runner, journal, checkCurrent, batchLimit,
+    ...(recovery ? {recovery,bindRecovery:(batch,value)=>recoveryBatches.set(batch,value)} : {}),
     ...(capturePersonaAuthority ? {checkPersona:async({scope,persona,personaSession})=>{
       const fence = await capturePersonaAuthority({binding:{...scope,shopUserId:persona.id,role:persona.role},personaSession});
       await fence.assertRemoteAdmission();

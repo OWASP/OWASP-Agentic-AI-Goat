@@ -12,8 +12,16 @@ const { randomUUID, randomBytes, createHash } = require('node:crypto');
 const { Pool } = require('pg');
 const { migrate } = require('../../db/postgres/migrate');
 const { capturePolicyRenderer } = require('../fixtures/secureshopOwnedPolicyRendererAdmission');
+const { admitCommerceBrowser, observeProductRequests, readBoundedProductError,
+  observeOriginalListingReadiness, exactConsequenceDialogButton, practiceSnapshotMetadata,
+  practiceSummaryReference } =
+  require('../fixtures/secureshopCommerceBrowserAdmission');
 
 const PREFIX = 'PG_SECURESHOP_STANDALONE_COMMERCE_';
+// Explicit optional external-send facet; the original commerce defaults are unchanged.
+const externalMailOptIn = process.env.SECURESHOP_EXTERNAL_MAIL_RENDERED_SEND === '1';
+const externalMailFixture = externalMailOptIn
+  ? require('../fixtures/secureshopExternalMailRenderedQualification') : null;
 const STORES = Object.freeze({ IDENTITY: 'identity', AGENTS: 'secureshop_agents',
   REVIEW: 'secureshop_review', COMMERCE: 'secureshop' });
 const ENABLED = process.env.SECURESHOP_STANDALONE_COMMERCE_NATIVE === '1'
@@ -233,12 +241,16 @@ async function dropOneMailDelivery(page, endpoint, beforeDelivery) {
   });
 }
 
-async function clickMailButton(frame, text, dialogOnly = false) {
+async function clickMailButton(frame, text, dialogOnly = false, dialogScope = null) {
   const selector = dialogOnly ? '[role="dialog"] button' : 'button';
   // Center-scroll the exact native handle: an intersecting viewport rectangle
   // can still sit beneath the sticky navbar. Never retry a mutation click.
-  const findButton = new Function(`return [...document.querySelectorAll(${JSON.stringify(selector)})]
-    .find(button => button.textContent.trim() === ${JSON.stringify(text)});`);
+  const findButton = dialogScope
+    ? new Function(`return (${exactConsequenceDialogButton.toString()})(
+      ${JSON.stringify(dialogScope.title)}, ${JSON.stringify(dialogScope.consequence)},
+      ${JSON.stringify(dialogScope.confirmLabel)}, ${JSON.stringify(text)});`)
+    : new Function(`return [...document.querySelectorAll(${JSON.stringify(selector)})]
+      .find(button => button.textContent.trim() === ${JSON.stringify(text)});`);
   const button = await frame.locator(findButton).setTimeout(20000).setVisibility('visible').waitHandle();
   try {
     await button.evaluate(node => node.scrollIntoView({ block: 'center', inline: 'center' }));
@@ -612,7 +624,6 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
     assert.equal(workspace, process.cwd(), 'qualification requires the current checkout');
     const receiptPath = process.env.SECURESHOP_STANDALONE_COMMERCE_EVIDENCE_PATH || '';
     assert.ok(path.isAbsolute(receiptPath));
-    assert.ok(!path.resolve(receiptPath).startsWith(`${workspace}${path.sep}`));
     const build = path.resolve(process.env.SECURESHOP_STANDALONE_COMMERCE_BUILD || path.join(workspace, 'client/build'));
     assert.equal(build, path.join(workspace, 'client/build'));
     for (const file of ['index.html', 'secureshop-frame.html', 'secureshop/product-placeholder.svg', 'favicon.svg'])
@@ -624,6 +635,8 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       /Shop session changed during sign-in/, 'held script is the standalone route, not the app entry');
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '';
     assert.ok(path.isAbsolute(executablePath)); await fs.access(executablePath);
+    const browserAdmission = await admitCommerceBrowser(process.env,
+      { workspace, evidencePath: receiptPath, executablePath });
 
     const urls = disposableUrls();
     const pools = Object.fromEntries(Object.keys(STORES).flatMap(store => ['MIGRATION', 'RUNTIME'].map(role => {
@@ -655,9 +668,10 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       policySavedOperationRecovery: false,
       policyRecovery: { status: 'not-run', reason: 'No explicit external renderer admission supplied' },
       noModelCalls: false };
-    let composition; let mailProduction; let server; let browser; let profile; let page; let contextB; let contextA18; let pageA18; let failure;
+    let composition; let mailProduction; let server; let browser; let browserBoundary; let profile; let page; let contextB; let contextA18; let contextA18Product; let pageA18; let failure;
     let stage = 'setup'; let resetKeyDirectory; let privateResetRevealPending = false;
     const workDeadline = Date.now() + 280000;
+    const externalMailAbort = new AbortController();
     const workStep = (label, work, maxMs = 20000) => {
       const remaining = workDeadline - Date.now();
       if (remaining <= 0) throw Object.assign(new Error(`A11 work deadline reached at ${label}`),
@@ -667,6 +681,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
     const markStage = label => { stage = label; console.log('A11 stage', label); };
     const workWatchdog = setTimeout(() => {
       console.log('A11 work watchdog', stage);
+      externalMailAbort.abort();
       // Close only this fixture's browser. This interrupts outstanding UI
       // observations so the test can report the original stage and clean up.
       if (browser) void browser.close().catch(error =>
@@ -681,6 +696,11 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
     const guestApiSettledWaiters = new Set();
     const cleanupErrors = []; let modelCalls = 0; let judgeCalls = 0;
     const providerCalls = []; const pageBApi = [];
+    const productServerResponses = [];
+    let keyMutationRequests = 0;
+    const readinessObserver = observeOriginalListingReadiness({
+      isCurrent: () => stage === 'merchant-listings-browser',
+    });
     let modelCallsBeforeProductA08 = null; let modelCallsBeforeA16 = null;
     let judgeCallsBeforeA16 = null;
     let externalPolicyRenderer; let policyRenderCalls = 0;
@@ -792,6 +812,20 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         },
       });
       const app = express(); app.use(express.json());
+      app.use(readinessObserver.middleware);
+      app.use((request, response, next) => {
+        if (stage === 'a08-customer-buttons'
+          && /^\/api\/secureshop\/products\/[1-9]\d*\/(summary|similar)$/.test(request.path)
+          && ((request.method === 'POST' && request.path.endsWith('/summary'))
+            || (request.method === 'POST' && request.path.endsWith('/similar')))) {
+          const row = { method: request.method, path: request.path,
+            status: null, finished: false, closed: false };
+          productServerResponses.push(row);
+          response.once('finish', () => { row.status = response.statusCode; row.finished = true; });
+          response.once('close', () => { row.closed = true; });
+        }
+        next();
+      });
       const mailPosts = [];
       const policyPosts = [];
       const reviewDecisionPosts = [];
@@ -902,9 +936,15 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         .createSecureShopBoundApplication({ engine: 'postgres', shopEnabled: true,
           authenticateToken: (_request, response) => response.sendStatus(401),
           audit: async () => {}, agentRuntime: {}, getComposition: async () => mounted });
+      const externalMail = externalMailOptIn ? externalMailFixture.composeExternalMail({
+        liveSmtp: true,
+        recipient: process.env.SECURESHOP_EXTERNAL_MAIL_TEST_RECIPIENT,
+        config: require('../../server/services/secureshopExternalMailTransport').readExternalMailConfiguration(),
+        identityPool: identity, composition, grading, signal: externalMailAbort.signal, deadlineAt: workDeadline,
+      }) : undefined;
       app.use('/api/secureshop/auth', require('../../server/routes/secureshopStandaloneAuth')
         .createSecureShopStandaloneAuthRouter({ service: auth, bootstrap, cartImport,
-          reset: protectedReset, practices, registeredAdminReset,
+          reset: protectedReset, practices, registeredAdminReset, externalMail,
           mode: mounted.standaloneAuth.mode, allowedOrigins: [origin], secureCookies: false }));
       app.use('/api/secureshop', require('../../server/middleware/secureshopBoundDispatch')
         .createSecureShopBoundDispatch({ getGateway: () => bound.gateway }));
@@ -926,8 +966,11 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
 
       profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-standalone-commerce-'));
       browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
-        executablePath });
-      page = await browser.newPage(); await page.setViewport({ width: 1280, height: 900 });
+        executablePath, args: browserAdmission ? browserAdmission.browserArgs({ profile, origin, externalMail: externalMailOptIn }) : [] });
+      if (browserAdmission) await browserAdmission.acknowledgeBrowser({ browser, profile });
+      if (browserAdmission) browserBoundary = browserAdmission.watchBrowserTargets(browser);
+      page = browserBoundary ? await browserBoundary.newPage(browser) : await browser.newPage();
+      await page.setViewport({ width: 1280, height: 900 });
       const pageErrors = []; const imageResponses = [];
       const requestStages = new WeakMap();
       page.on('pageerror', error => pageErrors.push(error.message.slice(0, 200)));
@@ -943,6 +986,8 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       });
       page.on('request', request => {
         const url = new URL(request.url());
+        if (url.origin === origin && url.pathname === '/api/secureshop/v2/auth/users/me/api-keys/rotate'
+            && request.method() === 'POST') keyMutationRequests += 1;
         if (url.origin === origin && url.pathname.startsWith('/api/secureshop/')) {
           requestStages.set(request, stage);
           pendingGuestApiRequests.add(request);
@@ -1669,33 +1714,98 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         'guest, checkout, and earlier customer flows made no unavailable-provider attempt');
       const expectedProductFailures = [
         { method: 'POST', path: `/api/secureshop/products/${stocked.product_id}/summary` },
-        { method: 'GET', path: `/api/secureshop/products/${stocked.product_id}/similar` },
+        { method: 'POST', path: `/api/secureshop/products/${stocked.product_id}/similar` },
       ];
-      const productFailureResponses = expectedProductFailures.map(expected =>
-        page.waitForResponse(response => {
+      const productProbe = observeProductRequests(page, origin, expectedProductFailures);
+      const productResponse = (method, pathname, status) => page.waitForResponse(response => {
+        const url = new URL(response.url());
+        return url.origin === origin && url.pathname === pathname
+          && response.request().method() === method && response.status() === status;
+      }, { timeout: 20000 }).then(response => ({ response }), error => ({ error }));
+      const summaryReply = productResponse('POST', expectedProductFailures[0].path, 503);
+      try {
+        assert.ok([200, 304].includes((await page.goto(`${origin}/secureshop/product/${stocked.product_id}`)).status()));
+        const customerButtonFrame = await stableFrame(page);
+        console.log('A11 Product summary headers await');
+        const summary = await workStep('a08-product-summary-response-headers', () => summaryReply, 20000);
+        if (summary.error) throw summary.error;
+        console.log('A11 Product summary headers complete');
+        await readBoundedProductError(summary.response, { workStep, label: 'a08-product-summary-body' });
+        await qualifyRoleButtons(page, customerButtonFrame, 'customer', [
+          { selector: 'button.ss-btn', text: 'Add to cart', size: 'md', variant: 'primary' },
+        ], receiptPath);
+        assert.equal(productProbe.snapshot()[1].requests, 0,
+          'authenticated Product view does not invoke similar products before the explicit action');
+        assert.equal(guestRequests.filter(row => row.stage === 'a08-customer-buttons'
+          && row.path.startsWith(`/api/secureshop/products/${stocked.product_id}/similar`)).length, 0,
+        'authenticated Product view has not allocated a similar session or model request');
+
+        const similarSessionPath = `/api/secureshop/products/${stocked.product_id}/similar/session`;
+        const similarSavedPrefix = `/api/secureshop/products/${stocked.product_id}/similar/sessions/`;
+        const similarSessionReply = productResponse('POST', similarSessionPath, 200);
+        const similarReply = productResponse('POST', expectedProductFailures[1].path, 503);
+        const similarSavedReply = page.waitForResponse(response => {
           const url = new URL(response.url());
-          return url.origin === origin && url.pathname === expected.path
-            && response.request().method() === expected.method && response.status() === 503;
-        }, { timeout: 20000 }).then(response => ({ response }), error => ({ error })));
-      assert.ok([200, 304].includes((await page.goto(`${origin}/secureshop/product/${stocked.product_id}`)).status()));
-      const customerButtonFrame = await stableFrame(page);
-      await qualifyRoleButtons(page, customerButtonFrame, 'customer', [
-        { selector: 'button.ss-btn', text: 'Add to cart', size: 'md', variant: 'primary' },
-      ], receiptPath);
-      for (const settled of await Promise.all(productFailureResponses)) {
-        if (settled.error) throw settled.error;
-        const { response } = settled;
-        assert.deepEqual(await response.json(), { error: 'Bound SecureShop operation unavailable' },
-          'the real Product request reports unavailable output rather than fabricated model success');
-      }
+          return url.origin === origin && url.pathname.startsWith(similarSavedPrefix)
+            && response.request().method() === 'GET' && response.status() === 202;
+        }, { timeout: 20000 }).then(response => ({ response }), error => ({ error }));
+        const findSimilar = new Function(`return [...document.querySelectorAll('button')]
+          .find(node => node.textContent.trim() === 'Find similar products');`);
+        const similarButton = await customerButtonFrame.locator(findSimilar)
+          .setTimeout(20000).setVisibility('visible').waitHandle();
+        assert.equal(await similarButton.evaluate(node => !node.disabled), true);
+        await similarButton.click();
+        const session = await workStep('a08-product-similar-session-headers',
+          () => similarSessionReply, 20000);
+        if (session.error) throw session.error;
+        const sessionBody = await workStep('a08-product-similar-session-body',
+          () => session.response.json(), 5000);
+        assert.deepEqual(Object.keys(sessionBody), ['sessionId']);
+        assert.match(sessionBody.sessionId,
+          /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/);
+        console.log('A11 Product similar headers await');
+        const similar = await workStep('a08-product-similar-response-headers',
+          () => similarReply, 20000);
+        if (similar.error) throw similar.error;
+        console.log('A11 Product similar headers complete');
+        await readBoundedProductError(similar.response, { workStep, label: 'a08-product-similar-body' });
+        const saved = await workStep('a08-product-similar-saved-headers',
+          () => similarSavedReply, 20000);
+        if (saved.error) throw saved.error;
+        const savedPath = new URL(saved.response.url()).pathname;
+        assert.match(savedPath, new RegExp(`^${similarSavedPrefix}${sessionBody.sessionId}/requests/[a-f0-9-]{36}$`));
+        const savedRequestId = savedPath.split('/').at(-1);
+        assert.match(savedRequestId,
+          /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/);
+        const savedBody = await workStep('a08-product-similar-saved-body',
+          () => saved.response.json(), 5000);
+        assert.deepEqual(savedBody, { status: 'pending', sessionId: sessionBody.sessionId,
+          requestId: savedRequestId });
+        assert.deepEqual(guestRequests.filter(row => row.stage === 'a08-customer-buttons'
+          && row.path.startsWith(`/api/secureshop/products/${stocked.product_id}/similar`))
+          .map(row => [row.method, row.path]), [
+          ['POST', similarSessionPath], ['POST', expectedProductFailures[1].path], ['GET', savedPath],
+        ], 'the physical click caused one session, one model POST, then the exact saved read');
+        assert.deepEqual(productProbe.snapshot(), expectedProductFailures.map(expected => ({
+          ...expected, requests: 1, responseStatuses: [503], finished: 1, failed: 0,
+        })), 'both real unavailable model responses have completed browser request lifecycles');
+        assert.deepEqual(productServerResponses.map(row => ({ ...row })),
+          expectedProductFailures.map(expected => ({ ...expected, status: 503,
+            finished: true, closed: true })),
+        'both actual model-response writes finished and closed on the server');
+      } catch (error) {
+        console.log('A11 Product response lifecycle', JSON.stringify({ browser: productProbe.snapshot(),
+          server: productServerResponses.map(row => ({ ...row })) }));
+        throw error;
+      } finally { productProbe.stop(); }
       assert.deepEqual(apiStatuses.filter(row => row.stage === 'a08-customer-buttons'
         && expectedProductFailures.some(expected => row.path === expected.path))
         .sort((left, right) => left.path.localeCompare(right.path)),
       expectedProductFailures.map(expected => ({ ...expected, status: 503, stage: 'a08-customer-buttons' }))
         .sort((left, right) => left.path.localeCompare(right.path)),
-      'the two automatic Product requests are exact, rejected, and tied to the rendered A08 visit');
+      'the automatic summary and explicitly clicked similar requests are exact 503s in the rendered A08 visit');
       assert.equal(modelCalls - modelCallsBeforeProductA08, 2,
-        'the Product view makes two unavailable-provider attempts and receives no model result');
+        'the automatic summary and clicked similar action make two unavailable-provider attempts');
       assert.deepEqual(providerCalls.map(call => [call.method, call.stage]),
         [['chat', 'a08-customer-buttons'], ['chat', 'a08-customer-buttons']],
         'the unavailable provider was only reached through the two Product graph decisions');
@@ -2157,6 +2267,11 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         { timeout: 20000 }, target.name);
         const endpoint = `${origin}/api/secureshop/admin/users/${targetId}/${target.path}`;
         const loss = await dropOneCommittedOperationResponse(page, endpoint);
+        const mutationRequests = [];
+        const onMutationRequest = request => {
+          if (request.url() === endpoint && request.method() === 'POST') mutationRequests.push(request);
+        };
+        page.on('request', onMutationRequest);
         let captured;
         try {
           if (target.action === 'set_role') {
@@ -2166,10 +2281,26 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
               .setVisibility('visible').fill('disposable administrator ban');
             await clickMailButton(adminMutationFrame, 'ban');
           }
+          await adminMutationFrame.waitForFunction(name =>
+            document.querySelector('[aria-label="Confirm user change"]')?.textContent.includes(name),
+          { timeout: 20000 }, target.name);
+          assert.equal(mutationRequests.length, 0, 'staging must not submit a role or ban operation');
+          if (target.action === 'set_role') {
+            await clickMailButton(adminMutationFrame, 'Cancel', true);
+            await adminMutationFrame.waitForFunction(() => !document.querySelector('[aria-label="Confirm user change"]'),
+              { timeout: 20000 });
+            assert.equal(mutationRequests.length, 0, 'cancel must not submit a role operation');
+            await adminMutationFrame.select(`select[aria-label="Change role for ${target.name}"]`, 'merchant');
+            await adminMutationFrame.waitForFunction(() => !!document.querySelector('[aria-label="Confirm user change"]'),
+              { timeout: 20000 });
+          }
+          assert.equal(mutationRequests.length, 0, 'restaged action remains pre-effect');
+          await clickMailButton(adminMutationFrame, 'Confirm user change', true);
           captured = await loss.waitCaptured(20000);
+          assert.equal(mutationRequests.length, 1, 'one physical confirmed mutation required');
           await adminMutationFrame.waitForFunction(() => document.body.textContent.includes('Refresh change status'),
             { timeout: 20000 });
-        } finally { await loss.close(); }
+        } finally { page.off('request', onMutationRequest); await loss.close(); }
         assert.ok(captured);
         assert.equal(captured.request.expectedVersion, targetRow.authority_version);
         assert.equal(captured.receipt.targetId, targetId);
@@ -2465,6 +2596,37 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
             .filter(label => label.querySelector('input[type="checkbox"]')?.checked)
             .map(label => label.textContent.trim()),
         })), { name: policyName, markdown, targets: ['customer'] });
+        // Cancel the staged create in the real modal before the committed attempt.
+        // A hidden/missing modal or a different Cancel button cannot satisfy this check.
+        const beforeCancel = await policySnapshot(currentAdmin.scope);
+        const postsBeforeCancel = policyPosts.length;
+        const rendersBeforeCancel = policyRenderCalls;
+        assert.deepEqual(await policyFrame.evaluate(() => {
+          const modals = [...document.querySelectorAll('.ss-role-modal')];
+          const buttons = modals.length === 1
+            ? [...modals[0].querySelectorAll('button')].filter(button =>
+                button.textContent.trim() === 'cancel' && button.type === 'button' && !button.disabled)
+            : [];
+          const firstGlobalCancel = [...document.querySelectorAll('button')]
+            .find(button => button.textContent.trim() === 'cancel');
+          return { modals: modals.length, buttons: buttons.length,
+            helperTargetsModal: firstGlobalCancel === buttons[0] };
+        }), { modals: 1, buttons: 1, helperTargetsModal: true });
+        await clickMailButton(policyFrame, 'cancel');
+        await policyFrame.waitForFunction(() => !document.querySelector('.ss-role-modal'),
+          { timeout: 20000 });
+        assert.equal(policyPosts.length, postsBeforeCancel,
+          'cancel must not submit a policy operation');
+        assert.equal(policyRenderCalls, rendersBeforeCancel,
+          'cancel must not invoke the policy renderer');
+        assert.deepEqual(await policySnapshot(currentAdmin.scope), beforeCancel,
+          'cancel must leave all owned policy tables unchanged');
+        assert.deepEqual(await policySnapshot(admin.scope), siblingBefore,
+          'cancel must leave the sibling policy namespace unchanged');
+        await clickMailButton(policyFrame, '+ new policy');
+        await policyFrame.locator('.ss-role-modal input[placeholder="e.g. return_policy"]')
+          .setVisibility('visible').fill(policyName);
+        await policyFrame.locator('.ss-role-modal textarea').setVisibility('visible').fill(markdown);
         const rendersBefore = policyRenderCalls, postsBefore = policyPosts.length;
         const loss = await dropOneCommittedOperationResponse(page, endpoint);
         let committedPolicy;
@@ -2562,6 +2724,31 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         assert.equal(mailCookie?.httpOnly, true);
         const mailActor = await actor(await auth.authenticate(mailCookie.value));
         assert.equal(mailActor.persona.role, role);
+        if (role === 'merchant' && externalMailOptIn) {
+          stage = 'external-mail-one-confirmed-send';
+          const externalMailPrincipal = await auth.authenticate(mailCookie.value);
+          const selectedInbox = await externalMailFixture.prepareInbox({ browser, browserBoundary,
+            recipient: process.env.SECURESHOP_EXTERNAL_MAIL_TEST_RECIPIENT,
+            deadlineAt: Math.min(workDeadline, Date.now() + 90000), networkDeadlineAt: workDeadline,
+            signal: externalMailAbort.signal });
+          const externalMailDeadline = Math.min(workDeadline, Date.now() + 60000);
+          externalMail.arm(externalMailDeadline);
+          const externalMailTimer = setTimeout(() => externalMailAbort.abort(), Math.max(0, externalMailDeadline - Date.now()));
+          // Reuse only a page already opened/selected by the reviewed inbox
+          // browser admission. No guessed mailbox selector or automatic resend.
+          try {
+          status.externalMail = await workStep(stage, () => externalMailFixture.exerciseRoundTrip({
+            inboxPage: selectedInbox.page,
+            page, liveSmtp: true,
+            recipient: process.env.SECURESHOP_EXTERNAL_MAIL_TEST_RECIPIENT,
+            principalId: externalMailPrincipal.principalId,
+            deadlineAt: externalMailDeadline, signal: externalMailAbort.signal,
+            attempted: externalMail.attempted,
+          }), Math.max(1, externalMailDeadline - Date.now()));
+          } finally { clearTimeout(externalMailTimer); externalMailAbort.abort(); }
+          assert.equal(status.externalMail.outcome, 'smtp_accepted', 'Uncertain delivery: retain operation, never resend');
+          assert.equal(status.externalMail.deliveryConfirmed, true, 'SMTP acceptance alone is not browser delivery proof');
+        }
         const route = role === 'customer' ? '/secureshop/inbox' : '/secureshop/merchant/inbox';
         for (const beforeDelivery of [false, true]) {
           stage = `${role}-compose-${beforeDelivery ? 'predelivery-retry' : 'lost-ack-recovery'}`;
@@ -2817,6 +3004,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       const expectedIds = expectedListingPages.map(result => result.products.map(row => row.id));
       assert.equal(new Set(expectedIds.flat()).size, expectedIds.flat().length);
       markStage('merchant-listings-browser');
+      readinessObserver.arm();
       const listingsResponse = pageNumber => page.waitForResponse(response => {
         const url = new URL(response.url());
         return url.pathname === '/api/secureshop/merchant/products'
@@ -2849,8 +3037,9 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       await verifyListingPage(firstListingsResponse, 1);
       const listingReadinessHttp = await listingReadinessResponse;
       assert.equal(listingReadinessHttp.status(), 503);
-      assert.deepEqual(await listingReadinessHttp.json(),
-        { error: 'Bound SecureShop operation unavailable' });
+      await workStep('merchant-listings-original-readiness-response',
+        () => readinessObserver.wait(), 5000);
+      readinessObserver.assertBrowserResponse(listingReadinessHttp, origin);
       await listingsFrame.waitForFunction(() => [...document.querySelectorAll('[role="alert"]')]
         .some(node => node.textContent.includes('Listing actions could not be verified (HTTP 503).')),
       { timeout: 20000 });
@@ -2929,12 +3118,48 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         .some(button => button.textContent.trim() === 'Generate key' && !button.disabled),
       { timeout: 20000 });
       const keyEndpoint = `${origin}/api/secureshop/v2/auth/users/me/api-keys`;
-      const generateResponse = page.waitForResponse(response => response.url() === `${keyEndpoint}/rotate`
-        && response.request().method() === 'POST', { timeout: 20000 });
+      // Compare only version and digest, never key plaintext. A canceled
+      // confirmation must not even dispatch a browser mutation request.
+      const keyState = async () => (await agents.query(`SELECT api_key_version::text AS version,
+        encode(api_key_sha256,'hex') AS digest FROM secureshop_agents.bound_persona_api_keys
+        WHERE shop_user_id=$1 ORDER BY platform_launch_id,platform_scenario_id,
+          platform_launch_generation,original_platform_owner_id,original_platform_session_id`,
+      [buyerBase.shopUserId])).rows;
+      const waitKeyDialog = (frame, dialog) => frame.waitForFunction(exactConsequenceDialogButton,
+        { timeout: 20000 }, dialog.title, dialog.consequence, dialog.confirmLabel,
+        dialog.confirmLabel);
+      const waitKeyDialogClosed = (frame, title) => frame.waitForFunction(expectedTitle =>
+        ![...document.querySelectorAll('[role="dialog"]')].some(node =>
+          node.querySelector('#ss-dialog-title')?.textContent.trim() === expectedTitle),
+      { timeout: 20000 }, title);
+      const generationDialog = { title: 'Generate API key?',
+        consequence: 'A new API key will be created and shown after this request succeeds.',
+        confirmLabel: 'Confirm generation' };
+      const rotationDialog = { title: 'Rotate API key?',
+        consequence: 'The current API key will stop working. The replacement key will be shown after this request succeeds.',
+        confirmLabel: 'Confirm rotation' };
+      const firstKeyState = await keyState();
+      assert.equal(firstKeyState.length, 0, 'this new buyer has no prior bound API key');
+      const keyRequestsBeforeGeneration = keyMutationRequests;
       privateApiKeyVisible = true;
       await clickMailButton(accountFrame, 'Generate key');
+      await waitKeyDialog(accountFrame, generationDialog);
+      assert.equal(keyMutationRequests, keyRequestsBeforeGeneration,
+        'opening Generate confirmation must not rotate a key');
+      await clickMailButton(accountFrame, 'Cancel', true, generationDialog);
+      await waitKeyDialogClosed(accountFrame, generationDialog.title);
+      assert.equal(keyMutationRequests, keyRequestsBeforeGeneration,
+        'Cancel must dispatch no Generate mutation');
+      assert.equal(JSON.stringify(await keyState()) === JSON.stringify(firstKeyState), true,
+        'Cancel must leave the owner key version and digest unchanged');
+      await clickMailButton(accountFrame, 'Generate key');
+      await waitKeyDialog(accountFrame, generationDialog);
+      const generateResponse = page.waitForResponse(response => response.url() === `${keyEndpoint}/rotate`
+        && response.request().method() === 'POST', { timeout: 20000 });
+      await clickMailButton(accountFrame, 'Confirm generation', true, generationDialog);
       const generatedHttp = await generateResponse;
       assert.equal(generatedHttp.status(), 200);
+      assert.equal(keyMutationRequests, keyRequestsBeforeGeneration + 1);
       const generated = await generatedHttp.json();
       assert.equal(generated.ok, true); assert.equal(generated.version, 1);
       const key1 = generated.api_key;
@@ -2964,11 +3189,28 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       const firstKeyOrders = await apiOrders(key1, oldCustomerLaunch.bearer);
       assert.equal(firstKeyOrders.status, 200);
       assert.ok(firstKeyOrders.body.orders.some(order => Number(order.id) === committed.orderId));
+      const beforeRotation = await keyState();
+      assert.equal(beforeRotation.length, 1);
+      assert.equal(beforeRotation[0].version, '1');
+      const keyRequestsBeforeRotation = keyMutationRequests;
+      await clickMailButton(accountFrame, 'Rotate key');
+      await waitKeyDialog(accountFrame, rotationDialog);
+      assert.equal(keyMutationRequests, keyRequestsBeforeRotation,
+        'opening Rotate confirmation must not rotate a key');
+      await clickMailButton(accountFrame, 'Cancel', true, rotationDialog);
+      await waitKeyDialogClosed(accountFrame, rotationDialog.title);
+      assert.equal(keyMutationRequests, keyRequestsBeforeRotation,
+        'Cancel must dispatch no Rotate mutation');
+      assert.equal(JSON.stringify(await keyState()) === JSON.stringify(beforeRotation), true,
+        'Cancel must leave the owner key version and digest unchanged');
+      await clickMailButton(accountFrame, 'Rotate key');
+      await waitKeyDialog(accountFrame, rotationDialog);
       const rotateResponse = page.waitForResponse(response => response.url() === `${keyEndpoint}/rotate`
         && response.request().method() === 'POST', { timeout: 20000 });
-      await clickMailButton(accountFrame, 'Rotate key');
+      await clickMailButton(accountFrame, 'Confirm rotation', true, rotationDialog);
       const rotatedHttp = await rotateResponse;
       assert.equal(rotatedHttp.status(), 200);
+      assert.equal(keyMutationRequests, keyRequestsBeforeRotation + 1);
       const rotated = await rotatedHttp.json();
       assert.equal(rotated.ok, true); assert.equal(rotated.version, 2);
       const key2 = rotated.api_key;
@@ -3085,8 +3327,9 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       await composition.commerce.add({ ...actorA,
         productId: Number(stocked.product_id), quantity: 1 });
       contextB = await browser.createBrowserContext();
-      const pageB = await contextB.newPage();
+      const pageB = browserBoundary ? await browserBoundary.newPage(contextB) : await contextB.newPage();
       await pageB.setViewport({ width: 1280, height: 900 });
+      if (browserAdmission) await browserAdmission.guardPageRequests(pageB, origin);
       pageB.on('response', response => {
         const url = new URL(response.url());
         if (url.origin === origin && url.pathname.startsWith('/api/secureshop/') && pageBApi.length < 32)
@@ -3258,15 +3501,141 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       // configured transport and no response capable of establishing model provenance.
       status.actualModelCalls = 0;
       status.noModelCalls = true;
-      // A18 uses a fresh browser profile and a fresh registered customer, but
-      // stays in this tenant and retains one shop cookie across every scene.
+      // Product's saved summary operation is a real reason to deny a practice
+      // switch. Exercise that guard without clearing the reference or using
+      // this customer's browser storage for the separate A18 recovery matrix.
+      stage = 'a18-product-saved-operation-guard';
+      const shopStateNames = await import('../../client/src/pages/secureshop/utils/shopStorage.mjs');
+      const allowedSnapshotFields = Object.entries(shopStateNames)
+        .filter(([name, value]) => /^SHOP_[A-Z_]+_KEY$/.test(name) && typeof value === 'string')
+        .map(([, value]) => value);
+      const guardName = `practice_product_${suffix}`;
+      await auth.register({ username: guardName,
+        email: `${guardName}@example.invalid`, password, role: 'customer' });
+      contextA18Product = await browser.createBrowserContext();
+      const productPage = browserBoundary
+        ? await browserBoundary.newPage(contextA18Product) : await contextA18Product.newPage();
+      await productPage.setViewport({ width: 1280, height: 900 });
+      if (browserAdmission) await browserAdmission.guardPageRequests(productPage, origin);
+      const guardProductReads = [];
+      productPage.on('request', request => {
+        const route = new URL(request.url());
+        if (route.origin === origin && /^\/api\/secureshop\/products\/\d+\/(?:summary|similar)$/.test(route.pathname))
+          guardProductReads.push({ method: request.method(), path: route.pathname });
+      });
+      assert.ok([200, 304].includes((await productPage.goto(`${origin}/secureshop/login?next=%2Fsecureshop`)).status()));
+      await productPage.waitForSelector('#ss-login-user');
+      await productPage.type('#ss-login-user', guardName);
+      await productPage.type('#ss-login-pw', password);
+      await productPage.click('button[type="submit"]');
+      await productPage.waitForFunction(() => document.querySelector('iframe[title="SecureShop"]')
+        || [...document.querySelectorAll('h1')].some(node => node.textContent.trim() === 'Choose a shop practice.'),
+      { timeout: 20000 });
+      if (await productPage.$('main button strong')) {
+        const initialChoice = (await productPage.$$('main button'))[0];
+        assert.ok(initialChoice, 'Product guard customer can choose the existing scene');
+        const initialSelection = productPage.waitForResponse(value => new URL(value.url()).pathname
+          === '/api/secureshop/v2/scenes/select' && value.request().method() === 'POST', { timeout: 20000 })
+          .then(value => ({ value }), error => ({ error }));
+        await initialChoice.click();
+        const settled = await initialSelection;
+        if (settled.error) throw settled.error;
+        assert.equal(settled.value.status(), 200);
+      }
+      await stableFrame(productPage);
+      const guardCookie = (await productPage.cookies(`${origin}/api/secureshop/auth/session`))
+        .find(value => value.name === 'dvaia_shop_session');
+      assert.ok(guardCookie?.httpOnly && guardCookie.value);
+      const guardBase = await auth.authenticate(guardCookie.value);
+      assert.ok(guardBase?.principalId);
+      const guardBootstrap = await bootstrap(guardBase);
+      const guardScope = await composition.launches.resolveCapability(guardBootstrap.bearer);
+      const guardPractice = (await scenes.list(guardScope)).find(row => row.isDefault);
+      const guardTarget = await scenes.readExisting(guardScope);
+      assert.ok(guardPractice?.id && guardTarget?.targetId);
+      const guardProduct = (await review.query(`SELECT product_id FROM secureshop_review.product_target_products
+        WHERE target_id=$1 AND status='active' AND stock_quantity>0 ORDER BY product_id LIMIT 1`,
+      [guardTarget.targetId])).rows[0];
+      assert.ok(Number(guardProduct?.product_id) > 0);
+      assert.ok([200, 304].includes((await productPage.goto(`${origin}/secureshop/product/${guardProduct.product_id}`)).status()));
+      const guardFrame = await stableFrame(productPage);
+      await guardFrame.waitForFunction(() => [...document.querySelectorAll('button')]
+        .some(button => button.textContent.trim() === 'Add to cart' && !button.disabled), { timeout: 20000 });
+      const guardAdd = await (async () => {
+        for (const button of await guardFrame.$$('button')) {
+          if (await button.evaluate(node => node.textContent.trim() === 'Add to cart' && !node.disabled)) return button;
+        }
+        return null;
+      })();
+      assert.ok(guardAdd);
+      await guardAdd.click();
+      await guardFrame.click('a[href="/secureshop/cart"]');
+      const guardCartLine = `table[aria-label="Cart items"] a[href="/secureshop/product/${guardProduct.product_id}"]`;
+      await guardFrame.waitForSelector(guardCartLine, { timeout: 20000 });
+      assert.equal(await guardFrame.$eval(guardCartLine,
+        link => link.closest('tr')?.querySelector('input.ss-qty__val')?.value), '1');
+      const guardSnapshotInput = {
+        scopeKey: `dvaia:secureshop:${guardBootstrap.launch.launchId.toLowerCase()}:${guardBootstrap.launch.generation}`,
+        sceneId: guardPractice.id.toLowerCase(), allowedFields: allowedSnapshotFields,
+        summaryKey: shopStateNames.SHOP_PRODUCT_SUMMARY_KEY,
+      };
+      const guardSnapshot = await workStep('a18-product-reference', async () => {
+        const referenceDeadline = Date.now() + 19000;
+        while (Date.now() < referenceDeadline) {
+          const value = await productPage.evaluate(practiceSnapshotMetadata, guardSnapshotInput);
+          if (value.summaryRefPresent && value.summaryRefParseable && value.summaryRefHasEntries) return value;
+          await sleep(50);
+        }
+        throw new Error('Product saved summary operation unavailable before practice guard');
+      });
+      assert.ok(guardSnapshot.summaryRefEntryCount > 0, 'Product created one or more retained summary operations');
+      assert.ok(guardProductReads.some(row => row.method === 'POST'
+        && row.path === `/api/secureshop/products/${guardProduct.product_id}/summary`),
+      'the retained Product reference follows its real summary request');
+      const guardReferenceHandle = await productPage.evaluateHandle(practiceSummaryReference, guardSnapshotInput);
+      const guardReferenceKey = `dvaia:secureshop:practice-admission:v1:${guardBase.principalId.toLowerCase()}`;
+      try {
+        assert.equal(await productPage.evaluate(key => localStorage.getItem(key), guardReferenceKey), null);
+        const guardPostsBefore = practiceTraffic.filter(row => row.method === 'POST').length;
+        if (!await productPage.$('#secureshop-settings'))
+          await productPage.click('button[aria-controls="secureshop-settings"]');
+        const guardNewPractice = await (async () => {
+          for (const button of await productPage.$$('#secureshop-settings section[aria-label="Retained shop practices"] button')) {
+            if (await button.evaluate(node => node.textContent.trim()) === 'New practice') return button;
+          }
+          return null;
+        })();
+        assert.ok(guardNewPractice && await guardNewPractice.evaluate(node => !node.disabled));
+        await guardNewPractice.click();
+        await productPage.waitForFunction(() => document.querySelector(
+          '#secureshop-settings section[aria-label="Retained shop practices"] [role="alert"]')
+          ?.textContent.includes('Check saved operation status before choosing another practice.'),
+        { timeout: 20000 });
+        assert.equal(practiceTraffic.filter(row => row.method === 'POST').length, guardPostsBefore,
+          'Product saved-operation guard denies the switch before any practice POST');
+        assert.equal(await productPage.evaluate(key => localStorage.getItem(key), guardReferenceKey), null);
+        assert.equal((await scenes.list(guardScope)).find(row => row.isDefault)?.id, guardPractice.id);
+        assert.equal((await scenes.readExisting(guardScope)).targetId, guardTarget.targetId);
+        assert.equal(await guardFrame.$eval(guardCartLine,
+          link => link.closest('tr')?.querySelector('input.ss-qty__val')?.value), '1',
+        'denied Product switch preserves the original UI-written cart');
+        assert.equal(await productPage.evaluate(practiceSummaryReference, guardSnapshotInput, guardReferenceHandle), true,
+          'the exact saved Product operation reference remains unchanged after denial');
+      } finally { await guardReferenceHandle.dispose(); }
+      await contextA18Product.close(); contextA18Product = null;
+
+      // A18's fault, recovery and cart-isolation matrix uses a separate clean
+      // customer and physical Catalog Add, with no Product-page operation ref.
+      // The original work and test deadlines remain unchanged.
       stage = 'a18-new-practice';
       const practiceName = `practice_${suffix}`;
       await auth.register({ username: practiceName,
         email: `${practiceName}@example.invalid`, password, role: 'customer' });
       contextA18 = await browser.createBrowserContext();
-      const practicePage = pageA18 = await contextA18.newPage();
+      const practicePage = pageA18 = browserBoundary
+        ? await browserBoundary.newPage(contextA18) : await contextA18.newPage();
       await practicePage.setViewport({ width: 1280, height: 900 });
+      if (browserAdmission) await browserAdmission.guardPageRequests(practicePage, origin);
       const practiceRequests = [];
       const practiceProductReads = [];
       practicePage.on('request', request => {
@@ -3309,7 +3678,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       assert.ok(originalPractice?.id, 'fresh customer has one selected original scene');
       const originalTarget = await scenes.readExisting(beforePracticeScope);
       assert.ok(originalTarget?.targetId);
-      const originalProduct = (await review.query(`SELECT product_id FROM secureshop_review.product_target_products
+      const originalProduct = (await review.query(`SELECT product_id,name FROM secureshop_review.product_target_products
         WHERE target_id=$1 AND status='active' AND stock_quantity>0 ORDER BY product_id LIMIT 1`,
       [originalTarget.targetId])).rows[0];
       assert.ok(Number(originalProduct?.product_id) > 0, 'selected original scene has a real in-stock product');
@@ -3327,27 +3696,36 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         await button.click();
       };
       const cartLine = `table[aria-label="Cart items"] a[href="/secureshop/product/${originalProduct.product_id}"]`;
-      assert.ok([200, 304].includes((await practicePage.goto(`${origin}/secureshop/product/${originalProduct.product_id}`)).status()));
-      const practiceProduct = await stableFrame(practicePage);
-      await practiceProduct.waitForFunction(() => [...document.querySelectorAll('button')]
-        .some(button => button.textContent.trim() === 'Add to cart' && !button.disabled), { timeout: 20000 });
-      const addToCart = await (async () => {
-        for (const button of await practiceProduct.$$('button')) {
-          if (await button.evaluate(node => node.textContent.trim() === 'Add to cart' && !node.disabled)) return button;
-        }
-        return null;
-      })();
-      assert.ok(addToCart, 'in-stock product exposes a physical cart action');
-      await addToCart.click();
-      await practiceProduct.click('a[href="/secureshop/cart"]');
-      await practiceProduct.waitForSelector(cartLine, { timeout: 20000 });
-      assert.equal(await practiceProduct.$eval(cartLine,
+      assert.ok([200, 304].includes((await practicePage.goto(`${origin}/secureshop/catalog?q=${encodeURIComponent(originalProduct.name)}`)).status()));
+      const practiceCatalog = await stableFrame(practicePage);
+      const catalogCard = `a[href="/secureshop/product/${originalProduct.product_id}"]`;
+      await practiceCatalog.waitForSelector(`${catalogCard} button`, { timeout: 20000 });
+      const catalogAdd = await practiceCatalog.$(`${catalogCard} button`);
+      assert.ok(catalogAdd && await catalogAdd.evaluate(node => node.textContent.trim() === 'Add' && !node.disabled),
+        'the clean customer sees the selected in-stock Catalog Add control');
+      await (await practiceCatalog.$(catalogCard)).hover();
+      await catalogAdd.click();
+      await practiceCatalog.click('a[href="/secureshop/cart"]');
+      await practiceCatalog.waitForSelector(cartLine, { timeout: 20000 });
+      assert.equal(await practiceCatalog.$eval(cartLine,
         link => link.closest('tr')?.querySelector('input.ss-qty__val')?.value), '1',
-      'the original cart line was added through the rendered customer UI');
+      'the original cart line was added through the clean customer Catalog UI');
+      assert.equal(practiceProductReads.length, 0, 'Catalog Add does not open Product summary or similar operations');
       assert.equal(await practicePage.evaluate(key => localStorage.getItem(key), referenceKey), null);
 
       // Controlled native-storage failure must keep the original frame and
       // never dispatch A18. It is restored before the real admission.
+      const snapshotMetadata = await practicePage.evaluate(practiceSnapshotMetadata, {
+        scopeKey: `dvaia:secureshop:${beforePractice.launch.launchId.toLowerCase()}:${beforePractice.launch.generation}`,
+        sceneId: originalPractice.id.toLowerCase(), allowedFields: allowedSnapshotFields,
+        summaryKey: shopStateNames.SHOP_PRODUCT_SUMMARY_KEY,
+      });
+      assert.equal(snapshotMetadata.summaryRefPresent, false,
+        'the separately registered Catalog customer has no Product summary operation');
+      assert.equal(snapshotMetadata.unknownNonNullField, false,
+        'the clean customer has no unrecognized retained-reference field');
+      console.log('A11 A18 pre-storage snapshot metadata', JSON.stringify({ ...snapshotMetadata,
+        practicePostRequests: practiceRequests.filter(row => row.method === 'POST').length }));
       stage = 'a18-storage-failure';
       const postsBeforeStorageFailure = practiceTraffic.filter(row => row.method === 'POST').length;
       await practicePage.evaluate(() => {
@@ -3531,29 +3909,33 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       originalTarget.targetId, 'the prior scene birth target remains unchanged');
       status.renderedNewPracticeCartIsolation = true;
       const expectedProductReads = [
-        { method: 'POST', path: `/api/secureshop/products/${originalProduct.product_id}/summary` },
-        { method: 'GET', path: `/api/secureshop/products/${originalProduct.product_id}/similar` },
+        { method: 'POST', path: `/api/secureshop/products/${guardProduct.product_id}/summary` },
+        { method: 'GET', path: `/api/secureshop/products/${guardProduct.product_id}/similar` },
       ];
-      assert.ok(practiceProductReads.every(read => expectedProductReads.some(expected =>
+      assert.ok(guardProductReads.every(read => expectedProductReads.some(expected =>
         expected.method === read.method && expected.path === read.path)),
-      `A18 Product only dispatched its exact automatic reads: ${JSON.stringify(practiceProductReads)}`);
+      `A18 Product guard only dispatched its exact automatic reads: ${JSON.stringify(guardProductReads)}`);
+      assert.equal(practiceProductReads.length, 0, 'clean Catalog customer did not open Product');
       const a18ProviderCalls = providerCalls.slice(status.unavailableProviderAttempts);
       assert.equal(providerCalls.length, modelCalls, 'all unavailable-provider attempts have captured source evidence');
       assert.ok(a18ProviderCalls.every(call => call.method === 'chat'
         && call.callers.some(frame => frame.includes('secureshopBoundProductAssist.js'))),
       `A18 provider attempts must come only from the Product graph: ${JSON.stringify(a18ProviderCalls)}`);
-      assert.ok(a18ProviderCalls.length <= practiceProductReads.length,
-      `A18 Product graph attempts need exact rendered requests: ${JSON.stringify({ a18ProviderCalls, practiceProductReads })}`);
+      assert.ok(a18ProviderCalls.length <= guardProductReads.length,
+      `A18 Product graph attempts need exact rendered requests: ${JSON.stringify({ a18ProviderCalls, guardProductReads })}`);
       status.unavailableProviderAttempts = modelCalls;
       status.unavailableProviderAccounting = {
         version: 1,
         baselineAuthenticatedProductAttempts: 2,
-        productAutomaticRenderedReadRequests: practiceProductReads.length,
+        productAutomaticRenderedReadRequests: guardProductReads.length,
         productAutomaticAssistAttempts: a18ProviderCalls.length,
         productAutomaticAssistSource: 'secureshopBoundProductAssist',
       };
       await contextA18.close(); contextA18 = null;
       if (externalPolicyRenderer) await externalPolicyRenderer.check();
+      if (browserAdmission) await browserAdmission.verifyBuild();
+      if (browserBoundary) browserBoundary.assertNoUnexpectedTargets();
+      assert.equal(judgeCalls, 0, 'whole commerce cohort must not invoke a Judge');
       status.passed = true;
     } catch (error) {
       failure = error;
@@ -3605,18 +3987,22 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       }
     }
     finally {
+      externalMailAbort.abort();
+      readinessObserver.stop();
       clearTimeout(workWatchdog);
       console.log('A11 cleanup start', stage);
       const cleanupDeadline = Date.now() + 24000;
       let browserCloseFailed = false;
       const closes = [
-        ['a18-context', () => contextA18?.close()], ['secondary-context', () => contextB?.close()],
+        ['a18-context', () => contextA18?.close()], ['a18-product-context', () => contextA18Product?.close()],
+        ['secondary-context', () => contextB?.close()],
         ['browser', () => browser?.close()], ['http-server', () => closeServer(server)],
         ['mail-production', () => mailProduction?.close()],
         ['browser-assessment', () => composition?.closeBrowserAssessment()],
         ['browser-profile', () => {
           if (browserCloseFailed) throw Object.assign(new Error('Browser close was not verified'),
             { code: 'A11_BROWSER_CLOSE_UNVERIFIED' });
+          if (browserAdmission) return; // Independently captured launcher retires this exact owned profile.
           return profile && fs.rm(profile, { recursive: true, force: true });
         }],
         ['reset-key-directory', () => resetKeyDirectory && fs.rm(resetKeyDirectory, { recursive: true, force: true })],

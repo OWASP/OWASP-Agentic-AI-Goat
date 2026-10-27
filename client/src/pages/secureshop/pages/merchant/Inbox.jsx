@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import PersonaInboxLab from '../../components/PersonaInboxLab.jsx';
+import { openStandaloneExternalMail } from '../../bridge/externalMailIntent.mjs';
+import { isStandaloneShopFrame } from '../../bridge/assessmentPanelIntent.mjs';
 
 /**
  * Merchant Inbox — M8 Wave 2B.
@@ -316,6 +318,8 @@ function MerchantInboxSession({ userId, actionSlot, capabilitySlot }) {
           <button className="ss-btn" onClick={() => setComposeOpen(true)}>
             <PenSquare size={14} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Compose
           </button>
+          {isStandaloneShopFrame() && <button type="button" className="ss-btn ss-btn--ghost"
+            onClick={() => openStandaloneExternalMail()}>Send external test email</button>}
 </>, actionSlot)}
 
       {mail.pending?.chatSource && <p role="status">A Merchant assistant mail operation is saved. Open Merchant assistant to check its exact outcome before sending another message.</p>}

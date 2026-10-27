@@ -6,6 +6,7 @@ yarn-error.log*
 lerna-debug.log*
 
 # Runtime data
+/.qualification/
 pids
 *.pid
 *.seed
@@ -280,6 +281,7 @@ server/uploads/secureshop/seed_manuals/*
 
 # Local work journals and qualification evidence; portable test inputs live in tests/.
 /tasks/
+/client/tasks/cache/
 
 # Local frontend qualification captures (retain on disk, never ship as source).
 # Portable qualification inputs and their recorder remain eligible for release.

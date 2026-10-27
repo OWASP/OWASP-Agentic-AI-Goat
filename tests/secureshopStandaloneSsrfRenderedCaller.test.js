@@ -18,6 +18,15 @@ const {
   EVIDENCE
 } = require('./postgres/secureshopStandaloneSsrfRendered.integration.test');
 const ROOT = path.resolve(__dirname, '..');
+test('V27 opt-in launch is confined to original policy preflight and fallback is unchanged',()=>{
+  const source=require('node:fs').readFileSync(path.join(ROOT,'tests/postgres/secureshopStandaloneSsrfRendered.integration.test.js'),'utf8');
+  const policy=source.indexOf("if(POLICY_OUTPUT){\n      fs.mkdirSync(runtime");
+  const launch=source.indexOf("require('../fixtures/secureshopPolicyOutputBrowserAdmission').launchPolicyOutputBrowser");
+  const preflight=source.indexOf('retained.rendererPreflight=await qualifyCompiledPolicyRenderer');
+  assert.ok(policy>=0&&policy<launch&&launch<preflight);
+  assert.equal(source.split("require('../fixtures/secureshopPolicyOutputBrowserAdmission')").length,2);
+  assert.match(source,/if\(!browser\)\{\s*fs\.mkdirSync\(runtime,\{mode:0o700\}\);\s*browser=await require\('\.\.\/fixtures\/secureshopAnalyticsBrowserOwner'\)\.launchOwnedAnalyticsBrowser/);
+});
 test('receipt observation preserves the original consume return, arguments and failure after commit', () => {
   const receipt = Object.freeze({ operationId: 'controlled-operation', responseSha256: 'exact-hash' });
   const binding = Object.freeze({ targetId: 'controlled-target' });

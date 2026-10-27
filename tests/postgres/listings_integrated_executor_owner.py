@@ -1,4 +1,135 @@
 import hashlib,json,os,pathlib,shlex,subprocess,time
+
+# The original caller supplies the inherited-FD phase endpoint and browser owner.
+# Plans and receipts alone do not grant private manager authority.
+PRIVATE_MANAGER_LIVE = True
+
+
+class PrivateExecutorOwner:
+ """Compose existing phase authority, real bridge, and a retiring browser owner.
+
+ The phase owner must be supplied by the reviewed inherited-FD endpoint;
+ this class does not mint authority from a plan, receipt, or boolean.
+ """
+ def __init__(self,workspace,run_id,plan_sha256,phase_owner,browser_owner,deadline,*,channel_intent_writer=None):
+  import re
+  if (not re.fullmatch('[a-f0-9]{32}',run_id or '') or not re.fullmatch('[a-f0-9]{64}',plan_sha256 or '')
+      or phase_owner.run_id!=run_id or phase_owner.plan_sha256!=plan_sha256
+      or type(deadline) not in (int,float) or not 0<deadline-time.monotonic()<=600):
+   raise ValueError('LISTINGS_PRIVATE_OWNER_ADMISSION')
+  self.workspace,self.run_id,self.plan_sha256=pathlib.Path(workspace).resolve(),run_id,plan_sha256
+  if channel_intent_writer is not None and not callable(channel_intent_writer):
+   raise ValueError('LISTINGS_PRIVATE_CHANNEL_WRITER')
+  self.channel_intent_writer=channel_intent_writer;self.channel_retirement_intent=None
+  self.phase_owner,self.browser_owner,self.deadline=phase_owner,browser_owner,deadline
+  self.bridge=None;self.attempted=set();self.completed=set();self.closed=False;self.primary=None;self.cleanup_deadline=None
+
+ def start(self):
+  if not PRIVATE_MANAGER_LIVE:raise RuntimeError('LISTINGS_PRIVATE_ENDPOINT_NOT_ADMITTED')
+  return self._start()
+
+ def _phase(self,name,value=None):
+  if time.monotonic()>=(self.cleanup_deadline if self.cleanup_deadline is not None else self.deadline):
+   raise RuntimeError('LISTINGS_PRIVATE_DEADLINE')
+  if name in self.attempted:raise RuntimeError('LISTINGS_PRIVATE_PHASE_RETRY')
+  self.attempted.add(name)
+  result=self.phase_owner.run_phase(name,value)
+  if time.monotonic()>=(self.cleanup_deadline if self.cleanup_deadline is not None else self.deadline):
+   raise RuntimeError('LISTINGS_PRIVATE_DEADLINE')
+  self.completed.add(name)
+  return result
+
+ def _start(self):
+  # Internal composition seam. No alternate build,
+  # shared Docker image load, PG network, or independent lease is created here.
+  import secrets
+  from listings_native_resources import PrivateListingsBridge,private_handoff
+  if self.attempted or self.closed or time.monotonic()>=self.deadline:
+   raise RuntimeError('LISTINGS_PRIVATE_OWNER_STATE')
+  self.bridge=PrivateListingsBridge(self.workspace,None,self.deadline)
+  origin=self.bridge.open();token=secrets.token_urlsafe(48)
+  self._phase('listingsProfileInstall')
+  self._phase('listingsManagerCreate',{'origin':origin,'token':token})
+  raw=self._phase('listingsManagerStart')
+  handoff=private_handoff(json.loads(raw))
+  if handoff['runId']!=self.run_id or handoff['publicOrigin']!=origin:
+   raise RuntimeError('LISTINGS_PRIVATE_MANAGER_BINDING')
+  workspace_id=hashlib.sha256(str(self.workspace.resolve()).encode()).hexdigest()[:12]
+  profile='dvaia-owned-listings-'+workspace_id
+  policy=(self.workspace/'sidecars/sandbox-runner/owned-listings/profile.apparmor.in').read_text().replace('@@SUPERVISOR_PROFILE@@',profile)
+  if (handoff['workspaceId']!=workspace_id or handoff['profileName']!=profile
+      or handoff['containerName']!=profile or handoff['profileSha256']!=hashlib.sha256(policy.encode()).hexdigest()):
+   raise RuntimeError('LISTINGS_PRIVATE_MANAGER_PROFILE')
+  env=['LISTINGS_MANAGER_ENABLED=true','LISTINGS_PROFILE='+profile,'LISTINGS_PUBLIC_ORIGIN='+origin,'LISTINGS_CONTROL_TOKEN='+token]
+  if hashlib.sha256('\n'.join(sorted(env)).encode()).hexdigest()!=handoff['environmentSha256']:
+   raise RuntimeError('LISTINGS_PRIVATE_MANAGER_ENVIRONMENT')
+  self.bridge.activate(handoff)
+  self.handoff=handoff
+  # Token remains only in this transient private mapping, not persistence or argv.
+  authority=dict(version=1,workspaceId=workspace_id,host=handoff['privateDockerHost'],daemonId=handoff['daemonId'])
+  authority_sha=hashlib.sha256(json.dumps(authority,separators=(',',':')).encode()).hexdigest()
+  return dict(LISTINGS_MANAGER_ORIGIN=origin,LISTINGS_MANAGER_TOKEN=token,
+              LISTINGS_MANAGER_IMAGE=handoff['imageId'],LISTINGS_MANAGER_PROFILE=profile,
+              SECURESHOP_LISTINGS_PRIVATE_MANAGER_RUN_ID=self.run_id,
+              SECURESHOP_LISTINGS_PRIVATE_MANAGER_PROFILE=profile,
+              SECURESHOP_LISTINGS_PRIVATE_MANAGER_PROFILE_SHA256=handoff['profileSha256'],
+              SECURESHOP_LISTINGS_PRIVATE_MANAGER_CONTAINER=handoff['containerName'],
+              SECURESHOP_LISTINGS_TEST_MANAGER_ORIGIN=origin,SECURESHOP_LISTINGS_TEST_MANAGER_TOKEN=token,
+              SECURESHOP_LISTINGS_TEST_MANAGER_IMAGE_ID=handoff['imageId'],
+              SECURESHOP_LISTINGS_TEST_MANAGER_CONTAINER_ID=handoff['containerId'],
+              SECURESHOP_LISTINGS_TEST_MANAGER_SOURCE_SHA256=handoff['sourceSha256'],
+              SECURESHOP_LISTINGS_TEST_MANAGER_RUNTIME_DIGEST=handoff['runtimeSha256'],
+              SECURESHOP_LISTINGS_TEST_DOCKER_HOST=handoff['privateDockerHost'],
+              SECURESHOP_LISTINGS_TEST_DOCKER_DAEMON_ID=handoff['daemonId'],
+              SECURESHOP_LISTINGS_TEST_DOCKER_AUTHORITY_SHA256=authority_sha)
+
+ def close(self,cleanup_deadline):
+  if self.closed:raise RuntimeError('LISTINGS_PRIVATE_OWNER_CLOSED')
+  if type(cleanup_deadline) not in (int,float) or not time.monotonic()<cleanup_deadline<=time.monotonic()+600:
+   raise ValueError('LISTINGS_PRIVATE_CLEANUP_DEADLINE')
+  if self.cleanup_deadline is None:self.cleanup_deadline=cleanup_deadline
+  elif cleanup_deadline!=self.cleanup_deadline:raise RuntimeError('LISTINGS_PRIVATE_DEADLINE_RENEWAL')
+  if not getattr(self,'retirement_granted',False):
+   self.phase_owner.begin_retirement(self.cleanup_deadline)
+   self.retirement_granted=True
+  # Original browser owner closes and verifies its actual worker/browser/profile
+  # ownership. Exceptions retain the listener and all private runtime resources.
+  self.browser_owner.close(cleanup_deadline=self.cleanup_deadline)
+  if time.monotonic()>=self.cleanup_deadline:raise RuntimeError('LISTINGS_PRIVATE_DEADLINE')
+  local=self.bridge.close(min(cleanup_deadline,time.monotonic()+5)) if self.bridge is not None else None
+  if 'listingsManagerCreate' in self.attempted:
+   if ('listingsManagerStart' not in self.completed or local is None
+       or local.get('listenerClosed') is not True or local.get('localChannelsRetired') is not True):
+    raise RuntimeError('LISTINGS_PRIVATE_RETIREMENT_UNPROVEN')
+   import re
+   expected=local.get('channelIds');states=local.get('channelStates')
+   if (type(expected) not in (tuple,list) or type(states) not in (tuple,list)
+       or len(expected)>32 or len(states)>32 or len(set(expected))!=len(expected)
+       or any(type(c) is not str or not re.fullmatch('[a-f0-9]{32}',c) for c in expected)
+       or any(type(row) is not dict or set(row)!={'channelId','state'}
+              or type(row['channelId']) is not str or not re.fullmatch('[a-f0-9]{32}',row['channelId'])
+              or row['state'] not in ('never_attempted','spawn_attempted') for row in states)
+       or len({row['channelId'] for row in states})!=len(states)
+       or {row['channelId'] for row in states if row['state']=='spawn_attempted'} != set(expected)):
+    raise RuntimeError('LISTINGS_PRIVATE_CHANNEL_INTENT_UNPROVEN')
+   intent=dict(version=1,runId=self.run_id,planSha256=self.plan_sha256,
+               expectedChannelIds=list(expected),channelStates=list(states))
+   if self.channel_intent_writer is not None:self.channel_intent_writer(intent)
+   self.channel_retirement_intent=intent
+   raw=self._phase('listingsManagerChannels',dict(channelIds=list(expected),listenerClosed=True,localChannelsRetired=True))
+   proof=json.loads(raw)
+   if (proof.get('runId')!=self.run_id or proof.get('remoteChannelsAbsent') is not True
+       or [row['channelId'] for row in proof.get('channels',[])]!=list(local['channelIds'])):
+    raise RuntimeError('LISTINGS_PRIVATE_REMOTE_RETIREMENT_UNPROVEN')
+   if self._phase('listingsManagerRetire').strip()!='absent':raise RuntimeError('LISTINGS_PRIVATE_RETIREMENT_UNPROVEN')
+  if 'listingsProfileInstall' in self.attempted:
+   if self._phase('listingsProfileRetire').strip()!='absent':raise RuntimeError('LISTINGS_PRIVATE_RETIREMENT_UNPROVEN')
+  if time.monotonic()>=self.cleanup_deadline:raise RuntimeError('LISTINGS_PRIVATE_DEADLINE')
+  self.phase_owner.confirm_retired()
+  if time.monotonic()>=self.cleanup_deadline:raise RuntimeError('LISTINGS_PRIVATE_DEADLINE')
+  self.closed=True
+  return dict(local=local,privateManagerRetired=True,builderReleaseAllowed=True)
+
 def inspected_absent(result,kind,name):
  if result.returncode==0:return False
  import re
@@ -8,11 +139,14 @@ def inspected_absent(result,kind,name):
  raise RuntimeError('Owned '+kind+' absence inspection unavailable')
 
 class ExecutorOwner:
- def __init__(self,workspace,root,docker,owner,env,state,persist):
+ def __init__(self,workspace,root,docker,owner,env,state,persist,*,private_owner=None,private_cleanup_deadline=None):
   self.workspace,self.root,self.docker,self.owner,self.env,self.state,self.persist=workspace,root,docker,owner,env,state,persist
   self.name='dvaia-owned-listings-'+owner[:12];self.profile=self.name;self.remote='/tmp/'+self.name;self.tag=self.name+':candidate';self.volume=self.name+'-journal';self.network=self.name+'-network';self.image=None;self.child=None
   self.ssh=['/usr/bin/ssh','-F',str(pathlib.Path.home()/'.colima/_lima/colima-dvaia-pg-verify/ssh.config'),'lima-colima-dvaia-pg-verify']
   self.created=set();state['executor']={'name':self.name,'profile':self.profile,'volume':self.volume,'network':self.network};persist()
+  self.private_owner,self.private_cleanup_deadline=private_owner,private_cleanup_deadline
+  if private_owner is not None and (type(private_owner) is not PrivateExecutorOwner or type(private_cleanup_deadline) not in (int,float)):
+   raise ValueError('LISTINGS_PRIVATE_CALLER')
  def run(self,args,**kwargs):return subprocess.run(args,env=self.env,text=True,capture_output=True,timeout=kwargs.pop('timeout',30),**kwargs)
  def checked(self,args,**kwargs):
   r=self.run(args,**kwargs)
@@ -20,6 +154,9 @@ class ExecutorOwner:
   return r.stdout
  def remote_run(self,args,**kwargs):return self.checked(self.ssh+[shlex.join(args)],**kwargs)
  def start(self,shared_manager=False):
+  if self.private_owner is not None:
+   if not shared_manager:raise RuntimeError('LISTINGS_PRIVATE_MANAGER_ONLY')
+   return self.private_owner.start()
   import secrets,shutil,socket
   if shared_manager:
    self.name='dvaia-owned-listings-'+hashlib.sha256(str(self.workspace.resolve()).encode()).hexdigest()[:12];self.profile=self.name;self.remote='/tmp/'+self.name;self.tag=self.name+':candidate';self.volume=self.name+'-journal';self.network=self.name+'-network';self.state['executor'].update(name=self.name,profile=self.profile,volume=self.volume,network=self.network)
@@ -69,6 +206,7 @@ class ExecutorOwner:
   self.state['executor']['hostPortBindings']=bindings;self.state['executor']['networkTopology']='owned ordinary bridge, loopback published listeners, untrusted execution in attested inner namespace'
   self.persist();return out
  def close(self):
+  if self.private_owner is not None:return self.private_owner.close(self.private_cleanup_deadline)
   import signal
   if self.child and self.child.poll()is None:
    os.killpg(self.child.pid,signal.SIGTERM)

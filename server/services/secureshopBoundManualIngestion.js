@@ -7,6 +7,7 @@ const { createBoundTurns } = require('./secureshopBoundTurns');
 const { createBoundAgentRunner } = require('./secureshopBoundAgentRunner');
 const { createSecureShopManualExecutionConfig, MANUAL_TOOL } = require('./secureshopManualExecutionConfig');
 const { executionScope } = require('./secureshopSceneBinding');
+const recovery = require('./secureshopManualUploadRecoveryContract');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_BYTES = 20 * 1024 * 1024;
 const FILE_FIELDS = Object.freeze(['targetId', 'launchId', 'scenarioId', 'generation',
@@ -41,9 +42,9 @@ function snapshot(input) {
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   // Identical uploads in one launch generation deliberately replay. Byte,
   // metadata, product, persona or generation changes select a new operation.
-  const hash = createHash('sha256').update(JSON.stringify(['dvaia-manual-v1', scope,
-    persona.id, input.productId, sha256, input.filename, input.mime, input.isPublic])).digest('hex');
-  const operationId = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
+  const operationId = recovery.manualUploadOperationId(scope, persona.id, {
+    productId:input.productId, sha256, sizeBytes:bytes.length,
+    filename:input.filename, mime:input.mime, isPublic:input.isPublic });
   return Object.freeze({ scope, persona, signal, productId: input.productId, bytes, sha256,
     filename: input.filename, mime: input.mime, isPublic: input.isPublic, operationId });
 }
@@ -67,19 +68,68 @@ function createSecureShopBoundManualIngestion({ launches, conversationRepository
   const conversations = createBoundConversationService({ conversations: conversationRepository, launches });
   const turns = createBoundTurns({ conversations, coordinator });
   const config = createSecureShopManualExecutionConfig();
+  async function retained(input, personaEffect, expectedKey) {
+    if (!personaEffect || typeof catalog.readRetainedOwnedMerchantProduct !== 'function')
+      throw failure('SHOP_AUTH_INVALID', 'Manual recovery authority unavailable');
+    await launches.assertCurrent(input.scope);
+    await personaEffect.check(input.scope);
+    const owned = await catalog.readRetainedOwnedMerchantProduct({...input, personaEffect});
+    const current = createLaunchScope(executionScope(owned?.binding));
+    if (Object.keys(current).some(key => current[key] !== input.scope[key])
+        || owned.product?.id !== input.productId || owned.product.retailer_id !== input.persona.id) throw invalid();
+    const key = recovery.manualUploadRecoveryScopeKey(owned.binding, input.persona.id, input.personaSession);
+    if (expectedKey !== undefined && recovery.validateManualUploadRecoveryKey(expectedKey) !== key)
+      throw failure('UPLOAD_RECOVERY_SCOPE_STALE', 'Upload recovery scope changed');
+    await launches.assertCurrent(input.scope);
+    await personaEffect.check(input.scope);
+    return { ...owned, recoveryScopeKey:key };
+  }
   return Object.freeze({ purpose: PURPOSES.productManualIngest,
+    async readReceipt(input = {}) {
+      const descriptor = recovery.normalizeManualUploadDescriptor(input.descriptor);
+      const scope = createLaunchScope(input.scope);
+      if (input.persona?.role !== 'merchant' || !Number.isSafeInteger(input.persona.id)
+          || input.persona.id < 1 || input.persona.id > 2147483647
+          || typeof personaAuthority?.capture !== 'function' || typeof repository.readReceipt !== 'function') throw invalid();
+      const persona = Object.freeze({id:input.persona.id, role:'merchant'});
+      const personaSession = Object.freeze({sessionId:input.personaSession?.sessionId,
+        authorityVersion:input.personaSession?.authorityVersion});
+      const expectedKey = input.recoveryScopeKey === undefined ? undefined
+        : recovery.validateManualUploadRecoveryKey(input.recoveryScopeKey);
+      const fence = await personaAuthority.capture({scope, personaId:persona.id, role:persona.role, ...personaSession});
+      const effect = require('./secureshopPersonaProductEffect').createPersonaProductEffect(fence);
+      const selected = {scope, persona, personaSession, productId:descriptor.productId};
+      const owned = await retained(selected, effect, expectedKey);
+      const operationId = recovery.manualUploadOperationId(scope, persona.id, descriptor);
+      let receipt = null;
+      try { receipt = await repository.readReceipt(owned.binding, {operationId}); }
+      catch (error) { if (error?.code !== 'BOUND_MANUAL_INGEST_RECEIPT_UNAVAILABLE') throw error; }
+      // Absence is only a point-in-time observation. Revalidate even when the
+      // upload is still in flight, and never turn absence into retry permission.
+      await retained(selected, effect, owned.recoveryScopeKey);
+      return Object.freeze({version:1, kind:'product_manual', operationId,
+        recoveryScopeKey:owned.recoveryScopeKey, state:receipt === null ? 'not_found' : 'indexed',
+        receipt:receipt === null ? null : recovery.projectManualUploadReceipt(receipt, descriptor, persona.id, operationId)});
+    },
     async upload(input = {}) {
       const trustedPersonaSession = input.personaSession === undefined ? undefined : Object.freeze({
         sessionId: input.personaSession?.sessionId, authorityVersion: input.personaSession?.authorityVersion });
       const source = snapshot(input);
-      const fence = personaAuthority?.capture({scope:source.scope,personaId:source.persona.id,role:source.persona.role,sessionId:trustedPersonaSession?.sessionId,authorityVersion:trustedPersonaSession?.authorityVersion});
+      const recoveryScopeKey = input.recoveryScopeKey === undefined ? undefined
+        : recovery.validateManualUploadRecoveryKey(input.recoveryScopeKey);
+      const fence = await personaAuthority?.capture({scope:source.scope,personaId:source.persona.id,role:source.persona.role,sessionId:trustedPersonaSession?.sessionId,authorityVersion:trustedPersonaSession?.authorityVersion});
       const personaEffect = fence ? require('./secureshopPersonaProductEffect').createPersonaProductEffect(fence) : undefined;
+      const recoveryInput = {scope:source.scope,persona:source.persona,productId:source.productId,personaSession:trustedPersonaSession};
       source.signal?.throwIfAborted();
       const check = async execution => {
         source.signal?.throwIfAborted();
         await execution?.check();
         await launches.assertCurrent(source.scope);
         await personaEffect?.check(source.scope);
+        if (recoveryScopeKey !== undefined) {
+          const owned = await retained(recoveryInput, personaEffect, recoveryScopeKey);
+          if (owned.product.status !== 'active') throw failure('OWNER_MISMATCH', 'Active owned product required');
+        }
         source.signal?.throwIfAborted();
         await execution?.check();
       };
@@ -101,8 +151,10 @@ function createSecureShopBoundManualIngestion({ launches, conversationRepository
           return new Map([[MANUAL_TOOL, async args => {
             exactArgs(args, source.productId);
             await check(execution);
-            const owned = await catalog.getOwnedMerchantProduct({ scope: source.scope,
-              persona: source.persona, productId: source.productId, personaEffect });
+            const owned = recoveryScopeKey === undefined
+              ? await catalog.getOwnedMerchantProduct({ scope: source.scope,
+                persona: source.persona, productId: source.productId, personaEffect })
+              : await retained(recoveryInput, personaEffect, recoveryScopeKey);
             await check(execution);
             const productExecution = executionScope(owned?.binding);
             if (!productExecution || !['launchId', 'scenarioId', 'generation',
@@ -110,7 +162,9 @@ function createSecureShopBoundManualIngestion({ launches, conversationRepository
               throw failure('BOUND_RETRIEVAL_MISMATCH', 'Manual product execution changed');
             }
             const meta = await retrieval.ensureProvisioned({ scope: source.scope,
-              persona: source.persona, signal: execution.signal, personaEffect });
+              persona: source.persona, signal: execution.signal, personaEffect,
+              ...(recoveryScopeKey === undefined ? {} : {retainedBinding:owned.binding,
+                beforeEffect:() => check(execution)}) });
             if (!owned?.binding || !BINDING_FIELDS.every(key => owned.binding[key] === meta[key])) {
               throw failure('BOUND_RETRIEVAL_MISMATCH', 'Manual product target changed');
             }
@@ -166,15 +220,19 @@ function createSecureShopBoundManualIngestion({ launches, conversationRepository
               embeddingModel: meta.embeddingModel, embeddingDimension: meta.embeddingDimension, chunks,
               expectedRuntimeFingerprint: runtimeFingerprint,
             };
-            const withLineage = typeof repository.appendManualWithLineage === 'function';
+            const privateCapture = source.isPublic === false && typeof repository.appendManualWithProtectedLineage === 'function';
+            const withLineage = privateCapture || typeof repository.appendManualWithLineage === 'function';
             // The same persona effect owns the original append transaction; the
             // additive repository method only returns its private PG projection.
-            const selectedRepository = withLineage ? { appendManual: (...args) => repository.appendManualWithLineage(...args) } : repository;
+            const selectedRepository = withLineage ? { appendManual: (...args) => privateCapture
+              ? repository.appendManualWithProtectedLineage(...args) : repository.appendManualWithLineage(...args) } : repository;
             const appended = personaEffect ? await personaEffect.appendManual(selectedRepository, owned.binding, appendInput)
               : await selectedRepository.appendManual(owned.binding, appendInput);
             const receipt = withLineage ? appended.receipt : appended;
             capturedSource = { target: JSON.parse(JSON.stringify(owned.binding)), receipt,
               lineage: withLineage ? appended.lineage : { eligible: false, reason: 'missing_original' } };
+            if (privateCapture && appended.protectedLineage?.eligible === true)
+              capturedSource.protectedLineage = appended.protectedLineage;
             await check(execution);
             if (receipt.operationId !== source.operationId || !Number.isSafeInteger(receipt.manualSourceId)
                 || receipt.manualSourceId < 1 || receipt.documentCount !== chunks.length) throw invalid();
@@ -202,14 +260,20 @@ function createSecureShopBoundManualIngestion({ launches, conversationRepository
           }
           const metadata = { productManualIngest: { version: 1, operationId: source.operationId,
             observation: accepted, ...finalModel } };
+          const {protectedLineage, ...publicSource} = capturedSource;
           const origin = { version: 1, binding, personaSession: trustedPersonaSession,
             source: { sessionId, requestId }, runId: execution.runId,
-            traceEventIds: traces.map(row => row.event_id), ...capturedSource };
+            traceEventIds: traces.map(row => row.event_id), ...publicSource };
           metadata.manualRagUploadOrigin = origin;
           if (Buffer.byteLength(JSON.stringify(metadata)) > 65536) {
             origin.lineage = { eligible: false, reason: 'metadata_limit' };
             if (Buffer.byteLength(JSON.stringify(metadata)) > 65536) origin.traceEventIds = [];
             if (Buffer.byteLength(JSON.stringify(metadata)) > 65536) delete metadata.manualRagUploadOrigin;
+          }
+          if (protectedLineage?.eligible === true) {
+            const protectedOrigin = {...origin,lineage:protectedLineage};
+            if (Buffer.byteLength(JSON.stringify({...metadata,protectedManualUploadOrigin:protectedOrigin})) <= 65536)
+              metadata.protectedManualUploadOrigin = protectedOrigin;
           }
           return metadata;
         },

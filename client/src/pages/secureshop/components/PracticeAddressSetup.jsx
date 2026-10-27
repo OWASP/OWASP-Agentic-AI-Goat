@@ -13,7 +13,7 @@ const message = error => error instanceof Error ? error.message : 'Saved address
 
 export default function PracticeAddressSetup({ setup = null, entryPoint = 'chat', action = 'create',
   choiceId = null, initialFields = null, authorityKey, transport = globalThis.fetch,
-  onConfirmed, onStale, onCancel }) {
+  onConfirmed, onStale, onCancel, interactionBlocked = false }) {
   const [preflight, setPreflight] = useState(null);
   const [fields, setFields] = useState(null);
   const [review, setReview] = useState(false);
@@ -90,7 +90,7 @@ export default function PracticeAddressSetup({ setup = null, entryPoint = 'chat'
     Promise.resolve().then(() => onConfirmed?.()).catch(() => { /* The saved receipt remains authoritative. */ });
   };
   const run = async (recover = false) => {
-    if (activeRef.current) return;
+    if (interactionBlocked || activeRef.current) return;
     const controller = new AbortController(), epoch = epochRef.current;
     const current = () => mountedRef.current && epochRef.current === epoch
       && activeRef.current === controller && !controller.signal.aborted;
@@ -147,10 +147,10 @@ export default function PracticeAddressSetup({ setup = null, entryPoint = 'chat'
         {FIELDS.map(([key, label]) => <label key={key}>{label}
           <input className="ss-lane__input" aria-label={label} value={fields[key] ?? ''}
             maxLength={key === 'line1' || key === 'line2' ? 1024 : key === 'city' ? 256 : key === 'label' || key === 'state' || key === 'phone' ? 128 : 64}
-            disabled={busy || review} onChange={event => setFields(value => ({ ...value, [key]: event.target.value }))}
+            disabled={interactionBlocked || busy || review} onChange={event => setFields(value => ({ ...value, [key]: event.target.value }))}
             style={{ display: 'block', width: '100%', boxSizing: 'border-box' }} />
         </label>)}
-        <label><input type="checkbox" checked={fields.isDefault} disabled={busy || review}
+        <label><input type="checkbox" checked={fields.isDefault} disabled={interactionBlocked || busy || review}
           onChange={event => setFields(value => ({ ...value, isDefault: event.target.checked }))} /> Set as default</label>
       </div>
       {!fields.line1?.trim() && <p role="status">Street address is required before review.</p>}
@@ -162,17 +162,18 @@ export default function PracticeAddressSetup({ setup = null, entryPoint = 'chat'
         <p><strong>Default:</strong> {fields.isDefault ? 'Yes' : 'No'}</p>
       </div>}
       <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-        {!review ? <button className="ss-btn" type="button" disabled={busy || storageFault || !fields.line1?.trim()}
+        {!review ? <button className="ss-btn" type="button" disabled={interactionBlocked || busy || storageFault || !fields.line1?.trim()}
           onClick={() => { try { normalizeAddressFields(fields); setReview(true); setNotice(''); }
             catch (error) { setNotice(message(error)); } }}>Review address</button>
-          : <><button className="ss-btn" type="button" disabled={busy || storageFault}
+          : <><button className="ss-btn" type="button" disabled={interactionBlocked || busy || storageFault}
             onClick={() => void run()}>Confirm {preflight.action === 'update' ? 'address update' : 'address save'}</button>
-            <button className="ss-btn ss-btn--ghost" type="button" disabled={busy} onClick={() => setReview(false)}>Edit fields</button></>}
-        {onCancel && <button className="ss-btn ss-btn--ghost" type="button" disabled={busy} onClick={onCancel}>Cancel</button>}
+            <button className="ss-btn ss-btn--ghost" type="button" disabled={interactionBlocked || busy} onClick={() => setReview(false)}>Edit fields</button></>}
+        {onCancel && <button className="ss-btn ss-btn--ghost" type="button" disabled={interactionBlocked || busy} onClick={onCancel}>Cancel</button>}
       </div>
     </>}
     {notice && <p role={storageFault ? 'alert' : 'status'}>{notice}</p>}
-    {reference && <button className="ss-btn ss-btn--ghost" type="button" disabled={busy}
+    {interactionBlocked && <p role="status">Wait for the current conversation to finish restoring or responding before checking or changing an address.</p>}
+    {reference && <button className="ss-btn ss-btn--ghost" type="button" disabled={interactionBlocked || busy}
       onClick={() => void run(true)}>Check saved address</button>}
   </section>;
 }

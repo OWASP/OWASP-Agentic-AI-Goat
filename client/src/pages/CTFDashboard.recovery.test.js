@@ -6,12 +6,14 @@ import axios from 'axios';
 import CTFDashboard from './CTFDashboard';
 jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn() }));
 let mockUser = { id: 7, username: 'Learner' };
-jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: mockUser }) }));
+let mockAuthRevision = 0;
+jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: mockUser, getAuthRevision: () => mockAuthRevision }) }));
 const operationId = '11111111-1111-4111-8111-111111111111';
 async function flush() { await act(async () => { await Promise.resolve(); await Promise.resolve(); }); }
 let node, root;
 beforeEach(async () => {
  mockUser = { id: 7, username: 'Learner' };
+ mockAuthRevision = 0;
  global.IS_REACT_ACT_ENVIRONMENT = true; localStorage.setItem('token', 'owner'); axios.get.mockReset(); axios.post.mockReset();
  axios.get.mockImplementation(url => Promise.resolve({ data: url.endsWith('/config') ? { config: { ctf_registration_open: 'true' } } : url.endsWith('/stages') ? { stages: [] } : { registered: false } }));
  node = document.createElement('div'); document.body.appendChild(node); root = createRoot(node);
@@ -111,4 +113,27 @@ test('live token fences old load before rerender and replacement owner can regis
  expect(axios.post).toHaveBeenCalledTimes(1);expect(node.querySelector('form')).toBeNull();
  expect(node.textContent).not.toMatch(/loading|registering/i);
  expect(axios.get.mock.calls.filter(([url,options])=>url.endsWith('/status')&&options.headers.Authorization==='Bearer replacement')).toHaveLength(2);
+});
+test('same-token auth revision retires a pending status read and loads the renewed session',async()=>{
+ let finishOldStatus;let statusCalls=0;
+ axios.get.mockImplementation(url=>{
+  if(url.endsWith('/status')){
+   statusCalls+=1;
+   return statusCalls===1?new Promise(resolve=>{finishOldStatus=resolve;}):Promise.resolve({data:{registered:false}});
+  }
+  return Promise.resolve({data:url.endsWith('/config')?{config:{ctf_registration_open:'true'}}:{stages:[]}});
+ });
+ replaceOwner('same-token',{id:7,username:'Learner'});await flush();
+ mockAuthRevision+=1;
+ replaceOwner('same-token',{id:7,username:'Learner'});await flush();
+ expect(statusCalls).toBe(2);
+ await act(async()=>finishOldStatus({data:{registered:true,participant:{id:7}}}));await flush();
+ expect(node.querySelector('form')).not.toBeNull();
+});
+test('ready dashboard cannot register through a retained handler after auth revision changes',async()=>{
+ expect(node.querySelector('form')).not.toBeNull();
+ mockAuthRevision+=1;
+ await act(async()=>node.querySelector('form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true})));
+ await flush();
+ expect(axios.post).not.toHaveBeenCalled();
 });

@@ -10,6 +10,8 @@ const { randomUUID } = require('node:crypto');
 const { isDeepStrictEqual } = require('node:util');
 const { Pool } = require('pg');
 const { migrate } = require('../../db/postgres/migrate');
+const { admitInventoryEvidence, launchInventoryBrowser,
+  publishInventoryReceipt } = require('../fixtures/secureshopInventoryCurrentHostAdmission');
 
 const PREFIX = 'PG_SECURESHOP_STANDALONE_INVENTORY_';
 const STORES = ['IDENTITY', 'AGENTS', 'REVIEW', 'COMMERCE'];
@@ -75,7 +77,7 @@ test(RETRY_GRADING
     assert.equal(workspace, process.cwd(), 'current checkout required; source copies are denied');
     const receiptPath = process.env.SECURESHOP_STANDALONE_INVENTORY_EVIDENCE_PATH || '';
     assert.ok(path.isAbsolute(receiptPath));
-    assert.ok(!path.resolve(receiptPath).startsWith(`${workspace}${path.sep}`));
+    admitInventoryEvidence(workspace, receiptPath);
     const build = path.resolve(process.env.SECURESHOP_STANDALONE_INVENTORY_BUILD || path.join(workspace, 'client/build'));
     assert.equal(build, path.join(workspace, 'client/build'));
     await fs.access(path.join(build, 'index.html'));
@@ -308,8 +310,8 @@ test(RETRY_GRADING
       app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
 
       profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-standalone-inventory-'));
-      browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
-        executablePath });
+      browser = await launchInventoryBrowser({ root: workspace, receiptPath, profile,
+        executablePath, origin });
       const page = await browser.newPage(); await page.setViewport({ width: 1280, height: 900 });
       const readinessResponses = [];
       page.on('response', response => {
@@ -1321,8 +1323,7 @@ test(RETRY_GRADING
       const written = { ...status, cleanupComplete: cleanupErrors.length === 0,
         ...(RETRY_GRADING ? { actorCalls, judgeCalls, errors: cleanupErrors.map(error => error.name) } : {}),
         ...(failure ? { failure: { name: failure.name, code: failure.code || null } } : {}) };
-      try { await fs.writeFile(receiptPath, JSON.stringify(written, null, 2),
-        { flag: 'wx', mode: 0o600 }); }
+      try { await publishInventoryReceipt(workspace, receiptPath, written); }
       catch (error) { cleanupErrors.push(error); }
     }
     if (cleanupErrors.length) throw new AggregateError(cleanupErrors,

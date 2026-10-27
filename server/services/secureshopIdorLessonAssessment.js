@@ -52,7 +52,7 @@ function storedJudgment(row) {
 
 function createIdorLessonAssessment({ identityPool, launches, conversationRepository,
   coordinator, journal, personaAuthority, personaBindings, scenes,
-  lessonRepository, receipts, progress, judge, qualifyModel, modeAuthority } = {}) {
+  lessonRepository, receipts, progress, judge, qualifyModel, modeAuthority, assessmentReleaseAdmission } = {}) {
   for (const fn of [identityPool?.query, launches?.assertCurrent,
     conversationRepository?.getTraceEvents, journal?.readIdorLessonRequest,
     journal?.readIdorLessonAssessment,
@@ -75,7 +75,7 @@ function createIdorLessonAssessment({ identityPool, launches, conversationReposi
     } });
   const enabled = async (scope, objectiveId) =>
     (await readSecureShopAssessmentEligibility(identityPool, scope,
-      [objectiveId])).includes(objectiveId);
+      [objectiveId], assessmentReleaseAdmission)).includes(objectiveId);
   async function readOutcome({ scope, persona, personaSession, sessionId, requestId,
     signal } = {}) {
     if (!UUID.test(sessionId || '') || !UUID.test(requestId || '')

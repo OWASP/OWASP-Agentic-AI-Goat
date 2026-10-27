@@ -12,7 +12,7 @@ function dependencies(role,enforced,workflow){
  const args=workflow==='review'?{}:{order_id:1};
  const config=workflow==='review'?require('../server/services/secureshopReviewExecutionConfig').createSecureShopReviewExecutionConfig():{buildBasePrompt:()=>'',buildPolicyBlock:async()=>'',checkToolAcl:async()=>({allowed:true,action:'dispatch',enforcement:true,policyViolation:null}),manifest:{getForRole:()=>[]}};
  const dependencies={...config,conversationRepository,launches:{async assertCurrent(){},async resolveCapability(){return scope;},async reserveReviewsTarget(){return{...scope,kind:'reviews',targetId:randomUUID()};}},
-  journal:{async lookupGeneralRequest(){return null;},async claim({requestId}){return{status:'claimed',claimId:requestId};},async complete(){},async markUncertain(){}},
+  journal:{async lookupReviewModerationRequest(){return null;},async claim({requestId}){return{status:'claimed',claimId:requestId};},async complete(){},async markUncertain(){}},
   coordinator:{async reset(_id,work){return work();},async run(_id,_options,work){return work({runId:randomUUID(),ownerKey:'owned-test',durableGeneration:'1',async check(){},async effect(_key,callback){return callback();},async effectWithReceipt(_key,callback){return{value:await callback(),receipt:{status:'completed'}};}});}},
   authenticatePersona(_req,_res,next){next();},
   provider:{async chat(){calls++;return calls===1?{stop_reason:'tool_use',tool_uses:[{id:'first',name:selected,args}]}:{stop_reason:'end_turn',text:'Controlled test'};},async finalResponse(){return{responseMode:'structured_final',stop_reason:'end_turn',text:'Controlled test'};}},

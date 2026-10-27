@@ -22,7 +22,7 @@ const products = Object.freeze([
 ]);
 
 function fixture({ metadata = null, searchRows, list = products, embedHook, checkHook, revisionRepository, reindex } = {}) {
-  const calls = { prepare: [], get: [], list: [], metadata: [], provision: [], search: [], embed: [], check: [] };
+  const calls = { prepare: [], get: [], list: [], retainedList: [], metadata: [], provision: [], search: [], embed: [], check: [] };
   const catalog = {
     async prepareTarget(input) { calls.prepare.push(input); return binding; },
     async getProduct(input) { calls.get.push(input); return { product: products[0] }; },
@@ -30,6 +30,11 @@ function fixture({ metadata = null, searchRows, list = products, embedHook, chec
       calls.list.push(input);
       const start = input.query.offset;
       return { products: list.slice(start, start + input.query.limit), total: list.length };
+    },
+    async listRetainedManualProducts(input) {
+      calls.retainedList.push(input);
+      assert.deepEqual(input.binding,binding);
+      return {products:list.slice(input.offset,input.offset+input.limit),total:list.length};
     },
   };
   const repository = {
@@ -53,6 +58,31 @@ function fixture({ metadata = null, searchRows, list = products, embedHook, chec
   const checkCurrent = async value => { calls.check.push(value); return checkHook?.(value, calls.check.length); };
   return { calls, value: createSecureShopBoundProductRetrieval({ catalog, repository, embedder, checkCurrent, revisionRepository, reindex }) };
 }
+
+test('private producer captures the exact catalog-derived embedding query without changing observation', async () => {
+  const rows=[{sourceKind:'manual',sourceId:12,chunkIndex:0,text:'private controlled body',score:0.8},
+    {sourceKind:'manual',sourceId:13,chunkIndex:0,text:'public controlled neighbor',score:0.6}];
+  const lineage={eligible:false,reason:'missing_original'},protectedLineage={eligible:true,version:2};
+  const revisionRepository={async search(){throw Error('legacy search');},async readHead(){throw Error('unexpected head');},
+    async searchWithProtectedLineage(_binding,input){assert.deepEqual(input.embedding,[1,0]);
+      return {rows,lineage,protectedLineage};}};
+  const f=fixture({metadata:{...binding,embeddingModel:'model:v1',embeddingDimension:2,documentCount:2},
+    revisionRepository,reindex:{async reindex(){throw Error('unexpected reindex');}}});
+  let capture;
+  const result=await f.value.similar({scope,persona,productId:1,captureManualRagSource:value=>{capture=value;}});
+  assert.deepEqual(result.retrieved_context,rows);
+  assert.deepEqual(capture.lineage,lineage);
+  assert.equal(capture.protectedLineage,protectedLineage);
+  assert.equal(capture.query.text,f.calls.embed.at(-1).text);
+  assert.equal(capture.query.text,'Seed Phone\nfast camera');
+  assert.equal(capture.query.description,products[0].description);
+  assert.equal(capture.query.sha256,require('node:crypto').createHash('sha256').update(capture.query.text).digest('hex'));
+  assert.equal(Object.hasOwn(result,'query'),false);
+  revisionRepository.searchWithProtectedLineage=async()=>({rows,lineage});
+  const unchanged=await f.value.similar({scope,persona,productId:1,captureManualRagSource:value=>{capture=value;}});
+  assert.deepEqual(unchanged,result);
+  assert.deepEqual(Object.keys(capture).sort(),['lineage','target']);
+});
 
 // @intentional-vulnerability llm04-rag-poisoning
 // @intentional-vulnerability llm08-embedding-poisoning
@@ -210,6 +240,27 @@ test('merchant ingestion provisions base product corpus and preserves any existi
   assert.equal(reopened.documentCount, 8);
   assert.equal(retained.calls.provision.length, 0);
   assert.equal(retained.calls.embed.length, 0);
+});
+
+test('keyed merchant provisioning reads only retained catalog and checks scope after embedding before mutation',async()=>{
+  const effect=require('../server/services/secureshopPersonaProductEffect').createPersonaProductEffect({
+    binding:{...scope,personaId:12,role:'merchant'},assertRemoteAdmission:async()=>{},withCrossStoreEffect:async work=>work()});
+  let stale=false,checks=0;
+  const beforeEffect=async()=>{checks++;if(stale)throw Object.assign(Error('selection changed'),{code:'UPLOAD_RECOVERY_SCOPE_STALE'});};
+  const f=fixture({embedHook:async()=>{stale=true;return {embeddingModel:'model:v1',embeddingDimension:2,embedding:[1,0]};}});
+  const input={scope,persona:{id:12,role:'merchant'},personaEffect:effect,retainedBinding:binding,beforeEffect};
+  await assert.rejects(f.value.ensureProvisioned(input),{code:'UPLOAD_RECOVERY_SCOPE_STALE'});
+  assert.equal(f.calls.prepare.length,0);assert.equal(f.calls.list.length,0);assert.equal(f.calls.retainedList.length,1);
+  assert.equal(f.calls.provision.length,0);assert.ok(checks>=4);
+  stale=false;
+  const good=fixture();await good.value.ensureProvisioned(input);
+  assert.equal(good.calls.prepare.length,0);assert.equal(good.calls.list.length,0);assert.equal(good.calls.provision.length,1);
+  assert.deepEqual(good.calls.provision[0].value,binding);
+  for(const patch of [{beforeEffect:undefined},{retainedBinding:undefined},{personaEffect:undefined},
+    {persona:{id:41,role:'customer'}},{retainedBinding:{...binding,platformSessionId:9}}]){
+    const rejected=fixture();await assert.rejects(rejected.value.ensureProvisioned({...input,...patch}),{code:'INVALID_ARGUMENT'});
+    assert.equal(rejected.calls.prepare.length,0);assert.equal(rejected.calls.provision.length,0);
+  }
 });
 
 function revisionFixture({ rebuild, search, readHead } = {}) {

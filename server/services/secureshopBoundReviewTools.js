@@ -90,7 +90,7 @@ function argumentError(message) {
   return wrap({ ok: false, code: 'INVALID_TOOL_ARGUMENTS', error: message }, true);
 }
 function stableFailure(error) {
-  if (AUTHORITY_ERRORS.has(error?.code)) throw error;
+  if (error?.executionBoundary === true || AUTHORITY_ERRORS.has(error?.code)) throw error;
   return wrap({ ok: false, code: error?.code === 'REVIEW_NOT_FOUND' ? 'REVIEW_NOT_FOUND' : 'REVIEW_OPERATION_FAILED',
     error: error?.code === 'REVIEW_NOT_FOUND' ? 'review is unavailable' : 'review operation failed' }, true);
 }

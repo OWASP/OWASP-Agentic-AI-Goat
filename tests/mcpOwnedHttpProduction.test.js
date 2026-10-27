@@ -4,6 +4,7 @@ const {composeOwnedHttpProduction}=require('../server/services/mcp/ownedHttpProd
 const {plan}=require('../scripts/install/mcp-owned-http');
 const config=require('../server/services/mcp/ownedHttpManagedConfiguration');
 const crypto=require('node:crypto');
+const profileDigest=p=>crypto.createHash('sha256').update(require('../sidecars/sandbox-runner/owned-http/profile').renderOwnedHttpProfile(p.profile)).digest('hex');
 const path=require('node:path');
 const {collectOwnedServiceBuildContext,_internals:buildContext}=require('../scripts/install/mcp-owned-service-build-context');
 const cli={readiness:async()=>({ready:true}),admit:async()=>({}),retire:async()=>{throw Error('must not retire CLI');}};
@@ -61,6 +62,7 @@ test('staged Linux provision keeps token private and never enables or migrates',
    calls.push({file,args,stage:options.stage});let stdout='';
    if(options.stage==='profile-existing-state')return {exitCode:1,stdout:''};
    if(options.stage==='profile-trust')stdout='0:0:600:regular file\n';
+   if(options.stage==='profile-published-digest')stdout=profileDigest(p);
    if(options.stage==='profile-verify')stdout=p.profile+' (enforce)\n';
    if(options.stage==='http-image')stdout=JSON.stringify([{Id:'sha256:'+'b'.repeat(64)}]);
    if(options.stage==='http-volume-inspect')stdout=JSON.stringify([{Labels:{'dvaia.http.owner':p.profile}}]);
@@ -91,6 +93,7 @@ test('stopped owned HTTP container restarts by validated full ID and is re-inspe
   const run=async(_file,args,{stage})=>{calls.push({args,stage});let stdout='';
    if(stage==='profile-existing-state')return{exitCode:1,stdout};
    if(stage==='profile-trust')stdout='0:0:600:regular file\n';
+   if(stage==='profile-published-digest')stdout=profileDigest(p);
    if(stage==='profile-verify')stdout=p.profile+' (enforce)\n';
    if(stage==='http-image')stdout=JSON.stringify([{Id:image}]);
    if(stage==='http-existing')stdout=id.slice(0,12);

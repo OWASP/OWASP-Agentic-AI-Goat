@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import Account from './Account';
 
 let mockToken = 'bound-persona-token';
+let mockAuthToken = 'bound-persona-token';
+let mockUser = { id: 7, username: 'student_customer', role: 'customer' };
 let boundAddressMode = false;
 const toast = { success: jest.fn(), error: jest.fn() };
 
@@ -12,7 +14,7 @@ jest.mock('framer-motion', () => ({
   ) },
 }));
 jest.mock('../context/AuthContext', () => ({
-  useAuth: () => ({ user: { id: 7, username: 'student_customer', role: 'customer' },
+  useAuth: () => ({ user: mockUser, token: mockAuthToken,
     logout: jest.fn() }),
 }));
 jest.mock('../context/ToastContext.jsx', () => ({ useToast: () => toast }));
@@ -20,6 +22,8 @@ jest.mock('../components/Button.jsx', () => ({ children, icon, loading, ...props
   <button {...props}>{icon}{children}</button>
 ));
 jest.mock('../components/Card.jsx', () => ({ children }) => <div>{children}</div>);
+jest.mock('../components/Dialog.jsx', () => ({ open, title, children, footer, onClose }) => open
+  ? <div role="dialog" aria-label={title}><button onClick={onClose}>Close dialog</button>{children}{footer}</div> : null);
 jest.mock('../components/Input.jsx', () => ({ label, helper, ...props }) => <input aria-label={label} {...props} />);
 jest.mock('../components/Badge.jsx', () => ({ children }) => <span>{children}</span>);
 jest.mock('../components/UploadZone.jsx', () => () => null);
@@ -58,10 +62,24 @@ async function openTab(label) {
   await act(async () => tab.click());
   await settle();
 }
+async function rerenderAccount() {
+  await act(async () => root.render(<Account />));
+  await settle();
+}
+async function clickDelete() {
+  await act(async () => [...container.querySelectorAll('button')]
+    .find(button => button.textContent === 'Delete').click());
+}
+async function confirmDelete() {
+  await act(async () => [...container.querySelectorAll('[role="dialog"] button')]
+    .find(button => button.textContent === 'Confirm delete').click());
+}
 
 beforeEach(async () => {
   jest.clearAllMocks();
   mockToken = 'bound-persona-token';
+  mockAuthToken = mockToken;
+  mockUser = { id: 7, username: 'student_customer', role: 'customer' };
   boundAddressMode = false;
   global.IS_REACT_ACT_ENVIRONMENT = true;
   container = document.createElement('div');
@@ -107,7 +125,70 @@ test('bound customer Account chooses an owned opaque address for edit without nu
   expect(container.textContent).not.toContain('Address ID');
 });
 
-test('bound customer Account retains the original Delete action using the protected current address row', async () => {
+test.each([false, true])('address Delete Cancel sends no request in bound=%s branch', async bound => {
+  boundAddressMode = bound;
+  const fields = { label: 'Home', line1: '1 Main St', line2: null, city: null, state: null,
+    zip: null, phone: null, isDefault: false };
+  global.fetch = jest.fn(async url => url.endsWith('/customer/commerce/addresses')
+    ? response({ scopeKey: 'c'.repeat(64), cards: [{ version: 1, kind: 'address',
+      choiceId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', title: 'Home', detail: '1 Main St' }],
+      addresses: [{ addressId: 11, choiceId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', fields }] })
+    : response({ addresses: [{ id: 11, label: 'Home', line1: '1 Main St' }] }));
+  await openTab('Addresses');
+  await clickDelete();
+  expect(container.querySelector('[role="dialog"]')?.textContent).toContain('Home (address 11), 1 Main St');
+  expect(global.fetch.mock.calls.filter(([, options]) => options?.method === 'DELETE')).toHaveLength(0);
+  await act(async () => [...container.querySelectorAll('[role="dialog"] button')]
+    .find(button => button.textContent === 'Cancel').click());
+  expect(container.querySelector('[role="dialog"]')).toBeNull();
+  expect(global.fetch.mock.calls.filter(([, options]) => options?.method === 'DELETE')).toHaveLength(0);
+});
+
+test('two immediate Confirm clicks still send one selected-address DELETE', async () => {
+  const pending = deferred();
+  global.fetch = jest.fn().mockResolvedValueOnce(response({ addresses: [{ id: 11, label: 'Home', line1: '1 Main St' }] }))
+    .mockReturnValueOnce(pending.promise);
+  await openTab('Addresses');
+  await clickDelete();
+  const confirm = [...container.querySelectorAll('[role="dialog"] button')]
+    .find(button => button.textContent === 'Confirm delete');
+  await act(async () => { confirm.click(); confirm.click(); });
+  expect(global.fetch.mock.calls.filter(([, options]) => options?.method === 'DELETE')).toHaveLength(1);
+  await act(async () => pending.resolve(response({ ok: true })));
+});
+
+test('staging is invalidated by refresh and a new current-list choice can be staged', async () => {
+  global.fetch = jest.fn().mockResolvedValue(response({ addresses: [{ id: 11, label: 'Home', line1: '1 Main St' }] }));
+  await openTab('Addresses');
+  await clickDelete();
+  expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+  await act(async () => [...container.querySelectorAll('button')]
+    .find(button => button.textContent === 'Refresh addresses').click());
+  await settle();
+  expect(container.querySelector('[role="dialog"]')).toBeNull();
+  await clickDelete();
+  expect(container.querySelector('[role="dialog"]')).not.toBeNull();
+  expect(global.fetch.mock.calls.filter(([, options]) => options?.method === 'DELETE')).toHaveLength(0);
+});
+
+test('A to B to A authority transition hides stale rows and invalidates the old staged target', async () => {
+  global.fetch = jest.fn(async (url, options = {}) => response({ addresses: [{ id: options.headers?.Authorization === 'Bearer token-B' ? 22 : 11,
+    label: options.headers?.Authorization === 'Bearer token-B' ? 'B address' : 'A address', line1: '1 Main St' }] }));
+  await openTab('Addresses');
+  await clickDelete();
+  mockToken = 'token-B'; mockAuthToken = 'token-B';
+  await rerenderAccount();
+  expect(container.querySelector('[role="dialog"]')).toBeNull();
+  expect(container.textContent).toContain('B address');
+  mockToken = 'bound-persona-token'; mockAuthToken = 'bound-persona-token';
+  await rerenderAccount();
+  expect(container.textContent).toContain('A address');
+  await clickDelete();
+  expect(container.querySelector('[role="dialog"]')?.textContent).toContain('A address (address 11)');
+  expect(global.fetch.mock.calls.filter(([, options]) => options?.method === 'DELETE')).toHaveLength(0);
+});
+
+test('bound customer Account confirms the protected current address row before one Delete', async () => {
   boundAddressMode = true;
   const choiceId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', scopeKey = 'c'.repeat(64);
   const fields = { label: 'Home', line1: '1 Main St', line2: 'Suite 2', city: 'Town', state: 'CA',
@@ -129,13 +210,18 @@ test('bound customer Account retains the original Delete action using the protec
   expect(container.textContent).toContain('Default');
   await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Delete').click());
   await settle();
+  expect(container.querySelector('[role="dialog"]')?.textContent).toContain('Home (address 11), 1 Main St');
+  expect(global.fetch.mock.calls.filter(([, options]) => options?.method === 'DELETE')).toHaveLength(0);
+  await act(async () => [...container.querySelectorAll('[role="dialog"] button')]
+    .find(button => button.textContent === 'Confirm delete').click());
+  await settle();
   expect(global.fetch).toHaveBeenCalledWith('/api/secureshop/v2/auth/users/me/addresses/11',
     expect.objectContaining({ method: 'DELETE' }));
   expect(toast.success).toHaveBeenCalledWith('Address deleted');
   expect(container.textContent).toContain('No addresses yet');
 });
 
-test('a failed delete cannot report success or reload the inventory', async () => {
+test('an uncertain delete blocks another mutation until explicit successful list readback', async () => {
   global.fetch = jest.fn()
     .mockResolvedValueOnce(response({ addresses: [{ id: 11, label: 'Home', line1: '1 Main St' }] }))
     .mockResolvedValueOnce(response({ ok: true, error: 'write unavailable' }, 503));
@@ -143,10 +229,33 @@ test('a failed delete cannot report success or reload the inventory', async () =
   const remove = [...container.querySelectorAll('button')]
     .find(element => element.textContent.includes('Delete'));
   await act(async () => remove.click());
+  await act(async () => [...container.querySelectorAll('[role="dialog"] button')]
+    .find(button => button.textContent === 'Confirm delete').click());
   await settle();
-  expect(toast.error).toHaveBeenCalledWith('Delete failed: write unavailable');
+  expect(toast.error.mock.calls[0][0]).toContain('Address delete outcome unresolved');
   expect(toast.success).not.toHaveBeenCalled();
   expect(global.fetch).toHaveBeenCalledTimes(2);
+  expect([...container.querySelectorAll('button')].find(button => button.textContent === 'Delete').disabled).toBe(true);
+  global.fetch.mockResolvedValueOnce(response({ addresses: [{ id: 11, label: 'Home', line1: '1 Main St' }] }));
+  await act(async () => [...container.querySelectorAll('button')]
+    .find(button => button.textContent === 'Refresh addresses').click());
+  await settle();
+  expect([...container.querySelectorAll('button')].find(button => button.textContent === 'Delete').disabled).toBe(false);
+});
+
+test('malformed 200 list readback does not resolve an uncertain delete', async () => {
+  global.fetch = jest.fn().mockResolvedValueOnce(response({ addresses: [{ id: 11, label: 'Home', line1: '1 Main St' }] }))
+    .mockResolvedValueOnce(response({ error: 'write unavailable' }, 503))
+    .mockResolvedValueOnce(response({ addresses: 'not an array' }));
+  await openTab('Addresses');
+  await clickDelete();
+  await confirmDelete();
+  await act(async () => [...container.querySelectorAll('button')]
+    .find(button => button.textContent === 'Refresh addresses').click());
+  await settle();
+  expect(container.textContent).toContain('Address delete outcome is unresolved');
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain('Address delete outcome is unresolved');
+  expect(global.fetch.mock.calls.filter(([, options]) => options?.method === 'DELETE')).toHaveLength(1);
 });
 
 test('a failed save keeps the editor open and cannot report success', async () => {
@@ -182,6 +291,8 @@ test('a delayed delete cannot toast or reload after the address tab unmounts', a
   const remove = [...container.querySelectorAll('button')]
     .find(element => element.textContent.includes('Delete'));
   await act(async () => remove.click());
+  await act(async () => [...container.querySelectorAll('[role="dialog"] button')]
+    .find(button => button.textContent === 'Confirm delete').click());
   await openTab('Profile');
   await act(async () => pending.resolve(response({ ok: true })));
   await settle();

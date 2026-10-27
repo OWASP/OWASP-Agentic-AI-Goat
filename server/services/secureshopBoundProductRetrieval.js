@@ -2,6 +2,7 @@
 
 const { randomUUID, createHash } = require('node:crypto');
 const { createLaunchScope } = require('./secureshopConversationBinding');
+const { copySceneBinding, executionScope } = require('./secureshopSceneBinding');
 
 const MAX_PRODUCTS = 256;
 const PAGE_SIZE = 100;
@@ -274,7 +275,9 @@ function createSecureShopBoundProductRetrieval({ catalog, repository, embedder, 
       await check(scope, signal);
       if (runtimeFingerprint() !== fingerprint) throw failure('EMBEDDING_RUNTIME_CHANGED', 'Query embedding runtime changed');
       try {
-        const method = withLineage && typeof revisionRepository.searchWithLineage === 'function' ? 'searchWithLineage' : 'search';
+        const method = withLineage && typeof revisionRepository.searchWithProtectedLineage === 'function'
+          ? 'searchWithProtectedLineage'
+          : withLineage && typeof revisionRepository.searchWithLineage === 'function' ? 'searchWithLineage' : 'search';
         const result = await boundary(scope, signal, () => revisionRepository[method](binding, {
           embedding: query.embedding, limit: RESULT_LIMIT,
         }));
@@ -286,13 +289,17 @@ function createSecureShopBoundProductRetrieval({ catalog, repository, embedder, 
       }
     }
   }
-  async function readCatalog(scope, persona, signal, personaEffect) {
+  async function readCatalog(scope, persona, signal, personaEffect, retainedBinding, beforeEffect) {
     const rows = [];
     let expectedTotal = null;
     for (let page = 1; rows.length < MAX_PRODUCTS; page += 1) {
       const offset = (page - 1) * PAGE_SIZE;
-      const value = await boundary(scope, signal, () => catalog.listProducts({ scope, persona,
-        personaEffect, query: { category: null, search: null, sort: '', page, limit: PAGE_SIZE, offset } }));
+      await beforeEffect?.();
+      const value = await boundary(scope, signal, () => retainedBinding
+        ? catalog.listRetainedManualProducts({scope,persona,personaEffect,binding:retainedBinding,limit:PAGE_SIZE,offset})
+        : catalog.listProducts({ scope, persona,
+          personaEffect, query: { category: null, search: null, sort: '', page, limit: PAGE_SIZE, offset } }));
+      await beforeEffect?.();
       if (!value || !Array.isArray(value.products) || !Number.isSafeInteger(value.total)
           || value.total < 1 || value.total > MAX_PRODUCTS || value.products.length > PAGE_SIZE) {
         throw unavailable('Catalog source exceeds the retrieval bound');
@@ -344,8 +351,10 @@ function createSecureShopBoundProductRetrieval({ catalog, repository, embedder, 
           embeddingDimension: identity.embeddingDimension,
           documents,
         };
-        await beforeEffect?.();
-        meta=await boundary(scope,signal,()=>personaEffect?personaEffect.provision(repository,binding,provisionInput):repository.provision(binding,provisionInput));
+        meta=await boundary(scope,signal,async()=>{
+          await beforeEffect?.();
+          return personaEffect?personaEffect.provision(repository,binding,provisionInput):repository.provision(binding,provisionInput);
+        });
         if (!sameBinding(meta, binding)) {
           throw failure('BOUND_RETRIEVAL_MISMATCH', 'Retrieval target binding mismatch');
         }
@@ -361,11 +370,26 @@ function createSecureShopBoundProductRetrieval({ catalog, repository, embedder, 
           || !['merchant', 'customer'].includes(value.role)
           || Object.keys(value).length !== 2) throw failure('INVALID_ARGUMENT', 'Invalid retrieval persona');
       const persona = Object.freeze({ id: value.id, role: value.role });
-      const binding = await boundary(scope, input.signal, () => catalog.prepareTarget({ scope, persona, personaEffect }));
+      const guarded = input.retainedBinding !== undefined || input.beforeEffect !== undefined;
+      if (guarded && (!personaEffect || persona.role !== 'merchant'
+          || typeof input.beforeEffect !== 'function' || !input.retainedBinding
+          || typeof catalog.listRetainedManualProducts !== 'function'
+          || !UUID.test(input.retainedBinding.targetId || '')
+          || Object.keys(scope).some(key => executionScope(input.retainedBinding)[key] !== scope[key]))) {
+        throw failure('INVALID_ARGUMENT', 'Invalid retained manual retrieval authority');
+      }
+      const beforeEffect = guarded ? input.beforeEffect : undefined;
+      await beforeEffect?.();
+      // Scoped manual uploads already own a retained shop. Never dynamically
+      // prepare/adopt a different scene while assembling their base corpus.
+      const binding = guarded ? copySceneBinding(input.retainedBinding,
+        {...createLaunchScope(input.retainedBinding),targetId:input.retainedBinding.targetId})
+        : await boundary(scope, input.signal, () => catalog.prepareTarget({ scope, persona, personaEffect }));
       await personaEffect?.check(scope);
-      const products = await readCatalog(scope, persona, input.signal, personaEffect);
-      const result = await ensureCorpus(scope, input.signal, binding, products, personaEffect);
+      const products = await readCatalog(scope, persona, input.signal, personaEffect, guarded ? binding : undefined, beforeEffect);
+      const result = await ensureCorpus(scope, input.signal, binding, products, personaEffect, beforeEffect);
       await personaEffect?.check(scope);
+      await beforeEffect?.();
       return result;
     },
     async searchManuals(input = {}) {
@@ -470,6 +494,13 @@ function createSecureShopBoundProductRetrieval({ catalog, repository, embedder, 
       if (input.captureManualRagSource) input.captureManualRagSource({
         target: JSON.parse(JSON.stringify(binding)),
         lineage: privateSearch ? searched.lineage : { eligible: false, reason: 'missing_original' },
+        ...(privateSearch && searched.protectedLineage?.eligible === true ? {
+          protectedLineage: searched.protectedLineage,
+          query: {version:1,kind:'product_name_description',productId:seed.id,name:seed.name,
+            description:seed.description || '',text:sourceText(seed),
+            sha256:createHash('sha256').update(sourceText(seed),'utf8').digest('hex'),
+            runtimeFingerprint:query.runtimeFingerprint},
+        } : {}),
       });
       const results = applyRetrievalBias(keywordFallback(seed, products), retrieved, products, seed.id)
         .map(productRow);

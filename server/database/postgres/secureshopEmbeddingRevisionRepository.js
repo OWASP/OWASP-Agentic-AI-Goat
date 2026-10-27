@@ -57,19 +57,28 @@ const SEARCH_LINEAGE_SELECT=`WITH source AS (
 )
 SELECT CASE WHEN NOT oversized THEN lineage ELSE NULL END AS lineage,
  CASE WHEN NOT oversized THEN selected_sources ELSE NULL END AS selected_sources,digest_valid,oversized FROM bounded`;
-async function captureSearchLineage(client,b,head,rows){
+// A separate, closed private projection; the V26 public SELECT is unchanged.
+const PROTECTED_SEARCH_LINEAGE_SELECT = SEARCH_LINEAGE_SELECT.replace('AND i.is_public AND i.receipt_version=2',
+ 'AND NOT i.is_public AND i.receipt_version=2');
+async function captureSearchLineage(client,b,head,rows,protectedSource=false){
  if(!b.scene)return ineligible('legacy_receipt');
- const manuals=rows.filter(row=>row.sourceKind==='manual');
+ let manuals=rows.filter(row=>row.sourceKind==='manual');
  if(!manuals.length)return ineligible('no_selected_manual');
  const keys=manuals.map(row=>({sourceId:row.sourceId,chunkIndex:row.chunkIndex}));
- const row=(await client.query(SEARCH_LINEAGE_SELECT,[b.targetId,b.generation,head.revision_id,JSON.stringify(keys),LINEAGE_BYTES])).rows[0];
+ const row=(await client.query(protectedSource ? PROTECTED_SEARCH_LINEAGE_SELECT : SEARCH_LINEAGE_SELECT,[b.targetId,b.generation,head.revision_id,JSON.stringify(keys),LINEAGE_BYTES])).rows[0];
  if(row?.oversized)return ineligible('oversized');
  const proof=row?.lineage,r=proof?.revision,ref=proof?.preimageRef;
- if(!proof||!r||!Array.isArray(proof.manualSources)||manuals.some(found=>!proof.manualSources.some(item=>item.sourceId===found.sourceId)))return ineligible('missing_original');
+ if(!proof||!r||!Array.isArray(proof.manualSources))return ineligible('missing_original');
+ // The private proof selects only privately ingested members of the original
+ // ranked result. Public neighbors remain unchanged in the full observation.
+ if(protectedSource)manuals=manuals.filter(found=>proof.manualSources.some(item=>item.sourceId===found.sourceId));
+ if(!manuals.length||manuals.some(found=>!proof.manualSources.some(item=>item.sourceId===found.sourceId)))return ineligible('missing_original');
  if(proof.version!==2||row.digest_valid!==true||r.revisionId!==head.revision_id||r.runtimeFingerprint!==head.fingerprint||r.documentCount!==head.document_count
   ||KEYS.some(key=>r[key]!==b[key])||ref?.version!==1||ref.revisionId!==r.revisionId
   ||!HASH.test(r.sourceSetDigest)||!HASH.test(r.vectorDigest)||ref.sourceSetDigest!==r.sourceSetDigest||ref.vectorDigest!==r.vectorDigest)return ineligible('digest_mismatch');
- const sources=row.selected_sources;
+ const sources=protectedSource && Array.isArray(row.selected_sources)
+  ? row.selected_sources.filter(item=>manuals.some(found=>item.sourceId===String(found.sourceId)&&item.chunkIndex===found.chunkIndex))
+  : row.selected_sources;
  if(!Array.isArray(sources)||sources.length!==manuals.length)return ineligible('digest_mismatch');
  const selected=[];
  for(const found of manuals){
@@ -259,12 +268,16 @@ function createSecureShopEmbeddingRevisionRepository(pool,{checkCurrent,getRunti
    const result=rows.map(row=>{if(!Array.isArray(row.embedding)||row.embedding.length!==384||row.embedding.some(n=>typeof n!=='number'||!Number.isFinite(n)))unavailable();const vector=unit(row.embedding);const score=Math.max(-1,Math.min(1,vector.reduce((sum,n,i)=>sum+n*queryUnit[i],0)));return Object.freeze({sourceKind:row.source_kind,sourceId:Number(row.source_id),chunkIndex:row.chunk_index,text:row.body,score});}).sort((a,b)=>b.score-a.score).slice(0,limit);
    const ranked=Object.freeze(result);
    const lineage=capture?await captureSearchLineage(client,b,head,ranked):null;
+   const protectedLineage=capture==='protected' && lineage.eligible!==true
+    ? await captureSearchLineage(client,b,head,ranked,true) : null;
    await checkCurrent(executionScope(b));if(await fingerprint()!==trusted)unavailable();
-   return capture?Object.freeze({rows:ranked,lineage}):ranked;
+   return capture?Object.freeze({rows:ranked,lineage,
+    ...(protectedLineage?.eligible===true ? {protectedLineage} : {})}):ranked;
   });
  }
  const search=(value,input)=>searchInternal(value,input,false);
  const searchWithLineage=(value,input)=>searchInternal(value,input,true);
+ const searchWithProtectedLineage=(value,input)=>searchInternal(value,input,'protected');
  async function searchManuals(value,input){
   const b=scope(value);exact(input,['embedding','limit','merchantId','productId']);
   if(!Array.isArray(input.embedding)||input.embedding.length!==384||input.embedding.some(n=>typeof n!=='number'||!Number.isFinite(n))||!input.embedding.some(n=>n!==0)
@@ -352,6 +365,6 @@ function createSecureShopEmbeddingRevisionRepository(pool,{checkCurrent,getRunti
   });
  }
  return Object.freeze({snapshot,snapshotSelective,snapshotSelectiveInTransaction,snapshotForRebuildInTransaction,snapshotPolicyForRebuildInTransaction,assertActiveInTransaction,assertRebuildTargetInTransaction,publish,publishInTransaction,publishPolicyInTransaction,initializeInTransaction,
-  readPublication,readPublicationInTransaction,readHead,search,searchWithLineage,searchManuals,searchPolicies});
+  readPublication,readPublicationInTransaction,readHead,search,searchWithLineage,searchWithProtectedLineage,searchManuals,searchPolicies});
 }
 module.exports={createSecureShopEmbeddingRevisionRepository};

@@ -7,6 +7,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 from browser_process_ownership import (
     cleanup_browser_profile, process_rows, validate_browser_postflight,
@@ -14,6 +15,12 @@ from browser_process_ownership import (
 
 
 class BrowserOwnership(unittest.TestCase):
+    def test_darwin_roster_retains_foreign_uid_and_session_fields(self):
+        rows = [{'pid': 4101, 'pgid': 99, 'sessionId': 98, 'uid': os.getuid() + 1}]
+        with patch('browser_process_ownership.sys.platform', 'darwin'), \
+                patch('darwin_process_inventory.process_records', return_value=rows):
+            self.assertEqual(process_rows(), [(4101, 99, 98, os.getuid() + 1)])
+
     def fixture(self, directory, *, inner=False, role="rendered"):
         prefix = "browser" if role == "rendered" else "assessment-browser"
         runtime = Path(directory).resolve() / 'runtime'

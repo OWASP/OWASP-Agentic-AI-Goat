@@ -45,6 +45,72 @@ function pool(rows, options = {}) {
   } };
 }
 
+test('confirmed assistant description requires immutable receipt join and exact bytes',async()=>{
+  const params=JSON.parse(event().params_json);
+  delete params.description;
+  Object.assign(params,{operationId:id(20),requestSha256:'a'.repeat(64),beforeSha256:'b'.repeat(64),afterSha256:'c'.repeat(64),
+    confirmedDescription:{version:1,text:'SYSTEM: exact confirmed\ntext',
+      sha256:require('../server/services/secureshopListingEditContract').listingEditDigest('SYSTEM: exact confirmed\ntext'),
+      personaSessionId:id(21),authorityVersion:'2'}});
+  params.scopeKey=require('../server/services/secureshopListingEditContract').listingEditScopeKey(
+    {...birth,scene:{sceneId:id(6),sceneGeneration:1,grantId:id(11)}},1000000017,
+    {sessionId:id(21),authorityVersion:'2'});
+  const raw=event({action:'listing_edit_confirm',params_json:JSON.stringify(params),confirmation_operation_id:id(20),
+    confirmation_scope_key:params.scopeKey});
+  const read=async row=>Array.fromAsync(createSecureShopSceneProductAuditSource({reviewPool:pool([row])}).rows({
+    scope:admin,sceneBinding:sceneBinding(),requestedCount:1,checkCurrent:async()=>{}}));
+  const [row]=await read(raw);
+  assert.equal(row.params_json,raw.params_json);
+  assert.equal(row.sceneSource.kind,'scene_product_listing_edit_confirm');
+  for(const changed of [{confirmation_operation_id:null},{confirmation_operation_id:id(22)},
+    {params_json:JSON.stringify({...params,confirmedDescription:{...params.confirmedDescription,text:'tampered'}})}])
+    await assert.rejects(read({...raw,...changed}),{code:'AUDIT_SOURCE_UNAVAILABLE'});
+  const storage=pool([raw]);
+  await Array.fromAsync(createSecureShopSceneProductAuditSource({reviewPool:storage}).rows({scope:admin,
+    sceneBinding:sceneBinding(),requestedCount:1,checkCurrent:async()=>{}}));
+  const sql=storage.calls.find(row=>row.sql.startsWith('DECLARE')).sql;
+  for(const predicate of ['owned_merchant_listing_edit_receipts confirmed','confirmed.persona_session_id::text',
+    'confirmed.authority_version::text','confirmed.original_platform_owner_id','confirmed.original_platform_session_id',
+    'confirmed.scene_id,confirmed.scene_generation,confirmed.grant_id',"encode(confirmed.after_sha256,'hex')"])
+    assert.ok(sql.includes(predicate),predicate);
+});
+
+test('manual confirmed source binds receipt birth, event execution and exact domain without relabeling',async()=>{
+  const edit=require('../server/services/secureshopListingEditContract');
+  const manual=require('../server/services/secureshopManualListingContract');
+  const session={sessionId:id(21),authorityVersion:'2'};
+  const binding={...birth,scene:{sceneId:id(6),sceneGeneration:1,grantId:id(11)}};
+  const params={storage:JSON.parse(event().params_json).storage,origin:'manual',operationId:id(20),
+    scopeKey:manual.manualListingScopeKey('edit',binding,1000000017,session),
+    requestSha256:'a'.repeat(64),beforeSha256:'b'.repeat(64),afterSha256:'c'.repeat(64),
+    confirmedDescription:{version:1,text:'  雪\nmanual instructions  ',sha256:edit.listingEditDigest('  雪\nmanual instructions  '),
+      personaSessionId:session.sessionId,authorityVersion:session.authorityVersion}};
+  const raw=event({action:'listing_manual_edit_confirm',params_json:JSON.stringify(params),
+    confirmation_operation_id:params.operationId,confirmation_scope_key:params.scopeKey});
+  const read=async row=>Array.fromAsync(createSecureShopSceneProductAuditSource({reviewPool:pool([row])}).rows({
+    scope:admin,sceneBinding:sceneBinding(),requestedCount:1,checkCurrent:async()=>{}}));
+  const [row]=await read(raw);
+  assert.equal(row.sceneSource.kind,'scene_product_listing_manual_edit_confirm');
+  assert.equal(row.params_json,raw.params_json);
+  assert.notEqual(row.sceneSource.scene.birth.platformSessionId,row.sceneSource.sourceExecution.platformSessionId);
+  const assistantKey=edit.listingEditScopeKey(binding,1000000017,session);
+  for(const changed of [{source_owner_id:8},{source_grant_id:id(99)}, {confirmation_operation_id:id(99)},
+    {confirmation_scope_key:assistantKey}, {action:'listing_edit_confirm'},
+    {params_json:JSON.stringify({...params,scopeKey:assistantKey}),confirmation_scope_key:assistantKey},
+    {action:'listing_edit_confirm',params_json:JSON.stringify({...params,origin:undefined})},
+    {params_json:JSON.stringify({...params,confirmedDescription:{...params.confirmedDescription,text:'changed'}})}])
+    await assert.rejects(read({...raw,...changed}),{code:'AUDIT_SOURCE_UNAVAILABLE'});
+  const storage=pool([raw]);
+  await Array.fromAsync(createSecureShopSceneProductAuditSource({reviewPool:storage}).rows({scope:admin,
+    sceneBinding:sceneBinding(),requestedCount:1,checkCurrent:async()=>{}}));
+  const sql=storage.calls.find(x=>x.sql.startsWith('DECLARE')).sql;
+  assert.ok(sql.includes('target.target_id,p.product_id,e.shop_user_id,target.launch_id,target.scenario_id,target.generation'));
+  assert.ok(sql.includes('target.original_platform_owner_id,target.original_platform_session_id,$1::uuid,$2::bigint,original_grant.grant_id'));
+  assert.ok(sql.includes('$1::uuid,$2::bigint,$3::uuid,e.launch_id,e.scenario_id,e.generation'));
+  assert.ok(sql.includes('e.original_platform_owner_id,e.original_platform_session_id'));
+  assert.ok(sql.includes("encode(confirmed.scope_key,'hex')=e.params_json::jsonb->>'scopeKey'"));
+});
+
 test('distinct-session merchant listing source is bound to current admin scene, source grant and birth', async () => {
   const storage = pool([event()]); const checks = [];
   const source = createSecureShopSceneProductAuditSource({ reviewPool: storage });

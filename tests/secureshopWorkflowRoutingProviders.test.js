@@ -10,6 +10,10 @@ const { MockProvider } = require('../server/services/secureshop/providers/mockPr
 const input = { system: 'Choose management or registered_tools; clarify ambiguity.',
   messages: [{ role: 'user', content: '{"message":"Use the registered catalog"}' }],
   role: 'admin', max_tokens: 256, ownerId: 17 };
+const ollamaRouteGenerationSchema = structuredClone(WORKFLOW_ROUTE_SCHEMA);
+delete ollamaRouteGenerationSchema.oneOf[1].properties.message.maxLength;
+assert.equal(WORKFLOW_ROUTE_SCHEMA.oneOf[1].properties.message.maxLength, 2048);
+assert.equal(ollamaRouteGenerationSchema.oneOf[1].properties.message.minLength, 1);
 
 test('Ollama routing uses the real adapter HTTP path with the exact schema and no tool catalog', async t => {
   const requests = [];
@@ -28,7 +32,7 @@ test('Ollama routing uses the real adapter HTTP path with the exact schema and n
     baseUrl: `http://127.0.0.1:${server.address().port}` });
   const result = await provider.routeWorkflow(input);
   assert.equal(requests.length, 1); assert.equal(requests[0].path, '/api/chat');
-  assert.deepEqual(requests[0].body.format, WORKFLOW_ROUTE_SCHEMA);
+  assert.deepEqual(requests[0].body.format, ollamaRouteGenerationSchema);
   assert.equal(requests[0].body.tools?.length || 0, 0);
   assert.equal(requests[0].body.options.num_predict, 256);
   assert.equal(requests[0].body.messages[1].content, input.messages[0].content);
@@ -40,9 +44,13 @@ test('route parser accepts only closed routes or bounded clarification; no alias
   for (const route of ['management', 'registered_tools']) assert.deepEqual(parseWorkflowRoute({ route }), { route });
   assert.deepEqual(parseWorkflowRoute({ route: 'clarification', message: 'Which workflow?' }),
     { route: 'clarification', message: 'Which workflow?' });
+  assert.deepEqual(parseWorkflowRoute({ route: 'clarification', message: 'é'.repeat(1024) }),
+    { route: 'clarification', message: 'é'.repeat(1024) });
   for (const bad of [null, [], { route: 'admin_management' }, { route: 'management', message: 'extra' },
     { route: 'clarification' }, { route: 'clarification', message: ' ' },
-    { route: 'clarification', message: '\u0000' }, { route: 'clarification', message: '😀'.repeat(513) },
+    { route: 'clarification', message: '\u0000' }, { route: 'clarification', message: 'é'.repeat(1025) },
+    { route: 'clarification', message: '😀'.repeat(513) },
+    { route: 'clarification', message: 'okay', extra: true },
     { route: 'registered_tools', tool_calls: [] }, { reply: 'registered_tools' }]) {
     assert.equal(parseWorkflowRoute(bad), null);
   }
@@ -54,7 +62,7 @@ for (const decision of [{ route: 'management' }, { route: 'registered_tools' },
     const provider = new OllamaProvider({ model: 'controlled-model' }); let calls = 0;
     provider.transport = { async chat(messages, tools, options) {
       calls++; assert.equal(messages[1].content, input.messages[0].content);
-      assert.deepEqual(tools, []); assert.deepEqual(options.format, WORKFLOW_ROUTE_SCHEMA);
+      assert.deepEqual(tools, []); assert.deepEqual(options.format, ollamaRouteGenerationSchema);
       assert.equal(options.num_predict, 256); assert.equal(options.temperature, 0);
       return { response: JSON.stringify(decision), metadata: { prompt_eval_count: 9, eval_count: 4 } };
     } };
@@ -73,6 +81,22 @@ test('invalid Ollama route is not repaired or converted, and retains consumed us
   await assert.rejects(provider.routeWorkflow(input), error => error.code === 'SECURESHOP_INVALID_DECISION'
     && error.usage.outputTokens === 3 && error.usage.attempts === 1);
   assert.equal(calls, 1);
+});
+
+test('Ollama route prose and oversized clarification fail without a retry', async () => {
+  for (const response of ['Use registered_tools for this request.',
+    JSON.stringify({ route: 'clarification', message: 'é'.repeat(1025) })]) {
+    const provider = new OllamaProvider(); let calls = 0;
+    provider.transport = { async chat(_messages, tools, options) {
+      calls++; assert.deepEqual(tools, []);
+      assert.deepEqual(options.format, ollamaRouteGenerationSchema);
+      assert.equal(options.num_predict, 256);
+      return { response, metadata: { prompt_eval_count: 8, eval_count: 3 } };
+    } };
+    await assert.rejects(provider.routeWorkflow(input), error => error.code === 'SECURESHOP_INVALID_DECISION'
+      && error.usage.outputTokens === 3 && error.usage.attempts === 1);
+    assert.equal(calls, 1);
+  }
 });
 
 test('late Ollama route cancellation never publishes a decision and retains usage', async () => {

@@ -36,7 +36,7 @@ export default function AdminUserConfirmation({ proposal = null, sessionId = nul
   }, [authorityKey, transport, sessionId, requestId, proposal?.requestSha256]);
   const current = epoch => epochRef.current === epoch && globalThis.fetch === transport;
   const recover = async () => {
-    if (lockRef.current || !pending) return;
+    if (lockRef.current || locked || !pending) return;
     const epoch = epochRef.current;
     lockRef.current = true; setBusy(true); setError(null); setAuthLossEpoch(null);
     try {
@@ -121,7 +121,7 @@ export default function AdminUserConfirmation({ proposal = null, sessionId = nul
         onClick={() => void confirm()}>{proposal.action === 'ban' ? 'Confirm user ban' : 'Confirm role change'}</button>
     </>}
     {pending && <><p>This user change may have completed. Check its saved result before another change.</p>
-      <button className="ss-btn ss-btn--ghost" type="button" disabled={busy}
+      <button className="ss-btn ss-btn--ghost" type="button" disabled={locked || busy}
         onClick={() => void recover()}>Check saved user change</button></>}
     {pending && authLossEpoch !== null && isStandaloneShopFrame() && pending.targetId === shopUserId
       && (pending.action === 'ban' || pending.role !== 'admin') &&

@@ -19,11 +19,25 @@ function fixedProductDto(product){
  const name=fixedText(product.name,256);if(!name)throw invalid();
  return {product_id:product.id,name,price:Number(product.price),stock_quantity:product.stock_quantity,category:fixedText(product.category,128),description:fixedText(product.description??product.description_html,4096),description_html:null,image_url:null,data_policy:'untrusted_catalog_text'};
 }
+// Fixed Summarize deliberately has a smaller capability than product questions:
+// merchant-controlled text never reaches the graph, including names/categories.
+function fixedSummaryFacts(product) {
+  const price = product?.price;
+  if (!Number.isSafeInteger(product?.id) || product.id < 1 || product.id > 2147483647
+      || !['number', 'string'].includes(typeof price) || (typeof price === 'string' && !/^\d+(?:\.\d+)?$/.test(price))
+      || !Number.isFinite(Number(price)) || Number(price) < 0
+      || !Number.isSafeInteger(product.stock_quantity) || product.stock_quantity < 0) throw invalid();
+  return { product_id: product.id, name: `Product ${product.id}`, price: Number(price),
+    stock_quantity: product.stock_quantity, category: null, description: null,
+    description_html: null, image_url: null, data_policy: 'fixed_summary_numeric_facts_v1',
+    summary_scope: 'catalog_price_and_stock_only' };
+}
 
 function createSecureShopBoundProductTools({ catalog, retrieval, scope, persona,
-  productId, operation, signal, checkCurrent, personaEffect, mode='vuln', captureManualRagSource } = {}) {
+  productId, operation, signal, checkCurrent, personaEffect, mode='vuln', answerQuestion=false, captureManualRagSource } = {}) {
   scope = createLaunchScope(scope);
   if(!['vuln','fixed'].includes(mode)||captureManualRagSource!==undefined&&typeof captureManualRagSource!=='function')throw invalid();
+  if(typeof answerQuestion!=='boolean'||answerQuestion&&operation!=='summary')throw invalid();
   if (persona?.role !== 'customer' || !Number.isSafeInteger(persona.id) || persona.id < 1
       || !Number.isSafeInteger(productId) || productId < 1 || productId > 2147483647
       || !['summary', 'similar'].includes(operation) || typeof checkCurrent !== 'function'
@@ -42,7 +56,7 @@ function createSecureShopBoundProductTools({ catalog, retrieval, scope, persona,
       if (!value?.product || value.product.id !== productId) throw invalid();
       // @intentional-vulnerability llm01-indirect-pi-product
       // Product text reaches the next model turn verbatim inside this launch.
-      output = mode==='fixed'?fixedProductDto(value.product):productDto(value.product);
+      output = mode==='fixed'?(answerQuestion?fixedProductDto(value.product):fixedSummaryFacts(value.product)):productDto(value.product);
     } else if(mode==='fixed') {
       const value=await catalog.getProduct({scope,persona,productId,personaEffect});await check();
       if(value?.product?.id!==productId)throw invalid();

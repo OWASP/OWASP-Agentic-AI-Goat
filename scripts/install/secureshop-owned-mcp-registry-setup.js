@@ -26,6 +26,7 @@ const {
   configuredBuildCa
 } = require('./listings-setup');
 const sha = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
+const DOCKER_INFO_FORMAT = '{{json .ID}}|{{json .Architecture}}';
 const fail = code => Object.assign(Error('Registry automatic image preparation unavailable'), {
   code
 });
@@ -33,6 +34,31 @@ const fail = code => Object.assign(Error('Registry automatic image preparation u
 // A pre-existing unlabeled root-reviewed image requires a separately reviewed
 // one-time receipt; never infer adoption from an image tag or imported report.
 const packageDigest = () => sha(JSON.stringify(authority));
+async function readBuildSource(file, digest, io = fs) {
+  if ((await io.realpath(file)) !== file) throw fail('REGISTRY_BUILD_SYMLINK');
+  const fd = await io.open(file, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  try {
+    const before = await fd.stat();
+    if (!before.isFile() || before.size <= 0 || before.size > 2 * 1024 * 1024 || before.nlink !== 1)
+      throw fail('REGISTRY_BUILD_SOURCE_INVALID');
+    const bytes = Buffer.alloc(before.size);
+    let offset = 0;
+    while (offset < bytes.length) {
+      const { bytesRead } = await fd.read(bytes, offset, bytes.length - offset, offset);
+      if (bytesRead <= 0) throw fail('REGISTRY_BUILD_SOURCE_CHANGED');
+      offset += bytesRead;
+    }
+    const after = await fd.stat(), named = await io.lstat(file);
+    for (const key of ['dev', 'ino', 'size', 'mtimeMs', 'ctimeMs', 'nlink']) {
+      if (before[key] !== after[key] || after[key] !== named[key]) throw fail('REGISTRY_BUILD_SOURCE_CHANGED');
+    }
+    if (!named.isFile() || named.isSymbolicLink() || sha(bytes) !== digest)
+      throw fail('REGISTRY_BUILD_SOURCE_CHANGED');
+    return bytes;
+  } finally {
+    await fd.close();
+  }
+}
 async function capture(root) {
   if (authority.version !== 1 || authority.platform !== 'linux/arm64' || Object.keys(authority.files).length !== 20) throw fail('REGISTRY_BUILD_AUTHORITY_INVALID');
   const result = [];
@@ -40,23 +66,13 @@ async function capture(root) {
   for (const [name, digest] of Object.entries(authority.files)) {
     if (path.isAbsolute(name) || name.split('/').some(x => !x || x === '..' || x === '.') || !/^[a-f0-9]{64}$/.test(digest)) throw fail('REGISTRY_BUILD_AUTHORITY_INVALID');
     const file = path.join(root, name);
-    if ((await fs.realpath(file)) !== file) throw fail('REGISTRY_BUILD_SYMLINK');
-    const fd = await fs.open(file, constants.O_RDONLY | constants.O_NOFOLLOW);
-    try {
-      const before = await fd.stat();
-      if (!before.isFile() || before.size > 2 * 1024 * 1024 || before.nlink !== 1) throw fail('REGISTRY_BUILD_SOURCE_INVALID');
-      const bytes = await fd.readFile();
-      const after = await fd.stat();
-      if (before.size !== after.size || before.mtimeMs !== after.mtimeMs || sha(bytes) !== digest) throw fail('REGISTRY_BUILD_SOURCE_CHANGED');
-      total += bytes.length;
-      if (total > 8 * 1024 * 1024) throw fail('REGISTRY_BUILD_CONTEXT_LIMIT');
-      result.push({
-        name,
-        bytes
-      });
-    } finally {
-      await fd.close();
-    }
+    const bytes = await readBuildSource(file, digest);
+    total += bytes.length;
+    if (total > 8 * 1024 * 1024) throw fail('REGISTRY_BUILD_CONTEXT_LIMIT');
+    result.push({
+      name,
+      bytes
+    });
   }
   return result;
 }
@@ -144,7 +160,9 @@ async function assertActivationReadiness({applicationEnvironment,configuration,c
     if(identity?.database!==new URL(env.IDENTITY_DATABASE_URL).pathname.slice(1))throw fail('REGISTRY_ACTIVATION_IDENTITY_MISMATCH');
     await assertPersona({pool:runtime.agents,expectedDatabase:new URL(env.SECURESHOP_AGENTS_DATABASE_URL).pathname.slice(1)});
     await assertRegistry({pool:runtime.agents,expectedDatabase:new URL(env.SECURESHOP_AGENTS_DATABASE_URL).pathname.slice(1)});
-    await createClient({baseURL:configuration.baseURL,token:configuration.token,expectedRuntimeDigest:configuration.runtimeDigest}).health();
+    const client=createClient({baseURL:configuration.baseURL,token:configuration.token,expectedRuntimeDigest:configuration.runtimeDigest});
+    await client.health();
+    await client.registrationHealth();
   } finally {
     const closed=await Promise.allSettled(owned.map(pool=>Promise.resolve().then(()=>pool.end())));
     if(closed.some(row=>row.status!=='fulfilled'))throw fail('REGISTRY_ACTIVATION_POOL_CLEANUP');
@@ -156,6 +174,44 @@ async function publishActivation({root,configFile,previous,applicationEnvironmen
   if(await readiness({applicationEnvironment,configuration})!==true)throw fail('REGISTRY_ACTIVATION_NOT_READY');
   await installer._internals.writePrivate(configFile,{...configuration,enabled:true},previous);
   return true;
+}
+// Inspect the daemon selected for this owned registry, not the host CPU or an
+// ambient Docker context. Setup calls this before provisioning application
+// databases; image preparation repeats it so a changed daemon fails closed.
+async function preflightOwnedMcpRegistryArchitecture({
+  root = path.resolve(__dirname, '../..'),
+  homeDirectory = os.homedir(),
+  platform = process.platform,
+  environment = process.env,
+  colimaProfile,
+  dockerAuthority,
+  run
+} = {}) {
+  root = path.resolve(root);
+  const location = localProfilePlan({root, home:homeDirectory, platform,
+    colimaProfile:colimaProfile || environment.DVAIA_MCP_OWNED_COLIMA_PROFILE});
+  _internals.assertDockerAuthority(environment, location);
+  if (dockerAuthority?.host && dockerAuthority.host !== location.dockerHost) {
+    throw fail('REGISTRY_BUILD_DOCKER_AUTHORITY_MISMATCH');
+  }
+  run ||= createCommandRunner({cwd:root, env:environment});
+  const result = await run('docker', ['--host', location.dockerHost, 'info', '--format', DOCKER_INFO_FORMAT], {
+    timeoutMs:30000, maxOutputBytes:1048576, allowExitCodes:[0]
+  });
+  if (result.exitCode !== 0) throw fail('REGISTRY_BUILD_COMMAND_FAILED');
+  let daemonId, architecture;
+  try {
+    const fields = result.stdout.trim().split('|');
+    if (fields.length !== 2) throw Error();
+    [daemonId, architecture] = fields.map(value => JSON.parse(value));
+  }
+  catch { throw fail('REGISTRY_BUILD_ARCHITECTURE_INVALID'); }
+  if (typeof daemonId !== 'string' || !daemonId || daemonId.length > 256 || /[\x00-\x1f\x7f]/.test(daemonId)
+    || typeof architecture !== 'string') throw fail('REGISTRY_BUILD_ARCHITECTURE_INVALID');
+  if (dockerAuthority?.daemonId && daemonId !== dockerAuthority.daemonId)
+    throw fail('REGISTRY_BUILD_DOCKER_AUTHORITY_MISMATCH');
+  if (!['arm64','aarch64'].includes(architecture)) throw fail('REGISTRY_BUILD_AMD64_UNQUALIFIED');
+  return Object.freeze({architecture, dockerHost:location.dockerHost, daemonId});
 }
 async function setupOwnedMcpRegistry({
   root = path.resolve(__dirname, '../..'),
@@ -197,8 +253,7 @@ async function setupOwnedMcpRegistry({
     if (result.exitCode !== 0) throw fail('REGISTRY_BUILD_COMMAND_FAILED');
     return result.stdout;
   };
-  const architecture = JSON.parse(await command(['info', '--format', '{{json .Architecture}}']));
-  if (!['arm64', 'aarch64'].includes(architecture)) throw fail('REGISTRY_BUILD_AMD64_UNQUALIFIED');
+  const selectedDaemon = await preflightOwnedMcpRegistryArchitecture({root,homeDirectory,platform,environment,colimaProfile,run});
   const files = await capture(root),
     digest = packageDigest();
   const directory = path.join(homeDirectory, '.dvaia', workspaceId(root));
@@ -245,6 +300,8 @@ async function setupOwnedMcpRegistry({
         secrets.push('--secret', 'id=npm_ca,src=' + file);
       }
       const tag = 'dvaia-owned-mcp-registry-' + workspaceId(root) + ':build-' + crypto.randomBytes(6).toString('hex');
+      await preflightOwnedMcpRegistryArchitecture({root,homeDirectory,platform,environment,colimaProfile,run,
+        dockerAuthority:{host:selectedDaemon.dockerHost,daemonId:selectedDaemon.daemonId}});
       await build({
         root,
         environment,
@@ -306,8 +363,10 @@ async function setupOwnedMcpRegistry({
 }
 module.exports = {
   setupOwnedMcpRegistry,
+  preflightOwnedMcpRegistryArchitecture,
   _internals: {
     capture,
+    readBuildSource,
     contextStream,
     packageDigest,
     buildImage,

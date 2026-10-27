@@ -27,7 +27,7 @@ def closed_package_context(workspace, package):
 class PricingOwnedListener:
  def __init__(self, *, workspace, evidence, docker, node, environment, ssh, qualification_nonce=None):
   self.cleanup_budget=None;self.workspace=Path(workspace);self.evidence=Path(evidence);self.docker=docker;self.node=str(node);self.env=dict(environment)
-  self.original_home=Path(environment['HOME']);self.home=self.evidence/'pricing-private-home';self.home.mkdir(mode=0o700);self.home_identity=(self.home.stat().st_dev,self.home.stat().st_ino)
+  self.home=self.evidence/'pricing-private-home';self.home.mkdir(mode=0o700);self.home_identity=(self.home.stat().st_dev,self.home.stat().st_ino)
   self.id=self.js("process.stdout.write(require('./scripts/application-data-root').workspaceId(process.cwd()))")
   self.qualification_mode=qualification_nonce is not None
   if qualification_nonce is not None and not re.fullmatch(r'[a-f0-9]{12}',qualification_nonce):raise ValueError('qualification nonce required')

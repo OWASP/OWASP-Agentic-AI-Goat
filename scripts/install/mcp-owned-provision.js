@@ -146,13 +146,17 @@ async function linuxInstall({ plan, renderedFile, renderedSha256, run }) {
     stage: 'profile-existing-state', timeoutMs: 10_000, maxOutputBytes: 4096, allowExitCodes: [0, 1],
   });
   if (exists?.exitCode === 0) {
+    const trust = await admin('stat', ['-c', '%u:%g:%a:%F', plan.destination], 'profile-trust');
+    if (outputOf(trust).trim() !== '0:0:600:regular file') throw failure('MCP_INSTALL_PROFILE_TRUST_INVALID', 'profile-trust');
     const existing = await admin('sha256sum', [plan.destination], 'profile-existing-digest');
     const found = outputOf(existing).trim().split(/\s+/)[0];
     if (!SHA256.test(found) || found !== renderedSha256) {
       throw failure('MCP_INSTALL_PROFILE_CONFLICT', 'profile-existing-digest');
     }
   } else if (exists?.exitCode === 1) {
-    await admin('install', ['-o', 'root', '-g', 'root', '-m', '0600', renderedFile, plan.destination], 'profile-install');
+    // GNU cp's no-clobber publication never replaces a raced file or dangling
+    // symlink. The private source is 0600; sudo creates a root-owned copy.
+    await admin('cp', ['--no-clobber', '--no-dereference', '--', renderedFile, plan.destination], 'profile-install');
   } else {
     throw failure('MCP_INSTALL_PROFILE_RECOVERY_REQUIRED', 'profile-existing-digest');
   }
@@ -160,6 +164,8 @@ async function linuxInstall({ plan, renderedFile, renderedSha256, run }) {
   if (outputOf(trust).trim() !== '0:0:600:regular file') {
     throw failure('MCP_INSTALL_PROFILE_TRUST_INVALID', 'profile-trust');
   }
+  const installed = await admin('sha256sum', [plan.destination], 'profile-published-digest');
+  if (outputOf(installed).trim().split(/\s+/)[0] !== renderedSha256) throw failure('MCP_INSTALL_PROFILE_CONFLICT', 'profile-published-digest');
   await admin('apparmor_parser', ['-r', plan.destination], 'profile-load');
   const profiles = await admin('cat', ['/sys/kernel/security/apparmor/profiles'], 'profile-verify');
   if (!exactProfileList(outputOf(profiles)).includes(`${plan.profile || PROFILE} (enforce)`)) {
@@ -172,12 +178,23 @@ function remoteCommand(...parts) {
   }
   return parts.join(' ');
 }
-async function darwinInstall({ plan, renderedFile, renderedSha256, run, nonce }) {
+const REMOTE_DAEMON_COMMAND = "docker --host unix:///var/run/docker.sock info --format '{{json .ID}}'";
+function boundRemoteCommand(command, expectedDaemonId) {
+  if (expectedDaemonId === undefined) return command;
+  if (typeof expectedDaemonId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9:_-]{0,255}$/.test(expectedDaemonId)) throw failure('MCP_INSTALL_REMOTE_AUTHORITY_INVALID', 'profile-plan');
+  // The identity check and effect run in one remote shell, not two sessions
+  // which could resolve a changed alias to different guests.
+  return `test "$( ${REMOTE_DAEMON_COMMAND} )" = '${JSON.stringify(expectedDaemonId)}' && ${command}`;
+}
+async function darwinInstall({ plan, renderedFile, renderedSha256, run, nonce, expectedDaemonId }) {
   const suffix = `${renderedSha256.slice(0, 12)}-${nonce}`;
   if (!/^[a-f0-9]{12}-[a-f0-9]{12}$/.test(suffix)) throw failure('MCP_INSTALL_REMOTE_COMMAND_INVALID', 'profile-plan');
   const remoteDir = `/tmp/dvaia-mcp-owned-${suffix}`;
   const remoteProfile = `${remoteDir}/profile`;
   const ssh = ['-F', plan.sshConfig, plan.sshHost];
+  const originalRun=run;
+  run=(file,args,options)=>originalRun(file,file==='ssh'&&expectedDaemonId!==undefined
+    ? [...args.slice(0,-1),boundRemoteCommand(args.at(-1),expectedDaemonId)] : args,options);
   let remoteCreated = false; let creationAttempted = false; let primaryError = null;
   try {
     const absent = await run('ssh', [...ssh, remoteCommand('test', '-e', remoteDir)], {
@@ -194,6 +211,8 @@ async function darwinInstall({ plan, renderedFile, renderedSha256, run, nonce })
       stage: 'profile-existing-state', timeoutMs: 10_000, maxOutputBytes: 4096, allowExitCodes: [0, 1],
     });
     if (exists?.exitCode === 0) {
+      const trust = await checked(run, 'ssh', [...ssh, remoteCommand('sudo', 'stat', '-c', '%u:%g:%a:%F', plan.destination)], 'profile-trust');
+      if (outputOf(trust).trim() !== '0:0:600:regular file') throw failure('MCP_INSTALL_PROFILE_TRUST_INVALID', 'profile-trust');
       const existing = await checked(run, 'ssh', [...ssh,
         remoteCommand('sudo', 'sha256sum', plan.destination)], 'profile-existing-digest');
       const found = outputOf(existing).trim().split(/\s+/)[0];
@@ -201,13 +220,15 @@ async function darwinInstall({ plan, renderedFile, renderedSha256, run, nonce })
         throw failure('MCP_INSTALL_PROFILE_CONFLICT', 'profile-existing-digest');
       }
     } else if (exists?.exitCode === 1) {
-      await checked(run, 'ssh', [...ssh, remoteCommand('sudo', 'install', '-o', 'root', '-g', 'root', '-m', '0600', remoteProfile, plan.destination)], 'profile-install');
+      await checked(run, 'ssh', [...ssh, remoteCommand('sudo', 'cp', '--no-clobber', '--no-dereference', '--', remoteProfile, plan.destination)], 'profile-install');
     } else throw failure('MCP_INSTALL_PROFILE_RECOVERY_REQUIRED', 'profile-existing-digest');
     const trust = await checked(run, 'ssh', [...ssh,
       remoteCommand('sudo', 'stat', '-c', '%u:%g:%a:%F', plan.destination)], 'profile-trust');
     if (outputOf(trust).trim() !== '0:0:600:regular file') {
       throw failure('MCP_INSTALL_PROFILE_TRUST_INVALID', 'profile-trust');
     }
+    const installed = await checked(run, 'ssh', [...ssh, remoteCommand('sudo', 'sha256sum', plan.destination)], 'profile-published-digest');
+    if (outputOf(installed).trim().split(/\s+/)[0] !== renderedSha256) throw failure('MCP_INSTALL_PROFILE_CONFLICT', 'profile-published-digest');
     await checked(run, 'ssh', [...ssh, remoteCommand('sudo', 'apparmor_parser', '-r', plan.destination)], 'profile-load');
     const profiles = await checked(run, 'ssh', [...ssh,
       remoteCommand('sudo', 'cat', '/sys/kernel/security/apparmor/profiles')], 'profile-verify');
@@ -230,6 +251,21 @@ async function darwinInstall({ plan, renderedFile, renderedSha256, run, nonce })
       }
     }
   }
+}
+
+// Profile-only setup deliberately does not start Compose or publish activation.
+// The caller must first bind and verify its Docker authority to this plan.
+async function installProfileOnly({ plan, run, expectedDaemonId, nonce = crypto.randomBytes(6).toString('hex') }) {
+  if (!['linux', 'darwin'].includes(plan?.platform) || typeof run !== 'function') throw failure('MCP_INSTALL_PROFILE_PLAN_INVALID', 'profile-plan');
+  const rendered = renderMcpSandboxAppArmor(await readTemplate(plan.template), plan.profile || PROFILE);
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mcp-owned-profile-'));
+  const renderedFile = path.join(directory, 'profile');
+  try {
+    const handle = await fs.open(renderedFile, 'wx', 0o600);
+    try { await handle.writeFile(rendered); await handle.sync(); } finally { await handle.close(); }
+    const options = { plan, renderedFile, renderedSha256: digest(rendered), run, nonce, expectedDaemonId };
+    await (plan.platform === 'linux' ? linuxInstall : darwinInstall)(options);
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
 }
 
 async function provisionOwnedLocal({ platform = process.platform, root = path.resolve(__dirname, '../..'),
@@ -437,6 +473,6 @@ if (require.main === module) {
   });
 }
 
-module.exports = { assertRequestedCapabilities, provisionOwnedLocal, provisionFromEnvironment, startExisting, createCommandRunner,
-  _internals: { exactProfileList, linuxInstall, darwinInstall, remoteCommand, readTemplate,
+module.exports = { assertRequestedCapabilities, installProfileOnly, provisionOwnedLocal, provisionFromEnvironment, startExisting, createCommandRunner,
+  _internals: { exactProfileList, linuxInstall, darwinInstall, remoteCommand, boundRemoteCommand, REMOTE_DAEMON_COMMAND, readTemplate,
     assertDockerAuthority, reviewedRunnerBundle,windowsInstall, ENFORCED } };

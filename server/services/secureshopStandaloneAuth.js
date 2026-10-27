@@ -161,6 +161,41 @@ function createSecureShopStandaloneAuthService({ repository, now = Date.now,
       catch (error) { if (error?.code === 'SHOP_AUTH_INVALID') throw failure('SHOP_CREDENTIALS_INVALID'); throw error; }
       return result(token, context);
     },
+    // Password reauthentication never creates an auth session or changes execution.
+    async withReauthenticatedExecution({ token, username, password } = {}, action) {
+      if (typeof action !== 'function' || typeof repository.withCurrentCredential !== 'function'
+        || typeof token !== 'string' || !TOKEN.test(token)
+        || typeof username !== 'string' || typeof password !== 'string' || !password
+        || Buffer.byteLength(password, 'utf8') > 72) throw failure('SHOP_CREDENTIALS_INVALID');
+      const hash = hashToken(token);
+      const credential = await repository.readCredentialForSession(hash);
+      const matched = await comparePassword(password, credential?.passwordHash || DUMMY_HASH);
+      if (!credential || !matched || username.trim().toLowerCase() !== credential.username) {
+        if (credential) await repository.recordFailedLogin(credential.principalId);
+        throw failure('SHOP_CREDENTIALS_INVALID');
+      }
+      const base = await authenticate(token);
+      if (!base) throw failure('SHOP_AUTH_INVALID');
+      // Read only: issuance cannot bootstrap an absent execution as a side effect.
+      if (typeof repository.readExistingExecutionSession !== 'function') throw failure('SHOP_AUTH_INVALID');
+      const execution = brandExecution(await repository.readExistingExecutionSession({
+        principalId: base.principalId, authSessionId: base.sessionId,
+        credentialVersion: base.credentialVersion, authorityVersion: base.authorityVersion }), base);
+      return repository.withCurrentCredential(hash, execution, async current => {
+        if (!current || current.passwordHash !== credential.passwordHash
+          || current.principalId !== execution.principalId
+          || Number(current.sessionId) !== execution.authSessionId
+          || String(current.credentialVersion) !== execution.credentialVersion
+          || String(current.authorityVersion) !== execution.authorityVersion
+          || String(current.membershipVersion) !== execution.membershipVersion
+          || current.tenantId !== execution.tenantId
+          || new Date(current.expiresAt).getTime() < new Date(execution.expiresAt).getTime()
+          || new Date(current.expiresAt).getTime() <= now()
+          || Number(current.shopUserId) !== execution.shopUserId
+          || current.role !== execution.role) throw failure('SHOP_AUTH_INVALID');
+        return action(execution);
+      });
+    },
     authenticate,
     async establishTenantContext(basePrincipal) {
       const base = assertSecureShopStandaloneAuthPrincipal(basePrincipal);

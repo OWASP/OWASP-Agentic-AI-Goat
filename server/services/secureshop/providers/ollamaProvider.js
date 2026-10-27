@@ -29,6 +29,11 @@ function toolArguments(call) {
   }
 }
 
+function buildFinalResponseSystem(system) {
+  return `${system || ''}
+
+Return the final response as exactly one JSON object with the sole key answer. The answer must be a nonempty string grounded in the latest completed tool observation. This request has no tool or action capability; a tool_calls object is invalid.`;
+}
 function serializeMessage(message) {
   if (message?.role === 'assistant' && Array.isArray(message.tool_calls) && message.tool_calls.length) {
     return { role: 'assistant', content: structuredJson({
@@ -53,6 +58,55 @@ function serializeMessage(message) {
   return { role: message?.role === 'assistant' ? 'assistant' : 'user',
     content: typeof message?.content === 'string' ? message.content
       : structuredJson(message?.content ?? '', 'message content') };
+}
+
+const MERCHANT_PRODUCT_HISTORY_INSTRUCTION = 'Historical tool_calls records include id only to link already-recorded calls to their observations. They are not templates for a new decision. A new tool call has exactly agent, tool, and args; do not emit, copy, or invent an id. The runtime assigns the new call identifier.';
+function merchantProductHistoryInstruction(option, {role, tools, messages, closedToolCatalog,
+  requireToolCall, maxToolCalls, pricingDecisionFormat, pricingFinalDecision,
+  pricingProviderIdentity, pricingExperimentContext, auditDecisionCorrection}) {
+  if (option === undefined) return '';
+  const invalid = () => { throw new TypeError('Invalid selected merchant product history context'); };
+  const names = ['catalog_search','listing_create_prepare','listing_edit_prepare','inventory_prepare',
+    'pricing_suggest_prepare','pricing_experiment_prepare','reviews_list','orders_list','overview','top_products'];
+  if (!option || Object.keys(option).sort().join(',') !== 'choiceId,version'
+      || option.version !== 'selected-merchant-product-v1'
+      || typeof option.choiceId !== 'string'
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(option.choiceId)
+      || role !== 'merchant' || closedToolCatalog !== true || requireToolCall !== false
+      || (maxToolCalls !== undefined && maxToolCalls !== 1) || !Array.isArray(tools) || tools.length !== names.length
+      || new Set(tools.map(t => t?.tool)).size !== names.length
+      || tools.some(t => t?.agent !== 'merchant' || !names.includes(t.tool))
+      || [pricingDecisionFormat, pricingFinalDecision, pricingProviderIdentity,
+        pricingExperimentContext, auditDecisionCorrection].some(value => value !== undefined)
+      || !Array.isArray(messages)) invalid();
+  const selectedSchema = {type:'object',properties:{choiceId:{type:'string',enum:[option.choiceId]}},
+    required:['choiceId'],additionalProperties:false};
+  if (!require('node:util').isDeepStrictEqual(tools.find(t => t.tool === 'catalog_search').inputSchema, selectedSchema)) invalid();
+  // Only structured assistant calls and their subsequent tool records establish
+  // history. Text in user messages or tool results is never protocol authority.
+  // Malformed or ambiguous history keeps its existing serialization and error
+  // behavior; it disables this clarification rather than becoming a new denial.
+  const calls = new Map(); let completed = 0;
+  for (const message of messages) {
+    if (message?.role === 'assistant' && message.tool_calls !== undefined) {
+      if (!Array.isArray(message.tool_calls) || !message.tool_calls.length) return '';
+      for (const call of message.tool_calls) {
+        if (!call || call.type !== 'function' || typeof call.id !== 'string' || !call.id
+            || calls.has(call.id) || typeof call.function?.name !== 'string'
+            || !names.some(name => call.function.name === `merchant.${name}`)) return '';
+        let args;
+        try { args = typeof call.function.arguments === 'string' ? JSON.parse(call.function.arguments) : call.function.arguments; }
+        catch { return ''; }
+        if (!args || typeof args !== 'object' || Array.isArray(args)) return '';
+        calls.set(call.id, false);
+      }
+    } else if (message?.role === 'tool') {
+      if (!calls.has(message.tool_call_id) || calls.get(message.tool_call_id)) return '';
+      calls.set(message.tool_call_id, true); completed++;
+    }
+  }
+  if ([...calls.values()].some(done => !done)) return '';
+  return completed ? '\n\n' + MERCHANT_PRODUCT_HISTORY_INSTRUCTION : '';
 }
 
 // Tool catalogs and their role restrictions remain advisory: runtime catalog
@@ -89,6 +143,93 @@ function closedDecisionSchema(tools) {
   else schema.oneOf[1].properties.tool_calls.items = { oneOf: variants };
   if (Buffer.byteLength(JSON.stringify(schema)) > 65536) throw new TypeError('Closed task schema exceeds limit');
   return schema;
+}
+// Generation only: the unchanged full AJV schema and parser remain acceptance
+// authority. Admit this exact schema family, never recursively strip constraints.
+function pricingGenerationEnvelope(schema) {
+  const check = value => { if (!value) throw new TypeError('Unsupported Pricing generation schema'); };
+  const exact = (a, b) => check(require('node:util').isDeepStrictEqual(a, b));
+  const object = value => value !== null && Object.getPrototypeOf(value) === Object.prototype;
+  const keys = (value, names) => { check(object(value)); exact(Object.keys(value).sort(), [...names].sort()); };
+  const required = (value, names) => { check(Array.isArray(value)); exact([...value].sort(), [...names].sort()); };
+  const closed = (arm, names) => {
+    keys(arm, ['type', 'properties', 'required', 'additionalProperties']);
+    check(arm.type === 'object' && arm.additionalProperties === false);
+    keys(arm.properties, names); required(arm.required, names);
+  };
+  check(Buffer.byteLength(JSON.stringify(schema)) <= 65536); keys(schema, ['oneOf']);
+  check(Array.isArray(schema.oneOf) && schema.oneOf.length === 2);
+  closed(schema.oneOf[0], ['reply']); closed(schema.oneOf[1], ['tool_calls']);
+  const calls = schema.oneOf[1].properties.tool_calls;
+  keys(calls, ['type', 'minItems', 'maxItems', 'items']);
+  check(calls.type === 'array' && calls.minItems === 1 && calls.maxItems === 1);
+  keys(calls.items, ['oneOf']);
+  check(Array.isArray(calls.items.oneOf) && calls.items.oneOf.length > 0 && calls.items.oneOf.length <= 64);
+  for (const tool of calls.items.oneOf) {
+    closed(tool, ['agent', 'tool', 'args']);
+    for (const name of ['agent', 'tool']) {
+      const value = tool.properties[name]; keys(value, ['type', 'enum']);
+      check(value.type === 'string' && Array.isArray(value.enum) && value.enum.length === 1
+        && typeof value.enum[0] === 'string' && value.enum[0].length > 0);
+    }
+    const args = tool.properties.args;
+    keys(args, ['type', 'properties', 'required', 'additionalProperties']);
+    check(args.type === 'object' && object(args.properties) && args.additionalProperties === false);
+    required(args.required, Object.keys(args.properties));
+  }
+  const reply = structuredClone(schema.oneOf[0].properties.reply);
+  if (reply.type === 'string') exact(reply, { type: 'string' });
+  else {
+    let branches;
+    if (Object.hasOwn(reply, 'oneOf')) {
+      keys(reply, ['oneOf']); check(Array.isArray(reply.oneOf) && reply.oneOf.length > 0 && reply.oneOf.length <= 18);
+      branches = reply.oneOf;
+    } else branches = [reply];
+    const fields = {
+      abstain: ['kind', 'productId', 'rationale'],
+      recommend: ['kind', 'productId', 'price', 'rationale', 'sourceCallId'],
+      compare: ['kind', 'productId', 'productName', 'ourPrice', 'competitorUrl', 'sourceCallId', 'priceStatus', 'competitorPrice', 'rationale'],
+    };
+    const price = value => typeof value === 'number' && Number.isFinite(value) && value >= 0
+      && value <= 10000000 && Number(value.toFixed(2)) === value;
+    const callId = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value);
+    for (const branch of branches) {
+      const p = branch.properties, kind = p?.kind?.const;
+      check(Object.hasOwn(fields, kind)); closed(branch, fields[kind]); exact(p.kind, { const: kind });
+      check(Number.isInteger(p.productId.const) && p.productId.const > 0 && p.productId.const <= 2147483647);
+      exact(p.productId, { type: 'integer', const: p.productId.const });
+      exact(p.rationale, { type: 'string', minLength: 1, maxLength: 4096 });
+      if (kind === 'recommend') {
+        exact(p.price, { type: 'number', minimum: 0, maximum: 10000000, multipleOf: 0.01 });
+        check(Array.isArray(p.sourceCallId.enum) && p.sourceCallId.enum.length > 0 && p.sourceCallId.enum.length <= 16);
+        check(p.sourceCallId.enum.every(callId) && new Set(p.sourceCallId.enum).size === p.sourceCallId.enum.length);
+        exact(p.sourceCallId, { type: 'string', enum: p.sourceCallId.enum });
+      }
+      if (kind === 'compare') {
+        for (const name of ['productName', 'competitorUrl', 'sourceCallId', 'priceStatus']) {
+          check(typeof p[name].const === 'string'); exact(p[name], { type: 'string', const: p[name].const });
+        }
+        check(p.productName.const.trim() && p.productName.const.isWellFormed() && Buffer.byteLength(p.productName.const) <= 512);
+        check(p.competitorUrl.const.trim() && p.competitorUrl.const.isWellFormed() && Buffer.byteLength(p.competitorUrl.const) <= 2048);
+        check(callId(p.sourceCallId.const) && ['observed', 'not_observed', 'unavailable'].includes(p.priceStatus.const));
+        check(price(p.ourPrice.const)); exact(p.ourPrice, { type: 'number', const: p.ourPrice.const });
+        exact(p.competitorPrice, { const: p.competitorPrice.const });
+        check(p.priceStatus.const === 'observed' ? price(p.competitorPrice.const) : p.competitorPrice.const === null);
+      }
+      // Avoid oversized backend grammar repetition without narrowing valid
+      // rationales. The original local schema/parser still enforce 4096 limits.
+      p.rationale = { ...p.rationale }; delete p.rationale.maxLength;
+    }
+  }
+  return { oneOf: [
+    { type: 'object', properties: { reply }, required: ['reply'], additionalProperties: false },
+    { type: 'object', properties: { tool_calls: {
+      type: 'array', minItems: 1, maxItems: 1,
+      items: { type: 'object', properties: {
+        agent: { type: 'string' }, tool: { type: 'string' }, args: { type: 'object' },
+      }, required: ['agent', 'tool', 'args'], additionalProperties: false },
+    } }, required: ['tool_calls'], additionalProperties: false },
+  ] };
 }
 function parseDecision(raw,pricingFinalDecision) {
   let value;
@@ -129,7 +270,7 @@ class OllamaProvider {
   constructor({ baseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434', model = process.env.OLLAMA_MODEL || 'llama3.1:8b' } = {}) {
     this.baseUrl = baseUrl;
     this.model = model;
-    this.capabilities=Object.freeze({pricingFinalDecision:true,decisionRoutingV1:true,
+    this.capabilities=Object.freeze({merchantProductHistoryV1:true,pricingGenerationEnvelopeV1:true,pricingJsonDecisionV1:true,priceAdvisorJsonDecisionV1:true,pricingFinalDecision:true,decisionRoutingV1:true,
       idorFinalAnswerContract:true});
     this.transport = createLangChainProvider({ provider: 'ollama', baseURL: baseUrl, model });
   }
@@ -144,12 +285,51 @@ class OllamaProvider {
     }
   }
 
-  async chat({ system, messages, tools, role, max_tokens, signal, ownerId, maxToolCalls, closedToolCatalog = false, requireToolCall = false, pricingFinalDecision,pricingProviderIdentity,pricingExperimentContext }) {
+  async chat({ system, messages, tools, role, max_tokens, signal, ownerId, maxToolCalls, closedToolCatalog = false, requireToolCall = false, pricingFinalDecision,pricingProviderIdentity,pricingExperimentContext, transportTimeoutMs, auditDecisionCorrection, pricingDecisionFormat, merchantProductHistory }) {
+    const historyInstruction = merchantProductHistoryInstruction(merchantProductHistory,
+      {role,tools,messages,closedToolCatalog,requireToolCall,maxToolCalls,pricingDecisionFormat,
+        pricingFinalDecision,pricingProviderIdentity,pricingExperimentContext,auditDecisionCorrection});
+    // Explicit trusted Pricing opt-in, never inferred from a model-selected tool.
+    // A malformed opt-in fails closed rather than reverting to the legacy wire.
+    const pricingJson = pricingDecisionFormat !== undefined;
+    const boundedPricing = pricingDecisionFormat === 'bounded-envelope-v1';
+    if (pricingJson) {
+      const priceAdvisorJson = pricingDecisionFormat === 'price-advisor-json-v1';
+      const pricingTask = priceAdvisorJson ? 'price-advisor' : 'pricing-strategy';
+      const pricingRole = priceAdvisorJson ? 'customer' : 'merchant';
+      const expected = require('../../secureshopPricingExecutionConfig')
+        .createSecureShopPricingExecutionConfig(pricingTask).manifest.getForRole(pricingRole);
+      if ((!priceAdvisorJson && pricingDecisionFormat !== 'json-v1' && !boundedPricing) || role !== pricingRole
+          || closedToolCatalog !== true || maxToolCalls !== 1 || requireToolCall !== false
+          || auditDecisionCorrection !== undefined
+          || priceAdvisorJson && (pricingFinalDecision !== undefined || pricingProviderIdentity !== undefined
+            || pricingExperimentContext !== undefined || merchantProductHistory !== undefined)
+          || !require('node:util').isDeepStrictEqual(tools, expected)) {
+        throw new TypeError('Invalid Pricing JSON decision context');
+      }
+      if (pricingProviderIdentity !== undefined && (!pricingFinalDecision
+          || !require('node:util').isDeepStrictEqual(pricingProviderIdentity, { provider: 'ollama', model: this.model }))) {
+        throw Object.assign(new Error('Typed Pricing provider identity mismatch'),
+          { code: 'SECURESHOP_PRICING_FINAL_UNSUPPORTED' });
+      }
+    }
+    const auditContract = auditDecisionCorrection === undefined ? null
+      : require('../../secureshopAuditDecisionCorrection').captureAuditDecisionCorrection(auditDecisionCorrection);
+    const auditStarted = performance.now();
+    let auditRemaining = max_tokens;
+    if (auditContract && (role !== 'admin' || !Number.isSafeInteger(max_tokens) || max_tokens < 1 || max_tokens > 2048
+        || pricingFinalDecision !== undefined || pricingExperimentContext !== undefined)) throw new TypeError('Invalid audit correction context');
+    if(transportTimeoutMs!==undefined&&(!Number.isSafeInteger(transportTimeoutMs)||transportTimeoutMs<1||transportTimeoutMs>175000))throw new RangeError('Invalid audit provider timeout');
     if(pricingProviderIdentity&&(!pricingFinalDecision||pricingProviderIdentity.provider!=='ollama'||pricingProviderIdentity.model!==this.model))throw Object.assign(new Error('Typed Pricing provider identity mismatch'),{code:'SECURESHOP_PRICING_FINAL_UNSUPPORTED'});
     if (maxToolCalls !== undefined && (!Number.isSafeInteger(maxToolCalls) || maxToolCalls < 1 || maxToolCalls > 32)) throw new TypeError('Invalid task tool-call limit');
     if (typeof closedToolCatalog !== 'boolean') throw new TypeError('Invalid closed task catalog option');
     if (typeof requireToolCall !== 'boolean' || requireToolCall && (!closedToolCatalog || !Array.isArray(tools) || !tools.length)) throw new TypeError('Tool-required decision needs a nonempty closed catalog');
-    const decisionSchema = closedToolCatalog ? closedDecisionSchema(tools) : structuredClone(DECISION_SCHEMA);
+    if(auditContract){
+      const expected=require('../../secureshopAuditExecutionConfig').createSecureShopAuditExecutionConfig({enableFocus:true}).manifest.getForRole('admin');
+      if(JSON.stringify(tools)!==JSON.stringify(expected)||maxToolCalls!==undefined||requireToolCall)
+        throw new TypeError('Audit correction requires the original complete tool schema');
+    }
+    const decisionSchema = auditContract || closedToolCatalog ? closedDecisionSchema(tools) : structuredClone(DECISION_SCHEMA);
     const pricingFinal=pricingFinalDecision===undefined?undefined:capturePricingFinalDecision(pricingFinalDecision);
     const experimentContext=pricingExperimentContext===undefined?undefined:capturePricingExperimentContext(pricingExperimentContext);
     if(experimentContext&&(!closedToolCatalog||role!=='merchant'||!Array.isArray(tools)
@@ -173,6 +353,15 @@ class OllamaProvider {
     }
     if (maxToolCalls !== undefined && decisionSchema.oneOf[1]) decisionSchema.oneOf[1].properties.tool_calls.maxItems = maxToolCalls;
     if (requireToolCall) decisionSchema.oneOf.shift();
+    // Compile the unchanged original full schema before the physical request.
+    // Decimal tolerance only avoids binary floating-point multipleOf artifacts;
+    // the unchanged typed receipt parser still enforces exact two-decimal prices.
+    const validatePricing = pricingJson ? new (require('ajv'))({
+      strict: false, allErrors: false, coerceTypes: false,
+      useDefaults: false, removeAdditional: false, multipleOfPrecision: 12,
+    }).compile(decisionSchema) : null;
+    const generationFormat = boundedPricing ? pricingGenerationEnvelope(decisionSchema)
+      : pricingJson ? 'json' : decisionSchema;
     const toolsBlock = tools && tools.length
       ? `Available tools (each identified as "agent.tool") with their complete input schemas:\n${serializeTools(tools)}\n\n`
       : '';
@@ -192,13 +381,51 @@ Use the exact separate agent and tool values from the catalog. The catalog name 
     // Do not cap or drop history here. The intentionally unbounded observation
     // context is the tagged SecureShop LLM10 teaching sink. Preserve complete
     // JSON values and emit explicit serialization errors instead of partial JSON.
-    const transcript = [{ role: 'system', content: augmentedSystem }, ...messages.map(serializeMessage)];
+    const transcript = [{ role: 'system', content: augmentedSystem + historyInstruction }, ...messages.map(serializeMessage)];
     for (let attempt = 0; attempt < 2; attempt += 1) {
+      let auditTimeout;
+      if (auditContract) {
+        signal?.throwIfAborted(); await auditContract.check(); signal?.throwIfAborted();
+        if (transportTimeoutMs !== undefined) {
+          auditTimeout = Math.floor(transportTimeoutMs - (performance.now() - auditStarted));
+          if (auditTimeout < 1) throw Object.assign(new Error('Audit decision deadline exhausted'), { code: 'AUDIT_DECISION_CORRECTION_INVALID' });
+        }
+      }
       const resp = await this.transport.chat(transcript, [], {
-        format: decisionSchema, temperature: 0, num_predict: max_tokens || 2048, signal, ownerId,
+        format: generationFormat, temperature: 0, num_predict: auditContract ? auditRemaining : max_tokens || 2048, signal, ownerId,
+        ...(transportTimeoutMs===undefined?{}:{timeout:auditContract ? auditTimeout : transportTimeoutMs}),
       });
       const raw = resp?.response || '';
+      if (auditContract) {
+        const { classifyAuditDecision, AUDIT_DECISION_CORRECTION_INSTRUCTION } = require('../../secureshopAuditDecisionCorrection');
+        if (typeof raw !== 'string' || Buffer.byteLength(raw) > 65536
+            || Buffer.byteLength(JSON.stringify(transcript)) > 131072) throw new Error('Audit decision capture exceeds limit');
+        const classification = classifyAuditDecision(raw, auditContract.requestedCount);
+        const usage = observedUsageTelemetry(resp);
+        await auditContract.record(structuredClone({ schemaVersion: 2, index: attempt, provider: 'ollama', model: this.model,
+          raw, classification, usage, request: { messages: transcript, format: decisionSchema, numPredict: auditRemaining } }));
+        signal?.throwIfAborted(); await auditContract.check(); signal?.throwIfAborted();
+        if (classification !== 'accepted') {
+          if (attempt || !['invalid_json', 'invalid_arguments'].includes(classification)
+              || !Number.isSafeInteger(usage.outputTokens) || usage.outputTokens < 0 || usage.outputTokens >= auditRemaining) {
+            throw Object.assign(new Error('Audit decision did not satisfy its schema'), { code: 'AUDIT_DECISION_CORRECTION_INVALID' });
+          }
+          auditRemaining -= usage.outputTokens;
+          transcript.push({ role: 'assistant', content: raw }, { role: 'user', content: AUDIT_DECISION_CORRECTION_INSTRUCTION });
+          continue;
+        }
+      }
+      if (validatePricing) {
+        let value;
+        try { value = JSON.parse(raw); } catch {}
+        if (!validatePricing(value)) throw Object.assign(
+          new Error('Pricing decision did not satisfy its original schema'),
+          { code: 'SECURESHOP_INVALID_DECISION' });
+      }
       const parsed = parseDecision(raw,pricingFinal);
+      if (pricingJson && !parsed) throw Object.assign(
+        new Error('Pricing decision did not satisfy its original contract'),
+        { code: 'SECURESHOP_INVALID_DECISION' });
       if (parsed?.tool_calls) {
         if (closedToolCatalog && parsed.tool_calls.some(call => !tools.some(tool => tool.agent === call.agent && tool.tool === call.tool))) {
           const error = new Error('Model selected a tool outside the closed task catalog'); error.code = 'SECURESHOP_INVALID_DECISION'; throw error;
@@ -231,10 +458,14 @@ Use the exact separate agent and tool values from the catalog. The catalog name 
     signal?.throwIfAborted();
     const transcript = [{ role: 'system', content: `${system || ''}\n\nSelect a workflow, not a tool or an answer. Return exactly {"route":"management"} or {"route":"registered_tools"}. If the request needs clarification, return exactly {"route":"clarification","message":"your question"}. No tool can execute during this decision.` },
       ...messages.map(serializeMessage)];
+    // Ollama's installed grammar compiler rejects the 2048-character repetition.
+    // This is generation guidance only; parseWorkflowRoute remains the acceptance gate.
+    const format = structuredClone(WORKFLOW_ROUTE_SCHEMA);
+    delete format.oneOf[1].properties.message.maxLength;
     let response;
     try {
       response = await this.transport.chat(transcript, [], {
-        format: structuredClone(WORKFLOW_ROUTE_SCHEMA), temperature: 0,
+        format, temperature: 0,
         num_predict: max_tokens, signal, ownerId,
       });
     } catch (error) {
@@ -254,14 +485,13 @@ Use the exact separate agent and tool values from the catalog. The catalog name 
       provider: 'ollama', model: this.model, mocked: false, usage };
   }
 
-  async finalResponse({ system, messages = [], max_tokens, signal, ownerId,pricingFinalDecision,pricingProviderIdentity,
+  async finalResponse({ system, messages = [], max_tokens, signal, ownerId,pricingFinalDecision,pricingProviderIdentity,transportTimeoutMs,
     idorFinalAnswerContract }) {
+    if(transportTimeoutMs!==undefined&&(!Number.isSafeInteger(transportTimeoutMs)||transportTimeoutMs<1||transportTimeoutMs>175000))throw new RangeError('Invalid audit provider timeout');
     if(pricingFinalDecision!==undefined||pricingProviderIdentity!==undefined)throw Object.assign(new Error('Typed Pricing answer-only final capability unsupported'),{code:'SECURESHOP_PRICING_FINAL_UNSUPPORTED'});
     if(idorFinalAnswerContract!==undefined&&!isIdorFinalAnswerContract(idorFinalAnswerContract))
       throw Object.assign(new Error('Owned lesson final contract required'),{code:'SECURESHOP_FINAL_RESPONSE_UNSUPPORTED'});
-    const transcript = [{ role: 'system', content: `${system || ''}
-
-Return the final response as exactly one JSON object with the sole key answer. The answer must be a nonempty string grounded in the latest completed tool observation. This request has no tool or action capability; a tool_calls object is invalid.` },
+    const transcript = [{ role: 'system', content: buildFinalResponseSystem(system) },
     ...messages.map(serializeMessage)];
     const outputBudget = Number.isSafeInteger(max_tokens) && max_tokens > 0 ? max_tokens : 2048;
     let remainingOutput = outputBudget;
@@ -302,6 +532,7 @@ Return the final response as exactly one JSON object with the sole key answer. T
       try {
         resp = await this.transport.chat(transcript, [], {
           format: FINAL_RESPONSE_SCHEMA, temperature: 0, num_predict: remainingOutput, signal, ownerId,
+          ...(transportTimeoutMs===undefined?{}:{timeout:transportTimeoutMs}),
         });
       } catch (error) {
         const rejectedUsage = observedUsageTelemetry(error);
@@ -374,5 +605,5 @@ Return the final response as exactly one JSON object with the sole key answer. T
   }
 }
 
-module.exports = { OllamaProvider, serializeMessage, serializeTools, parseDecision, DECISION_SCHEMA,
+module.exports = { OllamaProvider, buildFinalResponseSystem, serializeMessage, serializeTools, parseDecision, closedDecisionSchema, DECISION_SCHEMA,
   FINAL_RESPONSE_SCHEMA };

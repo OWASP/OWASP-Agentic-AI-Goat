@@ -6,6 +6,29 @@ import { defineConfig, loadEnv, transformWithOxc } from 'vite';
 import { opaqueFrameCors } from './vite.opaque-frame-cors.mjs';
 
 const clientRoot = path.dirname(fileURLToPath(import.meta.url));
+function repositoryPrivateEnvDirectory(real, sourceRoot) {
+  const parent = path.join(sourceRoot, 'tasks/qualification');
+  const run = path.dirname(real);
+  if (path.dirname(run) !== parent || !/^frontend-build-[A-Za-z0-9_-]+$/.test(path.basename(run))
+    || real !== path.join(run, 'env')) return false;
+  for (const directory of [parent, run, real, path.join(run, 'tmp'), path.join(run, 'cache')]) {
+    const entry = fs.lstatSync(directory);
+    if (!entry.isDirectory() || entry.isSymbolicLink() || fs.realpathSync(directory) !== directory
+      || entry.uid !== process.getuid?.() || (entry.mode & 0o077)) return false;
+  }
+  if (fs.readdirSync(real).length !== 0
+    || process.env.BUILD_PATH !== path.join(run, 'output/application')
+    || process.env.TMPDIR !== path.join(run, 'tmp')
+    || process.env.XDG_CACHE_HOME !== path.join(run, 'cache')) return false;
+  for (const [key, name] of [
+    ['REVIEW', 'review'], ['PRODUCT_DESCRIPTION', 'product-description'], ['MAIL', 'mail'],
+    ['TICKET', 'ticket'], ['SEARCH_ECHO', 'search-echo'], ['POLICY_OUTPUT', 'policy-output'],
+  ]) {
+    if (process.env['SECURESHOP_' + key + '_RENDERER_OUT_DIR']
+      !== path.join(run, 'output/application/secureshop-' + name + '-renderer')) return false;
+  }
+  return true;
+}
 function privateEnvDirectory(value) {
   if (value === undefined) return undefined;
   if (!path.isAbsolute(value)) throw new Error('DVAIA_VITE_ENV_DIR must be absolute');
@@ -15,7 +38,8 @@ function privateEnvDirectory(value) {
   const sourceRoot = fs.realpathSync(path.resolve(clientRoot, '..'));
   if (!stat.isDirectory() || stat.isSymbolicLink() || real !== resolved
     || stat.uid !== process.getuid?.() || (stat.mode & 0o077)
-    || real === sourceRoot || real.startsWith(`${sourceRoot}${path.sep}`)) {
+    || real === sourceRoot || (real.startsWith(`${sourceRoot}${path.sep}`)
+      && !repositoryPrivateEnvDirectory(real, sourceRoot))) {
     throw new Error('DVAIA_VITE_ENV_DIR must be a private owned real directory outside source');
   }
   return real;

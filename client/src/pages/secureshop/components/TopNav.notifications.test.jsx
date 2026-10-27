@@ -36,6 +36,18 @@ const mount = (role, token = `${role}-session`) => {
 };
 const toggle = () => act(async () => container.querySelector('[aria-label="Notifications"]').click());
 
+test.each(['customer', 'merchant', 'admin'])('%s Sign out is physically available only after Account menu opens', async role => {
+  await mount(role);
+  const menu = container.querySelector('button[aria-label="Account menu"]');
+  const signOut = () => [...container.querySelectorAll('button')]
+    .find(button => button.textContent.trim() === 'Sign out');
+  expect(menu.getAttribute('aria-expanded')).toBe('false');
+  expect(signOut()).toBeUndefined();
+  await act(async () => menu.click());
+  expect(menu.getAttribute('aria-expanded')).toBe('true');
+  expect(signOut()).toBeTruthy();
+});
+
 test.each(['customer', 'merchant', 'admin'])('%s notifications read only that role trace', async role => {
   global.fetch = jest.fn(async () => response({ ok: true, rows: [{ id: 1, kind: 'tool',
     agent_ns: role, tool_name: 'inspect' }] }));

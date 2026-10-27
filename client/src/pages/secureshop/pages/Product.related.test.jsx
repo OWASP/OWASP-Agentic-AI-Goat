@@ -12,6 +12,7 @@ global.Headers = web.Headers;
 
 let mockProductId = '7';
 let mockSummaryText = new Map();
+let mockSummaryCapability = null;
 let mockSummaryReadDenied = false;
 let mockSummaryAssessment = {completed:false,status:'ineligible',modelEvaluated:false};
 let mockToast = { success: jest.fn(), error: jest.fn() };
@@ -55,7 +56,8 @@ function ordinary(url) {
     if (mockSummaryReadDenied) return json({error:'Shop session unavailable'},401);
     return json({status:'completed',result:{product_id:Number(saved[1]),name:'Owned',price:12,category:'Home',stock_quantity:3,
       description:'Original source',description_html:null,summary:mockSummaryText.get(Number(saved[1])) || 'Current summary',
-      provider:'ollama',model:'controlled',sessionId:saved[2],requestId:saved[3]}});
+      provider:'ollama',model:'controlled',sessionId:saved[2],requestId:saved[3],
+      ...(mockSummaryCapability ? { modeCapability: mockSummaryCapability } : {})}});
   }
   if (String(url).endsWith('/product-summary/assessment')) return json(mockSummaryAssessment);
   const match = /\/products\/(\d+)$/.exec(String(url));
@@ -69,7 +71,7 @@ function ordinary(url) {
 beforeEach(() => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   mockProductId = '7';
-  localStorage.clear(); mockSummaryText = new Map(); mockSummaryReadDenied = false;
+  localStorage.clear(); mockSummaryText = new Map(); mockSummaryCapability = null; mockSummaryReadDenied = false;
   mockSummaryAssessment = {completed:false,status:'ineligible',modelEvaluated:false};
   mockToast = { success: jest.fn(), error: jest.fn() };
   mockAuthState = { user: { id: 41, role: 'customer' }, isAuthed: true };
@@ -448,4 +450,28 @@ test('summary renders canonical status separately, escapes answer text and remov
     expect(container.textContent).toContain('AI summary unavailable');
     expect(global.fetch.mock.calls.filter(([url,options])=>String(url).endsWith('/summary')&&options.method==='POST')).toHaveLength(1);
   } finally {await act(async()=>root.unmount());container.remove();}
+});
+
+test('only the exact trusted fixed summary capability labels recovered output as facts-only', async () => {
+  mockSummaryText.set(7, 'Untrusted-looking answer text remains displayed verbatim.');
+  mockSummaryCapability = { version: 1, featureId: 'product_assist',
+    policyVersion: 'fixed-summary-numeric-facts-v1', effectiveMode: 'fixed',
+    scope: { kind: 'launch_feature', id: 'product_assist' } };
+  global.fetch = jest.fn(async url => ordinary(url) || json({ results: [], reviews: [] }));
+  const container = document.createElement('div'); document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => root.render(<Product />)); await settle();
+    expect(container.querySelector('[data-testid="fixed-facts-summary-label"]')?.textContent)
+      .toBe('Fixed · price and stock only · description withheld');
+    expect(container.querySelector('blockquote').textContent)
+      .toBe('Untrusted-looking answer text remains displayed verbatim.');
+
+    mockSummaryCapability = { ...mockSummaryCapability, policyVersion: 'bounded-product-data-and-catalog-neighbors-v1' };
+    mockAuthState = { ...mockAuthState, token: 'new-summary-authority' };
+    await act(async () => root.render(<Product />)); await settle();
+    expect(container.querySelector('[data-testid="fixed-facts-summary-label"]')).toBeNull();
+  } finally {
+    await act(async () => root.unmount()); container.remove();
+  }
 });

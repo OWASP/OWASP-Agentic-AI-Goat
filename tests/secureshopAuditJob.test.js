@@ -128,8 +128,11 @@ test('audit job publishes and disposes before completed effect, then consumes re
 
 test('audit job forwards only the closed objective task version', async () => {
   let workerInput;
-  await run(fixture({ taskRequestVersion: 2, inspectWorker(input) { workerInput = input; } }));
+  await run(fixture({ taskRequestVersion: 2, inspectWorker(input) { workerInput = input; } }),
+    {workerBudget:()=>175000});
   assert.equal(workerInput.taskRequestVersion, 2);
+  assert.equal(workerInput.timeoutMs,175000);
+  await assert.rejects(run(fixture({taskRequestVersion:2})),/worker budget required/);
   for (const taskRequestVersion of [0, 3, '2', true, null]) {
     assert.throws(() => fixture({ taskRequestVersion }), /task request version/);
   }

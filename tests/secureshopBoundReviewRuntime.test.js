@@ -56,7 +56,7 @@ test('runtime bounds an alternating read and decision loop before its real final
     reviewRepository: repository, conversationRepository: conversations, personaAuthority,
     taskPoliciesEnabled: true,
     promptPolicyRepository: { async admitRunSnapshot(input) { policyAdmissions.push(structuredClone(input)); assert.equal(input.persona.role, 'merchant'); assert.equal(input.persona.id, persona.id); assert.deepEqual(input.personaSession, credential); assert.equal(input.policyContractVersion, 2); assert.equal(input.recipient, 'review-moderator'); return policySnapshot; } },
-    journal: { async lookupGeneralRequest() { return null; }, async claim({ requestId }) {
+    journal: { async lookupReviewModerationRequest() { return null; }, async claim({ requestId }) {
       if (requests.has(requestId)) return requests.get(requestId);
       requests.set(requestId, { status: 'started', claimId: requestId }); return { status: 'claimed', claimId: requestId };
     }, async complete({ requestId, result }) { events.push('journal'); requests.set(requestId, { status: 'completed', result }); }, async markUncertain() {} },

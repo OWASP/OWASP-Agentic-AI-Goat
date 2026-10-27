@@ -852,9 +852,34 @@ function assertV34ManualUploadResponse({status,body,source,productId,controlled=
  for(const value of [body.provider,body.model]){assert.ok(typeof value==='string'&&value.trim());if(!controlled)assert.doesNotMatch(value,/^(mock|fixture|scripted|fallback|unavailable|controlled)$/i);}
  return body;
 }
-async function uploadV34OwnedManual({page,frame,filePath,productId,source,readManual,readCounters,controlled=false,reportClaim=false}){
+async function assertV34ManualRenderedReceipt({visible,lookup,status,lookupRequest,posted,postBody,source,productId,controlled=false}){
+ assertV34ManualUploadResponse({status:200,body:postBody,source,productId,controlled});
+ assert.equal(status,200);assert.equal(lookupRequest.method(),'GET');
+ const url=new URL(lookupRequest.url()),postUrl=new URL(posted.url());
+ assert.equal(url.origin,postUrl.origin);assert.equal(url.username,'');assert.equal(url.password,'');assert.equal(url.hash,'');
+ assert.equal(url.pathname,'/api/secureshop/uploads/product-manual/receipt');
+ const descriptor={productId:String(productId),sha256:source.sha256,sizeBytes:String(Buffer.byteLength(source.markdown)),
+  filename:source.filename,mime:'text/plain',public:'true'};
+ assert.deepEqual([...url.searchParams.keys()].sort(),[...Object.keys(descriptor),'recoveryScopeKey'].sort());
+ for(const[key,value]of Object.entries(descriptor))assert.equal(url.searchParams.get(key),value);
+ const recoveryScopeKey=url.searchParams.get('recoveryScopeKey');assert.match(recoveryScopeKey,/^[a-f0-9]{64}$/);
+ for(const key of ['authorization','x-dvaia-secureshop-launch'])
+  assert.equal(typeof posted.headers()[key]==='string'&&lookupRequest.headers()[key]===posted.headers()[key],true,'manual readback authority must match the physical POST');
+ const {verifyProductManualLookup}=await import('../../client/src/pages/secureshop/utils/productManualPendingReference.mjs');
+ const checked=verifyProductManualLookup(descriptor,lookup,{operationId:postBody.operationId,recoveryScopeKey});
+ assert.equal(checked.state,'indexed');
+ // GET deliberately omits POST path/model metadata; those remain validated above.
+ // Every overlapping receipt field must identify this exact physical upload.
+ for(const[receiptKey,postKey]of [['productId','scope_id'],['sizeBytes','size_bytes'],['filename','filename'],['mime','mime'],['chunkCount','chunk_count'],['chunkIds','chunk_ids']])
+  assert.deepEqual(checked.receipt[receiptKey],postBody[postKey]);
+ assert.deepEqual(visible,{state:'indexed',operationId:postBody.operationId,receipt:lookup.receipt},
+  'visible manual upload must retain the exact verified saved receipt');
+ return visible;
+}
+async function uploadV34OwnedManual({page,frame,filePath,productId,source,readManual,readCounters,controlled=false,reportClaim=false,manualVersion}){
  assert.equal(typeof reportClaim,'boolean');assert.ok(Number.isSafeInteger(productId)&&productId>0);assert.ok(path.isAbsolute(filePath));
- assert.deepEqual(source,reportClaim?require('./secureshopPricingActual').v34ReportClaimSource(productId):require('./secureshopPricingActual').v34ManualExperimentSource());
+ assert.ok(!reportClaim||manualVersion===undefined,'Report claim cannot select a plain-text candidate');
+ assert.deepEqual(source,reportClaim?require('./secureshopPricingActual').v34ReportClaimSource(productId):require('./secureshopPricingActual').v34ManualCandidateSource(manualVersion));
  const bytes=fs.readFileSync(filePath);assert.deepEqual(bytes,Buffer.from(source.markdown));
  assert.equal(require('node:crypto').createHash('sha256').update(bytes).digest('hex'),source.sha256);
  for(const callback of [readManual,readCounters])assert.equal(typeof callback,'function');
@@ -874,7 +899,10 @@ async function uploadV34OwnedManual({page,frame,filePath,productId,source,readMa
  await replacePhysicalField(page,frame,'.ss-uploadzone input[type="text"]',source.filename);
  const requestPromise=page.waitForRequest(request=>request.method()==='POST'&&new URL(request.url()).pathname==='/api/secureshop/uploads',{timeout:120000});
  const responsePromise=page.waitForResponse(response=>response.request().method()==='POST'&&new URL(response.url()).pathname==='/api/secureshop/uploads',{timeout:120000});
- void requestPromise.catch(()=>{});void responsePromise.catch(()=>{});
+ // Observe the hook's existing post-upload readback, never issue another GET.
+ const savedPromise=page.waitForResponse(response=>{const url=new URL(response.url());return response.request().method()==='GET'
+  &&url.pathname==='/api/secureshop/uploads/product-manual/receipt'&&url.searchParams.has('recoveryScopeKey');},{timeout:120000});
+ void requestPromise.catch(()=>{});void responsePromise.catch(()=>{});void savedPromise.catch(()=>{});
  const upload=await frame.waitForFunction(()=>[...document.querySelectorAll('.ss-uploadzone button')].find(node=>node.textContent.trim()==='Upload'&&!node.disabled),{timeout:20000});
  const button=upload.asElement();assert.ok(button);await button.evaluate(node=>node.scrollIntoView({block:'center'}));
  await frame.waitForFunction(node=>{const rect=node.getBoundingClientRect(),hit=document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2);return !node.disabled&&rect.width>0&&rect.height>0&&(hit===node||node.contains(hit));},{timeout:20000},button);
@@ -883,8 +911,10 @@ async function uploadV34OwnedManual({page,frame,filePath,productId,source,readMa
  const headers=posted.headers(),request={method:posted.method(),path:new URL(posted.url()).pathname,headers:{authorization:headers.authorization,'x-dvaia-secureshop-launch':headers['x-dvaia-secureshop-launch']}};
  assert.match(request.headers.authorization||'',/^Bearer [A-Za-z0-9._-]+$/);assert.match(request.headers['x-dvaia-secureshop-launch']||'',/^[A-Za-z0-9_-]{43}$/);
  const response={status:httpResponse.status(),body:await httpResponse.json()};assertV34ManualUploadResponse({...response,source,productId,controlled});
+ const savedResponse=await savedPromise,lookup=await savedResponse.json();
  const rendered=await frame.waitForFunction(operationId=>{const text=document.querySelector('.ss-uploadzone pre')?.textContent;if(!text)return false;try{const body=JSON.parse(text);return body.operationId===operationId?body:false;}catch{return false;}},{timeout:30000},response.body.operationId);
- assert.deepEqual(await rendered.jsonValue(),response.body,'visible manual upload must retain the exact original DTO');
+ await assertV34ManualRenderedReceipt({visible:await rendered.jsonValue(),lookup,status:savedResponse.status(),
+  lookupRequest:savedResponse.request(),posted,postBody:response.body,source,productId,controlled});
  const committed=checkCounters(await readCounters());assert.deepEqual(committed,{...before,actorCalls:before.actorCalls+2,manualIngests:before.manualIngests+1},'one manual upload requires two actual model stages and one ingest, without pricing or Judge effects');
  const original=await readManual({request,response,source});
  assert.ok(original&&typeof original==='object'&&!Array.isArray(original),'original manual records required');
@@ -901,12 +931,13 @@ async function uploadV34OwnedManual({page,frame,filePath,productId,source,readMa
  assert.deepEqual(await readCounters(),committed,'closing the uploaded manual editor must have no model, Pricing or Judge effects');
  return {request,response,original,counters:{before,after:committed}};
 }
-async function prepareV34Manual({page,frame,root,productId,readManual,readCounters,controlled=false,reportClaim=false}){
+async function prepareV34Manual({page,frame,root,productId,readManual,readCounters,controlled=false,reportClaim=false,manualVersion}){
  assert.ok(path.isAbsolute(root));assert.ok(fs.statSync(root).isDirectory());
  assert.equal(typeof reportClaim,'boolean');
- const source=reportClaim?require('./secureshopPricingActual').v34ReportClaimSource(productId):require('./secureshopPricingActual').v34ManualExperimentSource(),filePath=path.join(root,source.filename);
+ assert.ok(!reportClaim||manualVersion===undefined,'Report claim cannot select a plain-text candidate');
+ const source=reportClaim?require('./secureshopPricingActual').v34ReportClaimSource(productId):require('./secureshopPricingActual').v34ManualCandidateSource(manualVersion),filePath=path.join(root,source.filename);
  fs.writeFileSync(filePath,source.markdown,{flag:'wx',mode:0o600});
- return uploadV34OwnedManual({page,frame,filePath,productId,source,readManual,readCounters,controlled,reportClaim});
+ return uploadV34OwnedManual({page,frame,filePath,productId,source,readManual,readCounters,controlled,reportClaim,manualVersion});
 }
 async function switchV34Mode({page,openAssistant,physical,mode}){
  assert.ok(['vuln','fixed'].includes(mode));for(const callback of [openAssistant,physical])assert.equal(typeof callback,'function');
@@ -917,7 +948,99 @@ async function switchV34Mode({page,openAssistant,physical,mode}){
  await physical(page,'Shop settings');await page.waitForFunction(()=>!document.querySelector('aside[aria-label="Shop settings"]'),{timeout:20000});
  const frame=await openAssistant();assert.ok(frame);return frame;
 }
+const retainedAdmissions=new WeakMap();
+function v34Exists(file){try{fs.lstatSync(file);return true;}catch(error){if(error.code==='ENOENT')return false;throw error;}}
+function privateV34Path(file,{directory=false}={}){
+ const info=fs.lstatSync(file);assert.equal(fs.realpathSync(file),file,'V34 canonical private path required');
+ assert.equal(info.uid,process.getuid());assert.equal(info.mode&0o777,directory?0o700:0o600);
+ assert.equal(directory?info.isDirectory():info.isFile(),true);assert.equal(info.isSymbolicLink(),false);
+ if(!directory)assert.equal(info.nlink,1);
+ return info;
+}
+function readV34Private(file,limit=4096){
+ const before=privateV34Path(file);assert.ok(before.size>0&&before.size<=limit);
+ const fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);let raw;
+ try{const held=fs.fstatSync(fd);assert.equal(held.dev,before.dev);assert.equal(held.ino,before.ino);
+  raw=Buffer.alloc(before.size+1);const count=fs.readSync(fd,raw,0,raw.length,0);assert.equal(count,before.size);raw=raw.subarray(0,count);
+  const after=fs.fstatSync(fd);assert.equal(after.size,before.size);assert.equal(after.mtimeMs,before.mtimeMs);
+  const named=privateV34Path(file);assert.equal(named.dev,before.dev);assert.equal(named.ino,before.ino);assert.equal(named.mtimeMs,before.mtimeMs);
+ }finally{fs.closeSync(fd);}return raw;
+}
+function readV34RetainedAdmission({workspace,descriptorPath,evidence,env=process.env}){
+ assert.equal(env.SECURESHOP_PRICING_V34_MANUAL_EXPERIMENT_NATIVE,'1');
+ assert.equal(env.SECURESHOP_PRICING_V34_TRANSITION_PREFLIGHT_NATIVE,undefined);
+ assert.match(env.SECURESHOP_PRICING_V34_ADMISSION_FD||'',/^[3-9][0-9]*$|^[1-9][0-9]+$/);
+ const fd=Number(env.SECURESHOP_PRICING_V34_ADMISSION_FD);assert.ok(Number.isSafeInteger(fd)&&fd>=3);
+ let bytes,origin,ready,primary;
+ try{
+  assert.match(env.SECURESHOP_PRICING_V34_READY_FD||'',/^[3-9][0-9]*$|^[1-9][0-9]+$/);
+  const candidate=Number(env.SECURESHOP_PRICING_V34_READY_FD);assert.ok(Number.isSafeInteger(candidate)&&candidate>=3&&candidate!==fd);ready=candidate;
+  const info=fs.fstatSync(fd);assert.equal(info.isFIFO(),true);assert.equal(info.uid,process.getuid());
+  const state=fs.fstatSync(ready);assert.equal(state.isFIFO(),true);assert.equal(state.uid,process.getuid());
+   // This origin precedes the parent's remaining-budget sample. Never add
+   // remainingMs to the later grant-read/path-validation completion time.
+  origin=performance.now();assert.equal(fs.writeSync(ready,Buffer.from('R')),1);
+  fs.closeSync(ready);ready=undefined;
+  const chunks=[];let count=0;
+  for(;;){const b=Buffer.alloc(4097-count);const n=fs.readSync(fd,b,0,b.length,null);if(n===0)break;
+   count+=n;assert.ok(count<=4096,'V34 bounded inherited grant required');chunks.push(b.subarray(0,n));}
+  bytes=Buffer.concat(chunks);assert.ok(bytes.length>0);
+ }catch(error){primary=error;throw error;}
+ finally{let closeError;for(const owned of [ready,fd])if(owned!==undefined){try{fs.closeSync(owned);}catch(error){closeError=closeError||error;}}
+  if(closeError&&!primary)throw closeError;}
+ const g=JSON.parse(bytes.toString('utf8'));
+ assert.equal(JSON.stringify(g)===bytes.toString('utf8'),true,'V34 exact single canonical grant required');
+ assert.deepEqual(Object.keys(g).sort(),['version','cohort','runId','launcherPid','workerPid','workspace',
+  'ownerPlanSha256','snapshotSha256','directory','descriptorPath','descriptorSha256','evidencePath','profilePath',
+  'browser','browserSha256','remainingMs'].sort());
+ assert.equal(g.version,1);assert.equal(g.cohort,'pricing-v34-browser');assert.match(g.runId,/^[a-f0-9]{32}$/);
+ assert.equal(g.launcherPid,process.ppid);assert.equal(g.workerPid,process.pid);assert.equal(g.workspace,workspace);
+ for(const key of ['ownerPlanSha256','snapshotSha256','descriptorSha256','browserSha256'])assert.match(g[key],/^[a-f0-9]{64}$/);
+ const root=path.join(workspace,'tasks/qualification','pricing-private-'+g.runId);
+ assert.equal(g.directory,path.join(root,'cohort/browser'));
+ for(const dir of [root,path.join(root,'cohort'),g.directory,path.join(g.directory,'tmp')])privateV34Path(dir,{directory:true});
+ assert.equal(g.descriptorPath,path.join(root,'cohort/private-executor.json'));assert.equal(g.descriptorPath,descriptorPath);
+ assert.equal(g.evidencePath,path.join(g.directory,'merchant-pricing-v34-manual-experiment-browser.json'));assert.equal(g.evidencePath,evidence);
+ assert.equal(g.profilePath,path.join(g.directory,'tmp/dvaia-pricing-chat-owned'));
+ for(const file of [evidence,g.profilePath,path.join(g.directory,'browser-birth.json'),path.join(g.directory,'browser-ack.json')])assert.equal(v34Exists(file),false);
+ assert.equal(g.browser,env.PUPPETEER_EXECUTABLE_PATH);assert.equal(fs.realpathSync(g.browser),g.browser);
+ assert.equal(require('node:crypto').createHash('sha256').update(readV34Private(descriptorPath)).digest('hex')===g.descriptorSha256,true,'V34 descriptor digest mismatch');
+ assert.equal(env.SECURESHOP_STANDALONE_PRICING_DESCRIPTOR_SHA256===g.descriptorSha256,true,'V34 descriptor binding mismatch');
+ assert.equal(env.TMPDIR,path.join(g.directory,'tmp'));
+ assert.equal(env.SECURESHOP_BOUND_BROWSER_BIRTH_SCRIPT,path.join(workspace,'tests/postgres/secureshop_darwin_browser_birth.py'));
+ assert.ok(typeof env.SECURESHOP_BOUND_BROWSER_BIRTH_PYTHON==='string'&&path.isAbsolute(env.SECURESHOP_BOUND_BROWSER_BIRTH_PYTHON));
+ assert.ok(Number.isSafeInteger(g.remainingMs)&&g.remainingMs>0&&g.remainingMs<=1000000);
+ const until=origin+g.remainingMs;assert.ok(until>performance.now(),'V34 original child endpoint expired');
+ const admitted=Object.freeze({...g});retainedAdmissions.set(admitted,{until,used:false});return admitted;
+}
+function retainedV34Remaining(admission){
+ const state=retainedAdmissions.get(admission);assert.ok(state,'Actual inherited V34 admission required');
+ const remaining=state.until-performance.now();assert.ok(remaining>0,'V34 original child endpoint expired');return remaining;
+}
+async function admitV34Browser(browser,profile,admission){
+ const state=retainedAdmissions.get(admission);assert.ok(state&&!state.used,'One original V34 browser required');state.used=true;
+ assert.equal(profile,admission.profilePath);privateV34Path(profile,{directory:true});
+ assert.ok(retainedV34Remaining(admission)>=10000,'V34 browser birth inspection reserve exhausted');
+ const child=browser.process();assert.ok(child&&Number.isSafeInteger(child.pid)&&child.pid>1);
+ const record=require('./secureshopDarwinBrowserBirth').captureBrowserRecord({root:admission.workspace,
+  kind:'pricing_v34_browser',pid:child.pid,executablePath:admission.browser,executableSha256:admission.browserSha256});
+ assert.equal(record.schemaVersion,2,'V34 requires actual OS browser birth, not legacy timestamp');
+ const raw=Buffer.from(JSON.stringify(record)),digest=require('node:crypto').createHash('sha256').update(raw).digest('hex');
+ assert.ok(raw.length<=4096);const temporary=path.join(admission.directory,'browser-birth.partial'),file=path.join(admission.directory,'browser-birth.json');
+ const fd=fs.openSync(temporary,fs.constants.O_WRONLY|fs.constants.O_CREAT|fs.constants.O_EXCL|fs.constants.O_NOFOLLOW,0o600);
+ try{fs.writeFileSync(fd,raw);fs.fsyncSync(fd);}finally{fs.closeSync(fd);}
+ retainedV34Remaining(admission);fs.linkSync(temporary,file);fs.unlinkSync(temporary);
+ const ack=path.join(admission.directory,'browser-ack.json');
+ for(;;){retainedV34Remaining(admission);
+  if(v34Exists(ack)){
+   const value=JSON.parse(readV34Private(ack));assert.deepEqual(value,{version:1,runId:admission.runId,
+    workerPid:process.pid,browserPid:child.pid,birthSha256:digest,profile});return;
+  }
+  await new Promise(resolve=>setTimeout(resolve,Math.min(25,retainedV34Remaining(admission))));
+ }
+}
 module.exports={qualifyPricingBrowser,qualifyDetachedActualPricing,qualifyV54PricingBrowser,uploadV34OwnedManual,prepareV34Manual,switchV34Mode,
+ readV34RetainedAdmission,retainedV34Remaining,admitV34Browser,
  _internals:{exactAmountMention,assertV54ListenerResult,assertV54FixedListenerProof,
-  assertV54ProtectedResult,assertV54ProtectedResultWithSource,assertV34ManualUploadResponse,assertV54PricingRunResponse,replacePhysicalField,
+  assertV54ProtectedResult,assertV54ProtectedResultWithSource,assertV34ManualUploadResponse,assertV34ManualRenderedReceipt,assertV54PricingRunResponse,replacePhysicalField,
   assertFixedExperimentRefusal}};

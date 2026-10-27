@@ -1,5 +1,6 @@
 'use strict';
 const path = require('node:path');
+const { performance } = require('node:perf_hooks');
 const { spawn } = require('node:child_process');
 const { verifyAuditWorkerArtifacts } = require('./secureshopAuditArtifactVerification');
 const WORKER = path.join(__dirname, '../agent-runtime/workers/secureshopAuditWorker.js');
@@ -23,11 +24,15 @@ function parseWorkerDiagnostic(bytes) {
 // A V8 heap budget and bounded transport protect this application job; they
 // are not OS memory/CPU quotas and do not constrain the external Ollama host.
 async function runSecureShopAuditWorker({ spool, baseUrl, model, persona, checkCurrent, signal,
-  timeoutMs = 100000, admitTool, promptPolicySnapshot, taskRequestVersion = 1 } = {}) {
+  timeoutMs = 100000, admitTool, promptPolicySnapshot, taskRequestVersion = 1,
+  now = () => performance.now() } = {}) {
   if (!spool?.manifest || typeof spool.directory !== 'string' || typeof checkCurrent !== 'function'
       || typeof baseUrl !== 'string' || typeof model !== 'string'
       || ![1, 2].includes(taskRequestVersion)
-      || !Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 120000) throw new TypeError('Owned audit worker request required');
+      || !Number.isSafeInteger(timeoutMs) || timeoutMs < 1
+      || timeoutMs > (taskRequestVersion===2?190000:120000)
+      || taskRequestVersion===2&&timeoutMs<20000 || typeof now!=='function') throw new TypeError('Owned audit worker request required');
+  const hostStartedAt=taskRequestVersion===2?now():undefined;
   if(admitTool!==undefined&&typeof admitTool!=='function')throw new TypeError('Invalid audit policy admission');
   const admittedPrompt=promptPolicySnapshot===undefined?undefined:require('./secureshopPromptPolicySnapshot').validatePolicySnapshot(promptPolicySnapshot);
   if(admittedPrompt&&admittedPrompt.role!=='admin')throw failure('AUDIT_PROMPT_POLICY_INVALID');
@@ -42,8 +47,16 @@ async function runSecureShopAuditWorker({ spool, baseUrl, model, persona, checkC
   let policy;
   const check = async () => { signal?.throwIfAborted(); await checkCurrent(); signal?.throwIfAborted(); };
   await check();
+  // Admission checks may wait on the live owner. Do not grant the child time
+  // already spent here; the parent only transferred a remaining duration.
+  const hostTimeoutMs=taskRequestVersion===2?Math.floor(timeoutMs-(now()-hostStartedAt)):timeoutMs;
+  if(taskRequestVersion===2&&(!Number.isSafeInteger(hostTimeoutMs)||hostTimeoutMs<20000||hostTimeoutMs>190000))
+    throw failure('AUDIT_WORKER_TIMEOUT');
+  // Transfer a duration, never the parent process's performance.now() origin.
+  const graphTimeoutMs=taskRequestVersion===2?Math.min(180000,hostTimeoutMs-10000):undefined;
   const input = JSON.stringify({ directory: spool.directory, manifest: spool.manifest, baseUrl, model, persona,
-    taskRequestVersion, ...(admittedPrompt?{promptPolicySnapshot:admittedPrompt}:{}), ...(admitTool ? {policyAdmission:true} : {}) });
+    taskRequestVersion, ...(graphTimeoutMs===undefined?{}:{graphTimeoutMs}),
+    ...(admittedPrompt?{promptPolicySnapshot:admittedPrompt}:{}), ...(admitTool ? {policyAdmission:true} : {}) });
   if (Buffer.byteLength(input) > (admittedPrompt?2*1024*1024:16384)) throw failure('AUDIT_WORKER_INPUT_LIMIT');
   const output = await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, ['--max-old-space-size=256', WORKER], {
@@ -63,7 +76,7 @@ async function runSecureShopAuditWorker({ spool, baseUrl, model, persona, checkC
       child.on('message',message=>{void policy.receive(message);});
     }
     const abort = () => stop(signal.reason || failure('AUDIT_WORKER_CANCELLED'));
-    const deadline = setTimeout(() => stop(failure('AUDIT_WORKER_TIMEOUT')), timeoutMs);
+    const deadline = setTimeout(() => stop(failure('AUDIT_WORKER_TIMEOUT')), hostTimeoutMs);
     const fence = setInterval(async () => {
       if (checking || ended || problem) return;
       checking = true;

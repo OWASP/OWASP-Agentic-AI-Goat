@@ -10,7 +10,8 @@ global.Response = web.Response;
 global.Headers = web.Headers;
 
 let mockUser = { id: 77, role: 'merchant' };
-jest.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: mockUser }) }));
+let mockToken = 'merchant-token';
+jest.mock('../../context/AuthContext', () => ({ useAuth: () => ({ user: mockUser, token: mockToken }) }));
 
 jest.mock('framer-motion', () => {
   const React = require('react');
@@ -55,6 +56,8 @@ beforeEach(() => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.clear();
   mockUser = { id: 77, role: 'merchant' };
+  mockToken = 'merchant-token';
+  localStorage.setItem('secureshop_v2_token', mockToken);
   global.fetch = jest.fn((url) => {
     if (String(url).includes('/merchant/products')) return Promise.resolve(response({ products: [] }));
     return Promise.resolve(response({ reviews: [], counts: {} }));
@@ -91,6 +94,9 @@ test('explains the actual model decision loop in the shop without changing contr
   expect(container.textContent).toContain('This shop sends pending reviews');
   expect(container.textContent).not.toContain('This bound workshop');
   expect(container.textContent).toContain('trusted product-feedback policy');
+  expect(container.textContent).toContain('lets the model approve or reject up to 100');
+  expect(container.textContent).toContain('The filters only change the displayed list');
+  expect(bridge.request.mock.calls.every(([operation]) => !operation.includes('moderate'))).toBe(true);
   expect(container.textContent).not.toContain('rule-based moderation simulation');
   expect(container.querySelector('[data-testid="reviews-moderate-all"]')).not.toBeNull();
 });
@@ -376,240 +382,282 @@ test('partial moderation keeps real decisions and reports the stop reason as an 
   expect(listCalls).toBe(2);
 });
 
-test('bound moderation continues valid batches with remaining quota and fresh request IDs', async () => {
+const moderationKey = 'b'.repeat(64);
+function applied(reviewId, decision = 'approve') {
+  return { review_id: reviewId, product_id: 2, applied_decision: decision,
+    notes: null, applied: { ok: true, review_id: reviewId } };
+}
+function moderationResult(requested, considered, continuationRequired, decisions = [], ok = true) {
+  return { ok, processed: decisions.length, decisions,
+    stopReason: ok ? 'end_turn' : 'max_steps',
+    batch: { requested, considered, complete: true, continuationRequired } };
+}
+async function boundModerationFixture(onPost) {
   const { createBridgeFetch } = await import('../../bridge/fetchAdapter.mjs');
-  const requests = [];
-  let moderationCalls = 0;
+  const posts = [];
+  const saved = new Map();
+  const lookups = [];
   const bridge = { request: jest.fn(async (operation, input) => {
     if (operation === 'merchant.products.list') return response({ products: [] });
-    if (operation === 'merchant.reviews.list') return response({ reviews: [], counts: {} });
-    if (operation === 'merchant.reviews.moderateAll') {
-      requests.push(input.body); moderationCalls += 1;
-      return response(moderationCalls === 1
-        ? { ok: true, processed: 2, decisions: [{ review_id: 1, applied_decision: 'approve' }, { review_id: 11, applied_decision: 'approve' }],
-          batch: { requested: 100, considered: 2, complete: true, continuationRequired: true } }
-        : { ok: true, processed: 1, decisions: [{ review_id: 2, applied_decision: 'reject' }],
-          batch: { requested: 98, considered: 1, complete: true, continuationRequired: false } });
+    if (operation === 'merchant.reviews.list') return response({ reviews: [review(4)], counts: { pending: 1 } });
+    if (operation === 'merchant.reviews.moderationReceipt') {
+      const requestId = input.params.requestId;
+      const requestedLimit = Number(input.query.limit);
+      lookups.push({ requestId, requestedLimit, recoveryScopeKey: input.query.recoveryScopeKey || null });
+      return response({ version: 1, requestId, requestedLimit, recoveryScopeKey: moderationKey,
+        state: saved.has(requestId) ? 'completed' : 'not_found',
+        result: saved.get(requestId) || null });
     }
-    throw new Error(`unexpected ${operation}`);
+    if (operation === 'merchant.reviews.moderateAll') {
+      posts.push(input.body);
+      return onPost(input.body, posts.length, result => saved.set(input.body.request_id, result));
+    }
+    throw new Error('unexpected ' + operation);
   }) };
   global.fetch = createBridgeFetch({ bridge, origin: window.location.origin, boundReviews: true });
+  return { posts, saved, lookups, bridge };
+}
+
+test('bound moderation persists and checks each original batch before a fresh remaining-quota POST', async () => {
+  const f = await boundModerationFixture((body, index, save) => {
+    const result = index === 1
+      ? moderationResult(100, 2, true, [applied(1), applied(11)])
+      : moderationResult(98, 1, false, [applied(2, 'reject')]);
+    save(result); return response(result);
+  });
   await act(async () => root.render(<MerchantReviews />)); await settle();
+  expect(f.posts).toHaveLength(0);
   await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click()); await settle();
-  expect(requests.map(r => r.limit)).toEqual([100, 98]);
-  expect(requests[1].request_id).not.toBe(requests[0].request_id);
+  expect(f.posts.map(row => row.limit)).toEqual([100, 98]);
+  expect(f.posts[1].request_id).not.toBe(f.posts[0].request_id);
+  expect(f.posts.every(row => row.recoveryScopeKey === moderationKey)).toBe(true);
+  expect(f.lookups.map(row => row.recoveryScopeKey)).toEqual([null, moderationKey,
+    moderationKey, moderationKey]);
   expect(container.textContent).toContain('MODERATE_PENDING · 3 PROCESSED');
   expect(container.textContent).toContain('approve');
   expect(container.textContent).toContain('reject');
+  expect(container.querySelector('[data-testid="reviews-moderate-all"]').disabled).toBe(false);
 });
 
-test('a full 100-review batch reports its limit without claiming every pending review was handled', async () => {
-  const { createBridgeFetch } = await import('../../bridge/fetchAdapter.mjs');
-  const requests = [];
-  const decisions = Array.from({ length: 100 }, (_, index) => ({
-    review_id: index + 1, applied_decision: 'approve', product_id: 2,
-  }));
-  const bridge = { request: jest.fn(async (operation, input) => {
-    if (operation === 'merchant.products.list') return response({ products: [] });
-    if (operation === 'merchant.reviews.list') return response({ reviews: [], counts: { pending: 1 } });
-    if (operation === 'merchant.reviews.moderateAll') {
-      requests.push(input.body);
-      return response({ ok: true, processed: 100, decisions,
-        batch: { requested: 100, considered: 100, complete: true, continuationRequired: false } });
-    }
-    throw new Error(`unexpected ${operation}`);
-  }) };
-  global.fetch = createBridgeFetch({ bridge, origin: window.location.origin, boundReviews: true });
-  await act(async () => root.render(<MerchantReviews />)); await settle();
-  const button = container.querySelector('[data-testid="reviews-moderate-all"]');
-  expect(button.textContent).toContain('Moderate pending');
-  await act(async () => button.click()); await settle();
-  expect(requests).toHaveLength(1);
-  expect(requests[0].limit).toBe(100);
-  const feedback = container.querySelector('[data-testid="reviews-feedback"]');
-  expect(feedback.getAttribute('role')).toBe('status');
-  expect(feedback.textContent).toContain('Moderated 100 review(s) in this run.');
-  expect(feedback.textContent).toContain('pending reviews may remain');
-  expect(feedback.textContent).not.toMatch(/all pending|every pending/i);
-});
-
-test('zero-progress batch fails closed without automatically issuing another batch', async () => {
-  const { createBridgeFetch } = await import('../../bridge/fetchAdapter.mjs');
-  let moderationCalls = 0;
-  const bridge = { request: jest.fn(async operation => {
-    if (operation === 'merchant.products.list') return response({ products: [] });
-    if (operation === 'merchant.reviews.list') return response({ reviews: [], counts: {} });
-    if (operation === 'merchant.reviews.moderateAll') {
-      moderationCalls += 1;
-      return response({ ok: true, processed: 0, decisions: [],
-        batch: { requested: 100, considered: 0, complete: true, continuationRequired: true } });
-    }
-    throw new Error(`unexpected ${operation}`);
-  }) };
-  global.fetch = createBridgeFetch({ bridge, origin: window.location.origin, boundReviews: true });
+test('100 considered reviews can span twenty five-review batches without claiming every pending review', async () => {
+  const f = await boundModerationFixture((body, index, save) => {
+    const result = moderationResult(body.limit, 5, index < 20);
+    save(result); return response(result);
+  });
   await act(async () => root.render(<MerchantReviews />)); await settle();
   await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click()); await settle();
-  expect(moderationCalls).toBe(1);
+  expect(f.posts).toHaveLength(20);
+  expect(f.posts.map(row => row.limit)).toEqual(Array.from({ length: 20 }, (_, i) => 100 - i * 5));
+  expect(new Set(f.posts.map(row => row.request_id)).size).toBe(20);
   expect(container.querySelector('[data-testid="reviews-feedback"]').textContent)
-    .toContain('incomplete batch response');
+    .toContain('This run reached its 100-review limit; pending reviews may remain');
 });
 
-test('a failed continuation resumes its own UUID and remaining quota without replaying batch one', async () => {
-  const { createBridgeFetch } = await import('../../bridge/fetchAdapter.mjs');
-  const requests = [];
-  let calls = 0;
-  const bridge = { request: jest.fn(async (operation, input) => {
-    if (operation === 'merchant.products.list') return response({ products: [] });
-    if (operation === 'merchant.reviews.list') return response({ reviews: [], counts: {} });
-    if (operation === 'merchant.reviews.moderateAll') {
-      requests.push(input.body); calls += 1;
-      if (calls === 1) return response({ ok: true, processed: 1,
-        decisions: [{ review_id: 1, applied_decision: 'approve', notes: 'first' }],
-        batch: { requested: 100, considered: 5, complete: true, continuationRequired: true } });
-      if (calls === 2) throw new Error('batch two response lost');
-      return response({ ok: true, processed: 1,
-        decisions: [{ review_id: 2, applied_decision: 'reject', notes: 'second' }],
-        batch: { requested: 95, considered: 1, complete: true, continuationRequired: false } });
-    }
-    throw new Error(`unexpected ${operation}`);
-  }) };
-  global.fetch = createBridgeFetch({ bridge, origin: window.location.origin, boundReviews: true });
-  await act(async () => root.render(<MerchantReviews />)); await settle();
-  const button = container.querySelector('[data-testid="reviews-moderate-all"]');
-  await act(async () => button.click()); await settle();
-  expect(requests).toHaveLength(2);
-  expect(requests[1].limit).toBe(95);
-  expect(container.textContent).toContain('first');
-  await act(async () => button.click()); await settle();
-  expect(requests).toHaveLength(3);
-  expect(requests[2].request_id).toBe(requests[1].request_id);
-  expect(requests[2].limit).toBe(95);
-  expect(container.textContent).toContain('first');
-  expect(container.textContent).toContain('second');
-});
-
-test('a malformed continuation response is retryable with the same batch UUID', async () => {
-  const { createBridgeFetch } = await import('../../bridge/fetchAdapter.mjs');
-  const requests = [];
-  let calls = 0;
-  const bridge = { request: jest.fn(async (operation, input) => {
-    if (operation === 'merchant.products.list') return response({ products: [] });
-    if (operation === 'merchant.reviews.list') return response({ reviews: [], counts: {} });
-    if (operation === 'merchant.reviews.moderateAll') {
-      requests.push(input.body); calls += 1;
-      if (calls === 1) return response({ ok: true, processed: 1,
-        decisions: [{ review_id: 3, applied_decision: 'approve', notes: 'retained' }],
-        batch: { requested: 100, considered: 4, complete: true, continuationRequired: true } });
-      if (calls === 2) return response({ ok: true, processed: 1,
-        decisions: [{ review_id: 99, applied_decision: 'approve' }],
-        batch: { requested: '96', considered: null, complete: true, continuationRequired: true } });
-      return response({ ok: true, processed: 1, decisions: [{ review_id: 4, applied_decision: 'approve' }],
-        batch: { requested: 96, considered: 1, complete: true, continuationRequired: false } });
-    }
-    throw new Error(`unexpected ${operation}`);
-  }) };
-  global.fetch = createBridgeFetch({ bridge, origin: window.location.origin, boundReviews: true });
-  await act(async () => root.render(<MerchantReviews />)); await settle();
-  const button = container.querySelector('[data-testid="reviews-moderate-all"]');
-  await act(async () => button.click()); await settle();
-  const secondId = requests[1].request_id;
-  expect(requests).toHaveLength(2);
-  expect(container.textContent).toContain('retained');
-  await act(async () => button.click()); await settle();
-  expect(requests).toHaveLength(3);
-  expect(requests[2].request_id).toBe(secondId);
-  expect(requests[2].limit).toBe(96);
-  expect(container.textContent).toContain('retained');
-  expect(container.textContent).toContain('#4');
-});
-
-test('unmount during a continuation prevents later batches', async () => {
-  const { createBridgeFetch } = await import('../../bridge/fetchAdapter.mjs');
-  const second = deferred();
-  const requests = [];
-  let calls = 0;
-  const bridge = { request: jest.fn(async (operation, input) => {
-    if (operation === 'merchant.products.list') return response({ products: [] });
-    if (operation === 'merchant.reviews.list') return response({ reviews: [], counts: {} });
-    if (operation === 'merchant.reviews.moderateAll') {
-      requests.push(input.body); calls += 1;
-      if (calls === 1) return response({ ok: true, processed: 1, decisions: [{ review_id: 5, applied_decision: 'approve' }],
-        batch: { requested: 100, considered: 5, complete: true, continuationRequired: true } });
-      return second.promise;
-    }
-    throw new Error(`unexpected ${operation}`);
-  }) };
-  global.fetch = createBridgeFetch({ bridge, origin: window.location.origin, boundReviews: true });
-  await act(async () => root.render(<MerchantReviews />)); await settle();
-  await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click());
-  await settle();
-  expect(requests).toHaveLength(2);
-  await act(async () => root.unmount());
-  await act(async () => {
-    second.resolve(response({ ok: true, processed: 1, decisions: [{ review_id: 6, applied_decision: 'approve' }],
-      batch: { requested: 95, considered: 1, complete: true, continuationRequired: true } }));
-    await second.promise;
+test('lost second acknowledgement stops mutation; Check is GET-only and Continue is a separate click', async () => {
+  const f = await boundModerationFixture((body, index, save) => {
+    const result = index === 1 ? moderationResult(100, 5, true, [applied(1)])
+      : index === 2 ? moderationResult(95, 1, true, [applied(2, 'reject')])
+        : moderationResult(94, 1, false, [applied(3)]);
+    save(result);
+    return index === 2 ? Promise.reject(new Error('batch response lost')) : response(result);
   });
-  expect(requests).toHaveLength(2);
+  await act(async () => root.render(<MerchantReviews />)); await settle();
+  await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click()); await settle();
+  expect(f.posts).toHaveLength(2);
+  expect(container.textContent).toContain('batch response lost');
+  expect(container.querySelector('[data-testid="reviews-moderate-all"]').disabled).toBe(true);
+  await act(async () => [...container.querySelectorAll('button')]
+    .find(button => button.textContent.trim() === 'Check saved moderation').click()); await settle();
+  expect(f.posts).toHaveLength(2);
+  expect(container.textContent).toContain('Continue remaining');
+  await act(async () => [...container.querySelectorAll('button')]
+    .find(button => button.textContent.trim() === 'Continue remaining').click()); await settle();
+  expect(f.posts).toHaveLength(3);
+  expect(f.posts[2].limit).toBe(94);
+  expect(f.posts[2].request_id).not.toBe(f.posts[1].request_id);
+  expect(container.textContent).toContain('MODERATE_PENDING · 3 PROCESSED');
 });
 
-test('bound moderation reuses its request UUID after failure and rotates it after success', async () => {
-  const { createBridgeFetch } = await import('../../bridge/fetchAdapter.mjs');
-  const calls = [];
-  let attempts = 0;
-  const bridge = { request: jest.fn(async (operation, input) => {
-    if (operation === 'merchant.products.list') return response({ products: [] });
-    if (operation === 'merchant.reviews.list') return response({ reviews: [review(4)], counts: { pending: 1 } });
-    if (operation === 'merchant.reviews.moderateAll') {
-      calls.push(input.body.request_id); attempts += 1;
-      if (attempts === 1) throw new Error('response lost');
-      return response({ ok: true, processed: 1, decisions: [] });
-    }
-    throw new Error(`unexpected ${operation}`);
-  }) };
-  global.fetch = createBridgeFetch({ bridge, origin: window.location.origin, boundReviews: true });
-  await act(async () => root.render(<MerchantReviews />));
-  await settle();
-  const button = container.querySelector('[data-testid="reviews-moderate-all"]');
-  await act(async () => button.click()); await settle();
-  expect(container.textContent).toContain('response lost');
-  await act(async () => button.click()); await settle();
-  expect(calls).toHaveLength(2);
-  expect(calls[1]).toBe(calls[0]);
-  await act(async () => button.click()); await settle();
-  expect(calls).toHaveLength(3);
-  expect(calls[2]).not.toBe(calls[1]);
+test('malformed completed receipt leaves the saved batch unresolved and forbids another POST', async () => {
+  const f = await boundModerationFixture((body, index, save) => {
+    save({ ...moderationResult(body.limit, 1, false), batch: { requested: '100',
+      considered: 1, complete: true, continuationRequired: false } });
+    return response({ ok: true });
+  });
+  await act(async () => root.render(<MerchantReviews />)); await settle();
+  await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click()); await settle();
+  expect(f.posts).toHaveLength(1);
+  expect(container.textContent).toContain('saved moderation batch');
+  await act(async () => [...container.querySelectorAll('button')]
+    .find(button => button.textContent.trim() === 'Check saved moderation').click()); await settle();
+  expect(f.posts).toHaveLength(1);
+  expect(container.querySelector('[data-testid="reviews-moderate-all"]').disabled).toBe(true);
 });
 
-test('persona transition fences an older moderation response and rotates request identity', async () => {
-  const { createBridgeFetch } = await import('../../bridge/fetchAdapter.mjs');
-  const first = deferred(); const second = deferred(); const ids = [];
-  let moderationCalls = 0;
-  const bridge = { request: jest.fn(async (operation, input) => {
-    if (operation === 'merchant.products.list') return response({ products: [] });
-    if (operation === 'merchant.reviews.list') return response({ reviews: [review(4)], counts: { pending: 1 } });
-    if (operation === 'merchant.reviews.moderateAll') {
-      ids.push(input.body.request_id); moderationCalls += 1;
-      return moderationCalls === 1 ? first.promise : second.promise;
-    }
-    throw new Error(`unexpected ${operation}`);
-  }) };
-  global.fetch = createBridgeFetch({ bridge, origin: window.location.origin, boundReviews: true });
+test('reload exposes a saved unknown batch but never resends it automatically', async () => {
+  const f = await boundModerationFixture((body, index, save) =>
+    Promise.reject(new Error('response lost')));
+  await act(async () => root.render(<MerchantReviews />)); await settle();
+  await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click()); await settle();
+  expect(f.posts).toHaveLength(1);
+  await act(async () => root.unmount());
+  root = createRoot(container);
+  await act(async () => root.render(<MerchantReviews />)); await settle();
+  expect(f.posts).toHaveLength(1);
+  expect(container.textContent).toContain('saved moderation batch');
+  await act(async () => [...container.querySelectorAll('button')]
+    .find(button => button.textContent.trim() === 'Check saved moderation').click()); await settle();
+  expect(f.posts).toHaveLength(1);
+  expect(container.textContent).toContain('No completed moderation receipt observed yet');
+});
+
+test('known completed model failure with partial effects is terminal, not a retry permit', async () => {
+  const f = await boundModerationFixture((body, index, save) => {
+    const result = moderationResult(100, 2, true, [applied(5)], false);
+    save(result); return response(result);
+  });
+  await act(async () => root.render(<MerchantReviews />)); await settle();
+  await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click()); await settle();
+  expect(f.posts).toHaveLength(1);
+  expect(container.textContent).toContain('MODERATE_PENDING · 1 PROCESSED');
+  expect(container.textContent).not.toContain('Continue remaining');
+  expect(container.querySelector('[data-testid="reviews-feedback"]').getAttribute('role')).toBe('alert');
+});
+
+test('authority A→B→A with the same transport fences stale receipt and preserves pending', async () => {
+  const deferredReceipt = deferred();
+  const f = await boundModerationFixture((body, index, save) => {
+    save(moderationResult(100, 1, false, [applied(7)]));
+    return response({ ok: true });
+  });
+  const original = f.bridge.request.getMockImplementation();
+  f.bridge.request.mockImplementation((operation, input) => {
+    if (operation === 'merchant.reviews.moderationReceipt' && input.query.recoveryScopeKey)
+      return deferredReceipt.promise;
+    return original(operation, input);
+  });
   await act(async () => root.render(<MerchantReviews />)); await settle();
   await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click());
+  expect(f.posts).toHaveLength(1);
   mockUser = { id: 88, role: 'merchant' };
   await act(async () => root.render(<MerchantReviews />)); await settle();
-  await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click());
-  expect(ids).toHaveLength(2); expect(ids[1]).not.toBe(ids[0]);
-  await act(async () => { first.resolve(response({ ok: true, processed: 99, decisions: [] })); await first.promise; });
-  await settle();
-  expect(container.textContent).not.toContain('Moderated 99 review(s)');
-  await act(async () => { second.resolve(response({ ok: true, processed: 1, decisions: [] })); await second.promise; });
-  await settle();
-  expect(container.textContent).toContain('Moderated 1 review(s) in this run.');
+  mockUser = { id: 77, role: 'merchant' };
+  await act(async () => root.render(<MerchantReviews />)); await settle();
+  await act(async () => { deferredReceipt.resolve(response({ version: 1,
+    requestId: f.posts[0].request_id, requestedLimit: 100, recoveryScopeKey: moderationKey,
+    state: 'completed', result: moderationResult(100, 1, false, [applied(7)]) }));
+    await deferredReceipt.promise; });
+  expect(container.textContent).not.toContain('MODERATE_PENDING · 1 PROCESSED');
+  expect(container.querySelector('[data-testid="reviews-moderate-all"]').disabled).toBe(true);
+  expect(f.posts).toHaveLength(1);
 });
 
+test('storage persistence failure and StrictMode replay cannot authorize an original POST', async () => {
+  const spy = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw Error('storage unavailable'); });
+  try {
+    const f = await boundModerationFixture(() => { throw Error('POST must not run'); });
+    await act(async () => root.render(<React.StrictMode><MerchantReviews /></React.StrictMode>)); await settle();
+    await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click()); await settle();
+    expect(f.posts).toHaveLength(0);
+    expect(container.textContent).toContain('storage unavailable');
+  } finally { spy.mockRestore(); }
+});
 
+test('healthy StrictMode mount and replay do not submit until one explicit click', async () => {
+  const f = await boundModerationFixture((body, index, save) => {
+    const result = moderationResult(100, 1, false, [applied(9)]);
+    save(result); return response(result);
+  });
+  await act(async () => root.render(<React.StrictMode><MerchantReviews /></React.StrictMode>));
+  await settle();
+  expect(f.posts).toHaveLength(0);
+  await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click());
+  await settle();
+  expect(f.posts).toHaveLength(1);
+  expect(container.textContent).toContain('MODERATE_PENDING · 1 PROCESSED');
+});
+
+test('shop bearer changing before React rerender cannot clear a completed pending receipt', async () => {
+  const pendingReceipt = deferred();
+  const f = await boundModerationFixture((body, index, save) => {
+    save(moderationResult(100, 1, false, [applied(10)]));
+    return response({ ok: true });
+  });
+  const original = f.bridge.request.getMockImplementation();
+  f.bridge.request.mockImplementation((operation, input) =>
+    operation === 'merchant.reviews.moderationReceipt' && input.query.recoveryScopeKey
+      ? pendingReceipt.promise : original(operation, input));
+  await act(async () => root.render(<MerchantReviews />)); await settle();
+  await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click());
+  expect(f.posts).toHaveLength(1);
+  localStorage.setItem('secureshop_v2_token', 'different-bearer');
+  await act(async () => {
+    pendingReceipt.resolve(response({ version: 1, requestId: f.posts[0].request_id,
+      requestedLimit: 100, recoveryScopeKey: moderationKey, state: 'completed',
+      result: moderationResult(100, 1, false, [applied(10)]) }));
+    await pendingReceipt.promise;
+  });
+  expect(container.textContent).not.toContain('MODERATE_PENDING · 1 PROCESSED');
+  expect(localStorage.getItem('secureshop.review-moderation.pending.v1')).not.toBeNull();
+  expect(f.posts).toHaveLength(1);
+});
+
+test('transport replacement before rerender fences the old completed receipt', async () => {
+  const pendingReceipt = deferred();
+  const f = await boundModerationFixture((body, index, save) => {
+    save(moderationResult(100, 1, false, [applied(11)]));
+    return response({ ok: true });
+  });
+  const oldTransport = global.fetch;
+  const original = f.bridge.request.getMockImplementation();
+  f.bridge.request.mockImplementation((operation, input) =>
+    operation === 'merchant.reviews.moderationReceipt' && input.query.recoveryScopeKey
+      ? pendingReceipt.promise : original(operation, input));
+  await act(async () => root.render(<MerchantReviews />)); await settle();
+  await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click());
+  const { createBridgeFetch } = await import('../../bridge/fetchAdapter.mjs');
+  global.fetch = createBridgeFetch({ bridge: f.bridge, origin: window.location.origin, boundReviews: true });
+  expect(global.fetch).not.toBe(oldTransport);
+  await act(async () => root.render(<MerchantReviews />)); await settle();
+  await act(async () => {
+    pendingReceipt.resolve(response({ version: 1, requestId: f.posts[0].request_id,
+      requestedLimit: 100, recoveryScopeKey: moderationKey, state: 'completed',
+      result: moderationResult(100, 1, false, [applied(11)]) }));
+    await pendingReceipt.promise;
+  });
+  expect(container.textContent).not.toContain('MODERATE_PENDING · 1 PROCESSED');
+  expect(localStorage.getItem('secureshop.review-moderation.pending.v1')).not.toBeNull();
+  expect(f.posts).toHaveLength(1);
+});
+
+test('storage disconnect during receipt readback cannot publish or clear the saved batch', async () => {
+  const pendingReceipt = deferred();
+  const f = await boundModerationFixture((body, index, save) => {
+    save(moderationResult(100, 1, false, [applied(12)]));
+    return response({ ok: true });
+  });
+  const original = f.bridge.request.getMockImplementation();
+  f.bridge.request.mockImplementation((operation, input) =>
+    operation === 'merchant.reviews.moderationReceipt' && input.query.recoveryScopeKey
+      ? pendingReceipt.promise : original(operation, input));
+  await act(async () => root.render(<MerchantReviews />)); await settle();
+  await act(async () => container.querySelector('[data-testid="reviews-moderate-all"]').click());
+  const blocked = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+    throw new DOMException('Shop storage disconnected', 'AbortError');
+  });
+  try {
+    await act(async () => {
+      pendingReceipt.resolve(response({ version: 1, requestId: f.posts[0].request_id,
+        requestedLimit: 100, recoveryScopeKey: moderationKey, state: 'completed',
+        result: moderationResult(100, 1, false, [applied(12)]) }));
+      await pendingReceipt.promise;
+    });
+    expect(container.textContent).not.toContain('MODERATE_PENDING · 1 PROCESSED');
+    expect(container.textContent).toContain('Saved moderation storage is unavailable');
+  } finally { blocked.mockRestore(); }
+  expect(localStorage.getItem('secureshop.review-moderation.pending.v1')).not.toBeNull();
+  expect(f.posts).toHaveLength(1);
+});
 test('bound manual decisions remain disabled without an explicit recovery capability', async () => {
   const { createBridgeFetch } = await import('../../bridge/fetchAdapter.mjs');
   const bridge={request:jest.fn(async(op)=>response(op==='merchant.products.list'?{products:[]}:{reviews:[review(4)],counts:{pending:1}}))};

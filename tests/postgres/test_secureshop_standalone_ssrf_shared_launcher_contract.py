@@ -110,6 +110,8 @@ class StandaloneSsrfSharedLauncherContract(unittest.TestCase):
             'sourcePins', 'dependencyInventory', 'clientDependencyInventory',
             'browserInventory'})
         pins = snapshot['sourcePins']
+        self.assertFalse(any(name.startswith('tasks/qualification/') for name in pins),
+                         'private repository evidence must not become source input')
         imported = set(LAUNCHER.ssrf_owned.source_files()) | {
             LAUNCHER.C32_LAUNCHER_TEST}
         for directory in ('sidecars/sandbox-runner', 'sidecars/analytics-sql-target',

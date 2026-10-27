@@ -6,8 +6,9 @@ const {createManualRagSourceReader}=require('../server/services/secureshopManual
 const {createManualRagSourceAdapter}=require('../server/database/postgres/secureshopManualRagSourceAdapter');
 const {canonicalDigest}=require('../server/services/mcp/protocolContext');
 const clone=value=>structuredClone(value);
-function setup(mutate=()=>{}){
- const f=fixture(),p=f.proof,r=p.receipt,log=[];
+function setup(mutate=()=>{}, {source=fixture(), adapterFactory=createManualRagSourceAdapter,
+ readerFactory=createManualRagSourceReader, expectedPrivate=false}={}){
+ const f=source,p=f.proof,r=p.receipt,log=[];
  const target=JSON.parse(JSON.stringify(f.target));
  const uploadOrigin={version:1,binding:p.uploader.binding,personaSession:p.uploader.personaSession,
   source:{sessionId:p.uploader.original.sessionId,requestId:p.uploader.original.requestId},
@@ -33,7 +34,7 @@ function setup(mutate=()=>{}){
  const fields={operation_id:r.operationId,manual_source_id:r.manualSourceId,target_id:r.targetId,
   launch_id:r.launchId,scenario_id:r.scenarioId,generation:r.generation,original_platform_owner_id:r.platformOwnerId,
   original_platform_session_id:r.platformSessionId,scene_id:r.sceneId,scene_generation:r.sceneGeneration,scene_grant_id:r.sceneGrantId,
-  product_id:r.productId,merchant_id:r.merchantId,receipt_version:2,is_public:true,receipt_valid:true,runtime_valid:true,
+  product_id:r.productId,merchant_id:r.merchantId,receipt_version:2,is_public:r.isPublic,receipt_valid:true,runtime_valid:true,
   runtime_fingerprint:Buffer.from(r.runtimeFingerprint,'hex'),file_target_id:r.fileReceipt.targetId,
   virtual_path:r.fileReceipt.virtualPath,byte_count:r.fileReceipt.bytes,file_sha256:Buffer.from(r.fileReceipt.sha256,'hex'),
   filename:r.filename,mime:r.mime,extractor:r.extractor,extraction_sha256:Buffer.from(r.extractionSha256,'hex'),
@@ -59,13 +60,17 @@ function setup(mutate=()=>{}){
   if(sql.includes('assert_scene_execution_grant'))return{rows:[{allowed:data.grant}]};
   if(sql.includes('FOR SHARE OF t')){assert.deepEqual(params,[r.targetId,r.launchId,r.scenarioId,r.generation,r.platformOwnerId,r.platformSessionId]);return{rows:data.active?[{target_id:r.targetId}]:[]};}
   if(sql.includes('product_target_manual_preimages')){
+   assert.equal(sql.includes('AND NOT i.is_public'),expectedPrivate);
+   assert.equal(sql.includes('AND i.is_public'),!expectedPrivate);
    assert.deepEqual(params,[r.operationId,r.targetId,r.launchId,r.scenarioId,r.generation,r.platformOwnerId,r.platformSessionId,r.sceneId,r.sceneGeneration]);
    assert.match(sql,/p.operation_id=i.operation_id AND p.target_id=i.target_id/);
    assert.doesNotMatch(sql,/embedding_heads|retrieval_documents|float8|double precision/);
    if(data.manualError)throw data.manualError;
    return{rows:data.manualMissing?[]:data.manualDuplicate?[data.manual,data.manual]:[data.manual]};
   }
-  if(sql.includes('product_target_manual_ingests')){assert.equal(params[0],r.operationId);assert.equal(params[7],r.sceneId);assert.match(sql,/i.is_public/);return{rows:[fields]};}
+  if(sql.includes('product_target_manual_ingests')){assert.equal(params[0],r.operationId);assert.equal(params[7],r.sceneId);
+   assert.equal(sql.includes('AND NOT i.is_public'),expectedPrivate);
+   assert.equal(sql.includes('AND i.is_public'),!expectedPrivate);return{rows:[fields]};}
   if(sql.includes('product_target_embedding_preimages')){
    assert.deepEqual(params,[v.revisionId,r.targetId,r.launchId,r.scenarioId,r.generation,r.platformOwnerId,r.platformSessionId]);
    assert.match(sql,/p.revision_id=r.revision_id AND p.target_id=r.target_id/);
@@ -78,7 +83,8 @@ function setup(mutate=()=>{}){
  const agentsPool={async query(sql,params){log.push(sql);assert.doesNotMatch(sql,/binding_state='active'/);
   if(sql.includes('WITH original_traces')){const original=params[0]===p.consumer.original.sessionId?p.consumer.original:p.uploader.original;
    assert.deepEqual(params[9],original.traceEventIds);return{rows:original.traces.map(row=>({...row,id:String(row.id)}))};}
-  const row=sql.includes("manualRagUploadOrigin,receipt,operationId")?data.upload:data.consumer;
+  const uploadKey=expectedPrivate?'protectedManualUploadOrigin':'manualRagUploadOrigin';
+  const row=sql.includes(`${uploadKey},receipt,operationId`)?data.upload:data.consumer;
   if(row===data.upload){assert.equal(params[8],r.operationId);assert.equal(params[9],r.targetId);assert.equal(params[5],r.execution.platformSessionId);}
   return{rows:data.duplicate?[row,row]:[row]};}};
  const identityPool={async query(sql,params){log.push(sql);assert.doesNotMatch(sql,/graph_runtime.owners/);
@@ -86,11 +92,12 @@ function setup(mutate=()=>{}){
   assert.equal(params[1],o.run.owner_key);
   if(sql.includes('graph_runtime.effects')){assert.equal(params[2],o.run.generation);assert.equal(params[3],o.effect.effect_key);return{rows:data.missingEffect?[]:[o.effect]};}
   return{rows:[o.run]};}};
- const adapter=createManualRagSourceAdapter({agentsPool,reviewPool:{connect:async()=>reviewClient},identityPool});
- const reader=createManualRagSourceReader({current:async()=>state,...adapter,qualifyModel:f.qualifyModel});
+ const adapter=adapterFactory({agentsPool,reviewPool:{connect:async()=>reviewClient},identityPool});
+ const reader=readerFactory({current:async()=>state,...adapter,qualifyModel:f.qualifyModel});
  return {reader,adapter,state,data,p,log,request:{sessionId:p.consumer.original.sessionId,requestId:p.consumer.original.requestId}};
 }
 
+if (require.main === module) {
 test('private SQL adapter reads historical uploader under current consumer grant and joins exact immutable IDs',async()=>{
  const f=setup();const result=await f.reader({},f.request);
  assert.equal(result.sourceDigest.length,64);assert.equal(result.lineage.receipt.operationId,f.p.receipt.operationId);
@@ -207,3 +214,6 @@ test('manual preimage cannot be backfilled, replaced, reordered or divorced from
  const g=setup();g.data.manualError=Object.assign(Error('store unavailable'),{code:'57P01'});
  await assert.rejects(g.adapter.readManualPreimage({state:g.state,operationId:g.p.receipt.operationId}),{code:'57P01'});
 });
+}
+// Controlled SQL row harness; importing it registers no tests and starts no I/O.
+module.exports={setup};

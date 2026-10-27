@@ -3,6 +3,84 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
+const WINDOWS_PROTECTED_SERVICES = [
+  "['http', 'shadow'].map(kind => ({",
+  "  load: options => { const config = require(`../server/services/mcp/owned${kind === 'http' ? 'Http' : 'Shadow'}ManagedConfiguration`);",
+  "    return config.load({ file: config.managedPath(options) }); },",
+  "  start: options => require(`./install/mcp-owned-${kind}`).startExisting(options),",
+  "  ready: config => { const client = require(`../server/services/mcp/owned${kind === 'http' ? 'Http' : 'Shadow'}ServiceClient`);",
+  "    return client[kind === 'http' ? 'createOwnedHttpServiceClient' : 'createOwnedShadowServiceClient']({ baseUrl: config.url, token: config.token,",
+  "      fetch: (url, options) => globalThis.fetch(url, { ...options, signal: AbortSignal.any([options.signal, AbortSignal.timeout(1000)]) }) }).readiness(); },",
+  '}))',
+].join('\n');
+
+function astShape(node) {
+  return JSON.stringify(node, (key, value) =>
+    ['start', 'end', 'loc', 'extra', 'comments', 'errors', 'leadingComments', 'trailingComments', 'innerComments'].includes(key)
+      ? undefined : value);
+}
+
+function windowsProtectedModules(ast, parser) {
+  const declarations = ast.program.body.filter(node =>
+    node.type === 'FunctionDeclaration' && node.id?.name === 'runWindowsStartup');
+  const properties = declarations[0]?.params?.[0]?.left?.properties?.filter(property =>
+    property.type === 'ObjectProperty' && property.key?.name === 'protectedServices');
+  const expression = properties?.[0]?.value?.right;
+  const expected = parser.parseExpression(WINDOWS_PROTECTED_SERVICES);
+  const actualShape = astShape(expression), expectedShape = astShape(expected);
+  if (declarations.length !== 1 || properties?.length !== 1
+      || declarations[0].params?.[0]?.type !== 'AssignmentPattern'
+      || declarations[0].params[0].left?.type !== 'ObjectPattern'
+      || properties[0].value?.type !== 'AssignmentPattern'
+      || actualShape !== expectedShape) {
+    throw new Error('unreviewed Windows protected service registry or arguments');
+  }
+  const calls = new Set();
+  const walk = node => {
+    if (!node || typeof node !== 'object') return;
+    if (node.type === 'CallExpression' && node.callee?.name === 'require') calls.add(node);
+    for (const [key, value] of Object.entries(node)) {
+      if (['end', 'extra', 'loc', 'start'].includes(key)) continue;
+      if (Array.isArray(value)) value.forEach(walk); else walk(value);
+    }
+  };
+  walk(expression);
+  if (calls.size !== 3) throw new Error('Windows protected service require set changed');
+  return Object.freeze({calls, modules: Object.freeze([
+    '../server/services/mcp/ownedHttpManagedConfiguration',
+    '../server/services/mcp/ownedShadowManagedConfiguration',
+    './install/mcp-owned-http', './install/mcp-owned-shadow',
+    '../server/services/mcp/ownedHttpServiceClient',
+    '../server/services/mcp/ownedShadowServiceClient',
+  ])});
+}
+
+function setupPuppeteerLoaders(ast, parser) {
+  const expected = astShape(parser.parseExpression(
+    "target => require(require.resolve('puppeteer', { paths: [target] }))"));
+  const calls = new Set();
+  for (const name of ['verifyBrowserRuntime', 'ensurePuppeteerBrowserInstalled']) {
+    const declarations = ast.program.body.filter(node =>
+      node.type === 'FunctionDeclaration' && node.id?.name === name);
+    const parameter = declarations[0]?.params?.[0];
+    const properties = parameter?.left?.properties?.filter(property =>
+      property.type === 'ObjectProperty' && property.key?.name === 'loadPuppeteer');
+    const expression = properties?.[0]?.value?.right;
+    if (declarations.length !== 1 || parameter?.type !== 'AssignmentPattern'
+        || parameter.left?.type !== 'ObjectPattern' || properties?.length !== 1
+        || properties[0].value?.type !== 'AssignmentPattern'
+        || astShape(expression) !== expected) {
+      throw new Error(`unreviewed Puppeteer package loader in ${name}`);
+    }
+    const call = expression.body;
+    if (call?.type !== 'CallExpression' || call.callee?.name !== 'require'
+        || call.arguments.length !== 1) throw new Error(`unreviewed Puppeteer package loader in ${name}`);
+    calls.add(call);
+  }
+  if (calls.size !== 2) throw new Error('unreviewed Puppeteer package loader set');
+  return calls;
+}
+
 function resolveLocal(sourceRoot, parent, specifier) {
   const candidate = path.resolve(path.dirname(parent), specifier);
   const choices = [
@@ -72,6 +150,10 @@ function collectAgentHostSourceClosure(sourceRoot) {
         throw new Error('TASK_AGENTS registry is empty, duplicated, or malformed');
       }
     }
+    const windowsProtected = relative === 'scripts/start-application.js'
+      ? windowsProtectedModules(ast, parser) : null;
+    const puppeteerLoaders = relative === 'scripts/setup-application.js'
+      ? setupPuppeteerLoaders(ast, parser) : null;
     let repositoryModules = null;
     if (relative === 'db/postgres/initialize-application.js') {
       const bindings = [];
@@ -210,6 +292,19 @@ function collectAgentHostSourceClosure(sourceRoot) {
           for (const name of registryAgents) queue.push(path.join(sourceRoot, 'agent-host', 'agents', name, 'server.js'));
           dynamic.push({ file: relative, line: node.loc.start.line, kind: 'canonical-agent-registry' });
         } else if (
+          puppeteerLoaders?.has(node)
+        ) {
+          // This is an exact npm package resolver, not a source-relative file.
+          // The native launcher pins dependency bytes separately.
+          dynamic.push({file: relative, line: node.loc.start.line, kind: 'canonical-puppeteer-package-loader'});
+        } else if (
+          windowsProtected?.calls.has(node)
+          && node.arguments.length === 1
+        ) {
+          for (const moduleName of windowsProtected.modules)
+            queue.push(resolveLocal(sourceRoot, file, moduleName));
+          dynamic.push({file: relative, line: node.loc.start.line, kind: 'canonical-windows-protected-services'});
+        } else if (
           relative === 'agent-host/shared/vectorStore.js'
           && argument?.type === 'CallExpression'
           && argument.callee?.type === 'MemberExpression'
@@ -268,4 +363,4 @@ if (require.main === module) {
   process.stdout.write(`${JSON.stringify(collectAgentHostSourceClosure(process.argv[2]))}\n`);
 }
 
-module.exports = { collectAgentHostSourceClosure };
+module.exports = { collectAgentHostSourceClosure, windowsProtectedModules, setupPuppeteerLoaders };

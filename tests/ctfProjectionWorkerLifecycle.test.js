@@ -17,6 +17,39 @@ test('uncooperative readiness cannot be mistaken for drained or invoke batch aft
 test('false readiness and thrown batch pause without hidden retries or secret diagnostics',async()=>{
  let ready=false;const f=fixture({readiness:async()=>ready});f.worker.start();await until(()=>f.worker.status().lastOutcome==='not_ready');assert.equal(f.calls,0);ready=true;f.identity.next=async()=>{throw Error('private token and SQL');};f.worker.start();await until(()=>f.worker.status().lastOutcome==='failed');assert.equal(f.worker.status().state,'paused');assert(!JSON.stringify(f.worker.status()).includes('private'));await f.worker.stop();
 });
+test('worker failure taxonomy distinguishes readiness and projection without retaining private errors',async()=>{
+ let failReadiness=true;
+ const f=fixture({readiness:async()=>{if(failReadiness)throw Object.assign(Error('private readiness SQL'),{code:'CTF_DELIVERY_ACTIVATION_UNAVAILABLE'});return true;}});
+ f.worker.start();await until(()=>f.worker.status().lastOutcome==='failed');
+ assert.equal(f.worker.status().lastFailurePhase,'readiness');
+ assert.equal(f.worker.status().lastFailureCode,'CTF_DELIVERY_ACTIVATION_UNAVAILABLE');
+ assert(!JSON.stringify(f.worker.status()).includes('private'));
+ failReadiness=false;f.identity.next=async()=>{throw Object.assign(Error('private projection SQL'),{code:'PRIVATE_UNBOUNDED_CODE'});};
+ f.worker.start();assert.equal(f.worker.status().lastFailurePhase,null);assert.equal(f.worker.status().lastFailureCode,null);
+ await until(()=>f.worker.status().lastOutcome==='failed');
+ assert.equal(f.worker.status().lastFailurePhase,'projection');assert.equal(f.worker.status().lastFailureCode,'other');
+ assert(!JSON.stringify(f.worker.status()).includes('PRIVATE'));
+ f.identity.next=async()=>null;f.worker.start();await until(()=>f.worker.status().lastOutcome==='applied');
+ assert.equal(f.worker.status().lastFailurePhase,null);assert.equal(f.worker.status().lastFailureCode,null);
+ await f.worker.stop();
+});
+test('malformed error-code access cannot replace the original worker pause',async()=>{
+ const f=fixture();f.identity.next=async()=>{const error=Error('private');Object.defineProperty(error,'code',{get(){throw Error('private getter');}});throw error;};
+ f.worker.start();await until(()=>f.worker.status().lastOutcome==='failed');
+ assert.equal(f.worker.status().state,'paused');assert.equal(f.worker.status().lastFailureCode,'other');
+ assert(!JSON.stringify(f.worker.status()).includes('private'));await f.worker.stop();
+});
+test('only exact repository error literals enter the closed worker failure taxonomy',async()=>{
+ for(const literal of ['CTF_LEGACY_EVENT_REQUIRES_RECOVERY','CTF_DELETION_IDENTITY_MISMATCH','CTF_COMMAND_ENCODING_MISMATCH']){
+  const f=fixture();f.identity.next=async()=>{throw Error(literal);};f.worker.start();
+  await until(()=>f.worker.status().lastOutcome==='failed');
+  assert.equal(f.worker.status().lastFailurePhase,'projection');assert.equal(f.worker.status().lastFailureCode,literal);
+  await f.worker.stop();
+ }
+ const f=fixture();f.identity.next=async()=>{throw Error('CTF_LEGACY_EVENT_REQUIRES_RECOVERY private SQL');};f.worker.start();
+ await until(()=>f.worker.status().lastOutcome==='failed');assert.equal(f.worker.status().lastFailureCode,'other');
+ assert(!JSON.stringify(f.worker.status()).includes('private'));await f.worker.stop();
+});
 test('readiness is rechecked each batch and loss pauses future polling',async()=>{
  let checks=0;const f=fixture({readiness:async()=>++checks===1});f.worker.start();await until(()=>f.worker.status().lastOutcome==='not_ready');assert.equal(f.calls,1);assert.equal(checks,2);await f.worker.stop();
 });

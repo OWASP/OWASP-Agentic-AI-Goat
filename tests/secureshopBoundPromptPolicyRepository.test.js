@@ -12,6 +12,8 @@ const {
 const contract = require('../server/services/secureshopPromptPolicyContract');
 const {createFeatureModeAuthority}=require('../server/services/secureshopFeatureModeAuthority');
 const {createBoundPromptPolicyService}=require('../server/services/secureshopBoundPromptPolicyService');
+const {readFileSync}=require('node:fs');
+const {join}=require('node:path');
 function modeFixture(initial='fixed') {
   let mode=initial, epoch=0, calls=0;
   const modeAuthority=createFeatureModeAuthority({progress:{async getEvaluationScope(){return {mode,generation:epoch,modeStamp:String(epoch)};}},launches:{async assertCurrent(){}}});
@@ -26,6 +28,18 @@ function modeFixture(initial='fixed') {
   return {...f,modeAuthority,renderer,get calls(){return calls;},setMode(value){mode=value;epoch++;},
     service:createBoundPromptPolicyService({repository:f.repository,renderer,modeAuthority})};
 }
+
+test('RoleChoices Policy repository and service share the mode authority; missing token is denied', async()=>{
+  const fixtureSource=readFileSync(join(__dirname,'postgres/secureshopStandaloneRoleChoicesRendered.integration.test.js'),'utf8');
+  const compositionSource=readFileSync(join(__dirname,'../server/services/secureshopBoundReviewComposition.js'),'utf8');
+  assert.match(fixtureSource,/createBoundPromptPolicyRepository\(\{ pool: agents,\s*personaAuthority: grading\.personaAuthority, audit: reset\.audit\.agents, modeAuthority,/);
+  assert.match(compositionSource,/createBoundPromptPolicyService\(\{repository:promptPolicyRepository,renderer:promptPolicyRenderer,modeAuthority\}\)/);
+  const f=modeFixture('fixed'), input=f.input();
+  assert.equal((await f.service.render(input)).state,'completed');
+  const token=await f.modeAuthority.capture(f.context.scope,'policy');
+  await assert.rejects(f.repository.beginRender({...f.input(),execution:token.snapshot}),
+    {code:'SECURESHOP_FEATURE_MODE_STALE'});
+});
 
 test('fixed policy publishes literal task source and permits delete without renderer; private read validates exact original revision',async()=>{
   const f=modeFixture(), x=f.input();

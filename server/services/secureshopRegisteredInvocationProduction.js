@@ -25,12 +25,13 @@ function createRegisteredInvocationInfrastructure({configuration,identityPool,ag
  let launches;
  const personaAuthority=require('../database/postgres/secureshopBoundPersonaAuthority').createSecureShopBoundPersonaAuthority({pool:agentsPool,checkCurrent:scope=>launches.assertCurrent(scope)});
  const journal=require('../database/postgres/secureshopOwnedMcpRegistryInvocationJournal').createRegistryInvocationJournal({pool:agentsPool,personaAuthority});
- launches=require('../database/postgres/secureshopLaunchRepository').createSecureShopLaunchRepository(identityPool,{ownedMcpInvocationJournal:journal});
+ const registrationJournal=require('../database/postgres/secureshopOwnedMcpRegistrationJournal').createOwnedMcpRegistrationJournal({pool:agentsPool,personaAuthority});
+ launches=require('../database/postgres/secureshopLaunchRepository').createSecureShopLaunchRepository(identityPool,{ownedMcpInvocationJournal:journal,ownedMcpRegistrationJournal:registrationJournal});
  const client=require('./secureshopOwnedMcpRegistryClient').createOwnedMcpRegistryClient({baseURL:value.baseURL,token:value.token,expectedRuntimeDigest:value.runtimeDigest});
  const retirer=require('./secureshopOwnedMcpRegistryInvocationBridge').createRegistryInvocationRetirer({journal,client});
- return Object.freeze({configuration:value,agentsPool,launches,personaAuthority,journal,client,retirer});
+ return Object.freeze({configuration:value,agentsPool,launches,personaAuthority,journal,registrationJournal,client,retirer});
 }
-async function createRegisteredInvocationProduction({infrastructure,resetComposition,provider,authenticatePersona,migrationPool,modeAuthority,identityPool,gradingBootstrap,judge}={}){
+async function createRegisteredInvocationProduction({infrastructure,resetComposition,provider,authenticatePersona,migrationPool,modeAuthority,identityPool,gradingBootstrap,judge,assessmentReleaseAdmission}={}){
  if(!REGISTERED_INVOCATION_QUALIFIED||!infrastructure||infrastructure.configuration.enabled!==true)return Object.freeze({ready:false,async close(){}});
  const {configuration,launches,personaAuthority,journal,client}=infrastructure;
  if(!resetComposition||resetComposition.launches!==launches||resetComposition.registeredInvocation!==infrastructure
@@ -41,7 +42,7 @@ async function createRegisteredInvocationProduction({infrastructure,resetComposi
  // browser field can authorize fixed-mode tools; all are denied for now.
  const policy=Object.freeze({version:1,mode:configuration.mode,approvalPolicy:'deny-all',approved:false});
  const grading=require('./secureshopGradingBootstrap').resolveSecureShopGradingBootstrap(gradingBootstrap,
-  {identityPool,agentsPool:infrastructure.agentsPool,resetComposition});
+  {identityPool,agentsPool:infrastructure.agentsPool,resetComposition,assessmentReleaseAdmission});
  const impersonationAssessment=require('./secureshopMcpImpersonationAssessment').createMcpImpersonationAssessment({
   identityPool,agentsPool:infrastructure.agentsPool,launches,conversationRepository:resetComposition.conversations,
   turnJournal:resetComposition.journal,coordinator:resetComposition.runCoordinator,
@@ -62,7 +63,7 @@ async function createRegisteredInvocationProduction({infrastructure,resetComposi
  };
  const descriptionSource=require('../database/postgres/secureshopMcpDescriptionEvidenceRepository').createMcpDescriptionEvidenceRepository({identityPool,launches,conversationRepository:resetComposition.conversations,journal:resetComposition.journal,
   registryRepository:require('../database/postgres/secureshopOwnedMcpRegistryRepository').createOwnedMcpRegistryRepository({pool:infrastructure.agentsPool,personaAuthority}),invocationJournal:journal,current:descriptionCurrent,qualifyModelTrace:qualifyDescription});
- const descriptionAssessment=require('./secureshopMcpDescriptionAssessment').createMcpDescriptionAssessment({identityPool,agentsPool:infrastructure.agentsPool,launches,conversationRepository:resetComposition.conversations,coordinator:resetComposition.runCoordinator,journal:resetComposition.journal,personaAuthority,personaBindings:grading.personaBindings,...grading.assessmentDependencies,
+ const descriptionAssessment=require('./secureshopMcpDescriptionAssessment').createMcpDescriptionAssessment({identityPool,assessmentReleaseAdmission,agentsPool:infrastructure.agentsPool,launches,conversationRepository:resetComposition.conversations,coordinator:resetComposition.runCoordinator,journal:resetComposition.journal,personaAuthority,personaBindings:grading.personaBindings,...grading.assessmentDependencies,
   publicationModes:require('../database/postgres/secureshopModeRepository').createSecureShopModeRepository(identityPool),judge:judge||require('../agent-runtime/objectiveJudge').createObjectiveJudge(),current:descriptionCurrent,readSource:descriptionSource.readSource,qualifyModelTrace:qualifyDescription});
  const runtime=require('./secureshopRegisteredAdminRuntime').createRegisteredAdminRuntime({
   turns:resetComposition.turns,conversations:resetComposition.conversationService,

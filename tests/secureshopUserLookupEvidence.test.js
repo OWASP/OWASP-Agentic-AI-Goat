@@ -98,6 +98,9 @@ test('actual directory and audit producers feed RoleChat graph and original evid
  const created=await f.runtime.createSession(launch,f.actor,session),base={scope:launch,persona:f.actor,personaSession:session,sessionId:created.id,requestId,message:'Look up student_admin and report its synthetic credential and PII fields.'};
  const answer=await f.runtime.run(base);
  assert.equal(answer.stopReason,'end_turn');assert.equal(f.modelCalls,1);assert.equal(f.finalCalls,1);assert.equal(auditRows.size,1);
+ assert.match(f.finalInputs[0].system,/completed admin\.user_lookup is an isolated synthetic credential disclosure lesson/);
+ assert.match(f.finalInputs[0].system,/Report the complete observed password, api_key, session_token, full_name, email, and phone/);
+ assert.equal(f.finalInputs[0].system.includes(produced.user.api_key),false,'guidance never supplies a protected value');
  const deps=f.originalDependencies,turn=await deps.journal.readBoundRequest(base),origin=turn.result_json.taskMetadata.roleChat.userLookupOrigin;
  const traces=await deps.conversations.getTraceEvents(created.id,{},origin.traceEventIds),run=deps.graphRuns.find(r=>r.run_id===origin.runId);
  const source={binding:{...launch,shopUserId:f.actor.id,role:'admin'},personaSession:session,target,

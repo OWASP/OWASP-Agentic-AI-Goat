@@ -3,7 +3,50 @@ import hashlib, http.client, json, os, secrets, shutil, signal, subprocess, time
 from pathlib import Path
 
 BASE='sha256:3a771f83944bb763050c23c0225c260638c4b7899e7a72485ef75e5e570499e5'
+ARM64_MANIFEST='sha256:0e8905dee5e180601a4b5778dd4ddf0c08c53a4f9147ef561b7aed7ebdb371f1'
+ARM64_CONFIG='sha256:eb8246793759ece40631d4e36970b5301fa07f79f55d15917c85e861e6911714'
+BASE_AUDIT_PATH=Path(__file__).resolve().parents[2]/'tasks/tmp/v23-build-08b2c875e593f9ef02851fd3e8c6a4ab/base-registry-metadata-audit.json'
+BASE_AUDIT_SHA256='5cc4682c2f80bca4690deeaf77f04c1fdd0e8175ff2e15ce26328e2d4ac6515b'
 BUILD_TIMEOUT_SECONDS=420
+
+def admit_original_base_identity(info,audit_bytes,*,identity_kind):
+ """Closed identity evidence, not build or runtime authority.
+
+ The retained public-registry audit records digest-verified OCI bodies; those
+ bodies are not embedded here. Pin the exact audit without claiming to reverify
+ its raw OCI chain. Docker stores may expose a config or manifest image ID, but
+ neither is the multi-platform index used by the unchanged Dockerfile FROM.
+ """
+ if type(audit_bytes) is not bytes or not 0<len(audit_bytes)<=8192 or hashlib.sha256(audit_bytes).hexdigest()!=BASE_AUDIT_SHA256:
+  raise ValueError('V24_BASE_AUDIT_PIN')
+ audit=json.loads(audit_bytes)
+ expected={'indexDigest':BASE,'manifestDigest':ARM64_MANIFEST,'configDigest':ARM64_CONFIG,
+  'registry':'https://registry-1.docker.io/v2/library/node',
+  'indexMediaType':'application/vnd.oci.image.index.v1+json',
+  'manifestMediaType':'application/vnd.oci.image.manifest.v1+json',
+  'platform':{'architecture':'arm64','os':'linux','variant':'v8'},
+  'nodeVersion':'26.9.0','allFetchedBodiesDigestVerified':True,
+  'layersDownloaded':False,'runtimeOsReleaseVerified':False,'executionApproved':False,'qualificationComplete':False}
+ if any(type(audit.get(key)) is not type(value) or audit.get(key)!=value for key,value in expected.items()):
+  raise ValueError('V24_BASE_AUDIT_CHAIN')
+ identities={'config':ARM64_CONFIG,'manifest':ARM64_MANIFEST}
+ if type(identity_kind) is not str or identity_kind not in identities:
+  raise ValueError('V24_BASE_IDENTITY_KIND')
+ if (type(info) is not dict or info.get('Id')!=identities[identity_kind]
+     or info.get('Architecture')!='arm64' or info.get('Os')!='linux'
+     or ('Variant' in info and info['Variant']!='v8')):
+  raise ValueError('V24_BASE_IDENTITY')
+ return {'version':1,'kind':'v24-original-system-base-identity',
+  'indexDigest':BASE,'manifestDigest':ARM64_MANIFEST,'configDigest':ARM64_CONFIG,
+  'inspectedIdentityKind':identity_kind,'inspectedId':info['Id'],
+  'platform':dict(expected['platform']),'auditSha256':BASE_AUDIT_SHA256,
+  'rawOciChainReverified':False,'runtimeQualified':False,'executionApproved':False}
+
+def require_private_runtime_admission():
+ # No environment/constructor option opens the historical shared-daemon build.
+ # A separately reviewed private builder/runtime handoff is still required.
+ raise RuntimeError('V24_PRIVATE_RUNTIME_NOT_ADMITTED')
+
 class OwnedDiagnosticExecutor:
  def __init__(self, root, workspace, docker, env, owner, persist):
   self.root,self.workspace,self.docker,self.env,self.owner,self.persist=root,workspace,docker,env,owner,persist
@@ -67,8 +110,9 @@ class OwnedDiagnosticExecutor:
      if recording is not None:primary.add_note('Owned build cleanup recording failed: '+type(recording).__name__)
    raise
  def start(self):
+  require_private_runtime_admission()
   info=self.inspect('image',BASE)
-  if info['Id']!=BASE or info['Architecture']!='arm64':raise RuntimeError('Reviewed ARM64 base required')
+  self.state['baseIdentity']=admit_original_base_identity(info,BASE_AUDIT_PATH.read_bytes(),identity_kind='config')
   for kind,name in [('container',self.name),('network',self.network),('image',self.tag)]:
    if not self.absent(kind,name):raise RuntimeError('Owned executor identity collision')
   context=self.root/'executor-build';context.mkdir(mode=0o700)

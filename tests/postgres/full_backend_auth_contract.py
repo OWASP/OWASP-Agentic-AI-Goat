@@ -3,6 +3,7 @@ import json
 import hashlib
 import os
 import re
+import subprocess
 from pathlib import Path
 from sql_nosql_package_contract import digest, require, SHA, prepare_evidence_root
 
@@ -291,37 +292,42 @@ STUDENT_DELETION_SOURCE_ROOTS = {
  'server/services/studentDeletionWorker.js',
  'server/services/studentDeletionStoreCleanup.js',
 }
-_LITERAL_REQUIRE = re.compile(r"require\(\s*['\"]([^'\"]+)['\"]\s*\)")
-_LITERAL_ADAPTER_LOAD = re.compile(r"load\(\s*['\"]([^'\"]+)['\"]\s*\)")
+STUDENT_DELETION_AST_HELPER = 'tests/fixtures/studentDeletionSourceClosure.js'
+REQUIRED.add(STUDENT_DELETION_AST_HELPER)
 
-def student_deletion_source_closure(source):
- """Resolve literal relative require/load edges from production deletion roots.
+def student_deletion_source_closure(source,node):
+ """Parse executable literal relative edges with the admitted local Babel AST.
 
- Computed module names are intentionally outside this static claim and require
- a separately reviewed explicit root. Directory index resolution matches Node.
+ Source is data: the helper never imports production modules. Dynamic adapter
+ load() edges are rejected, not assumed absent. ``node`` must already have
+ been checked against the caller's exact binary pin.
  """
- source=Path(source).resolve();pending=list(STUDENT_DELETION_SOURCE_ROOTS);observed=set()
- while pending:
-  relative=pending.pop()
-  if relative in observed:continue
-  target=source/relative
-  require(target.is_file() and not target.is_symlink(), 'student deletion source edge missing')
-  observed.add(relative)
-  if target.suffix!='.js':continue
-  text=target.read_text();specifiers=_LITERAL_REQUIRE.findall(text)
-  if relative=='server/services/studentDeletionAdapters.js':specifiers+=_LITERAL_ADAPTER_LOAD.findall(text)
-  for specifier in specifiers:
-   if not specifier.startswith('.'):continue
-   base=(target.parent/specifier).resolve()
-   candidates=(base,Path(str(base)+'.js'),Path(str(base)+'.json'),base/'index.js')
-   imported=next((candidate for candidate in candidates if candidate.is_file()),None)
-   require(imported is not None and imported.is_relative_to(source), 'student deletion relative import unresolved')
-   imported_relative=imported.relative_to(source).as_posix()
-   if imported_relative not in observed:pending.append(imported_relative)
+ source=Path(source)
+ node=Path(node)
+ require(source.is_absolute() and not source.is_symlink() and source.resolve()==source,
+         'canonical student deletion source required')
+ require(node.is_absolute() and not node.is_symlink() and node.is_file(),
+         'explicit student deletion parser Node required')
+ helper=source/STUDENT_DELETION_AST_HELPER
+ require(helper.is_file() and not helper.is_symlink(), 'student deletion AST helper missing')
+ try:
+  result=subprocess.run([str(node),str(helper),str(source),json.dumps(sorted(STUDENT_DELETION_SOURCE_ROOTS))],
+                        capture_output=True,text=True,timeout=30,check=True,
+                        env={'PATH':str(node.parent),'NODE_OPTIONS':'--no-addons'})
+  require(len(result.stdout)<=1024*1024 and not result.stderr,
+          'student deletion AST output invalid')
+  observed=json.loads(result.stdout)
+ except (subprocess.SubprocessError,ValueError,OSError) as error:
+  raise RuntimeError('student deletion AST closure unavailable') from error
+ require(type(observed) is list and len(observed)<=2048
+         and all(type(x) is str and re.fullmatch(r'[A-Za-z0-9_./-]+',x)
+                 and '..' not in Path(x).parts for x in observed)
+         and len(observed)==len(set(observed)) and STUDENT_DELETION_SOURCE_ROOTS<=set(observed),
+         'student deletion AST closure invalid')
  return frozenset(observed)
 
-def validate_student_deletion_source_closure(source,manifest):
- closure=student_deletion_source_closure(source)
+def validate_student_deletion_source_closure(source,manifest,node):
+ closure=student_deletion_source_closure(source,node)
  require(closure <= set(manifest['files']), 'student deletion transitive source closure missing')
  return closure
 
@@ -415,9 +421,11 @@ def validate_package(source, manifest_path, manifest_sha256, node, node_sha256, 
  require(node.is_absolute() and node.is_file() and not node.is_symlink() and os.access(node,os.X_OK)
          and SHA.fullmatch(node_sha256) and digest(node)==node_sha256, 'Node identity mismatch')
  manifest=validate_manifest(json.loads(manifest_path.read_text()),profile=profile)
- validate_student_deletion_source_closure(source,manifest)
  require(all(manifest[key]==value for key,value in inventory(source).items()), 'complete inventory mismatch')
  require(all((source/key).stat().st_nlink==1 for key in manifest['files']), 'hardlinks forbidden')
+ # The AST helper and installed Babel parser are executable code from this
+ # package. Authenticate their complete inventory before invoking either.
+ validate_student_deletion_source_closure(source,manifest,node)
  return manifest
 
 def validate_fullboot_layout(row):

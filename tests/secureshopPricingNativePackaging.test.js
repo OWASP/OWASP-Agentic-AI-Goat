@@ -1,6 +1,42 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');
+test('original Journal selects only admitted V25 consumer or unchanged legacy assembly',async()=>{
+ const source=fs.readFileSync(path.join(root,'tests/postgres/secureshopPricingJournal.integration.test.js'),'utf8');
+ const start=source.indexOf(' let assembled;\n if(process.env.SECURESHOP_PRICING_V25_MANUAL_NATIVE'),
+  end=source.indexOf(' const rows=async(table,o)',start);
+ assert(start>0&&end>start);
+ const keys=['identity','im','agents','review','launches','conversations','conversationRepository',
+  'turns','journal','coordinator','catalog','products','authority','owner','auth'];
+ const dependencies=Object.fromEntries(keys.map(key=>[key,{key}]));
+ const admission=Object.freeze({descriptorPath:'controlled',descriptorSha256:'controlled',expected:{},startedAt:1});
+ const observation={controlled:true},receipt={qualificationComplete:false,builderReleaseAllowed:false};
+ const events=[],cleanup=[];
+ const localRequire=name=>{
+  if(name==='../fixtures/pricingOwnedOutput')return{v25Admission:()=>{events.push('admission');return admission;}};
+  if(name==='./ownedPricingManualConsumer')return{_consume:async input=>{
+   events.push('consumer');assert.equal(input.admitted,admission);
+   for(const key of keys)assert.equal(input.dependencies[key],dependencies[key]);
+   assert.deepEqual(Object.keys(input.dependencies).sort(),[...keys].sort());
+   assert(input.signal instanceof AbortSignal);return{observation,receipt};}};
+  if(name==='../fixtures/secureshopPricingAssembled')return async input=>{
+   events.push('legacy');assert.deepEqual(Object.keys(input).sort(),[...keys].sort());return{legacy:true};};
+  throw Error('Unexpected Journal branch import');
+ };
+ const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+ const execute=new AsyncFunction('require','process','AbortController','t',...keys,
+  source.slice(start,end)+'\nreturn assembled;');
+ const fakeProcess=flag=>({env:{SECURESHOP_PRICING_V25_MANUAL_NATIVE:flag,PERSONA_PRICING_HTTP_NATIVE:'1'},
+  once:(name,fn)=>cleanup.push([name,fn]),off:(name,fn)=>assert(cleanup.some(row=>row[0]===name&&row[1]===fn))});
+ const t={after:fn=>cleanup.push(fn)};
+ assert.deepEqual(await execute(localRequire,fakeProcess('1'),AbortController,t,...keys.map(key=>dependencies[key])),
+  {actual:observation,manualConsumer:receipt});
+ assert.deepEqual(events,['admission','consumer']);
+ for(const hook of cleanup.filter(row=>typeof row==='function'))hook();
+ events.length=0;cleanup.length=0;
+ assert.deepEqual(await execute(localRequire,fakeProcess('0'),AbortController,t,...keys.map(key=>dependencies[key])),{legacy:true});
+ assert.deepEqual(events,['legacy']);
+});
 test('disposable pricing package freezes every local dependency and exact native registry assets',()=>{
  const docker=fs.readFileSync(path.join(root,'sidecars/sandbox-runner/owned-pricing-http/Dockerfile.native'),'utf8');
  assert.match(docker,/26\.10\.0-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1/);
@@ -100,7 +136,9 @@ test('Pricing native controlled provider produces a real end-turn journal accept
    return{...value,...(mode?{modeCapability:mode}:{})};};
   const application=await require('../server/services/secureshopPricingComposition').createSecureShopPricingComposition(f.options);
   if(mutation!=='none'){
-   await assert.rejects(application.run(f.input),{code:'TURN_MODE_INTEGRITY_UNAVAILABLE'});assert.equal(row.result_json.stopReason,'error');
+   await assert.rejects(application.run(f.input),{code:'PRICING_OUTCOME_UNCERTAIN'});
+   assert.equal(latestReceipt,undefined);assert.equal(row.status,'started');assert.equal(reads,0);
+   assert.equal((await originalOperation(f.input)).state,'unknown');
    assert.equal(p.calls(),mutation==='plain-final'?2:1);continue;
   }
   const result=await application.run(f.input);assert.equal(row.status,'completed');assert.equal(row.result_json.stopReason,'end_turn');assert.equal(p.calls(),2);assert.equal(reads,1);

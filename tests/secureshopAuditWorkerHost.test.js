@@ -26,7 +26,7 @@ test('aborted authority prevents spawn, and wall deadline closes the actual chil
   await assert.rejects(runSecureShopAuditWorker({ ...input, signal: ctrl.signal }), { name: 'AbortError' });
   await assert.rejects(runSecureShopAuditWorker({ ...input, timeoutMs: 1 }), { code: 'AUDIT_WORKER_TIMEOUT' });
 });
-test('reset cancellation closes an actual worker while its provider request is pending', { timeout: 10000 }, async t => {
+test('reset cancellation closes an actual unbounded worker while its provider request is pending', { timeout: 10000 }, async t => {
   const http = require('node:http');
   const input = await fixture(t);
   let admitted;
@@ -41,7 +41,8 @@ test('reset cancellation closes an actual worker while its provider request is p
     await new Promise(resolve => server.close(resolve));
   });
   const pending = runSecureShopAuditWorker({ ...input,
-    baseUrl: `http://127.0.0.1:${server.address().port}`, signal: ctrl.signal, timeoutMs: 8000 });
+    baseUrl: `http://127.0.0.1:${server.address().port}`, signal: ctrl.signal,
+    taskRequestVersion:2,timeoutMs:22000 });
   const rejection = assert.rejects(pending, { code: 'CONTROLLED_RESET' });
   await providerRequest;
   ctrl.abort(reason);

@@ -1,13 +1,14 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { createHash } = require('node:crypto');
 const express = require('express');
 const { createSceneBinding } = require('../server/services/secureshopSceneBinding');
 const { capture } = require('../server/database/postgres/secureshopCustomerChatBindingRepository');
 const { createSecureShopBoundCustomerChat, ticketModelMessages } = require('../server/services/secureshopBoundCustomerChat');
 const { createBoundCustomerChatRouter } = require('../server/routes/secureshop/boundCustomerChat');
 const { operationIdForOrigin } = require('../server/services/secureshopConversationalCommerceContract');
-const { createCustomerCommerceTools, customerSelection } = require('../server/services/secureshopBoundCustomerCommerceTools');
+const { COMMERCE_TOOLS, createCustomerCommerceTools, customerSelection } = require('../server/services/secureshopBoundCustomerCommerceTools');
 const CouponAgent = require('../server/services/secureshopCouponAgentContract');
 const Ticket = require('../server/services/secureshopTicketContract');
 
@@ -223,15 +224,25 @@ test('successful owned profile read reserves a genuine tools-disabled final with
       tool_uses:[{id:'profile-read',name:'account.profile',args:{}}]};
   },finalResponse:input=>{
     assert.equal(Object.hasOwn(input,'tools'),false);
-    assert.ok(JSON.stringify(input).includes('customer@example.test'));
+    assert.match(input.system,/successful owned account\.profile observation is the only profile source/);
+    assert.match(input.system,/Answer only the profile fields the customer requested/);
+    assert.match(input.system,/include its exact observed non-null value/);
+    assert.match(input.system,/rather than a vague statement that a value exists/);
+    assert.match(input.system,/if its observed value is null, say it is unavailable/);
+    assert.match(input.system,/Do not disclose unrequested profile fields/);
+    assert.doesNotMatch(input.system,/customer@example\.test|Practice Customer/,
+      'observed values remain tool evidence, not interpolated system instructions');
+    assert.ok(JSON.stringify(input.messages).includes('customer@example.test'));
+    assert.ok(JSON.stringify(input.messages).includes('Practice Customer'));
+    assert.ok(JSON.stringify(input.messages).includes('What name, email, and phone are on my profile?'));
     return{provider:'ollama',model:'llama3.1:8b',mocked:false,stop_reason:'end_turn',
-      responseMode:'structured_final',text:'Your email is customer@example.test.'};
+      responseMode:'structured_final',text:'Full name: Practice Customer. Email: customer@example.test. Phone: unavailable.'};
   }});
   const session=await f.runtime.createSession(scope,persona,credential);
   const answer=await f.runtime.run({scope,persona,personaSession:credential,sessionId:session.id,
     requestId,message:'What name, email, and phone are on my profile?'});
   assert.equal(answer.stopReason,'end_turn');
-  assert.equal(answer.text,'Your email is customer@example.test.');
+  assert.equal(answer.text,'Full name: Practice Customer. Email: customer@example.test. Phone: unavailable.');
   assert.equal(answer.hops.length,1);assert.equal(answer.hops[0].tool,'account.profile');
   assert.notEqual(answer.hops[0].result?.isError,true);
   assert.equal(answer.taskMetadata.customerChat.profileProposal,null);
@@ -1130,6 +1141,8 @@ test('owned order page ends tool dispatch before model can inspect an unselected
    :assert.fail('model must not get another tools-enabled decision after orders.list'),
   finalResponse:async input=>{assert.equal(Object.hasOwn(input,'tools'),false);
    assert.match(input.system,/Wait for the customer to select an exact order card/);
+   assert.doesNotMatch(input.system,/State its current order status, payment status, and total amount/);
+   assert.doesNotMatch(input.system,/successful owned account\.profile observation/);
    return{provider:'ollama',model:'llama3.1:8b',mocked:false,stop_reason:'end_turn',
     responseMode:'structured_final',text:'Here are your orders. Select an order or use Older orders.'};}});
  const session=await f.runtime.createSession(scope,persona,credential);
@@ -1150,13 +1163,19 @@ test('explicit selected-order details is an exact read intent and ends before re
  let reads=0;
  const f=graphFixture({resolveChoice:async()=>({kind:'order',choiceId}),
   orderDetails:async args=>{reads++;assert.equal(args.choiceId,choiceId);
-   return{scopeKey:'a'.repeat(64),order:{order_id:'42',status:'pending',shipping_address:'Owned practice address',items:[]},
+   return{scopeKey:'a'.repeat(64),order:{order_id:'42',status:'pending',payment_status:'approved',
+    total_amount:'99.99',shipping_address:'Owned practice address',items:[]},
     cards:[orderCard]}},
   chat:(_input,n)=>n===1?{provider:'ollama',model:'llama3.1:8b',mocked:false,stop_reason:'tool_use',
    tool_uses:[{id:'selected-order-detail',name:'orders.details',args:{choiceId}}]}
    :assert.fail('selected detail must not allow a second tools-enabled decision'),
   finalResponse:async input=>{assert.equal(Object.hasOwn(input,'tools'),false);
    assert.match(input.system,/only owned order detail for this turn/);
+   assert.match(input.system,/State its current order status, payment status, and total amount accurately from the observed order fields when present/);
+   assert.match(input.system,/if a field is absent, say it is unavailable rather than infer it/);
+   assert.match(JSON.stringify(input.messages),/pending/);
+   assert.match(JSON.stringify(input.messages),/approved/);
+   assert.match(JSON.stringify(input.messages),/99\.99/);
    return{provider:'ollama',model:'llama3.1:8b',mocked:false,stop_reason:'end_turn',
     responseMode:'structured_final',text:'Order #42 is pending.'};}});
  const session=await f.runtime.createSession(scope,persona,credential),requestId='c0000000-0000-4000-8000-000000000024';
@@ -1167,6 +1186,23 @@ test('explicit selected-order details is an exact read intent and ends before re
  assert.equal(answer.hops[0].tool,'orders.details');assert.equal(answer.taskMetadata.customerChat.refundSetup,null);
  assert.deepEqual(answer.taskMetadata.customerChat.cards,[orderCard]);
  assert.deepEqual((await f.runtime.readRequest(scope,persona,credential,session.id,requestId)).cards,[orderCard]);
+});
+
+test('failed selected-order detail does not receive the successful observation summary instruction',async()=>{
+ const selection={choiceId,intent:'order_details'};
+ let finalInput;
+ const f=graphFixture({resolveChoice:async()=>({kind:'order',choiceId}),
+  orderDetails:async()=>{throw Error('controlled order read failure')},
+  chat:()=>({provider:'ollama',model:'llama3.1:8b',mocked:false,stop_reason:'tool_use',
+   tool_uses:[{id:'failed-order-detail',name:'orders.details',args:{choiceId}}]}),
+  finalResponse:async input=>{finalInput=input;return{provider:'ollama',model:'llama3.1:8b',mocked:false,
+   stop_reason:'end_turn',responseMode:'structured_final',text:'I could not read that order.'};}});
+ const session=await f.runtime.createSession(scope,persona,credential);
+ const answer=await f.runtime.run({scope,persona,personaSession:credential,sessionId:session.id,
+  requestId:'c0000000-0000-4000-8000-000000000027',message:'Show this order’s details.',selection});
+ assert.equal(answer.hops[0].result.isError,true);
+ assert.equal(f.finalCalls,0, 'a failed owned order read never reaches the successful final-response branch');
+ assert.equal(finalInput,undefined);
 });
 
 test('order detail read intent rejects a non-order choice and any refund setup dispatch',async()=>{
@@ -1553,12 +1589,25 @@ test('exact saved-turn GET exposes a committed domain receipt without a complete
 test('selected address and payment remain current across a plain checkout follow-up', async () => {
   const address = '71000000-0000-4000-8000-000000000001';
   const payment = '72000000-0000-4000-8000-000000000001';
-  const prepared = [];
+  const prepared = [], offered = [], saved = new Map(), scopeKey = 'a'.repeat(64);
   const f = graphFixture({
     resolveChoice: ({ choiceId: id }) => ({ choiceId: id,
       kind: id === address ? 'address' : id === payment ? 'payment_method' : 'product' }),
-    prepareCheckout: async args => { prepared.push(args); return { status: 'prepared', cards: [] }; },
+    prepareCheckout: async args => {
+      prepared.push(args);
+      const proposal = { version: 1, proposalId: args.operationId, status: 'prepared', currency: 'USD',
+        items: [{ productId: 1, name: 'Headphones', quantity: 1, unitPriceCents: 9900, lineTotalCents: 9900 }],
+        subtotalCents: 9900, discountCents: 0, totalCents: 9900,
+        address: { choiceId: address, title: 'Home', detail: 'Owned training address' },
+        paymentMethod: { choiceId: payment, title: 'Practice card — approved', detail: 'Synthetic local method' },
+        quoteSha256: 'b'.repeat(64) };
+      saved.set(args.operationId, proposal);
+      return { ...proposal, scopeKey };
+    },
+    readOperation: args => ({ scopeKey, operationId: args.operationId,
+      status: 'prepared', proposal: saved.get(args.operationId) }),
     chat: async (input, call) => {
+      offered.push(input.tools);
       if (call === 2 || call === 3) {
         assert.match(input.system, new RegExp(address));
         assert.match(input.system, new RegExp(payment));
@@ -1575,11 +1624,129 @@ test('selected address and payment remain current across a plain checkout follow
     personaSession: credential, sessionId: session.id, requestId, message, ...(selection ? { selection } : {}) });
   await run('d1000000-0000-4000-8000-000000000001', 'Use this shipping address for my order.', { choiceId: address, intent: 'address_checkout' });
   await run('d2000000-0000-4000-8000-000000000001', 'Use this payment method for my order.', { choiceId: payment });
-  const final = await run('d3000000-0000-4000-8000-000000000001', 'Prepare my order.');
+  const final = await run('d3000000-0000-4000-8000-000000000001',
+    'Prepare a fresh checkout quote for my current cart using my selected address and payment method.');
   assert.ok(final.hops.some(hop => hop.tool === 'checkout.prepare' && !hop.error));
   assert.equal(prepared.length, 1);
   assert.equal(prepared[0].addressChoiceId, address);
   assert.equal(prepared[0].paymentChoiceId, payment);
+  const checkout = COMMERCE_TOOLS.find(tool => tool.agent === 'checkout' && tool.tool === 'prepare');
+  assert.ok(checkout);
+  assert.equal(checkout.description,
+    'Prepare a fresh checkout quote from the customer-selected address and synthetic payment choices. '
+    + 'This tool resolves those current owned choices, reads the current cart and effective prices, '
+    + 'and checks current stock when preparing the proposal; separate cart.view, account.addresses, '
+    + 'and payment.methods reads do not prepare a quote. This does not place an order; '
+    + 'the customer must review and confirm in the trusted control.');
+  for (const index of [1, 2]) {
+    const actual = offered[index].find(tool => tool.agent === 'checkout' && tool.tool === 'prepare');
+    assert.deepEqual(actual, checkout, 'selected and plain-turn provider inputs retain the exact descriptor');
+  }
+  assert.deepEqual(offered[1].map(tool => `${tool.agent}.${tool.tool}`), ['checkout.prepare']);
+  assert.ok(offered[2].length > 1, 'plain follow-up retains broad advisory tool choice');
+  const sha256 = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  assert.equal(sha256(COMMERCE_TOOLS.filter(tool => tool !== checkout)),
+    '8b520ae43b0e8ce5163c258958d1b5536c3d3c62386741da88ce72b8468fe7a9',
+    'all other descriptors, schemas, tool keys and catalog order remain unchanged');
+  assert.equal(sha256(checkout.inputSchema),
+    'b57733a354da7bf22411b730e5fe46df41d939af6fe7b11c512c8d392b4236d2',
+    'checkout.prepare arguments and schema remain unchanged');
+});
+
+test('plain checkout renewal stops after one genuinely saved prepared quote', async () => {
+  const address = '71100000-0000-4000-8000-000000000001';
+  const payment = '72100000-0000-4000-8000-000000000001';
+  const saved = new Map(), prepared = [], reads = [];
+  const scopeKey = 'a'.repeat(64);
+  const f = graphFixture({
+    prepareCheckout: async args => {
+      prepared.push(structuredClone(args));
+      const proposal = { version: 1, proposalId: args.operationId, status: 'prepared', currency: 'USD',
+        items: [{ productId: 1, name: 'Headphones', quantity: 1, unitPriceCents: 9900, lineTotalCents: 9900 }],
+        subtotalCents: 9900, discountCents: 0, totalCents: 9900,
+        address: { choiceId: address, title: 'Home', detail: 'Owned training address' },
+        paymentMethod: { choiceId: payment, title: 'Practice card — approved', detail: 'Synthetic local method' },
+        quoteSha256: 'b'.repeat(64) };
+      saved.set(args.operationId, proposal);
+      return { ...proposal, scopeKey };
+    },
+    readOperation: args => { reads.push(args.operationId); return { scopeKey,
+      operationId: args.operationId, status: 'prepared', proposal: saved.get(args.operationId) }; },
+    chat: async (input, call) => {
+      if (call === 1) {
+        assert(input.tools.some(tool => `${tool.agent}.${tool.tool}` === 'checkout.prepare'));
+        return { provider: 'ollama', model: 'llama3.1:8b', mocked: false,
+          stop_reason: 'tool_use', tool_uses: [{ id: 'prepare-current-quote', name: 'checkout.prepare',
+            args: { addressChoiceId: address, paymentChoiceId: payment } }] };
+      }
+      if (call === 2) return { provider: 'ollama', model: 'llama3.1:8b', mocked: false,
+        stop_reason: 'tool_use', tool_uses: [{ id: 'duplicate-current-quote', name: 'checkout.prepare',
+          args: { addressChoiceId: address, paymentChoiceId: payment } }] };
+      assert.fail('a saved plain quote must enter the tools-empty final response before another tool decision');
+    },
+    finalResponse: input => { assert.equal(Object.hasOwn(input, 'tools'), false);
+      return { provider: 'ollama', model: 'llama3.1:8b', mocked: false,
+        stop_reason: 'end_turn', responseMode: 'structured_final', text: 'Review this prepared quote.' }; },
+  });
+  const session = await f.runtime.createSession(scope, persona, credential);
+  const requestId = 'd3100000-0000-4000-8000-000000000001';
+  const result = await f.runtime.run({ scope, persona, personaSession: credential,
+    sessionId: session.id, requestId, message: 'Recheck my current cart and prepare a fresh quote.' });
+  assert.deepEqual(result.hops.map(hop => hop.tool), ['checkout.prepare']);
+  assert.equal(prepared.length, 1); assert.equal(saved.size, 1);
+  assert.equal(reads.length, 1); assert.equal(reads[0], prepared[0].operationId);
+  assert.equal(prepared[0].operationId, operationIdForOrigin(prepared[0].origin));
+  assert.equal(f.modelCalls, 1); assert.equal(f.finalCalls, 1);
+  assert.equal(f.crossEffects, 1); assert.equal(f.effectCalls, 0);
+});
+
+test('plain checkout cannot finalize from failed, malformed, mismatched, or unsaved quote evidence', async t => {
+  const address = '71100000-0000-4000-8000-000000000001';
+  const payment = '72100000-0000-4000-8000-000000000001';
+  const otherAddress = '73100000-0000-4000-8000-000000000001';
+  const scopeKey = 'a'.repeat(64);
+  const cases = ['failed executor', 'malformed proposal', 'mismatched args', 'unsaved proposal', 'spoofed args'];
+  for (const [index, label] of cases.entries()) await t.test(label, async () => {
+    let prepares = 0, reads = 0;
+    const f = graphFixture({
+      prepareCheckout: async args => {
+        prepares++;
+        if (label === 'failed executor') throw Object.assign(Error('stale'), { code: 'COMMERCE_CHOICE_STALE' });
+        const proposal = { version: 1, proposalId: args.operationId, status: 'prepared', currency: 'USD',
+          items: [{ productId: 1, name: 'Headphones', quantity: 1, unitPriceCents: 9900, lineTotalCents: 9900 }],
+          subtotalCents: 9900, discountCents: 0, totalCents: 9900,
+          address: { choiceId: label === 'mismatched args' ? otherAddress : address,
+            title: 'Home', detail: 'Owned training address' },
+          paymentMethod: { choiceId: payment, title: 'Practice card — approved', detail: 'Synthetic local method' },
+          quoteSha256: 'b'.repeat(64) };
+        if (label === 'malformed proposal') delete proposal.quoteSha256;
+        return { ...proposal, scopeKey };
+      },
+      readOperation: args => { reads++; return { scopeKey, operationId: args.operationId,
+        status: label === 'unsaved proposal' ? 'not_found' : 'prepared', proposal: null }; },
+      chat: async (_input, call) => call === 1
+        ? { provider: 'ollama', model: 'llama3.1:8b', mocked: false,
+          stop_reason: 'tool_use', tool_uses: [{ id: `candidate-${index}`, name: 'checkout.prepare',
+            args: { addressChoiceId: address, paymentChoiceId: payment,
+              ...(label === 'spoofed args' ? { ownerId: scope.platformOwnerId } : {}) } }] }
+        : { provider: 'ollama', model: 'llama3.1:8b', mocked: false,
+          stop_reason: 'end_turn', text: 'No saved quote was prepared.', tool_uses: [] },
+    });
+    const session = await f.runtime.createSession(scope, persona, credential);
+    const run = f.runtime.run({ scope, persona, personaSession: credential,
+      sessionId: session.id, requestId: `d3200000-0000-4000-8000-00000000000${index + 1}`,
+      message: 'Prepare a fresh quote.' });
+    if (label === 'failed executor') await assert.rejects(run, { code: 'COMMERCE_CHOICE_STALE' });
+    else if (['malformed proposal', 'mismatched args', 'unsaved proposal'].includes(label))
+      await assert.rejects(run, { code: 'CUSTOMER_CHAT_UNAVAILABLE' });
+    else {
+      const result = await run;
+      assert.equal(result.hops[0].result.isError, true);
+    }
+    assert.equal(f.finalCalls, 0, label);
+    assert.equal(prepares, label === 'spoofed args' ? 0 : 1, label);
+    assert.equal(reads, label === 'unsaved proposal' ? 1 : 0, label);
+  });
 });
 
 

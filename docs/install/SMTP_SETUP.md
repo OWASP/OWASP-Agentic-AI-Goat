@@ -1,6 +1,6 @@
 # Gmail SMTP Setup
 
-DVAIA supports optional Gmail SMTP for two features:
+DVAIA supports optional Gmail SMTP for these workshop features:
 
 - **Email Agent challenge** — Indirect Prompt Injection via email
   (`/api/email-agent`, backed by `server/services/gmailEmailAgentService.js`)
@@ -118,6 +118,50 @@ MAILPIT_API_URL=http://127.0.0.1:8025
 ```
 
 The application assigns a generation-scoped inbox per signed-in learner. It accepts a message only after local SMTP reports the exact recipient, then reads the exact message through Mailpit's bounded HTTP API. The Mailpit API is loopback-only in host mode; this mode provides local capture, not external delivery.
+
+## SecureShop external test email
+
+SecureShop's merchant Inbox has a separate, opt-in external delivery test.
+It does not forward lesson mail or give agents permission to send through Gmail.
+The existing isolated Inbox, auto-reply lessons and their intentionally vulnerable
+behavior remain separate.
+
+Configure the following privately in the repository's `.env`, then restart:
+
+```env
+SS_EXTERNAL_MAIL_ENABLED=true
+SS_EXTERNAL_MAIL_GMAIL_USER=your-dedicated-test-account@gmail.com
+SS_EXTERNAL_MAIL_GMAIL_APP_PASSWORD=
+```
+
+Fill the last value locally with a dedicated App Password. Never paste it into
+chat, commit it, or put it in frontend configuration. These settings do not fall
+back to the workshop `GMAIL_*` variables. The feature is disabled by default.
+Transport uses Gmail's fixed TLS SMTP endpoint on port 465.
+
+From the merchant Inbox, open **Send external test email**, enter a single
+address such as `yourname@sharklasers.com`, and review the exact recipient and
+server-generated plaintext message. **Cancel** before sending has no SMTP effect.
+Only the explicit send confirmation can submit the message. Arbitrary message
+content, attachments, CC/BCC and HTML are not supported.
+
+Use only synthetic test data: disposable inboxes are not private. Open
+[SharkLasers](https://www.sharklasers.com/) separately, select the same username
+and domain, and check for the message. SMTP acceptance means Gmail accepted
+the submission; it does not prove arrival or visual rendering in that inbox.
+
+Dispatch attempts are limited to three per hour per registered principal and
+twenty per hour per configured sender. Lab resets do not reset these limits.
+Draft preparation is also capped at twenty per hour per principal.
+Prepared reviews expire after ten minutes. If sending is interrupted, use the
+saved operation's status check. An unknown outcome never automatically resends;
+do not assume a timeout means the email was not sent. Cancellation cannot retract
+an already dispatched email.
+
+A prepared draft from an earlier login or practice is read-only. After the
+server verifies that it expired without being claimed for sending, its status
+can be dismissed and a new message prepared explicitly. Dispatched or unknown
+operations never become dismissible merely because time has passed.
 
 ## Skipping SMTP
 

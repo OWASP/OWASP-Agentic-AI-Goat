@@ -42,8 +42,8 @@ class ReviewInjectionLauncher(unittest.TestCase):
             self.assertIn(f"const REVIEW_INJECTION_{key} = '{getattr(L, 'REVIEW_INJECTION_' + key)}';", fixture)
         flags = fixture.split('const REVIEW_INJECTION_FLAGS = Object.freeze([', 1)[1].split(']);', 1)[0]
         self.assertEqual(tuple(ast.literal_eval('[' + flags + ']')), L.REVIEW_INJECTION_FLAGS)
-        self.assertEqual(L.REVIEW_INJECTION_TEST_SHA256, L.MERCHANT_MAIL_HEADER_TEST_SHA256)
-        self.assertEqual(L.REVIEW_INJECTION_TEST_SHA256, L.POLICY_INSTRUCTION_TEST_SHA256)
+        # Shared fixture bytes evolved for the separate Q05 cohort. V17 binds
+        # the current file independently; historical cohort pins remain frozen.
         for name, expected in ((L.REVIEW_INJECTION_TEST, L.REVIEW_INJECTION_TEST_SHA256),
                                (L.REVIEW_INJECTION_HELPER, L.REVIEW_INJECTION_HELPER_SHA256),
                                (L.REVIEW_INJECTION_RECEIPT_TEST, L.REVIEW_INJECTION_RECEIPT_TEST_SHA256)):

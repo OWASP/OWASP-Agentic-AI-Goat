@@ -2,6 +2,7 @@
 
 const { createLaunchScope } = require('../../services/secureshopConversationBinding');
 const { executionScope, withSceneLease, assertSceneGrant } = require('../../services/secureshopSceneBinding');
+const { confirmedAssistantDescription, confirmedManualDescription } = require('../../services/secureshopAuditSourceManifest');
 
 const FETCH_ROWS = 4;
 const FIELDS = Object.freeze(['launchId', 'scenarioId', 'generation', 'platformOwnerId', 'platformSessionId']);
@@ -45,18 +46,28 @@ function sourceRow(row, sceneBinding, consumer) {
   const birth = createLaunchScope(sceneBinding);
   const productId = Number(row.product_id);
   const merchantId = Number(row.merchant_id);
-  let storage;
-  try { storage = JSON.parse(row.params_json)?.storage; } catch { throw unavailable(); }
+  let storage, params;
+  const manual = row.action === 'listing_manual_edit_confirm';
+  const confirmed = manual || row.action === 'listing_edit_confirm';
+  try {
+    params = JSON.parse(row.params_json); storage = params?.storage;
+    if (confirmed) {
+      (manual ? confirmedManualDescription : confirmedAssistantDescription)(params, { ...birth, targetId: sceneBinding.targetId,
+        scene: { sceneId: scene.sceneId, sceneGeneration: scene.sceneGeneration, grantId: row.source_grant_id } }, merchantId);
+      if (row.confirmation_scope_key !== params.scopeKey || row.confirmation_operation_id !== params.operationId)
+        throw unavailable();
+    }
+  } catch { throw unavailable(); }
   if (!UUID.test(row.event_id || '') || !UUID.test(row.source_grant_id || '')
       || !Number.isSafeInteger(productId) || productId < 1
       || !Number.isSafeInteger(merchantId) || merchantId < 1
       || original.platformOwnerId !== consumer.platformOwnerId
       || row.target !== String(productId) || row.source_id !== String(productId)
-      || row.actor !== 'merchant' || row.action !== 'listing_update' || row.source_kind !== 'product'
+      || row.actor !== 'merchant' || (!confirmed && row.action !== 'listing_update') || row.source_kind !== 'product'
       || row.shop_role !== 'merchant' || row.outcome !== 'completed'
       || storage?.targetId !== sceneBinding.targetId || storage?.sceneId !== scene.sceneId
       || storage?.birthLaunchId !== birth.launchId || storage?.birthGeneration !== birth.generation) throw unavailable();
-  const provenance = Object.freeze({ version: 2, kind: 'scene_product_listing_update',
+  const provenance = Object.freeze({ version: 2, kind: manual?'scene_product_listing_manual_edit_confirm':confirmed?'scene_product_listing_edit_confirm':'scene_product_listing_update',
     sourceExecution: original,
     sourceGrant: Object.freeze({ grantId: row.source_grant_id, sceneId: scene.sceneId,
       sceneGeneration: scene.sceneGeneration, targetId: sceneBinding.targetId }),
@@ -84,7 +95,9 @@ const DECLARE = `DECLARE scene_product_audit NO SCROLL CURSOR FOR
     e.original_platform_owner_id AS source_owner_id,
     e.original_platform_session_id AS source_session_id,
     e.shop_user_id AS merchant_id,p.product_id AS product_id,
-    original_grant.grant_id::text AS source_grant_id
+    original_grant.grant_id::text AS source_grant_id,
+    confirmed.operation_id::text AS confirmation_operation_id,
+    encode(confirmed.scope_key,'hex') AS confirmation_scope_key
   FROM secureshop_review.bound_audit_events e
   JOIN secureshop_review.product_targets target
     ON target.target_id=$3::uuid AND target.lifecycle='active'
@@ -108,10 +121,28 @@ const DECLARE = `DECLARE scene_product_audit NO SCROLL CURSOR FOR
   JOIN secureshop_review.product_target_products p
     ON p.target_id=target.target_id AND p.product_id::text=e.source_id
     AND p.retailer_id=target.own_merchant_id
+  LEFT JOIN secureshop_review.owned_merchant_listing_edit_receipts confirmed
+    ON e.action IN ('listing_edit_confirm','listing_manual_edit_confirm')
+    AND confirmed.operation_id::text=e.params_json::jsonb->>'operationId'
+    AND (confirmed.target_id,confirmed.product_id,confirmed.merchant_id,
+      confirmed.launch_id,confirmed.scenario_id,confirmed.generation,
+      confirmed.original_platform_owner_id,confirmed.original_platform_session_id,
+      confirmed.scene_id,confirmed.scene_generation,confirmed.grant_id)
+      =(target.target_id,p.product_id,e.shop_user_id,target.launch_id,target.scenario_id,target.generation,
+        target.original_platform_owner_id,target.original_platform_session_id,$1::uuid,$2::bigint,original_grant.grant_id)
+    AND confirmed.persona_session_id::text=e.params_json::jsonb#>>'{confirmedDescription,personaSessionId}'
+    AND confirmed.authority_version::text=e.params_json::jsonb#>>'{confirmedDescription,authorityVersion}'
+    AND encode(confirmed.request_sha256,'hex')=e.params_json::jsonb->>'requestSha256'
+    AND encode(confirmed.before_sha256,'hex')=e.params_json::jsonb->>'beforeSha256'
+    AND encode(confirmed.after_sha256,'hex')=e.params_json::jsonb->>'afterSha256'
+    AND encode(confirmed.scope_key,'hex')=e.params_json::jsonb->>'scopeKey'
+    AND ((e.action='listing_edit_confirm' AND NOT (e.params_json::jsonb ? 'origin'))
+      OR (e.action='listing_manual_edit_confirm' AND e.params_json::jsonb->>'origin'='manual'))
   WHERE e.original_platform_owner_id=$8::integer
     AND e.shop_user_id=target.own_merchant_id
     AND e.shop_role='merchant' AND e.actor='merchant'
-    AND e.action='listing_update' AND e.outcome='completed'
+    AND (e.action='listing_update' OR (e.action IN ('listing_edit_confirm','listing_manual_edit_confirm') AND confirmed.operation_id IS NOT NULL))
+    AND e.outcome='completed'
     AND e.source_kind='product' AND e.target=e.source_id
     AND e.params_json::jsonb#>>'{storage,targetId}'=target.target_id::text
     AND e.params_json::jsonb#>>'{storage,sceneId}'=$1::text

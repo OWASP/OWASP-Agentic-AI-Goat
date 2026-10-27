@@ -160,6 +160,38 @@ function createSecureShopBoundCatalog({ sourcePool, repository, resolveTarget, c
       }else if(opened.ownMerchantId!==actor.id)throw invalid('OWNER_MISMATCH');
       await checkCurrent(scope);return binding;
     },
+    async readRetainedOwnedMerchantProduct(input = {}) {
+      const actor = persona(input.persona, 'merchant');
+      const productId = count(input.productId, 1, 2147483647);
+      let binding;
+      try { binding = await service.readRetainedTarget(input); }
+      catch (error) {
+        // A saved upload descriptor cannot create a replacement practice after
+        // retirement. Preserve all unexpected database and launch failures.
+        if (error?.code === 'PRODUCT_TARGET_UNAVAILABLE') throw invalid('SHOP_SCENE_STALE');
+        throw error;
+      }
+      const product = await repository.get(binding, productId);
+      await checkCurrent(createLaunchScope(input.scope));
+      if (!product || product.retailer_id !== actor.id) throw invalid('OWNER_MISMATCH');
+      // Do not provision/adopt/grant here. An inactive product may still have a
+      // committed upload; upload admission separately requires active status.
+      return Object.freeze({ binding, product });
+    },
+    async listRetainedManualProducts(input = {}) {
+      const scope = createLaunchScope(input.scope);
+      const effect = require('./secureshopPersonaProductEffect').assertPersonaProductEffect(input.personaEffect);
+      if (!effect) throw invalid('SHOP_AUTH_INVALID');
+      await effect.check(scope);
+      const expected = target(input.binding, scope);
+      const current = target(await service.readRetainedTarget(input), scope);
+      if (JSON.stringify(expected) !== JSON.stringify(current)) throw invalid('SHOP_SCENE_STALE');
+      const limit = count(input.limit, 1, 100), offset = count(input.offset, 0, 255);
+      const result = await repository.list(expected, {category:null,search:null,sort:'',
+        page:Math.floor(offset / limit) + 1,limit,offset,status:'active',retailerId:null,minRating:null,maxPrice:null});
+      await checkCurrent(scope); await effect.check(scope);
+      return Object.freeze({products:result.rows,total:result.total});
+    },
     async listProducts(input = {}) {
       persona(input.persona);
       const query = input.query || {};
@@ -395,11 +427,47 @@ function createSecureShopBoundCatalog({ sourcePool, repository, resolveTarget, c
       return exists;
     },
   };
-  for(const method of ['searchMerchantProducts','getOwnedMerchantCatalogProduct','listMerchantProducts','createMerchantProduct','updateMerchantProduct','archiveMerchantProduct',
+  const manual = require('./secureshopManualListingContract');
+  service.manualListingReadiness = async function(input = {}) {
+    const { actor, binding, scope, effect } = await existingMerchantAction(input);
+    const createScopeKey = manual.manualListingScopeKey('create', binding, actor.id, input.personaSession);
+    const editScopeKey = manual.manualListingScopeKey('edit', binding, actor.id, input.personaSession);
+    await effect?.check(scope); await checkCurrent(scope);
+    return Object.freeze({ ready: true, scopeKey: manual.manualListingStorageScope(createScopeKey, editScopeKey),
+      createScopeKey, editScopeKey });
+  };
+  const manualMethods = ['manualListingReadiness'];
+  for (const kind of ['create', 'edit']) {
+    const suffix = kind === 'create' ? 'Create' : 'Edit';
+    for (const action of ['preview', 'confirm', 'read']) {
+      const method = `${action}ManualMerchantListing${suffix}`, repositoryMethod = `${action}ManualListing${suffix}`;
+      manualMethods.push(method);
+      service[method] = async function(input = {}) {
+        const { actor, binding, scope, effect, key } = await existingMerchantAction(input,
+          (targetBinding, actorId, session) => manual.manualListingScopeKey(kind, targetBinding, actorId, session));
+        let args;
+        if (action === 'preview') args = { listing: input.listing, ...(kind === 'edit' ? { productId: count(input.productId, 1, 2147483647) } : {}), personaSession: input.personaSession };
+        else if (action === 'confirm') {
+          const preview = manual.validateManualListingPreview(input.preview, kind);
+          if (preview.scopeKey !== key) throw invalid('SHOP_AUTH_INVALID');
+          args = { operationId: input.operationId, preview, personaSession: input.personaSession };
+        } else args = { operationId: input.operationId, personaSession: input.personaSession };
+        const value = action === 'confirm' && effect
+          ? await effect.listing(repository, binding, repositoryMethod, actor.id, [args])
+          : await repository[repositoryMethod](binding, actor.id, args);
+        if (value.scopeKey !== key || value.origin !== 'manual' || value.kind !== kind)
+          throw invalid('MANUAL_LISTING_RESULT_INVALID');
+        if (action !== 'confirm') await effect?.check(scope);
+        await checkCurrent(scope);
+        return value;
+      };
+    }
+  }
+  for(const method of ['readRetainedOwnedMerchantProduct','searchMerchantProducts','getOwnedMerchantCatalogProduct','listMerchantProducts','createMerchantProduct','updateMerchantProduct','archiveMerchantProduct',
     'getOwnedMerchantProduct','previewMerchantListingEdit','confirmMerchantListingEdit','readMerchantListingEdit',
-    'previewMerchantListingCreate','confirmMerchantListingCreate','readMerchantListingCreate','readMerchantListingCreateSource']) {
+    'previewMerchantListingCreate','confirmMerchantListingCreate','readMerchantListingCreate','readMerchantListingCreateSource', ...manualMethods]) {
     const original=service[method],mutation=['createMerchantProduct','updateMerchantProduct','archiveMerchantProduct',
-      'confirmMerchantListingEdit','confirmMerchantListingCreate'].includes(method);
+      'confirmMerchantListingEdit','confirmMerchantListingCreate','confirmManualMerchantListingCreate','confirmManualMerchantListingEdit'].includes(method);
     service[method]=async function(raw={}) {
       const existing=require('./secureshopPersonaProductEffect').assertPersonaProductEffect(raw.personaEffect);
       if(!personaAuthority&&!existing)return original(raw);

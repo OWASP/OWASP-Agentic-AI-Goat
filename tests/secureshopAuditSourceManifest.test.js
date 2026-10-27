@@ -58,6 +58,81 @@ function sceneRow() {
       consumerGrant:{grantId:'50000000-0000-4000-8000-000000000002',...grant},scene,product:{productId:17,merchantId:1000000001}}});
 }
 
+function confirmationScope(row,params,manual=false){
+  const s=row.sceneSource;
+  const binding={...s.scene.birth,targetId:s.scene.targetId,scene:{sceneId:s.scene.sceneId,
+    sceneGeneration:s.scene.sceneGeneration,grantId:s.sourceGrant.grantId}};
+  const session={sessionId:params.confirmedDescription.personaSessionId,authorityVersion:params.confirmedDescription.authorityVersion};
+  return manual?require('../server/services/secureshopManualListingContract').manualListingScopeKey('edit',binding,s.product.merchantId,session)
+    :require('../server/services/secureshopListingEditContract').listingEditScopeKey(binding,s.product.merchantId,session);
+}
+
+test('confirmed assistant edit provenance retains exact description without relabeling manual origin',()=>{
+  const r=sceneRow(),params=JSON.parse(r.params_json);
+  delete params.description;
+  Object.assign(params,{operationId:'60000000-0000-4000-8000-000000000001',
+    requestSha256:'a'.repeat(64),beforeSha256:'b'.repeat(64),afterSha256:'c'.repeat(64),
+    confirmedDescription:{version:1,text:'Exact\nmanual instruction',sha256:hash(JSON.stringify('Exact\nmanual instruction')),
+      personaSessionId:'70000000-0000-4000-8000-000000000001',authorityVersion:'1'}});
+  params.scopeKey=confirmationScope(r,params);
+  r.action='listing_edit_confirm';r.sceneSource.kind='scene_product_listing_edit_confirm';r.params_json=JSON.stringify(params);
+  const entry=manifest([r]).sources[0];
+  assert.deepEqual(entry.origin,r.sceneSource);assert.equal(entry.event.action,'listing_edit_confirm');
+  assert.equal(entry.event.params_json,r.params_json);
+  for(const change of [x=>x.confirmedDescription.text+='changed',x=>x.confirmedDescription.version=2,
+    x=>x.confirmedDescription.personaSessionId='foreign',x=>x.confirmedDescription.authorityVersion=0,
+    x=>x.operationId='invalid',x=>x.afterSha256='invalid']){
+    const bad=structuredClone(params);change(bad);
+    assert.throws(()=>manifest([{...r,params_json:JSON.stringify(bad)}]));
+  }
+  assert.throws(()=>manifest([{...r,action:'listing_update'}]));
+  const relabeled=structuredClone(r);relabeled.action='listing_manual_edit_confirm';
+  relabeled.sceneSource.kind='scene_product_listing_manual_edit_confirm';
+  relabeled.params_json=JSON.stringify({...params,origin:'manual'});
+  assert.throws(()=>manifest([relabeled]),/Invalid scene audit storage/);
+});
+
+test('confirmed description preserves nullable and UTF-8 values and canonical authority versions',()=>{
+  const {confirmedDescription}=require('../server/services/secureshopAuditSourceManifest');
+  const params={operationId:'60000000-0000-4000-8000-000000000001',
+    requestSha256:'a'.repeat(64),beforeSha256:'b'.repeat(64),afterSha256:'c'.repeat(64)};
+  const value=text=>({version:1,text,sha256:hash(JSON.stringify(text)),
+    personaSessionId:'70000000-0000-4000-8000-000000000001',authorityVersion:'9007199254740992'});
+  for(const text of [null,'','  exact\n雪  ','a'.repeat(65536)])
+    assert.equal(confirmedDescription({...params,confirmedDescription:value(text)}).text,text);
+  assert.notEqual(value(null).sha256,value('').sha256);
+  for(const text of [undefined,42,'雪'.repeat(21846)])
+    assert.throws(()=>confirmedDescription({...params,confirmedDescription:{...value(''),text}}));
+  for(const authorityVersion of [1,0,'0','01','1.0','-1'])
+    assert.throws(()=>confirmedDescription({...params,confirmedDescription:{...value(''),authorityVersion}}));
+});
+
+test('Fixed manual confirmed edit retains forensic bytes but never presents confirmed description',async()=>{
+  const {fixedAuditRows}=require('../server/services/secureshopAuditFixedProjection');
+  const r=sceneRow(),params=JSON.parse(r.params_json);
+  delete params.description;
+  Object.assign(params,{operationId:'60000000-0000-4000-8000-000000000001',
+    requestSha256:'a'.repeat(64),beforeSha256:'b'.repeat(64),afterSha256:'c'.repeat(64),
+    confirmedDescription:{version:1,text:'UNTRUSTED CONFIRMED INSTRUCTION',
+      sha256:hash(JSON.stringify('UNTRUSTED CONFIRMED INSTRUCTION')),
+      personaSessionId:'70000000-0000-4000-8000-000000000001',authorityVersion:'1'}});
+  params.origin='manual';params.scopeKey=confirmationScope(r,params,true);
+  r.action='listing_manual_edit_confirm';r.sceneSource.kind='scene_product_listing_manual_edit_confirm';r.params_json=JSON.stringify(params);
+  for(const change of [x=>{x.action='listing_edit_confirm';x.sceneSource.kind='scene_product_listing_edit_confirm';},
+    x=>{x.action='listing_edit_confirm';x.sceneSource.kind='scene_product_listing_edit_confirm';
+      const p=JSON.parse(x.params_json);delete p.origin;x.params_json=JSON.stringify(p);},
+    x=>{const p=JSON.parse(x.params_json);delete p.origin;x.params_json=JSON.stringify(p);},
+    x=>{x.sceneSource.sourceGrant.grantId='50000000-0000-4000-8000-000000000009';},
+    x=>{const p=JSON.parse(x.params_json);p.scopeKey=confirmationScope(x,p);x.params_json=JSON.stringify(p);}]){
+    const bad=structuredClone(r);change(bad);assert.throws(()=>manifest([bad]));
+  }
+  const projected=[];
+  for await(const p of fixedAuditRows((async function*(){yield r;})(),async()=>{}))projected.push(p);
+  const fixed=manifest(projected,{consumerScope:r.sceneSource.consumerExecution});
+  assert.equal(fixed.logText.includes('UNTRUSTED CONFIRMED INSTRUCTION'),false);
+  assert.deepEqual(fixed.sources[0].original,manifest([r]).sources[0]);
+});
+
 test('v2 scene entries bind separate original and consumer tuples without changing historical v1 bytes',()=>{
   const r=sceneRow(), value=manifest([r],{consumerScope:r.sceneSource.consumerExecution}), entry=value.sources[0];
   assert.equal(value.version,1); assert.equal(entry.version,2);

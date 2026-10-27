@@ -170,7 +170,12 @@ function fixture(options = {}) {
   };
   const actualWriter = createSecureShopReservedFileWriter({ launches, files });
   const operations = new Map();
+  const receipts = new Map();
   const repository = {
+    async readReceipt(_binding, {operationId}) {
+      if (!receipts.has(operationId)) throw Object.assign(Error('not found'),{code:'BOUND_MANUAL_INGEST_RECEIPT_UNAVAILABLE'});
+      return receipts.get(operationId);
+    },
     async appendManual(binding, requested) {
       calls.append.push({ binding, requested: structuredClone(requested) });
       const prior = operations.get(requested.operationId);
@@ -179,12 +184,18 @@ function fixture(options = {}) {
       const result = { operationId: requested.operationId, manualSourceId: operations.size + 50,
         documentCount: requested.chunks.length, replayed: false };
       operations.set(requested.operationId, result);
+      receipts.set(requested.operationId, {...requested,...result,
+        chunkIds:requested.chunks.map((_,i)=>`manual:${result.manualSourceId}:${i}`),completedAt:'2026-10-19T00:00:00.000Z'});
       await options.afterAppend?.(result);
       return result;
     },
   };
   if (options.lineage !== undefined) repository.appendManualWithLineage = async (...args) => ({
     receipt: await repository.appendManual(...args), lineage: structuredClone(options.lineage),
+  });
+  if (options.protectedLineage !== undefined) repository.appendManualWithProtectedLineage = async (...args) => ({
+    receipt:await repository.appendManual(...args),lineage:{eligible:false,reason:'private_manual'},
+    protectedLineage:structuredClone(options.protectedLineage),
   });
   const extraction = options.extractor || (async input => {
     calls.extract += 1;
@@ -193,7 +204,10 @@ function fixture(options = {}) {
   const ingestion = createSecureShopBoundManualIngestion({ launches, personaAuthority:options.personaAuthority, toolPolicyRepository:options.toolPolicyRepository, promptPolicyRepository:options.promptPolicyRepository,
     conversationRepository: stores.conversations, journal: stores.journal, coordinator,
     provider: options.provider || provider(),
-    catalog: { async getOwnedMerchantProduct(value) {
+    catalog: { ...(options.recovery ? {async readRetainedOwnedMerchantProduct(value) {
+      await value.personaEffect?.check(value.scope);
+      return {binding:options.retainedBinding?.() || productBinding,product:{id:7,retailer_id:12,status:'active'}};
+    }} : {}), async getOwnedMerchantProduct(value) {
       calls.owned += 1;
       await value.personaEffect?.check(value.scope);
       assert.equal(value.productId, 7);
@@ -201,6 +215,7 @@ function fixture(options = {}) {
     } },
     retrieval: { async ensureProvisioned(value) {
       await value.personaEffect?.check(value.scope);
+      if(options.recovery){assert.ok(value.retainedBinding);assert.equal(typeof value.beforeEffect,'function');await value.beforeEffect();}
       calls.ensure += 1;
       return { ...productBinding, embeddingModel: 'embed:v1', embeddingDimension: 2, documentCount: 3 };
     } },
@@ -216,6 +231,41 @@ function fixture(options = {}) {
   });
   return { ingestion, calls, stores, coordinator, operations };
 }
+
+const recoverySession = Object.freeze({sessionId:'90000000-0000-4000-8000-000000000001',authorityVersion:'1'});
+const recoveryAuthority = {capture:input=>({binding:{...input.scope,...input},
+  async assertRemoteAdmission(){},async withCrossStoreEffect(work){return work();},async withPersonaEffect(work){return work();}})};
+function recoveryDescriptor() { return {productId:7,sha256:createHash('sha256').update(rawManual).digest('hex'),
+  sizeBytes:rawManual.length,filename:'manual.md',mime:'text/markdown',isPublic:true}; }
+test('scoped upload validates key before model and uses retained ownership instead of preparing catalog',async()=>{
+  const f=fixture({recovery:true,personaAuthority:recoveryAuthority});
+  const initial=await f.ingestion.readReceipt({scope,persona,personaSession:recoverySession,descriptor:recoveryDescriptor()});
+  assert.equal(initial.state,'not_found');
+  await assert.rejects(f.ingestion.upload(upload({personaSession:recoverySession,recoveryScopeKey:'0'.repeat(64)})),{code:'UPLOAD_RECOVERY_SCOPE_STALE'});
+  assert.equal(f.stores.sessions.size,0);assert.equal(f.calls.write,0);
+  const result=await f.ingestion.upload(upload({personaSession:recoverySession,recoveryScopeKey:initial.recoveryScopeKey}));
+  assert.equal(result.ok,true);assert.equal(f.calls.owned,0);assert.equal(result.operationId,initial.operationId);
+});
+test('scope changes after model selection are rejected before the first local file effect',async()=>{
+  let selected=productBinding;const actor=provider();const chat=actor.chat;
+  actor.chat=async args=>{const value=await chat(args);selected={...productBinding,targetId:fileTargetId};return value;};
+  const f=fixture({recovery:true,personaAuthority:recoveryAuthority,provider:actor,retainedBinding:()=>selected});
+  const initial=await f.ingestion.readReceipt({scope,persona,personaSession:recoverySession,descriptor:recoveryDescriptor()});
+  await assert.rejects(f.ingestion.upload(upload({personaSession:recoverySession,recoveryScopeKey:initial.recoveryScopeKey})));
+  assert.equal(f.calls.write,0);assert.equal(f.calls.ensure,0);assert.equal(f.calls.append.length,0);
+});
+test('failed final actor acknowledgement recovers original indexed receipt without more model or effect calls',async()=>{
+  const actor=provider();actor.finalResponse=async()=>{throw Error('lost final acknowledgement');};
+  const f=fixture({recovery:true,personaAuthority:recoveryAuthority,provider:actor});
+  const args={scope,persona,personaSession:recoverySession,descriptor:recoveryDescriptor()};
+  const initial=await f.ingestion.readReceipt(args);
+  await assert.rejects(f.ingestion.upload(upload({personaSession:recoverySession,recoveryScopeKey:initial.recoveryScopeKey})));
+  assert.equal(f.operations.size,1);const before={write:f.calls.write,append:f.calls.append.length,actor:actor.counts()};
+  const result=await f.ingestion.readReceipt({...args,recoveryScopeKey:initial.recoveryScopeKey});
+  assert.equal(result.state,'indexed');assert.equal(result.operationId,initial.operationId);
+  assert.deepEqual({write:f.calls.write,append:f.calls.append.length,actor:actor.counts()},before);
+  assert.equal(result.provider,undefined);assert.equal(result.replayed,undefined);
+});
 
 test('actual graph, writer facade and extractor preserve raw manual bytes through append', async () => {
   const selectedProvider = provider();
@@ -473,7 +523,7 @@ test('manual policy constructor rejects invalid repository or absent authority b
 });
 
 
-test('manual private source captures original committed request/run/traces without public DTO changes or additional append', async () => {
+test('public-manual server-side provenance captures committed request/run/traces without public DTO changes', async () => {
   const lineage = { eligible: true, version: 1, documentsJson: 'controlled original PG bytes' };
   const f = fixture({ lineage }), result = await f.ingestion.upload(upload());
   const [[requestId, row]] = [...f.stores.requests];
@@ -488,6 +538,22 @@ test('manual private source captures original committed request/run/traces witho
   assert.equal(origin.target.targetId, productBinding.targetId);
   assert.equal(Object.hasOwn(result, 'manualRagUploadOrigin'), false);
   assert.equal(f.calls.append.length, 1); assert.equal(f.calls.write, 1); assert.equal(f.calls.read, 1);
+});
+test('private upload provenance uses a separate saved origin and never changes public metadata or returned observation',async()=>{
+  const protectedLineage={eligible:true,version:2,preimageRef:{controlled:'original'}};
+  const f=fixture({protectedLineage}),result=await f.ingestion.upload(upload({isPublic:false}));
+  const [[,row]]=[...f.stores.requests];
+  const metadata=row.result.taskMetadata;
+  assert.deepEqual(metadata.manualRagUploadOrigin.lineage,{eligible:false,reason:'private_manual'});
+  assert.deepEqual(metadata.protectedManualUploadOrigin.lineage,protectedLineage);
+  assert.deepEqual({...metadata.protectedManualUploadOrigin,lineage:metadata.manualRagUploadOrigin.lineage},metadata.manualRagUploadOrigin);
+  assert.equal(Object.hasOwn(result,'protectedManualUploadOrigin'),false);
+  assert.equal(f.calls.append.length,1);
+  const bounded=fixture({protectedLineage:{eligible:true,version:2,padding:'x'.repeat(65536)}});
+  await bounded.ingestion.upload(upload({isPublic:false}));
+  const [[,large]]=[...bounded.stores.requests];
+  assert.equal(Object.hasOwn(large.result.taskMetadata,'protectedManualUploadOrigin'),false);
+  assert.deepEqual(large.result.taskMetadata.manualRagUploadOrigin.lineage,{eligible:false,reason:'private_manual'});
 });
 test('oversized upload provenance is ineligible without truncation or breaking the original ordinary effect', async () => {
   const f = fixture({ lineage: { eligible: true, version: 1, documentsJson: 'x'.repeat(70000) } });

@@ -197,15 +197,16 @@ function assertPolicyOutputProgress(value,completed){
 Object.assign(module.exports,{POLICY_OUTPUT_OBJECTIVE,POLICY_OUTPUT_BASELINE,POLICY_OUTPUT_ATTACK,
  POLICY_OUTPUT_HANDLER,POLICY_OUTPUT_MARKER_SELECTOR,POLICY_OUTPUT_MARKER_TEXT,POLICY_OUTPUT_CANARY_HTML,
  admitPolicyOutputDisposableCandidate,assertPolicyOutputOriginalWire,assertPolicyOutputProgress});
-function assertPolicyOutputJudgment({original,stored,result,wire,transcript}){
+function assertPolicyOutputJudgment({original,stored,result,wire,transcript},{expectedVerdict='pass'}={}){
+ assert(['pass','fail'].includes(expectedVerdict));
  const strings=value=>typeof value==='string'?[value]:value&&typeof value==='object'?Object.values(value).flatMap(strings):[];
  const {RUBRIC,buildPolicyFinalHtmlCandidate}=require('../../server/services/secureshopPolicyFinalHtmlEvidence');
  const {prepareJudgeInput,readConfiguredJudgeProvenance}=require('../../server/agent-runtime/objectiveJudge');
  assert.equal(stored.objective_id,POLICY_OUTPUT_OBJECTIVE);assert.equal(stored.family,RUBRIC.family);
  assert.equal(stored.scenario,RUBRIC.scenario);assert.equal(stored.rubric_version,RUBRIC.version);
- assert.equal(stored.verdict,'pass');assert.equal(stored.disposition,'awarded');assert.equal(stored.mode,'vuln');
+ assert.equal(stored.verdict,expectedVerdict);assert.equal(stored.disposition,expectedVerdict==='pass'?'awarded':'not_pass');assert.equal(stored.mode,'vuln');
  assert.equal(stored.evidence_digest,sha(stored.packet));assert.equal(stored.result_digest,sha(stored.result_serialized));
- assert.deepEqual(json(stored.result_serialized),stored.result_json);assert.equal(stored.result_json.verdict,'pass');
+ assert.deepEqual(json(stored.result_serialized),stored.result_json);assert.equal(stored.result_json.verdict,expectedVerdict);
  assert.equal(stored.judge_result_json,JSON.stringify(result));
  const proof=readConfiguredJudgeProvenance(result);assert(proof,'Only the unchanged configured Judge result identity qualifies');
  assert.deepEqual(stored.judge_observations,proof);assert.equal(proof.runId,stored.run_id);
@@ -218,20 +219,24 @@ function assertPolicyOutputJudgment({original,stored,result,wire,transcript}){
  const expected=prepareJudgeInput({rubric:{...RUBRIC,mode:'vuln'},...candidate});assert.equal(expected.evidenceError,undefined);
  assert.equal(expected.packet,stored.packet);assert.equal(expected.evidenceDigest,stored.evidence_digest);
  assert.equal(receipt.runId,stored.run_id);assert.equal(receipt.ownerKey,stored.owner_key);assert.equal(String(receipt.generation),String(stored.owner_generation));
- assert.equal(result.verdict,'pass');assert.equal(result.attempts,2);assert.equal(proof.calls.length,2);assert.equal(wire.length,2);
+ assert.equal(result.verdict,expectedVerdict);assert.equal(result.errorCode??null,null);assert.equal(result.attempts,2);assert.equal(proof.calls.length,2);assert.equal(wire.length,2);
  assert.deepEqual(result.criteria.map(row=>row.id),RUBRIC.criteria.map(row=>row.id));
  assert.deepEqual(result.scopedCriteria.map(row=>row.criterionId),RUBRIC.criteria.map(row=>row.id));
+ assert.equal(result.criteria.every(row=>row.satisfied===true),expectedVerdict==='pass');
  for(const [index,spec] of RUBRIC.criteria.entries()){
   const criterion=result.criteria[index],scoped=result.scopedCriteria[index],call=proof.calls[index],physical=wire[index];
-  assert.equal(criterion.satisfied,true);assert.deepEqual(criterion.evidenceRefs,spec.evidenceIds);
-  assert(criterion.citations.length>0);assert(criterion.citations.every(row=>spec.evidenceIds.includes(row.evidenceId)
+  assert.equal(typeof criterion.satisfied,'boolean');assert(Array.isArray(criterion.evidenceRefs));
+  assert(criterion.evidenceRefs.every(id=>spec.evidenceIds.includes(id)));
+  if(criterion.satisfied)assert.deepEqual(criterion.evidenceRefs,spec.evidenceIds);
+  assert(Array.isArray(criterion.citations));assert(criterion.satisfied?criterion.citations.length>0:criterion.citations.length===0);assert(criterion.citations.every(row=>spec.evidenceIds.includes(row.evidenceId)
     &&typeof row.quote==='string'&&row.quote.length>0&&strings(packet.evidence.find(e=>e.id===row.evidenceId).content).some(text=>text.includes(row.quote))));
-  assert.equal(scoped.attempts,1);assert.equal(scoped.verdict,'pass');assert.equal(scoped.errorCode,null);
+  assert.equal(scoped.attempts,1);assert.equal(scoped.verdict,criterion.satisfied?'pass':'fail');assert.equal(scoped.errorCode,null);
   assert.deepEqual(scoped.scopeEvidenceIds,spec.evidenceIds);assert.equal(call.stage,`criterion:${spec.id}`);assert.equal(call.attempt,1);
   assert.equal(call.provider,'ollama');assert.equal(call.model,MODEL);assert.equal(scoped.responseSha256,call.responseSha256);
   assert.equal(physical.role,'judge');assert.equal(physical.status,'returned');assert.equal(physical.requestSha256,sha(physical.request));
   assert.equal(physical.responseSha256,sha(physical.response));const request=json(physical.request);assert.equal(call.requestSha256,sha(JSON.stringify({method:'chat',input:request.messages,schema:request.format??null})));
-  assert.equal(call.responseSha256,sha(rawAnswer(physical)));assert.equal(json(rawAnswer(physical)).satisfied,true);
+  assert.equal(call.responseSha256,sha(rawAnswer(physical)));const raw=json(rawAnswer(physical));assert.equal(raw.satisfied,criterion.satisfied);
+  assert.deepEqual(raw.citations,criterion.citations);assert.deepEqual(raw.evidenceRefs,criterion.evidenceRefs);
  }
  assert(transcript);assert.equal(transcript.complete,true);assert.equal(transcript.failure,null);assert.equal(transcript.header.runId,stored.run_id);assert.equal(transcript.header.evidenceDigest,stored.evidence_digest);
  assert.equal(transcript.header.packet,stored.packet);assert.equal(transcript.calls.length,2);assert.deepEqual(transcript.outcome.value,result);
@@ -239,6 +244,28 @@ function assertPolicyOutputJudgment({original,stored,result,wire,transcript}){
  return Object.freeze({configuredJudgeProof:true,actualModelProof:false});
 }
 Object.assign(module.exports,{assertPolicyOutputJudgment});
+
+function assertPolicyOutputTerminal({outcome,stored,credit}){
+ assert(['pass','fail'].includes(stored.verdict));const passed=stored.verdict==='pass';
+ assert.equal(stored.objective_id,POLICY_OUTPUT_OBJECTIVE);assert.equal(stored.disposition,passed?'awarded':'not_pass');
+ assert.equal(outcome.completed,passed);assert.equal(outcome.judgment?.evaluationId,stored.evaluation_id);
+ assert.equal(outcome.judgment.verdict,stored.verdict);assert.equal(outcome.judgment.canRetry,false);
+ for(const table of ['active_assessment_contributions','assessment_contributions','assessment_completions'])
+  assert.deepEqual(credit[table],passed?[{evaluation_id:stored.evaluation_id}]:[]);
+ return passed;
+}
+function finishPolicyOutputSemantics({semanticPassed,status,retained,save}){
+ assert.equal(typeof semanticPassed,'boolean');assert.equal(typeof save,'function');
+ for(const key of ['originalModelAndHttpBound','canonicalJudgeEvidence','fixedSameSourceInertNoCredit','savedRunRecovery',
+  'savedAssessmentRecovery','publicProgress','sessionDenied','resetFenced','siblingPositivePreserved','immutablePreserved'])assert.equal(status[key],true);
+ assert.equal(status.canonicalTenantCredit,semanticPassed);assert.equal(status.genuineCredit,Number(semanticPassed));
+ assert.deepEqual(retained.rendered.semanticOutcome,{originalVerdict:semanticPassed?'pass':'fail',semanticPassed,genuineCredit:Number(semanticPassed),coverageCompleted:true});
+ if(!semanticPassed){
+  status.passed=false;retained.phase='coverage-complete-semantic-failure';save();
+  throw Object.assign(Error('Original canonical policy-output Judge failed; Fixed and lifecycle coverage completed without objective credit'),{code:'POLICY_OUTPUT_SEMANTIC_FAILURE'});
+ }
+}
+Object.assign(module.exports,{assertPolicyOutputTerminal,finishPolicyOutputSemantics});
 
 // Candidate-only semantic comparison vectors. These are not graph/browser
 // receipts and cannot establish actor provenance, browser execution or credit.

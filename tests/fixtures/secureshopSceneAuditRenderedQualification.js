@@ -36,11 +36,35 @@ function assertV15SceneSource({ merchant, admin, physicalSave, persisted, event,
   assert.notEqual(merchant.personaSession.sessionId, admin.personaSession.sessionId);
   assert.ok(Number.isSafeInteger(productId) && productId > 0);
   assert.ok(typeof description === 'string' && description.length > 0);
-  assert.equal(physicalSave.method, 'PUT');
-  assert.equal(physicalSave.path, `/api/secureshop/merchant/products/${productId}`);
-  assert.equal(physicalSave.status, 200);
-  assert.equal(physicalSave.body?.patch?.description, description);
+  const preview = physicalSave?.preview, confirm = physicalSave?.confirm;
+  assert.equal(preview?.method, 'POST');
+  assert.equal(preview.path, '/api/secureshop/merchant/listings/manual/edit/preview');
+  assert.equal(preview.status, 200);
+  assert.equal(preview.body?.productId, productId);
+  assert.equal(preview.body?.listing?.description, description);
+  assert.equal(preview.value?.origin, 'manual');
+  assert.equal(preview.value?.kind, 'edit');
+  assert.equal(preview.value?.productId, productId);
+  assert.equal(preview.value?.listing?.description, description);
+  assert.equal(preview.value?.after?.description, description);
+  assert.deepEqual(physicalSave.reviewed, { before: preview.value.before, after: preview.value.after });
+  assert.equal(confirm?.method, 'POST');
+  assert.equal(confirm.path, '/api/secureshop/merchant/listings/manual/edit/confirm');
+  assert.equal(confirm.status, 200);
+  assert.deepEqual(confirm.body?.preview, preview.value);
+  assert.match(confirm.body?.operationId, UUID);
+  assert.equal(confirm.value?.status, 'completed');
+  assert.equal(confirm.value?.origin, 'manual');
+  assert.equal(confirm.value?.kind, 'edit');
+  assert.equal(confirm.value?.replayed, false);
+  assert.equal(confirm.value?.operationId, confirm.body.operationId);
+  assert.equal(confirm.value?.productId, productId);
+  assert.equal(confirm.value?.requestSha256, preview.value.requestSha256);
+  assert.equal(confirm.value?.beforeSha256, preview.value.expectedSnapshotSha256);
+  for (const key of ['scopeKey', 'requestSha256', 'beforeSha256', 'afterSha256', 'receiptSha256'])
+    assert.match(confirm.value?.[key], /^[a-f0-9]{64}$/);
   assert.equal(event.sceneSource?.version, 2);
+  assert.equal(event.sceneSource.kind, 'scene_product_listing_manual_edit_confirm');
   assert.deepEqual(event.sceneSource.sourceExecution, merchantScope);
   assert.deepEqual(event.sceneSource.consumerExecution, adminScope);
   assert.equal(event.sceneSource.product.productId, productId);
@@ -55,7 +79,18 @@ function assertV15SceneSource({ merchant, admin, physicalSave, persisted, event,
   assert.deepEqual(event.sceneSource.consumerGrant, admin.grant);
   assert.deepEqual(event.sceneSource.scene.birth, createLaunchScope(merchant.scene.birth));
   assert.deepEqual(event.sceneSource.scene.birth, createLaunchScope(admin.scene.birth));
-  assert.equal(JSON.parse(event.params_json).description, description);
+  assert.equal(event.action, 'listing_manual_edit_confirm');
+  const params = JSON.parse(event.params_json);
+  assert.equal(params.origin, 'manual');
+  assert.equal(params.operationId, confirm.body.operationId);
+  assert.equal(params.scopeKey, confirm.value.scopeKey);
+  assert.equal(params.requestSha256, preview.value.requestSha256);
+  assert.equal(params.beforeSha256, confirm.value.beforeSha256);
+  assert.equal(params.afterSha256, confirm.value.afterSha256);
+  assert.deepEqual(params.confirmedDescription, { version: 1, text: description,
+    sha256: sha(JSON.stringify(description)),
+    personaSessionId: merchant.personaSession.sessionId.toLowerCase(),
+    authorityVersion: merchant.personaSession.authorityVersion });
   assert.deepEqual(persisted?.event,
     Object.fromEntries(EVENT_FIELDS.map(key => [key, event[key]])),
     'The original completed SQL event must match the source adapter row');
@@ -72,6 +107,20 @@ function assertV15SceneSource({ merchant, admin, physicalSave, persisted, event,
   assert.deepEqual(persisted.product,
     { productId, merchantId: merchant.persona.id, targetId: event.sceneSource.scene.targetId },
     'The product ownership row must independently match the source and scene');
+  const receipt = persisted.receipt, birth = createLaunchScope(merchant.scene.birth);
+  assert.equal(receipt.operationId, confirm.body.operationId);
+  assert.equal(receipt.productId, productId);
+  assert.equal(receipt.targetId, merchant.scene.targetId);
+  assert.deepEqual(Object.fromEntries(Object.keys(birth).map(key => [key, receipt[key]])), birth,
+    'The manual receipt must name the original scene birth execution');
+  assert.equal(receipt.sceneId, merchant.scene.sceneId);
+  assert.equal(receipt.sceneGeneration, merchant.scene.sceneGeneration);
+  assert.equal(receipt.grantId, merchant.grant.grantId);
+  assert.equal(receipt.merchantId, merchant.persona.id);
+  assert.equal(receipt.personaSessionId, merchant.personaSession.sessionId.toLowerCase());
+  assert.equal(receipt.authorityVersion, merchant.personaSession.authorityVersion);
+  for (const key of ['scopeKey', 'requestSha256', 'beforeSha256', 'afterSha256', 'receiptSha256'])
+    assert.equal(receipt[key], confirm.value[key], `The durable manual receipt must match ${key}`);
   const expected = createAuditSourceManifest([event], { consumerScope: adminScope });
   assert.equal(expected.rowCount, 1);
   assert.equal(expected.sources[0].version, 2);

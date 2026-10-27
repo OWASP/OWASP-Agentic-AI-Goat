@@ -31,9 +31,10 @@
  *
  * @intentional-vulnerability llm03-supply-chain
  * @teaches OWASP-LLM:LLM03
- * intentional — stdio-transport registration accepts an arbitrary
- * stdio_cmd. When SS_ENABLE_REAL_MCP_SPAWN=true, that command is spawned.
- * A malicious "MCP package" so registered would run untrusted binaries.
+ * intentional — the original registry command remains arbitrary stdio_cmd
+ * text. Execution belongs to the trusted, owner-scoped isolated executor;
+ * this legacy agent-host entry has no verifiable run/session authority and
+ * must never spawn that text on the host.
  *
  * @intentional-vulnerability xxe-import-manifest
  * @teaches OWASP-Web:A05
@@ -47,7 +48,6 @@ const { mcpSchemaDigest } = require('../../../../server/services/secureshopMcpSc
 const http = require('node:http');
 const https = require('node:https');
 const fs = require('node:fs');
-const { spawn } = require('node:child_process');
 const pg=()=>require('../../../../server/database/postgres/secureshopAgentsDb').getSecureShopAgentsDb();
 const xml2js = require('xml2js');
 
@@ -92,7 +92,7 @@ function list_servers() {
   return pg().listServers().then(servers=>({ok:true,count:servers.length,servers}));
 }
 
-async function register({ name, url = null, transport = 'sse', stdio_cmd = null } = {}) {
+async function register({ name, url = null, transport = 'sse', stdio_cmd = null } = {}, capability) {
     if (!name) return { ok: false, error: 'name required' };
     const t = String(transport || 'sse');
     let tools = [];
@@ -120,14 +120,15 @@ async function register({ name, url = null, transport = 'sse', stdio_cmd = null 
         discoveryError = e.message;
       }
     } else if (t === 'stdio') {
-      // Supply-chain sink: spawn the caller-supplied command.
-      if (process.env.SS_ENABLE_REAL_MCP_SPAWN === 'true' && stdio_cmd) {
-        try {
-          const child = spawn('sh', ['-c', stdio_cmd], { stdio: 'ignore', detached: true });
-          child.unref();
-        } catch (e) {
-          discoveryError = e.message;
-        }
+      // This API receives only caller-provided MCP arguments. Neither
+      // _ss_caller nor an environment toggle can establish a current owner,
+      // session, run or cleanup lease for a process. The original selected
+      // command is handled by the separate bound execution adapter.
+      const cap = require('../../../../server/services/secureshopV23RegisterCapability');
+      if (!cap.isOwnerScopedRegisterCapability(capability)) {
+        discoveryError = 'Owner-scoped stdio executor required';
+      } else {
+        return capability.execute({ name, url, transport: t, stdio_cmd });
       }
     }
 

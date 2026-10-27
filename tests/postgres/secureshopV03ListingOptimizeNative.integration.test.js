@@ -29,6 +29,8 @@ const V30 = 'e747a55517a50d484901bcc78a98747c98773042cb2bff6396a7654722a470ef';
 const V31 = '0a9e93f87983045aa3194f2794f63118a3d62979d3dada88eb91e2e22ff4c15c';
 const V32 = '7b61d5cd1f2dcb98585b0a4312423df33b2a2d2df54905bf394a6e6717719beb';
 const V32_GUARD = '32a77ee440bdcc16e8e5b8606d5458a47eacae659dfa06aba1e1bf404ca55530';
+const V39 = 'e16a47c5c7a57a9ee60b4982795e4eb7592cf311fb4e9ee52bbbde6d73cd605f';
+const V39_GUARD = '445e8716ed8920be8666c95e7aaa04f662c61a1726172f6d93ac9fbff20f43d6';
 const REVIEW_GUARD = 'dd34dd8956071640c4af36f8489afbcb22b40dbe3d17d3d6c3f24fb1845bb426';
 const digest = value => createHash('sha256').update(value).digest('hex');
 
@@ -69,6 +71,37 @@ async function preparePrefix(pool, directory, successor) {
         [migration.name, migration.checksum]);
     }
     return prefix.map(migration => migration.name);
+  });
+}
+
+function exactHistory(migrations, targets) {
+  const names = migrations.map(row => row.name);
+  assert.deepEqual(names, [...new Set(names)].sort());
+  const at = names.indexOf(targets[0]);
+  assert.ok(at >= 0, 'original target migration required');
+  assert.deepEqual(names.slice(at, at + targets.length), targets);
+  return { names, rows: migrations.map(({ name, checksum }) => ({ name, checksum })) };
+}
+
+// The populated prefix stops at0104. Prove its exact original successor pair
+// before applying the current production tail; no source copy or altered SQL.
+async function applyOptimizeSuccessors(pool, migrations) {
+  const history = exactHistory(migrations, AGENTS_SUCCESSORS);
+  const at = history.names.indexOf(AGENTS_SUCCESSORS[0]);
+  return withTransaction(pool, async client => {
+    await verifyServer(client);
+    await client.query('SELECT pg_advisory_xact_lock(1886610804, 1)');
+    assert.deepEqual((await client.query(
+      'SELECT name,checksum FROM dvaia_migrations.ledger ORDER BY name')).rows,
+    history.rows.slice(0, at));
+    const applied = [];
+    for (const migration of migrations.slice(at, at + AGENTS_SUCCESSORS.length)) {
+      await client.query(executionSql(migration));
+      await client.query('INSERT INTO dvaia_migrations.ledger(name,checksum) VALUES($1,$2)',
+        [migration.name, migration.checksum]);
+      applied.push(migration.name);
+    }
+    return applied;
   });
 }
 
@@ -132,17 +165,19 @@ async function qualifyAvatarSessionAfterCustomerChat(pool) {
     'exact retry reuses the durable avatar-upload session');
 }
 
-async function runtimeRegistryProof(pool) {
+async function runtimeRegistryProof(pool, { historical = false } = {}) {
   await assert.rejects(pool.query('CREATE TABLE secureshop_agents.v03_forbidden(value integer)'),
     error => error.code === '42501');
-  assert.deepEqual(await assertBoundToolPolicyReadiness(pool), { ready: true });
+  if (!historical) assert.deepEqual(await assertBoundToolPolicyReadiness(pool), { ready: true });
   const row = (await pool.query(`SELECT
     encode(sha256(convert_to(prosrc,'UTF8')),'hex') AS guard_sha,
     EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid='secureshop_agents.bound_tool_registry_upgrades'::regclass
-      AND conname='bound_tool_registry_successor_v32' AND contype='c' AND convalidated) AS v32,
+      AND conname=$1 AND contype='c' AND convalidated) AS successor,
     has_function_privilege(current_user,'secureshop_agents.guard_bound_tool_registry_upgrade()','EXECUTE') AS runtime_execute
-    FROM pg_proc WHERE oid='secureshop_agents.guard_bound_tool_registry_upgrade()'::regprocedure`)).rows[0];
-  assert.deepEqual(row, { guard_sha: V32_GUARD, v32: true, runtime_execute: false });
+    FROM pg_proc WHERE oid='secureshop_agents.guard_bound_tool_registry_upgrade()'::regprocedure`,
+    [`bound_tool_registry_successor_v${historical ? 32 : 39}`])).rows[0];
+  assert.deepEqual(row, { guard_sha: historical ? V32_GUARD : V39_GUARD,
+    successor: true, runtime_execute: false });
 }
 
 async function upgradeRegistry(pool, scope, { wrong = false } = {}) {
@@ -187,8 +222,11 @@ test('0105-0106 qualify exact production migration history, v31 registry transit
     const fresh = pools('AGENTS_FRESH', 'agents');
     const populated = pools('AGENTS_POPULATED', 'agents');
     try {
+      const migrations = await readMigrations(AGENTS_DIRECTORY);
+      const history = exactHistory(migrations, AGENTS_SUCCESSORS);
       const freshApplied = await migrate(fresh.migration, AGENTS_DIRECTORY);
-      assert.deepEqual(freshApplied.slice(-2), AGENTS_SUCCESSORS);
+      assert.deepEqual(freshApplied, history.names);
+      assert.deepEqual(await ledger(fresh.migration), history.rows);
       assert.deepEqual(await migrate(fresh.migration, AGENTS_DIRECTORY), []);
       assert.equal((await insertPurpose(fresh.runtime, 'secureshop_listing_optimize', 1)).rows[0].conversation_purpose,
         'secureshop_listing_optimize');
@@ -220,7 +258,12 @@ test('0105-0106 qualify exact production migration history, v31 registry transit
         head: (await populated.runtime.query('SELECT * FROM secureshop_agents.bound_tool_policy_heads WHERE platform_launch_id=$1', [scope.launchId])).rows,
         overrides: (await populated.runtime.query('SELECT * FROM secureshop_agents.bound_tool_policy_overrides WHERE platform_launch_id=$1', [scope.launchId])).rows,
       };
-      assert.deepEqual(await migrate(populated.migration, AGENTS_DIRECTORY), AGENTS_SUCCESSORS);
+      assert.deepEqual(await applyOptimizeSuccessors(populated.migration, migrations), AGENTS_SUCCESSORS);
+      await runtimeRegistryProof(populated.runtime, { historical: true });
+      const afterOriginal = history.names.indexOf(AGENTS_SUCCESSORS[1]) + 1;
+      assert.deepEqual(await ledger(populated.migration), history.rows.slice(0, afterOriginal));
+      assert.deepEqual(await migrate(populated.migration, AGENTS_DIRECTORY), history.names.slice(afterOriginal));
+      assert.deepEqual(await ledger(populated.migration), history.rows);
       assert.deepEqual((await ledger(populated.migration)).slice(0, prefixLedger.length), prefixLedger);
       assert.deepEqual((await populated.runtime.query('SELECT * FROM secureshop_agents.agent_sessions WHERE id=$1', [retained.id])).rows, before.session);
       assert.deepEqual((await populated.runtime.query('SELECT * FROM secureshop_agents.bound_tool_policy_heads WHERE platform_launch_id=$1', [scope.launchId])).rows, before.head);
@@ -233,8 +276,8 @@ test('0105-0106 qualify exact production migration history, v31 registry transit
       const head = (await populated.runtime.query(`SELECT policy_version,encode(registry_sha256,'hex') AS registry
         FROM secureshop_agents.bound_tool_policy_heads WHERE platform_launch_id=$1`, [scope.launchId])).rows[0];
       assert.deepEqual(head, { policy_version: '32', registry: V32 });
-      assert.equal(REGISTRY_VERSION, 32);
-      assert.equal(REGISTRY_SHA256, V32);
+      assert.equal(REGISTRY_VERSION, 39);
+      assert.equal(REGISTRY_SHA256, V39);
       assert.deepEqual((await populated.runtime.query(`SELECT tool_key,role,allowed
         FROM secureshop_agents.bound_tool_policy_overrides WHERE platform_launch_id=$1 ORDER BY tool_key,role`,
       [scope.launchId])).rows, [
@@ -366,8 +409,10 @@ test('0054 qualifies fresh/populated/no-op and real optimize, fixed denial, sibl
     const fresh = pools('REVIEW_FRESH', 'review');
     const populated = pools('REVIEW_POPULATED', 'review');
     try {
+      const history = exactHistory(await readMigrations(REVIEW_DIRECTORY), [REVIEW_SUCCESSOR]);
       const freshApplied = await migrate(fresh.migration, REVIEW_DIRECTORY);
-      assert.equal(freshApplied.at(-1), REVIEW_SUCCESSOR);
+      assert.deepEqual(freshApplied, history.names);
+      assert.deepEqual(await ledger(fresh.migration), history.rows);
       assert.deepEqual(await migrate(fresh.migration, REVIEW_DIRECTORY), []);
       const freshGuard = (await fresh.runtime.query(`SELECT
         encode(sha256(convert_to(prosrc,'UTF8')),'hex') AS guard_sha,
@@ -397,7 +442,9 @@ test('0054 qualifies fresh/populated/no-op and real optimize, fixed denial, sibl
       await legacyRepo.transition(historicalRaw,
         { eventId: id(4903), expectedSequence: 0, state: 'failed', receipt: { code: 'MODEL_UNAVAILABLE' } });
       const historicalBefore = await snapshotOperation(populated.runtime, historicalRaw.request.operationId);
-      assert.deepEqual(await migrate(populated.migration, REVIEW_DIRECTORY), [REVIEW_SUCCESSOR]);
+      assert.deepEqual(await migrate(populated.migration, REVIEW_DIRECTORY),
+        history.names.slice(history.names.indexOf(REVIEW_SUCCESSOR)));
+      assert.deepEqual(await ledger(populated.migration), history.rows);
       assert.deepEqual((await ledger(populated.migration)).slice(0, prefixLedger.length), prefixLedger);
       assert.deepEqual(await snapshotOperation(populated.runtime, historicalRaw.request.operationId), historicalBefore);
       assert.equal((await legacyRepo.get(historicalRaw)).state, 'failed');

@@ -1,11 +1,104 @@
 """Resource-free checks of the actual executor cleanup command sequence."""
 import tempfile
+import hashlib
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from system_config_owned_executor import OwnedSystemExecutor
+import system_config_owned_executor as module
+import system_diagnostic_owned_executor as identity_contract
+
+
+class OriginalSystemAdmissionTests(unittest.TestCase):
+    def test_recipe_export_is_byte_identical_pure_and_not_execution_authority(self):
+        with patch.object(module.subprocess,'Popen',side_effect=AssertionError('No spawn')), \
+             patch.object(module.subprocess,'run',side_effect=AssertionError('No process')), \
+             patch.object(Path,'read_bytes',side_effect=AssertionError('No read')), \
+             patch.object(Path,'write_text',side_effect=AssertionError('No write')):
+            recipe=module.original_system_build_recipe()
+        self.assertEqual(recipe['dockerfileSha256'], '7e5f852b304d69bd76b446cb4edcf8da4760a9d9064fd7c1bc8fbf9a4209cc5b')
+        self.assertEqual(recipe, {'version':1,'target':'v24-system','base':module.BASE,
+            'platform':'linux/arm64','sourceRoot':'sidecars/sandbox-runner/owned-system',
+            'dockerfile':module.original_system_dockerfile(),'dockerfileSha256':hashlib.sha256(module.original_system_dockerfile().encode()).hexdigest(),
+            'packages':['gcc','libc6-dev','bubblewrap'],'user':'10001:10001',
+            'entrypoint':['/usr/local/bin/node','/qualification/owned-system/http-listener.js']})
+        recipe['packages'].append('not-an-original-package')
+        self.assertEqual(module.original_system_build_recipe()['packages'],['gcc','libc6-dev','bubblewrap'])
+        import ast
+        tree=ast.parse(Path(module.__file__).read_text())
+        cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='OwnedSystemExecutor')
+        start=next(n for n in cls.body if isinstance(n,ast.FunctionDef) and n.name=='start')
+        assignment=next(n for n in start.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='dockerfile' for t in n.targets))
+        self.assertEqual(ast.unparse(assignment.value),'original_system_dockerfile()')
+        with self.assertRaisesRegex(RuntimeError,'V24_PRIVATE_RUNTIME_NOT_ADMITTED'):
+            module.require_private_system_runtime_admission()
+
+    def test_original_identity_reuses_reviewed_contract_without_changing_base(self):
+        self.assertIs(module.admit_original_base_identity, identity_contract.admit_original_base_identity)
+        self.assertEqual(module.BASE, 'sha256:3a771f83944bb763050c23c0225c260638c4b7899e7a72485ef75e5e570499e5')
+        self.assertEqual(len({module.BASE,module.ARM64_MANIFEST,module.ARM64_CONFIG}),3)
+        raw=module.BASE_AUDIT_PATH.read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),module.BASE_AUDIT_SHA256)
+        for kind,value in [('config',module.ARM64_CONFIG),('manifest',module.ARM64_MANIFEST)]:
+            with self.subTest(kind=kind):
+                result=module.admit_original_base_identity({'Id':value,'Architecture':'arm64','Os':'linux'},raw,identity_kind=kind)
+                self.assertEqual(result['indexDigest'],module.BASE)
+                self.assertEqual(result['inspectedId'],value)
+                self.assertFalse(result['rawOciChainReverified'])
+                self.assertFalse(result['runtimeQualified'])
+                self.assertFalse(result['executionApproved'])
+
+    def test_index_swaps_platform_and_audit_mutations_are_not_identity_authority(self):
+        raw=module.BASE_AUDIT_PATH.read_bytes()
+        for value in [module.BASE,module.ARM64_MANIFEST,module.RESTART_BASE,'node:26.9.0',None,True]:
+            with self.subTest(value=value),self.assertRaisesRegex(ValueError,'V24_BASE_IDENTITY'):
+                module.admit_original_base_identity({'Id':value,'Architecture':'arm64','Os':'linux'},raw,identity_kind='config')
+        info={'Id':module.ARM64_CONFIG,'Architecture':'arm64','Os':'linux'}
+        for change in [{'Architecture':'amd64'},{'Os':'windows'},{'Variant':'v7'}]:
+            with self.subTest(change=change),self.assertRaisesRegex(ValueError,'V24_BASE_IDENTITY'):
+                module.admit_original_base_identity({**info,**change},raw,identity_kind='config')
+        for kind in ['auto','index',None,True]:
+            with self.subTest(kind=kind),self.assertRaisesRegex(ValueError,'V24_BASE_IDENTITY_KIND'):
+                module.admit_original_base_identity(info,raw,identity_kind=kind)
+        for altered in [raw+b' ',raw.decode(),b'',b'x'*8193]:
+            with self.subTest(kind=type(altered).__name__),self.assertRaisesRegex(ValueError,'V24_BASE_AUDIT_PIN'):
+                module.admit_original_base_identity(info,altered,identity_kind='config')
+
+    def test_actual_whole_start_is_closed_before_any_inspection_file_or_process_effect(self):
+        tasks=Path(__file__).resolve().parents[2]/'tasks'
+        with tempfile.TemporaryDirectory(dir=tasks) as directory:
+            root=Path(directory)
+            executor=OwnedSystemExecutor(root,root,['never-docker'],
+                {'V24_PRIVATE_RUNTIME_NOT_ADMITTED':'false','V24_PRIVATE_RUNTIME_ADMITTED':'true'},
+                'controlled-owner',lambda: self.fail('No state persistence before admission'))
+            before=dict(executor.state)
+            with patch.object(executor,'inspect',side_effect=AssertionError('No image inspection')), \
+                 patch.object(executor,'run',side_effect=AssertionError('No Docker commands')), \
+                 patch.object(module.subprocess,'Popen',side_effect=AssertionError('No process spawn')), \
+                 patch.object(module.subprocess,'run',side_effect=AssertionError('No subprocess')), \
+                 patch.object(Path,'read_bytes',side_effect=AssertionError('No audit read')), \
+                 patch.object(Path,'mkdir',side_effect=AssertionError('No directories')), \
+                 patch.object(Path,'write_text',side_effect=AssertionError('No files')), \
+                 patch.object(module.shutil,'copytree',side_effect=AssertionError('No source copies')):
+                with self.assertRaisesRegex(RuntimeError,'^V24_PRIVATE_RUNTIME_NOT_ADMITTED$'):
+                    executor.start()
+            self.assertEqual(executor.state,before)
+            self.assertIsNone(executor.build)
+            self.assertEqual(list(root.iterdir()),[])
+
+    def test_start_fences_first_and_uses_explicit_config_identity_not_index_equality(self):
+        import ast
+        tree=ast.parse(Path(module.__file__).read_text())
+        cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='OwnedSystemExecutor')
+        start=next(n for n in cls.body if isinstance(n,ast.FunctionDef) and n.name=='start')
+        self.assertEqual(ast.unparse(start.body[0]),'require_private_system_runtime_admission()')
+        calls=[n for n in ast.walk(start) if isinstance(n,ast.Call)
+               and isinstance(n.func,ast.Name) and n.func.id=='admit_original_base_identity']
+        self.assertEqual(len(calls),1)
+        self.assertEqual(ast.unparse(calls[0]),"admit_original_base_identity(info, BASE_AUDIT_PATH.read_bytes(), identity_kind='config')")
+        self.assertFalse(any(isinstance(n,ast.Compare) and ast.unparse(n)=="info['Id'] != BASE" for n in ast.walk(start)))
 
 
 class ExecutorCleanupTests(unittest.TestCase):
@@ -96,6 +189,84 @@ class ExecutorCleanupTests(unittest.TestCase):
             self.assertTrue(executor.state['cleanup']['imageAbsent'])
             self.assertFalse(executor.state['cleanup']['imageIdAbsent'])
             self.assertIn('absence-not-confirmed', executor.state['cleanup']['errors'])
+
+
+class OriginalSourceBuildContextTests(unittest.TestCase):
+    def build_stage(self, *, change_source=False):
+        import ast, hashlib
+        import system_config_owned_executor as module
+        tasks = Path(__file__).resolve().parents[2] / 'tasks'
+        with tempfile.TemporaryDirectory(dir=tasks) as directory:
+            root = Path(directory)
+            workspace = root / 'workspace'
+            source = workspace / 'sidecars/sandbox-runner/owned-system'
+            source.mkdir(parents=True)
+            original = source / 'http-listener.js'
+            original.write_text('original owned System source')
+            if not change_source:
+                original.chmod(0o444)
+            output = root / 'evidence'
+            output.mkdir()
+            executor = module.OwnedSystemExecutor(output, workspace, ['never-docker'], {},
+                                                  'controlled-owner', lambda: None)
+            tree = ast.parse(Path(module.__file__).read_text())
+            cls = next(row for row in tree.body if isinstance(row, ast.ClassDef)
+                       and row.name == 'OwnedSystemExecutor')
+            start = next(row for row in cls.body if isinstance(row, ast.FunctionDef)
+                         and row.name == 'start')
+            first = next(i for i, row in enumerate(start.body) if isinstance(row, ast.Assign)
+                         and any(isinstance(target, ast.Name) and target.id == 'context'
+                                 for target in row.targets))
+            last = next(i for i, row in enumerate(start.body) if isinstance(row, ast.Assign)
+                        and any(isinstance(target, ast.Name) and target.id == 'image'
+                                for target in row.targets))
+            stage = compile(ast.Module(body=start.body[first:last], type_ignores=[]),
+                            '<actual original-source Docker build>', 'exec')
+            calls = []
+            before = hashlib.sha256(original.read_bytes()).hexdigest()
+
+            def popen(argv, **kwargs):
+                calls.append(argv)
+                self.assertEqual(argv[-1], str(source))
+                self.assertEqual(argv[argv.index('-f') + 1], str(output / 'executor-build/Dockerfile'))
+                self.assertTrue(kwargs['start_new_session'])
+                self.assertEqual(kwargs['env'], {})
+                self.assertEqual({item.name for item in (output / 'executor-build').iterdir()},
+                                 {'Dockerfile'})
+                dockerfile = (output / 'executor-build/Dockerfile').read_text()
+                self.assertIn('COPY . /qualification/owned-system', dockerfile)
+                self.assertNotIn('COPY owned-system /qualification/owned-system', dockerfile)
+
+                def wait(**_):
+                    if change_source:
+                        original.write_text('changed during Docker build')
+                    return 0
+
+                return SimpleNamespace(pid=111, wait=wait)
+
+            scope = {'self': executor, 'BASE': module.BASE, 'hashlib': hashlib,
+                     'original_system_dockerfile': module.original_system_dockerfile,
+                     'restart_content_digest': module.restart_content_digest,
+                     'subprocess': SimpleNamespace(Popen=popen, STDOUT=-2)}
+            if change_source:
+                with self.assertRaisesRegex(RuntimeError, 'source changed during build'):
+                    exec(stage, scope)
+            else:
+                exec(stage, scope)
+                self.assertEqual(hashlib.sha256(original.read_bytes()).hexdigest(), before)
+                self.assertEqual(executor.state['sourceContext'], str(source))
+                self.assertEqual(executor.state['sourceSha256'],
+                                 module.restart_content_digest(source))
+                self.assertEqual(executor.state['dockerfileSha256'],
+                                 hashlib.sha256((output / 'executor-build/Dockerfile').read_bytes()).hexdigest())
+            self.assertEqual(len(calls), 1)
+            self.assertFalse((output / 'executor-build/owned-system').exists())
+
+    def test_original_source_is_the_exact_docker_context_without_replica(self):
+        self.build_stage()
+
+    def test_source_change_during_build_fails_provenance_check(self):
+        self.build_stage(change_source=True)
 
 
 if __name__ == '__main__':

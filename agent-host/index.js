@@ -20,6 +20,13 @@ const TASK_AGENTS = [
 ];
 
 async function main() {
+  const requestedBindHost = process.env.SS_AGENT_HOST_BIND_HOST;
+  if (requestedBindHost !== undefined && requestedBindHost !== '' && requestedBindHost !== '127.0.0.1') {
+    throw Object.assign(new Error('SS_AGENT_HOST_BIND_HOST must be exactly 127.0.0.1'), {
+      code: 'SS_AGENT_HOST_BIND_HOST_INVALID'
+    });
+  }
+  const listenArguments = requestedBindHost === '127.0.0.1' ? [PORT, requestedBindHost] : [PORT];
   if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
 
   await require('../server/database/postgres/secureshopInitialization').verifySecureShopRuntime();
@@ -81,7 +88,7 @@ async function main() {
     const address = await new Promise((resolve, reject) => {
       // Express 5 invokes this callback with the bind error as well as on
       // success. Never inspect address() or publish ready on a failed bind.
-      httpServer = app.listen(PORT, error => {
+      httpServer = app.listen(...listenArguments, error => {
         if (error) return reject(error);
         const address = httpServer.address();
         if (!address || typeof address !== 'object') return reject(Object.assign(
