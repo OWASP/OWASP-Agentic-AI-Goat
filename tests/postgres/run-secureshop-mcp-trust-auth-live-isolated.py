@@ -23,21 +23,21 @@ parser.add_argument('--docker-host', required=True)
 parser.add_argument('--grant-id', required=True)
 parser.add_argument('--grant-file', default='tasks/native-verification-slot.json')
 args = parser.parse_args()
-EXPECTED_DOCKER_HOST = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+EXPECTED_DOCKER_HOST = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 if args.docker_host != EXPECTED_DOCKER_HOST:
     raise RuntimeError('Exact owned Colima verification Docker host is required')
 source = Path(__file__).resolve().parents[2]
 grant_path = (source / args.grant_file).resolve() if not Path(args.grant_file).is_absolute() else Path(args.grant_file)
 grant_lock = grant_path.with_suffix(grant_path.suffix + '.consume-lock')
-root = Path(tempfile.mkdtemp(prefix='dvaia-secureshop-mcp-trust-auth-'))
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-secureshop-mcp-trust-auth-'))
 workspace = root / 'source'
 workspace.mkdir()
 os.chmod(root, 0o700)
 base_env = {key: os.environ[key] for key in ['PATH','HOME','TMPDIR'] if key in os.environ}
-managed_node = Path(base_env.get('HOME','/nonexistent')) / '.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin'
+managed_node = Path(base_env.get('HOME','/nonexistent')) / '.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin'
 base_env['PATH'] = str(managed_node) + os.pathsep + base_env.get('PATH','')
 docker = ['docker','--host',args.docker_host]
-container = 'dvaia-secureshop-mcp-trust-auth-' + uuid.uuid4().hex[:12]
+container = 'owasp-ai-goat-secureshop-mcp-trust-auth-' + uuid.uuid4().hex[:12]
 ownership_path = root / 'ownership.json'
 log_path = root / 'result.log'
 with os.fdopen(os.open(log_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'w') as output:
@@ -210,7 +210,7 @@ try:
     for label,migration_role,runtime_role in stores:
         for role in [migration_role,runtime_role]:
             run(psql+['-c',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
-        database=f'dvaia_test_secureshop_mcp_trust_auth_{label}'
+        database=f'owasp_ai_goat_test_secureshop_mcp_trust_auth_{label}'
         run(psql+['-c',f'CREATE DATABASE {database} OWNER {migration_role}'],stdout=subprocess.DEVNULL)
         run(psql+['-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration_role}, {runtime_role}'],stdout=subprocess.DEVNULL)
         urls[label]={'migration':f'postgresql://{quote(migration_role)}@127.0.0.1:{port}/{database}',
@@ -218,7 +218,7 @@ try:
     env=dict(base_env,NODE_ENV='test',PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',PG_TEST_DISPOSABLE='yes',
         LIVE_OLLAMA_TEST='1',OLLAMA_MODEL='llama3.1:8b',OLLAMA_BASE_URL='http://127.0.0.1:11434',
         AI_PROVIDER='ollama',JUDGE_PROVIDER='ollama',JUDGE_MODEL='llama3.1:8b',
-        DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),AWS_EC2_METADATA_DISABLED='true',
+        OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),AWS_EC2_METADATA_DISABLED='true',
         PG_SECURESHOP_MCP_TRUST_AUTH_IDENTITY_MIGRATION_URL=urls['identity']['migration'],
         PG_SECURESHOP_MCP_TRUST_AUTH_IDENTITY_RUNTIME_URL=urls['identity']['runtime'],
         PG_SECURESHOP_MCP_TRUST_AUTH_AGENTS_MIGRATION_URL=urls['agents']['migration'],

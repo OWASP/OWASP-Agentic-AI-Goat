@@ -11,7 +11,7 @@ function privateWrite(root,name,value){const bytes=JSON.stringify(value,null,2);
   .writePrivate(process.env,SOURCE,root,name,value);}
 function admission(){
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(process.env.LIVE_OLLAMA_TEST,'1');
- assert.equal(process.env.DVAIA_CURRENT_MAIN_WORKSPACE,SOURCE);assert.equal(process.cwd(),SOURCE);
+ assert.equal(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,SOURCE);assert.equal(process.cwd(),SOURCE);
  assert.equal(process.env.LAB_MODE,'vuln');
  const evidence=process.env.SECURESHOP_STANDALONE_PERSONA_EVIDENCE_PATH;
  if(CURRENT_HOST)require('../fixtures/secureshopPersonaInboxCurrentHostAdmission')
@@ -24,7 +24,7 @@ function admission(){
   const url=new URL(process.env[PREFIX+name+'_'+role+'_URL']);assert.equal(url.protocol,'postgresql:');
   assert.equal(url.hostname,'127.0.0.1');assert.equal(url.username,'dvaia_'+store+'_'+role.toLowerCase());
   assert.equal(url.password,'');assert.equal(url.search,'');assert.equal(url.hash,'');assert(Number(url.port)>0);
-  const match=new RegExp('^/dvaia_test_agent_host_([a-f0-9]{12})_'+store+'$').exec(url.pathname);assert(match);
+  const match=new RegExp('^/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_'+store+'$').exec(url.pathname);assert(match);
   nonce??=match[1];port??=url.port;assert.equal(match[1],nonce);assert.equal(url.port,port);urls[name][role]=url.href;
  }}
  return {evidence,urls,currentHost:CURRENT_HOST};
@@ -270,9 +270,9 @@ async function qualifyStandalonePersonaActual({owned,state,save,stage,identity,i
    inboxRepository:lifecycle.personaInbox.repository,record:value=>recorder.retain('exact-source',value)});
   const read=async(body,who)=>{const credential=who==='sibling'?siblingBase:merchantBase;
    const response=await fetch(origin+'/api/secureshop/v2/persona-inbox/'+(body?'read':'readiness'),{
-    method:body?'POST':'GET',headers:{'x-dvaia-secureshop-launch':credential.bearer,authorization:'Bearer '+credential.persona.token,
+    method:body?'POST':'GET',headers:{'x-owasp-ai-goat-secureshop-launch':credential.bearer,authorization:'Bearer '+credential.persona.token,
     ...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(10000)});
-   return {status:response.status,value:await response.json(),launchState:response.headers.get('x-dvaia-secureshop-launch-state')};};
+   return {status:response.status,value:await response.json(),launchState:response.headers.get('x-owasp-ai-goat-secureshop-launch-state')};};
   const siblingSnapshot=async()=>({
    messages:(await agents.query('SELECT * FROM secureshop_agents.persona_inbox_messages WHERE target_id=$1 ORDER BY message_id',[siblingTarget.targetId])).rows,
    acl:(await agents.query('SELECT * FROM secureshop_agents.persona_inbox_acl_versions WHERE target_id=$1 ORDER BY version',[siblingTarget.targetId])).rows,

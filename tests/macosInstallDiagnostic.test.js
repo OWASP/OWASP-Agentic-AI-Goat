@@ -4,7 +4,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {spawnSync}=require('node:child_process');
 const root=path.resolve(__dirname,'..');
 function diagnostic(nodeVersion,npmVersion){
- const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-diagnostic-policy-'));
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-diagnostic-policy-'));
  try{
   // Run current source from stdin; only runtime discovery is controlled.
   let source=fs.readFileSync(path.join(root,'scripts/install/Mac/test-macos-install.sh'),'utf8');

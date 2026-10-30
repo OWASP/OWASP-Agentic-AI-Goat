@@ -9,7 +9,7 @@ const { createHash } = require('node:crypto');
 const { createRagObjectivePlanDiagnostic } = require('../../server/agent-runtime/ragObjectivePlanDiagnostic');
 const { transport, reconstruct, assertMetadataIdentity, MODEL, DIGEST } = require('./pricingDirectiveGroupsActualJudge');
 
-const ROOT = '/Users/averma5/Documents/github/Damn-Vulnerable-AI-Application';
+const ROOT = '/Users/averma5/Documents/github/OWASP Agentic AI GOAT';
 const RUN_PATH = 'tests/fixtures/ragObjectivePlanActual8bRun.json';
 const sha = value => createHash('sha256').update(value).digest('hex');
 const fileSha = file => sha(fs.readFileSync(file));

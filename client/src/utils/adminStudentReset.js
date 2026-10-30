@@ -29,7 +29,7 @@ export async function runAdminStudentReset({ api, studentId, token, isCurrent,
   if (!token || !/^[1-9]\d*$/.test(String(studentId))) throw new Error('Current reset scope is required');
   const scope = await digest(token);
   if (!isCurrent()) throw new Error('Administrator session or selection changed');
-  const key = `dvaia:admin-student-reset:${scope}:${studentId}:sensitive_info_disclosure`;
+  const key = `owasp-ai-goat:admin-student-reset:${scope}:${studentId}:sensitive_info_disclosure`;
   {
     let operationId = storage.getItem(key);
     if (operationId && !UUID.test(operationId)) throw new Error('Saved reset identifier is invalid');

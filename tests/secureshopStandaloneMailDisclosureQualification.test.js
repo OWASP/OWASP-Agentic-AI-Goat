@@ -238,7 +238,7 @@ test('mounted launch and persona middleware preserve typed fixed and reset mail 
   const endpoint = `http://127.0.0.1:${server.address().port}/email`;
   const request = async (path, credential, body) => {
     const response = await fetch(endpoint + path, { method: 'POST', headers: {
-      'x-dvaia-secureshop-launch': bearer, authorization: `Bearer ${credential}`,
+      'x-owasp-ai-goat-secureshop-launch': bearer, authorization: `Bearer ${credential}`,
       'content-type': 'application/json',
     }, body: JSON.stringify(body), signal: AbortSignal.timeout(3000) });
     return { status: response.status, value: await response.json() };

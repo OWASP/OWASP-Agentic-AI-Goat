@@ -31,9 +31,9 @@ test('V24 borrows its paired renderer while the template cohort retains disposab
 
 const digest = 'a'.repeat(64);
 const suffix = 'a1b2c3d4e5f6';
-const name = `dvaia-v59-policy-${suffix}`;
-const labels = { 'dvaia.policy.workspace': suffix, 'dvaia.policy.owner': 'owned-teaching',
-  'dvaia.policy.source': digest, 'dvaia.qualification': suffix };
+const name = `owasp-ai-goat-v59-policy-${suffix}`;
+const labels = { 'owasp-ai-goat.policy.workspace': suffix, 'owasp-ai-goat.policy.owner': 'owned-teaching',
+  'owasp-ai-goat.policy.source': digest, 'owasp-ai-goat.qualification': suffix };
 
 test('dedicated build uses the production closed policy-only source manifest', () => {
   const source = installer.sourceManifest(path.resolve(__dirname, '..'));
@@ -45,16 +45,16 @@ test('dedicated build uses the production closed policy-only source manifest', (
 });
 
 test('disposable container uses exact production isolation and a fixed loopback port', () => {
-  const args = createArgs({ name, network: name, profile: `dvaia-owned-policy-renderer-${suffix}`,
+  const args = createArgs({ name, network: name, profile: `owasp-ai-goat-owned-policy-renderer-${suffix}`,
     imageId: `sha256:${digest}`, labels, port: 34567 });
   for (const required of ['--read-only', '10001:10001', '--cap-drop', 'ALL',
-    'apparmor=dvaia-owned-policy-renderer-a1b2c3d4e5f6', 'seccomp=unconfined',
+    'apparmor=owasp-ai-goat-owned-policy-renderer-a1b2c3d4e5f6', 'seccomp=unconfined',
     '127.0.0.1:34567:8090', 'SECURESHOP_POLICY_RENDER_MAX_CONCURRENT=1']) {
     assert.ok(args.includes(required), required);
   }
-  assert.ok(args.includes('dvaia.qualification=a1b2c3d4e5f6'));
+  assert.ok(args.includes('owasp-ai-goat.qualification=a1b2c3d4e5f6'));
   assert.throws(() => createArgs({ name, network: name,
-    profile: `dvaia-owned-policy-renderer-${suffix}`, imageId: `sha256:${digest}`,
+    profile: `owasp-ai-goat-owned-policy-renderer-${suffix}`, imageId: `sha256:${digest}`,
     labels, port: 0 }));
 });
 
@@ -65,7 +65,7 @@ test('cleanup admission rejects replaced IDs, foreign run labels and renamed res
   assert.throws(() => assertOwnedResource('container', { Id: 'b'.repeat(64), Name: `/${name}`,
     Config: { Labels: labels } }, common));
   assert.throws(() => assertOwnedResource('container', { Id: digest, Name: `/${name}`,
-    Config: { Labels: { ...labels, 'dvaia.qualification': 'foreign' } } }, common));
+    Config: { Labels: { ...labels, 'owasp-ai-goat.qualification': 'foreign' } } }, common));
   assert.throws(() => assertOwnedResource('container', { Id: digest, Name: '/other',
     Config: { Labels: labels } }, common));
   assert.equal(assertOwnedResource('network', { Id: digest, Name: name, Labels: labels }, common), digest);
@@ -123,7 +123,7 @@ async function admissionFixture(t) {
   const original = path.resolve(__dirname, '..');
   const files = [...Object.keys(installer.sourceManifest(original).files),
     'server/services/secureshopPromptPolicyContract.js',
-    'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'];
+    'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'];
   for (const name of files) {
     const target = path.join(workspace, name);
     await fs.mkdir(path.dirname(target), { recursive: true, mode: 0o700 });
@@ -141,8 +141,8 @@ async function admissionFixture(t) {
   const value = { version: 1, workspaceId: id, ownerId: '11111111-1111-4111-8111-111111111111',
     architecture: 'arm64', dockerAuthoritySha256: authority.authorityDigest(dockerAuthority),
     sourceSha256: installer.sourceManifest(workspace).sha256, imageId: 'sha256:' + 'b'.repeat(64),
-    profile: `dvaia-owned-policy-renderer-${id}`, profileSha256: hash(installer._internals.profileBytes(workspace, id)),
-    container: `dvaia-policy-renderer-${id}`, containerId: 'c'.repeat(64), port: 8098, enabled: true };
+    profile: `owasp-ai-goat-owned-policy-renderer-${id}`, profileSha256: hash(installer._internals.profileBytes(workspace, id)),
+    container: `owasp-ai-goat-policy-renderer-${id}`, containerId: 'c'.repeat(64), port: 8098, enabled: true };
   const { containerId, enabled, ...stageValue } = value;
   await fs.writeFile(location.filename, JSON.stringify(managed.validate(value, { root: workspace })) + '\n', { mode: 0o600 });
   await fs.writeFile(location.stage, JSON.stringify(managed.validate({ ...stageValue, activateRequested: true }, { root: workspace }, true)) + '\n', { mode: 0o600 });
@@ -155,7 +155,7 @@ async function admissionFixture(t) {
     dockerExecutable: binary, dockerExecutableSha256: hash(await fs.readFile(binary)) };
   await fs.writeFile(admissionFilename, JSON.stringify(admission), { mode: 0o600 });
   const env = { SECURESHOP_POLICY_INSTRUCTION_BROWSER_NATIVE: '1', PG_TEST_DISPOSABLE: 'yes', NODE_ENV: 'test',
-    DVAIA_CURRENT_MAIN_WORKSPACE: workspace, SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_RUN_ID: runId,
+    OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: workspace, SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_RUN_ID: runId,
     SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_DIRECTORY: owner };
   const args = { workspace, admissionFilename, diagnosticPath: path.join(owner, 'disposable-policy-renderer-diagnostic.json') };
   return { base, workspace, owner, env, args, location, admission, binary };
@@ -223,7 +223,7 @@ test('V24 rejects loose directories/files, symlinks, hardlinks and changed rende
       const bytes = await fs.readFile(target); await fs.appendFile(target, '\n');
       await assert.rejects(captureDisposableAdmission(f.args)); await fs.writeFile(target, bytes);
     }
-    const profile = path.join(f.workspace, 'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in');
+    const profile = path.join(f.workspace, 'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in');
     await fs.appendFile(profile, '\n'); await assert.rejects(captureDisposableAdmission(f.args));
   });
 });

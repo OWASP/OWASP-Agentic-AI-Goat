@@ -146,7 +146,7 @@ test('Q05 foreign read requires live same-peer authority and exact conversation 
     source.slice(start, end + last.length));
   const peerScope = { launchId: 'peer-launch' };
   const peerHeaders = { authorization: 'Bearer private-peer-token',
-    'x-dvaia-secureshop-launch': 'private-peer-launch' };
+    'x-owasp-ai-goat-secureshop-launch': 'private-peer-launch' };
   const peer = { user: { id: 1000000009, role: 'admin' }, sessionId: 'peer-session',
     authorityVersion: '7' };
   const peerBefore = { entries: ['one-private-entry'] };

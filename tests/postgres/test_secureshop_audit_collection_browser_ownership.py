@@ -36,7 +36,7 @@ class OwnedBrowserWait(unittest.TestCase):
             node = SimpleNamespace(pid=4321, ppid=os.getpid(), uid=os.getuid(),
                                    ruid=os.getuid(), pgid=4321, start_sec=10,
                                    start_usec=20, status=0)
-            captured = L.CapturedV36(record, str(root / 'runtime/tmp/dvaia-admin-audit-jobs-controlled'), L._CAPTURE_KEY)
+            captured = L.CapturedV36(record, str(root / 'runtime/tmp/owasp-ai-goat-admin-audit-jobs-controlled'), L._CAPTURE_KEY)
             observations = {'commands': [], 'retired': [], 'read': 0,
                             'ackAttempted': threading.Event(), 'captureAttempted': threading.Event()}
 
@@ -183,7 +183,7 @@ class OwnedBrowserRetirement(unittest.TestCase):
         record = {'pid': 5678, 'parentPid': 4321, 'uid': os.getuid(),
                   'pgid': 5678, 'sessionId': 5678, 'birth': [30, 40],
                   'executablePath': '/pinned/browser'}
-        return L.CapturedV36(record, '/owned/run/runtime/tmp/dvaia-admin-audit-jobs-controlled',
+        return L.CapturedV36(record, '/owned/run/runtime/tmp/owasp-ai-goat-admin-audit-jobs-controlled',
                              L._CAPTURE_KEY)
 
     def test_term_then_kill_is_bounded_and_birth_checked(self):

@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sensitive_info_recovery_safety import SignalGate
 
-EXPECTED_DOCKER='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+EXPECTED_DOCKER='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 DOCKER=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 IMAGE='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 SOURCE=Path(__file__).resolve().parents[2]
@@ -21,11 +21,11 @@ if not cache.is_absolute() or cache.resolve()!=cache or cache==SOURCE or SOURCE 
 if not chrome.is_absolute() or chrome.resolve()!=chrome or not chrome.is_file():raise SystemExit('Canonical Chrome required')
 for value in (args.cache_sha256,args.build_sha256,args.chrome_sha256,args.node_sha256):
  if not re.fullmatch('[0-9a-f]{64}',value):raise SystemExit('Artifact SHA256 required')
-root=Path(tempfile.mkdtemp(prefix='dvaia-system-rebuild-enabled-index-',dir=data_root)).resolve();os.chmod(root,0o700);workspace=SOURCE
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-system-rebuild-enabled-index-',dir=data_root)).resolve();os.chmod(root,0o700);workspace=SOURCE
 spec=importlib.util.spec_from_file_location('system_owned_browser_lifecycle',SOURCE/'tests/postgres/run-secureshop-audit-central-isolated.py');lifecycle=importlib.util.module_from_spec(spec);spec.loader.exec_module(lifecycle)
 browser=None;browser_state={'executable':str(chrome),'profile':str(root/'runtime/system-rebuild-browser'),'members':{}}
 
-container='dvaia-system-rebuild-enabled-index-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
+container='owasp-ai-goat-system-rebuild-enabled-index-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
 docker=[str(DOCKER),'--host',args.docker_host]
 (root/'parent-home').mkdir(mode=0o700)
 env={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':str(root/'parent-home'),'TMPDIR':str(root),'PYTHONDONTWRITEBYTECODE':'1'}
@@ -81,7 +81,7 @@ try:
  if version!='v26.10.0':raise RuntimeError('managed Node v26.10.0 required')
  state['nodeVersion']=version;persist()
  daemon_name=run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
- if daemon_name!='colima-dvaia-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
+ if daemon_name!='colima-owasp-ai-goat-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
  image_id=run(docker+['image','inspect','--format','{{.Id}}',IMAGE],stdout=subprocess.PIPE,text=True).stdout.strip()
  if image_id!=IMAGE:raise RuntimeError('immutable PostgreSQL image identity mismatch')
  state['dockerDaemonId']=run(docker+['info','--format','{{.ID}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
@@ -128,12 +128,12 @@ try:
  state['scopedRecoveryPreflight']={'test':'tests/secureshopSystemRebuildScopedRecovery.test.js','boundary':preflight['command'],'resultSha256':digest(preflight_log)};persist()
 
  creation_attempted=True;state['containerCreationAttempted']=True;persist()
- run(docker+['run','--detach','--pull','never','--name',container,'--label','dvaia.test.owner='+owner,
+ run(docker+['run','--detach','--pull','never','--name',container,'--label','owasp-ai-goat.test.owner='+owner,
   '--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=1073741824','-e','POSTGRES_HOST_AUTH_METHOD=trust',
   '-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=100',
   '-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
  details=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
- if details.get('Mounts') or details['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
+ if details.get('Mounts') or details['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
  state['containerId']=details['Id'];state['containerImage']=details['Image'];persist()
  if details['Image']!=IMAGE:raise RuntimeError('Unexpected container image')
  for _ in range(100):
@@ -146,16 +146,16 @@ try:
  manifest=json.loads(run([str(NODE),'-e',"console.log(JSON.stringify(require('./db/postgres/initialize-application').requiredStoreManifest))"],cwd=workspace,stdout=subprocess.PIPE,text=True).stdout)
  if len(manifest)!=16:raise RuntimeError('full16 manifest required')
  for row in manifest:
-  family=row['schema'];migration='dvaia_'+family+'_migration';runtime=row['runtimeRole'];database='dvaia_test_full_backend_'+family
+  family=row['schema'];migration='dvaia_'+family+'_migration';runtime=row['runtimeRole'];database='owasp_ai_goat_test_full_backend_'+family
   run(psql+[f'CREATE ROLE {migration} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE {runtime} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
   run(psql+[f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL)
   run(psql+[f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}'],stdout=subprocess.DEVNULL)
   env[row['migrationVariable']]=f'postgresql://{migration}@127.0.0.1:{port}/{database}'
   env[row['runtimeVariable']]=f'postgresql://{runtime}@127.0.0.1:{port}/{database}'
- run(psql+['CREATE ROLE dvaia_ctf_delivery LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; GRANT CONNECT ON DATABASE dvaia_test_full_backend_ctf TO dvaia_ctf_delivery'],stdout=subprocess.DEVNULL)
- env['CTF_DELIVERY_DATABASE_URL']=f'postgresql://dvaia_ctf_delivery@127.0.0.1:{port}/dvaia_test_full_backend_ctf'
+ run(psql+['CREATE ROLE dvaia_ctf_delivery LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; GRANT CONNECT ON DATABASE owasp_ai_goat_test_full_backend_ctf TO dvaia_ctf_delivery'],stdout=subprocess.DEVNULL)
+ env['CTF_DELIVERY_DATABASE_URL']=f'postgresql://dvaia_ctf_delivery@127.0.0.1:{port}/owasp_ai_goat_test_full_backend_ctf'
  runtime_root=root/'runtime';runtime_root.mkdir(mode=0o700)
- env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',PG_SECURESHOP_REBUILD_ENABLED_INDEX='1',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),DVAIA_FULL_BACKEND_RUNTIME_ROOT=str(runtime_root))
+ env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',PG_SECURESHOP_REBUILD_ENABLED_INDEX='1',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT=str(runtime_root))
  # Existing artifacts only: no build, download, source copying or chmod.
  inventory_js="const {buildInventorySha256}=require('./tests/secureshop/fixtures/e2eServer');console.log(buildInventorySha256(process.argv[1]));"
  for location,expected in ((cache,args.cache_sha256),(workspace/'client/build',args.build_sha256)):
@@ -236,7 +236,7 @@ finally:
    if run(docker+['info','--format','{{.ID}}'],stdout=subprocess.PIPE,text=True).stdout.strip()!=state.get('dockerDaemonId'):raise RuntimeError('Docker daemon changed before cleanup')
    if not exact_absence():
     info=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
-    if info.get('Name')!='/'+container or info['Config']['Labels'].get('dvaia.test.owner')!=owner or info['Image']!=IMAGE:raise RuntimeError('refusing foreign container cleanup')
+    if info.get('Name')!='/'+container or info['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner or info['Image']!=IMAGE:raise RuntimeError('refusing foreign container cleanup')
     if not state.get('containerId'):
      host=info['HostConfig'];bindings=host.get('PortBindings',{}).get('5432/tcp',[])
      if info.get('Mounts') or host.get('Memory')!=1073741824 or host.get('NanoCpus')!=2000000000 or host.get('PidsLimit')!=128 or host.get('Tmpfs')!={'/var/lib/postgresql':'rw,size=1073741824'} or len(bindings)!=1 or bindings[0].get('HostIp')!='127.0.0.1' or not re.fullmatch('[0-9a-f]{64}',info.get('Id','')):raise RuntimeError('Unknown-outcome container layout mismatch')

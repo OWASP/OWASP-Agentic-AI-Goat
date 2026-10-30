@@ -13,7 +13,7 @@ for node in ast.walk(tree):
  if isinstance(node,ast.Assign) and any(isinstance(item,ast.Name) and item.id=='tracked' for item in node.targets):
   tracked=ast.literal_eval(node.value);break
 assert tracked and len(tracked)==len(set(tracked))
-copied=Path('/virtual/dvaia-ssrf-source-copy/source');virtual={};links={}
+copied=Path('/virtual/owasp-ai-goat-ssrf-source-copy/source');virtual={};links={}
 real_read=Path.read_bytes;real_file=Path.is_file;real_mkdir=Path.mkdir;real_link=Path.symlink_to
 def is_virtual(p): return p==copied or copied in p.parents
 def read(p): return real_read(virtual[str(p)]) if is_virtual(p) else real_read(p)

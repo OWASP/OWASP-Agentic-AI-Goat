@@ -11,7 +11,7 @@ function privateDirectory(directory){
 }
 function admit(env,source,evidence){
  assert.equal(env.SECURESHOP_STANDALONE_PERSONA_CURRENT_HOST_EVIDENCE,'1');
- assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE,source);
+ assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,source);
  assert.equal(source,process.cwd());
  assert.equal(fs.realpathSync(source),source);
  assert.equal(path.isAbsolute(evidence),true);

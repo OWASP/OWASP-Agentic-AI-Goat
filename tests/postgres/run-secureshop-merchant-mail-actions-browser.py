@@ -31,7 +31,7 @@ OWNERSHIP = 'tests/postgres/run-secureshop-audit-collection-browser.py'
 RECORD = 'merchant-mail-actions-browser-birth.json'
 ACK = 'merchant-mail-actions-browser-ack.json'
 KIND = 'merchant_mail_actions_browser'
-PROFILE = 'dvaia-role-mail-actions-'
+PROFILE = 'owasp-ai-goat-role-mail-actions-'
 PREFIX = 'SECURESHOP_MAIL_ACTIONS_'
 EVIDENCE_ENV = 'SECURESHOP_MERCHANT_MAIL_ACTIONS_BROWSER_EVIDENCE_PATH'
 NATIVE_ENV = 'SECURESHOP_MERCHANT_MAIL_ACTIONS_BROWSER_NATIVE'
@@ -159,7 +159,7 @@ def owned_environment(environment, parsed, before):
             or env.get('LAB_MODE') != 'vuln' \
             or evidence.name != RECEIPT or run.parent != ROOT / 'tasks/qualification' \
             or not run.name.startswith('run-') or env.get('TMPDIR') != str(run / 'runtime/tmp') \
-            or env.get('DVAIA_CURRENT_MAIN_WORKSPACE') != str(ROOT) \
+            or env.get('OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE') != str(ROOT) \
             or env.get('OLLAMA_BASE_URL') != 'http://127.0.0.1:11434' \
             or env.get('OLLAMA_MODEL') != 'llama3.1:8b' \
             or env.get('PUPPETEER_EXECUTABLE_PATH') != parsed.browser \

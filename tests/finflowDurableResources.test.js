@@ -85,7 +85,7 @@ function execution(ownerId,generation,runId,{checks}={}) {
     async check(){checks?.push('check');},async effect(_key,work){return work();}};
 }
 async function fixture(t,repo=memoryRepository()) {
-  const parent=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-finflow-durable-'));t.after(()=>fs.rm(parent,{recursive:true,force:true}));
+  const parent=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-finflow-durable-'));t.after(()=>fs.rm(parent,{recursive:true,force:true}));
   const root=path.join(parent,'owned','backups');
   const files=createFinflowBackupFileStore({root});
   const resources=createFinflowDurableResources({repository:repo,files,

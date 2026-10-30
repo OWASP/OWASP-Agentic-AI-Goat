@@ -15,7 +15,7 @@ function assertStoreEnvironment(env) {
     const runtime = new URL(env[`${prefix}_DATABASE_URL`]), migration = new URL(env[`${prefix}_MIGRATION_DATABASE_URL`]);
     for (const u of [runtime, migration]) {
       assert.equal(u.protocol, 'postgresql:'); assert.equal(u.hostname, '127.0.0.1');
-      assert.match(u.pathname, new RegExp(`^/dvaia_test_finflow_browser_[a-f0-9]{12}_${suffix}$`));
+      assert.match(u.pathname, new RegExp(`^/owasp_ai_goat_test_finflow_browser_[a-f0-9]{12}_${suffix}$`));
       assert.ok(u.port && !u.search && !u.hash); ports.add(u.port);
     }
     assert.equal(runtime.pathname, migration.pathname); assert.notEqual(runtime.username, migration.username);

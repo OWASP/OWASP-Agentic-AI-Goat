@@ -19,7 +19,7 @@ $packagePlanFlag = $Plan; $packageExecuteFlag = $Execute; $packageResumeFlag = $
 . (Join-Path $PSScriptRoot 'prerequisites.ps1')
 $Plan = $packagePlanFlag; $Execute = $packageExecuteFlag; $Resume = $packageResumeFlag
 
-function Get-DvaiaNativePackagePolicy {
+function Get-OwaspAiGoatNativePackagePolicy {
     # node-gyp 12/13 discovers Python >=3.6; maintained CPython is an additional
     # installation policy, not a fabricated node-gyp minimum. Node26 needs VS17.14+.
     return @(
@@ -32,7 +32,7 @@ function Get-DvaiaNativePackagePolicy {
     )
 }
 
-function Find-DvaiaPackageExecutable {
+function Find-OwaspAiGoatPackageExecutable {
     param([string]$Name, [string[]]$Candidates = @())
     foreach ($candidate in $Candidates) { if ($candidate -and (Test-Path -LiteralPath $candidate -PathType Leaf)) { return $candidate } }
     $command = Get-Command $Name -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -40,13 +40,13 @@ function Find-DvaiaPackageExecutable {
     return $null
 }
 
-function Test-DvaiaPackageSignature {
+function Test-OwaspAiGoatPackageSignature {
     param([string]$File, [string]$Publisher)
     $signature = Get-AuthenticodeSignature -LiteralPath $File -ErrorAction Stop
     return ($signature.Status -eq 'Valid' -and $signature.SignerCertificate.Subject -match $Publisher)
 }
 
-function Test-DvaiaMultipassExistingFootprint {
+function Test-OwaspAiGoatMultipassExistingFootprint {
     # Fresh MSI writes daemon configuration and can stop an existing service.
     # Refuse adoption/upgrade, including orphan data or custom storage, rather
     # than invoking that installer over any possibly unrelated installation.
@@ -59,22 +59,22 @@ function Test-DvaiaMultipassExistingFootprint {
     catch { if ($_.CategoryInfo.Category -ne 'ObjectNotFound') { throw }; return $false }
 }
 
-function Get-DvaiaNativePackageProbe {
+function Get-OwaspAiGoatNativePackageProbe {
     param([string]$Id, [scriptblock]$Runner)
     $missing = @{ id = $Id; status = 'missing' }
     switch ($Id) {
         'hyperVHost' {
             . (Join-Path $PSScriptRoot 'host-preflight.ps1')
-            $hostAdmission = Invoke-DvaiaWindowsHostPreflight
+            $hostAdmission = Invoke-OwaspAiGoatWindowsHostPreflight
             return @{ id = $Id; status = $(if ($hostAdmission.hostSupported) { 'present' } else { 'versionUnsupported' }) }
         }
         'multipass' {
             $file = Join-Path $env:ProgramFiles 'Multipass\bin\multipass.exe'
             if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
-                if (Test-DvaiaMultipassExistingFootprint) { return @{ id = $Id; status = 'versionUnsupported'; existingInstallation = $true } }
+                if (Test-OwaspAiGoatMultipassExistingFootprint) { return @{ id = $Id; status = 'versionUnsupported'; existingInstallation = $true } }
                 return $missing
             }
-            if (-not (Test-DvaiaPackageSignature $file 'O=Canonical(?: Group)? (?:Ltd\.?|Limited)(?:,|$)')) { throw 'WINDOWS_MULTIPASS_SIGNATURE_DENIED' }
+            if (-not (Test-OwaspAiGoatPackageSignature $file 'O=Canonical(?: Group)? (?:Ltd\.?|Limited)(?:,|$)')) { throw 'WINDOWS_MULTIPASS_SIGNATURE_DENIED' }
             $version = & $Runner @{ id = 'probeMultipassVersion'; executable = $file; arguments = @('--version'); capture = $true; timeoutMs = 10000 }
             $versions = [regex]::Matches($version.output, '(?m)^(multipassd?)\s+(1\.16\.[0-9]+)(?:\+win)?\s*$')
             if ($version.exitCode -ne 0 -or $versions.Count -ne 2 -or $versions[0].Groups[1].Value -ceq $versions[1].Groups[1].Value -or $versions[0].Groups[2].Value -cne $versions[1].Groups[2].Value -or [version]$versions[0].Groups[2].Value -lt [version]'1.16.4') { return @{ id = $Id; status = 'versionUnsupported'; existingInstallation = $true } }
@@ -85,7 +85,7 @@ function Get-DvaiaNativePackageProbe {
         'opensshClient' {
             $file = Join-Path $env:SystemRoot 'System32\OpenSSH\ssh.exe'
             if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { return $missing }
-            if (-not (Test-DvaiaPackageSignature $file 'O=Microsoft Corporation(?:,|$)')) { throw 'WINDOWS_OPENSSH_SIGNATURE_DENIED' }
+            if (-not (Test-OwaspAiGoatPackageSignature $file 'O=Microsoft Corporation(?:,|$)')) { throw 'WINDOWS_OPENSSH_SIGNATURE_DENIED' }
             $observed = & $Runner @{ id = 'probeOpenSSHClient'; executable = $file; arguments = @('-V'); capture = $true; timeoutMs = 10000 }
             if ($observed.exitCode -ne 0 -or $observed.output.Trim() -cnotmatch '^OpenSSH_for_Windows_([0-9]+\.[0-9]+(?:p[0-9]+)?),\s+.+$') { return @{ id = $Id; status = 'versionUnsupported' } }
             return @{ id = $Id; status = 'present'; path = $file; version = $Matches[1] }
@@ -94,13 +94,13 @@ function Get-DvaiaNativePackageProbe {
             $app = Get-AppxPackage -Name Microsoft.DesktopAppInstaller -ErrorAction SilentlyContinue | Select-Object -First 1
             if (-not $app) { return $missing }
             $file = Join-Path $app.InstallLocation 'winget.exe'
-            if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or -not (Test-DvaiaPackageSignature $file 'O=Microsoft Corporation(?:,|$)')) { return $missing }
+            if (-not (Test-Path -LiteralPath $file -PathType Leaf) -or -not (Test-OwaspAiGoatPackageSignature $file 'O=Microsoft Corporation(?:,|$)')) { return $missing }
             return @{ id = $Id; status = 'present'; path = $file }
         }
         'python' {
             $candidates = @((Join-Path $env:LOCALAPPDATA 'Programs\Python\Python313\python.exe'))
             foreach ($minor in @(14,12,11)) { $candidates += Join-Path $env:LOCALAPPDATA ('Programs\Python\Python3' + $minor + '\python.exe') }
-            $file = Find-DvaiaPackageExecutable 'python.exe' $candidates
+            $file = Find-OwaspAiGoatPackageExecutable 'python.exe' $candidates
             if (-not $file) { return $missing }
             $observed = & $Runner @{ id = 'probePython'; executable = $file; arguments = @('-I','-c','import sys,struct,json; print(json.dumps({"version":".".join(map(str,sys.version_info[:3])),"bits":struct.calcsize("P")*8,"path":sys.executable}))'); capture = $true; timeoutMs = 10000 }
             if ($observed.exitCode -ne 0) { return $missing }
@@ -111,7 +111,7 @@ function Get-DvaiaNativePackageProbe {
         'buildTools' {
             $where = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
             if (-not (Test-Path -LiteralPath $where -PathType Leaf)) { return $missing }
-            if (-not (Test-DvaiaPackageSignature $where 'O=Microsoft Corporation(?:,|$)')) { throw 'WINDOWS_VSWHERE_SIGNATURE_DENIED' }
+            if (-not (Test-OwaspAiGoatPackageSignature $where 'O=Microsoft Corporation(?:,|$)')) { throw 'WINDOWS_VSWHERE_SIGNATURE_DENIED' }
             $observed = & $Runner @{ id = 'probeVisualStudio'; executable = $where; arguments = @('-products','*','-version','[17.14,19.0)','-format','json','-utf8'); capture = $true; timeoutMs = 10000 }
             if ($observed.exitCode -ne 0) { return $missing }
             $instances = @($observed.output | ConvertFrom-Json) | Where-Object { $_.isComplete -and $_.isLaunchable -and -not $_.isPrerelease } | Sort-Object installationVersion -Descending
@@ -141,8 +141,8 @@ function Get-DvaiaNativePackageProbe {
             return $missing
         }
         default {
-            if ($Id -eq 'git') { $file = Find-DvaiaPackageExecutable 'git.exe' @((Join-Path $env:ProgramFiles 'Git\cmd\git.exe'),(Join-Path $env:LOCALAPPDATA 'Programs\Git\cmd\git.exe')); $pattern = '^git version 2\.\d+\.\d+' }
-            elseif ($Id -eq 'ollama') { $file = Find-DvaiaPackageExecutable 'ollama.exe' @((Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama.exe')); $pattern = '\b\d+\.\d+\.\d+\b' }
+            if ($Id -eq 'git') { $file = Find-OwaspAiGoatPackageExecutable 'git.exe' @((Join-Path $env:ProgramFiles 'Git\cmd\git.exe'),(Join-Path $env:LOCALAPPDATA 'Programs\Git\cmd\git.exe')); $pattern = '^git version 2\.\d+\.\d+' }
+            elseif ($Id -eq 'ollama') { $file = Find-OwaspAiGoatPackageExecutable 'ollama.exe' @((Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama.exe')); $pattern = '\b\d+\.\d+\.\d+\b' }
             else { throw 'WINDOWS_PACKAGE_PROBE_DENIED' }
             if (-not $file) { return $missing }
             $observed = & $Runner @{ id = ('probe' + $Id); executable = $file; arguments = @('--version'); capture = $true; timeoutMs = 10000 }
@@ -151,17 +151,17 @@ function Get-DvaiaNativePackageProbe {
     }
 }
 
-function Invoke-DvaiaTrustedPackageAction {
+function Invoke-OwaspAiGoatTrustedPackageAction {
     param($Request)
     if ($Request.id -eq 'installopensshClient') {
         # Fixed Microsoft client capability only. No sshd, firewall, policy or
         # authentication commands; DISM may report3010, never reboot itself.
         $expected = Join-Path $env:SystemRoot 'System32\dism.exe'
         $fixed = @('/Online','/Add-Capability','/CapabilityName:OpenSSH.Client~~~~0.0.1.0','/NoRestart','/Quiet')
-        if ($Request.executable -cne $expected -or ($Request.arguments -join '|') -cne ($fixed -join '|') -or -not (Test-DvaiaPackageSignature $expected 'O=Microsoft Corporation(?:,|$)')) { throw 'WINDOWS_OPENSSH_INSTALL_ACTION_DENIED' }
+        if ($Request.executable -cne $expected -or ($Request.arguments -join '|') -cne ($fixed -join '|') -or -not (Test-OwaspAiGoatPackageSignature $expected 'O=Microsoft Corporation(?:,|$)')) { throw 'WINDOWS_OPENSSH_INSTALL_ACTION_DENIED' }
         $start = New-Object Diagnostics.ProcessStartInfo
         $start.FileName = $expected; $start.UseShellExecute = $true; $start.Verb = 'runas'
-        $start.Arguments = @($fixed | ForEach-Object { ConvertTo-DvaiaProcessArgument $_ }) -join ' '
+        $start.Arguments = @($fixed | ForEach-Object { ConvertTo-OwaspAiGoatProcessArgument $_ }) -join ' '
         $child = [Diagnostics.Process]::Start($start)
         try {
             if (-not $child.WaitForExit($Request.timeoutMs)) { throw 'WINDOWS_PACKAGE_TIMEOUT' }
@@ -172,7 +172,7 @@ function Invoke-DvaiaTrustedPackageAction {
         # Only this fixed Microsoft installer action may request UAC. No npm or
         # repository command is admitted here. Keep unrelated installed addons.
         $expected = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\setup.exe'
-        if ($Request.executable -ne $expected -or -not (Test-DvaiaPackageSignature $expected 'O=Microsoft Corporation(?:,|$)')) { throw 'WINDOWS_VS_INSTALLER_DENIED' }
+        if ($Request.executable -ne $expected -or -not (Test-OwaspAiGoatPackageSignature $expected 'O=Microsoft Corporation(?:,|$)')) { throw 'WINDOWS_VS_INSTALLER_DENIED' }
         $actionArguments = @($Request.arguments)
         $fixed = @('modify','--installPath',$null,'--add','Microsoft.VisualStudio.Workload.VCTools','--add','Microsoft.VisualStudio.Component.VC.Tools.x86.x64','--add','Microsoft.VisualStudio.Component.Windows11SDK.26100','--quiet','--norestart')
         if ($actionArguments.Count -ne $fixed.Count) { throw 'WINDOWS_VS_ARGUMENTS_DENIED' }
@@ -184,7 +184,7 @@ function Invoke-DvaiaTrustedPackageAction {
         if (-not $admitted -or $actionArguments[2] -ne $home) { throw 'WINDOWS_VS_INSTALL_PATH_DENIED' }
         $start = New-Object Diagnostics.ProcessStartInfo
         $start.FileName = $expected; $start.UseShellExecute = $true; $start.Verb = 'runas'
-        $start.Arguments = @($Request.arguments | ForEach-Object { ConvertTo-DvaiaProcessArgument $_ }) -join ' '
+        $start.Arguments = @($Request.arguments | ForEach-Object { ConvertTo-OwaspAiGoatProcessArgument $_ }) -join ' '
         $child = [Diagnostics.Process]::Start($start)
         try {
             if (-not $child.WaitForExit($Request.timeoutMs)) { throw 'WINDOWS_PACKAGE_TIMEOUT' }
@@ -193,15 +193,15 @@ function Invoke-DvaiaTrustedPackageAction {
     }
     if ($Request.id -eq 'ollamaStart') {
         $expected = Join-Path $env:LOCALAPPDATA 'Programs\Ollama\ollama app.exe'
-        if ($Request.executable -ne $expected -or -not (Test-DvaiaPackageSignature $expected 'O=Ollama Inc\.(?:,|$)')) { throw 'WINDOWS_OLLAMA_APP_DENIED' }
+        if ($Request.executable -ne $expected -or -not (Test-OwaspAiGoatPackageSignature $expected 'O=Ollama Inc\.(?:,|$)')) { throw 'WINDOWS_OLLAMA_APP_DENIED' }
         # GUI tray is deliberately long lived; acknowledge launch, then verify API.
         $child = Start-Process -FilePath $expected -PassThru -ErrorAction Stop
         $child.Dispose(); return @{ exitCode = 0 }
     }
-    return Invoke-DvaiaPrerequisiteProcess $Request
+    return Invoke-OwaspAiGoatPrerequisiteProcess $Request
 }
 
-function Get-DvaiaPackageBootBinding {
+function Get-OwaspAiGoatPackageBootBinding {
     param([scriptblock]$Runner, [string]$PowerShell, [string]$RepoRoot)
     # Reuse the reviewed native host/boot observation; no independent WMI identity.
     $wire = @{ version = 1; operation = 'capture'; pid = $PID } | ConvertTo-Json -Compress
@@ -211,28 +211,28 @@ function Get-DvaiaPackageBootBinding {
     return [pscustomobject]@{ hostSha256 = $ack.data.hostSha256; bootFileTime = $ack.data.bootFileTime; currentSid = $ack.data.currentSid }
 }
 
-function Test-DvaiaPackageBootBinding {
+function Test-OwaspAiGoatPackageBootBinding {
     param($Binding)
     $keys = @($Binding.PSObject.Properties.Name | Sort-Object) -join ','
     return ($keys -ceq 'bootFileTime,currentSid,hostSha256' -and $Binding.hostSha256 -is [string] -and $Binding.hostSha256 -cmatch '^[a-f0-9]{64}$' -and $Binding.bootFileTime -is [string] -and $Binding.bootFileTime -cmatch '^[1-9][0-9]{0,18}$' -and $Binding.currentSid -is [string] -and $Binding.currentSid -cmatch '^S-1-[0-9]+(?:-[0-9]+){1,15}$' -and $Binding.currentSid.Length -le 184)
 }
 
-function Invoke-DvaiaWindowsPackages {
+function Invoke-OwaspAiGoatWindowsPackages {
     param(
         [bool]$ExecuteMode = $false,
         [bool]$ResumeRestart = $false,
         [string]$RepoRoot = (Join-Path $PSScriptRoot '..\..\..'),
         [string]$UserProfile = $env:USERPROFILE,
         [string]$SystemRoot = $env:SystemRoot,
-        [scriptblock]$Runner = ${function:Invoke-DvaiaTrustedPackageAction},
-        [scriptblock]$Probe = ${function:Get-DvaiaNativePackageProbe},
+        [scriptblock]$Runner = ${function:Invoke-OwaspAiGoatTrustedPackageAction},
+        [scriptblock]$Probe = ${function:Get-OwaspAiGoatNativePackageProbe},
         [scriptblock]$Exists = { param($File) Test-Path -LiteralPath $File -PathType Leaf },
         [scriptblock]$HostSupported = { $env:OS -eq 'Windows_NT' -and $env:PROCESSOR_ARCHITECTURE -eq 'AMD64' -and [int](Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop).BuildNumber -ge 19045 },
         [scriptblock]$IsElevated = { ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) },
         [scriptblock]$Pause = { Start-Sleep -Milliseconds 500 },
-        [scriptblock]$BootObservation = ${function:Get-DvaiaPackageBootBinding}
+        [scriptblock]$BootObservation = ${function:Get-OwaspAiGoatPackageBootBinding}
     )
-    $result = [ordered]@{ schemaVersion = 1; component = 'windows-native-packages'; nonMutating = (-not $ExecuteMode); installationBlocked = $true; nativeQualified = $false; restartRequired = $false; operationRetained = $false; componentSucceeded = $false; completed = @(); dependencies = @(); packages = @(Get-DvaiaNativePackagePolicy); blockers = @('WINDOWS_PROTECTED_SANDBOX_INTEGRATION_PENDING','WINDOWS_GLOBAL_INSTALL_UNQUALIFIED'); delegated = @('pinned Node/npm bootstrap','locked npm ci and native addon build','Chrome installation and browser sandbox qualification','llama3.1:8b model pull and genuine inference','PostgreSQL and owned Hyper-V lab provisioning') }
+    $result = [ordered]@{ schemaVersion = 1; component = 'windows-native-packages'; nonMutating = (-not $ExecuteMode); installationBlocked = $true; nativeQualified = $false; restartRequired = $false; operationRetained = $false; componentSucceeded = $false; completed = @(); dependencies = @(); packages = @(Get-OwaspAiGoatNativePackagePolicy); blockers = @('WINDOWS_PROTECTED_SANDBOX_INTEGRATION_PENDING','WINDOWS_GLOBAL_INSTALL_UNQUALIFIED'); delegated = @('pinned Node/npm bootstrap','locked npm ci and native addon build','Chrome installation and browser sandbox qualification','llama3.1:8b model pull and genuine inference','PostgreSQL and owned Hyper-V lab provisioning') }
     # Crucial: Plan never invokes even read-only executable probes or helper scripts.
     if (-not $ExecuteMode) { return [pscustomobject]$result }
     if (-not (& $HostSupported)) { $result.blockers += 'WINDOWS_HOST_UNSUPPORTED'; return [pscustomobject]$result }
@@ -240,7 +240,7 @@ function Invoke-DvaiaWindowsPackages {
     if (-not [IO.Path]::IsPathRooted($UserProfile) -or -not [IO.Path]::IsPathRooted($SystemRoot)) { throw 'WINDOWS_PACKAGE_PATH_DENIED' }
     $powershell = Join-Path $SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     $helper = Join-Path $RepoRoot 'scripts\windows\windows-private-state.ps1'
-    $base = Join-Path $UserProfile '.dvaia'; $tools = Join-Path $base 'tools'
+    $base = Join-Path $UserProfile '.owasp-ai-goat'; $tools = Join-Path $base 'tools'
     $marker = Join-Path $tools 'windows-package-operation.json'
     $receipt = Join-Path $tools 'windows-package-restart.json'
     $hasMarker = & $Exists $marker; $hasReceipt = & $Exists $receipt
@@ -265,7 +265,7 @@ function Invoke-DvaiaWindowsPackages {
     $perform = {
         param([string]$Id, $Request, [scriptblock]$Verify)
         $binding = & $BootObservation $Runner $powershell $RepoRoot
-        if (-not (Test-DvaiaPackageBootBinding $binding)) { throw 'WINDOWS_PACKAGE_BOOT_OBSERVATION_DENIED' }
+        if (-not (Test-OwaspAiGoatPackageBootBinding $binding)) { throw 'WINDOWS_PACKAGE_BOOT_OBSERVATION_DENIED' }
         # Fresh CreateNew below also prevents concurrent replay after the name check.
         $bytes = [Text.Encoding]::UTF8.GetBytes((@{ version = 2; operation = $Id; outcome = 'indeterminate'; bootBinding = $binding } | ConvertTo-Json -Depth 4 -Compress))
         $wire = @{ version = 1; operation = 'createPrivateFile'; path = $marker; bytesBase64 = [Convert]::ToBase64String($bytes) } | ConvertTo-Json -Compress
@@ -308,13 +308,13 @@ function Invoke-DvaiaWindowsPackages {
                 $records[$entry.key] = @{ ack = $ack; value = ([Text.Encoding]::UTF8.GetString($raw) | ConvertFrom-Json) }
             }
             $journal = $records.journal; $saved = $records.receipt.value
-            if ((@($journal.value.PSObject.Properties.Name | Sort-Object) -join ',') -cne 'bootBinding,operation,outcome,version' -or $journal.value.version -isnot [int] -or $journal.value.version -ne 2 -or $journal.value.outcome -cne 'indeterminate' -or -not (Test-DvaiaPackageBootBinding $journal.value.bootBinding)) { throw 'WINDOWS_PACKAGE_RESTART_RECORD_DENIED' }
+            if ((@($journal.value.PSObject.Properties.Name | Sort-Object) -join ',') -cne 'bootBinding,operation,outcome,version' -or $journal.value.version -isnot [int] -or $journal.value.version -ne 2 -or $journal.value.outcome -cne 'indeterminate' -or -not (Test-OwaspAiGoatPackageBootBinding $journal.value.bootBinding)) { throw 'WINDOWS_PACKAGE_RESTART_RECORD_DENIED' }
             if ((@($saved.PSObject.Properties.Name | Sort-Object) -join ',') -cne 'exitCode,journalBytesBase64,journalIdentity,outcome,version' -or $saved.version -isnot [int] -or $saved.version -ne 1 -or $saved.outcome -cne 'restartRequired' -or $saved.exitCode -isnot [int] -or $saved.exitCode -notin @(3010,1641,-1978334967,-1978334965) -or $saved.journalBytesBase64 -isnot [string] -or $saved.journalBytesBase64 -cne $journal.ack.bytesBase64 -or $saved.journalIdentity.fileId -cne $journal.ack.identity.fileId -or $saved.journalIdentity.volumeSerial -ne $journal.ack.identity.volumeSerial -or (@($saved.journalIdentity.PSObject.Properties.Name | Sort-Object) -join ',') -cne 'fileId,volumeSerial') { throw 'WINDOWS_PACKAGE_RESTART_RECEIPT_DENIED' }
             $targets = @{ wingetBootstrap = 'winget'; installgit = 'git'; installpython = 'python'; installbuildTools = 'buildTools'; installollama = 'ollama'; ollamaStart = 'ollamaService'; installmultipass = 'multipass'; installopensshClient = 'opensshClient' }
             if ($journal.value.operation -cnotin @($targets.Keys)) { throw 'WINDOWS_PACKAGE_RESTART_OPERATION_DENIED' }
             $fresh = & $BootObservation $Runner $powershell $RepoRoot
             $prior = $journal.value.bootBinding
-            if (-not (Test-DvaiaPackageBootBinding $fresh) -or $fresh.hostSha256 -cne $prior.hostSha256 -or $fresh.currentSid -cne $prior.currentSid) { throw 'WINDOWS_PACKAGE_RESTART_HOST_DENIED' }
+            if (-not (Test-OwaspAiGoatPackageBootBinding $fresh) -or $fresh.hostSha256 -cne $prior.hostSha256 -or $fresh.currentSid -cne $prior.currentSid) { throw 'WINDOWS_PACKAGE_RESTART_HOST_DENIED' }
             if ([UInt64]$fresh.bootFileTime -le [UInt64]$prior.bootFileTime) { $result.restartRequired = $true; throw 'WINDOWS_PACKAGE_RESTART_BOOT_UNCHANGED' }
             if ((& $Probe $targets[$journal.value.operation] $Runner).status -cne 'present') { throw 'WINDOWS_PACKAGE_RESTART_POSTCONDITION_DENIED' }
             # Resume retires only this acknowledged operation, then returns. It
@@ -416,7 +416,7 @@ Repair-WinGetPackageManager -Latest
 if ($MyInvocation.InvocationName -ne '.') {
     if (($Plan -and $Execute) -or ($Resume -and (-not $Execute -or $Plan))) { throw 'Use -Execute -Resume to retire an acknowledged restart operation.' }
     try {
-        $output = Invoke-DvaiaWindowsPackages -ExecuteMode ([bool]$Execute) -ResumeRestart ([bool]$Resume)
+        $output = Invoke-OwaspAiGoatWindowsPackages -ExecuteMode ([bool]$Execute) -ResumeRestart ([bool]$Resume)
         $output | ConvertTo-Json -Depth 8
         if ($Execute -and -not $output.componentSucceeded) { exit 1 }
     }

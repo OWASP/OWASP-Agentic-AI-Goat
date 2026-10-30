@@ -10,7 +10,7 @@ test('current CSRF clean RAG answers through the mounted route and restores from
   skip: process.env.CSRF_CLEAN_RAG_NATIVE !== '1', timeout: 240000,
 }, async () => {
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+  assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
   assert.equal(process.env.HF_HUB_OFFLINE, '1');
   assert.equal(process.env.TRANSFORMERS_OFFLINE, '1');
   const databaseUrl = (prefix, role, databasePattern, username) => {
@@ -19,10 +19,10 @@ test('current CSRF clean RAG answers through the mounted route and restores from
     assert.match(value.pathname, databasePattern); assert.equal(value.username, username);
     return value.href;
   };
-  const identityMigrationUrl = databaseUrl('WORKSHOP_RAG', 'migration', /^\/dvaia_test_workshop_rag_[a-f0-9]+$/, 'dvaia_identity_migration');
-  const identityRuntimeUrl = databaseUrl('WORKSHOP_RAG', 'runtime', /^\/dvaia_test_workshop_rag_[a-f0-9]+$/, 'dvaia_identity_runtime');
-  const csrfMigrationUrl = databaseUrl('CSRF_CLEAN_RAG', 'migration', /^\/dvaia_test_csrf_clean_rag_[a-f0-9]+$/, 'dvaia_csrf_migration');
-  const csrfRuntimeUrl = databaseUrl('CSRF_CLEAN_RAG', 'runtime', /^\/dvaia_test_csrf_clean_rag_[a-f0-9]+$/, 'dvaia_csrf_runtime');
+  const identityMigrationUrl = databaseUrl('WORKSHOP_RAG', 'migration', /^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/, 'dvaia_identity_migration');
+  const identityRuntimeUrl = databaseUrl('WORKSHOP_RAG', 'runtime', /^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/, 'dvaia_identity_runtime');
+  const csrfMigrationUrl = databaseUrl('CSRF_CLEAN_RAG', 'migration', /^\/owasp_ai_goat_test_csrf_clean_rag_[a-f0-9]+$/, 'dvaia_csrf_migration');
+  const csrfRuntimeUrl = databaseUrl('CSRF_CLEAN_RAG', 'runtime', /^\/owasp_ai_goat_test_csrf_clean_rag_[a-f0-9]+$/, 'dvaia_csrf_runtime');
   Object.assign(process.env, { PLATFORM_DATABASE_ENGINE: 'postgres', WORKSHOP_DATABASE_ENGINE: 'postgres',
     IDENTITY_DATABASE_URL: identityRuntimeUrl, IDENTITY_MIGRATION_DATABASE_URL: identityMigrationUrl,
     CSRF_WORKSHOP_DATABASE_URL: csrfRuntimeUrl, CSRF_WORKSHOP_MIGRATION_DATABASE_URL: csrfMigrationUrl,

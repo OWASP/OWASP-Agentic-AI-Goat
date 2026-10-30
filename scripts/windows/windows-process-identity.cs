@@ -19,7 +19,7 @@ using System.Text.RegularExpressions;
 // https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-computersystemproduct
 // https://learn.microsoft.com/en-us/windows/win32/cimwin32prov/win32-operatingsystem
 // Parent IDs are observed parentage, not cryptographically attested lineage.
-public static class DvaiaWindowsProcessIdentity {
+public static class OwaspAiGoatWindowsProcessIdentity {
     [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)] struct ProcessEntry {
         public uint Size, Usage, Pid;
         public UIntPtr DefaultHeap;

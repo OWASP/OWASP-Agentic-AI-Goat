@@ -20,7 +20,7 @@ $observed = @{ os = @{ ProductType = 1; OperatingSystemSKU = 48; Version = '10.0
 $script:calls = 0
 ${steer}
 $observe = { $script:calls++; return $observed }
-$result = Invoke-DvaiaWindowsHostPreflight -Observe $observe
+$result = Invoke-OwaspAiGoatWindowsHostPreflight -Observe $observe
 @{ result = $result; calls = $script:calls } | ConvertTo-Json -Depth 7 -Compress
 `;
   const run = spawnSync(interpreter, ['-NoProfile', '-NonInteractive', '-Command', program], { encoding: 'utf8', timeout: 10000 });
@@ -102,7 +102,7 @@ test('stopped hypervisor requires flags but remains blocked until running; unkno
 });
 
 test('observer failure is sanitized without printing host diagnostics', { skip }, () => {
-  const program = `. ${quote(filename)}; Invoke-DvaiaWindowsHostPreflight -Observe { throw 'synthetic private host diagnostic' } | ConvertTo-Json -Depth 5 -Compress`;
+  const program = `. ${quote(filename)}; Invoke-OwaspAiGoatWindowsHostPreflight -Observe { throw 'synthetic private host diagnostic' } | ConvertTo-Json -Depth 5 -Compress`;
   const run = spawnSync(interpreter, ['-NoProfile', '-NonInteractive', '-Command', program], { encoding: 'utf8', timeout: 10000 });
   assert.equal(run.status, 0, run.stderr);
   assert.doesNotMatch(run.stdout, /synthetic private host diagnostic/);

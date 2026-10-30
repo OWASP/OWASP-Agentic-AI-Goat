@@ -1,6 +1,6 @@
 # Direct Prompt Injection Workshop
 
-DVAIA's Direct Prompt Injection workshop uses the configured model, normally
+OWASP Agentic AI GOAT's Direct Prompt Injection workshop uses the configured model, normally
 local Llama through Ollama, as an AWS assistant. Its eight objectives include
 one AWS warm-up and seven guided security lessons. Most lessons deliberately
 include objective-specific policy exceptions; eliciting an authorized exception

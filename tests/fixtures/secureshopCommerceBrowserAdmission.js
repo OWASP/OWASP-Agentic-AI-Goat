@@ -31,31 +31,31 @@ function commerceVariant(variant) {
     receipt: 'customer-manual-checkout-browser.json',
     birth: 'customer-manual-checkout-browser-birth.json',
     ack: 'customer-manual-checkout-browser-ack.json', kind: 'customer_manual_checkout_browser',
-    profile: 'dvaia-customer-manual-checkout-',
+    profile: 'owasp-ai-goat-customer-manual-checkout-',
   });
   if (variant === 'customer-out-of-stock') return Object.freeze({
     cohort: 'customer-out-of-stock-browser', selector: 'SECURESHOP_CUSTOMER_OUT_OF_STOCK_NATIVE',
     receipt: 'customer-out-of-stock-browser.json', birth: 'customer-out-of-stock-browser-birth.json',
     ack: 'customer-out-of-stock-browser-ack.json', kind: 'customer_out_of_stock_browser',
-    profile: 'dvaia-customer-out-of-stock-',
+    profile: 'owasp-ai-goat-customer-out-of-stock-',
   });
   if (variant === 'customer-product-details') return Object.freeze({
     cohort: 'customer-product-disambiguation-browser', selector: 'SECURESHOP_CUSTOMER_PRODUCT_DETAILS_NATIVE',
     receipt: 'customer-product-disambiguation-browser.json', birth: 'customer-product-details-browser-birth.json',
     ack: 'customer-product-details-browser-ack.json', kind: 'customer_product_details_browser',
-    profile: 'dvaia-customer-product-details-',
+    profile: 'owasp-ai-goat-customer-product-details-',
   });
   if (variant === 'customer-refund-handoff') return Object.freeze({
     cohort: 'customer-refund-handoff-browser', selector: 'SECURESHOP_CUSTOMER_REFUND_HANDOFF_NATIVE',
     receipt: 'customer-refund-handoff-browser.json', birth: 'customer-refund-handoff-browser-birth.json',
     ack: 'customer-refund-handoff-browser-ack.json', kind: 'customer_refund_handoff_browser',
-    profile: 'dvaia-customer-refund-handoff-',
+    profile: 'owasp-ai-goat-customer-refund-handoff-',
   });
   if (variant === 'customer-address-setup') return Object.freeze({
     cohort: 'customer-address-setup-browser', selector: 'SECURESHOP_CUSTOMER_ADDRESS_SETUP_NATIVE',
     receipt: 'customer-address-setup-browser.json', birth: 'customer-address-setup-browser-birth.json',
     ack: 'customer-address-setup-browser-ack.json', kind: 'customer_address_setup_browser',
-    profile: 'dvaia-customer-address-setup-',
+    profile: 'owasp-ai-goat-customer-address-setup-',
   });
   if (variant === undefined) return Object.freeze({
     cohort: COHORT, selector: 'SECURESHOP_STANDALONE_COMMERCE_NATIVE',
@@ -66,52 +66,52 @@ function commerceVariant(variant) {
     cohort: SESSION_REVOKE_COHORT, selector: 'SECURESHOP_ACCOUNT_SESSION_REVOKE_NATIVE',
     receipt: 'account-current-session-revoke-browser-v2.json', birth: 'account-session-revoke-browser-birth.json',
     ack: 'account-session-revoke-browser-ack.json', kind: 'account_session_revoke_browser',
-    profile: 'dvaia-standalone-commerce-',
+    profile: 'owasp-ai-goat-standalone-commerce-',
   });
   if (variant === 'account-session-revoke-other') return Object.freeze({
     cohort: SESSION_REVOKE_OTHER_COHORT, selector: 'SECURESHOP_ACCOUNT_SESSION_REVOKE_OTHER_NATIVE',
     receipt: 'account-other-session-revoke-browser-v1.json',
     birth: 'account-session-revoke-other-browser-birth.json',
     ack: 'account-session-revoke-other-browser-ack.json',
-    kind: 'account_session_revoke_other_browser', profile: 'dvaia-standalone-commerce-',
+    kind: 'account_session_revoke_other_browser', profile: 'owasp-ai-goat-standalone-commerce-',
   });
   if (variant === 'account-avatar') return Object.freeze({
     cohort: ACCOUNT_AVATAR_COHORT, selector: 'SECURESHOP_ACCOUNT_AVATAR_NATIVE',
     receipt: 'account-avatar-browser-v1.json', birth: 'account-avatar-browser-birth.json',
     ack: 'account-avatar-browser-ack.json', kind: 'account_avatar_browser',
-    profile: 'dvaia-account-avatar-',
+    profile: 'owasp-ai-goat-account-avatar-',
   });
   if (variant === 'customer-profile') return Object.freeze({
     cohort: PROFILE_COHORT, selector: 'SECURESHOP_CUSTOMER_PROFILE_NATIVE',
     receipt: 'customer-profile-browser.json', birth: 'customer-profile-browser-birth.json',
     ack: 'customer-profile-browser-ack.json', kind: 'customer_profile_browser',
-    profile: 'dvaia-customer-profile-',
+    profile: 'owasp-ai-goat-customer-profile-',
   });
   if (variant === 'customer-cart-lifecycle') return Object.freeze({
     cohort: CART_COHORT, selector: 'SECURESHOP_CUSTOMER_CART_LIFECYCLE_NATIVE',
     receipt: 'customer-cart-lifecycle-browser.json',
     birth: 'customer-cart-lifecycle-browser-birth.json',
     ack: 'customer-cart-lifecycle-browser-ack.json', kind: 'customer_cart_lifecycle_browser',
-    profile: 'dvaia-customer-cart-lifecycle-',
+    profile: 'owasp-ai-goat-customer-cart-lifecycle-',
   });
   if (variant === 'customer-payment-setup') return Object.freeze({
     cohort: PAYMENT_COHORT, selector: 'SECURESHOP_CUSTOMER_PAYMENT_SETUP_NATIVE',
     receipt: 'customer-payment-setup-browser.json',
     birth: 'customer-payment-setup-browser-birth.json',
     ack: 'customer-payment-setup-browser-ack.json', kind: 'customer_payment_setup_browser',
-    profile: 'dvaia-customer-payment-setup-',
+    profile: 'owasp-ai-goat-customer-payment-setup-',
   });
   if (variant === 'customer-older-orders') return Object.freeze({
     cohort: OLDER_ORDERS_COHORT, selector: 'SECURESHOP_CUSTOMER_OLDER_ORDERS_NATIVE',
     receipt: 'customer-older-orders-browser.json', birth: 'customer-older-orders-browser-birth.json',
     ack: 'customer-older-orders-browser-ack.json', kind: 'customer_older_orders_browser',
-    profile: 'dvaia-customer-older-orders-',
+    profile: 'owasp-ai-goat-customer-older-orders-',
   });
   if (variant === 'customer-checkout-fences') return Object.freeze({
     cohort: CHECKOUT_FENCES_COHORT, selector: 'SECURESHOP_CUSTOMER_CHECKOUT_FENCES_NATIVE',
     receipt: 'customer-checkout-fences.json', birth: 'customer-checkout-fences-browser-birth.json',
     ack: 'customer-checkout-fences-browser-ack.json', kind: 'customer_checkout_fences_browser',
-    profile: 'dvaia-customer-checkout-fences-',
+    profile: 'owasp-ai-goat-customer-checkout-fences-',
   });
   assert.ok(variant === 'customer-checkout',
     'only account-session-revoke, customer-checkout, customer-profile, customer-cart-lifecycle, customer-payment-setup, customer-older-orders or customer-checkout-fences variants are admitted');
@@ -119,7 +119,7 @@ function commerceVariant(variant) {
     cohort: CHECKOUT_COHORT, selector: 'SECURESHOP_CUSTOMER_CHECKOUT_NATIVE',
     receipt: 'customer-checkout-browser.json', birth: 'customer-checkout-browser-birth.json',
     ack: 'customer-checkout-browser-ack.json', kind: 'customer_checkout_browser',
-    profile: 'dvaia-customer-checkout-',
+    profile: 'owasp-ai-goat-customer-checkout-',
   });
 }
 
@@ -195,7 +195,7 @@ function practiceSnapshotMetadata({ scopeKey, sceneId, allowedFields, summaryKey
   const result = { marker: 'unavailable', snapshotFound: false, jsonValid: false,
     nonNullFields: [], unknownNonNullField: false, summaryRefPresent: false,
     summaryRefParseable: false, summaryRefHasEntries: false, summaryRefEntryCount: 0 };
-  if (typeof scopeKey !== 'string' || !/^dvaia:secureshop:[0-9a-f-]{36}:[1-9]\d*$/.test(scopeKey)
+  if (typeof scopeKey !== 'string' || !/^owasp-ai-goat:secureshop:[0-9a-f-]{36}:[1-9]\d*$/.test(scopeKey)
       || typeof sceneId !== 'string' || !/^[0-9a-f-]{36}$/.test(sceneId)
       || !Array.isArray(allowedFields) || allowedFields.length > 80
       || allowedFields.some(name => typeof name !== 'string' || name.length > 100)
@@ -245,7 +245,7 @@ function practiceSnapshotMetadata({ scopeKey, sceneId, allowedFields, summaryKey
 // Never call jsonValue on this object or return the saved string to Node.
 function practiceSummaryReference({ scopeKey, sceneId, summaryKey }, original, storage = globalThis.localStorage) {
   const comparing = original !== undefined;
-  if (typeof scopeKey !== 'string' || !/^dvaia:secureshop:[0-9a-f-]{36}:[1-9]\d*$/.test(scopeKey)
+  if (typeof scopeKey !== 'string' || !/^owasp-ai-goat:secureshop:[0-9a-f-]{36}:[1-9]\d*$/.test(scopeKey)
       || typeof sceneId !== 'string' || !/^[0-9a-f-]{36}$/.test(sceneId)
       || typeof summaryKey !== 'string' || summaryKey.length > 100) return comparing ? false : null;
   let value = null;
@@ -278,7 +278,7 @@ async function readBoundedProductError(response, { workStep, label }) {
 // This passive test-only observer never changes the bytes sent to that client.
 function observeOriginalListingReadiness({ isCurrent }) {
   const pathname = '/api/secureshop/merchant/listings/readiness';
-  const headerName = 'x-dvaia-commerce-readiness-observation';
+  const headerName = 'x-owasp-ai-goat-commerce-readiness-observation';
   const nonce = randomBytes(16).toString('hex');
   const limit = 4096;
   let armed = false;
@@ -438,7 +438,7 @@ async function admitCommerceBrowser(env, { workspace, evidencePath, executablePa
   }
   assert.equal(env.PG_TEST_DISPOSABLE, 'yes');
   assert.equal(env.NODE_ENV, 'test');
-  assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, workspace);
+  assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, workspace);
   assert.equal(workspace, process.cwd());
   if (env.SECURESHOP_STANDALONE_COMMERCE_POLICY_RENDERER_ADMISSION !== undefined) {
     assert.equal(selected.cohort, COHORT);
@@ -508,7 +508,7 @@ async function admitCommerceBrowser(env, { workspace, evidencePath, executablePa
   function browserArgs({ profile, origin, externalMail = false }) {
     privateDirectory(profile);
     assert.equal(path.dirname(profile), tempRoot);
-    const profilePrefix = selected.profile || 'dvaia-standalone-commerce-';
+    const profilePrefix = selected.profile || 'owasp-ai-goat-standalone-commerce-';
     assert.ok(path.basename(profile).startsWith(profilePrefix));
     assert.match(path.basename(profile).slice(profilePrefix.length), /^[A-Za-z0-9_-]+$/);
     const target = new URL(origin);

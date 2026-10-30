@@ -134,7 +134,7 @@ waits across owners before declaring workshop readiness.
 macOS additionally requires `--colima-profile=colima-<existing-owned-profile>`.
 `--provision` is the explicit mutation entry point. It installs a separately
 named workspace HTTP AppArmor profile, builds the packaged helper, preserves a
-private token in `~/.dvaia/<workspace-id>/mcp-owned-http.json`, and starts a
+private token in `~/.owasp-ai-goat/<workspace-id>/mcp-owned-http.json`, and starts a
 loopback-only port8093 service with a named persistent volume. CLI profile,
 containers, AWS assets and application databases are untouched. Existing image
 or profile mismatch fails with a drain/recovery requirement; no automatic

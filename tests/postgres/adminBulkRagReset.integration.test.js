@@ -3,10 +3,10 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {randomUUID,createHash}=require('node:crypto');const {Pool}=require('pg');
 const enabled=process.env.BULK_RAG_NATIVE==='1';
 test('bulk parent journal reconciles actual RAG and CSRF child reset journals',{skip:!enabled,timeout:180000},async()=>{
- assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
  process.env.PLATFORM_DATABASE_ENGINE='postgres';process.env.WORKSHOP_DATABASE_ENGINE='postgres';
- for(const role of ['RUNTIME','MIGRATION']){const u=new URL(process.env['CSRF_NATIVE_'+role+'_URL']);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_csrf_[a-f0-9]+$/);assert.equal(u.username,'dvaia_csrf_'+role.toLowerCase());process.env[role==='RUNTIME'?'CSRF_WORKSHOP_DATABASE_URL':'CSRF_WORKSHOP_MIGRATION_DATABASE_URL']=u.href;}
- const pools=[];const pool=role=>{const u=new URL(process.env['WORKSHOP_RAG_'+role.toUpperCase()+'_URL']);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_workshop_rag_[a-f0-9]+$/);assert.equal(u.username,'dvaia_identity_'+role);const p=new Pool({connectionString:u.href,max:8,statement_timeout:15000,lock_timeout:5000});pools.push(p);return p;};
+ for(const role of ['RUNTIME','MIGRATION']){const u=new URL(process.env['CSRF_NATIVE_'+role+'_URL']);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_csrf_[a-f0-9]+$/);assert.equal(u.username,'dvaia_csrf_'+role.toLowerCase());process.env[role==='RUNTIME'?'CSRF_WORKSHOP_DATABASE_URL':'CSRF_WORKSHOP_MIGRATION_DATABASE_URL']=u.href;}
+ const pools=[];const pool=role=>{const u=new URL(process.env['WORKSHOP_RAG_'+role.toUpperCase()+'_URL']);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/);assert.equal(u.username,'dvaia_identity_'+role);const p=new Pool({connectionString:u.href,max:8,statement_timeout:15000,lock_timeout:5000});pools.push(p);return p;};
  const migration=pool('migration'),runtime=pool('runtime'),leases=pool('runtime'),bulkLeases=pool('runtime');let temporary,httpServer;
  const evidence={scope:'Real bulk parent service and durable RAG/CSRF child journals, identity and CSRF PostgreSQL stores, canonical progress and email retirement; controlled embeddings and interruption after real progress clear; no installed activation',modelCalled:false};
  try{

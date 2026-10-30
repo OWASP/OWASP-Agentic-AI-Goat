@@ -27,7 +27,7 @@ const ROOT = path.join(__dirname, '../..');
 function ownedUrl(name) {
   const value = new URL(process.env[name]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 async function json(response, status = 200) {
@@ -69,7 +69,7 @@ test('candidate persona activation mounts real JWT launch and preserves catalog 
     await initializeSecureShopCommerceDb({ runtimePool: pools.COMMERCE_RUNTIME,
       migrationPool: pools.COMMERCE_MIGRATION });
 
-    const partialDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-persona-partial-'));
+    const partialDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-persona-partial-'));
     t.after(() => fs.rm(partialDirectory, { recursive: true, force: true }));
     const agentsDir = path.join(ROOT, 'db/postgres/workshop-migrations/secureshop_agents');
     for (const name of (await fs.readdir(agentsDir)).filter(name => name.endsWith('.sql')
@@ -157,7 +157,7 @@ test('candidate persona activation mounts real JWT launch and preserves catalog 
     const launch = await json(await fetch(`${base}/api/auth/secureshop-launch`, {
       method: 'POST', headers: platformHeaders, body: '{}',
     }), 201);
-    const launchHeaders = { 'x-dvaia-secureshop-launch': launch.bearer,
+    const launchHeaders = { 'x-owasp-ai-goat-secureshop-launch': launch.bearer,
       'content-type': 'application/json' };
     const login = await json(await fetch(`${base}/api/secureshop/v2/auth/login`, {
       method: 'POST', headers: launchHeaders,
@@ -257,7 +257,7 @@ test('candidate persona activation mounts real JWT launch and preserves catalog 
     t.after(() => new Promise(resolve => maintenanceServer.close(() => resolve())));
     const maintenanceBase = `http://127.0.0.1:${maintenanceServer.address().port}`;
     const maintenanceResponse = await fetch(`${maintenanceBase}/api/secureshop/v2/persona-inbox/readiness`, {
-      headers: { 'x-dvaia-secureshop-launch': 'a'.repeat(43) },
+      headers: { 'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43) },
     });
     assert.deepEqual(await json(maintenanceResponse), { ready: false });
   } finally {

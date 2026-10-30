@@ -24,7 +24,7 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes'
 function checkedUrl(name) {
   const url = new URL(process.env[name]);
   assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
-  assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return url;
 }
 
@@ -46,7 +46,7 @@ test('native bound runner persists one isolated tool effect and safely replays a
   const graphRuntime = new Pool({ connectionString: graphRuntimeUrl.href, max: 2 });
   const graphLeases = new Pool({ connectionString: graphRuntimeUrl.href, max: 1,
     application_name: 'secureshop-bound-runner-lease' });
-  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-bound-runner-'));
+  const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-bound-runner-'));
   t.after(async () => {
     await Promise.all([agentsMigration.end(), agentsRuntime.end(), graphMigration.end(), graphRuntime.end(), graphLeases.end()]);
     await fs.rm(tempRoot, { recursive: true, force: true });

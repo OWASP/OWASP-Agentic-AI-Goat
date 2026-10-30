@@ -4,7 +4,7 @@
 
 This is a source-only triage of the five high-severity package entries reported by
 the root `npm audit` after the 2026-09-11 dependency refresh. The client audit has
-no findings. This review used the installed lock graph, package source, DVAIA
+no findings. This review used the installed lock graph, package source, OWASP Agentic AI GOAT
 callers, and the reviewed upstream advisories. It did not run install scripts,
 download a model, start the application, read a database, or exercise a teaching
 payload.
@@ -13,11 +13,11 @@ The five entries represent three dependency paths and five underlying advisories
 
 | Audit entry | Installed path | Underlying advisory | Audit fix |
 | --- | --- | --- | --- |
-| `jws@3.2.2` | `dvaia > jsonwebtoken@9.0.2 > jws@3.2.2` | [GHSA-869p-cjfg-cm3x](https://github.com/advisories/GHSA-869p-cjfg-cm3x) | Available upstream (`jws@3.2.3`) |
+| `jws@3.2.2` | `owasp-ai-goat > jsonwebtoken@9.0.2 > jws@3.2.2` | [GHSA-869p-cjfg-cm3x](https://github.com/advisories/GHSA-869p-cjfg-cm3x) | Available upstream (`jws@3.2.3`) |
 | `@huggingface/transformers@4.2.0` | direct dependency | Aggregate of its ONNX and Sharp paths below | No supported direct-package fix in the current registry graph |
-| `onnxruntime-node@1.24.3` | `dvaia > @huggingface/transformers@4.2.0 > onnxruntime-node@1.24.3` | Aggregate of its `adm-zip` path below | No supported fix through Transformers 4.2.0 |
-| `adm-zip@0.5.18` | `dvaia > @huggingface/transformers@4.2.0 > onnxruntime-node@1.24.3 > adm-zip@0.5.18` | [GHSA-xcpc-8h2w-3j85](https://github.com/advisories/GHSA-xcpc-8h2w-3j85) and [GHSA-vwc7-r8mq-g2x9](https://github.com/advisories/GHSA-vwc7-r8mq-g2x9) | `adm-zip@0.6.1` exists, but the installed parent range is `^0.5.16` |
-| `sharp@0.34.5` | `dvaia > @huggingface/transformers@4.2.0 > sharp@0.34.5` | [GHSA-f88m-g3jw-g9cj](https://github.com/advisories/GHSA-f88m-g3jw-g9cj) and [GHSA-rgj7-g3m4-5g8c](https://github.com/advisories/GHSA-rgj7-g3m4-5g8c) | Sharp 0.35.4 fixes both, but Transformers declares `^0.34.5` |
+| `onnxruntime-node@1.24.3` | `owasp-ai-goat > @huggingface/transformers@4.2.0 > onnxruntime-node@1.24.3` | Aggregate of its `adm-zip` path below | No supported fix through Transformers 4.2.0 |
+| `adm-zip@0.5.18` | `owasp-ai-goat > @huggingface/transformers@4.2.0 > onnxruntime-node@1.24.3 > adm-zip@0.5.18` | [GHSA-xcpc-8h2w-3j85](https://github.com/advisories/GHSA-xcpc-8h2w-3j85) and [GHSA-vwc7-r8mq-g2x9](https://github.com/advisories/GHSA-vwc7-r8mq-g2x9) | `adm-zip@0.6.1` exists, but the installed parent range is `^0.5.16` |
+| `sharp@0.34.5` | `owasp-ai-goat > @huggingface/transformers@4.2.0 > sharp@0.34.5` | [GHSA-f88m-g3jw-g9cj](https://github.com/advisories/GHSA-f88m-g3jw-g9cj) and [GHSA-rgj7-g3m4-5g8c](https://github.com/advisories/GHSA-rgj7-g3m4-5g8c) | Sharp 0.35.4 fixes both, but Transformers declares `^0.34.5` |
 
 `@huggingface/transformers` and `onnxruntime-node` are high audit entries because
 they lead to vulnerable children. They do not add separate advisory conditions.
@@ -30,7 +30,7 @@ The advisory affects `jws.createVerify()` when all of these conditions hold: the
 algorithm is HMAC, the application supplies a secret lookup function, and that
 lookup uses attacker-controlled protected-header or payload data. The advisory
 explicitly says `jws.verify()` and `node-jsonwebtoken` users are not affected.
-DVAIA imports `jsonwebtoken`, not `jws`, throughout the platform and challenge
+OWASP Agentic AI GOAT imports `jsonwebtoken`, not `jws`, throughout the platform and challenge
 code. Its hardened identity adapter also restricts verification to `HS256`.
 
 The SecureShop `alg=none` lesson is reachable teaching behavior, but it is a
@@ -39,7 +39,7 @@ with `algorithms: ['none']`. It does not exercise the advisory's HMAC secret
 lookup condition. Upgrading this dependency must preserve that explicit teaching
 proof, but retaining CVE-2025-65945 does not enable the lesson.
 
-**Disposition:** the npm finding is not reachable through DVAIA's current call
+**Disposition:** the npm finding is not reachable through OWASP Agentic AI GOAT's current call
 shape. A supported transitive update from `jws@3.2.2` to `jws@3.2.3` fits
 `jsonwebtoken@9.0.2`'s declared `^3.2.2` range and would not require an override
 or a direct `jsonwebtoken` version change. However,
@@ -58,7 +58,7 @@ This establishes two different exposure boundaries:
 
 - Transformers and ONNX execute at runtime for text embeddings. A missing local
   model can cause Transformers to download model/configuration files into its
-  cache. DVAIA does not expose a model-upload or model-ID parameter to learners;
+  cache. OWASP Agentic AI GOAT does not expose a model-upload or model-ID parameter to learners;
   the model identifier is fixed in source.
 - `adm-zip` is required only by `onnxruntime-node`'s `postinstall` code. That code
   may download Microsoft NuGet packages for platform binaries that are absent
@@ -76,7 +76,7 @@ CUDA and other packaging combinations can take the NuGet download path.
 affects `adm-zip` before 0.6.0: a crafted central-directory uncompressed size can
 cause an allocation of roughly 4 GiB before integrity validation. The installed
 ONNX installer opens a downloaded `.nupkg`, so a corrupted or malicious package
-at its configured feed could reach this behavior during installation. No DVAIA
+at its configured feed could reach this behavior during installation. No OWASP Agentic AI GOAT
 HTTP or MCP ZIP input reaches it.
 
 [GHSA-vwc7-r8mq-g2x9](https://github.com/advisories/GHSA-vwc7-r8mq-g2x9)
@@ -97,9 +97,9 @@ and do not accept untrusted ONNX install flags or writable model caches in a
 shared deployment. Replacing the embedding backend is a functional migration
 and needs RAG behavior qualification.
 
-### `sharp@0.34.5`: loaded dependency, no DVAIA image-decoding call
+### `sharp@0.34.5`: loaded dependency, no OWASP Agentic AI GOAT image-decoding call
 
-Transformers imports Sharp in its Node image utility, but DVAIA constructs a text
+Transformers imports Sharp in its Node image utility, but OWASP Agentic AI GOAT constructs a text
 feature-extraction pipeline and passes strings. The application has other image
 and upload teaching surfaces, yet none calls this Transformers image utility or
 the installed Sharp instance.
@@ -125,7 +125,7 @@ minimum gate before any image pipeline is enabled.
 
 ## Release decision
 
-None of these findings is part of an intentional DVAIA vulnerability. The four
+None of these findings is part of an intentional OWASP Agentic AI GOAT vulnerability. The four
 curriculum-tracked dependencies remain unchanged:
 `jsonwebtoken@9.0.2`, `nunjucks@3.2.4`, `sax@1.6.0`, and `xml2js@0.6.2`.
 

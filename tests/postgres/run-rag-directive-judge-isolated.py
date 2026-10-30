@@ -31,7 +31,7 @@ def run_directive_groups(args,source):
  node,donor,cache=work.run(lambda:validate(args,source))
  if donor!=source or cache!=source/'tests/fixtures/fullBackendModelCache':raise ValueError('Canonical frozen package dependency/cache layout required')
  work.run(lambda:validate_package(source,args.manifest,args.manifest_sha256,node,args.node_sha256))
- root=Path(tempfile.mkdtemp(prefix='dvaia-rag-directive-judge-')).resolve();root.chmod(0o700)
+ root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-rag-directive-judge-')).resolve();root.chmod(0o700)
  workspace=root/'source';(root/'home').mkdir(mode=0o700)
  env={'PATH':str(node.parent)+':/usr/bin:/bin','HOME':str(root/'home'),'TMPDIR':str(root),'NODE_ENV':'test','AI_PROVIDER':'ollama','JUDGE_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b','JUDGE_MODEL':'llama3.1:8b','OLLAMA_BASE_URL':'http://127.0.0.1:11434','JUDGE_BASE_URL':'http://127.0.0.1:11434','HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1','AWS_EC2_METADATA_DISABLED':'true','LANGCHAIN_TRACING_V2':'false','LANGSMITH_TRACING':'false','PYTHONDONTWRITEBYTECODE':'1','RAG_DIRECTIVE_GROUPS_ACTUAL':'1','RAG_DIRECTIVE_GROUPS_RESULT':str(root/'result.json')}
  state={'scope':'Actual Judge only on24 controlled inputs; no actor/database/credit','status':'preparing','bounds':{'workSeconds':3120,'childSeconds':3000,'cleanupSeconds':120,'allHttp':144},'launcherPid':os.getpid(),'child':None};child=None

@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const nodemailer = require('nodemailer');
 const gmailInspection = require('./gmailEmailAgentService');
 
-const DEFAULT_DOMAIN = 'dvaia.invalid';
+const DEFAULT_DOMAIN = 'owasp-ai-goat.invalid';
 const DEFAULT_SENDER = `indirectpromptinjection@${DEFAULT_DOMAIN}`;
 const DEFAULT_TIMEOUT_MS = 5000;
 const MAX_RESPONSE_BYTES = 512 * 1024;

@@ -24,7 +24,7 @@ const ipv6 = (port = 49160, enabled = 'true') => ({
 });
 
 async function privateDirectory(t) {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-upload-asset-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-upload-asset-'));
   await fs.chmod(directory, 0o700);
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   return directory;

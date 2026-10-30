@@ -140,7 +140,7 @@ for(int round=0;round<21;round++){
  def test_bootstrap_closes_channel_before_fixed_exec_and_completion_gate(self):
   bootstrap=(BASE/'invocation-bootstrap.c').read_text();supervisor=(BASE/'invocation-supervisor.c').read_text()
   self.assertLess(bootstrap.index('SYS_close_range,3'),bootstrap.index('execve(argv[0]'))
-  self.assertIn('"/usr/local/bin/node","/usr/local/libexec/dvaia-invocation-worker.js",NULL',bootstrap)
+  self.assertIn('"/usr/local/bin/node","/usr/local/libexec/owasp-ai-goat-invocation-worker.js",NULL',bootstrap)
   self.assertIn('r->state=attested&&!forced&&WIFEXITED(worker_status)&&WEXITSTATUS(worker_status)==0&&r->size?1:3',supervisor)
   self.assertIn('if(!output_eof)continue',supervisor)
   self.assertLess(supervisor.index('request(fd);}',supervisor.index('while(!stopping)')),supervisor.index('attest_step(&attestation'))

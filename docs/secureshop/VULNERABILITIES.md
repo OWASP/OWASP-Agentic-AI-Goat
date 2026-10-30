@@ -1,4 +1,4 @@
-# SecureShop v2 — Vulnerability Map
+# OWASP AI SecureShop v2 — Vulnerability Map
 
 > **AUTO-GENERATED. Do not edit by hand.**
 > Run `npm run docs:secureshop:vuln-map` to regenerate.

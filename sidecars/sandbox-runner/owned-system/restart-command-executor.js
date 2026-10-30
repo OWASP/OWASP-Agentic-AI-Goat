@@ -1,8 +1,8 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {spawn}=require('node:child_process');
-const INIT='/usr/local/libexec/dvaia-system-restart-init',SUPERVISOR='/usr/local/libexec/dvaia-system-restart-supervisor',SYSTEMCTL='/opt/dvaia-owned-system/restart-systemctl';
-const EFFECT_ROOT='/var/lib/dvaia-owned-restart/effects',ISOLATION='owned-restart-namespace-v1';
+const INIT='/usr/local/libexec/owasp-ai-goat-system-restart-init',SUPERVISOR='/usr/local/libexec/owasp-ai-goat-system-restart-supervisor',SYSTEMCTL='/opt/owasp-ai-goat-owned-system/restart-systemctl';
+const EFFECT_ROOT='/var/lib/owasp-ai-goat-owned-restart/effects',ISOLATION='owned-restart-namespace-v1';
 const hash=value=>crypto.createHash('sha256').update(value).digest('hex');
 const failure=code=>Object.assign(new Error('Owned restart command unavailable'),{code});
 function verifyAsset(file){for(const name of [file,file+'.sha256']){const s=fs.lstatSync(name);if(!s.isFile()||s.isSymbolicLink()||s.uid!==0||s.nlink!==1||(s.mode&0o022))throw failure('RESTART_ASSET_INVALID');}const expected=fs.readFileSync(file+'.sha256','utf8');if(!/^[a-f0-9]{64}\n$/.test(expected)||hash(fs.readFileSync(file))!==expected.trim())throw failure('RESTART_ASSET_INVALID');}

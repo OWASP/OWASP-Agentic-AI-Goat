@@ -162,8 +162,8 @@ async function routeRequest({query={limit:'7'},role='merchant',error,body,method
   const path=method==='get'?'/merchant/reviews/moderation/:requestId':'/merchant/reviews/moderate-all';
   const handlers=router.stack.find(x=>x.route?.path===path&&x.route.methods[method]).route.stack.map(x=>x.handle);
   const req=Object.assign(new EventEmitter(),{query,params:{requestId},body,
-    headers:{'x-dvaia-secureshop-launch':'l'.repeat(43)},
-    rawHeaders:['x-dvaia-secureshop-launch','l'.repeat(43)],get:()=> 'l'.repeat(43),is:()=>true});
+    headers:{'x-owasp-ai-goat-secureshop-launch':'l'.repeat(43)},
+    rawHeaders:['x-owasp-ai-goat-secureshop-launch','l'.repeat(43)],get:()=> 'l'.repeat(43),is:()=>true});
   const res=Object.assign(new EventEmitter(),{headers:{},statusCode:200,headersSent:false,writableEnded:false,
     set(name,value){this.headers[name.toLowerCase()]=value;return this;},setHeader(name,value){this.headers[name.toLowerCase()]=value;},
     status(code){this.statusCode=code;return this;},json(value){this.value=value;this.headersSent=true;this.writableEnded=true;return this;}});

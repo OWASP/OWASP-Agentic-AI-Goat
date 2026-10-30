@@ -101,7 +101,7 @@ test('real Express GET accepts its null-prototype path IDs without a retry or ef
   });
   t.after(() => new Promise(resolve => { server.closeAllConnections(); server.close(resolve); }));
   const base = `http://127.0.0.1:${server.address().port}/api/secureshop/agents/customer/coupons/assessment`;
-  const headers = { 'x-dvaia-secureshop-launch': 'd'.repeat(43) };
+  const headers = { 'x-owasp-ai-goat-secureshop-launch': 'd'.repeat(43) };
   const path = `${base}/${ids.sessionId.toUpperCase()}/${ids.requestId.toUpperCase()}/${ids.proposalId.toUpperCase()}`;
   const response = await fetch(path, { headers });
   assert.equal(sawNullPrototype, true);

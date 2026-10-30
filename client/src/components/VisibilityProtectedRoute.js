@@ -68,7 +68,7 @@ const VisibilityProtectedRoute = ({ challengeId, alternateChallengeId, children,
 
   // Still loading
   if (status === 'loading' && presentation === 'application') {
-    return <div role="status" style={{ padding: '4rem', textAlign: 'center' }}>Opening SecureShop…</div>;
+    return <div role="status" style={{ padding: '4rem', textAlign: 'center' }}>Opening OWASP AI SecureShop…</div>;
   }
   if (status === 'loading') {
     return (
@@ -94,7 +94,7 @@ const VisibilityProtectedRoute = ({ challengeId, alternateChallengeId, children,
           borderRadius: '12px',
         }}
       >
-        <h2>{presentation === 'application' ? 'SecureShop is unavailable' : 'Unable to verify exercise availability'}</h2>
+        <h2>{presentation === 'application' ? 'OWASP AI SecureShop is unavailable' : 'Unable to verify exercise availability'}</h2>
         <p>Please check your connection and try again.</p>
         <button type="button" onClick={checkVisibility}>Retry</button>
       </div>

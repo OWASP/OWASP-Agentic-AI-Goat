@@ -7,7 +7,7 @@ const path = require('node:path');
 const os = require('node:os');
 
 test('built SecureShop application renders through an opaque acknowledged bridge', {
-  skip: process.env.DVAIA_VERIFY_BUILT_SHOP_FRAME !== '1', timeout: 45000,
+  skip: process.env.OWASP_AI_GOAT_VERIFY_BUILT_SHOP_FRAME !== '1', timeout: 45000,
 }, async t => {
   let server, browser, profile;
   t.after(async () => {
@@ -41,8 +41,8 @@ test('built SecureShop application renders through an opaque acknowledged bridge
   </script></body>`));
   const requests = [];
   app.use('/api', (req, res) => {
-    requests.push({ path: req.path, launch: req.get('x-dvaia-secureshop-launch'), cookie: req.get('cookie') });
-    if (req.get('x-dvaia-secureshop-launch') !== 'a'.repeat(43)) return res.sendStatus(401);
+    requests.push({ path: req.path, launch: req.get('x-owasp-ai-goat-secureshop-launch'), cookie: req.get('cookie') });
+    if (req.get('x-owasp-ai-goat-secureshop-launch') !== 'a'.repeat(43)) return res.sendStatus(401);
     // UI transport fixture only: this test does not prove database effects.
     if (req.path === '/secureshop/products') return res.json({ products: [{ id: 1,
       name: 'Frame transport product', price: 10, description: 'UI qualification fixture',
@@ -54,7 +54,7 @@ test('built SecureShop application renders through an opaque acknowledged bridge
   }));
   server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
   const origin = `http://127.0.0.1:${server.address().port}`;
-  profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-built-shop-frame-'));
+  profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-built-shop-frame-'));
   browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
     ...(process.env.PUPPETEER_EXECUTABLE_PATH ? { executablePath: process.env.PUPPETEER_EXECUTABLE_PATH } : {}) });
   const page = await browser.newPage();

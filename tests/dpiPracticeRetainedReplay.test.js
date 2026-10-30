@@ -1,5 +1,5 @@
 'use strict';
-if(process.env.DVAIA_RETAINED_EVIDENCE_TESTS!=='1')throw Error('Retained-evidence qualification requires DVAIA_RETAINED_EVIDENCE_TESTS=1 and its original local artifacts; this is not a portable unit suite.');
+if(process.env.OWASP_AI_GOAT_RETAINED_EVIDENCE_TESTS!=='1')throw Error('Retained-evidence qualification requires OWASP_AI_GOAT_RETAINED_EVIDENCE_TESTS=1 and its original local artifacts; this is not a portable unit suite.');
 // Controlled replay of retained real-model bytes. No new model, app DB, or actor credit proof.
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto');
 const ROOT=path.resolve(__dirname,'../backups/private-recovery/dpi-browser/run-orq3gf9w');

@@ -19,7 +19,7 @@ async function request(base, token, objectiveId) {
 
 async function qualify({identityRuntime,identityMigration,ports,onStage=()=>{}}){
     assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');
-    for(const [pool,role] of [[identityRuntime,'runtime'],[identityMigration,'migration']]){const row=(await pool.query('SELECT current_user role,current_database() database')).rows[0];assert.equal(row.role,'dvaia_identity_'+role);assert.match(row.database,/^dvaia_test_finflow_admission_[a-f0-9]{12}_identity$/);}
+    for(const [pool,role] of [[identityRuntime,'runtime'],[identityMigration,'migration']]){const row=(await pool.query('SELECT current_user role,current_database() database')).rows[0];assert.equal(row.role,'dvaia_identity_'+role);assert.match(row.database,/^owasp_ai_goat_test_finflow_admission_[a-f0-9]{12}_identity$/);}
     let server,serverPort;
     const originalLoad = Module._load;
     const routePath = path.resolve(__dirname, '../../server/routes/sensitiveInfoWorkshop.js');

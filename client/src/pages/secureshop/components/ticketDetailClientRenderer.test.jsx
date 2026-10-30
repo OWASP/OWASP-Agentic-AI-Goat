@@ -7,7 +7,7 @@ test('the hashed renderer entry accepts only a closed body and trusted ticket mo
     policyVersion: 'owned-ticket-render-v1', effectiveMode: 'fixed',
     scope: { kind: 'launch_feature', id: 'support_tickets' } };
   await import('./ticketDetailClientRenderer.jsx');
-  const mount = globalThis.__DVAIA_TICKET_MOUNT__;
+  const mount = globalThis.__OWASP_AI_GOAT_TICKET_MOUNT__;
   expect(() => mount({ body: '<img src=x>', modeCapability: {
     ...modeCapability, featureId: 'mail' } })).toThrow();
   expect(() => mount({ body: '<img src=x>', modeCapability, forged: true })).toThrow();

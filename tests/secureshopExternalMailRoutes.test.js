@@ -20,7 +20,7 @@ async function fixture(t) {
   const server=app.listen(0,'127.0.0.1');await once(server,'listening');
   t.after(async()=>{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));});
   const base=`http://127.0.0.1:${server.address().port}/api/secureshop/auth/external-mail`;
-  const headers={Cookie:`dvaia_shop_session=${cookie}`,'X-DVAIA-SecureShop-Launch':bearer,Authorization:'Bearer persona'};
+  const headers={Cookie:`owasp_ai_goat_shop_session=${cookie}`,'X-OWASP-AI-GOAT-SecureShop-Launch':bearer,Authorization:'Bearer persona'};
   return{calls,base,headers};
 }
 test('parent GET without Origin works, no-store; explicit opaque/foreign origin denied before dispatch',async t=>{

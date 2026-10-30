@@ -7,8 +7,8 @@ from sensitive_info_recovery_safety import SignalGate, protected_cleanup
 
 ROOT=Path(__file__).resolve().parents[2]
 OWNER='/root/workshop_authenticity'
-DOCKER_HOST='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin/node')
+DOCKER_HOST='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin/node')
 os.umask(0o077)
 p=argparse.ArgumentParser();p.add_argument('--docker-host',required=True);p.add_argument('--grant-file',required=True)
 p.add_argument('--grant-id',required=True);p.add_argument('--source-manifest',required=True);p.add_argument('--identity-dump',required=True)
@@ -17,9 +17,9 @@ if a.docker_host!=DOCKER_HOST: raise SystemExit('reviewed isolated Docker daemon
 docker=['docker','--host',a.docker_host];grant_path=Path(a.grant_file).resolve();dump=Path(a.identity_dump).resolve()
 base_env={'PATH':f'{NODE.parent}:{Path.home()}/.local/bin:{Path.home()}/.rd/bin:/usr/local/bin:/usr/bin:/bin',
  'HOME':str(Path.home()),'TMPDIR':os.environ.get('TMPDIR','/tmp'),'LANG':'C'}
-manifest_path=Path(a.source_manifest).resolve(); evidence=Path(tempfile.mkdtemp(prefix='dvaia-mcp-seed-restore-'))
+manifest_path=Path(a.source_manifest).resolve(); evidence=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-seed-restore-'))
 os.chmod(evidence,0o700); ownership=evidence/'ownership.json'; result=evidence/'result.log'
-container=f'dvaia-mcp-seed-restore-{uuid.uuid4().hex[:12]}'
+container=f'owasp-ai-goat-mcp-seed-restore-{uuid.uuid4().hex[:12]}'
 state={'owner':OWNER,'grantId':a.grant_id,'ownerHandle':None,'launcherPid':os.getpid(),'container':container,
  'dockerHost':a.docker_host,'evidence':str(evidence),'runStatus':'preparing','cleanup':None}
 def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -83,9 +83,9 @@ try:
  else: raise RuntimeError('owned PostgreSQL did not become ready')
  env={**base_env,'PGHOST':'127.0.0.1','PGPORT':port,'PGUSER':'reset_restore_admin','PGDATABASE':'postgres'}
  run(['psql','-X','-v','ON_ERROR_STOP=1','-c','CREATE ROLE dvaia_identity_migration LOGIN; CREATE ROLE dvaia_identity_runtime LOGIN'],env=env)
- run(['psql','-X','-v','ON_ERROR_STOP=1','-c','CREATE DATABASE dvaia_seed_restore OWNER dvaia_identity_migration'],env=env)
- env['PGDATABASE']='dvaia_seed_restore';run(['pg_restore','--exit-on-error','--dbname','dvaia_seed_restore',str(dump)],env=env,timeout=180)
- url=f'postgresql://dvaia_identity_migration@127.0.0.1:{port}/dvaia_seed_restore'
+ run(['psql','-X','-v','ON_ERROR_STOP=1','-c','CREATE DATABASE owasp_ai_goat_seed_restore OWNER dvaia_identity_migration'],env=env)
+ env['PGDATABASE']='owasp_ai_goat_seed_restore';run(['pg_restore','--exit-on-error','--dbname','owasp_ai_goat_seed_restore',str(dump)],env=env,timeout=180)
+ url=f'postgresql://dvaia_identity_migration@127.0.0.1:{port}/owasp_ai_goat_seed_restore'
  try: completed=run([str(NODE),'scripts/audit-mcp-promotion-seed-transition.js',url],cwd=ROOT,text=True,timeout=180)
  except (subprocess.CalledProcessError,subprocess.TimeoutExpired) as error: private_failure(error);raise
  markers=[x.removeprefix('MCP_SEED_TRANSITION=') for x in completed.stdout.splitlines() if x.startswith('MCP_SEED_TRANSITION=')]

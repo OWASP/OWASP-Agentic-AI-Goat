@@ -72,14 +72,14 @@ foreign-owner rejection, non-model metadata rejection, rollback when the final
 execution check is stale, and coherent ordering of twelve concurrent
 model/manual writes.
 
-- Passing run: `dvaia-xss-profile-origin-cw0a9krs/result.log`, 1 passed, 0
+- Passing run: `owasp-ai-goat-xss-profile-origin-cw0a9krs/result.log`, 1 passed, 0
   failed. The exact owned container was removed.
-- Promoted-migration rerun: `dvaia-xss-profile-origin-8vrgi3sz/result.log`, 1
+- Promoted-migration rerun: `owasp-ai-goat-xss-profile-origin-8vrgi3sz/result.log`, 1
   passed, 0 failed. The exact owned container was removed.
-- Learner-copy rerun: `dvaia-xss-profile-origin-jyfp7xkd/result.log`, 1 passed,
+- Learner-copy rerun: `owasp-ai-goat-xss-profile-origin-jyfp7xkd/result.log`, 1 passed,
   0 failed. It proves that same-byte and new-byte learner copies remain stored
   while clearing prior model origin. The exact owned container was removed.
-- An earlier fresh run at `dvaia-xss-profile-origin-bngker4c/result.log` failed
+- An earlier fresh run at `owasp-ai-goat-xss-profile-origin-bngker4c/result.log` failed
   because repository admission rejected `mock` but not `fixture` model labels.
   The repository was aligned with the private validator, and that owned
   container was also removed before the passing rerun.

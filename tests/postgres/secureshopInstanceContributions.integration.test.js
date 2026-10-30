@@ -44,7 +44,7 @@ test('native SecureShop judgments bind immutable instance contributions', {
   const runtimeUrl = new URL(process.env[`${PREFIX}_RUNTIME_URL`]);
   for (const url of [migrationUrl, runtimeUrl]) {
     assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   assert.equal(migrationUrl.pathname, runtimeUrl.pathname);
   const migration = new Pool({ connectionString: migrationUrl.href, max: 3 });

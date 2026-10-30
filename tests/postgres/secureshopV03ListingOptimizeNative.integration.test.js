@@ -48,7 +48,7 @@ function pools(store, roleBase) {
     assert.equal(parsed.protocol, 'postgresql:');
     assert.equal(parsed.hostname, '127.0.0.1');
     assert.equal(parsed.username, `dvaia_secureshop_${roleBase}_${role.toLowerCase()}`);
-    assert.match(parsed.pathname, /^\/dvaia_test_v03_optimize_[a-f0-9]{12}_[a-z_]+$/);
+    assert.match(parsed.pathname, /^\/owasp_ai_goat_test_v03_optimize_[a-f0-9]{12}_[a-z_]+$/);
     value[role.toLowerCase()] = new Pool({ connectionString: process.env[key], max: role === 'RUNTIME' ? 8 : 4 });
   }
   return value;

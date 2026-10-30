@@ -19,7 +19,7 @@ class Controls(unittest.TestCase):
    env=m.codebot_current_environment(self.args(),pathlib.Path('/e'),pathlib.Path('/e/runtime'),'a'*32,self.urls(),{'SANDBOX_RUNNER_URL':'http://127.0.0.1:55001'})
   self.assertEqual(env['CODEBOT_SANDBOX_RUNNER_URL'],env['SANDBOX_RUNNER_URL']);self.assertEqual(env['CODEBOT_OWNED_EXECUTION_ENABLED'],'true');self.assertEqual(env['LOGS_DIR'],'/e/runtime/logs')
   self.assertEqual({k for k in env if k.endswith('DATABASE_URL')},set(self.urls()))
-  for key in ('PG_ADMIN_DATABASE_URL','OPENAI_API_KEY','SSH_AUTH_SOCK','MCP_OWNED_HTTP_URL','MAILPIT_API_URL','DVAIA_ISOLATED_TEST_WORKSPACE'):self.assertNotIn(key,env)
+  for key in ('PG_ADMIN_DATABASE_URL','OPENAI_API_KEY','SSH_AUTH_SOCK','MCP_OWNED_HTTP_URL','MAILPIT_API_URL','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE'):self.assertNotIn(key,env)
  def test_wrong_urls_and_unowned_endpoint_fail_before_allocation(self):
   for key in self.urls():
    for old,new in [('55432','55433'),('a'*12,'b'*12),('_runtime','_migration')if '_runtime' in self.urls()[key]else('_migration','_runtime')]:

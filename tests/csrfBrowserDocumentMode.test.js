@@ -16,7 +16,7 @@ function fixture({ mode, frameOrigin, includeCookie = true, hover = false,
   let emitAction, hoverCalls = 0, disposed = 0, boundingCalls = 0;
   let navigation, initialHtml, pageClosed = 0, contextClosed = 0;
   const page = new EventEmitter();
-  const frame = { url: () => `${frameOrigin || new URL(navigation).origin}/__dvaia_csrf_browser_attempt__` };
+  const frame = { url: () => `${frameOrigin || new URL(navigation).origin}/__owasp_ai_goat_csrf_browser_attempt__` };
   Object.assign(page, {
     setBypassServiceWorker: async () => {}, setRequestInterception: async () => {},
     setCookie: async () => {}, mainFrame: () => frame,
@@ -71,7 +71,7 @@ for (const mode of ['attacker', 'victim']) {
       documentOrigin: mode === 'victim' ? 'attacker' : 'victim', // ignored public-shaped override
       onRequest: async () => { calls++; return { status: 200, body: 'ok' }; } });
     const expected = mode === 'victim' ? victim : attacker;
-    assert.equal(f.state().navigation, `${expected}/__dvaia_csrf_browser_attempt__`);
+    assert.equal(f.state().navigation, `${expected}/__owasp_ai_goat_csrf_browser_attempt__`);
     assert.equal(f.state().initialHtml, html);
     assert.equal(result.observation.frameOrigin, expected);
     assert.equal(result.observation.cookiePresent, true);

@@ -28,7 +28,7 @@ function disposableUrls() {
     assert.equal(url.protocol, 'postgresql:'); assert.equal(url.hostname, '127.0.0.1');
     assert.equal(url.username, `dvaia_${NAMES[store]}_${role.toLowerCase()}`);
     assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-    const match = new RegExp(`^/dvaia_test_agent_host_([a-f0-9]{12})_${NAMES[store]}$`).exec(url.pathname);
+    const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_${NAMES[store]}$`).exec(url.pathname);
     assert.ok(match, `Owned disposable ${store} required`);
     nonce ??= match[1]; port ??= url.port;
     assert.equal(match[1], nonce); assert.equal(url.port, port);
@@ -184,7 +184,7 @@ test(TITLE, { skip: !ENABLED, timeout: 600000 }, async t => {
     const origin = `http://127.0.0.1:${server.address().port}/api/secureshop`;
     const request = async (actor, pathname, body, overrides = {}) => {
       const response = await fetch(origin + pathname, { method: body === undefined ? 'GET' : 'POST',
-        headers: { 'content-type': 'application/json', 'x-dvaia-secureshop-launch': actor.boot.bearer,
+        headers: { 'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': actor.boot.bearer,
           authorization: `Bearer ${actor.boot.persona.token}`, ...overrides },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(150000) });
       const text = await response.text(); let data; try { data = JSON.parse(text); } catch { data = text; }
@@ -506,7 +506,7 @@ test(TITLE, { skip: !ENABLED, timeout: 600000 }, async t => {
       const wrong = actors[terminal.role === 'customer' ? 'merchant' : 'customer'].main;
       await deny(row, 'wrong_role', wrong);
       await deny(row, 'foreign_tenant', foreign[terminal.role]);
-      await deny(row, 'platform_launch_substitution', row.owner, { 'x-dvaia-secureshop-launch': foreign[terminal.role].boot.bearer });
+      await deny(row, 'platform_launch_substitution', row.owner, { 'x-owasp-ai-goat-secureshop-launch': foreign[terminal.role].boot.bearer });
       await deny(row, 'platform_token_substitution', row.owner, { authorization: `Bearer ${platformSession.token}` });
       const before = await effectSnapshot(pools);
       const result = await request(row.owner, terminal.confirmPath, row.ids);
@@ -565,7 +565,7 @@ test(TITLE, { skip: !ENABLED, timeout: 600000 }, async t => {
       await denyCustomerPreAdmission(main, 'wrong_role', actors.merchant.main);
       await denyCustomerPreAdmission(main, 'foreign_tenant', foreign.customer);
       await denyCustomerPreAdmission(main, 'platform_launch_substitution', main.owner,
-        { 'x-dvaia-secureshop-launch': foreign.customer.boot.bearer });
+        { 'x-owasp-ai-goat-secureshop-launch': foreign.customer.boot.bearer });
       customerMain.push(main);
       const revoke = await prepareCustomerPreAdmission(actors.customer.revoke, terminal);
       await completeCustomerOperation(revoke); customerRevoked.push(revoke);

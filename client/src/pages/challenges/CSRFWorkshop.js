@@ -878,7 +878,7 @@ const CSRFWorkshop = () => {
   };
   const onAddressChange = (v) => {
     setInboxAddress(v); setInboxVerified(false);
-    if (v && /@/.test(v)) localStorage.setItem('dvaia_email_agent_temp_email', v.trim());
+    if (v && /@/.test(v)) localStorage.setItem('owasp_ai_goat_email_agent_temp_email', v.trim());
   };
   const verifyInbox = async () => {
     const isCurrent = captureResponse();
@@ -992,7 +992,7 @@ const CSRFWorkshop = () => {
   const runScopedReset = async (scope, endpoint, body, tabs, onCommit) => {
     if (!ownerIsCurrent() || resetInFlight.current) return false;
     if (!Number.isSafeInteger(Number(user?.id)) || Number(user.id) <= 0) { toast.error('Sign in before resetting.'); return false; }
-    const key = `dvaia:csrf-reset:${user.id}`;
+    const key = `owasp-ai-goat:csrf-reset:${user.id}`;
     let pending = pendingReset.current?.key === key ? pendingReset.current : null;
     if (!pending) {
       try { const value = JSON.parse(sessionStorage.getItem(key));

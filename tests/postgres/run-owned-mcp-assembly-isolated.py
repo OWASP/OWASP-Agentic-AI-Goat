@@ -497,7 +497,7 @@ def verify_v39_pair_profile(source,profile='historical'):
 RENDERED_PROFILE_PROGRAM=r'''
 import os,sys,stat,re,base64,subprocess
 action,name,encoded=sys.argv[1:]
-assert action in ('install','remove') and re.fullmatch(r'dvaia-owned-mcp-registry-[a-f0-9]{12}',name)
+assert action in ('install','remove') and re.fullmatch(r'owasp-ai-goat-owned-mcp-registry-[a-f0-9]{12}',name)
 assert os.geteuid()==0
 data=base64.b64decode(encoded,validate=True);assert 0<len(data)<=16384
 assert ('profile "'+name+'"').encode() in data and b'@@SUPERVISOR_PROFILE@@' not in data
@@ -658,10 +658,10 @@ def packaged_control_pins(root):
 def packaged_image_labels(labels,owner,selection):
  if selection not in REGISTRY_PACKAGED_AUTHORITIES:raise RuntimeError('Unknown packaged authority selection')
  _,package_digest,scope=REGISTRY_PACKAGED_AUTHORITIES[selection]
- if (not isinstance(labels,dict) or labels.get('dvaia.owner')!=owner
-     or labels.get('dvaia.registry.package')!=package_digest
-     or labels.get('dvaia.registry.authority')!=selection
-     or labels.get('dvaia.registry.cohort')!=scope):
+ if (not isinstance(labels,dict) or labels.get('owasp-ai-goat.owner')!=owner
+     or labels.get('owasp-ai-goat.registry.package')!=package_digest
+     or labels.get('owasp-ai-goat.registry.authority')!=selection
+     or labels.get('owasp-ai-goat.registry.cohort')!=scope):
   raise RuntimeError('Packaged image owner or authority mismatch')
 
 def packaged_postflight(root,selection,authority,rows,pins):
@@ -740,8 +740,8 @@ def admit_reused_image_row(row,proof):
      or row.get('Architecture')!='arm64' or row.get('Os')!='linux'
      or row.get('Config',{}).get('User')!='10001:10001'
      or row.get('Config',{}).get('Entrypoint')!=['node','sidecars/sandbox-runner/owned-mcp-registry/http-listener.js']
-     or row.get('Config',{}).get('Labels',{}).get('dvaia.registry.package')!=proof['packageDigest']
-     or row.get('Config',{}).get('Labels',{}).get('dvaia.build-run')!=proof['runId']
+     or row.get('Config',{}).get('Labels',{}).get('owasp-ai-goat.registry.package')!=proof['packageDigest']
+     or row.get('Config',{}).get('Labels',{}).get('owasp-ai-goat.build-run')!=proof['runId']
      or row.get('RepoTags') not in (None,[]) or row.get('RepoDigests') not in (None,[])):
   raise RuntimeError('Recovered V23 Docker image identity mismatch')
  return row
@@ -929,8 +929,8 @@ def native_child_argv(registry_rendered=False,invocation_journal=False,impersona
 
 def rendered_browser_absent(root):
  root=Path(root)
- patterns=('dvaia-mcp-registry-rendered-*','dvaia-mcp-trust-rendered-*',
-           'dvaia-registry-browser-*','ss-review-browser-*','puppeteer_dev_chrome_profile-*')
+ patterns=('owasp-ai-goat-mcp-registry-rendered-*','owasp-ai-goat-mcp-trust-rendered-*',
+           'owasp-ai-goat-registry-browser-*','ss-review-browser-*','puppeteer_dev_chrome_profile-*')
  profiles=[p for parent in (root,root/'tmp') for pattern in patterns for p in parent.glob(pattern)]
  if profiles:raise RuntimeError('Owned registry browser remains')
  client=current_client()
@@ -1003,11 +1003,11 @@ def inspect_resource(command,kind,name):
 
 def database_plan(nonce,journal=False,impersonation_v43=False):
  if len(nonce)!=12 or any(c not in '0123456789abcdef' for c in nonce):raise ValueError('closed nonce required')
- rows=[{'label':label,'schema':schema,'database':f'dvaia_test_mcp_assembly_{nonce}_{label.lower()}','migration':'dvaia_'+schema+'_migration','runtime':'dvaia_'+schema+'_runtime'} for label,schema in [('IDENTITY','identity'),('COMMERCE','secureshop'),('AGENTS','secureshop_agents'),('REVIEW','secureshop_review')]]
+ rows=[{'label':label,'schema':schema,'database':f'owasp_ai_goat_test_mcp_assembly_{nonce}_{label.lower()}','migration':'dvaia_'+schema+'_migration','runtime':'dvaia_'+schema+'_runtime'} for label,schema in [('IDENTITY','identity'),('COMMERCE','secureshop'),('AGENTS','secureshop_agents'),('REVIEW','secureshop_review')]]
  if impersonation_v43:
   if journal:raise ValueError('V43 cannot use invocation-journal stores')
-  for row in rows:row['database']=f"dvaia_test_agent_host_{nonce}_{row['schema']}"
- if journal:rows.append({'label':'AGENTS_FRESH','schema':'secureshop_agents','database':f'dvaia_test_mcp_assembly_{nonce}_agents_fresh','migration':'dvaia_secureshop_agents_migration','runtime':'dvaia_secureshop_agents_runtime'})
+  for row in rows:row['database']=f"owasp_ai_goat_test_agent_host_{nonce}_{row['schema']}"
+ if journal:rows.append({'label':'AGENTS_FRESH','schema':'secureshop_agents','database':f'owasp_ai_goat_test_mcp_assembly_{nonce}_agents_fresh','migration':'dvaia_secureshop_agents_migration','runtime':'dvaia_secureshop_agents_runtime'})
  return rows
 
 def startup_diagnostics(command,name,token,extra_secrets=(),service_port=8094):
@@ -1037,7 +1037,7 @@ def validate_startup_health(value,runtime_digest):
 
 def validate_internal_endpoint(container,network,name,owner,container_id,binding_mode="discovery"):
  if binding_mode not in ("discovery","invocation"):raise ValueError("Closed endpoint mode required")
- if container.get('Id')!=container_id or network.get('Name')!=name or network.get('Driver')!='bridge' or network.get('Internal') is not True or network.get('Labels',{}).get('dvaia.owner')!=owner:raise RuntimeError('owned internal network identity mismatch')
+ if container.get('Id')!=container_id or network.get('Name')!=name or network.get('Driver')!='bridge' or network.get('Internal') is not True or network.get('Labels',{}).get('owasp-ai-goat.owner')!=owner:raise RuntimeError('owned internal network identity mismatch')
  networks=container.get('NetworkSettings',{}).get('Networks',{})
  if set(networks)!={name}:raise RuntimeError('executor must have exactly one owned internal network')
  endpoint=networks[name]
@@ -1682,11 +1682,11 @@ def main(argv=None):
  mux_authority=admit_existing_mux(SOURCE) if current_host_v39 else None
  evidence_parent=current_host_evidence_parent(SOURCE,args.evidence_parent)
  evidence_parent.mkdir(mode=0o700,exist_ok=True)
- root=Path(tempfile.mkdtemp(prefix='dvaia-mcp-assembly-',dir=evidence_parent));root.chmod(0o700)
+ root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-assembly-',dir=evidence_parent));root.chmod(0o700)
  for directory in ('tmp','config','cache','cache/browser','cache/npm'):
   (root/directory).mkdir(mode=0o700,parents=True,exist_ok=True)
  workspace=SOURCE;nonce=uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
- pg='dvaia-mcp-assembly-pg-'+nonce;executor='dvaia-owned-mcp-registry-'+nonce;network='dvaia-mcp-assembly-net-'+nonce;tag=executor+':assembly';remote='/tmp/'+executor
+ pg='owasp-ai-goat-mcp-assembly-pg-'+nonce;executor='owasp-ai-goat-owned-mcp-registry-'+nonce;network='owasp-ai-goat-mcp-assembly-net-'+nonce;tag=executor+':assembly';remote='/tmp/'+executor
  logs=root/'logs';logs.mkdir(mode=0o700);docker_config=write_private_docker_config(root);
  if args.registry_rendered or args.registry_packaged:
   (docker_config/'config.json').write_text(json.dumps({'cliPluginsExtraDirs':[str(Path(BUILDX_REAL).parent)]})+'\n');(docker_config/'config.json').chmod(0o600)
@@ -1720,13 +1720,13 @@ def main(argv=None):
    return
   if args.registry_rendered or args.registry_packaged:
    verify_daemon(command,DAEMON_ID)
-   row=inspect_owned(command,name=name,labels={'dvaia.owner':owner},image=expected,captured_id=state['containerIds'].get(name))
+   row=inspect_owned(command,name=name,labels={'owasp-ai-goat.owner':owner},image=expected,captured_id=state['containerIds'].get(name))
    if row is not None:
     rendered_layout(row,'postgres' if name==pg else 'executor',network,executor)
     state['containerIds'][name]=row['Id'];persist()
-  proof=cleanup_owned(command,daemon_id=DAEMON_ID,name=name,labels={'dvaia.owner':owner},image=expected,captured_id=state['containerIds'].get(name))
+  proof=cleanup_owned(command,daemon_id=DAEMON_ID,name=name,labels={'owasp-ai-goat.owner':owner},image=expected,captured_id=state['containerIds'].get(name))
   identifier=proof.get('containerId')
-  if identifier and inspect_owned(command,name=identifier,labels={'dvaia.owner':owner},image=expected) is not None:raise RuntimeError('Exact container ID remains')
+  if identifier and inspect_owned(command,name=identifier,labels={'owasp-ai-goat.owner':owner},image=expected) is not None:raise RuntimeError('Exact container ID remains')
   state['cleanup'][name]=proof
  def interrupted(signum,frame):raise TimeoutError('owned aggregate deadline or signal')
  for sig in (signal.SIGTERM,signal.SIGINT,signal.SIGALRM):signal.signal(sig,interrupted)
@@ -1831,7 +1831,7 @@ def main(argv=None):
    else:
     with (root/'build.log').open('w') as log:
      dockerfile='sidecars/sandbox-runner/owned-mcp-registry/Dockerfile.candidate' if args.main_workspace else str(workspace/'sidecars/sandbox-runner/owned-mcp-registry/Dockerfile.candidate')
-     build_args=docker+['build','--platform','linux/arm64','--label','dvaia.owner='+owner,*(['--label','dvaia.registry.package='+packaged_digest,'--label','dvaia.registry.authority='+args.packaged_authority,'--label','dvaia.registry.cohort='+packaged_scope] if args.registry_packaged else []),*(['--secret','id=npm_ca,src='+str(ca)] if ca else []),'--tag',tag,'--file',dockerfile]
+     build_args=docker+['build','--platform','linux/arm64','--label','owasp-ai-goat.owner='+owner,*(['--label','owasp-ai-goat.registry.package='+packaged_digest,'--label','owasp-ai-goat.registry.authority='+args.packaged_authority,'--label','owasp-ai-goat.registry.cohort='+packaged_scope] if args.registry_packaged else []),*(['--secret','id=npm_ca,src='+str(ca)] if ca else []),'--tag',tag,'--file',dockerfile]
      if args.main_workspace:build_args.append('-')
      else:build_args.append(str(workspace))
      build=subprocess.Popen(build_args,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True,stdin=subprocess.PIPE if args.main_workspace else None);capture_process_birth(build);state['buildPgid']=build.pid;persist()
@@ -1841,30 +1841,30 @@ def main(argv=None):
     if args.registry_rendered or args.registry_packaged:
      meta=inspect_resource(command,'image',tag);labels=meta.get('Config',{}).get('Labels',{})
      if (meta.get('Id')!=image or meta.get('Os')!='linux' or meta.get('Architecture')!='arm64'
-         or (not args.registry_packaged and labels.get('dvaia.owner')!=owner)):
+         or (not args.registry_packaged and labels.get('owasp-ai-goat.owner')!=owner)):
       raise RuntimeError('Isolated image identity mismatch')
      if args.registry_packaged:packaged_image_labels(labels,owner,args.packaged_authority)
    state['imageId']=image
    created.add('network');persist()
-   run(docker+['network','create','--internal','--label','dvaia.owner='+owner,network]);created.add('network')
+   run(docker+['network','create','--internal','--label','owasp-ai-goat.owner='+owner,network]);created.add('network')
    if args.registry_rendered or args.registry_packaged:
     net=inspect_resource(command,'network',network)
-    if net.get('Name')!=network or net.get('Labels',{}).get('dvaia.owner')!=owner or net.get('Driver')!='bridge' or net.get('Internal') is not True or net.get('Containers')!={}:raise RuntimeError('Rendered network identity mismatch')
+    if net.get('Name')!=network or net.get('Labels',{}).get('owasp-ai-goat.owner')!=owner or net.get('Driver')!='bridge' or net.get('Internal') is not True or net.get('Containers')!={}:raise RuntimeError('Rendered network identity mismatch')
     state['networkId']=net['Id'];persist()
    token=__import__('secrets').token_urlsafe(32)
    created.add(executor);persist()
-   run(docker+['create',*(['--pull','never'] if using_reused_image else []),'--name',executor,'--label','dvaia.owner='+owner,'--network',network,'--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--security-opt','apparmor='+executor,'--security-opt','seccomp=unconfined','--user','10001:10001','-p','127.0.0.1::8094','-e','SECURESHOP_MCP_REGISTRY_ENABLED=true','-e','SECURESHOP_MCP_REGISTRY_PROFILE='+executor,'-e','SECURESHOP_MCP_REGISTRY_TOKEN='+token,'-e','SECURESHOP_MCP_REGISTRY_HOST=0.0.0.0','-e','SECURESHOP_MCP_REGISTRY_PORT=8094',image]);created.add(executor)
-   info=inspect_owned(command,name=executor,labels={'dvaia.owner':owner},image=image)
+   run(docker+['create',*(['--pull','never'] if using_reused_image else []),'--name',executor,'--label','owasp-ai-goat.owner='+owner,'--network',network,'--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--security-opt','apparmor='+executor,'--security-opt','seccomp=unconfined','--user','10001:10001','-p','127.0.0.1::8094','-e','SECURESHOP_MCP_REGISTRY_ENABLED=true','-e','SECURESHOP_MCP_REGISTRY_PROFILE='+executor,'-e','SECURESHOP_MCP_REGISTRY_TOKEN='+token,'-e','SECURESHOP_MCP_REGISTRY_HOST=0.0.0.0','-e','SECURESHOP_MCP_REGISTRY_PORT=8094',image]);created.add(executor)
+   info=inspect_owned(command,name=executor,labels={'owasp-ai-goat.owner':owner},image=image)
    if args.registry_rendered or args.registry_packaged:rendered_layout(info,'executor',network,executor)
    state['containerIds'][executor]=info['Id'];persist()
-   run(docker+['cp',executor+':/usr/share/dvaia/owned-mcp-registry-assets.json',str(root/'executor-assets.json')]);assets=(root/'executor-assets.json').read_bytes();canonical=checked([str(NODE),'-e',"process.stdout.write(JSON.stringify(JSON.parse(require('fs').readFileSync(process.argv[1]))))",str(root/'executor-assets.json')]);runtime_digest=hashlib.sha256(canonical.encode()).hexdigest();state['expectedRuntimeDigest']=runtime_digest;state['assetManifestSha256']=hashlib.sha256(assets).hexdigest()
+   run(docker+['cp',executor+':/usr/share/owasp-ai-goat/owned-mcp-registry-assets.json',str(root/'executor-assets.json')]);assets=(root/'executor-assets.json').read_bytes();canonical=checked([str(NODE),'-e',"process.stdout.write(JSON.stringify(JSON.parse(require('fs').readFileSync(process.argv[1]))))",str(root/'executor-assets.json')]);runtime_digest=hashlib.sha256(canonical.encode()).hexdigest();state['expectedRuntimeDigest']=runtime_digest;state['assetManifestSha256']=hashlib.sha256(assets).hexdigest()
    if reuse_proof and runtime_digest!=reuse_proof['runtimeDigest']:raise RuntimeError('Recovered V23 runtime digest mismatch')
    startup_deadline=time.monotonic()+30
    run(docker+['start',executor],timeout=startup_timeout(startup_deadline))
    if args.startup_only:
     state['startupDiagnostics']=startup_diagnostics(lambda argv:run(docker+argv,check=False,timeout=startup_timeout(startup_deadline)),executor,token);persist()
    startup_command=lambda argv:run(docker+argv,check=False,timeout=startup_timeout(startup_deadline))
-   info=inspect_owned(startup_command,name=executor,labels={'dvaia.owner':owner},image=image,captured_id=state['containerIds'][executor]);net=inspect_resource(startup_command,'network',network)
+   info=inspect_owned(startup_command,name=executor,labels={'owasp-ai-goat.owner':owner},image=image,captured_id=state['containerIds'][executor]);net=inspect_resource(startup_command,'network',network)
    if args.registry_rendered or args.registry_packaged:rendered_layout(info,'executor',network,executor)
    address=validate_internal_endpoint(info,net,network,owner,state['containerIds'][executor])
    state['networkDiagnostic']={'containerId':info['Id'],'portBindings':info['HostConfig']['PortBindings'],'networks':info['NetworkSettings']['Networks'],'network':{k:net.get(k) for k in ('Id','Name','Driver','Internal','Options','IPAM','Containers')}}
@@ -1933,8 +1933,8 @@ def main(argv=None):
    (root/'candidate-result.json').write_text(json.dumps(result,indent=2)+'\n');(root/'candidate-result.json').chmod(0o600)
   else:
    created.add(pg);persist()
-   run(docker+['run','--detach','--pull','never','--name',pg,'--label','dvaia.owner='+owner,'--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',PG_IMAGE,'-c','shared_buffers=16MB','-c','max_connections=40','-c','max_wal_size=16MB','-c','min_wal_size=4MB']);created.add(pg)
-   info=inspect_owned(command,name=pg,labels={'dvaia.owner':owner},image=PG_IMAGE);state['containerIds'][pg]=info['Id'];persist()
+   run(docker+['run','--detach','--pull','never','--name',pg,'--label','owasp-ai-goat.owner='+owner,'--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',PG_IMAGE,'-c','shared_buffers=16MB','-c','max_connections=40','-c','max_wal_size=16MB','-c','min_wal_size=4MB']);created.add(pg)
+   info=inspect_owned(command,name=pg,labels={'owasp-ai-goat.owner':owner},image=PG_IMAGE);state['containerIds'][pg]=info['Id'];persist()
    if args.registry_rendered:rendered_layout(info,'postgres',network,executor)
    if info.get('Mounts'):raise RuntimeError('PostgreSQL unexpectedly mounted host data')
    for _ in range(80):
@@ -1954,7 +1954,7 @@ def main(argv=None):
    env.update(MCP_ASSEMBLY_NATIVE='1',MCP_ASSEMBLY_RESULT=str(root/'candidate-result.json'),NODE_ENV='test',PG_TEST_DISPOSABLE='yes',PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',AI_PROVIDER='mock',SS_ENABLE='false',MCP_WORKSHOP_AUTOSTART='false',MCP_SIDECARS_AUTOSTART='false',OLLAMA_BASE_URL='http://127.0.0.1:1',JWT_SECRET=uuid.uuid4().hex+uuid.uuid4().hex)
    if args.mcp_registry_ssrf_v42_native:env['MCP_ASSEMBLY_V42']='1'
    if args.registry_rendered:
-    env.update(MCP_REGISTRY_RENDERED_NATIVE='1',MCP_REGISTRY_RENDERED_BUILD=str(SOURCE/'client/build'),MCP_REGISTRY_RENDERED_RESULT=str(root/'candidate-result.json'),DVAIA_CURRENT_MAIN_WORKSPACE=str(SOURCE),PUPPETEER_EXECUTABLE_PATH=args.browser)
+    env.update(MCP_REGISTRY_RENDERED_NATIVE='1',MCP_REGISTRY_RENDERED_BUILD=str(SOURCE/'client/build'),MCP_REGISTRY_RENDERED_RESULT=str(root/'candidate-result.json'),OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(SOURCE),PUPPETEER_EXECUTABLE_PATH=args.browser)
     if args.mcp_impersonation_v43 or args.mcp_manifest_v66 or args.mcp_description_v39 or args.mcp_registry_ssrf_v42 or args.registered_handoff_q05:
      if args.mcp_impersonation_v43:verify_v43_sources(SOURCE)
      elif args.mcp_manifest_v66 or args.mcp_registry_ssrf_v42:verify_v66_sources(SOURCE)
@@ -2108,7 +2108,7 @@ def main(argv=None):
     state['cleanup']['remoteAbsent']=ssh(['test','!','-e',remote],check=False).returncode==0
     meta=inspect_resource(command,'network',network)
     if meta is not None:
-     if meta.get('Labels',{}).get('dvaia.owner')!=owner:raise RuntimeError('network ownership mismatch')
+     if meta.get('Labels',{}).get('owasp-ai-goat.owner')!=owner:raise RuntimeError('network ownership mismatch')
      if args.registry_rendered or args.registry_packaged:
       verify_daemon(command,DAEMON_ID)
       if meta.get('Name')!=network or meta.get('Driver')!='bridge' or meta.get('Internal') is not True or meta.get('Containers')!={}:raise RuntimeError('Rendered network cleanup mismatch')
@@ -2121,7 +2121,7 @@ def main(argv=None):
      if meta is not None:
       labels=meta['Config'].get('Labels',{})
       if args.registry_packaged:packaged_image_labels(labels,owner,args.packaged_authority)
-      elif labels.get('dvaia.owner')!=owner:raise RuntimeError('image ownership or package identity mismatch')
+      elif labels.get('owasp-ai-goat.owner')!=owner:raise RuntimeError('image ownership or package identity mismatch')
       if args.registry_rendered or args.registry_packaged:
        verify_daemon(command,DAEMON_ID)
        if image and meta.get('Id')!=image:raise RuntimeError('Rendered image changed')

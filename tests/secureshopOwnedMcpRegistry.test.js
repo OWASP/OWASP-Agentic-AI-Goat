@@ -189,7 +189,7 @@ test('fixed network registration admits only the attested benign peer before dis
 function discoveryControl(){
  const request={...raw().request,transport:'streamable-http',url:'http://metadata.training/mcp'},witness=worker.createDiscoveryWitness(),nonce=witness.begin(request,request.url);
  const tools=[{name:'metadata-catalog',description:'Namespace-only synthetic metadata',inputSchema:{type:'object',properties:{query:{type:'string'}}}}];
- const body=JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/list',params:{}}),headers={'x-dvaia-registry-discovery':nonce};
+ const body=JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/list',params:{}}),headers={'x-owasp-ai-goat-registry-discovery':nonce};
  const receiving={headers,socket:{localAddress:'169.254.169.254',localPort:80}},extra={requestId:1,requestInfo:{headers}};
  return{request,witness,nonce,tools,body,receiving,extra,peer:worker.PEERS[0]};
 }

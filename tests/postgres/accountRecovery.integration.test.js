@@ -19,7 +19,7 @@ test('PostgreSQL account recovery preserves identity and learner state while rev
   skip:!enabled,timeout:30000,
 },async()=>{
   for(const key of ['PG_ACCOUNT_RECOVERY_RUNTIME_URL','PG_ACCOUNT_RECOVERY_MIGRATION_URL'])
-    assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_account_recovery$/);
+    assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_account_recovery$/);
   const runtime=createPool(process.env,'PG_ACCOUNT_RECOVERY_RUNTIME_URL');
   const migration=createPool(process.env,'PG_ACCOUNT_RECOVERY_MIGRATION_URL');
   try {

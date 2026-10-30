@@ -2,10 +2,10 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {randomUUID}=require('node:crypto');
 test('rendered CSRF baseline and admin parity from controlled canonical projection', {skip:process.env.CSRF_PROJECTION_NATIVE!=='1',timeout:240000},async t=>{
- assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
  const actual=false;assert.notEqual(process.env.CSRF_TEACHING_ACTUAL,'1');let browser;
  const {Pool}=require('pg'),pools=[],servers=[],runtimes=[],routes=[],auths=[];
- const pool=(key,role,store)=>{const u=new URL(process.env[key]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,store==='identity'?/^\/dvaia_test_workshop_rag_[a-f0-9]+$/:/^\/dvaia_test_csrf_teaching_[a-f0-9]+$/);assert.equal(u.username,`dvaia_${store}_${role}`);const p=new Pool({connectionString:u.href,max:4,statement_timeout:10000});pools.push(p);return p;};
+ const pool=(key,role,store)=>{const u=new URL(process.env[key]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,store==='identity'?/^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/:/^\/owasp_ai_goat_test_csrf_teaching_[a-f0-9]+$/);assert.equal(u.username,`dvaia_${store}_${role}`);const p=new Pool({connectionString:u.href,max:4,statement_timeout:10000});pools.push(p);return p;};
  const migration=pool('WORKSHOP_RAG_MIGRATION_URL','migration','identity'),identityPool=pool('WORKSHOP_RAG_RUNTIME_URL','runtime','identity'),csrfMigration=pool('CSRF_TEACHING_MIGRATION_URL','migration','csrf'),csrfPool=pool('CSRF_TEACHING_RUNTIME_URL','runtime','csrf');
  const temporary=fs.mkdtempSync(path.join(os.tmpdir(),'csrf-teaching-schema-'));
  const Module=require('node:module'),originalLoad=Module._load;let release;const storeErrors=[];

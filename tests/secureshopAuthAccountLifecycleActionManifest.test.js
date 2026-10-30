@@ -244,7 +244,7 @@ function verifyConnected(overrides = {}) {
   expr(execute, 'compileOperation(message.operation,message.input)');
   expr(execute, "headers.set('Authorization', `Bearer ${message.shopBearer}`)");
   const launch = stmt(execute, 'const launch=publicOnly || anonymousCatalogRead ? null : getLaunchBearer();');
-  const launchHeader = expr(execute, "headers.set('X-DVAIA-SecureShop-Launch',launch)");
+  const launchHeader = expr(execute, "headers.set('X-OWASP-AI-GOAT-SecureShop-Launch',launch)");
   const dispatch = expr(execute, "fetchImpl(url.href,{method:request.method,headers,body,credentials:'omit',redirect:'error',signal:controller.signal})");
   inOrder(launch, launchHeader, dispatch);
   expr(local(transport, 'listener'), 'execute(message)');
@@ -442,7 +442,7 @@ function verify(overrides = {}) {
   assert.match(handshake, /createHostTransport\(\{[\s\S]*compileOperation, origin,[\s\S]*getLaunchBearer/);
   const hostTransport = readReachability('hostTransportFile');
   assert.match(hostTransport, /compileOperation\(message\.operation, message\.input\)/);
-  assert.match(hostTransport, /headers\.set\('X-DVAIA-SecureShop-Launch', launch\)/);
+  assert.match(hostTransport, /headers\.set\('X-OWASP-AI-GOAT-SecureShop-Launch', launch\)/);
   assert.match(hostTransport, /credentials: 'omit'/);
   assert.match(readReachability('compilerFile'), /compileOperation\(name, input\)/);
   const appServer = readReachability('applicationServerFile');

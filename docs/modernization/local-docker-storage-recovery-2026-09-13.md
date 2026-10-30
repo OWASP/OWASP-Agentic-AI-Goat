@@ -2,7 +2,7 @@
 
 The local backend stopped after PostgreSQL reported `No space left on device`. The Docker VM's additional data filesystem was full at 8 GiB, and the learner PostgreSQL container was restarting. The frontend and nodemon supervisor remained alive. No unknown Docker volumes were pruned.
 
-Root paused the verified nodemon supervisor, stopped the VM, and retained an APFS clone of the original 8,589,934,592-byte data disk. SHA-256 of the complete original and clone matched. The private recovery directory is `/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-vm-disk-recovery-9a0t5mnp`; the backup disk is mode0600 and the directory mode0700. Do not publish its contents or remove the backup during ongoing recovery qualification.
+Root paused the verified nodemon supervisor, stopped the VM, and retained an APFS clone of the original 8,589,934,592-byte data disk. SHA-256 of the complete original and clone matched. The private recovery directory is `/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-vm-disk-recovery-9a0t5mnp`; the backup disk is mode0600 and the directory mode0700. Do not publish its contents or remove the backup during ongoing recovery qualification.
 
 The first expansion/restart produced an empty filesystem with a different UUID. Root immediately stopped the VM. Both Lima's enabled formatting path and a saved Colima dependency script could initialize a disk under missing-label/mount conditions; the available logs do not establish which executed. The saved script contained `sfdisk`, `mkfs.ext4` and `e2label`, guarded only by a mount check.
 

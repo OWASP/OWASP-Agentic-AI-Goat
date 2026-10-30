@@ -5,15 +5,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sensitive_info_recovery_safety import SignalGate
 
-EXPECTED_DOCKER='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+EXPECTED_DOCKER='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 DOCKER=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 IMAGE='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 SOURCE=Path(__file__).resolve().parents[2]
 parser=argparse.ArgumentParser();parser.add_argument('--docker-host',required=True);args=parser.parse_args()
 if args.docker_host!=EXPECTED_DOCKER:raise SystemExit('reviewed isolated Docker host required')
-evidence=Path(tempfile.mkdtemp(prefix='dvaia-backup-preservation-'));os.chmod(evidence,0o700)
-workspace=evidence/'source';container='dvaia-backup-preservation-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
+evidence=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-backup-preservation-'));os.chmod(evidence,0o700)
+workspace=evidence/'source';container='owasp-ai-goat-backup-preservation-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
 docker=[str(DOCKER),'--host',args.docker_host]
 env={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(evidence)}
 state={'scope':'application-backup-preservation-sql-v1','container':container,'owner':owner,'image':IMAGE,
@@ -53,7 +53,7 @@ try:
  if version!='v26.9.0':raise RuntimeError('managed Node v26.9.0 required')
  state['nodeVersion']=version
  daemon=run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
- if daemon!='colima-dvaia-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
+ if daemon!='colima-owasp-ai-goat-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
  image=run(docker+['image','inspect','--format','{{.Id}}',IMAGE],stdout=subprocess.PIPE,text=True).stdout.strip()
  if image!=IMAGE:raise RuntimeError('immutable PostgreSQL image mismatch')
  state.update({'dockerDaemon':daemon,'imageId':image});persist()
@@ -68,12 +68,12 @@ try:
  run([str(NODE),'--check','scripts/qualify-application-backups.js'],cwd=workspace)
  run([str(NODE),'--check','tests/postgres/applicationBackupPreservation.integration.test.js'],cwd=workspace)
  creation_attempted=True;state['containerCreationAttempted']=True;persist()
- run(docker+['run','--detach','--pull','never','--name',container,'--label','dvaia.test.owner='+owner,
+ run(docker+['run','--detach','--pull','never','--name',container,'--label','owasp-ai-goat.test.owner='+owner,
   '--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=268435456',
   '-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,
   '-c','shared_buffers=16MB','-c','max_connections=24','-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
  details=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
- if details.get('Mounts') or details['Image']!=IMAGE or details['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation check failed')
+ if details.get('Mounts') or details['Image']!=IMAGE or details['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation check failed')
  for _ in range(120):
   ready=subprocess.run(docker+['exec',container,'pg_isready','-h','127.0.0.1','-U','postgres'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=2)
   if ready.returncode==0:break
@@ -81,12 +81,12 @@ try:
  else:raise RuntimeError('owned PostgreSQL unavailable')
  port=int(run(docker+['port',container,'5432/tcp'],stdout=subprocess.PIPE,text=True).stdout.strip().rsplit(':',1)[1])
  psql=docker+['exec',container,'psql','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-c']
- role='dvaia_identity_migration';database='dvaia_backup_preservation_'+owner[:12];role_password=uuid.uuid4().hex+uuid.uuid4().hex
+ role='dvaia_identity_migration';database='owasp_ai_goat_backup_preservation_'+owner[:12];role_password=uuid.uuid4().hex+uuid.uuid4().hex
  run(psql+[f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
  run(docker+['exec','-i',container,'psql','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1'],
   input=f"ALTER ROLE {role} PASSWORD '{role_password}';\n",text=True,stdout=subprocess.DEVNULL)
  run(psql+[f'CREATE DATABASE {database} OWNER {role}'],stdout=subprocess.DEVNULL)
- env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+ env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
   BACKUP_PRESERVATION_TEST_URL=f'postgresql://{role}:{role_password}@127.0.0.1:{port}/{database}',AWS_EC2_METADATA_DISABLED='true')
  with log_path.open('w') as log:
   child=subprocess.Popen([str(NODE),'--test','--test-reporter=tap','tests/postgres/applicationBackupPreservation.integration.test.js'],cwd=workspace,env=env,stdout=log,stderr=log,start_new_session=True)

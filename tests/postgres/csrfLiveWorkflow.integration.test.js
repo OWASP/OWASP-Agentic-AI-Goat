@@ -14,7 +14,7 @@ test('CSRF live qualification uses the owned mounted-browser harness', {
 }, async () => {
   const root = path.resolve(__dirname, '../..');
   const args = ['tests/postgres/run-csrf-browser-isolated.py', '--live'];
-  if (process.env.DVAIA_TEST_DOCKER_HOST) args.push('--docker-host', process.env.DVAIA_TEST_DOCKER_HOST);
+  if (process.env.OWASP_AI_GOAT_TEST_DOCKER_HOST) args.push('--docker-host', process.env.OWASP_AI_GOAT_TEST_DOCKER_HOST);
   const env = Object.fromEntries(['PATH', 'HOME', 'TMPDIR', 'PUPPETEER_EXECUTABLE_PATH', 'PUPPETEER_CACHE_DIR']
     .filter(key => process.env[key]).map(key => [key, process.env[key]]));
   const code = await new Promise((resolve, reject) => {

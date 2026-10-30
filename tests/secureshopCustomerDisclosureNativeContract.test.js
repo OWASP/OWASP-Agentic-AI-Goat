@@ -12,7 +12,7 @@ const shaBytes=value=>createHash('sha256').update(value).digest('hex');
 // Controlled PostgreSQL protocol seam; no socket/database/model is started.
 async function missingFenceFixture(t,options={}){
   const client=new(require('node:events').EventEmitter)(),queries=[],ids=new Set(options.ids||[]);
-  const database=options.database||'dvaia_test_agent_host_012345abcdef_secureshop';
+  const database=options.database||'owasp_ai_goat_test_agent_host_012345abcdef_secureshop';
   let locked=false,released=false,aborted=false;
   const identity={database,role:options.role||'dvaia_secureshop_migration',pid:71,locked:true};
   client.query=async(sql,params)=>{
@@ -136,10 +136,10 @@ test('missing-product durable bridge rechecks race, executes actual handler and 
 function directory(t){assert(path.resolve(process.env.TMPDIR).startsWith(path.join(ROOT,'tasks/tmp')+path.sep));
   const dir=fs.mkdtempSync(path.join(process.env.TMPDIR,'v30-controls-'));fs.chmodSync(dir,0o700);
   t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));return dir;}
-function env(run){const out={SECURESHOP_V30_ORIGINAL_NATIVE:'1',LIVE_OLLAMA_TEST:'1',PG_TEST_DISPOSABLE:'yes',DVAIA_CURRENT_MAIN_WORKSPACE:ROOT,
+function env(run){const out={SECURESHOP_V30_ORIGINAL_NATIVE:'1',LIVE_OLLAMA_TEST:'1',PG_TEST_DISPOSABLE:'yes',OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:ROOT,
   AI_PROVIDER:'ollama',JUDGE_PROVIDER:'ollama',OLLAMA_MODEL:'llama3.1:8b',JUDGE_MODEL:'llama3.1:8b',PG_TEST_ROOT:run,V30_ORIGINAL_RESULT:path.join(run,'v30-original-result.json')};
   for(const[key,store]of Object.entries({IDENTITY:'identity',AGENTS:'secureshop_agents',REVIEW:'secureshop_review',COMMERCE:'secureshop'}))for(const role of ['RUNTIME','MIGRATION'])
-    out[`PG_SECURESHOP_DISCLOSURE_${key}_${role}_URL`]=`postgresql://dvaia_${store}_${role.toLowerCase()}@127.0.0.1:54329/dvaia_test_agent_host_012345abcdef_${store}`;
+    out[`PG_SECURESHOP_DISCLOSURE_${key}_${role}_URL`]=`postgresql://dvaia_${store}_${role.toLowerCase()}@127.0.0.1:54329/owasp_ai_goat_test_agent_host_012345abcdef_${store}`;
   out.SECURESHOP_DATABASE_URL=out.PG_SECURESHOP_DISCLOSURE_COMMERCE_RUNTIME_URL;out.SECURESHOP_AGENTS_DATABASE_URL=out.PG_SECURESHOP_DISCLOSURE_AGENTS_RUNTIME_URL;return out;}
 test('native admission is closed to exact four distinct stores, roles, nonce, aliases and private path',t=>{
   const run=path.join(ROOT,'tasks/qualification/v30-controls-readonly'),good=env(run);let permissions=0o700;
@@ -147,12 +147,12 @@ test('native admission is closed to exact four distinct stores, roles, nonce, al
   t.mock.method(fs,'lstatSync',value=>{assert.equal(value,run);return{mode:permissions,isDirectory:()=>true,isSymbolicLink:()=>false};});
   assert.equal(Object.keys(N.admission(good).urls).length,8);
   const v2={...good,V30_ORIGINAL_PROFILE:N.V2_PROFILE,V30_AGENT_HOST_PORT:'55432',
-    DVAIA_V30_HOST_NONCE:'a'.repeat(64),DVAIA_V30_HOST_WORKER_FD:'7'};
+    OWASP_AI_GOAT_V30_HOST_NONCE:'a'.repeat(64),OWASP_AI_GOAT_V30_HOST_WORKER_FD:'7'};
   assert.equal(N.admission(v2).hostPort,55432);
   assert.equal(N.admission({...v2,V30_ORIGINAL_PROFILE:N.FULL_PROFILE}).profile,N.FULL_PROFILE);
-  assert.equal(N.admission({...v2,DVAIA_V30_HOST_WORKER_FD:'10'}).hostPort,55432);
-  assert.throws(()=>N.admission({...v2,DVAIA_V30_HOST_WORKER_FD:'2'}));
-  for(const field of ['V30_AGENT_HOST_PORT','DVAIA_V30_HOST_NONCE','DVAIA_V30_HOST_WORKER_FD']){
+  assert.equal(N.admission({...v2,OWASP_AI_GOAT_V30_HOST_WORKER_FD:'10'}).hostPort,55432);
+  assert.throws(()=>N.admission({...v2,OWASP_AI_GOAT_V30_HOST_WORKER_FD:'2'}));
+  for(const field of ['V30_AGENT_HOST_PORT','OWASP_AI_GOAT_V30_HOST_NONCE','OWASP_AI_GOAT_V30_HOST_WORKER_FD']){
     const bad={...v2};delete bad[field];assert.throws(()=>N.admission(bad));
   }
   for(const mutate of [e=>{delete e.SECURESHOP_V30_ORIGINAL_NATIVE;},e=>{e.JUDGE_MODEL='other';},e=>{e.OLLAMA_CONTEXT_WINDOW='32768';},

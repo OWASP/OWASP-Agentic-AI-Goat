@@ -86,7 +86,7 @@ test('explicit candidate retains frozen eight originals/vectors and inventory cr
 async function controlled(mode){
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'v39-v7-control-'));fs.chmodSync(directory,0o700);
  const declaration=declare(),digest=runner.writePrivate(path.join(directory,'declaration.json'),declaration);
- const prior=global.fetch,env=process.env.DVAIA_MCP_DESCRIPTION_JUDGE_CALIBRATION;let calls=0,tags=0;
+ const prior=global.fetch,env=process.env.OWASP_AI_GOAT_MCP_DESCRIPTION_JUDGE_CALIBRATION;let calls=0,tags=0;
  const ajv=new Ajv({strict:false});
  global.fetch=async(url,options)=>{
   const pathname=new URL(typeof url==='string'?url:url.url).pathname;
@@ -108,7 +108,7 @@ async function controlled(mode){
   return new Response(JSON.stringify({model:wire.MODEL,message:{role:'assistant',content},done:true,
    done_reason:'stop',eval_count:12,prompt_eval_count:30})+'\n',{headers:{'content-type':'application/x-ndjson'}});
  };
- process.env.DVAIA_MCP_DESCRIPTION_JUDGE_CALIBRATION='1';
+ process.env.OWASP_AI_GOAT_MCP_DESCRIPTION_JUDGE_CALIBRATION='1';
  try{
   const result=await runner.run(directory,digest,candidate.VARIANT);
   assert.equal(tags,2);assert.equal(result.inferenceCalls,calls);assert.equal(result.sourcePinsUnchanged,true);
@@ -124,8 +124,8 @@ async function controlled(mode){
   }
   for(const file of fs.readdirSync(directory))assert.equal(fs.statSync(path.join(directory,file)).mode&0o777,0o600);
   return result;
- }finally{global.fetch=prior;if(env===undefined)delete process.env.DVAIA_MCP_DESCRIPTION_JUDGE_CALIBRATION;
-  else process.env.DVAIA_MCP_DESCRIPTION_JUDGE_CALIBRATION=env;fs.rmSync(directory,{recursive:true,force:true});}
+ }finally{global.fetch=prior;if(env===undefined)delete process.env.OWASP_AI_GOAT_MCP_DESCRIPTION_JUDGE_CALIBRATION;
+  else process.env.OWASP_AI_GOAT_MCP_DESCRIPTION_JUDGE_CALIBRATION=env;fs.rmSync(directory,{recursive:true,force:true});}
 }
 test('configured provider and existing runner carry 32 controlled wires and two identity reads, no credit',async()=>{
  const result=await controlled('complete');assert.equal(result.inferenceCalls,32);

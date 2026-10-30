@@ -189,7 +189,7 @@ export default function XssEmailBuilder({ objectives = [], revision = 0, onProgr
     owner: { attendeeId: ownerStamp, workshopKey: 'xss_email_builder', scenarioId: 'builder' },
     title: 'Reset the email builder?',
     description: 'Generated templates, previews, and judged builder progress are cleared. Saved profile inputs and other XSS scenarios are preserved.',
-    operationStorageKey: ownerKey ? `dvaia:reset:${ownerKey}:xss_email_builder` : undefined,
+    operationStorageKey: ownerKey ? `owasp-ai-goat:reset:${ownerKey}:xss_email_builder` : undefined,
     onBegin: () => {
       const request = beginRequest();
       resetAttempt.current = { ...request, token: generation.current, ownerStamp };

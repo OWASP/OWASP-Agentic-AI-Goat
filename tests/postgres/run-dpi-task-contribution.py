@@ -4,7 +4,7 @@ import argparse,hashlib,json,os,signal,subprocess,tempfile,time
 from pathlib import Path
 from dpi_heldout_integrity import source_inventory,verify,cleanup
 from owned_mcp_assembly_freeze import dependencies,digest as inventory_digest
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 EXPECTED_NODE='56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 SOURCE=Path(__file__).resolve().parents[2]
 parser=argparse.ArgumentParser();parser.add_argument('--cohort',choices=['v14-former-fresh-regression','whole-turn-disclosed-v2','whole-turn-references-disclosed-v2','compact-existential-disclosed-v2','grounded-predicates-disclosed-v2','response-passages-disclosed-v2'],required=True);parser.add_argument('--preflight-only',action='store_true');parser.add_argument('--reviewed-source-digest');parser.add_argument('--reviewed-dependency-digest');args=parser.parse_args()
@@ -13,7 +13,7 @@ script='tests/postgres/dpiTaskContributionDiagnostic.js'
 parent_seconds,child_seconds,max_http=(3240,3120,48)
 digest=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
 if digest(NODE)!=EXPECTED_NODE:raise SystemExit('Reviewed runtime mismatch')
-root=Path(tempfile.mkdtemp(prefix='dvaia-dpi-content-witness-'));os.chmod(root,0o700)
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-dpi-content-witness-'));os.chmod(root,0o700)
 state={'mode':('dpi-response-passages-disclosed-v1' if args.cohort=='response-passages-disclosed-v2' else 'dpi-grounded-predicates-disclosed-v1' if args.cohort=='grounded-predicates-disclosed-v2' else 'dpi-compact-existential-disclosed-v1' if args.cohort=='compact-existential-disclosed-v2' else 'dpi-whole-turn-references-disclosed-v1' if args.cohort=='whole-turn-references-disclosed-v2' else 'dpi-whole-turn-disclosed-v1' if args.cohort=='whole-turn-disclosed-v2' else 'dpi-task-contribution-v14'),'cohort':args.cohort,'launcherPid':os.getpid(),'status':'preparing','bounds':{'parentSeconds':parent_seconds,'childSeconds':child_seconds,'maxActualHttp':max_http,'perHttpSeconds':60},'nodeSha256':EXPECTED_NODE,'noDatabase':True,'noBrowser':True,'syntheticControlledActor':True,'noCredit':True}
 def persist(): (root/'ownership.json').write_text(json.dumps(state,indent=2)+'\n')
 child=None

@@ -12,13 +12,13 @@ const scope = Object.freeze({ targetId: '123e4567-e89b-42d3-a456-426614174000',
 const runId = '223e4567-e89b-42d3-a456-426614174000';
 const intentId = '323e4567-e89b-42d3-a456-426614174000';
 const effectKey = 'mcp_indirect_injection_consequence';
-const messageId = `mcp-${intentId}@dvaia.local`;
+const messageId = `mcp-${intentId}@owasp-ai-goat.local`;
 const sha = value => crypto.createHash('sha256').update(value).digest('hex');
 const canonical = value => JSON.stringify(Object.fromEntries(Object.keys(value).sort().map(key => [key, value[key]])));
 const execution = overrides => ({ ownerKey: JSON.stringify(['MCP', '7']), durableGeneration: '3',
   runId, async check() {}, ...overrides });
 const input = overrides => ({ scope, execution: execution(), intentId, runId, effectKey,
-  messageId, to: 'mcp-audit-0123456789abcdefabcd@dvaia.invalid',
+  messageId, to: 'mcp-audit-0123456789abcdefabcd@owasp-ai-goat.invalid',
   subject: 'RE: Integration diagnostic', body: 'Ticket escalation report',
   protectedContent: 'DB_PASSWORD=TRAINING_ONLY\n', ...overrides });
 

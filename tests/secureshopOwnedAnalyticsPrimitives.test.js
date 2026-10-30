@@ -17,7 +17,7 @@ test('target pool remains max-one and closes deterministically after work failur
  assert.equal(config.max,1);assert.equal(ended,1);
 });
 test('concrete cluster inspection rejects wrong identity, shared databases and public CONNECT',async()=>{
- const identity={systemIdentifier:'123456789012',controlDatabase:'dvaia_analytics_control_123456abcdef',clusterName:'dvaia-owned-analytics-123456abcdef'};
+ const identity={systemIdentifier:'123456789012',controlDatabase:'owasp_ai_goat_analytics_control_123456abcdef',clusterName:'owasp-ai-goat-owned-analytics-123456abcdef'};
  const base={database:identity.controlDatabase,cluster:identity.clusterName,system_identifier:identity.systemIdentifier};
  async function verify(row=base,dbs=[{datname:'postgres',datallowconn:true,public_connect:false}]){let calls=0;return createClusterVerifier({query:async()=>({rows:++calls===1?[row]:dbs})},identity).verify();}
  assert.equal(await verify(),true);

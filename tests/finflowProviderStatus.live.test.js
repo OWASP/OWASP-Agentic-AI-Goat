@@ -9,7 +9,7 @@ test('local status observes exact installed model without generation or model sw
   skip: process.env.RUN_LIVE_FINFLOW_STATUS !== '1', timeout: 30000,
 }, async t => {
   for (const installed of [true, false]) {
-    const model = installed ? 'llama3.1:8b' : `dvaia-absent-${randomUUID()}:latest`;
+    const model = installed ? 'llama3.1:8b' : `owasp-ai-goat-absent-${randomUUID()}:latest`;
     const service = createMultiProviderAIService({
       env: { AI_PROVIDER: 'ollama', OLLAMA_MODEL: model, OLLAMA_BASE_URL: 'http://127.0.0.1:11434' },
       logger: { log() {} },

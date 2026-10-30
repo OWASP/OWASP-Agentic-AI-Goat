@@ -29,7 +29,7 @@ DOCKER_SHA256 = '8a55fc0cf28b70ebfb3d90f660fbd3a856640e657436ae6887ef53f53327602
 NODE_SHA256 = '56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 STORES = {'IDENTITY': 'identity', 'AGENTS': 'secureshop_agents',
     'REVIEW': 'secureshop_review', 'COMMERCE': 'secureshop'}
-DATABASE_PREFIX = 'dvaia_test_extmail_auth_'
+DATABASE_PREFIX = 'owasp_ai_goat_test_extmail_auth_'
 SOURCE_FILES = (
     TEST, 'tests/postgres/secureshopManualRagNativeSetup.js',
     'tests/fixtures/secureshopNativeEvidencePath.js',
@@ -201,7 +201,7 @@ def clean_environment(run):
         'PYTHONDONTWRITEBYTECODE': '1', 'NODE_ENV': 'test',
         'PG_TEST_DISPOSABLE': 'yes', 'PG_EXTERNAL_MAIL_AUTHORITY_NATIVE': 'yes',
         'PG_EXTERNAL_MAIL_AUTHORITY_EVIDENCE_PATH': str(run / 'external-mail-authority-evidence.json'),
-        'DVAIA_CURRENT_MAIN_WORKSPACE': str(ROOT), 'DOCKER_HOST': 'unix://' + str(SOCKET),
+        'OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE': str(ROOT), 'DOCKER_HOST': 'unix://' + str(SOCKET),
         'AWS_EC2_METADATA_DISABLED': 'true', 'AI_PROVIDER': 'mock',
         'MCP_SIDECARS_AUTOSTART': 'false'}
 
@@ -261,8 +261,8 @@ def main(argv=None):
     run.chmod(0o700)
     env = clean_environment(run)
     nonce = uuid.uuid4().hex[:12]
-    name = 'dvaia-external-mail-authority-' + nonce
-    labels = {'dvaia.qualification': SCOPE, 'dvaia.owner-uid': str(os.getuid()), 'dvaia.run-nonce': nonce}
+    name = 'owasp-ai-goat-external-mail-authority-' + nonce
+    labels = {'owasp-ai-goat.qualification': SCOPE, 'owasp-ai-goat.owner-uid': str(os.getuid()), 'owasp-ai-goat.run-nonce': nonce}
     docker = [str(DOCKER), '--host', 'unix://' + str(SOCKET)]
     result = {'scope': SCOPE, 'passed': False, 'nativeStarted': False,
         'sourceCopies': False, 'actualSmtp': False, 'model': False, 'browser': False,

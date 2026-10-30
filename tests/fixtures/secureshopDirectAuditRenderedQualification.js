@@ -44,7 +44,7 @@ function assertDirectAuditContext(c) {
   assert.equal(c.peer.scope.platformOwnerId !== c.scope.platformOwnerId, true,
     'sibling must be a distinct real platform owner');
   for (const value of [c.headers, c.peer.headers]) {
-    assert.match(value['x-dvaia-secureshop-launch'], /\S/);
+    assert.match(value['x-owasp-ai-goat-secureshop-launch'], /\S/);
     assert.match(value.authorization, /^Bearer \S+$/);
   }
   assert.equal(typeof c.evidence?.save, 'function');

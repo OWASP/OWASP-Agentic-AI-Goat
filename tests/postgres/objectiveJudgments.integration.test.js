@@ -9,7 +9,7 @@ const {createWorkshopModeRepository}=require('../../server/database/postgres/wor
 const {createObjectiveJudgmentRepository}=require('../../server/database/postgres/objectiveJudgmentRepository');
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_JUDGMENTS_TEST_RUNTIME_URL;
 test('durable judgments: scoped idempotency, reset/mode/visibility fences, atomic completion and preserved history',{skip:!enabled},async()=>{
- for(const k of ['PG_JUDGMENTS_TEST_RUNTIME_URL','PG_JUDGMENTS_TEST_MIGRATION_URL'])assert.match(new URL(process.env[k]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const k of ['PG_JUDGMENTS_TEST_RUNTIME_URL','PG_JUDGMENTS_TEST_MIGRATION_URL'])assert.match(new URL(process.env[k]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const pool=createPool(process.env,'PG_JUDGMENTS_TEST_RUNTIME_URL'),migration=createPool(process.env,'PG_JUDGMENTS_TEST_MIGRATION_URL');
  try{
   await initializeIdentityRepository(pool,migration);await seedWorkshopPlatform(migration);
@@ -194,7 +194,7 @@ test('durable judgments: scoped idempotency, reset/mode/visibility fences, atomi
 
 
 test('historical finalized inventory judgments replay unchanged across JSONB and schema upgrades',{skip:!enabled},async()=>{
- for(const k of ['PG_JUDGMENTS_TEST_RUNTIME_URL','PG_JUDGMENTS_TEST_MIGRATION_URL'])assert.match(new URL(process.env[k]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const k of ['PG_JUDGMENTS_TEST_RUNTIME_URL','PG_JUDGMENTS_TEST_MIGRATION_URL'])assert.match(new URL(process.env[k]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const pool=createPool(process.env,'PG_JUDGMENTS_TEST_RUNTIME_URL'),migration=createPool(process.env,'PG_JUDGMENTS_TEST_MIGRATION_URL');
  try{
   await initializeIdentityRepository(pool,migration);await seedWorkshopPlatform(migration);

@@ -282,7 +282,7 @@ def run_qualification(args):
     if not browser_path.is_file() or hashlib.sha256(browser_path.read_bytes()).hexdigest() != args.browser_sha256:
         raise RuntimeError("Managed browser pin mismatch")
 
-    root = Path(tempfile.mkdtemp(prefix="dvaia-ipi-email-rendered-"))
+    root = Path(tempfile.mkdtemp(prefix="owasp-ai-goat-ipi-email-rendered-"))
     os.chmod(root, 0o700)
     workspace = root / "source"
     workspace.mkdir()
@@ -300,8 +300,8 @@ def run_qualification(args):
     (workspace / "node_modules").symlink_to(source / "node_modules", target_is_directory=True)
 
     docker = ["docker", "--host", args.docker_host]
-    pg_name = "dvaia-ipi-email-rendered-pg-" + uuid.uuid4().hex[:12]
-    mail_name = "dvaia-ipi-email-rendered-mailpit-" + uuid.uuid4().hex[:12]
+    pg_name = "owasp-ai-goat-ipi-email-rendered-pg-" + uuid.uuid4().hex[:12]
+    mail_name = "owasp-ai-goat-ipi-email-rendered-mailpit-" + uuid.uuid4().hex[:12]
     base_env = {key: os.environ[key] for key in ("PATH", "HOME", "TMPDIR") if key in os.environ}
     started, children, logs = [], [], []
     readiness = root / "readiness.json"
@@ -354,7 +354,7 @@ def run_qualification(args):
         psql = docker + ["exec", pg_name, "psql", "-U", "ipi_rendered_admin", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-c"]
         run(psql + ["CREATE ROLE dvaia_identity_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"])
         run(psql + ["CREATE ROLE dvaia_identity_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"])
-        db = "dvaia_test_ipi_email_rendered_identity"
+        db = "owasp_ai_goat_test_ipi_email_rendered_identity"
         run(psql + [f"CREATE DATABASE {db} OWNER dvaia_identity_migration"])
         run(psql + [f"REVOKE CONNECT ON DATABASE {db} FROM PUBLIC; GRANT CONNECT ON DATABASE {db} TO dvaia_identity_migration,dvaia_identity_runtime"])
 
@@ -366,7 +366,7 @@ def run_qualification(args):
         def url(role):
             return f"postgresql://{role}@127.0.0.1:{pg_port}/{db}"
 
-        env = dict(base_env, PG_TEST_DISPOSABLE="yes", DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace), IPI_EMAIL_RENDERED_UI="1", IPI_RENDERED_MAILPIT_API_URL=f"http://127.0.0.1:{mail_api}/", IPI_RENDERED_IDENTITY_RUNTIME_URL=url("dvaia_identity_runtime"), IPI_RENDERED_IDENTITY_MIGRATION_URL=url("dvaia_identity_migration"), MAILPIT_SMTP_HOST="127.0.0.1", MAILPIT_SMTP_PORT=str(mail_smtp), PLATFORM_DATABASE_ENGINE="postgres", WORKSHOP_DATABASE_ENGINE="postgres", IPI_RENDERED_USER="ipi-rendered-owner", IPI_RENDERED_PASSWORD="OwnedRenderedFixture@123", IPI_RENDERED_SIBLING_USER="ipi-rendered-sibling", IPI_RENDERED_SIBLING_PASSWORD="OwnedRenderedFixture@123", AI_PROVIDER="ollama", JUDGE_PROVIDER="ollama", OLLAMA_BASE_URL="http://127.0.0.1:11434", OLLAMA_MODEL="llama3.1:8b", NODE_OPTIONS="--use-system-ca", AWS_EC2_METADATA_DISABLED="true")
+        env = dict(base_env, PG_TEST_DISPOSABLE="yes", OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace), IPI_EMAIL_RENDERED_UI="1", IPI_RENDERED_MAILPIT_API_URL=f"http://127.0.0.1:{mail_api}/", IPI_RENDERED_IDENTITY_RUNTIME_URL=url("dvaia_identity_runtime"), IPI_RENDERED_IDENTITY_MIGRATION_URL=url("dvaia_identity_migration"), MAILPIT_SMTP_HOST="127.0.0.1", MAILPIT_SMTP_PORT=str(mail_smtp), PLATFORM_DATABASE_ENGINE="postgres", WORKSHOP_DATABASE_ENGINE="postgres", IPI_RENDERED_USER="ipi-rendered-owner", IPI_RENDERED_PASSWORD="OwnedRenderedFixture@123", IPI_RENDERED_SIBLING_USER="ipi-rendered-sibling", IPI_RENDERED_SIBLING_PASSWORD="OwnedRenderedFixture@123", AI_PROVIDER="ollama", JUDGE_PROVIDER="ollama", OLLAMA_BASE_URL="http://127.0.0.1:11434", OLLAMA_MODEL="llama3.1:8b", NODE_OPTIONS="--use-system-ca", AWS_EC2_METADATA_DISABLED="true")
         env["PUPPETEER_EXECUTABLE_PATH"] = str(browser_path)
         env["IPI_RENDERED_MAIL_HMAC_SECRET"] = secrets.token_hex(32)
         env["IPI_RENDERED_READINESS_FILE"] = str(readiness)

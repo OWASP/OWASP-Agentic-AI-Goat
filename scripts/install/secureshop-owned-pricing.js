@@ -28,12 +28,12 @@ function qualifiedSource(root){
 async function plan({root=path.resolve(__dirname,'../..'),home=os.homedir(),platform=process.platform,architecture=process.arch,port,environment=process.env,execute}={}){
  if(!path.isAbsolute(root)||!path.isAbsolute(home)||!['darwin','linux'].includes(platform)||architecture!=='arm64')throw fail('PRICING_INSTALL_PLATFORM_UNQUALIFIED');
  if(port!==undefined&&(!Number.isInteger(port)||port<1024||port>65535))throw fail('PRICING_INSTALL_PORT_INVALID');
- const id=workspaceId(root),directory=path.join(home,'.dvaia',id),source=qualifiedSource(root);
+ const id=workspaceId(root),directory=path.join(home,'.owasp-ai-goat',id),source=qualifiedSource(root);
  const authority=await readLocalDockerAuthority({directory,workspaceId:id,platform});
  if(!authority)throw fail('PRICING_INSTALL_AUTHORITY_REQUIRED');
  await verifyDockerAuthority({authority,execute,environment});
  const record=managed.load({root,home}),selectedPort=port??record?.config.port??DEFAULT_PORT;
  if(record&&(record.config.dockerAuthoritySha256!==authorityDigest(authority)||record.config.packageSha256!==source.sha256||record.config.port!==selectedPort))throw fail('PRICING_INSTALL_EXISTING_CONFLICT');
- return Object.freeze({version:1,mutating:false,workspaceId:id,architecture:'arm64',dockerAuthoritySha256:authorityDigest(authority),source,container:'dvaia-pricing-'+id,network:'dvaia-pricing-'+id+'-network',profile:'dvaia-owned-pricing-http-'+id,port:selectedPort,existing:!!record,enabled:record?.config.enabled===true,imageId:record?.config.imageId??null,namespaceProfileVerified:false,resources:Object.freeze({memoryBytes:536870912,cpu:1,pids:128,tmpfsBytes:134217728,user:'10001:10001',readOnlyRoot:true,hostMounts:false,loopbackOnlyPublication:true,outerEgressIsolation:false}),next:'Explicit provisioning must reconcile exact owned resources and actual private readiness before compare-and-swap activation; profile installation remains separately scoped.'});
+ return Object.freeze({version:1,mutating:false,workspaceId:id,architecture:'arm64',dockerAuthoritySha256:authorityDigest(authority),source,container:'owasp-ai-goat-pricing-'+id,network:'owasp-ai-goat-pricing-'+id+'-network',profile:'owasp-ai-goat-owned-pricing-http-'+id,port:selectedPort,existing:!!record,enabled:record?.config.enabled===true,imageId:record?.config.imageId??null,namespaceProfileVerified:false,resources:Object.freeze({memoryBytes:536870912,cpu:1,pids:128,tmpfsBytes:134217728,user:'10001:10001',readOnlyRoot:true,hostMounts:false,loopbackOnlyPublication:true,outerEgressIsolation:false}),next:'Explicit provisioning must reconcile exact owned resources and actual private readiness before compare-and-swap activation; profile installation remains separately scoped.'});
 }
 module.exports={plan,qualifiedSource,DEFAULT_PORT};

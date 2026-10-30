@@ -12,7 +12,7 @@ function createTeachingSessionRuntime({ adapter, effectPool, onCleanupError = ()
   }
   if (typeof effectPool?.connect !== 'function' || effectPool === adapter.pool) throw new TypeError('Separate teaching effect pool required');
   const { jwtSecret } = assertPlatformSigningConfiguration({ JWT_SECRET: adapter.jwtSecret });
-  const secret = createHmac('sha256', jwtSecret).update('dvaia-private-teaching-session-issuance-v1').digest('base64url');
+  const secret = createHmac('sha256', jwtSecret).update('owasp-ai-goat-private-teaching-session-issuance-v1').digest('base64url');
   const store = new PostgresTeachingSessionStore({ pool: adapter.pool, effectPool, secret });
   let ready = false, closed = false, interval, pending, initialization;
   const middleware = session({ store, genid: store.genid,

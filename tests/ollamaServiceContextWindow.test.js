@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const logsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-ollama-context-'));
+const logsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-ollama-context-'));
 process.env.LOGS_DIR = logsDir;
 const { OllamaService } = require('../server/services/ollamaService');
 

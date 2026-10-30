@@ -14,8 +14,8 @@ function resolveBoundApiKeyAuthority(fence,{scope,persona}={}) {
  return fence;
 }
 
-const ISSUER = 'dvaia-secureshop-bound';
-const AUDIENCE = 'dvaia-secureshop-bound-persona';
+const ISSUER = 'owasp-ai-goat-secureshop-bound';
+const AUDIENCE = 'owasp-ai-goat-secureshop-bound-persona';
 const ROLES = new Set(['customer', 'merchant', 'admin']);
 const PERSONAS = Object.freeze({ student_customer: 'customer', student_merchant: 'merchant',
   student_admin: 'admin' });

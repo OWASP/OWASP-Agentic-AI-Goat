@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),{createHash}=require('node:crypto');
 const {assertControlReady}=require('../sidecars/analytics-sql-target/bootstrap');
-const identity={systemIdentifier:'1234567890123456789',controlDatabase:'dvaia_analytics_control_abcdef123456',clusterName:'dvaia-owned-analytics-abcdef123456'};
+const identity={systemIdentifier:'1234567890123456789',controlDatabase:'owasp_ai_goat_analytics_control_abcdef123456',clusterName:'owasp-ai-goat-owned-analytics-abcdef123456'};
 const sql=fs.readFileSync(require.resolve('../sidecars/analytics-sql-target/control-migrations/0001_control.sql'),'utf8');
 const bodies=[...sql.matchAll(/CREATE FUNCTION (\w+)\(\) RETURNS trigger LANGUAGE plpgsql AS \$\$([\s\S]*?)\$\$;/g)];
 function pool(change=()=>{}) {

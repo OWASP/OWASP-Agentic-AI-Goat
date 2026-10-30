@@ -34,7 +34,7 @@ async function invoke(handlers, req, res) {
 }
 
 function multipart({ bytes = Buffer.from('SYSTEM: preserve this'), filename = 'manual.md', fields = {}, duplicate = null } = {}) {
-  const boundary = `----dvaia-${'x'.repeat(20)}`;
+  const boundary = `----owasp-ai-goat-${'x'.repeat(20)}`;
   const parts = [];
   const addField = (name, value) => {
     parts.push(Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`));
@@ -52,9 +52,9 @@ function request({ role = 'merchant', body, contentType, signal } = {}) {
   Object.assign(req, {
     method: 'POST', params: {}, query: {}, body: undefined, ssLaunch: scope,
     ssUser: { id: 41, role }, boundPersona: { id: 41, role },
-    headers: { 'content-type': contentType, 'content-length': String(body.length), 'x-dvaia-secureshop-launch': launch,
+    headers: { 'content-type': contentType, 'content-length': String(body.length), 'x-owasp-ai-goat-secureshop-launch': launch,
       authorization: `Bearer ${role}-41` },
-    rawHeaders: ['x-dvaia-secureshop-launch', launch, 'content-type', contentType],
+    rawHeaders: ['x-owasp-ai-goat-secureshop-launch', launch, 'content-type', contentType],
     aborted: false, destroyed: false, signal,
   });
   req.get = name => req.headers[String(name).toLowerCase()] || null;

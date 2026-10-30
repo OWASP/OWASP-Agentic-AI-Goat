@@ -181,8 +181,8 @@ async function createListingsDriver(options){
    if(name==='image'){
     const rows=JSON.parse(text);image=rows?.[0];const c=plan.imageContract;
     if(rows.length!==1||!/^sha256:[a-f0-9]{64}$/.test(image?.Id||'')||image.Architecture!=='arm64'||image.Os!=='linux'
-     ||image.Config?.Labels?.[c.label]!==plan.packageDigest||image.Config?.Labels?.['dvaia.build-run']!==binding.runId
-     ||image.Config?.Labels?.['dvaia.listings.runtime']!==c.runtimeDigest||image.Config?.User!==c.user
+     ||image.Config?.Labels?.[c.label]!==plan.packageDigest||image.Config?.Labels?.['owasp-ai-goat.build-run']!==binding.runId
+     ||image.Config?.Labels?.['owasp-ai-goat.listings.runtime']!==c.runtimeDigest||image.Config?.User!==c.user
      ||JSON.stringify(image.Config?.Entrypoint)!==JSON.stringify(c.entrypoint))throw fail('V03_LISTINGS_IMAGE');
    }
    if(name==='retireArtifacts'){if(text.trim()!=='absent')throw fail('V03_LISTINGS_ARTIFACT_RETIREMENT');artifactRetired=true;}

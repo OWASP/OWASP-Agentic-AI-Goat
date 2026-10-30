@@ -2,9 +2,9 @@
 """Owned PostgreSQL18 candidate-only HTTP receipt qualification, no installed URLs."""
 import subprocess,pathlib,uuid,time,os,json,hashlib
 root=pathlib.Path(__file__).resolve().parents[2]
-D=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host','unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock']
-nonce=uuid.uuid4().hex[:12];name='dvaia-http-receipt-'+nonce;database='dvaia_test_http_'+nonce
-node=pathlib.Path.home()/'.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node'
+D=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host','unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock']
+nonce=uuid.uuid4().hex[:12];name='owasp-ai-goat-http-receipt-'+nonce;database='owasp_ai_goat_test_http_'+nonce
+node=pathlib.Path.home()/'.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node'
 result={'name':name,'candidateOnly':True,'actualModel':False,'actualNetworkEffects':False}
 files=['docs/modernization/drafts/mcp-http/0083_mcp_http_operations.candidate.sql','server/database/postgres/mcpHttpReceiptRepository.js','server/services/mcp/ownedHttpReceipt.js','tests/postgres/mcpHttpLease.integration.test.js','tests/fixtures/mcpOwnedHttpReceipt.js']
 files += ['server/services/mcp/ownedHttpClient.js','server/services/mcp/ownedHttpToolAdapter.js','sidecars/sandbox-runner/owned-http/canonical.js','server/services/mcp/sandboxShell.js']
@@ -14,7 +14,7 @@ result['sourceHashes']={f:hashlib.sha256((root/f).read_bytes()).hexdigest() for 
 def run(args,**kwargs):return subprocess.run(args,check=True,text=True,capture_output=True,timeout=120,**kwargs)
 try:
  assert not run(D+['ps','-aq','--filter','name=^/'+name+'$']).stdout.strip()
- run(D+['run','-d','--pull','never','--name',name,'--label','dvaia.owner='+nonce,'--tmpfs','/var/lib/postgresql:rw,size=536870912','-e','POSTGRES_USER=http_test_admin','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432','postgres:18','-c','shared_buffers=16MB','-c','max_connections=24','-c','max_wal_size=16MB','-c','min_wal_size=4MB'])
+ run(D+['run','-d','--pull','never','--name',name,'--label','owasp-ai-goat.owner='+nonce,'--tmpfs','/var/lib/postgresql:rw,size=536870912','-e','POSTGRES_USER=http_test_admin','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432','postgres:18','-c','shared_buffers=16MB','-c','max_connections=24','-c','max_wal_size=16MB','-c','min_wal_size=4MB'])
  result['postgresImage']=run(D+['inspect','--format','{{.Image}}',name]).stdout.strip()
  for _ in range(80):
   probe=subprocess.run(D+['exec',name,'pg_isready','-h','127.0.0.1','-U','http_test_admin'],capture_output=True,timeout=5)

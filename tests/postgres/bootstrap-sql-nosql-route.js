@@ -28,7 +28,7 @@ function validateBootstrapEnvironment(env) {
       || env.PLATFORM_DATABASE_ENGINE !== 'postgres' || env.WORKSHOP_DATABASE_ENGINE !== 'postgres') {
     throw new Error('Explicit isolated PostgreSQL bootstrap flags required');
   }
-  const workspace = env.DVAIA_ISOLATED_TEST_WORKSPACE;
+  const workspace = env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
   if (typeof workspace !== 'string' || !path.isAbsolute(workspace)
       || fs.realpathSync(workspace) !== fs.realpathSync(process.cwd())) {
     throw new Error('Exact isolated bootstrap workspace required');
@@ -40,7 +40,7 @@ function validateBootstrapEnvironment(env) {
       let url;
       try { url = new URL(env[name]); } catch { throw new Error('Explicit owned database URL required'); }
       if (!['postgres:', 'postgresql:'].includes(url.protocol) || url.hostname !== '127.0.0.1'
-          || !url.port || url.pathname !== `/dvaia_test_sql_nosql_route_${family}`
+          || !url.port || url.pathname !== `/owasp_ai_goat_test_sql_nosql_route_${family}`
           || url.username !== `dvaia_${family}_${role}` || url.search || url.hash
           || (port !== undefined && url.port !== port)) {
         throw new Error('Exact owned loopback database and runtime/migration role required');
@@ -53,8 +53,8 @@ function validateBootstrapEnvironment(env) {
 function fixedSessionFixtures(nonce) {
   assert.match(nonce, /^[a-f0-9]{32}$/);
   return Object.freeze({
-    ARIA: Object.freeze({ term: `DVAIA_FIXED_ARIA_${nonce}`, publicId: `FIXED-ARIA-${nonce}` }),
-    NOVA: Object.freeze({ term: `DVAIA_FIXED_NOVA_${nonce}`, publicId: `FIXED-NOVA-PUBLIC-${nonce}`, restrictedId: `FIXED-NOVA-RESTRICTED-${nonce}` }),
+    ARIA: Object.freeze({ term: `OWASP_AI_GOAT_FIXED_ARIA_${nonce}`, publicId: `FIXED-ARIA-${nonce}` }),
+    NOVA: Object.freeze({ term: `OWASP_AI_GOAT_FIXED_NOVA_${nonce}`, publicId: `FIXED-NOVA-PUBLIC-${nonce}`, restrictedId: `FIXED-NOVA-RESTRICTED-${nonce}` }),
   });
 }
 async function seedFixedSessionFixtures({ ariaMigration, novaMigration, nonce }) {

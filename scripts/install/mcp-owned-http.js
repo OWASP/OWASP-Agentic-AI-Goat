@@ -14,13 +14,13 @@ const { renderOwnedHttpProfile } = require('../../sidecars/sandbox-runner/owned-
 const { createOwnedHttpServiceClient } = require('../../server/services/mcp/ownedHttpServiceClient');
 function plan({ root = path.resolve(__dirname, '../..'), home = os.homedir(), platform = process.platform, colimaProfile, ownedLabSession, port = 8093 } = {}) {
   if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('MCP_HTTP_PORT_INVALID');
-  const profile = `dvaia-owned-http-${workspaceId(root)}`;
+  const profile = `owasp-ai-goat-owned-http-${workspaceId(root)}`;
   return Object.freeze({ ...localProfilePlan({ root, home, platform, colimaProfile, ownedLabSession }), profile,
     destination: `/etc/apparmor.d/${profile}`, container: profile, volume: `${profile}-state`,
     managedPath: config.managedPath({ root, home }), port, root });
 }
 function assertMatchingContainer(inspected, p, image, token) {
-  if (inspected?.Config?.Labels?.['dvaia.http.owner'] !== p.profile || inspected.Image !== image
+  if (inspected?.Config?.Labels?.['owasp-ai-goat.http.owner'] !== p.profile || inspected.Image !== image
       || !inspected.HostConfig.SecurityOpt.includes(`apparmor=${p.profile}`)
       || !inspected.HostConfig.SecurityOpt.includes('seccomp=unconfined')
       || inspected.Config.User !== '10001:10001'
@@ -48,7 +48,7 @@ async function provision({ root, home, platform, colimaProfile, ownedLabSession,
   const existing = config.load({ file: p.managedPath });
   if (existing && (existing.profile !== p.profile || existing.container !== p.container || existing.url !== `http://127.0.0.1:${p.port}`)) throw new Error('MCP_HTTP_INSTALL_CONFLICT');
   const rendered = renderOwnedHttpProfile(p.profile);
-  const temporary = p.platform === 'win32' ? null : await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-http-install-'));
+  const temporary = p.platform === 'win32' ? null : await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-http-install-'));
   try {
     const renderedSha256 = crypto.createHash('sha256').update(rendered).digest('hex');
     if (p.platform === 'win32') await ownedLabSession.installAndVerifyProfile({ name: p.profile, bytes: Buffer.from(rendered), sha256: renderedSha256 });
@@ -96,9 +96,9 @@ async function provision({ root, home, platform, colimaProfile, ownedLabSession,
         assertMatchingContainer(resumed, p, image, values.token);
       }
     } else {
-      await docker(['volume', 'create', '--label', `dvaia.http.owner=${p.profile}`, p.volume], 'http-volume');
+      await docker(['volume', 'create', '--label', `owasp-ai-goat.http.owner=${p.profile}`, p.volume], 'http-volume');
       const volume = JSON.parse(await docker(['volume', 'inspect', p.volume], 'http-volume-inspect'))[0];
-      if (volume?.Labels?.['dvaia.http.owner'] !== p.profile) throw new Error('MCP_HTTP_VOLUME_CONFLICT');
+      if (volume?.Labels?.['owasp-ai-goat.http.owner'] !== p.profile) throw new Error('MCP_HTTP_VOLUME_CONFLICT');
       await docker(['run', '--rm', '--network', 'none', '--user', '0:0', '--mount', `type=volume,source=${p.volume},target=/state`,
         '--entrypoint', 'sh', image, '-c', 'chown 10001:10001 /state && chmod 0700 /state'], 'http-state-owner');
       const envBytes = Buffer.from(`MCP_OWNED_HTTP_TOKEN=${values.token}\nMCP_OWNED_HTTP_ROOT=/state/targets\nMCP_OWNED_TARGET_APPARMOR_PROFILE=${p.profile}\n`);
@@ -109,7 +109,7 @@ async function provision({ root, home, platform, colimaProfile, ownedLabSession,
         envFile = path.join(temporary, 'service.env');
         await fs.writeFile(envFile, envBytes, { flag: 'wx', mode: 0o600 });
       }
-      await docker(['run', '--detach', '--name', p.container, '--label', `dvaia.http.owner=${p.profile}`,
+      await docker(['run', '--detach', '--name', p.container, '--label', `owasp-ai-goat.http.owner=${p.profile}`,
         '--user', '10001:10001', '--security-opt', `apparmor=${p.profile}`, '--security-opt', 'seccomp=unconfined',
         '--publish', `127.0.0.1:${p.port}:8091`, '--mount', `type=volume,source=${p.volume},target=/state`,
         '--env-file', envFile, '--entrypoint', 'node', image, '/app/owned-http/service.js'], 'http-start');

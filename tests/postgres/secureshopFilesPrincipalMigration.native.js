@@ -19,7 +19,7 @@ function url(role) {
   assert.equal(value.hostname, '127.0.0.1');
   assert.equal(value.username, `dvaia_identity_${role.toLowerCase()}`);
   assert.equal(value.password, ''); assert.equal(value.search, ''); assert.equal(value.hash, '');
-  assert.match(value.pathname, /^\/dvaia_test_persona_populated_[a-f0-9]{12}$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_persona_populated_[a-f0-9]{12}$/);
   return value.href;
 }
 
@@ -358,7 +358,7 @@ test('0151 retains unclassified principal-owner debt, denies base auth without e
       assert.equal(value.protocol, 'postgresql:'); assert.equal(value.hostname, '127.0.0.1');
       assert.equal(value.username, `dvaia_identity_${role.toLowerCase()}`);
       assert.equal(value.password, ''); assert.equal(value.search, ''); assert.equal(value.hash, '');
-      assert.match(value.pathname, /^\/dvaia_test_persona_unknown_[a-f0-9]{12}$/);
+      assert.match(value.pathname, /^\/owasp_ai_goat_test_persona_unknown_[a-f0-9]{12}$/);
       return value.href;
     };
     const migration = new Pool({ connectionString: ownedUrl('MIGRATION'), max: 2,

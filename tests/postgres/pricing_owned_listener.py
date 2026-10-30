@@ -31,7 +31,7 @@ class PricingOwnedListener:
   self.id=self.js("process.stdout.write(require('./scripts/application-data-root').workspaceId(process.cwd()))")
   self.qualification_mode=qualification_nonce is not None
   if qualification_nonce is not None and not re.fullmatch(r'[a-f0-9]{12}',qualification_nonce):raise ValueError('qualification nonce required')
-  self.qualification_nonce=qualification_nonce or self.id;self.owner=str(uuid.uuid4());self.name='dvaia-pricing-'+self.qualification_nonce;self.network=self.name+'-network';self.tag=self.name+':native';self.profile='dvaia-owned-pricing-http-'+self.qualification_nonce;self.remote='/tmp/'+self.profile
+  self.qualification_nonce=qualification_nonce or self.id;self.owner=str(uuid.uuid4());self.name='owasp-ai-goat-pricing-'+self.qualification_nonce;self.network=self.name+'-network';self.tag=self.name+':native';self.profile='owasp-ai-goat-owned-pricing-http-'+self.qualification_nonce;self.remote='/tmp/'+self.profile
   if not isinstance(ssh,list) or len(ssh)!=9 or ssh[0]!='/usr/bin/ssh' or ssh[-1]!='--':raise ValueError('Reviewed SSH admission required')
   self.ssh=list(ssh)
   self.state={'container':self.name,'network':self.network,'imageTag':self.tag,'profile':self.profile,'owner':self.owner,'qualificationNonce':self.qualification_nonce,'workspaceId':self.id,'cleanup':{},'outerEgressIsolationEstablished':False}
@@ -61,7 +61,7 @@ class PricingOwnedListener:
   self.remote_run(['tee',self.remote+'/owner'],input=self.owner+'\n');self.remote_run(['tee',self.remote+'/policy'],input=self.rendered)
   self.remote_run(['sudo','apparmor_parser','--skip-kernel-load',self.remote+'/policy']);self.profile_attempted=True;self.save();self.remote_run(['sudo','apparmor_parser','-r',self.remote+'/policy'])
   if sorted(self.profile_rows())!=sorted([self.profile+' (enforce)',self.profile+'//bwrap (enforce)']):raise RuntimeError('profile not enforcing')
-  labels={'dvaia.pricing.owner':self.owner,'dvaia.pricing.workspace':self.id,'dvaia.pricing.package':package['sha256']};label_args=sum((['--label',k+'='+v] for k,v in labels.items()),[])
+  labels={'owasp-ai-goat.pricing.owner':self.owner,'owasp-ai-goat.pricing.workspace':self.id,'owasp-ai-goat.pricing.package':package['sha256']};label_args=sum((['--label',k+'='+v] for k,v in labels.items()),[])
   self.image_attempted=True;self.save()
   context=closed_package_context(self.workspace,package)
   with (self.evidence/'pricing-build.log').open('w') as log:subprocess.run(self.docker+['build','--pull=false','--network=default',*label_args,'-f','sidecars/sandbox-runner/owned-pricing-http/Dockerfile.local','-t',self.tag,'-'],input=context,check=True,stdout=log,stderr=subprocess.STDOUT,env=self.env,timeout=300)
@@ -91,7 +91,7 @@ class PricingOwnedListener:
    except OSError:time.sleep(.1)
   else:raise RuntimeError('listener did not become reachable')
   authority={'version':1,'workspaceId':self.id,'host':self.docker[2],'daemonId':json.loads(self.run(self.docker+['info','--format','{{json .ID}}']).stdout),'source':'environment-host'}
-  directory=self.home/'.dvaia'/self.id;directory.mkdir(parents=True,mode=0o700)
+  directory=self.home/'.owasp-ai-goat'/self.id;directory.mkdir(parents=True,mode=0o700)
   authfile=directory/'local-docker.json';authfile.write_text(json.dumps(authority));authfile.chmod(0o600)
   authority_sha=self.js("process.stdout.write(require('./scripts/local-docker-authority').authorityDigest(JSON.parse(require('node:fs').readFileSync(process.argv[1]))))",str(authfile))
   record={'version':1,'enabled':True,'workspaceId':self.id,'ownerId':self.owner,'dockerAuthoritySha256':authority_sha,'containerName':self.name,'containerId':container['Id'],'imageId':image['Id'],'packageSha256':package['sha256'],'profile':self.profile,'port':self.state['port'],'token':token}
@@ -111,7 +111,7 @@ class PricingOwnedListener:
   try:
    if self.container_attempted and not self.absent():
     c=self.inspect('inspect',self.name)
-    if c['Config']['Labels'].get('dvaia.pricing.owner')!=self.owner or c['Image']!=self.state.get('imageId') or self.state.get('containerId',c['Id'])!=c['Id']:raise RuntimeError('foreign container')
+    if c['Config']['Labels'].get('owasp-ai-goat.pricing.owner')!=self.owner or c['Image']!=self.state.get('imageId') or self.state.get('containerId',c['Id'])!=c['Id']:raise RuntimeError('foreign container')
     self.run(self.docker+['stop','--time','20',self.name],timeout=25);self.run(self.docker+['rm','-v',self.name])
    clean['containerAbsent']=self.absent()
   except Exception as e:errors.append('container:'+type(e).__name__)
@@ -120,14 +120,14 @@ class PricingOwnedListener:
     rows=self.run(self.docker+['network','ls','--filter','name=^'+self.network+'$','--format','{{.ID}}']).stdout.strip()
     if rows:
      n=self.inspect('network','inspect',self.network)
-     if n['Labels'].get('dvaia.pricing.owner')!=self.owner or n['Containers'] or self.state.get('networkId',n['Id'])!=n['Id']:raise RuntimeError('foreign network')
+     if n['Labels'].get('owasp-ai-goat.pricing.owner')!=self.owner or n['Containers'] or self.state.get('networkId',n['Id'])!=n['Id']:raise RuntimeError('foreign network')
      self.run(self.docker+['network','rm',self.network])
    clean['networkAbsent']=not self.run(self.docker+['network','ls','--filter','name=^'+self.network+'$','--format','{{.ID}}']).stdout.strip()
   except Exception as e:errors.append('network:'+type(e).__name__)
   try:
    if self.image_attempted and self.run(self.docker+['images','-q',self.tag]).stdout.strip():
     i=self.inspect('image','inspect',self.tag)
-    if i['Config']['Labels'].get('dvaia.pricing.owner')!=self.owner or self.state.get('imageId',i['Id'])!=i['Id']:raise RuntimeError('foreign image')
+    if i['Config']['Labels'].get('owasp-ai-goat.pricing.owner')!=self.owner or self.state.get('imageId',i['Id'])!=i['Id']:raise RuntimeError('foreign image')
     self.run(self.docker+['image','rm',self.tag])
    clean['imageAbsent']=not self.run(self.docker+['images','-q',self.tag]).stdout.strip() and (not self.state.get('imageId') or inspected_absent(subprocess.run(self.docker+['image','inspect',self.state['imageId']],env=self.env,capture_output=True,text=True,timeout=self.remaining(20)),'image',self.state['imageId']))
   except Exception as e:errors.append('image:'+type(e).__name__)
@@ -144,7 +144,7 @@ class PricingOwnedListener:
   try:
    st=self.home.lstat()
    if self.home.is_symlink() or (st.st_dev,st.st_ino)!=self.home_identity:raise RuntimeError('private home identity')
-   directory=self.home/'.dvaia'/self.id
+   directory=self.home/'.owasp-ai-goat'/self.id
    if directory.exists():
     if directory.is_symlink() or set(x.name for x in directory.iterdir())-{'local-docker.json','pricing-managed.json','pricing-listener-descriptor.json'}:raise RuntimeError('private directory inventory')
     for name in ['local-docker.json','pricing-managed.json','pricing-listener-descriptor.json']:
@@ -153,7 +153,7 @@ class PricingOwnedListener:
       if file.is_symlink() or not file.is_file():raise RuntimeError('private file identity')
       file.unlink()
     directory.rmdir()
-   if (self.home/'.dvaia').exists():(self.home/'.dvaia').rmdir()
+   if (self.home/'.owasp-ai-goat').exists():(self.home/'.owasp-ai-goat').rmdir()
    self.home.rmdir();clean['privateHomeAbsent']=not self.home.exists()
   except Exception as e:errors.append('private-home:'+type(e).__name__)
   clean['errors']=errors;self.save();return not errors and all(clean.get(k) for k in ['containerAbsent','networkAbsent','imageAbsent','profileAbsent','remoteAbsent','privateHomeAbsent'])

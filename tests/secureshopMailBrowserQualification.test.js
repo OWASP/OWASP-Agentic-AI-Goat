@@ -12,9 +12,9 @@ function adapterFixture(change=()=>{}){
 }
 test('pinned client artifact mounts through trusted script and data argument, never caller markup renderer',async()=>{const f=adapterFixture(),adapter=f.api.createSecureShopMailBrowserQualification();const result=await adapter.qualifyMail({html:'<b>owned message</b>',messageId:4});assert.equal(result.component.id,'SecureShop.MailMessageBody');assert.equal(result.executed,false);await assert.rejects(adapter.qualifyMail({html:'x',messageId:4,renderer:'forged'}));await assert.rejects(adapter.qualifyMail({html:'x'.repeat(20001),messageId:4}));const controller=new AbortController();controller.abort();await assert.rejects(adapter.qualifyMail({html:'x',messageId:4,signal:controller.signal}));});
 // Native DOM qualification is opt-in; the remaining tests use controlled adapters.
-// DVAIA_VERIFY_MAIL_RENDERER=1 node --test --test-name-pattern='production mail renderer structurally' tests/secureshopMailBrowserQualification.test.js
+// OWASP_AI_GOAT_VERIFY_MAIL_RENDERER=1 node --test --test-name-pattern='production mail renderer structurally' tests/secureshopMailBrowserQualification.test.js
 test('production mail renderer structurally mounts mixed prose raw HTML and rejects escaped markup', {
- skip: process.env.DVAIA_VERIFY_MAIL_RENDERER !== '1' ? 'Native Chrome/renderer qualification requires DVAIA_VERIFY_MAIL_RENDERER=1 outside the unit sandbox' : false,
+ skip: process.env.OWASP_AI_GOAT_VERIFY_MAIL_RENDERER !== '1' ? 'Native Chrome/renderer qualification requires OWASP_AI_GOAT_VERIFY_MAIL_RENDERER=1 outside the unit sandbox' : false,
  timeout: 30000 }, async t=>{
  const adapter=createSecureShopMailBrowserQualificationForTest();t.after(()=>adapter.close());
  const learner='A normal merchant greeting.\n\n<iframe title="V09 structural marker"></iframe>';

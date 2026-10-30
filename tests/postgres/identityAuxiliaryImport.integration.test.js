@@ -27,7 +27,7 @@ function fixture() {
 
 test('auxiliary identity rows apply atomically, preserve provenance and restart native sequences', { skip: !enabled }, async () => {
   for (const key of ['PG_IDENTITY_AUXILIARY_TEST_MIGRATION_URL', 'PG_IDENTITY_AUXILIARY_TEST_RUNTIME_URL']) {
-    assert.match(new URL(process.env[key]).pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(new URL(process.env[key]).pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   const migration = createPool(process.env, 'PG_IDENTITY_AUXILIARY_TEST_MIGRATION_URL');
   const runtime = createPool(process.env, 'PG_IDENTITY_AUXILIARY_TEST_RUNTIME_URL');

@@ -12,14 +12,14 @@ async function main(){
  const {secret,...base}=boot,identity={...base,peerUid:10001,peerPid:1};
  const channel=await openPrivateChannel({identity,secret:Buffer.from(secret,'hex')});
  // No manager access precedes verified kernel peer and inherited flock.
- const config=JSON.parse(privateFile('/run/secrets/dvaia-invocation.json',4096));
+ const config=JSON.parse(privateFile('/run/secrets/owasp-ai-goat-invocation.json',4096));
  if(Object.keys(config).sort().join()!==['keyId','keySha256','managerInstanceId','runtimeSha256','volumeId',...(Object.hasOwn(config,'qualificationEpochProbe')?['qualificationEpochProbe']:[])].sort().join()||Object.hasOwn(config,'qualificationEpochProbe')&&config.qualificationEpochProbe!==true||['managerInstanceId','runtimeSha256','volumeId'].some(k=>config[k]!==base[k]))throw Error('Private identity mismatch');
  if(config.qualificationEpochProbe===true){if(await channel.qualificationEpochProbe()!==true)throw Error('Epoch qualification denied');process.stdout.write('INVOCATION_QUALIFICATION_EPOCH_REJECTED\n');}
- const key=privateFile('/var/lib/dvaia-invocation/signing.key',32);if(key.length!==32||crypto.createHash('sha256').update(key).digest('hex')!==config.keySha256)throw Error('Signing key mismatch');
- const token=privateFile('/run/secrets/dvaia-invocation.token',128).toString('ascii');
+ const key=privateFile('/var/lib/owasp-ai-goat-invocation/signing.key',32);if(key.length!==32||crypto.createHash('sha256').update(key).digest('hex')!==config.keySha256)throw Error('Signing key mismatch');
+ const token=privateFile('/run/secrets/owasp-ai-goat-invocation.token',128).toString('ascii');
  const assets=require('./invocation-build-assets').verify();if(assets.runtimeSha256!==base.runtimeSha256)throw Error('Invocation runtime mismatch');
  const supervisor=createInvocationSupervisorChannel({identity,channel:channel.channel});
- const manager=createInvocationManager({stateRoot:'/var/lib/dvaia-invocation',managerInstanceId:base.managerInstanceId,runtimeSha256:base.runtimeSha256,supervisor,stateLease:channel.lease,assets:{'synthetic-catalog-read':{authorize:q=>q.assetId==='synthetic-catalog-read'}},initialize:false});
+ const manager=createInvocationManager({stateRoot:'/var/lib/owasp-ai-goat-invocation',managerInstanceId:base.managerInstanceId,runtimeSha256:base.runtimeSha256,supervisor,stateLease:channel.lease,assets:{'synthetic-catalog-read':{authorize:q=>q.assetId==='synthetic-catalog-read'}},initialize:false});
  // Reconnecting listener may observe a still-running containment. Status is
  // nonmutating; retry only readiness readback, never start/claim, for12seconds.
  const readyUntil=Date.now()+12000;for(;;){try{await manager.ready();break;}catch(error){if(Date.now()>=readyUntil)throw error;await new Promise(resolve=>setTimeout(resolve,250));}}

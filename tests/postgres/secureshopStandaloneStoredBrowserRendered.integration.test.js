@@ -40,7 +40,7 @@ function disposableStoreUrls() {
     for (const role of ['MIGRATION', 'RUNTIME']) {
       const key = `${store}_${role}`;
       const url = disposableUrl(key);
-      const match = new RegExp(`^/dvaia_test_agent_host_([0-9a-f]{12})_${name}$`).exec(url.pathname);
+      const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([0-9a-f]{12})_${name}$`).exec(url.pathname);
       assert.ok(match, `closed disposable database name required for ${key}`);
       assert.equal(url.username, `dvaia_${name}_${role.toLowerCase()}`);
       nonce ??= match[1]; port ??= url.port;
@@ -99,7 +99,7 @@ async function submitReview(frame, body) {
 
 test('standalone customer earns C29 only from the rendered ReviewCard, browser effect, and actual Judge',
   { skip: !ENABLED, timeout: 300000 }, async t => {
-    const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
+    const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/');
     assert.equal(workspace, process.cwd(), 'qualification must use the current checkout without a source copy');
     const receiptPath = process.env.SECURESHOP_STANDALONE_BROWSER_EVIDENCE_PATH || '';
     assert.ok(path.isAbsolute(receiptPath));
@@ -279,7 +279,7 @@ test('standalone customer earns C29 only from the rendered ReviewCard, browser e
       app.use(express.static(build, { setHeaders: response => response.set('Access-Control-Allow-Origin', '*') }));
       app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
 
-      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-standalone-browser-'));
+      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-standalone-browser-'));
       uiBrowser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
         executablePath });
       const page = await uiBrowser.newPage();
@@ -324,7 +324,7 @@ test('standalone customer earns C29 only from the rendered ReviewCard, browser e
       const requestId = browserAttempts[0];
       assert.match(requestId, /^[0-9a-f-]{36}$/i);
       const cookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.equal(cookie?.httpOnly, true);
       const base = await auth.authenticate(cookie.value);
       const customer = await auth.establishTenantContext(base);
@@ -504,7 +504,7 @@ test('standalone customer earns C29 only from the rendered ReviewCard, browser e
       await page.click('button[type="submit"]');
       await stableFrame(page);
       const adminCookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.equal(adminCookie?.httpOnly, true);
       const adminUiBase = await auth.authenticate(adminCookie.value);
       const adminUiExecution = await auth.establishTenantContext(adminUiBase);
@@ -560,7 +560,7 @@ test('standalone customer earns C29 only from the rendered ReviewCard, browser e
 
       await stableFrame(page);
       const activeCookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.equal(activeCookie?.httpOnly, true);
       const activeBase = await auth.authenticate(activeCookie.value);
       const activeReady = await bootstrap(activeBase);
@@ -603,7 +603,7 @@ test('standalone customer earns C29 only from the rendered ReviewCard, browser e
         'operation_id=$1', [pendingReset.resetId]) >= 2, true);
       await stableFrame(page);
       const recoveredCookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.equal(recoveredCookie?.httpOnly, true);
       const recoveredBase = await auth.authenticate(recoveredCookie.value);
       const recoveredLaunch = await bootstrap(recoveredBase);

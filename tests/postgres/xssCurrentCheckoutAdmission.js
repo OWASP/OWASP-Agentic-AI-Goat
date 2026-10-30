@@ -23,17 +23,17 @@ function privateOwned(target, kind) {
 }
 
 function verifyCurrentCheckout({ keys, cohort }) {
-  if (process.env.DVAIA_XSS_CURRENT_CHECKOUT !== 'yes') return null;
+  if (process.env.OWASP_AI_GOAT_XSS_CURRENT_CHECKOUT !== 'yes') return null;
   assert.ok(Array.isArray(keys) && keys.length >= 4);
   assert.match(cohort, /^(?:route|builder|email|reflected|stored_user|stored_llm)$/);
 
-  const workspace = fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  const workspace = fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   assert.equal(fs.realpathSync(process.cwd()), workspace);
   const sourceRoot = fs.realpathSync(path.resolve(__dirname, '../..'));
   assert.equal(workspace, sourceRoot, 'current-checkout launcher must run the canonical test source root');
   const workspaceStat = fs.statSync(workspace);
 
-  const receiptPath = process.env.DVAIA_XSS_CURRENT_CHECKOUT_RECEIPT;
+  const receiptPath = process.env.OWASP_AI_GOAT_XSS_CURRENT_CHECKOUT_RECEIPT;
   assert.ok(receiptPath && path.isAbsolute(receiptPath), 'absolute current-checkout receipt is required');
   const receiptLink = privateOwned(receiptPath, 'current-checkout receipt');
   assert.equal(receiptLink.isFile(), true, 'current-checkout receipt must be a file');
@@ -41,7 +41,7 @@ function verifyCurrentCheckout({ keys, cohort }) {
   privateOwned(path.dirname(receiptPath), 'current-checkout receipt directory');
   const receiptBytes = fs.readFileSync(receiptPath);
   assert.equal(crypto.createHash('sha256').update(receiptBytes).digest('hex'),
-    process.env.DVAIA_XSS_CURRENT_CHECKOUT_RECEIPT_SHA256);
+    process.env.OWASP_AI_GOAT_XSS_CURRENT_CHECKOUT_RECEIPT_SHA256);
   const receipt = JSON.parse(receiptBytes);
   assert.deepEqual(Object.keys(receipt).sort(), [
     'cohort', 'databasePort', 'mailpitApiPort', 'mailpitSmtpPort', 'runNonce', 'runtimeRoot',
@@ -55,7 +55,7 @@ function verifyCurrentCheckout({ keys, cohort }) {
   assert.match(receipt.sourceDigest, /^[a-f0-9]{64}$/);
   assert.match(receipt.runNonce, /^[a-f0-9]{32}$/);
 
-  const runtimeRoot = fs.realpathSync(process.env.DVAIA_XSS_RENDERED_RUNTIME_ROOT);
+  const runtimeRoot = fs.realpathSync(process.env.OWASP_AI_GOAT_XSS_RENDERED_RUNTIME_ROOT);
   assert.equal(receipt.runtimeRoot, runtimeRoot);
   privateOwned(runtimeRoot, 'rendered runtime root');
   assert.notEqual(runtimeRoot, workspace);
@@ -71,7 +71,7 @@ function verifyCurrentCheckout({ keys, cohort }) {
     assert.equal(url.username, USERNAMES[key]);
     assert.equal(Number(url.port), receipt.databasePort);
     assert.notEqual(url.port, '5432');
-    assert.match(url.pathname, /^\/dvaia_test_xss_email_route_(?:identity|xss|ctf)$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_xss_email_route_(?:identity|xss|ctf)$/);
     parsed.set(key, url);
   }
   assert.notEqual(parsed.get(keys[0]).pathname, parsed.get(keys[2]).pathname);

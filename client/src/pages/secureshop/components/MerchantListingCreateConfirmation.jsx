@@ -167,6 +167,6 @@ export default function MerchantListingCreateConfirmation({ proposal, sessionId,
     {assessment?.judgment?.verdict === 'unavailable' && assessment.judgment.canRetry === true
       && (isStandaloneShopFrame() ? <button className="ss-btn ss-btn--ghost" type="button"
         onClick={() => openStandaloneAssessments(assessment.judgment.evaluationId)}>Open saved assessments</button>
-        : <p role="status">A saved assessment is available in the SecureShop assessments panel.</p>)}
+        : <p role="status">A saved assessment is available in the OWASP AI SecureShop assessments panel.</p>)}
   </section>;
 }

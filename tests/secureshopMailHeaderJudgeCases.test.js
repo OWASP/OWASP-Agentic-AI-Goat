@@ -1,8 +1,8 @@
 'use strict';
-if(process.env.DVAIA_RETAINED_EVIDENCE_TESTS!=='1')throw Error('Retained-evidence qualification requires DVAIA_RETAINED_EVIDENCE_TESTS=1 and its original local artifacts; this is not a portable unit suite.');
+if(process.env.OWASP_AI_GOAT_RETAINED_EVIDENCE_TESTS!=='1')throw Error('Retained-evidence qualification requires OWASP_AI_GOAT_RETAINED_EVIDENCE_TESTS=1 and its original local artifacts; this is not a portable unit suite.');
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {buildCases,evaluateCases}=require('./postgres/secureshopMailHeaderJudgeCases');
-const reportPath=process.env.DVAIA_RETAINED_MAIL_HEADER_REPORT,candidatePath=process.env.DVAIA_RETAINED_MAIL_HEADER_CANDIDATE;
+const reportPath=process.env.OWASP_AI_GOAT_RETAINED_MAIL_HEADER_REPORT,candidatePath=process.env.OWASP_AI_GOAT_RETAINED_MAIL_HEADER_CANDIDATE;
 if(!reportPath||!candidatePath||!path.isAbsolute(reportPath)||!path.isAbsolute(candidatePath))throw Error('Absolute retained mail header report and candidate paths are required');
 const reportBytes=fs.readFileSync(reportPath);
 assert.equal(require('node:crypto').createHash('sha256').update(reportBytes).digest('hex'),'d9513e9610fa7e5d452c72d39c4fc6437a73ac72fea5deefa79b7676d391dcd7');

@@ -47,7 +47,7 @@ for(const [name,runRetry,port] of [['HTTP',runOwnedHttpRetryCli,8093],['shadow',
 
 test('Windows runner bridge preserves the admitted Compose build timeout in opaque Docker calls',async()=>{
  const calls=[],sha='a'.repeat(64),bindingSha256='b'.repeat(64);
- const plan={profile:'dvaia-mcp-sandbox',destination:'/etc/apparmor.d/dvaia-mcp-sandbox',
+ const plan={profile:'owasp-ai-goat-mcp-sandbox',destination:'/etc/apparmor.d/owasp-ai-goat-mcp-sandbox',
   sessionBinding:{workspaceId:'c'.repeat(12),bindingSha256}};
  const session={
   installAndVerifyProfile:async()=>({name:plan.profile,sha256:sha,destination:plan.destination,bindingSha256}),
@@ -60,6 +60,6 @@ test('Windows runner bridge preserves the admitted Compose build timeout in opaq
  await bridge('docker',['--host',null,'inspect','container'],{timeoutMs:30000});
  assert.equal(calls[0].options.timeoutMs,600000);
  assert.equal(calls[1].options.timeoutMs,30000);
- assert.deepEqual(calls[0].args.slice(0,6),['compose','--project-name','dvaia-'+plan.sessionBinding.workspaceId,'--env-file','/guest/env','--profile']);
+ assert.deepEqual(calls[0].args.slice(0,6),['compose','--project-name','owasp-ai-goat-'+plan.sessionBinding.workspaceId,'--env-file','/guest/env','--profile']);
  assert.equal(calls.every(call=>call.options.bundlePath==='/guest/bundle'),true);
 });

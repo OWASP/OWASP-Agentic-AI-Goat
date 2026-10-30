@@ -1,7 +1,7 @@
 'use strict';
 const{test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),http=require('node:http');
 const{createController,requestStop,ownedShutdown}=require('../scripts/launcher-control');
-function fixture(){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-controller-'));return{dir,stateFile:path.join(dir,'state.json'),clean(){fs.rmSync(dir,{recursive:true,force:true});}};}
+function fixture(){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-controller-'));return{dir,stateFile:path.join(dir,'state.json'),clean(){fs.rmSync(dir,{recursive:true,force:true});}};}
 function writeState(stateFile,state){fs.writeFileSync(stateFile,JSON.stringify(state)+'\n',{mode:0o600});}
 const deadPid=99999999;
 test('private authenticated controller stops only its owner and refuses double launch',async()=>{

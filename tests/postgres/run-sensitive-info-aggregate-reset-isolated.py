@@ -20,21 +20,21 @@ parser.add_argument('--grant-file', required=True)
 parser.add_argument('--grant-id', required=True)
 parser.add_argument('--http-only', action='store_true')
 args = parser.parse_args()
-expected_docker_host = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+expected_docker_host = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 if args.docker_host != expected_docker_host:
     raise SystemExit('the reviewed isolated PostgreSQL Docker daemon is required')
 
 source = Path(__file__).resolve().parents[2]
 grant_path = Path(args.grant_file).resolve()
-evidence = Path(tempfile.mkdtemp(prefix='dvaia-sensitive-info-reset-'))
+evidence = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-sensitive-info-reset-'))
 workspace = evidence / 'source'
 workspace.mkdir()
 os.chmod(evidence, 0o700)
-node_bin = Path('/Users/averma5/.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin')
+node_bin = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin')
 base_env = {key: os.environ[key] for key in ('PATH', 'HOME', 'TMPDIR') if key in os.environ}
 base_env['PATH'] = f'{node_bin}:{base_env.get("PATH", "")}'
 docker = ['docker', '--host', args.docker_host]
-container = f'dvaia-sensitive-info-reset-{uuid.uuid4().hex[:12]}'
+container = f'owasp-ai-goat-sensitive-info-reset-{uuid.uuid4().hex[:12]}'
 ownership_path = evidence / 'ownership.json'
 result_path = evidence / 'result.log'
 state = {
@@ -182,14 +182,14 @@ try:
     databases = []
     for variant in ('fresh', 'populated'):
         for store, owner in (('identity', 'dvaia_identity_migration'), ('finflow', 'dvaia_finflow_migration')):
-            name = f'dvaia_sensitive_reset_{variant}_{store}'
+            name = f'owasp_ai_goat_sensitive_reset_{variant}_{store}'
             databases.append((variant, store, name, owner))
             run(psql + ['-c', f'CREATE DATABASE {name} OWNER {owner}'])
             runtime = f'dvaia_{store}_runtime'
             run(psql + ['-c', f'REVOKE CONNECT ON DATABASE {name} FROM PUBLIC; GRANT CONNECT ON DATABASE {name} TO {owner},{runtime}'])
 
     env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes', AWS_EC2_METADATA_DISABLED='true',
-               DVAIA_ISOLATED_TEST_WORKSPACE=str(evidence))
+               OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(evidence))
     for variant, store, name, _owner in databases:
         upper = variant.upper(); store_upper = store.upper()
         for role_kind, role in (('MIGRATION', f'dvaia_{store}_migration'), ('RUNTIME', f'dvaia_{store}_runtime')):

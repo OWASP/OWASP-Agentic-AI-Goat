@@ -11,7 +11,7 @@ if (process.env.PG_TEST_DISPOSABLE !== 'yes' || process.env.FINFLOW_TRAVERSAL_IS
 
 const pool = new Pool({ connectionString: process.env.FINFLOW_WORKSHOP_DATABASE_URL, max: 1,
   connectionTimeoutMillis: 5000, statement_timeout: 30000, lock_timeout: 5000,
-  application_name: 'dvaia-finflow-traversal-worker' });
+  application_name: 'owasp-ai-goat-finflow-traversal-worker' });
 const repository = createFinflowTraversalTargetRepository({ pool });
 const manager = createFinflowTraversalManager({ repository,
   root: path.resolve(process.env.FINFLOW_TRAVERSAL_TARGET_ROOT) });

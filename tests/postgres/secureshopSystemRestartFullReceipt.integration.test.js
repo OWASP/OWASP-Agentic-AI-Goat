@@ -16,7 +16,7 @@ function prefixMigrate(){const filename=require.resolve('../../db/postgres/migra
  const loaded=new Module(filename,module);loaded.filename=filename;loaded.require=n=>n==='node:fs/promises'?visible:local(n);loaded._compile(fs.readFileSync(filename,'utf8'),filename);return loaded.exports.migrate;}
 async function open(store,t){const urls=['MIGRATION','RUNTIME'].map(role=>{const u=new URL(process.env[`${PREFIX}${store}_${role}_URL`]);
  assert.equal(u.protocol,'postgresql:');assert.equal(u.hostname,'127.0.0.1');assert.equal(u.username,`dvaia_secureshop_review_${role.toLowerCase()}`);
- assert.equal(u.password,'');assert.equal(u.search,'');assert.equal(u.hash,'');assert.match(u.pathname,new RegExp(`^/dvaia_test_persona_${store.toLowerCase()}_[a-f0-9]{12}$`));assert.ok(Number(u.port)>0&&Number(u.port)<=65535);return u;});
+ assert.equal(u.password,'');assert.equal(u.search,'');assert.equal(u.hash,'');assert.match(u.pathname,new RegExp(`^/owasp_ai_goat_test_persona_${store.toLowerCase()}_[a-f0-9]{12}$`));assert.ok(Number(u.port)>0&&Number(u.port)<=65535);return u;});
  const peer=new URL(process.env[`${PREFIX}${store==='FRESH'?'POPULATED':'FRESH'}_MIGRATION_URL`]);
  assert.equal(urls[0].host,urls[1].host);assert.equal(urls[0].pathname,urls[1].pathname);assert.equal(urls[0].host,peer.host);assert.notEqual(urls[0].pathname,peer.pathname);
  assert.equal(urls[0].pathname.split('_').at(-1),peer.pathname.split('_').at(-1));

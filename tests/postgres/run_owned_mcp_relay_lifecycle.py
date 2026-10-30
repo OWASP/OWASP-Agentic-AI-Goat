@@ -93,7 +93,7 @@ def make_plan(run_id, runner, phase='lifecycle'):
     if (plan['kind'] != ('private-relay-real-transport' if phase == 'transport' else 'private-relay-lifecycle-only') or plan['runId'] != run_id
             or plan['storageCapBytes'] != 16777216 or set(plan['commands']) != (TRANSPORT_OPERATIONS if phase == 'transport' else OPERATIONS)
             or plan['acquisitionApproved'] is not False or plan['executionApproved'] is not False
-            or plan['guest'] != '/var/tmp/dvaia-v23-build-' + run_id):
+            or plan['guest'] != '/var/tmp/owasp-ai-goat-v23-build-' + run_id):
         raise RuntimeError('LIFECYCLE_PLAN_SHAPE')
     sources.update({str(Path(__file__).relative_to(ROOT)): sha(Path(__file__)),
         'tests/postgres/probe_owned_mcp_relay_guest.py': PROBE_SHA,

@@ -4,8 +4,8 @@ const {spawn,spawnSync}=require('node:child_process');
 const {isDeepStrictEqual:equal}=require('node:util');
 const C=require('./upload-preview-contract');
 const {RUNTIME_ROOT,verifyRuntimeManifest}=require('./upload-preview-dependencies');
-const INIT='/usr/local/libexec/dvaia-upload-preview-init',SUPERVISOR='/usr/local/libexec/dvaia-system-config-supervisor';
-const ROOT='/var/lib/dvaia-owned-upload-preview';
+const INIT='/usr/local/libexec/owasp-ai-goat-upload-preview-init',SUPERVISOR='/usr/local/libexec/owasp-ai-goat-system-config-supervisor';
+const ROOT='/var/lib/owasp-ai-goat-owned-upload-preview';
 const ATTESTATION=Buffer.from('upload-preview-init-v1 uid=10001 gid=10001 caps=zero bounding=zero ambient=zero nnp=1\n');
 const fail=code=>Object.assign(Error('Owned upload preview unavailable'),{code});
 function buildPreviewArgv({marker,mounts=['/usr','/bin','/lib','/lib64'],canaryPath,effectDirectory,probe=false}){
@@ -14,8 +14,8 @@ function buildPreviewArgv({marker,mounts=['/usr','/bin','/lib','/lib64'],canaryP
   '--die-with-parent','--new-session','--clearenv',...mounts.flatMap(file=>['--ro-bind',file,file]),
   '--tmpfs','/usr/local/libexec','--ro-bind',INIT,INIT,'--dev','/dev','--dir','/proc','--tmpfs','/tmp','--tmpfs','/work','--chdir','/work',
   '--tmpfs','/preview','--dir','/opt','--dir','/opt/upload-preview',
-  '--ro-bind','/opt/dvaia-owned-system/upload-preview-worker.js','/opt/upload-preview/upload-preview-worker.js',
-  '--ro-bind','/opt/dvaia-owned-system/upload-preview-contract.js','/opt/upload-preview/upload-preview-contract.js',
+  '--ro-bind','/opt/owasp-ai-goat-owned-system/upload-preview-worker.js','/opt/upload-preview/upload-preview-worker.js',
+  '--ro-bind','/opt/owasp-ai-goat-owned-system/upload-preview-contract.js','/opt/upload-preview/upload-preview-contract.js',
   '--ro-bind',path.join(RUNTIME_ROOT,'node_modules'),'/opt/upload-preview/node_modules'];
  if(!probe){
   if(!path.isAbsolute(canaryPath||'')||!path.isAbsolute(effectDirectory||''))throw fail('UPLOAD_PREVIEW_TARGET_INVALID');

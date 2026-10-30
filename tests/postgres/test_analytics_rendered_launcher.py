@@ -6,7 +6,7 @@ spec=importlib.util.spec_from_file_location('analytics_launcher',p);m=importlib.
 with patch('subprocess.run',side_effect=AssertionError('import command')),patch('tempfile.mkdtemp',side_effect=AssertionError('import mutation')):spec.loader.exec_module(m)
 class Controls(unittest.TestCase):
  def test_merchant_count_answer_accepts_observed_scalar_and_rejects_wrong_answers(self):
-  node='/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node'
+  node='/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node'
   helper=p.parents[1]/'fixtures/secureshopAnalyticsRenderedBrowser.js'
   script="""const assert=require('node:assert/strict');const {answersObservedCount}=require(process.argv[1]);
 for(const answer of ['256',' 256 ','There are 256 products.'])assert.equal(answersObservedCount(answer,'256','products'),true);
@@ -27,7 +27,7 @@ assert.equal(answersObservedCount('2','2','orders'),true);assert.equal(answersOb
     if isinstance(node,ast.Assign) and any(isinstance(target,ast.Name) and target.id=='SOURCE' for target in node.targets):
      node.value=ast.Call(func=ast.Name(id='Path',ctx=ast.Load()),args=[ast.Constant(str(root))],keywords=[])
    ast.fix_missing_locations(tree)
-   argv=[str(launcher),'--docker-host','unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock','--merchant-history-browser','--main-source','--plan',
+   argv=[str(launcher),'--docker-host','unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock','--merchant-history-browser','--main-source','--plan',
     '--node',str(binary),'--node-sha256',pin,'--browser',str(binary),'--browser-sha256',pin,'--browser-root',str(browser),
     '--build',str(build),'--build-sha256',digest,'--ollama-model-sha256','46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e']
    output=io.StringIO()
@@ -40,7 +40,7 @@ assert.equal(answersObservedCount('2','2','orders'),true);assert.equal(answersOb
    self.assertEqual(plan['actorBudget'],[4,12]);self.assertEqual(plan['queryPosts'],2)
  def test_merchant_history_missing_pins_denied_before_allocation(self):
   launcher=p.with_name('run-analytics-actual8b-isolated.py')
-  result=subprocess.run([sys.executable,str(launcher),'--docker-host','unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock',
+  result=subprocess.run([sys.executable,str(launcher),'--docker-host','unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock',
    '--merchant-history-browser','--main-source','--plan'],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,timeout=5,
    env={'PATH':'/usr/bin:/bin','PYTHONDONTWRITEBYTECODE':'1'})
   self.assertNotEqual(result.returncode,0);self.assertIn('Pinned executable required',result.stderr)

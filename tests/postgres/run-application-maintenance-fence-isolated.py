@@ -9,10 +9,10 @@ CASES=('clean','partial','ddl','checksum','work','signal','disconnect','abrupt',
 V2_CASES=('fresh','clean','dirty','rollback')
 def selection(v2=False,v3=False,v4=False,v5=False):
     if any(type(v) is not bool for v in (v2,v3,v4,v5)) or sum((v2,v3,v4,v5))>1:raise ValueError('Closed selector required')
-    if v5:return {'cases':('fresh','populated','concurrency'),'cohort':'application-maintenance-v5','prefix':'dvaia_test_maintenance_v5_','key':'PG_MAINTENANCE_V5_','gate':'APPLICATION_MAINTENANCE_V5_ISOLATED','evidence':'MAINTENANCE_V5_EVIDENCE','fixture':'tests/postgres/applicationMaintenanceV5.integration.test.js'}
-    if v4:return {'cases':('fresh','populated','concurrency'),'cohort':'application-maintenance-v4','prefix':'dvaia_test_maintenance_v4_','key':'PG_MAINTENANCE_V4_','gate':'APPLICATION_MAINTENANCE_V4_ISOLATED','evidence':'MAINTENANCE_V4_EVIDENCE','fixture':'tests/postgres/applicationMaintenanceV4.integration.test.js'}
-    if v3:return {'cases':('fresh','populated','rollback'),'cohort':'application-maintenance-v3','prefix':'dvaia_test_maintenance_v3_','key':'PG_MAINTENANCE_V3_','gate':'APPLICATION_MAINTENANCE_V3_ISOLATED','evidence':'MAINTENANCE_V3_EVIDENCE','fixture':'tests/postgres/applicationMaintenanceV3.integration.test.js'}
-    return {'cases':V2_CASES if v2 else CASES,'cohort':'application-maintenance-v2' if v2 else 'application-maintenance-fence','prefix':'dvaia_test_maintenance_v2_' if v2 else 'dvaia_test_fence_','key':'PG_MAINTENANCE_V2_' if v2 else 'PG_MAINTENANCE_FENCE_','gate':'APPLICATION_MAINTENANCE_V2_ISOLATED' if v2 else 'APPLICATION_MAINTENANCE_FENCE_ISOLATED','evidence':'MAINTENANCE_V2_EVIDENCE' if v2 else 'MAINTENANCE_FENCE_EVIDENCE','fixture':'tests/postgres/applicationMaintenanceV2.integration.test.js' if v2 else 'tests/postgres/applicationMaintenanceFence.integration.test.js'}
+    if v5:return {'cases':('fresh','populated','concurrency'),'cohort':'application-maintenance-v5','prefix':'owasp_ai_goat_test_maintenance_v5_','key':'PG_MAINTENANCE_V5_','gate':'APPLICATION_MAINTENANCE_V5_ISOLATED','evidence':'MAINTENANCE_V5_EVIDENCE','fixture':'tests/postgres/applicationMaintenanceV5.integration.test.js'}
+    if v4:return {'cases':('fresh','populated','concurrency'),'cohort':'application-maintenance-v4','prefix':'owasp_ai_goat_test_maintenance_v4_','key':'PG_MAINTENANCE_V4_','gate':'APPLICATION_MAINTENANCE_V4_ISOLATED','evidence':'MAINTENANCE_V4_EVIDENCE','fixture':'tests/postgres/applicationMaintenanceV4.integration.test.js'}
+    if v3:return {'cases':('fresh','populated','rollback'),'cohort':'application-maintenance-v3','prefix':'owasp_ai_goat_test_maintenance_v3_','key':'PG_MAINTENANCE_V3_','gate':'APPLICATION_MAINTENANCE_V3_ISOLATED','evidence':'MAINTENANCE_V3_EVIDENCE','fixture':'tests/postgres/applicationMaintenanceV3.integration.test.js'}
+    return {'cases':V2_CASES if v2 else CASES,'cohort':'application-maintenance-v2' if v2 else 'application-maintenance-fence','prefix':'owasp_ai_goat_test_maintenance_v2_' if v2 else 'owasp_ai_goat_test_fence_','key':'PG_MAINTENANCE_V2_' if v2 else 'PG_MAINTENANCE_FENCE_','gate':'APPLICATION_MAINTENANCE_V2_ISOLATED' if v2 else 'APPLICATION_MAINTENANCE_FENCE_ISOLATED','evidence':'MAINTENANCE_V2_EVIDENCE' if v2 else 'MAINTENANCE_FENCE_EVIDENCE','fixture':'tests/postgres/applicationMaintenanceV2.integration.test.js' if v2 else 'tests/postgres/applicationMaintenanceFence.integration.test.js'}
 def database_environment(owner,port,v2=False,v3=False,v4=False,v5=False):
     if not re.fullmatch('[a-f0-9]{12}',owner) or not str(port).isdigit() or not 1<=int(port)<=65535:raise ValueError('Invalid owned database address')
     selected=selection(v2,v3,v4,v5)
@@ -132,9 +132,9 @@ def main():
     version=subprocess.run([args.node,'--version'],env={'PATH':'/usr/bin:/bin'},capture_output=True,text=True,timeout=5)
     if version.returncode or version.stdout.strip()!='v26.10.0':raise RuntimeError('Node26.10.0 required')
     clean={'PATH':'/usr/bin:/bin:/usr/sbin:/sbin'}
-    evidence=main_evidence(package,args.application_maintenance_v5) if args.main_workspace else Path(tempfile.mkdtemp(prefix='dvaia-maintenance-fence-')).resolve();evidence.chmod(0o700)
-    source=package if args.main_workspace else evidence/'source';owner=uuid.uuid4().hex;name='dvaia-maintenance-fence-'+owner[:12]
-    labels={'dvaia.test.owner':owner,'dvaia.test.cohort':selected['cohort']}
+    evidence=main_evidence(package,args.application_maintenance_v5) if args.main_workspace else Path(tempfile.mkdtemp(prefix='owasp-ai-goat-maintenance-fence-')).resolve();evidence.chmod(0o700)
+    source=package if args.main_workspace else evidence/'source';owner=uuid.uuid4().hex;name='owasp-ai-goat-maintenance-fence-'+owner[:12]
+    labels={'owasp-ai-goat.test.owner':owner,'owasp-ai-goat.test.cohort':selected['cohort']}
     state={'version':1,'evidenceRoot':str(evidence),'containerName':name,'owner':owner,'children':[],'nativeStarted':False}
     def record():
         target=evidence/'ownership.json';target.write_text(json.dumps(state,indent=2)+'\n');target.chmod(0o600)
@@ -197,7 +197,7 @@ def main():
             if empty.returncode or empty.stdout.strip()!='0':raise RuntimeError('Owned cluster is not empty')
         sql('CREATE ROLE dvaia_identity_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS')
         sql('CREATE ROLE dvaia_identity_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS')
-        env={**clean,'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes',selected['gate']:'1','DVAIA_ISOLATED_TEST_WORKSPACE':str(source),selected['evidence']:str(evidence),'PG_TLS':'disable','HOME':str(evidence)}
+        env={**clean,'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes',selected['gate']:'1','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE':str(source),selected['evidence']:str(evidence),'PG_TLS':'disable','HOME':str(evidence)}
         if args.main_workspace:env['APPLICATION_MAINTENANCE_V5_MAIN_WORKSPACE' if args.application_maintenance_v5 else 'APPLICATION_MAINTENANCE_V4_MAIN_WORKSPACE']='1'
         env.update(database_environment(owner[:12],port,args.application_maintenance_v2,args.application_maintenance_v3,args.application_maintenance_v4,args.application_maintenance_v5))
         for case in selected['cases']:

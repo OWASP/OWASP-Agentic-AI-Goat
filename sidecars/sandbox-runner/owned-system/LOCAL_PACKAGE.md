@@ -10,7 +10,7 @@ architecture check deliberately rejects another architecture. This new package
 has source/controlled checks only until a separate owned native build is
 qualified. Earlier executor and full-index proofs do not establish this new
 image's identity. Debian package resolution is not pinned: a qualifier must
-retain `/opt/dvaia-owned-system/packages.txt`, build logs and the resulting image
+retain `/opt/owasp-ai-goat-owned-system/packages.txt`, build logs and the resulting image
 ID alongside source hashes.
 
 Build context is this directory, for example an explicitly owned build using
@@ -28,7 +28,7 @@ A qualified runtime profile must supply:
 
 - Read-only root, writable bounded `/tmp` tmpfs (128MiB),512MiB memory,1CPU and
   128PIDs per listener; no host mounts or privileged mode.
-- Existing reviewed `dvaia-mcp-sandbox` AppArmor profile and
+- Existing reviewed `owasp-ai-goat-mcp-sandbox` AppArmor profile and
   `seccomp=unconfined`, as used by the retained native fixtures. Missing user/PID/
   network namespace support fails readiness; there is no sandbox fallback.
 - A private bearer and explicit enable, literal bind host and nonzero port using

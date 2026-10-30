@@ -18,11 +18,11 @@ test('owned Mailpit provisioning uses the pinned image and cleans its private co
   skip: !enabled,
   timeout: 120000,
 }, async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mailpit-provision-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mailpit-provision-'));
   const id = `fixture-${randomBytes(8).toString('hex')}`;
   let state;
   let resolved;
-  const name = `dvaia-mailpit-${id}`;
+  const name = `owasp-ai-goat-mailpit-${id}`;
   t.diagnostic(JSON.stringify({ evidenceRoot: directory, ownerId: id, image: MAILPIT_IMAGE, imageDigest: MAILPIT_IMAGE_DIGEST }));
   try {
     resolved = await resolveDockerAuthority({ directory, workspaceId: id, environment: process.env, execute: exec, persist: false });
@@ -35,7 +35,7 @@ test('owned Mailpit provisioning uses the pinned image and cleans its private co
     assert.match(state.apiUrl, /^http:\/\/127\.0\.0\.1:\d+$/);
     const docker = args => executeBoundDocker({ authority: resolved.authority, execute, environment: process.env, args });
     const inspected = JSON.parse((await docker(['inspect', state.name])).stdout)[0];
-    assert.equal(inspected.Config.Labels['org.dvaia.workspace'], id);
+    assert.equal(inspected.Config.Labels['org.owasp-ai-goat.workspace'], id);
     assert.equal(inspected.Config.Image, MAILPIT_IMAGE);
     t.diagnostic(JSON.stringify({ imageVersion: state.imageVersion, imageDigest: state.imageDigest, apiPort: state.apiPort, smtpPort: state.smtpPort }));
   } finally {
@@ -43,8 +43,8 @@ test('owned Mailpit provisioning uses the pinned image and cleans its private co
       const docker = args => executeBoundDocker({ authority: resolved.authority, execute, environment: process.env, args });
       let candidate = null;
       try { candidate = JSON.parse((await docker(['inspect', state?.containerId || name])).stdout)[0]; } catch {}
-      if (candidate?.Config?.Labels?.['org.dvaia.workspace'] === id
-        && candidate.Config.Labels?.['org.dvaia.mailpit.nonce'] === state?.nonce
+      if (candidate?.Config?.Labels?.['org.owasp-ai-goat.workspace'] === id
+        && candidate.Config.Labels?.['org.owasp-ai-goat.mailpit.nonce'] === state?.nonce
         && (candidate.Config.Image === MAILPIT_IMAGE || candidate.Image === MAILPIT_IMAGE_DIGEST)) {
         await docker(['rm', '--force', candidate.Id]);
         await assert.rejects(docker(['inspect', candidate.Id]));

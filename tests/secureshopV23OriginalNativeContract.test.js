@@ -6,15 +6,15 @@ const {urls,assertPhysical,assertActorWire,assertReceipt,passiveCapture,assertAs
 const sha=s=>createHash('sha256').update(s).digest('hex');
 test('native variant is explicit and rejects absence before any native resource admission',async()=>{
  const {runNative}=require('./postgres/secureshopV23Original.integration.test');
- for(const variant of [undefined,'invented'])await assert.rejects(runNative({SECURESHOP_V23_ORIGINAL_NATIVE:'1',LIVE_OLLAMA_TEST:'1',DVAIA_CURRENT_MAIN_WORKSPACE:path.resolve(__dirname,'..'),V23_REQUEST_VARIANT:variant}));
+ for(const variant of [undefined,'invented'])await assert.rejects(runNative({SECURESHOP_V23_ORIGINAL_NATIVE:'1',LIVE_OLLAMA_TEST:'1',OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:path.resolve(__dirname,'..'),V23_REQUEST_VARIANT:variant}));
  const r=receipt();r.requestVariant='json-data-v3';r.cohort.requestVariant='json-data-v3';assertReceipt(r);
- for(const boundary of [undefined,'invented'])await assert.rejects(runNative({SECURESHOP_V23_ORIGINAL_NATIVE:'1',LIVE_OLLAMA_TEST:'1',DVAIA_CURRENT_MAIN_WORKSPACE:path.resolve(__dirname,'..'),V23_REQUEST_VARIANT:'json-data-v3',V23_BOUNDARY_CONTRACT:boundary}));
+ for(const boundary of [undefined,'invented'])await assert.rejects(runNative({SECURESHOP_V23_ORIGINAL_NATIVE:'1',LIVE_OLLAMA_TEST:'1',OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:path.resolve(__dirname,'..'),V23_REQUEST_VARIANT:'json-data-v3',V23_BOUNDARY_CONTRACT:boundary}));
 });
 test('all explicit variants reach only the existing native owner fence and bind original receipt scope',async()=>{
  const {runNative}=require('./postgres/secureshopV23Original.integration.test');
  const q=require('./fixtures/secureshopV23OriginalQualification');
  for(const requestVariant of q.REQUEST_VARIANTS)for(const boundaryContract of q.BOUNDARY_CONTRACTS){
-  const env={SECURESHOP_V23_ORIGINAL_NATIVE:'1',LIVE_OLLAMA_TEST:'1',DVAIA_CURRENT_MAIN_WORKSPACE:path.resolve(__dirname,'..'),
+  const env={SECURESHOP_V23_ORIGINAL_NATIVE:'1',LIVE_OLLAMA_TEST:'1',OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:path.resolve(__dirname,'..'),
    V23_REQUEST_VARIANT:requestVariant,V23_BOUNDARY_CONTRACT:boundaryContract};
   await assert.rejects(runNative(env),{code:'ORIGINAL_COHORT_SCOPE_REQUIRED'});
   const r=receipt();r.requestVariant=requestVariant;r.cohort.requestVariant=requestVariant;
@@ -25,7 +25,7 @@ test('all explicit variants reach only the existing native owner fence and bind 
 });
 function environment(){const env={PG_TEST_DISPOSABLE:'yes'};
  for(const [key,store]of Object.entries({IDENTITY:'identity',AGENTS:'secureshop_agents',COMMERCE:'secureshop',REVIEW:'secureshop_review'}))
-  for(const role of ['RUNTIME','MIGRATION'])env[`PG_SECURESHOP_V23_${key}_${role}_URL`]=`postgresql://dvaia_${store}_${role.toLowerCase()}:controlled@127.0.0.1:15432/dvaia_test_agent_host_012345abcdef_${store}`;
+  for(const role of ['RUNTIME','MIGRATION'])env[`PG_SECURESHOP_V23_${key}_${role}_URL`]=`postgresql://dvaia_${store}_${role.toLowerCase()}:controlled@127.0.0.1:15432/owasp_ai_goat_test_agent_host_012345abcdef_${store}`;
  return env;}
 function packet(content,kind='actor'){const request=JSON.stringify({model:'llama3.1:8b',messages:[{role:'user',content:'original request'}]}),
  response=JSON.stringify({model:'llama3.1:8b',message:{role:'assistant',content},done:true});
@@ -72,7 +72,7 @@ test('new private producer receipt is distinct from historical shared service an
 });
 test('legacy native invocation cannot bypass private in-process producer authority',async()=>{
  const {runNative}=require('./postgres/secureshopV23Original.integration.test');
- const env={SECURESHOP_V23_ORIGINAL_NATIVE:'1',LIVE_OLLAMA_TEST:'1',DVAIA_CURRENT_MAIN_WORKSPACE:path.resolve(__dirname,'..'),
+ const env={SECURESHOP_V23_ORIGINAL_NATIVE:'1',LIVE_OLLAMA_TEST:'1',OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:path.resolve(__dirname,'..'),
   V23_REQUEST_VARIANT:'json-data-v3',V23_BOUNDARY_CONTRACT:'hard-fail-v1'};
  for(const scope of [undefined,{}, {configuration:{baseURL:'http://127.0.0.1:1'}}])
   await assert.rejects(runNative(env,scope),{code:'ORIGINAL_COHORT_SCOPE_REQUIRED'});

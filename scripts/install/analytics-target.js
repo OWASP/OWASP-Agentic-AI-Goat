@@ -24,9 +24,9 @@ async function awaitDatabase(pool,{attempts=30,pause=()=>new Promise(resolve=>se
 }
 function plan({root=path.resolve(__dirname,'../..'),homeDirectory=os.homedir()}={}){
  if(!path.isAbsolute(root)||!path.isAbsolute(homeDirectory))throw fail('ANALYTICS_INSTALL_PATH');
- const workspaceId=sha(path.resolve(root)).slice(0,12),containerName=`dvaia-analytics-${workspaceId}`,directory=path.join(homeDirectory,'.dvaia',workspaceId);
+ const workspaceId=sha(path.resolve(root)).slice(0,12),containerName=`owasp-ai-goat-analytics-${workspaceId}`,directory=path.join(homeDirectory,'.owasp-ai-goat',workspaceId);
  return Object.freeze({root,homeDirectory,workspaceId,containerName,volumeName:containerName+'-data',directory,
-  database:`dvaia_analytics_control_${workspaceId}`,clusterName:`dvaia-owned-analytics-${workspaceId}`,
+  database:`owasp_ai_goat_analytics_control_${workspaceId}`,clusterName:`owasp-ai-goat-owned-analytics-${workspaceId}`,
   managedFile:path.join(directory,'analytics-managed.json'),intentFile:path.join(directory,'analytics-install-intent.json')});
 }
 async function readIntent(filename){let handle;try{
@@ -39,7 +39,7 @@ function checkIntent(value,p,authoritySha256){
   ||!Number.isInteger(value.port)||value.port<1024||value.port>65535||!/^sha256:[a-f0-9]{64}$/.test(value.imageId)||!/^[a-f0-9]{64}$/.test(value.password)||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value.ownerId))throw fail('ANALYTICS_INSTALL_INTENT');
  return value;
 }
-function volumeOwned(volume,p,ownerId){if(!volume||volume.Name!==p.volumeName||volume.Labels?.['dvaia.workspace']!==p.workspaceId||volume.Labels?.['dvaia.purpose']!=='owned-analytics'||volume.Labels?.['dvaia.owner']!==ownerId)throw fail('ANALYTICS_VOLUME_CONFLICT');}
+function volumeOwned(volume,p,ownerId){if(!volume||volume.Name!==p.volumeName||volume.Labels?.['owasp-ai-goat.workspace']!==p.workspaceId||volume.Labels?.['owasp-ai-goat.purpose']!=='owned-analytics'||volume.Labels?.['owasp-ai-goat.owner']!==ownerId)throw fail('ANALYTICS_VOLUME_CONFLICT');}
 function validateBeforeStart(container,config){
  if(typeof container?.State?.Running!=='boolean')throw fail('ANALYTICS_CONTAINER_MISMATCH');
  // A stopped container has no effective bindings. Validate its persisted Docker
@@ -78,12 +78,12 @@ async function provision(options={}){
  }
  checkIntent(intent,p,authoritySha256);
  const image=await inspect('image',intent.imageId);if(!image||image.Os!=='linux'||image.Architecture!==({arm64:'arm64',x64:'amd64'})[process.arch])throw fail('ANALYTICS_IMAGE_INVALID');
- if(!volume){await docker(['volume','create','--label',`dvaia.workspace=${p.workspaceId}`,'--label','dvaia.purpose=owned-analytics','--label',`dvaia.owner=${intent.ownerId}`,p.volumeName]);volume=await inspect('volume',p.volumeName);}
+ if(!volume){await docker(['volume','create','--label',`owasp-ai-goat.workspace=${p.workspaceId}`,'--label','owasp-ai-goat.purpose=owned-analytics','--label',`owasp-ai-goat.owner=${intent.ownerId}`,p.volumeName]);volume=await inspect('volume',p.volumeName);}
  volumeOwned(volume,p,intent.ownerId);
  if(!container){
   const temp=await fs.mkdtemp(path.join(p.directory,'analytics-env-')),envFile=path.join(temp,'postgres.env');
   try{await fs.writeFile(envFile,`POSTGRES_USER=analytics_service_admin\nPOSTGRES_PASSWORD=${intent.password}\nPOSTGRES_DB=${p.database}\n`,{flag:'wx',mode:0o600});
-   await docker(['run','--detach','--pull','never','--restart','unless-stopped','--name',p.containerName,'--label',`dvaia.workspace=${p.workspaceId}`,'--label','dvaia.purpose=owned-analytics','--label',`dvaia.owner=${intent.ownerId}`,
+   await docker(['run','--detach','--pull','never','--restart','unless-stopped','--name',p.containerName,'--label',`owasp-ai-goat.workspace=${p.workspaceId}`,'--label','owasp-ai-goat.purpose=owned-analytics','--label',`owasp-ai-goat.owner=${intent.ownerId}`,
     '--memory','512m','--memory-swap','512m','--cpus','1','--pids-limit','128','--env-file',envFile,'--publish',`127.0.0.1:${intent.port}:5432`,'--mount',`type=volume,src=${p.volumeName},dst=/var/lib/postgresql`,intent.imageId,'postgres','-c',`cluster_name=${p.clusterName}`,'-c','max_connections=32']);
   }finally{await fs.rm(temp,{recursive:true,force:true});}
   container=await inspect('container',p.containerName);

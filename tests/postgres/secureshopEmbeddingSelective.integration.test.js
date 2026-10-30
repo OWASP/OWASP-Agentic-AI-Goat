@@ -36,7 +36,7 @@ test('selective revisions preserve owned siblings and reject real source/head/ru
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
   const nonce = process.env.EMBEDDING_SELECTIVE_OWNER;
   assert.match(nonce, /^[a-f0-9]{12}$/);
-  assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE), fs.realpathSync(path.resolve(__dirname, '../..')));
+  assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE), fs.realpathSync(path.resolve(__dirname, '../..')));
   const evidenceRoot = process.env.EMBEDDING_SELECTIVE_EVIDENCE_ROOT;
   assert.ok(evidenceRoot && path.isAbsolute(evidenceRoot));
   assert.equal(fs.realpathSync(evidenceRoot), evidenceRoot);
@@ -50,7 +50,7 @@ test('selective revisions preserve owned siblings and reject real source/head/ru
   const record = (name, details = {}) => evidence.cases.push({ name, ...details });
   const open = (store, role) => {
     const u = new URL(process.env[`EMBEDDING_SELECTIVE_${store.toUpperCase()}_${role.toUpperCase()}_URL`]);
-    assert.equal(u.hostname, '127.0.0.1'); assert.equal(u.pathname, `/dvaia_test_embedding_selective_${nonce}_${store}`);
+    assert.equal(u.hostname, '127.0.0.1'); assert.equal(u.pathname, `/owasp_ai_goat_test_embedding_selective_${nonce}_${store}`);
     assert.equal(u.username, `dvaia_secureshop_review_${role}`); assert.equal(u.password, '');
     const p = new Pool({ connectionString: u.href, max: 5, statement_timeout: 15000, lock_timeout: 7000 }); pools.push(p); return p;
   };

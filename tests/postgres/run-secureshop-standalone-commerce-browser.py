@@ -69,7 +69,7 @@ CONTROL_SOURCES = (
 RECORD = 'standalone-commerce-browser-birth.json'
 ACK = 'standalone-commerce-browser-ack.json'
 KIND = 'standalone_commerce_browser'
-PROFILE = 'dvaia-standalone-commerce-'
+PROFILE = 'owasp-ai-goat-standalone-commerce-'
 FD_ENV = 'SECURESHOP_COMMERCE_ADMISSION_FD'
 SESSION_REVOKE_TEST = 'tests/postgres/secureshopStandaloneAccountSessionRevokeRendered.integration.test.js'
 SESSION_REVOKE_CASES = 'tests/fixtures/secureshopAccountSessionRevokeRenderedCases.js'
@@ -114,7 +114,7 @@ def select_cohort(values):
         RECORD = stem + '-browser-birth.json'
         ACK = stem + '-browser-ack.json'
         KIND = stem.replace('-', '_') + '_browser'
-        PROFILE = 'dvaia-' + stem + '-'
+        PROFILE = 'owasp-ai-goat-' + stem + '-'
         EVIDENCE_ENV = 'SECURESHOP_CUSTOMER_MANUAL_CHECKOUT_EVIDENCE_PATH' if manual else 'SECURESHOP_CUSTOMER_OUT_OF_STOCK_EVIDENCE_PATH' if stock else 'SECURESHOP_CUSTOMER_PRODUCT_DETAILS_EVIDENCE_PATH' if product else 'SECURESHOP_CUSTOMER_REFUND_HANDOFF_EVIDENCE_PATH' if refund else 'SECURESHOP_CUSTOMER_ADDRESS_SETUP_EVIDENCE_PATH' if address else 'SECURESHOP_CUSTOMER_OLDER_ORDERS_EVIDENCE_PATH' if older else 'SECURESHOP_CUSTOMER_CHECKOUT_FENCES_EVIDENCE_PATH' if fences else 'SECURESHOP_CUSTOMER_PAYMENT_SETUP_EVIDENCE_PATH' if payment else 'SECURESHOP_CUSTOMER_CART_LIFECYCLE_EVIDENCE_PATH' if cart else 'SECURESHOP_CUSTOMER_PROFILE_EVIDENCE_PATH' if profile else 'SECURESHOP_CUSTOMER_CHECKOUT_EVIDENCE_PATH'
         SELECTOR_ENV = 'SECURESHOP_CUSTOMER_MANUAL_CHECKOUT_NATIVE' if manual else 'SECURESHOP_CUSTOMER_OUT_OF_STOCK_NATIVE' if stock else 'SECURESHOP_CUSTOMER_PRODUCT_DETAILS_NATIVE' if product else 'SECURESHOP_CUSTOMER_REFUND_HANDOFF_NATIVE' if refund else 'SECURESHOP_CUSTOMER_ADDRESS_SETUP_NATIVE' if address else 'SECURESHOP_CUSTOMER_OLDER_ORDERS_NATIVE' if older else 'SECURESHOP_CUSTOMER_CHECKOUT_FENCES_NATIVE' if fences else 'SECURESHOP_CUSTOMER_PAYMENT_SETUP_NATIVE' if payment else 'SECURESHOP_CUSTOMER_CART_LIFECYCLE_NATIVE' if cart else 'SECURESHOP_CUSTOMER_PROFILE_NATIVE' if profile else 'SECURESHOP_CUSTOMER_CHECKOUT_NATIVE'
         RENDERED_PINS = {TEST: '879f06e727c5ec59b80bf75339f2afd814694e91fd6f0331689e42eea3b72c52',
@@ -130,7 +130,7 @@ def select_cohort(values):
         RECORD = 'account-avatar-browser-birth.json'
         ACK = 'account-avatar-browser-ack.json'
         KIND = 'account_avatar_browser'
-        PROFILE = 'dvaia-account-avatar-'
+        PROFILE = 'owasp-ai-goat-account-avatar-'
         EVIDENCE_ENV = 'SECURESHOP_ACCOUNT_AVATAR_EVIDENCE_PATH'
         SELECTOR_ENV = 'SECURESHOP_ACCOUNT_AVATAR_NATIVE'
         RENDERED_PINS = {TEST: '5301a9d92d67ba1bc9225601a44869679d086dcd82d6d210ad242568891fce65',
@@ -149,7 +149,7 @@ def select_cohort(values):
         RECORD = 'account-session-revoke-other-browser-birth.json'
         ACK = 'account-session-revoke-other-browser-ack.json'
         KIND = 'account_session_revoke_other_browser'
-        PROFILE = 'dvaia-standalone-commerce-'
+        PROFILE = 'owasp-ai-goat-standalone-commerce-'
         EVIDENCE_ENV = 'SECURESHOP_ACCOUNT_SESSION_REVOKE_OTHER_EVIDENCE_PATH'
         SELECTOR_ENV = 'SECURESHOP_ACCOUNT_SESSION_REVOKE_OTHER_NATIVE'
         RENDERED_PINS = {TEST: '5301a9d92d67ba1bc9225601a44869679d086dcd82d6d210ad242568891fce65',
@@ -169,7 +169,7 @@ def select_cohort(values):
     RECORD = 'account-session-revoke-browser-birth.json'
     ACK = 'account-session-revoke-browser-ack.json'
     KIND = 'account_session_revoke_browser'
-    PROFILE = 'dvaia-standalone-commerce-'
+    PROFILE = 'owasp-ai-goat-standalone-commerce-'
     EVIDENCE_ENV = 'SECURESHOP_ACCOUNT_SESSION_REVOKE_EVIDENCE_PATH'
     SELECTOR_ENV = 'SECURESHOP_ACCOUNT_SESSION_REVOKE_NATIVE'
     RENDERED_PINS = {TEST: '5301a9d92d67ba1bc9225601a44869679d086dcd82d6d210ad242568891fce65',

@@ -83,7 +83,7 @@ A separate reviewed profile provisioning step is required on a fresh machine:
 render the exact checked template; verify the selected local daemon/Colima VM;
 check sudo capability and parse with `apparmor_parser --skip-kernel-load`; refuse
 an existing differing profile; install only a missing exact profile at
-`/etc/apparmor.d/dvaia-mcp-sandbox` as root:root0600; load it and verify exact digest,
+`/etc/apparmor.d/owasp-ai-goat-mcp-sandbox` as root:root0600; load it and verify exact digest,
 ownership and enforced state. Existing `mcp-owned-provision` Linux/macOS routines
 implement those operations, but also provision other owned resources and reload
 the profile. They are not a read-only `--plan` command or an automatically granted

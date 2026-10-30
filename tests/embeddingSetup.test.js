@@ -8,7 +8,7 @@ const { ensureEmbeddingModel } = require('../scripts/setup-application');
 const { verifyEmbeddingRuntime } = require('../scripts/verify-embedding-runtime');
 
 test('embedding setup uses bounded system-trusted model verification with an explicit cache', async t => {
-  const cache = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-embedding-command-')));
+  const cache = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-embedding-command-')));
   t.after(() => fs.rm(cache, { recursive: true, force: true }));
   let called = false;
   const result = await ensureEmbeddingModel({ root: '/owned/app', cacheDirectory: cache, env: {},
@@ -29,7 +29,7 @@ test('embedding setup uses bounded system-trusted model verification with an exp
 });
 
 test('embedding qualification rejects invalid vectors, disposes the pipeline and restores cache scope', async t => {
-  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-embedding-setup-')));
+  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-embedding-setup-')));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const previous = process.env.XENOVA_CACHE;
   for (const vector of [new Float32Array(384).fill(0.25), [], new Float32Array(384),
@@ -48,7 +48,7 @@ test('embedding qualification rejects invalid vectors, disposes the pipeline and
 });
 
 test('setup persists canonical cache paths and refuses alias changes during verification', async t => {
-  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-embedding-alias-')));
+  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-embedding-alias-')));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const first = path.join(root, 'first'), second = path.join(root, 'second'), alias = path.join(root, 'alias');
   await fs.mkdir(first); await fs.mkdir(second); await fs.symlink(first, alias, 'dir');

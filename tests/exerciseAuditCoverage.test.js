@@ -124,7 +124,7 @@ test('public-reference unit check rejects missing or escaping files; private evi
   collect(matrix);
   assert.ok(privateRefs.size > 0, 'private evidence remains explicitly outside unit existence qualification');
   assert.deepEqual(validateEvidenceReferences({evidenceRefs:[...publicRefs]}), []);
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-audit-evidence-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-audit-evidence-'));
   try {
     fs.writeFileSync(path.join(root, 'receipt.json'), '{}');
     assert.deepEqual(validateEvidenceReferences({ acceptance:{ positive:{ evidenceRefs:['receipt.json'] } } }, root), []);

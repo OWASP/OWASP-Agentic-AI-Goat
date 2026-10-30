@@ -20,7 +20,7 @@ async function emittedController() {
     dockerfile, dockerfileSha256: sha(dockerfile), packages: [...input.PACKAGES],
     user: '10001:10001', entrypoint: [...input.ENTRYPOINT]
   });
-  const match = /<<'DVAIA_RELAY_LIFECYCLE'\n([\s\S]*?)\nDVAIA_RELAY_LIFECYCLE\n/.exec(plan.commands.relayStart);
+  const match = /<<'OWASP_AI_GOAT_RELAY_LIFECYCLE'\n([\s\S]*?)\nOWASP_AI_GOAT_RELAY_LIFECYCLE\n/.exec(plan.commands.relayStart);
   assert(match); return match[1];
 }
 

@@ -10,14 +10,14 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && Boolean(process.env.
 test('native launch authority: durable owner, generation, rotation and revocation boundaries', { skip: !enabled }, async t => {
   for (const suffix of ['MIGRATION', 'RUNTIME']) {
     const url = new URL(process.env[`PG_SECURESHOP_LAUNCH_TEST_${suffix}_URL`]);
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
     assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
   }
   const migration = new Pool({ connectionString: process.env.PG_SECURESHOP_LAUNCH_TEST_MIGRATION_URL });
   const applicationName = `launch-proof-${randomUUID()}`;
   const pool = new Pool({ connectionString: process.env.PG_SECURESHOP_LAUNCH_TEST_RUNTIME_URL, max: 8, application_name: applicationName });
   const agents=new Pool({connectionString:process.env.PG_SECURESHOP_LAUNCH_AGENTS_TEST_RUNTIME_URL}),agentsMigration=new Pool({connectionString:process.env.PG_SECURESHOP_LAUNCH_AGENTS_TEST_MIGRATION_URL});
-  for(const key of ['PG_SECURESHOP_LAUNCH_AGENTS_TEST_RUNTIME_URL','PG_SECURESHOP_LAUNCH_AGENTS_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+  for(const key of ['PG_SECURESHOP_LAUNCH_AGENTS_TEST_RUNTIME_URL','PG_SECURESHOP_LAUNCH_AGENTS_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   t.after(async () => { await Promise.all([migration.end(), pool.end(),agents.end(),agentsMigration.end()]); });
   assert.equal((await migration.query("SELECT to_regnamespace('identity') AS present")).rows[0].present, null);
   await initializeIdentityRepository(pool, migration);
@@ -164,7 +164,7 @@ test('native launch authority: durable owner, generation, rotation and revocatio
     const path = require('node:path');
     const { createSecureShopFiles } = require('../../sidecars/sandbox-runner/secureshopFiles');
     const { createSecureShopReservedFileReader } = require('../../server/services/secureshopReservedFiles');
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-native-reserved-files-'));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-native-reserved-files-'));
     t.after(() => fs.rm(root, { recursive: true, force: true }));
     const reader = createSecureShopReservedFileReader({ launches: repository, files: createSecureShopFiles({ root }) });
     const aliceBinding = { ...scope, launchId: active.binding.launchId, generation: active.binding.generation };

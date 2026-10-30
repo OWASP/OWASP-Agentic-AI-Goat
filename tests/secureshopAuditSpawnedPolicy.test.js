@@ -12,7 +12,7 @@ const { spoolAuditObservation } = require('../server/services/secureshopAuditObs
 const scope = { launchId: randomUUID(), scenarioId: randomUUID(), generation: 1, platformOwnerId: 7, platformSessionId: 8 };
 
 async function fixture(t, { enforced = false, forged = false } = {}) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-audit-policy-child-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-audit-policy-child-'));
   const requests = [], children = [], admissions = [];
   const server = http.createServer(async (req, res) => {
     const chunks = []; for await (const chunk of req) chunks.push(chunk);

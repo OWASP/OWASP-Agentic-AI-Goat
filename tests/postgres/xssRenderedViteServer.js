@@ -41,8 +41,8 @@ async function main({ workspace, port, backendPort, runtimeRoot }) {
   try { fs.mkdirSync(envDir, { mode: 0o700 }); } catch (error) { if (error.code !== 'EEXIST') throw error; }
   if (privateDirectory(envDir, 'Vite env directory', { strictMode: true }) !== envDir
     || fs.readdirSync(envDir).length !== 0) throw new TypeError('Vite env directory must be empty and canonical');
-  process.env.DVAIA_VITE_ENV_DIR = envDir;
-  process.env.PORT = String(backendPort); process.env.DVAIA_CLIENT_PORT = String(port);
+  process.env.OWASP_AI_GOAT_VITE_ENV_DIR = envDir;
+  process.env.PORT = String(backendPort); process.env.OWASP_AI_GOAT_CLIENT_PORT = String(port);
   const viteEntry = path.join(clientRoot, 'node_modules', 'vite', 'dist', 'node', 'index.js');
   if (!fs.statSync(viteEntry).isFile() || fs.realpathSync(viteEntry) !== viteEntry) throw new TypeError('Admitted client Vite entry required');
   const { createServer } = await import(pathToFileURL(viteEntry).href);

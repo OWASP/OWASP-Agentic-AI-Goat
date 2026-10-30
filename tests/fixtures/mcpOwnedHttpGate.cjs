@@ -4,7 +4,7 @@ const fs = require('node:fs/promises'), crypto = require('node:crypto'), assert 
 async function main() {
  const outerStatus=await fs.readFile('/proc/self/status','utf8');for(const key of ['CapEff','CapPrm','CapInh','CapAmb'])assert.match(outerStatus,new RegExp('^'+key+':\\s+0+$','m'));
  assert.equal(process.env.MCP_OWNED_HTTP_GATE,'yes'); assert.equal(process.getuid(),10001);
- assert.equal((await fs.readFile('/proc/self/attr/current','utf8')).trim(),'dvaia-mcp-sandbox (enforce)');
+ assert.equal((await fs.readFile('/proc/self/attr/current','utf8')).trim(),'owasp-ai-goat-mcp-sandbox (enforce)');
  const root=await fs.mkdtemp('/tmp/owned-http-gate-');let setup=false,hosts,nss,resolv;
  const {createMcpTargetStore}=require('/app/mcpTargets');
  const store=createMcpTargetStore({root,fixtureRoot:'/opt/lab-template',spawn(executable,args,options){
@@ -15,14 +15,14 @@ async function main() {
  const records=[];let outer;let outerHits=0;
  try{
  await store.checkReadiness();const owned=await store.provisionTarget(binding,{authorize:allow});const tmp=path.join(root,'targets',binding.targetId,'rootfs','tmp');
- const manifest=JSON.parse(await fs.readFile('/usr/local/libexec/dvaia-owned-http-manifest.json','utf8'));
+ const manifest=JSON.parse(await fs.readFile('/usr/local/libexec/owasp-ai-goat-owned-http-manifest.json','utf8'));
  hosts=path.join(tmp,'hosts');nss=path.join(tmp,'nsswitch');resolv=path.join(tmp,'resolv');
  await fs.writeFile(hosts,manifest.listeners.map(x=>`${x.address} ${x.hostname}`).join('\n')+'\n');await fs.writeFile(nss,'hosts: files\n');await fs.writeFile(resolv,'');
  outer=require('node:http').createServer((_req,res)=>{outerHits++;res.end('outer-listener');});await new Promise(resolve=>outer.listen(0,'127.0.0.1',resolve));
  setup=true;
  for(const [url,mode] of [['http://169.254.169.254/latest/meta-data/','vuln'],['http://admin.training:8080/config?raw=1','vuln'],['http://monitoring.training/health','vuln'],['http://benign.training/','fixed'],['http://benign.training/redirect-metadata','vuln'],['http://benign.training/redirect-metadata','fixed'],['http://benign.training/redirect-loop','vuln'],['http://10.200.1.1/','vuln'],['http://1.1.1.1/','vuln'],['http://unknown.training/','vuln'],['http://127.0.0.1:'+outer.address().port+'/','vuln'],['http://8.8.8.8:53/','vuln']]){
   await fs.writeFile(path.join(tmp,'input.json'),JSON.stringify({url,mode,canary:'a'.repeat(64)}));
-  const result=await store.executeTarget(owned.capability,allow,'/usr/local/libexec/dvaia-owned-http-init --initialize < /tmp/input.json');
+  const result=await store.executeTarget(owned.capability,allow,'/usr/local/libexec/owasp-ai-goat-owned-http-init --initialize < /tmp/input.json');
   records.push({url,mode,...result});assert.equal(result.code,0,result.stderr);const output=JSON.parse(result.stdout);assert.ok(Object.values(output.isolationAttestation).every(x=>x===true));assert.equal(output.originalUrlSha256,crypto.createHash('sha256').update(url).digest('hex'));
   if(url.includes('redirect-loop'))assert.equal(output.category,'redirect_limit');
   else if(url.includes('redirect-metadata')){assert.equal(output.hits.filter(x=>x.listener==='metadata').length,mode==='fixed'?0:1);assert.equal(output.status,mode==='fixed'?'failed':'completed');}

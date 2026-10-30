@@ -41,13 +41,13 @@ class AclFoundationLauncherContract(unittest.TestCase):
         main = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'main')
         assignment = next(node for node in main.body if isinstance(node, ast.Assign)
             and any(isinstance(target, ast.Subscript) and isinstance(target.slice, ast.Constant)
-                    and target.slice.value == 'DVAIA_ISOLATED_TEST_WORKSPACE' for target in node.targets))
+                    and target.slice.value == 'OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE' for target in node.targets))
         code = compile(ast.fix_missing_locations(ast.Module(body=[assignment], type_ignores=[])), str(PATH), 'exec')
         workspace = Path('/private/owned/evidence/runtime/workspace')
         for suite in ('persona-product-canonical', 'conversation-purpose'):
             namespace = {'env': {}, 'args': SimpleNamespace(suite=suite), 'ROOT': LAUNCHER.ROOT, 'workspace': workspace}
             exec(code, namespace)
-            self.assertEqual(namespace['env']['DVAIA_ISOLATED_TEST_WORKSPACE'],
+            self.assertEqual(namespace['env']['OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE'],
                              str(LAUNCHER.ROOT if suite == 'persona-product-canonical' else workspace))
 
     def test_product_summary_pin_rejects_drift_before_resources(self):
@@ -326,7 +326,7 @@ class Identity0154CurrentHostLauncherContract(unittest.TestCase):
         self.assertEqual(inventory[self.MIGRATION], LAUNCHER.CTF_RESET_MEMORY_MIGRATION_SHA256)
         source = PATH.read_text()
         self.assertIn("if args.suite=='ctf-reset-memory-0154':env['CTF_GLOBAL_RESET_MEMORY_NATIVE']='1'", source)
-        self.assertIn("database='dvaia_test_ctf_reset_memory_'+nonce[:12]+'_'+store.lower()", source)
+        self.assertIn("database='owasp_ai_goat_test_ctf_reset_memory_'+nonce[:12]+'_'+store.lower()", source)
         self.assertIn("extra.append(ROOT/'db/postgres/identity-migrations/0154_ctf_global_reset_adaptive_memory.sql')", source)
         self.assertEqual(LAUNCHER.CTF_RESET_MEMORY_TAP_TITLE,
                          'identity 0154 Full Reset ACK clears adaptive memory only on ordered first application')
@@ -353,7 +353,7 @@ class PricingCanonicalLauncherContract(unittest.TestCase):
         code=compile(ast.Module(body=branch.body,type_ignores=[]),str(PATH),'exec')
         for selected in [None,'blocked-denial','canonical-current']:
             env={'PERSONA_PRICING_BLOCKED_NATIVE':'1'};ns={'env':env,'args':SimpleNamespace(pricing_cohort=selected),'ROOT':LAUNCHER.ROOT,'workspace':Path('/owned/output')};exec(code,ns)
-            self.assertEqual(env['PERSONA_PRICING_NATIVE'],'1');self.assertEqual(env['PERSONA_PRICING_CANONICAL'],'1');self.assertEqual(env['DVAIA_ISOLATED_TEST_WORKSPACE'],str(LAUNCHER.ROOT));self.assertEqual(env['DVAIA_PRICING_OWNED_OUTPUT_ROOT'],'/owned/output')
+            self.assertEqual(env['PERSONA_PRICING_NATIVE'],'1');self.assertEqual(env['PERSONA_PRICING_CANONICAL'],'1');self.assertEqual(env['OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE'],str(LAUNCHER.ROOT));self.assertEqual(env['OWASP_AI_GOAT_PRICING_OWNED_OUTPUT_ROOT'],'/owned/output')
             if selected=='canonical-current':self.assertNotIn('PERSONA_PRICING_BLOCKED_NATIVE',env)
             else:self.assertEqual(env['PERSONA_PRICING_BLOCKED_NATIVE'],'1')
             self.assertNotIn('PERSONA_PRICING_ACTUAL',env);self.assertNotIn('PERSONA_PRICING_HTTP_NATIVE',env)

@@ -20,15 +20,15 @@ const {
 
 function state() {
   return {
-    version: 1, id: 'fixture', name: 'dvaia-mailpit-fixture', nonce: 'c'.repeat(64), image: MAILPIT_IMAGE,
+    version: 1, id: 'fixture', name: 'owasp-ai-goat-mailpit-fixture', nonce: 'c'.repeat(64), image: MAILPIT_IMAGE,
     imageVersion: MAILPIT_IMAGE_VERSION, imageDigest: MAILPIT_IMAGE_DIGEST, containerId: 'b'.repeat(64), dockerAuthorityDigest: 'a'.repeat(64), smtpPort: 41025, apiPort: 48025,
   };
 }
 
 test('Mailpit state requires the reviewed immutable image and owned ports', () => {
-  assert.equal(validateMailpitState(state(), { id: 'fixture', name: 'dvaia-mailpit-fixture' }).image, MAILPIT_IMAGE);
-  assert.throws(() => validateMailpitState({ ...state(), image: 'axllent/mailpit:latest' }, { id: 'fixture', name: 'dvaia-mailpit-fixture' }), /state/);
-  assert.throws(() => validateMailpitState({ ...state(), apiPort: 41025 }, { id: 'fixture', name: 'dvaia-mailpit-fixture' }), /state/);
+  assert.equal(validateMailpitState(state(), { id: 'fixture', name: 'owasp-ai-goat-mailpit-fixture' }).image, MAILPIT_IMAGE);
+  assert.throws(() => validateMailpitState({ ...state(), image: 'axllent/mailpit:latest' }, { id: 'fixture', name: 'owasp-ai-goat-mailpit-fixture' }), /state/);
+  assert.throws(() => validateMailpitState({ ...state(), apiPort: 41025 }, { id: 'fixture', name: 'owasp-ai-goat-mailpit-fixture' }), /state/);
 });
 
 test('Mailpit API and SMTP readiness probes accept controlled healthy endpoints', async () => {
@@ -59,8 +59,8 @@ test('Mailpit readiness rejects an unhealthy API response', async () => {
 });
 
 test('Mailpit startup rejects missing containers and non-private state files', async () => {
-  assert.throws(() => assertOwnedContainer(null, { id: 'fixture', name: 'dvaia-mailpit-fixture', state: state() }), /unavailable/);
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mailpit-private-'));
+  assert.throws(() => assertOwnedContainer(null, { id: 'fixture', name: 'owasp-ai-goat-mailpit-fixture', state: state() }), /unavailable/);
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mailpit-private-'));
   const file = path.join(directory, 'mailpit.json');
   try {
     await fs.writeFile(file, JSON.stringify({ ...state(), containerId: 'b'.repeat(64) }) + '\n', { mode: 0o644 });
@@ -69,7 +69,7 @@ test('Mailpit startup rejects missing containers and non-private state files', a
 });
 
 test('Mailpit setup removes an owned container after readiness failure', async () => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mailpit-test-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mailpit-test-'));
   const commands = [];
   let removed = false;
   let runStarted = false;
@@ -83,7 +83,7 @@ test('Mailpit setup removes an owned container after readiness failure', async (
       if (removed) { const error = new Error('gone'); error.code = 1; throw error; }
       if (!runStarted) { const error = new Error('missing'); error.code = 1; throw error; }
         const saved = JSON.parse(await fs.readFile(path.join(directory, 'mailpit.json'), 'utf8'));
-        return { stdout: JSON.stringify([{ Id: 'b'.repeat(64), Config: { Labels: { 'org.dvaia.workspace': 'fixture', 'org.dvaia.mailpit.nonce': saved.nonce }, Image: MAILPIT_IMAGE }, Image: MAILPIT_IMAGE_DIGEST,
+        return { stdout: JSON.stringify([{ Id: 'b'.repeat(64), Config: { Labels: { 'org.owasp-ai-goat.workspace': 'fixture', 'org.owasp-ai-goat.mailpit.nonce': saved.nonce }, Image: MAILPIT_IMAGE }, Image: MAILPIT_IMAGE_DIGEST,
         HostConfig: { PortBindings: { '1025/tcp': [{ HostIp: '127.0.0.1', HostPort: String(runPorts.smtp) }], '8025/tcp': [{ HostIp: '127.0.0.1', HostPort: String(runPorts.api) }] } }, State: { Running: true } }]) };
     }
     for (let publish = args.indexOf('--publish'); publish >= 0; publish = args.indexOf('--publish', publish + 1)) {
@@ -116,7 +116,7 @@ test('Mailpit setup removes an owned container after readiness failure', async (
 });
 
 test('Mailpit setup can retry after a failed create without adopting a replacement container', async () => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mailpit-retry-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mailpit-retry-'));
   let runCount = 0;
   let container = null;
   const execute = async (_command, args) => {
@@ -131,7 +131,7 @@ test('Mailpit setup can retry after a failed create without adopting a replaceme
       if (runCount === 1) { const error = new Error('simulated daemon failure'); throw error; }
       const smtp = args[args.indexOf('--publish') + 1].split(':')[1];
       const api = args[args.lastIndexOf('--publish') + 1].split(':')[1];
-      container = { Id: 'd'.repeat(64), Config: { Labels: { 'org.dvaia.workspace': 'fixture', 'org.dvaia.mailpit.nonce': saved.nonce }, Image: MAILPIT_IMAGE }, Image: MAILPIT_IMAGE_DIGEST,
+      container = { Id: 'd'.repeat(64), Config: { Labels: { 'org.owasp-ai-goat.workspace': 'fixture', 'org.owasp-ai-goat.mailpit.nonce': saved.nonce }, Image: MAILPIT_IMAGE }, Image: MAILPIT_IMAGE_DIGEST,
         HostConfig: { PortBindings: { '1025/tcp': [{ HostIp: '127.0.0.1', HostPort: smtp }], '8025/tcp': [{ HostIp: '127.0.0.1', HostPort: api }] } }, State: { Running: true } };
       return { stdout: '' };
     }
@@ -154,7 +154,7 @@ test('Mailpit setup can retry after a failed create without adopting a replaceme
 });
 
 test('Mailpit startup rejects a replacement container with a different identity', async () => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mailpit-replaced-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mailpit-replaced-'));
   const file = path.join(directory, 'mailpit.json');
   const saved = state();
   const authority = { host: 'unix:///controlled' };
@@ -162,7 +162,7 @@ test('Mailpit startup rejects a replacement container with a different identity'
   saved.dockerAuthorityDigest = authorityDigest(authority);
   await fs.writeFile(file, JSON.stringify(saved) + '\n', { mode: 0o600 });
   const execute = async (_command, args) => {
-    if (args.includes('inspect')) return { stdout: JSON.stringify([{ Id: 'e'.repeat(64), Config: { Labels: { 'org.dvaia.workspace': 'fixture', 'org.dvaia.mailpit.nonce': saved.nonce }, Image: MAILPIT_IMAGE }, Image: MAILPIT_IMAGE_DIGEST, HostConfig: { PortBindings: { '1025/tcp': [{ HostIp: '127.0.0.1', HostPort: String(saved.smtpPort) }], '8025/tcp': [{ HostIp: '127.0.0.1', HostPort: String(saved.apiPort) }] } }, State: { Running: true } }]) };
+    if (args.includes('inspect')) return { stdout: JSON.stringify([{ Id: 'e'.repeat(64), Config: { Labels: { 'org.owasp-ai-goat.workspace': 'fixture', 'org.owasp-ai-goat.mailpit.nonce': saved.nonce }, Image: MAILPIT_IMAGE }, Image: MAILPIT_IMAGE_DIGEST, HostConfig: { PortBindings: { '1025/tcp': [{ HostIp: '127.0.0.1', HostPort: String(saved.smtpPort) }], '8025/tcp': [{ HostIp: '127.0.0.1', HostPort: String(saved.apiPort) }] } }, State: { Running: true } }]) };
     return { stdout: '' };
   };
   try { await assert.rejects(assertLocalMailpitReady({ statePath: file, execute, resolveAuthority: async () => ({ authority, persisted: true }) }), /identity changed/); }
@@ -171,7 +171,7 @@ test('Mailpit startup rejects a replacement container with a different identity'
 
 
 test('legacy Mailpit state is rejected before authority calls without changing its bytes', async () => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mailpit-legacy-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mailpit-legacy-'));
   const file = path.join(directory, 'mailpit.json');
   const legacy = state();
   delete legacy.nonce; delete legacy.imageVersion; delete legacy.containerId;

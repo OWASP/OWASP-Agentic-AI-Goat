@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sensitive_info_recovery_safety import SignalGate
 
-EXPECTED_DOCKER='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+EXPECTED_DOCKER='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 NODE_SHA256='56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 DOCKER=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 IMAGE='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
@@ -18,8 +18,8 @@ if not args.main_source: raise SystemExit('Owned Analytics qualification require
 mode='owned-analytics'
 test_file='tests/postgres/secureshopOwnedAnalytics.integration.test.js'
 if args.docker_host!=EXPECTED_DOCKER:raise SystemExit('reviewed isolated Docker host required')
-root=Path(tempfile.mkdtemp(prefix='dvaia-owned-analytics-'));os.chmod(root,0o700);workspace=SOURCE
-owner=uuid.uuid4().hex;nonce=owner[:12];container='dvaia-owned-analytics-'+nonce
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-owned-analytics-'));os.chmod(root,0o700);workspace=SOURCE
+owner=uuid.uuid4().hex;nonce=owner[:12];container='owasp-ai-goat-owned-analytics-'+nonce
 docker=[str(DOCKER),'--host',args.docker_host]
 env={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(root)}
 state={'container':container,'owner':owner,'image':IMAGE,'evidence':str(root),'launcherPid':os.getpid(),
@@ -72,7 +72,7 @@ try:
  if digest(DOCKER)!=DOCKER_SHA256:raise RuntimeError('reviewed Docker executable checksum mismatch')
  state['nodeVersion']=version;state['nodeSha256']=NODE_SHA256;state['dockerSha256']=DOCKER_SHA256;persist()
  daemon_name=run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
- if daemon_name!='colima-dvaia-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
+ if daemon_name!='colima-owasp-ai-goat-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
  daemon_id=run(docker+['info','--format','{{.ID}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
  if daemon_id!=DOCKER_DAEMON_ID:raise RuntimeError('reviewed Docker daemon ID mismatch')
  image_id=run(docker+['image','inspect','--format','{{.Id}}',IMAGE],stdout=subprocess.PIPE,text=True).stdout.strip()
@@ -85,12 +85,12 @@ try:
  state['sourceSha256']={name:digest(workspace/name) for name in sorted(set(inventory))};state['nodeSha256']=digest(NODE);persist()
  run([str(NODE),'--check',test_file],cwd=workspace)
  creation_attempted=True;state['containerCreationAttempted']=True;persist()
- run(docker+['run','--detach','--pull','never','--name',container,'--label','dvaia.test.owner='+owner,
+ run(docker+['run','--detach','--pull','never','--name',container,'--label','owasp-ai-goat.test.owner='+owner,
   '--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_HOST_AUTH_METHOD=trust',
   '-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=40',
-  '-c','max_wal_size=16MB','-c','min_wal_size=4MB','-c','cluster_name=dvaia-owned-analytics-'+nonce],stdout=subprocess.DEVNULL)
+  '-c','max_wal_size=16MB','-c','min_wal_size=4MB','-c','cluster_name=owasp-ai-goat-owned-analytics-'+nonce],stdout=subprocess.DEVNULL)
  details=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
- if details.get('Mounts') or details['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
+ if details.get('Mounts') or details['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
  for _ in range(100):
   ready=subprocess.run(docker+['exec',container,'pg_isready','-h','127.0.0.1','-U','postgres'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=2)
   if ready.returncode==0:break
@@ -98,7 +98,7 @@ try:
  else:raise RuntimeError('owned PostgreSQL unavailable')
  port=int(run(docker+['port',container,'5432/tcp'],stdout=subprocess.PIPE,text=True).stdout.strip().rsplit(':',1)[1])
  psql=docker+['exec',container,'psql','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-c']
- database='dvaia_analytics_control_'+nonce
+ database='owasp_ai_goat_analytics_control_'+nonce
  run(psql+[f'CREATE DATABASE {database}'],stdout=subprocess.DEVNULL)
  for name in ['postgres','template0','template1',database]:
   run(psql+[f'REVOKE CONNECT ON DATABASE {name} FROM PUBLIC'],stdout=subprocess.DEVNULL)
@@ -107,7 +107,7 @@ try:
  env['OWNED_ANALYTICS_OWNER']=nonce
  env['OWNED_ANALYTICS_PORT']=str(port)
  env['OWNED_ANALYTICS_CONTROL']=database
- env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+ env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
   PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',
   AI_PROVIDER='mock',TRANSFORMERS_OFFLINE='1',JWT_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,SESSION_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,
   AWS_EC2_METADATA_DISABLED='true',MCP_WORKSHOP_AUTOSTART='false',MCP_SIDECARS_AUTOSTART='false',SS_ENABLE='false',HF_HUB_OFFLINE='1',
@@ -143,7 +143,7 @@ finally:
   try:
    if not exact_absence():
     info=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
-    if info['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('refusing foreign container cleanup')
+    if info['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('refusing foreign container cleanup')
     remove_code=subprocess.run(docker+['rm','-f','-v',container],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=30).returncode
    else:remove_code=0
   except Exception as error:errors.append('remove:'+type(error).__name__)

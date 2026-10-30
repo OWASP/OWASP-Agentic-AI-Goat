@@ -3,9 +3,9 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const {randomUUID,randomBytes}=crypto;
 async function qualifyProduction({identity,migration,leases,agents,commerce,review,actualGrading=false}){
  const production=require('../../server/services/secureshopListingsProduction');await production.assertListingsSchema({agentsPool:agents,reviewPool:review});
- const root=process.cwd(),home=path.join(process.env.LISTINGS_EVIDENCE_ROOT,'production-home'),id=require('../../scripts/application-data-root').workspaceId(root),dir=path.join(home,'.dvaia',id);fs.mkdirSync(dir,{recursive:true,mode:0o700});
+ const root=process.cwd(),home=path.join(process.env.LISTINGS_EVIDENCE_ROOT,'production-home'),id=require('../../scripts/application-data-root').workspaceId(root),dir=path.join(home,'.owasp-ai-goat',id);fs.mkdirSync(dir,{recursive:true,mode:0o700});
  const qualified=require('../../scripts/install/secureshop-owned-listings-qualified-candidate').qualifiedPackage({root,architecture:'arm64'}),managed=require('../../server/services/secureshopListingsManagedConfiguration'),file=managed.managedPath({root,home});
- const profile='dvaia-owned-listings-'+id;assert.equal(profile,process.env.LISTINGS_MANAGER_PROFILE);
+ const profile='owasp-ai-goat-owned-listings-'+id;assert.equal(profile,process.env.LISTINGS_MANAGER_PROFILE);
  const config={version:1,workspaceId:id,enabled:false,architecture:'arm64',dockerAuthoritySha256:process.env.LISTINGS_DOCKER_AUTHORITY_SHA,imageId:process.env.LISTINGS_MANAGER_IMAGE,sourceManifestSha256:qualified.qualifiedSourceSha256,runtimeDigest:qualified.runtimeDigest,profile:{name:profile,sha256:crypto.createHash('sha256').update(fs.readFileSync('sidecars/sandbox-runner/owned-listings/profile.apparmor.in','utf8').replaceAll('@@SUPERVISOR_PROFILE@@',profile)).digest('hex')},manager:{container:profile,url:process.env.LISTINGS_MANAGER_ORIGIN,token:process.env.LISTINGS_MANAGER_TOKEN}};
  managed.stage({filePath:file,value:config});const runtimeModule=require('../../server/services/secureshopListingsRuntime');assert.equal(runtimeModule.loadConfiguration({root,home}).enabled,false);
  // Disposable qualification state only; this does not activate installed setup.

@@ -17,7 +17,7 @@ test('inert CTF authority schema fresh/populated/no-op, grants and immutable his
     for (const kind of ['IDENTITY', 'CTF']) {
       const keys = ['RUNTIME', 'MIGRATION'].map(role => `PG_CTF_AUTHORITY_${state}_${kind}_${role}_URL`);
       const urls = keys.map(key => new URL(process.env[key]));
-      for (const url of urls) { assert.equal(url.hostname, '127.0.0.1'); assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/); }
+      for (const url of urls) { assert.equal(url.hostname, '127.0.0.1'); assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/); }
       assert.equal(urls[0].pathname, urls[1].pathname); assert.equal(urls[0].port, urls[1].port); assert.notEqual(urls[0].username, urls[1].username);
       assert.ok(!databases.has(urls[0].pathname)); databases.add(urls[0].pathname);
       const [runtime, migration] = keys.map(key => createPool(process.env, key)); pools.push(runtime, migration);

@@ -7,7 +7,7 @@ import mcp_strict_runner_ownership as module
 
 class Runner(unittest.TestCase):
  def fixture(self):
-  events=[];files={};profiles=[];template=b'profile "@@SUPERVISOR_PROFILE@@" { }\n';policy=template.replace(b'@@SUPERVISOR_PROFILE@@',b'dvaia-mcp-sandbox-'+b'c'*12);template_hash=hashlib.sha256(template).hexdigest()
+  events=[];files={};profiles=[];template=b'profile "@@SUPERVISOR_PROFILE@@" { }\n';policy=template.replace(b'@@SUPERVISOR_PROFILE@@',b'owasp-ai-goat-mcp-sandbox-'+b'c'*12);template_hash=hashlib.sha256(template).hexdigest()
   def remote(args,**kwargs):
    events.append(args)
    if args[:2]==['sudo','cat']:out='\n'.join(profiles)

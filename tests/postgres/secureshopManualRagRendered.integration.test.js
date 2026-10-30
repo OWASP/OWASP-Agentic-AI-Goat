@@ -345,13 +345,13 @@ function manualRagBrowserArgs(env, {profile, origin}) {
   assert.equal(env.SECURESHOP_PRODUCT_SUMMARY_TEST_NO_SANDBOX, undefined);
   assert.equal(env.PG_TEST_DISPOSABLE, 'yes'); assert.equal(env.LIVE_OLLAMA_TEST, '1');
   assert.equal(env.NODE_ENV, 'test');
-  assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, ROOT); assert.equal(process.cwd(), ROOT);
-  const run = env.DVAIA_ISOLATED_TEST_WORKSPACE;
+  assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, ROOT); assert.equal(process.cwd(), ROOT);
+  const run = env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
   assert.equal(path.dirname(run), path.join(ROOT, 'tasks/qualification'));
   assert.match(path.basename(run), /^run-[A-Za-z0-9_-]+$/);
   assert.equal(env.TMPDIR, path.join(run, 'runtime/tmp'));
   assert.equal(path.dirname(profile), env.TMPDIR);
-  assert.match(path.basename(profile), /^dvaia-manual-rag-browser-[A-Za-z0-9_-]+$/);
+  assert.match(path.basename(profile), /^owasp-ai-goat-manual-rag-browser-[A-Za-z0-9_-]+$/);
   const sync = require('node:fs');
   for (const directory of [run, path.join(run, 'runtime'), env.TMPDIR, profile]) {
     const stat = sync.lstatSync(directory);
@@ -382,7 +382,7 @@ function disposableUrls() {
     assert.equal(url.username, `dvaia_${name}_${role.toLowerCase()}`);
     assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
     assert.match(url.port, /^[1-9]\d{0,4}$/); assert.ok(Number(url.port) <= 65535);
-    const match = /^\/dvaia_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
+    const match = /^\/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
     assert.ok(match && match[2] === name); nonce ??= match[1]; port ??= url.port;
     assert.equal(match[1], nonce); assert.equal(url.port, port);
     result[`${store}_${role}`] = url.href;
@@ -480,7 +480,7 @@ test(Q05_UPLOAD ? 'Q05 physical manual upload committed lost ACK and saved GET-o
   : 'V26 physical uploaded manual instruction adoption with original configured Judge diagnostic and no credit',
   { skip: !ENABLED, timeout: 540000 }, async t => {
     assert.equal(process.cwd(), ROOT);
-    assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
+    assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
     const evidencePath = process.env[EVIDENCE] || '';
     const browserRecordPath = process.env.SECURESHOP_MANUAL_RAG_BROWSER_RECORD_PATH || '';
     const browserSha256 = process.env.SECURESHOP_MANUAL_RAG_BROWSER_SHA256 || '';
@@ -543,7 +543,7 @@ test(Q05_UPLOAD ? 'Q05 physical manual upload committed lost ACK and saved GET-o
       const audit = require('../../server/services/secureshopBoundAuditComposition')
         .createSecureShopBoundAuditComposition({ agentsPool: agents, reviewPool: review,
           includeRunArtifacts: true });
-      manualRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-v26-files-'));
+      manualRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-v26-files-'));
       const files = require('../../sidecars/sandbox-runner/secureshopFiles').createSecureShopFiles({ root: manualRoot, maxReadBytes: 20*1024*1024, maxWriteBytes: 20*1024*1024 });
       lifecycle = require('../../server/services/secureshopCleanupComposition')
         .createSecureShopCleanupComposition({ identityPool: identity, agentsPool: agents,
@@ -638,7 +638,7 @@ test(Q05_UPLOAD ? 'Q05 physical manual upload committed lost ACK and saved GET-o
             if (req.ssLaunch && req.ssUser && req.ssPersonaSession) authorityByRequest.set(row, {
               scope:req.ssLaunch,persona:{id:req.ssUser.id,role:req.ssUser.role},
               personaSession:{sessionId:req.ssPersonaSession.sessionId,authorityVersion:req.ssPersonaSession.authorityVersion},
-              headers:{authorization:req.headers.authorization,'x-dvaia-secureshop-launch':req.headers['x-dvaia-secureshop-launch']},
+              headers:{authorization:req.headers.authorization,'x-owasp-ai-goat-secureshop-launch':req.headers['x-owasp-ai-goat-secureshop-launch']},
             });
           });
         next();
@@ -665,7 +665,7 @@ test(Q05_UPLOAD ? 'Q05 physical manual upload committed lost ACK and saved GET-o
       app.use(express.static(build, { setHeaders: res => res.set('Access-Control-Allow-Origin', '*') }));
       app.get(/.*/, (_req, res) => res.sendFile('index.html', { root: build }));
 
-      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-manual-rag-browser-'));
+      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-manual-rag-browser-'));
       browser = await require('puppeteer').launch({ headless: true, userDataDir: profile, executablePath,
         args: manualRagBrowserArgs(process.env, {profile, origin}) });
       browserClosed = false;
@@ -1008,7 +1008,7 @@ test(Q05_UPLOAD ? 'Q05 physical manual upload committed lost ACK and saved GET-o
         const query=new URLSearchParams({...descriptor,recoveryScopeKey:initialLookup.recoveryScopeKey});
         const savedPath=`${q05.RECEIPT_PATH}?${query}`;
         const foreign=await protectedGet(savedPath,{headers:{authorization:`Bearer ${peerBoot.persona.token}`,
-          'x-dvaia-secureshop-launch':peerBoot.bearer}});
+          'x-owasp-ai-goat-secureshop-launch':peerBoot.bearer}});
         assert.equal(foreign.status,401);originalCapture.q05Foreign={status:foreign.status};status.foreignDenied=true;
         const peerAfter=await peerSnapshot();q05.assertSiblingSource(peerBefore,peerAfter);
         originalCapture.q05PeerAfter=peerAfter;
@@ -1209,7 +1209,7 @@ test(Q05_UPLOAD ? 'Q05 physical manual upload committed lost ACK and saved GET-o
         assert.notEqual(peerTarget.targetId,target.targetId);assert.notEqual(peerScope.platformOwnerId,consumerAuthority.scope.platformOwnerId);
         const peerRows=async()=>(await review.query('SELECT to_jsonb(p) AS row FROM secureshop_review.product_target_products p WHERE target_id=$1 ORDER BY product_id',[peerTarget.targetId])).rows;
         const peerBefore=await peerRows();assert.ok(peerBefore.length>=125);originalCapture.peerBefore=peerBefore;
-        const peerHeaders={headers:{authorization:`Bearer ${peerBoot.persona.token}`,'x-dvaia-secureshop-launch':peerBoot.bearer}};
+        const peerHeaders={headers:{authorization:`Bearer ${peerBoot.persona.token}`,'x-owasp-ai-goat-secureshop-launch':peerBoot.bearer}};
         originalCapture.peerDenied=await protectedGet(assessmentPath,peerHeaders);assert.equal(originalCapture.peerDenied.status,401);
         stage='fixed-reset';
         const beforeReset={calls:transport.calls.length,selections:selections(),posts:requests.filter(row=>row.pathname===base&&row.method==='POST').length};
@@ -1347,7 +1347,7 @@ test(Q05_UPLOAD ? 'Q05 physical manual upload committed lost ACK and saved GET-o
       assert.notEqual(peerTarget.targetId,target.targetId);assert.notEqual(peerScope.platformOwnerId,consumerAuthority.scope.platformOwnerId);
       const peerRows=async()=>(await review.query('SELECT to_jsonb(p) AS row FROM secureshop_review.product_target_products p WHERE target_id=$1 ORDER BY product_id',[peerTarget.targetId])).rows;
       const peerBefore=await peerRows();assert.ok(peerBefore.length>=125);originalCapture.peerBefore=peerBefore;
-      const peerHeaders={headers:{authorization:`Bearer ${peerBoot.persona.token}`,'x-dvaia-secureshop-launch':peerBoot.bearer}};
+      const peerHeaders={headers:{authorization:`Bearer ${peerBoot.persona.token}`,'x-owasp-ai-goat-secureshop-launch':peerBoot.bearer}};
       const peerDenied=await protectedGet(`/agents/customer/sessions/${sessionId}/requests/${requestId}/manual-rag/assessment`,peerHeaders);
       originalCapture.peerDenied=peerDenied;assert.equal(peerDenied.status,401);
       const beforeRecovery={actor:transport.calls.length,judge:judgeTransport.calls.length,post:requests.filter(item=>item.method==='POST'&&item.pathname===base).length};

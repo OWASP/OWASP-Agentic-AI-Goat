@@ -171,7 +171,7 @@ async function controlledCase(fault,profile='v33'){
  const p=await api.pricingBuildPlan(root,run,profile),{env,record}=metadataFixture(p),calls=[],saved=[];
  const pins=require('./postgres/ownedMcpBoundedBuild').PINS;
  const inventory=JSON.stringify(pins.daemon)+'\n'+pins.postgres+' postgres:18\nNETWORK\n'+JSON.stringify({version:1,bridge:{},links:[{ifname:'docker0'}],addresses:[],routes4:[],routes6:[],rules4:[],rules6:[],firewall4:'',firewall6:'',nft:{},forwarding:''});
- const image={Id:'sha256:'+'a'.repeat(64),Architecture:'arm64',Os:'linux',Config:{User:p.inputs.user,Entrypoint:p.inputs.entrypoint,Labels:{'dvaia.pricing.package':p.inputs.packageDigest,'dvaia.build-run':run}}};
+ const image={Id:'sha256:'+'a'.repeat(64),Architecture:'arm64',Os:'linux',Config:{User:p.inputs.user,Entrypoint:p.inputs.entrypoint,Labels:{'owasp-ai-goat.pricing.package':p.inputs.packageDigest,'owasp-ai-goat.build-run':run}}};
  let retired=false;
  const phase=async(name,{input,cleanup,sink})=>{
   calls.push({name,cleanup});if(input){let n=0;for await(const b of input)n+=b.length;assert(n>0);}
@@ -228,8 +228,8 @@ test('serialized Pricing guest loads its pinned modules but rejects absent lease
 test('serialized Pricing guest rejects invalid deadlines with valid proxy before any IO',async()=>{
  const guest=api.pricingGuestSource(api.pricingBuildInputs(root,run)),vm=require('node:vm');
  for(const value of [undefined,'NaN','not-a-number','Infinity','-Infinity','1e309','0','-1','100','401']){
-  let io=0;const proc={env:{DVAIA_ARTIFACT_PROXY_PORT:'3128'},hrtime:{bigint:()=>100000000000n},exitCode:0};
-  if(value!==undefined)proc.env.DVAIA_ARTIFACT_DEADLINE_SECONDS=value;
+  let io=0;const proc={env:{OWASP_AI_GOAT_ARTIFACT_PROXY_PORT:'3128'},hrtime:{bigint:()=>100000000000n},exitCode:0};
+  if(value!==undefined)proc.env.OWASP_AI_GOAT_ARTIFACT_DEADLINE_SECONDS=value;
   const denied=new Proxy({},{get(){io++;throw Error('unexpected filesystem access');}});
   await vm.runInNewContext(guest.text,{Buffer,AbortController,AbortSignal,URL,setTimeout,clearTimeout,process:proc,
    require:name=>name==='node:fs/promises'?denied:require(name)});
@@ -245,7 +245,7 @@ test('actual guest terminal retains bounded phase and closed acquisition diagnos
    ownedPolicySystemMetadata:{validateResultEnvelope:()=>({candidate:{}}),validateRetainedMetadata:()=>({stages:[]})},
    ownedMcpDependencyClosure:{BASE:closure.BASE,failureDiagnostic:closure.failureDiagnostic,_internals:{debArtifacts:()=>[],validateArtifacts:()=>{}},acquireArtifacts:async()=>{throw error;}},ownedMcpArtifactReplay:{},ownedPricingEgressPolicy:{validateOverheadCheckpoint(){},validatePricingArtifactCensus(){}}};
   const fake={open:async()=>({stat:async()=>({isFile:()=>true,nlink:1,uid:0,mode:0o600,size:2}),readFile:async()=>'{}',writeFile:async b=>{terminal=JSON.parse(b);},sync:async()=>{},close:async()=>{}}),link:async()=>{},unlink:async()=>{},readFile:async()=>'{}'};
-  const proc={env:{DVAIA_ARTIFACT_PROXY_PORT:'3128',DVAIA_ARTIFACT_DEADLINE_SECONDS:'200'},hrtime:{bigint:()=>100000000000n},on(){},off(){},exitCode:0};
+  const proc={env:{OWASP_AI_GOAT_ARTIFACT_PROXY_PORT:'3128',OWASP_AI_GOAT_ARTIFACT_DEADLINE_SECONDS:'200'},hrtime:{bigint:()=>100000000000n},on(){},off(){},exitCode:0};
   await vm.runInNewContext('('+api._internals.pricingGuest.toString()+')(load,binding)',{load:n=>modules[n],binding:{target:'v33-pricing',base:closure.BASE},require:n=>n==='node:fs/promises'?fake:require(n),process:proc,AbortController,setTimeout,clearTimeout,Buffer});
   assert.equal(proc.exitCode,1);assert.equal(terminal.failure,'ECONNRESET');assert.equal(terminal.diagnostic.phase,phase);assert.equal(terminal.diagnostic.transport,'tls');
   assert.deepEqual(Object.keys(terminal.diagnostic).sort(),['artifact','phase','transport']);assert(!JSON.stringify(terminal).includes('secret'));assert(!JSON.stringify(terminal).includes('credential'));
@@ -259,7 +259,7 @@ test('actual guest validates mounted checkpoint and authenticated census before 
   const modules={ownedAptAuthentication:{admitRetained:async()=>({}),authenticate:async()=>{auth++;return {};}},ownedPolicySystemMetadata:{validateResultEnvelope:()=>({candidate:{}}),validateRetainedMetadata:()=>({stages:[]})},ownedPricingEgressPolicy:policy,
    ownedMcpDependencyClosure:{BASE:closure.BASE,failureDiagnostic:closure.failureDiagnostic,_internals:{debArtifacts:()=>artifacts,validateArtifacts:closure._internals.validateArtifacts},acquireArtifacts:async()=>{acquire++;throw Error('must not dispatch');}},ownedMcpArtifactReplay:{}};
   const fake={open:async()=>({stat:async()=>({isFile:()=>true,nlink:1,uid:0,mode:0o600,size:1000}),readFile:async()=>JSON.stringify(overhead),writeFile:async b=>{terminal=JSON.parse(b);},sync:async()=>{},close:async()=>{}}),link:async()=>{},unlink:async()=>{},readFile:async()=>'{}'};
-  const proc={env:{DVAIA_ARTIFACT_PROXY_PORT:'3128',DVAIA_ARTIFACT_DEADLINE_SECONDS:'200'},hrtime:{bigint:()=>100000000000n},on(){},off(){},exitCode:0};
+  const proc={env:{OWASP_AI_GOAT_ARTIFACT_PROXY_PORT:'3128',OWASP_AI_GOAT_ARTIFACT_DEADLINE_SECONDS:'200'},hrtime:{bigint:()=>100000000000n},on(){},off(){},exitCode:0};
   await vm.runInNewContext('('+api._internals.pricingGuest.toString()+')(load,binding)',{load:n=>modules[n],binding:{target:'v33-pricing',base:closure.BASE,runId:run},require:n=>n==='node:fs/promises'?fake:require(n),process:proc,AbortController,setTimeout,clearTimeout,Buffer});
   assert.equal(acquire,0);assert.equal(auth,fault==='overhead'?0:1);assert.equal(terminal.failure,fault==='overhead'?'PRICING_EGRESS_OVERHEAD':'PRICING_EGRESS_CENSUS');
  }
@@ -291,8 +291,8 @@ test('physical handoff rejects shared namespace/daemon, missing retirement and i
  }
 });
 test('image inspection joins exact original entrypoint/user/package/run, not merely image ID',()=>{
- const p=api.pricingBuildInputs(root,run),image={Id:'sha256:'+'a'.repeat(64),Architecture:'arm64',Os:'linux',Config:{User:p.user,Entrypoint:p.entrypoint,Labels:{'dvaia.pricing.package':p.packageDigest,'dvaia.build-run':p.runId}}};
+ const p=api.pricingBuildInputs(root,run),image={Id:'sha256:'+'a'.repeat(64),Architecture:'arm64',Os:'linux',Config:{User:p.user,Entrypoint:p.entrypoint,Labels:{'owasp-ai-goat.pricing.package':p.packageDigest,'owasp-ai-goat.build-run':p.runId}}};
  assert.equal(api.validatePricingImage(p,[image]),image.Id);
- for(const edit of [v=>v.Config.User='0',v=>v.Config.Entrypoint=['sh'],v=>v.Config.Labels['dvaia.build-run']='c'.repeat(32),v=>v.Architecture='amd64']){const v=structuredClone(image);edit(v);assert.throws(()=>api.validatePricingImage(p,[v]));}
+ for(const edit of [v=>v.Config.User='0',v=>v.Config.Entrypoint=['sh'],v=>v.Config.Labels['owasp-ai-goat.build-run']='c'.repeat(32),v=>v.Architecture='amd64']){const v=structuredClone(image);edit(v);assert.throws(()=>api.validatePricingImage(p,[v]));}
  assert.throws(()=>api.validatePricingImage(p,[image,image]));
 });

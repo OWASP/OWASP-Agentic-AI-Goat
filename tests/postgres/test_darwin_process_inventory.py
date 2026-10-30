@@ -216,7 +216,7 @@ class DarwinInventory(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             runtime = Path(directory)
             (runtime / 'tmp').mkdir()
-            profile = runtime / 'tmp' / 'dvaia-role-admin-user-owned-probe'
+            profile = runtime / 'tmp' / 'owasp-ai-goat-role-admin-user-owned-probe'
             child = subprocess.Popen([sys.executable, '-B', '-c',
                 'import sys; print("ready", flush=True); sys.stdin.read()',
                 '--user-data-dir=' + str(profile)], stdin=subprocess.PIPE,

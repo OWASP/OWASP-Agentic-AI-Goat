@@ -11,7 +11,7 @@ const launch = 'l'.repeat(43);
 const scope = Object.freeze({ launchId: randomUUID(), scenarioId: randomUUID(), generation: 3,
   platformOwnerId: 71, platformSessionId: 72 });
 const personaSession = Object.freeze({ sessionId: randomUUID(), authorityVersion: '2' });
-const authHeaders = () => ({ 'x-dvaia-secureshop-launch': launch,
+const authHeaders = () => ({ 'x-owasp-ai-goat-secureshop-launch': launch,
   authorization: 'Bearer customer-41' });
 const getWithBody = (url, headers, body) => new Promise((resolve, reject) => {
   const request = http.request(url, { method: 'GET', headers: { ...headers,
@@ -122,7 +122,7 @@ test('similar lifecycle rejects caller authority, malformed IDs, query and body 
   assert.equal((await fetch(`${f.base}/products/7/similar/session`,{method:'POST',headers:{
     ...authHeaders(),authorization:'Bearer merchant-41'}})).status,403);
   assert.equal((await fetch(`${f.base}/products/7/similar/session`,{method:'POST',headers:{
-    'x-dvaia-secureshop-launch':launch}})).status,401);
+    'x-owasp-ai-goat-secureshop-launch':launch}})).status,401);
   assert.equal(calls,0);assert.equal(f.legacyCalls(),0);
 });
 
@@ -144,7 +144,7 @@ test('every saved-similar lifecycle route requires a customer and rejects projec
     assert.equal(response.status,403,path);
   }
   for(const [path,options] of requests){
-    const response=await fetch(f.base+path,{...options,headers:{'x-dvaia-secureshop-launch':launch,
+    const response=await fetch(f.base+path,{...options,headers:{'x-owasp-ai-goat-secureshop-launch':launch,
       ...(options.method==='POST'?{'content-type':'application/json'}:{})}});
     assert.equal(response.status,401,path);
   }

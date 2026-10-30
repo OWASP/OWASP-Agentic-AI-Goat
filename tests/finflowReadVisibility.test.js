@@ -1,11 +1,11 @@
  'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),Module=require('node:module');
-const projectRoot=process.env.DVAIA_TEST_PROJECT_ROOT || path.resolve(__dirname,'..');
+const projectRoot=process.env.OWASP_AI_GOAT_TEST_PROJECT_ROOT || path.resolve(__dirname,'..');
 const express=require('express');
 const {WORKSHOP_OBJECTIVES}=require(path.join(projectRoot,'server/config/workshopCatalog'));
 const objectives=WORKSHOP_OBJECTIVES.sensitive_info_disclosure.map(o=>({id:o.id,label:o.text,desc:'Controlled fixture'}));
 const {createWorkshopObjectiveAdmission}=require(path.join(projectRoot,'server/services/finflowObjectiveAdmission'));
-const presentation=require(path.resolve(path.dirname(process.env.DVAIA_TEST_ROUTE_FILE || path.join(projectRoot,'server/routes/sensitiveInfoWorkshop.js')), '../services/sensitiveInfoPresentation'));
+const presentation=require(path.resolve(path.dirname(process.env.OWASP_AI_GOAT_TEST_ROUTE_FILE || path.join(projectRoot,'server/routes/sensitiveInfoWorkshop.js')), '../services/sensitiveInfoPresentation'));
 const projection=require(path.join(projectRoot,'server/services/sensitiveInfoProgressProjection'));
 async function fixture(t,options={}){
  const state={visible:true,enabled:new Set(objectives.map(o=>o.id)),reads:[],writes:[],admissions:0,...options};
@@ -25,7 +25,7 @@ async function fixture(t,options={}){
  '../services/finflowObjectiveAdmission':{createWorkshopObjectiveAdmission},
  '../services/postgresPlatformStores':{getPostgresPlatformStores:()=>({pool,progress,config:{getSnapshot:async()=>({exercises:{sensitive_info_disclosure:{objectives:Object.fromEntries(objectives.map(o=>[o.id,{solutionVisible:state.enabled.has(o.id)&&state.solutionsVisible===true}]))}}})}})},
  };
- const file=process.env.DVAIA_TEST_ROUTE_FILE || path.resolve(__dirname,'../server/routes/sensitiveInfoWorkshop.js');const loaded=new Module(file,module);loaded.filename=file;loaded.require=id=>{if(Object.hasOwn(stubs,id))return stubs[id];throw Error('Unexpected route dependency: '+id);};loaded._compile(fs.readFileSync(file,'utf8'),file);
+ const file=process.env.OWASP_AI_GOAT_TEST_ROUTE_FILE || path.resolve(__dirname,'../server/routes/sensitiveInfoWorkshop.js');const loaded=new Module(file,module);loaded.filename=file;loaded.require=id=>{if(Object.hasOwn(stubs,id))return stubs[id];throw Error('Unexpected route dependency: '+id);};loaded._compile(fs.readFileSync(file,'utf8'),file);
  const app=express();app.use(express.json());app.use(loaded.exports);const server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});t.after(()=>new Promise((resolve,reject)=>server.close(e=>e?reject(e):resolve())));
  return{state,request:async(route,method='GET')=>{const r=await fetch('http://127.0.0.1:'+server.address().port+route,{method,...(route==='/chat'?{headers:{'content-type':'application/json'},body:JSON.stringify({userMessage:'Controlled'})}:{})});return{status:r.status,body:await r.json()};}};
 }

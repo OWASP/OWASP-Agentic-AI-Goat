@@ -87,7 +87,7 @@ The repository already contains the intended replacement seams:
 
 Do not prioritize this work by treating FinFlow's remaining admin objectives
 as simulated or uniformly unqualified. The retained r4 cohort at
-`~/.dvaia/native-verification/dvaia-finflow-admin-error-model-6pw8xj7p`
+`~/.owasp-ai-goat/native-verification/owasp-ai-goat-finflow-admin-error-model-6pw8xj7p`
 qualified nine actual-model scenarios for configuration disclosure, directory
 discovery, and missing-account error disclosure. Its agent source SHA-256 was
 `3dac23ade5cb07c9a085b2443a3f54966493ee4dd9819ff3809bc76ed3663ee9`.
@@ -158,9 +158,9 @@ reviewed wrapper relationship. This is actual PostgreSQL evaluation of the
 model-selected query, not byte-identical execution of that string as the whole
 wire command, a regex-selected fixture, or a parameterized search wrapper.
 
-Execution uses a dedicated `dvaia_legacy_ecommerce_agent` login and
+Execution uses a dedicated `owasp_ai_goat_legacy_ecommerce_agent` login and
 `LEGACY_ECOMMERCE_AGENT_DATABASE_URL`. The URL must identify the auxiliary
-`dvaia_legacy_ecommerce_executor` database on a dedicated PostgreSQL lab
+`owasp_ai_goat_legacy_ecommerce_executor` database on a dedicated PostgreSQL lab
 cluster, not the cluster that hosts the 16 application stores. That role has
 `CONNECT` and `TEMP` only, no membership in the runtime or migration roles, and
 no schema/table/function/sequence privileges outside `pg_catalog`.
@@ -379,7 +379,7 @@ The auxiliary executor credential is a supported setup input, not a value the
 legacy-store migration invents. Extend application provisioning and
 `.env.example` with `LEGACY_ECOMMERCE_AGENT_DATABASE_URL`; generate its private
 password during setup and require the database name
-`dvaia_legacy_ecommerce_executor`. Provisioning must also prove that the URL's
+`owasp_ai_goat_legacy_ecommerce_executor`. Provisioning must also prove that the URL's
 server identity differs from every application-store server identity. A second
 database in the same cluster would isolate routine ACLs, but roles, catalog
 metadata, backend resources, and failure domains would remain shared.

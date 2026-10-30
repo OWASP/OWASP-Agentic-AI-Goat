@@ -193,7 +193,7 @@ class Admission(unittest.TestCase):
             L.select_cohort(manual)
             self.assertEqual((L.COHORT, L.TEST, L.KIND, L.PROFILE),
                 (C.MANUAL_CHECKOUT_COHORT, L.CHECKOUT_TEST,
-                 'customer_manual_checkout_browser', 'dvaia-customer-manual-checkout-'))
+                 'customer_manual_checkout_browser', 'owasp-ai-goat-customer-manual-checkout-'))
             self.assertEqual((L.RECORD, L.ACK),
                 ('customer-manual-checkout-browser-birth.json',
                  'customer-manual-checkout-browser-ack.json'))
@@ -331,7 +331,7 @@ class Admission(unittest.TestCase):
                 (cohort, L.CHECKOUT_TEST, stem.replace('-', '_') + '_browser'))
             self.assertEqual((L.RECORD, L.ACK),
                 (stem + '-browser-birth.json', stem + '-browser-ack.json'))
-            self.assertEqual(L.PROFILE, 'dvaia-' + stem + '-')
+            self.assertEqual(L.PROFILE, 'owasp-ai-goat-' + stem + '-')
             self.assertEqual(L.direct_command([parsed().node, '--test', '--test-reporter=tap',
                 '--test-concurrency=1', L.TEST], parsed()),
                 [parsed().node, '--test-reporter=tap', L.TEST])
@@ -1673,7 +1673,7 @@ class ProfileCleanup(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='run-profile-cleanup-',
                 dir=L.ROOT / 'tasks/qualification') as directory:
             runtime = Path(directory) / 'runtime'
-            profile = runtime / 'tmp/dvaia-customer-profile-controlled'
+            profile = runtime / 'tmp/owasp-ai-goat-customer-profile-controlled'
             profile.mkdir(parents=True, mode=0o700)
             # Exercise the actual directory scan without any host process probe.
             with patch.object(shared.sys, 'platform', 'linux'), \
@@ -1685,7 +1685,7 @@ class ProfileCleanup(unittest.TestCase):
                     {'browserProfilesAbsent': True, 'browserProcessesAbsent': True})
 
     def test_profile_specific_owned_retirement_and_debt_controls(self):
-        with patch.object(L, 'PROFILE', 'dvaia-customer-profile-'):
+        with patch.object(L, 'PROFILE', 'owasp-ai-goat-customer-profile-'):
             self.test_retirement_and_complete_profile_absence_precede_exact_removal()
             self.test_failed_retirement_or_inspection_and_replaced_profile_preserve_files()
 

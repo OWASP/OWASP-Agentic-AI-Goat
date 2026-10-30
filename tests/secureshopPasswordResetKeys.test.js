@@ -7,7 +7,7 @@ const path = require('node:path');
 const { ensurePasswordResetKey } = require('../scripts/lib/setup-password-reset-key');
 const { loadPasswordResetKeys } = require('../server/services/secureshopPasswordResetKeys');
 function directory(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-reset-key-test-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-reset-key-test-'));
   fs.chmodSync(root, 0o700);
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   return root;

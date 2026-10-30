@@ -2,7 +2,7 @@
   "name": "mcp-sandbox-runner",
   "version": "1.0.0",
   "private": true,
-  "description": "Isolated real-command execution service for the DVAIA MCP Vulnerable Server workshop",
+  "description": "Isolated real-command execution service for the OWASP-AI-GOAT MCP Vulnerable Server workshop",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

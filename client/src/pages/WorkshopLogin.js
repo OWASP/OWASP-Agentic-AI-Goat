@@ -294,7 +294,7 @@ const WorkshopLogin = ({ application = 'workshop' }) => {
         
         // Enhanced role-based redirection using the returned user data
         if (isSecureShop) {
-          toast.success('Welcome to SecureShop!');
+          toast.success('Welcome to OWASP AI SecureShop!');
           navigate('/secureshop', { replace: true });
         } else if (hasPlatformAdminLevel(user)) {
           toast.success(`Welcome back, ${user.fullName || user.username}! Redirecting to Admin Dashboard...`);
@@ -390,10 +390,10 @@ const WorkshopLogin = ({ application = 'workshop' }) => {
             <CardIcon>
               <FiShield />
             </CardIcon>
-            <CardTitle>{isSecureShop ? 'SecureShop Access' : 'Workshop Access'}</CardTitle>
+            <CardTitle>{isSecureShop ? 'OWASP AI SecureShop Access' : 'Workshop Access'}</CardTitle>
             <CardSubtitle>
               {isSecureShop
-                ? 'Sign in with your platform account to open your SecureShop environment. Shop practice accounts are used inside the shop.'
+                ? 'Sign in with your platform account to open your OWASP AI SecureShop environment. Shop practice accounts are used inside the shop.'
                 : 'Enter your credentials to access the security learning environment'}
             </CardSubtitle>
           </CardHeader>
@@ -452,7 +452,7 @@ const WorkshopLogin = ({ application = 'workshop' }) => {
               </InputGroup>
               
               <SubmitButton type="submit" disabled={loading}>
-                {loading ? 'Signing In...' : isSecureShop ? 'Enter SecureShop' : 'Enter Workshop'}
+                {loading ? 'Signing In...' : isSecureShop ? 'Enter OWASP AI SecureShop' : 'Enter Workshop'}
               </SubmitButton>
               
               {registrationEnabled && (

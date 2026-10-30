@@ -27,7 +27,7 @@ const IDS = activation.QUALIFIED;
 function ownedUrl(key) {
   const value = new URL(process.env[key]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 function compile(source, filename) {
@@ -93,7 +93,7 @@ test('persona catalog transition is fresh-safe and preserves populated instructo
           .includes('0047_secureshop_persona_inbox_catalog.sql'));
         await seed(migration, curricula.newValue);
       } else {
-        const priorDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-persona-catalog-prior-'));
+        const priorDir = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-persona-catalog-prior-'));
         t.after(() => fs.rmSync(priorDir, { recursive: true, force: true }));
         for (const name of fs.readdirSync(currentDir).filter(name => name.endsWith('.sql')
           && name !== '0047_secureshop_persona_inbox_catalog.sql')) {

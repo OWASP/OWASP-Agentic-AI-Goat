@@ -19,7 +19,7 @@ class Controls(unittest.TestCase):
    env=m.mcp_environment(self.args(),pathlib.Path('/e'),pathlib.Path('/e/runtime'),'a'*32,self.urls(),self.sidecars())
   self.assertEqual(env['MCP_OWNED_RESOURCES_ENABLED'],'true');self.assertEqual(env['MCP_OWNED_HTTP_ENABLED'],'true');self.assertEqual(env['MCP_MOUNTED_HTTP_NATIVE'],'1');self.assertEqual(env['LOGS_DIR'],'/e/runtime/logs');self.assertEqual(env['MCP_SIDECARS_AUTOSTART'],'false')
   self.assertEqual({k for k in env if k.endswith('DATABASE_URL')},set(self.urls()))
-  for name in ('PG_ADMIN_DATABASE_URL','OPENAI_API_KEY','SSH_AUTH_SOCK','DVAIA_ISOLATED_TEST_WORKSPACE'):self.assertNotIn(name,env)
+  for name in ('PG_ADMIN_DATABASE_URL','OPENAI_API_KEY','SSH_AUTH_SOCK','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE'):self.assertNotIn(name,env)
  def test_wrong_store_role_owner_and_endpoint_denied_before_directories(self):
   for key in self.urls():
    for mutate in (lambda s:s.replace('55432','55433'),lambda s:s.replace('_runtime','_migration') if '_runtime' in s else s.replace('_migration','_runtime'),lambda s:s.replace('a'*12,'b'*12)):

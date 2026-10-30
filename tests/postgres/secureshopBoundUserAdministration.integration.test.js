@@ -20,8 +20,8 @@ test('persona migration prefix retains canonical SQL and checksums without stagi
  assert.equal(fsp.readdir,original);assert.deepEqual(await readMigrations(agentsDirectory),full);
 });
 test('owned persona admin candidate: native transactional state, audit, replay and privileges',{skip:process.env.PERSONA_ADMIN_NATIVE!=='1',timeout:90000},async()=>{
- assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
- const servers=[];const pools=[];const pool=(store,role)=>{const u=new URL(process.env[`PERSONA_${store}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_persona_[a-f0-9]+_(commerce|fresh|populated)$/);assert.equal(u.username,`dvaia_${store==='COMMERCE'?'secureshop':'secureshop_agents'}_${role.toLowerCase()}`);const p=new Pool({connectionString:u.href,max:4,statement_timeout:15000});pools.push(p);return p;};
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
+ const servers=[];const pools=[];const pool=(store,role)=>{const u=new URL(process.env[`PERSONA_${store}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_persona_[a-f0-9]+_(commerce|fresh|populated)$/);assert.equal(u.username,`dvaia_${store==='COMMERCE'?'secureshop':'secureshop_agents'}_${role.toLowerCase()}`);const p=new Pool({connectionString:u.href,max:4,statement_timeout:15000});pools.push(p);return p;};
  const cm=pool('COMMERCE','MIGRATION'),cr=pool('COMMERCE','RUNTIME');
  try{
  await migrate(cm,'db/postgres/workshop-migrations/secureshop');await require('../../server/database/postgres/secureshopSeed').seedSecureShop(cm);

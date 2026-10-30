@@ -67,7 +67,7 @@ def environment():
         if k.endswith('ORIGIN') or k.endswith('SYSTEM_URL'):value[k]='http://127.0.0.1:23456'
         if k.endswith('TOKEN'):value[k]='T'*48
     value['SECURESHOP_LISTINGS_TEST_MANAGER_IMAGE_ID']='sha256:'+'d'*64
-    value['SECURESHOP_LISTINGS_TEST_DOCKER_HOST']='unix:///var/tmp/dvaia-v23-build-'+hashlib.sha256(('a'*32+':v03-listings').encode()).hexdigest()[:32]+'/fs/docker.sock'
+    value['SECURESHOP_LISTINGS_TEST_DOCKER_HOST']='unix:///var/tmp/owasp-ai-goat-v23-build-'+hashlib.sha256(('a'*32+':v03-listings').encode()).hexdigest()[:32]+'/fs/docker.sock'
     value['SECURESHOP_LISTINGS_TEST_DOCKER_DAEMON_ID']='f'*32
     return value
 
@@ -108,7 +108,7 @@ class Controls(unittest.TestCase):
     def test_foreign_private_daemon_and_invalid_ports_are_not_endpoints(self):
         for key,value in [('SECURESHOP_LISTINGS_TEST_MANAGER_ORIGIN','http://127.0.0.1:99999'),
                           ('SECURESHOP_LISTING_IMAGE_OPTIMIZE_V03_BROWSER_SYSTEM_URL','http://127.0.0.1:1000'),
-                          ('SECURESHOP_LISTINGS_TEST_DOCKER_HOST','unix:///var/tmp/dvaia-v23-build-'+'e'*32+'/fs/docker.sock')]:
+                          ('SECURESHOP_LISTINGS_TEST_DOCKER_HOST','unix:///var/tmp/owasp-ai-goat-v23-build-'+'e'*32+'/fs/docker.sock')]:
             f=facade();env=environment();env[key]=value
             with self.assertRaises(ValueError):f._validate_environment(env)
             self.assertTrue(f.debt)

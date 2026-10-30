@@ -67,7 +67,7 @@ test('persona solution examples describe the mounted inbox flow', { skip: phase.
 test('owned qualifier stages reserved 0047 and cannot use another Docker daemon', () => {
   const source = fs.readFileSync(path.join(ROOT,
     'tests/postgres/run-secureshop-persona-catalog-transition-isolated.py'), 'utf8');
-  assert.match(source, /EXPECTED_DOCKER='unix:\/\/\/Users\/averma5\/\.colima\/dvaia-pg-verify\/docker\.sock'/);
+  assert.match(source, /EXPECTED_DOCKER='unix:\/\/\/Users\/averma5\/\.colima\/owasp-ai-goat-pg-verify\/docker\.sock'/);
   assert.match(source, /0047_secureshop_persona_inbox_catalog\.sql/);
   assert.match(source, /register_owner\(\);prepare\(\);creation_attempted=True/);
   assert.match(source, /docker\+\['ps','-a','--filter',f'name=\^\/\{container\}\$'/);

@@ -41,7 +41,7 @@ test('native generation retirement fences admission and replays an exact immutab
   const runtimeUrl = new URL(process.env[`${PREFIX}_RUNTIME_URL`]);
   for (const url of [migrationUrl, runtimeUrl]) {
     assert.ok(['127.0.0.1','localhost'].includes(url.hostname));
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   assert.equal(migrationUrl.pathname, runtimeUrl.pathname);
   const migration = new Pool({ connectionString: migrationUrl.href, max: 1 });
@@ -229,7 +229,7 @@ test('native generation retirement fences admission and replays an exact immutab
       const identityRuntimeUrl = new URL(process.env[`${PREFIX}_IDENTITY_RUNTIME_URL`]);
       for (const url of [identityMigrationUrl, identityRuntimeUrl]) {
         assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
-        assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+        assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
       }
       assert.equal(identityMigrationUrl.pathname, identityRuntimeUrl.pathname);
       assert.notEqual(identityRuntimeUrl.pathname, runtimeUrl.pathname);

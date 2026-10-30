@@ -3,8 +3,8 @@ const Module=require('node:module'),load=Module._load;
 Module._load=function(name,parent,main){if(/(?:^|\/)(?:authDb|sqlite|sqlite3|better-sqlite3)(?:\.js)?$/.test(name))throw Error('Legacy database import forbidden');return load.call(this,name,parent,main);};
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{randomUUID}=require('node:crypto');
 (async()=>{
- const root=process.env.FINFLOW_SESSION_EVIDENCE_ROOT;assert.ok(root);assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
- for(const key of ['IDENTITY_DATABASE_URL','IDENTITY_MIGRATION_DATABASE_URL','FINFLOW_WORKSHOP_DATABASE_URL','FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL']){const u=new URL(process.env[key]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_finflow_session_[a-f0-9]+_(identity|finflow)$/);}
+ const root=process.env.FINFLOW_SESSION_EVIDENCE_ROOT;assert.ok(root);assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
+ for(const key of ['IDENTITY_DATABASE_URL','IDENTITY_MIGRATION_DATABASE_URL','FINFLOW_WORKSHOP_DATABASE_URL','FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL']){const u=new URL(process.env[key]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_finflow_session_[a-f0-9]+_(identity|finflow)$/);}
  const result={status:'preparing',actualInference:0,cases:[],limitations:['Controlled provider decisions and responses, not actual model qualification.','Adapter-minted canonical sessions; no login UI coverage.','Committed effects are not rolled back by later revocation.']};
  const save=()=>fs.writeFileSync(path.join(root,'candidate-result.json'),JSON.stringify(result,null,2)+'\n',{mode:0o600});save();
  let server,release,ai,originalGenerate,admission,originalAdmission;const pools=[];

@@ -78,8 +78,8 @@ function authorizedCapacityPairs(manifest,environment){
  const pairs=manifest.flatMap(row=>[row.runtimeVariable,row.migrationVariable].map(key=>{const u=new URL(environment[key]);return[decodeURIComponent(u.pathname.slice(1)),decodeURIComponent(u.username)];}));
  if(environment.CTF_DELIVERY_DATABASE_URL!==undefined){
   let delivery,ctf,identity;try{delivery=new URL(environment.CTF_DELIVERY_DATABASE_URL);ctf=new URL(environment.CTF_DATABASE_URL);identity=new URL(environment.IDENTITY_DATABASE_URL);}catch{throw fail('PG_DELIVERY_TARGET_INVALID');}
-  if(ctf.protocol!=='postgresql:'||identity.protocol!=='postgresql:'||decodeURIComponent(ctf.username)!=='dvaia_ctf_runtime'||decodeURIComponent(identity.username)!=='dvaia_identity_runtime'||identity.pathname!=='/dvaia_identity'||ctf.search||ctf.hash||identity.search||identity.hash||delivery.protocol!=='postgresql:'||delivery.hostname!=='127.0.0.1'||!delivery.port||delivery.host!==identity.host||delivery.host!==ctf.host||delivery.pathname!==ctf.pathname||delivery.pathname!=='/dvaia_ctf'||decodeURIComponent(delivery.username)!=='dvaia_ctf_delivery'||!delivery.password||delivery.search||delivery.hash)throw fail('PG_DELIVERY_TARGET_INVALID');
-  pairs.push(['dvaia_ctf','dvaia_ctf_delivery']);
+  if(ctf.protocol!=='postgresql:'||identity.protocol!=='postgresql:'||decodeURIComponent(ctf.username)!=='dvaia_ctf_runtime'||decodeURIComponent(identity.username)!=='dvaia_identity_runtime'||identity.pathname!=='/owasp_ai_goat_identity'||ctf.search||ctf.hash||identity.search||identity.hash||delivery.protocol!=='postgresql:'||delivery.hostname!=='127.0.0.1'||!delivery.port||delivery.host!==identity.host||delivery.host!==ctf.host||delivery.pathname!==ctf.pathname||delivery.pathname!=='/owasp_ai_goat_ctf'||decodeURIComponent(delivery.username)!=='dvaia_ctf_delivery'||!delivery.password||delivery.search||delivery.hash)throw fail('PG_DELIVERY_TARGET_INVALID');
+  pairs.push(['owasp_ai_goat_ctf','dvaia_ctf_delivery']);
  }
  return pairs;
 }

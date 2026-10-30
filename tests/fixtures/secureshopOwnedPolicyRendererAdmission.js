@@ -14,20 +14,20 @@ function rendererAdmissionPath(workspace, filename, env = process.env) {
   if (!filename.startsWith(`${workspace}${path.sep}`)) return;
   if (env.SECURESHOP_STANDALONE_COMMERCE_NATIVE === '1') {
     assert.equal(env.PG_TEST_DISPOSABLE, 'yes'); assert.equal(env.NODE_ENV, 'test');
-    assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, workspace);
+    assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, workspace);
     assert.equal(filename, path.join(workspace, 'tasks/qualification/commerce-policy-renderer/admission.json'));
     return;
   }
   if (env.SECURESHOP_ADMIN_POLICY_CHAT_BROWSER_NATIVE === '1') {
     assert.equal(env.PG_TEST_DISPOSABLE, 'yes'); assert.equal(env.NODE_ENV, 'test');
-    assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, workspace);
+    assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, workspace);
     assert.equal(filename, path.join(workspace, 'tasks/qualification/admin-policy-renderer/admission.json'));
     return;
   }
   const runId = env.SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_RUN_ID;
   assert.equal(env.SECURESHOP_POLICY_INSTRUCTION_BROWSER_NATIVE, '1');
   assert.equal(env.PG_TEST_DISPOSABLE, 'yes'); assert.equal(env.NODE_ENV, 'test');
-  assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, workspace);
+  assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, workspace);
   assert.match(runId || '', /^[a-f0-9]{32}$/);
   assert.equal(env.SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_DIRECTORY,
     path.join(workspace, 'tasks/qualification', `system-original-owner-${runId}`));
@@ -98,8 +98,8 @@ async function capturePolicyRenderer(workspace, filename) {
     assert.equal(installer.sourceManifest(workspace).sha256, record.value.sourceSha256);
     const image = await inspect('image', record.value.imageId);
     installer._internals.inspectImage(image, p);
-    const labels = { 'dvaia.policy.workspace': record.value.workspaceId,
-      'dvaia.policy.owner': record.value.ownerId, 'dvaia.policy.source': record.value.sourceSha256 };
+    const labels = { 'owasp-ai-goat.policy.workspace': record.value.workspaceId,
+      'owasp-ai-goat.policy.owner': record.value.ownerId, 'owasp-ai-goat.policy.source': record.value.sourceSha256 };
     const network = await inspect('network', p.network);
     assert.equal(network.Name, p.network); assert.equal(network.Driver, 'bridge');
     assert.equal(network.Internal, false);
@@ -141,7 +141,7 @@ async function captureOwnedPolicyInstructionRenderer(workspace, env = process.en
   assert.equal(env.SECURESHOP_POLICY_INSTRUCTION_BROWSER_NATIVE, '1');
   assert.equal(env.SECURESHOP_POLICY_INSTRUCTION_BROWSER_RENDERER_TRANSPORT, 'owned-pair-v1');
   assert.equal(env.PG_TEST_DISPOSABLE, 'yes'); assert.equal(env.NODE_ENV, 'test');
-  assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, workspace);
+  assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, workspace);
   assert.equal(workspace, process.cwd()); assert.equal(await fs.realpath(workspace), workspace);
   assert.equal(env.SECURESHOP_POLICY_INSTRUCTION_BROWSER_POLICY_RENDERER_ADMISSION, undefined);
   const runId = env.SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_RUN_ID;

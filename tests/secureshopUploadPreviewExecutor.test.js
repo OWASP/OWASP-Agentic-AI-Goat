@@ -104,7 +104,7 @@ test('RGBA and reencoded output bounds remain enforced after decoder metadata',a
 });
 
 test('external effect observer checks actual exact file bytes, ownership, mode and no-follow identity',t=>{
- const directory=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-preview-observer-'));t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
+ const directory=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-preview-observer-'));t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
  const effect=path.join(directory,'command-effect'),canary=Buffer.from('owned unpredictable observer sample'),options={expectedUid:process.getuid()};
  assert.deepEqual(E.observeEffect(directory,canary,options),{codeEffectObserved:false,effectSha256:null});
  fs.writeFileSync(effect,canary,{mode:0o600});
@@ -134,12 +134,12 @@ test('namespace argv uses bounded FD source, private effect mount and unchanged 
   assert.ok(mount>=0&&remount>mount);
   assert.equal(args.some((value,index)=>value==='--dir'&&args[index+1]==='/preview'),false);
  }
- assert.equal(probe.at(-1),'--probe');assert.equal(E.SUPERVISOR,'/usr/local/libexec/dvaia-system-config-supervisor');
+ assert.equal(probe.at(-1),'--probe');assert.equal(E.SUPERVISOR,'/usr/local/libexec/owasp-ai-goat-system-config-supervisor');
  assert.throws(()=>E.buildPreviewArgv({marker:'caller marker',probe:true}));
 });
 
 function executorFixture(t,{changed=false,outputLimit=false,abort=false}={}){
- const root=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-preview-parent-'));fs.chmodSync(root,0o700);t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-preview-parent-'));fs.chmodSync(root,0o700);t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
  const manifest={runtime,sharpVersion:'0.35.4',vipsVersion:sharp.versions.vips};let dispatches=0,probes=0;
  const executor=E.createUploadPreviewExecutor({root,verify:()=>manifest,
   spawnSyncImpl(_file,argv){probes++;const marker=argv.at(-2);return{status:0,stdout:Buffer.concat([E.ATTESTATION,Buffer.from(marker+JSON.stringify({ready:true,isolation:C.ISOLATION,...manifest}))])};},

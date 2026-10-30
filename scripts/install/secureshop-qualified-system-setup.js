@@ -18,13 +18,13 @@ async function selectSetupEnvironment({root,home=os.homedir(),platform=process.p
  if(!['linux','darwin'].includes(platform)||environment.DOCKER_CONTEXT)throw fail('SYSTEM_INSTALL_PROFILE_AUTHORITY_CONFLICT');
  const directory=path.dirname(config.managedPath(root,home));
  const existing=fs.existsSync(directory)?await authorityTools.readLocalDockerAuthority({directory,workspaceId:workspaceId(root),platform}):null;
- const location=require('./mcp-owned-local').localProfilePlan({root,home,platform,colimaProfile:environment.DVAIA_MCP_OWNED_COLIMA_PROFILE||'colima-default'});
+ const location=require('./mcp-owned-local').localProfilePlan({root,home,platform,colimaProfile:environment.OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE||'colima-default'});
  const host=existing?.host||environment.DOCKER_HOST||location.dockerHost;
  if(existing&&environment.DOCKER_HOST&&environment.DOCKER_HOST!==existing.host)throw fail('SYSTEM_INSTALL_PROFILE_AUTHORITY_CONFLICT');
- if(platform==='darwin'&&environment.DVAIA_MCP_OWNED_COLIMA_PROFILE&&host!==location.dockerHost)throw fail('SYSTEM_INSTALL_PROFILE_AUTHORITY_CONFLICT');
+ if(platform==='darwin'&&environment.OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE&&host!==location.dockerHost)throw fail('SYSTEM_INSTALL_PROFILE_AUTHORITY_CONFLICT');
  authorityTools.assertLocalDockerHost(host,platform);
  const boundLocation=_internals.profileLocation({authority:{host},root,home,platform});
- return {...environment,DOCKER_HOST:host,...(platform==='darwin'?{DVAIA_MCP_OWNED_COLIMA_PROFILE:boundLocation.colimaProfile}:{})};
+ return {...environment,DOCKER_HOST:host,...(platform==='darwin'?{OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE:boundLocation.colimaProfile}:{})};
 }
 async function preflight({root,home=os.homedir(),platform=process.platform,architecture=process.arch,environment=process.env,
  run=_internals.createRunner({cwd:root,env:authorityTools.sanitizeDockerEnvironment(environment)}),verifyProfile=_internals.verifyProfile}={}){
@@ -41,9 +41,9 @@ async function preflight({root,home=os.homedir(),platform=process.platform,archi
   authority={version:1,workspaceId:id,host:environment.DOCKER_HOST,source:'environment-host',platform};
   authority.daemonId=await authorityTools.inspectDockerDaemon({authority,execute,environment});
  }
- const source=sourceManifest(root),template=fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'),'utf8');
- const rendered=require('../render-mcp-sandbox-apparmor').renderMcpSandboxAppArmor(template,'dvaia-mcp-sandbox');
- const p={profile:{name:'dvaia-mcp-sandbox',sha256:hash(rendered)}};
+ const source=sourceManifest(root),template=fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'),'utf8');
+ const rendered=require('../render-mcp-sandbox-apparmor').renderMcpSandboxAppArmor(template,'owasp-ai-goat-mcp-sandbox');
+ const p={profile:{name:'owasp-ai-goat-mcp-sandbox',sha256:hash(rendered)}};
  const profile=await verifyProfile({p,authority,root,home,platform,run,allowPreparation:true});
  return Object.freeze({architecture,sourceSha256:source.sha256,dockerAuthoritySha256:authorityTools.authorityDigest(authority),profileVerified:profile?.profileVerified===true,profilePreparationRequired:profile?.profilePreparationRequired===true,mutating:false});
 }
@@ -96,9 +96,9 @@ async function prepare({root,homeDirectory=os.homedir(),platform=process.platfor
 async function prepareSelectedProfile({root,home,platform,environment,run}) {
  const authority=await authorityTools.readLocalDockerAuthority({directory:path.dirname(config.managedPath(root,home)),workspaceId:workspaceId(root),platform});
  if(!authority)throw fail('SYSTEM_INSTALL_AUTHORITY_REQUIRED');
- const template=fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'),'utf8');
- const rendered=require('../render-mcp-sandbox-apparmor').renderMcpSandboxAppArmor(template,'dvaia-mcp-sandbox');
- await _internals.prepareProfile({root,home,platform,environment,run,authority,p:{profile:{name:'dvaia-mcp-sandbox',sha256:hash(rendered)}}});
+ const template=fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'),'utf8');
+ const rendered=require('../render-mcp-sandbox-apparmor').renderMcpSandboxAppArmor(template,'owasp-ai-goat-mcp-sandbox');
+ await _internals.prepareProfile({root,home,platform,environment,run,authority,p:{profile:{name:'owasp-ai-goat-mcp-sandbox',sha256:hash(rendered)}}});
 }
 function loadCandidate({root,home=os.homedir()}) {
  const directory=path.dirname(config.managedPath(root,home));

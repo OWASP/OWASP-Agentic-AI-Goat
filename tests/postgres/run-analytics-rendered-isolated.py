@@ -71,12 +71,12 @@ def main(argv=None):
  NODE,DONOR,CACHE,BROWSER=work.run(lambda:validate(args,SOURCE))
  initial=work.run(lambda:inventory(SOURCE));donor_initial=work.run(lambda:inventory(DONOR));initial_modes=work.run(lambda:modes(SOURCE));donor_modes=work.run(lambda:modes(DONOR))
  DOCKER=args.docker_binary;HOST=args.docker_host;IMAGE=args.postgres_image;legacy=False
- root=Path(tempfile.mkdtemp(prefix='dvaia-analytics-rendered-')).resolve();os.chmod(root,0o700)
+ root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-analytics-rendered-')).resolve();os.chmod(root,0o700)
  workspace=root/'source';home=root/'home';home.mkdir(mode=0o700)
  workspace_id=hashlib.sha256(str(workspace).encode()).hexdigest()[:12]
- name='dvaia-analytics-'+workspace_id;volume=name+'-data'
+ name='owasp-ai-goat-analytics-'+workspace_id;volume=name+'-data'
  state_name=name+'-setup-state';state_owner=uuid.uuid4().hex
- env={'PATH':str(NODE.parent)+':'+str(Path(DOCKER).parent)+':/usr/bin:/bin','HOME':str(home),'DOCKER_HOST':HOST,'TMPDIR':str(root),'PG_TEST_DISPOSABLE':'yes','DVAIA_ISOLATED_TEST_WORKSPACE':str(workspace),'ANALYTICS_INSTALL_TEST_HOME':str(home),'ANALYTICS_INSTALL_TEST_RESULT':str(root/'result.json')}
+ env={'PATH':str(NODE.parent)+':'+str(Path(DOCKER).parent)+':/usr/bin:/bin','HOME':str(home),'DOCKER_HOST':HOST,'TMPDIR':str(root),'PG_TEST_DISPOSABLE':'yes','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE':str(workspace),'ANALYTICS_INSTALL_TEST_HOME':str(home),'ANALYTICS_INSTALL_TEST_RESULT':str(root/'result.json')}
  env.update({'ANALYTICS_DOCKER_BINARY':DOCKER,'ANALYTICS_DOCKER_SHA256':args.docker_sha256,'ANALYTICS_DOCKER_DAEMON':args.daemon_id,'ANALYTICS_POSTGRES_IMAGE':IMAGE})
  env['ANALYTICS_LEGACY_UPGRADE']='yes' if legacy else 'no'
  docker=[DOCKER,'--host',HOST];child=None;state={'workspaceId':workspace_id,'container':name,'volume':volume,'setupStateContainer':state_name,'setupStateOwner':state_owner,'status':'preparing','cleanup':None};log=root/'tests.log'
@@ -124,7 +124,7 @@ def main(argv=None):
   source_files.extend(workspace/file for file in ['scripts/local-docker-authority.js','scripts/lib/isolated-source-copy.js','tests/postgres/secureshopAnalyticsRendered.native.js','tests/postgres/run-analytics-rendered-isolated.py','package.json','package-lock.json'])
   state['sourceSha256']={str(file.relative_to(workspace)):digest(file) for file in sorted(set(source_files))};state['status']='running';persist()
   state['setupStateCreationAttempted']=True;persist()
-  run(docker+['run','--detach','--pull','never','--name',state_name,'--label','dvaia.test.owner='+state_owner,'--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=1073741824','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=100','-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
+  run(docker+['run','--detach','--pull','never','--name',state_name,'--label','owasp-ai-goat.test.owner='+state_owner,'--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=1073741824','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=100','-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
   state_container=inspect('container',state_name);state['setupStateContainerId']=state_container['Id'];persist()
   for attempt in range(80):
    ready=subprocess.run(docker+['exec',state_name,'pg_isready','-h','127.0.0.1','-U','postgres'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=min(2,work.remaining()))
@@ -173,20 +173,20 @@ def main(argv=None):
   def clean_setup():
    daemon();item=inspect('container',state_name)
    if item:
-    assert state.get('setupStateCreationAttempted') and item['Config']['Labels'].get('dvaia.test.owner')==state_owner and item['Image']==IMAGE and item['Name']=='/'+state_name
+    assert state.get('setupStateCreationAttempted') and item['Config']['Labels'].get('owasp-ai-goat.test.owner')==state_owner and item['Image']==IMAGE and item['Name']=='/'+state_name
     if state.get('setupStateContainerId'):assert item['Id']==state['setupStateContainerId']
     run(docker+['rm','-f',item['Id']],stdout=subprocess.DEVNULL)
    assert inspect('container',state_name) is None
   try:budget.run(clean_setup)
   except Exception as error:errors.append('setup-state:'+type(error).__name__)
   def clean_analytics(kind,identifier):
-   daemon();intent_file=home/'.dvaia'/workspace_id/'analytics-install-intent.json'
+   daemon();intent_file=home/'.owasp-ai-goat'/workspace_id/'analytics-install-intent.json'
    intent=json.loads(intent_file.read_text()) if intent_file.exists() else None
    item=inspect(kind,identifier)
    if item:
     labels=item['Config']['Labels'] if kind=='container' else item['Labels']
     assert intent and intent['workspaceId']==workspace_id and intent['imageId']==IMAGE
-    assert labels.get('dvaia.owner')==intent['ownerId'] and labels.get('dvaia.workspace')==workspace_id and labels.get('dvaia.purpose')=='owned-analytics'
+    assert labels.get('owasp-ai-goat.owner')==intent['ownerId'] and labels.get('owasp-ai-goat.workspace')==workspace_id and labels.get('owasp-ai-goat.purpose')=='owned-analytics'
     if kind=='container':assert item['Image']==IMAGE and item['Name']=='/'+identifier
     else:assert item['Name']==identifier
     run(docker+(['rm','-f',item['Id']] if kind=='container' else ['volume','rm',identifier]),stdout=subprocess.DEVNULL)

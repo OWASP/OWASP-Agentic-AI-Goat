@@ -21,13 +21,13 @@ def legacy_main():
     parser.add_argument('--docker-host', required=True)
     args = parser.parse_args()
     source = Path(__file__).resolve().parents[2]
-    root = Path(tempfile.mkdtemp(prefix='dvaia-secureshop-loop-assessment-'))
+    root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-secureshop-loop-assessment-'))
     workspace = root / 'source'
     workspace.mkdir()
     os.chmod(root, 0o700)
     base_env = {key: os.environ[key] for key in ['PATH', 'HOME', 'TMPDIR'] if key in os.environ}
     docker = ['docker', '--host', args.docker_host]
-    container = 'dvaia-secureshop-loop-assessment-' + uuid.uuid4().hex[:12]
+    container = 'owasp-ai-goat-secureshop-loop-assessment-' + uuid.uuid4().hex[:12]
     started = False
     child = None
 
@@ -96,7 +96,7 @@ def legacy_main():
             for role in [migration_role, runtime_role]:
                 run(psql + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE '
                                   'NOREPLICATION NOBYPASSRLS'], stdout=subprocess.DEVNULL)
-            database = f'dvaia_test_secureshop_loop_{label}'
+            database = f'owasp_ai_goat_test_secureshop_loop_{label}'
             run(psql + ['-c', f'CREATE DATABASE {database} OWNER {migration_role}'], stdout=subprocess.DEVNULL)
             run(psql + ['-c', f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; '
                               f'GRANT CONNECT ON DATABASE {database} TO {migration_role}, {runtime_role}'],
@@ -108,7 +108,7 @@ def legacy_main():
         env = dict(base_env, NODE_ENV='test', PLATFORM_DATABASE_ENGINE='postgres',
                    WORKSHOP_DATABASE_ENGINE='postgres',
                    PG_TEST_DISPOSABLE='yes', LIVE_OLLAMA_TEST='1',
-                   DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true',
+                   OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true',
                    OLLAMA_BASE_URL=os.environ.get('OLLAMA_BASE_URL', 'http://127.0.0.1:11434'),
                    OLLAMA_MODEL='llama3.1:8b', JUDGE_PROVIDER='ollama', JUDGE_MODEL='llama3.1:8b',
                    PG_SECURESHOP_LOOP_ASSESSMENT_IDENTITY_MIGRATION_URL=urls['identity']['migration'],
@@ -324,12 +324,12 @@ def checked_command(response, code, state):
 def validate_registry_config(value):
     import re
     if not isinstance(value,dict) or set(value)!={'imageId','runtimeDigest','apparmorProfile'}:raise ValueError('Closed registry configuration required')
-    if not re.fullmatch(r'sha256:[0-9a-f]{64}',value['imageId']) or not re.fullmatch(r'[0-9a-f]{64}',value['runtimeDigest']) or not re.fullmatch(r'dvaia-owned-mcp-registry-[0-9a-f]{12}',value['apparmorProfile']):raise ValueError('Pinned registry runtime required')
+    if not re.fullmatch(r'sha256:[0-9a-f]{64}',value['imageId']) or not re.fullmatch(r'[0-9a-f]{64}',value['runtimeDigest']) or not re.fullmatch(r'owasp-ai-goat-owned-mcp-registry-[0-9a-f]{12}',value['apparmorProfile']):raise ValueError('Pinned registry runtime required')
     return value
 
 def registry_network_layout(row,name,owner,container_id=None):
     # Only trusted control-plane code uses this bridge; each SDK operation unshares its network.
-    if row.get('Name')!=name or row.get('Driver')!='bridge' or row.get('Internal') is not False or row.get('EnableIPv6') is not False or row.get('Labels',{}).get('dvaia.owner')!=owner or set(row.get('Containers',{}))!=(set() if container_id is None else {container_id}):raise ValueError('Registry network mismatch')
+    if row.get('Name')!=name or row.get('Driver')!='bridge' or row.get('Internal') is not False or row.get('EnableIPv6') is not False or row.get('Labels',{}).get('owasp-ai-goat.owner')!=owner or set(row.get('Containers',{}))!=(set() if container_id is None else {container_id}):raise ValueError('Registry network mismatch')
     return row['Id']
 
 def registry_layout(row,network,labels,image):
@@ -400,7 +400,7 @@ def registry_role_chat_wire_counts(counts,model_calls):
     return counts
 
 def upgrade_database_sql():
-    return 'CREATE DATABASE dvaia_test_secureshop_loop_agents_upgrade OWNER dvaia_secureshop_agents_migration; REVOKE CONNECT ON DATABASE dvaia_test_secureshop_loop_agents_upgrade FROM PUBLIC; GRANT CONNECT ON DATABASE dvaia_test_secureshop_loop_agents_upgrade TO dvaia_secureshop_agents_migration,dvaia_secureshop_agents_runtime;'
+    return 'CREATE DATABASE owasp_ai_goat_test_secureshop_loop_agents_upgrade OWNER dvaia_secureshop_agents_migration; REVOKE CONNECT ON DATABASE owasp_ai_goat_test_secureshop_loop_agents_upgrade FROM PUBLIC; GRANT CONNECT ON DATABASE owasp_ai_goat_test_secureshop_loop_agents_upgrade TO dvaia_secureshop_agents_migration,dvaia_secureshop_agents_runtime;'
 
 def registry_upgrade_receipt(value):
     if not isinstance(value,dict) or value.get('status')!='passed':raise ValueError('Upgrade proof missing')
@@ -414,13 +414,13 @@ def registry_upgrade_receipt(value):
 def validate_replacement_config(value,docker_host):
     import re
     if not isinstance(value,dict) or set(value)!={'previousBuild','nextBuild','home','colimaProfile','sshSha256','sshConfigSha256'}:raise ValueError('Replacement manifest shape')
-    if value['colimaProfile']!='colima-dvaia-pg-verify' or not Path(value['home']).is_absolute():raise ValueError('Replacement host authority')
-    if docker_host!='unix://'+str(Path(value['home'])/'.colima/dvaia-pg-verify/docker.sock'):raise ValueError('Replacement daemon authority')
+    if value['colimaProfile']!='colima-owasp-ai-goat-pg-verify' or not Path(value['home']).is_absolute():raise ValueError('Replacement host authority')
+    if docker_host!='unix://'+str(Path(value['home'])/'.colima/owasp-ai-goat-pg-verify/docker.sock'):raise ValueError('Replacement daemon authority')
     for key in ['previousBuild','nextBuild']:
         b=value[key]
         if b.get('version')!=1 or b.get('dockerHost')!=docker_host or not re.fullmatch(r'sha256:[a-f0-9]{64}',b.get('imageId','')) or not re.fullmatch(r'[a-f0-9]{64}',b.get('packageDigest','')):raise ValueError('Replacement build pin')
     if value['previousBuild']['imageId']==value['nextBuild']['imageId']:raise ValueError('Distinct replacement image required')
-    if digest('/usr/bin/ssh')!=value['sshSha256'] or digest(Path(value['home'])/'.colima/_lima/colima-dvaia-pg-verify/ssh.config')!=value['sshConfigSha256']:raise ValueError('Replacement SSH authority')
+    if digest('/usr/bin/ssh')!=value['sshSha256'] or digest(Path(value['home'])/'.colima/_lima/colima-owasp-ai-goat-pg-verify/ssh.config')!=value['sshConfigSha256']:raise ValueError('Replacement SSH authority')
     return value
 
 def registry_replacement_receipt(value):
@@ -442,7 +442,7 @@ def cleanup_replacement_resources(command,evidence,config,source):
     for item in reversed(rows):
         kind=item['kind'];identity=item['id'];name=item['name']
         import re
-        if kind not in ['container','network'] or identity is not None and not re.fullmatch('[a-f0-9]{64}',identity) or not re.fullmatch('dvaia-owned-mcp-registry-[a-f0-9]{12}-qualification-[a-f0-9]{12}(?:-internal|-assets-[a-f0-9-]+)?',name):raise RuntimeError('Replacement identity invalid')
+        if kind not in ['container','network'] or identity is not None and not re.fullmatch('[a-f0-9]{64}',identity) or not re.fullmatch('owasp-ai-goat-owned-mcp-registry-[a-f0-9]{12}-qualification-[a-f0-9]{12}(?:-internal|-assets-[a-f0-9-]+)?',name):raise RuntimeError('Replacement identity invalid')
         r=command([kind,'inspect',identity or name])
         if r.returncode==0:
             row=json.loads(r.stdout)[0]
@@ -452,12 +452,12 @@ def cleanup_replacement_resources(command,evidence,config,source):
                 identity=row['Id']
             if kind=='container':
                 labels=row['Config'].get('Labels',{});namespace=item['namespace']
-                if row['Image'] not in [config['previousBuild']['imageId'],config['nextBuild']['imageId']] or not (labels.get('dvaia.registry.namespace')==namespace or labels.get('dvaia.registry.probe')==item['workspace']):raise RuntimeError('Replacement cleanup ownership mismatch')
+                if row['Image'] not in [config['previousBuild']['imageId'],config['nextBuild']['imageId']] or not (labels.get('owasp-ai-goat.registry.namespace')==namespace or labels.get('owasp-ai-goat.registry.probe')==item['workspace']):raise RuntimeError('Replacement cleanup ownership mismatch')
                 # Replacement renames the exact old ID; its namespace remains immutable.
                 if row['State']['Running']:checked_command(command(['stop','--time','10',identity]),'REPLACEMENT_STOP_FAILED',{})
                 checked_command(command(['rm',identity]),'REPLACEMENT_REMOVE_FAILED',{})
             else:
-                if row['Name']!=name or row.get('Labels',{}).get('dvaia.registry.namespace')!=item['namespace'] or row.get('Containers'):raise RuntimeError('Replacement network ownership mismatch')
+                if row['Name']!=name or row.get('Labels',{}).get('owasp-ai-goat.registry.namespace')!=item['namespace'] or row.get('Containers'):raise RuntimeError('Replacement network ownership mismatch')
                 checked_command(command(['network','rm',identity]),'REPLACEMENT_NETWORK_REMOVE_FAILED',{})
         r=command([kind,'inspect',identity or name])
         if r.returncode==0 or not ('no such' in r.stderr.lower() or 'not found' in r.stderr.lower()):raise RuntimeError('Replacement absence unverified')
@@ -508,7 +508,7 @@ def main_current(argv):
     evidence=Path(tempfile.mkdtemp(prefix='run-',dir=parent));runtime=evidence/'runtime';runtime.mkdir(mode=0o700)
     for name in ['home','tmp','logs','assets']:(runtime/name).mkdir(mode=0o700)
     clean={'PATH':str(Path(args.node).parent)+':'+str(Path(args.docker).parent)+':/usr/bin:/bin','HOME':str(runtime/'home'),'TMPDIR':str(runtime/'tmp'),'LANG':'C','DOCKER_HOST':args.docker_host}
-    owner=str(uuid.uuid4());name='dvaia-secureshop-loop-'+uuid.uuid4().hex[:12];labels={'dvaia.owner':owner,'dvaia.cohort':COHORT}
+    owner=str(uuid.uuid4());name='owasp-ai-goat-secureshop-loop-'+uuid.uuid4().hex[:12];labels={'owasp-ai-goat.owner':owner,'owasp-ai-goat.cohort':COHORT}
     state={'cohort':COHORT,'sourceRoot':str(source),'parentPid':os.getpid(),'owner':owner,'children':[],'nativeStarted':False,'manifestSha256':args.manifest_sha256,'containerName':name,'containerLabels':labels,'imageId':args.image_id,'dockerDaemon':args.docker_daemon,'creationAttempted':False}
     def record():publish(evidence/'ownership.json',state)
     deadline=time.monotonic()+work_seconds
@@ -565,14 +565,14 @@ def main_current(argv):
         if check.returncode or check.stdout.strip()!='0':raise RuntimeError('Empty owned cluster required')
         env={**clean,'NODE_ENV':'test','PLATFORM_DATABASE_ENGINE':'postgres','WORKSHOP_DATABASE_ENGINE':'postgres','PG_TEST_DISPOSABLE':'yes','LIVE_OLLAMA_TEST':'1','PG_SECURESHOP_LOOP_MAIN':'1','SECURESHOP_LOOP_EVIDENCE':str(evidence),'SECURESHOP_LOOP_OWNER':owner,'SECURESHOP_LOOP_MANIFEST':str(Path(args.manifest).resolve()),'SECURESHOP_LOOP_MANIFEST_SHA256':args.manifest_sha256,'AWS_EC2_METADATA_DISABLED':'true','LOGS_DIR':str(runtime/'logs'),'LEGACY_SENSITIVE_FILES_ROOT':str(runtime/'assets'),'JUDGE_PROVIDER':'ollama','JUDGE_MODEL':'llama3.1:8b','PG_TLS':'disable'}
         for key,label,store in [('IDENTITY','identity','identity'),('REVIEW','review','secureshop_review'),('AGENTS','agents','secureshop_agents')]+([('COMMERCE','commerce','secureshop')] if args.profile=='registry-rendered' else []):
-            migration='dvaia_'+store+'_migration';role='dvaia_'+store+'_runtime';database='dvaia_test_secureshop_loop_'+label
+            migration='dvaia_'+store+'_migration';role='dvaia_'+store+'_runtime';database='owasp_ai_goat_test_secureshop_loop_'+label
             sql=f'CREATE ROLE {migration} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE DATABASE {database} OWNER {migration}; REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{role};'
             # psql stdin statements preserve CREATE DATABASE outside an implicit multi-command transaction.
             phase('provision-'+label)
             checked_command(command(owned_psql_args(captured,True),input=sql),'STORE_PROVISION_FAILED',state)
             for kind,username in [('MIGRATION',migration),('RUNTIME',role)]:env['PG_SECURESHOP_LOOP_ASSESSMENT_'+key+'_'+kind+'_URL']=f'postgresql://{username}@127.0.0.1:{port}/{database}'
         if args.registry_invocation_upgrade:
-            database='dvaia_test_secureshop_loop_agents_upgrade'
+            database='owasp_ai_goat_test_secureshop_loop_agents_upgrade'
             sql=upgrade_database_sql()
             phase('provision-agents-upgrade')
             checked_command(command(owned_psql_args(captured,True),input=sql),'STORE_PROVISION_FAILED',state)
@@ -585,7 +585,7 @@ def main_current(argv):
             if docker_module.inspect_owned(command,name=registry,labels=labels,image=config['imageId']) is not None:raise RuntimeError('Registry collision')
             existing=command(['network','inspect',registry_network])
             if existing.returncode==0 or 'not found' not in existing.stderr.lower() and 'no such' not in existing.stderr.lower():raise RuntimeError('Network absence unverified')
-            checked_command(command(['network','create','--driver','bridge','--label','dvaia.owner='+owner,registry_network]),'REGISTRY_NETWORK_CREATE_FAILED',state)
+            checked_command(command(['network','create','--driver','bridge','--label','owasp-ai-goat.owner='+owner,registry_network]),'REGISTRY_NETWORK_CREATE_FAILED',state)
             net=json.loads(checked_command(command(['network','inspect',registry_network]),'REGISTRY_NETWORK_INSPECT_FAILED',state).stdout)[0]
             registry_network_layout(net,registry_network,owner)
             state['registryNetworkId']=net['Id'];state['registryNetworkName']=registry_network
@@ -666,7 +666,7 @@ def main_current(argv):
                     found=command(['network','inspect',registry_network])
                     if found.returncode==0:
                         net=json.loads(found.stdout)[0]
-                        if net['Id']!=state.get('registryNetworkId') or net.get('Labels',{}).get('dvaia.owner')!=owner or net.get('Containers'):raise RuntimeError('Network cleanup authority mismatch')
+                        if net['Id']!=state.get('registryNetworkId') or net.get('Labels',{}).get('owasp-ai-goat.owner')!=owner or net.get('Containers'):raise RuntimeError('Network cleanup authority mismatch')
                         checked_command(command(['network','rm',registry_network]),'REGISTRY_NETWORK_REMOVE_FAILED',state)
                         found=command(['network','inspect',registry_network])
                     if found.returncode==0 or 'not found' not in found.stderr.lower() and 'no such' not in found.stderr.lower():raise RuntimeError('Network absence unverified')

@@ -17,7 +17,7 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes'
 test('review target reservations preserve exact launch authority and existing files behavior', { skip: !enabled }, async t => {
   for (const key of ['PG_SECURESHOP_REVIEW_RESERVATION_TEST_MIGRATION_URL', 'PG_SECURESHOP_REVIEW_RESERVATION_TEST_RUNTIME_URL']) {
     const url = new URL(process.env[key]);
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
     assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
   }
   const migration = new Pool({ connectionString: process.env.PG_SECURESHOP_REVIEW_RESERVATION_TEST_MIGRATION_URL, max: 2 });

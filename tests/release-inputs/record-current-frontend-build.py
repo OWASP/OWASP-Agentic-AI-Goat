@@ -52,7 +52,7 @@ def private_inputs(root):
  'recorderPins':{n:digest(root/n) for n in ['tests/release-inputs/record-current-frontend-build.py','tests/postgres/sql_nosql_process_ownership.py','tests/postgres/darwin_process_inventory.py']}}
 def private_env(root,private,node):
  env=clean_env(root,private,node);output=private/'output/application'
- env.update(BUILD_PATH=str(output),DVAIA_VITE_ENV_DIR=str(private/'env'),TMP=str(private/'tmp'),TEMP=str(private/'tmp'),XDG_CACHE_HOME=str(private/'cache'))
+ env.update(BUILD_PATH=str(output),OWASP_AI_GOAT_VITE_ENV_DIR=str(private/'env'),TMP=str(private/'tmp'),TEMP=str(private/'tmp'),XDG_CACHE_HOME=str(private/'cache'))
  for key,name in [('REVIEW','review'),('PRODUCT_DESCRIPTION','product-description'),('MAIL','mail'),('TICKET','ticket'),('SEARCH_ECHO','search-echo'),('POLICY_OUTPUT','policy-output')]:env['SECURESHOP_'+key+'_RENDERER_OUT_DIR']=str(output/('secureshop-'+name+'-renderer'))
  return env
 def validate_renderers(root,build):
@@ -77,7 +77,7 @@ def validate_renderers(root,build):
   if (directory/artifact).resolve()!=directory/artifact:raise RuntimeError('Noncanonical renderer artifact')
   if artifact.name!=str(artifact) or digest(directory/artifact)!=manifest['artifactSha256']:raise RuntimeError('Renderer artifact mismatch')
 def private_command(node):
- return [str(node),'--input-type=module','-e',"import {build} from 'vite'; import path from 'node:path'; for (const name of ['vite.config.mjs','vite.review-renderer.config.mjs','vite.product-description-renderer.config.mjs','vite.mail-renderer.config.mjs','vite.ticket-renderer.config.mjs','vite.search-echo-renderer.config.mjs','vite.policy-output-renderer.config.mjs']) { await build({root:process.cwd(),configFile:path.resolve(name),configLoader:'native',envDir:process.env.DVAIA_VITE_ENV_DIR,cacheDir:path.join(process.env.TMPDIR,'vite-cache')}); }"]
+ return [str(node),'--input-type=module','-e',"import {build} from 'vite'; import path from 'node:path'; for (const name of ['vite.config.mjs','vite.review-renderer.config.mjs','vite.product-description-renderer.config.mjs','vite.mail-renderer.config.mjs','vite.ticket-renderer.config.mjs','vite.search-echo-renderer.config.mjs','vite.policy-output-renderer.config.mjs']) { await build({root:process.cwd(),configFile:path.resolve(name),configLoader:'native',envDir:process.env.OWASP_AI_GOAT_VITE_ENV_DIR,cacheDir:path.join(process.env.TMPDIR,'vite-cache')}); }"]
 def clean_env(root,private,node,*,repository_only=False):
  search_path=str(node.parent)+(':/opt/homebrew/bin' if repository_only else '')+':/usr/bin:/bin:/usr/sbin:/sbin'
  env={'PATH':search_path,'TMPDIR':str(private/'tmp'),

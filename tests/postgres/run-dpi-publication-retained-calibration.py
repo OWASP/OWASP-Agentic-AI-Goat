@@ -2,7 +2,7 @@
 """Owned model-only retained dpi-answer diagnostic. No database/browser/credit."""
 import argparse,hashlib,json,os,signal,subprocess,tempfile,time
 from pathlib import Path
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 EXPECTED_NODE='56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 SOURCE=Path(__file__).resolve().parents[2]
 parser=argparse.ArgumentParser();parser.add_argument('--preflight-only',action='store_true');args=parser.parse_args()
@@ -12,7 +12,7 @@ REPORT=SOURCE/'tasks/dpi-owned-decoder-v10-actual-2026-09-26.json'
 retained=json.loads(REPORT.read_text());original=Path(retained['root'])/'candidate-result.json';expected_input=retained['artifactSha256']['candidate-result.json']
 digest=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
 if digest(NODE)!=EXPECTED_NODE or digest(original)!=expected_input:raise SystemExit('Reviewed runtime or immutable retained packet mismatch')
-root=Path(tempfile.mkdtemp(prefix='dvaia-dpi-publication-calibration-'));os.chmod(root,0o700)
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-dpi-publication-calibration-'));os.chmod(root,0o700)
 state={'mode':'dpi-publication-diagnostic','launcherPid':os.getpid(),'status':'preparing','bounds':{'parentSeconds':parent_seconds,'childSeconds':child_seconds,'maxActualHttp':max_http,'perHttpSeconds':60},'nodeSha256':EXPECTED_NODE,'noDatabase':True,'noBrowser':True,'noActor':True,'noCredit':True}
 def persist(): (root/'ownership.json').write_text(json.dumps(state,indent=2)+'\n')
 child=None

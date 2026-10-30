@@ -45,7 +45,7 @@ function storeUrls() {
       assert.equal(url.password, '');
       assert.equal(url.search, '');
       assert.equal(url.hash, '');
-      const match = new RegExp(`^/dvaia_test_agent_host_([0-9a-f]{12})_${names[store]}$`)
+      const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([0-9a-f]{12})_${names[store]}$`)
         .exec(url.pathname);
       assert.ok(match, `closed disposable database name required for ${key}`);
       nonce ??= match[1];
@@ -203,7 +203,7 @@ async function browserBoundRequest(page, authority, method, route, body) {
         credentials: 'include',
         headers: {
           Authorization: authority.authorization,
-          'X-DVAIA-SecureShop-Launch': authority.launch,
+          'X-OWASP-AI-GOAT-SecureShop-Launch': authority.launch,
           ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -279,7 +279,7 @@ test('rendered identity sessions reject a shared browser context', () => {
 test('standalone rendered listings boundary reports disabled 503 and unknown 404 without legacy fallthrough',
   { skip: !ENABLED, timeout: 300000 }, async () => {
     qualificationDeadline = Date.now() + QUALIFICATION_WORK_TIMEOUT_MS;
-    const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
+    const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/');
     assert.equal(workspace, process.cwd(), 'qualification must use the current checkout');
     const build = path.resolve(process.env.SECURESHOP_STANDALONE_ROUTE_AVAILABILITY_BUILD
       || path.join(workspace, 'client/build'));
@@ -455,7 +455,7 @@ test('standalone rendered listings boundary reports disabled 503 and unknown 404
       app.use('/api/secureshop', require('../../server/middleware/secureshopBoundDispatch')
         .createSecureShopBoundDispatch({ getGateway: () => bound.gateway }));
       app.use('/api/secureshop', (request, response, next) => {
-        if (request.headers['x-dvaia-secureshop-launch']) {
+        if (request.headers['x-owasp-ai-goat-secureshop-launch']) {
           legacyFallbackHits++;
           return response.status(200).json({ legacy: true });
         }
@@ -470,7 +470,7 @@ test('standalone rendered listings boundary reports disabled 503 and unknown 404
         response.set('Access-Control-Allow-Origin', '*') }));
       app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
 
-      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-secureshop-route-'));
+      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-secureshop-route-'));
       setPhase('browser-launch');
       browser = await phaseStep(phase, () => require('puppeteer').launch({ headless: true,
         userDataDir: profile, executablePath, timeout: BROWSER_STEP_TIMEOUT_MS,
@@ -494,9 +494,9 @@ test('standalone rendered listings boundary reports disabled 503 and unknown 404
               responseAt: null, status: null, finishedAt: null, failedAt: null, failureText: null };
             readinessLifecycle.push(record); readinessRecords.set(request, record);
             const headers = request.headers();
-            if (headers.authorization && headers['x-dvaia-secureshop-launch']) {
+            if (headers.authorization && headers['x-owasp-ai-goat-secureshop-launch']) {
               page.__routeAuthority = Object.freeze({ authorization: headers.authorization,
-                launch: headers['x-dvaia-secureshop-launch'] });
+                launch: headers['x-owasp-ai-goat-secureshop-launch'] });
             }
           }
         });

@@ -11,7 +11,7 @@ const sourceRoot = path.resolve(__dirname, '..');
 const bootstrapSource = path.join(sourceRoot, 'scripts/install/bootstrap-unix.sh');
 const macSource = path.join(sourceRoot, 'scripts/install/macos-prerequisites.sh');
 const linuxSource = path.join(sourceRoot, 'scripts/install/linux-prerequisites.sh');
-const linuxWrapperSource = path.join(sourceRoot, 'scripts/install/Ubuntu/install-dvaia-ubuntu.sh');
+const linuxWrapperSource = path.join(sourceRoot, 'scripts/install/Ubuntu/install-owasp-ai-goat-ubuntu.sh');
 const runtimePolicySource = path.join(sourceRoot, 'scripts/install/runtime-version-policy.sh');
 
 // Transform only fixture boundaries; never materialize production shell bodies.
@@ -41,7 +41,7 @@ function fixtureBody(root, kind) {
 }
 function installDispatcher(root, bin) {
   const config = { bootstrapSource, macSource, linuxSource, linuxWrapperSource, runtimePolicySource };
-  const body = `#!${process.execPath}\n'use strict';\nconst fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');\nconst {spawnSync}=require('node:child_process');\nconst {bootstrapSource,macSource,linuxSource,linuxWrapperSource,runtimePolicySource}=${JSON.stringify(config)};\n${shellQuote.toString()}\n${replaceExact.toString()}\n${fixtureBody.toString()}\nconst root=${JSON.stringify(root)},requested=process.argv[2];\nconst routes=new Map([[path.join(root,'scripts/install/Ubuntu/install-dvaia-ubuntu.sh'),'wrapper'],[path.join(root,'scripts/install/bootstrap-unix.sh'),'bootstrap']]);\nassert.ok(routes.has(requested),'Unknown fixture bash route');\nconst result=spawnSync('/bin/bash',['-s','--',...process.argv.slice(3)],{input:fixtureBody(root,routes.get(requested)),env:process.env,stdio:['pipe','inherit','inherit']});\nif(result.error)throw result.error;process.exit(result.status===null?1:result.status);\n`;
+  const body = `#!${process.execPath}\n'use strict';\nconst fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');\nconst {spawnSync}=require('node:child_process');\nconst {bootstrapSource,macSource,linuxSource,linuxWrapperSource,runtimePolicySource}=${JSON.stringify(config)};\n${shellQuote.toString()}\n${replaceExact.toString()}\n${fixtureBody.toString()}\nconst root=${JSON.stringify(root)},requested=process.argv[2];\nconst routes=new Map([[path.join(root,'scripts/install/Ubuntu/install-owasp-ai-goat-ubuntu.sh'),'wrapper'],[path.join(root,'scripts/install/bootstrap-unix.sh'),'bootstrap']]);\nassert.ok(routes.has(requested),'Unknown fixture bash route');\nconst result=spawnSync('/bin/bash',['-s','--',...process.argv.slice(3)],{input:fixtureBody(root,routes.get(requested)),env:process.env,stdio:['pipe','inherit','inherit']});\nif(result.error)throw result.error;process.exit(result.status===null?1:result.status);\n`;
   fs.writeFileSync(path.join(bin, 'bash'), body, { mode: 0o700 });
 }
 function invokeBootstrap(value, osName, args) {
@@ -52,14 +52,14 @@ function invokeBootstrap(value, osName, args) {
 
 test('Linux installer pins the verified current Node release and its checksum manifest', () => {
   const source = fs.readFileSync(linuxSource, 'utf8');
-  assert.match(source, /release="v\$\{DVAIA_MINIMUM_NODE_VERSION\}"/);
+  assert.match(source, /release="v\$\{OWASP_AI_GOAT_MINIMUM_NODE_VERSION\}"/);
   assert.match(source, /nodejs\.org\/dist\/\$\{release\}\/SHASUMS256\.txt/);
   assert.match(source, /sha256sum -c selected\.sha256/);
 });
 
 function fixture({ commands = [], osName = 'Darwin', withCurl = true,
   composePluginInstall = false } = {}) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-install-bootstrap-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-install-bootstrap-'));
   const scripts = path.join(root, 'scripts/install');
   const bin = path.join(root, 'fake-bin');
   const log = path.join(root, 'commands.log');
@@ -144,7 +144,7 @@ test('Unix policy-renderer flags are paired, nonmutating in plan, and forwarded 
 function linuxFixture({ distro = 'ubuntu', arch = 'x86_64', aptFails = false, missingNpm = false,
   refreshDockerGroup = false, legacyComposeOnly = false, composePluginInstall = false,
   snapInstalled = false, snapInstallFails = false } = {}) {
-  const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'dvaia-install-linux-'));
+  const root = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'owasp-ai-goat-install-linux-'));
   const scripts = path.join(root, 'scripts/install');
   const bin = path.join(root, 'fake-bin');
   const log = path.join(root, 'commands.log');
@@ -189,7 +189,7 @@ case "$1" in
     shift
     [ "$1" = --user ] && shift 2
     [ "$1" = -- ] && shift
-    for name in XENOVA_CACHE HF_HUB_OFFLINE TRANSFORMERS_OFFLINE PG_ADMIN_DATABASE_URL PG_TLS DOCKER_HOST DOCKER_CONTEXT DOCKER_CONFIG IPI_EMAIL_PROVIDER MCP_SIDECARS_AUTOSTART SANDBOX_RUNNER_URL TEAM_ID ECS_CONTAINER_METADATA_URI_V4 LEGACY_SENSITIVE_FILES_ROOT DVAIA_APP_DATA_ROOT NODE_USE_SYSTEM_CA NODE_EXTRA_CA_CERTS SSL_CERT_FILE SSL_CERT_DIR NODE_OPTIONS npm_config_cafile NPM_CONFIG_CAFILE npm_config_ca NPM_CONFIG_CA UNLISTED_INSTALL_SENTINEL; do
+    for name in XENOVA_CACHE HF_HUB_OFFLINE TRANSFORMERS_OFFLINE PG_ADMIN_DATABASE_URL PG_TLS DOCKER_HOST DOCKER_CONTEXT DOCKER_CONFIG IPI_EMAIL_PROVIDER MCP_SIDECARS_AUTOSTART SANDBOX_RUNNER_URL TEAM_ID ECS_CONTAINER_METADATA_URI_V4 LEGACY_SENSITIVE_FILES_ROOT OWASP_AI_GOAT_APP_DATA_ROOT NODE_USE_SYSTEM_CA NODE_EXTRA_CA_CERTS SSL_CERT_FILE SSL_CERT_DIR NODE_OPTIONS npm_config_cafile NPM_CONFIG_CAFILE npm_config_ca NPM_CONFIG_CA UNLISTED_INSTALL_SENTINEL; do
       case "$keep" in
         *,"$name",*) ;;
         *) unset "$name" ;;
@@ -228,7 +228,7 @@ esac` : 'echo "sudo $*" >> "$FAKE_LOG"; "$@"');
     ? '[ "$1" = show ] && [ "$2" = docker-compose-plugin ]'
     : 'exit 1');
   write('docker', refreshDockerGroup
-    ? 'echo "docker $*" >> "$FAKE_LOG"; if [ "$1" = info ] && [ "${FAKE_SUDO_ROOT:-0}" != 1 ] && [ "${DVAIA_INSTALL_GROUP_REFRESHED:-0}" != 1 ]; then exit 1; fi; exit 0'
+    ? 'echo "docker $*" >> "$FAKE_LOG"; if [ "$1" = info ] && [ "${FAKE_SUDO_ROOT:-0}" != 1 ] && [ "${OWASP_AI_GOAT_INSTALL_GROUP_REFRESHED:-0}" != 1 ]; then exit 1; fi; exit 0'
     : legacyComposeOnly
       ? 'echo "docker $*" >> "$FAKE_LOG"; [ "$1" = compose ] && exit 9; exit 0'
       : composePluginInstall

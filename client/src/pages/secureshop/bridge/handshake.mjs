@@ -1,7 +1,7 @@
 import { createHostTransport, createFrameTransport } from './transport.mjs';
 import { createHostShopStateChannel, connectFrameShopState } from './stateChannel.mjs';
 
-const CHANNEL = 'dvaia-secureshop-bridge-v1';
+const CHANNEL = 'owasp-ai-goat-secureshop-bridge-v1';
 const mountedFrames = new WeakSet();
 const cancelled = () => new DOMException('Shop frame disconnected', 'AbortError');
 const validNonce = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
@@ -16,7 +16,8 @@ const envelope = (data, type, nonce) => data && typeof data === 'object'
 // One instance owns one iframe document and one launch generation. A reset or
 // navigation must dispose it and create a new instance, never recycle its port.
 export function mountShopFrame({ frame, url, origin, compileOperation, getLaunchBearer,
-  hostWindow = globalThis.window, timeoutMs = 15000, transportOptions = {}, stateStore, onActivity = () => {} }) {
+  hostWindow = globalThis.window, timeoutMs = 15000, transportOptions = {}, stateStore,
+  onActivity = () => {}, onDisconnect = () => {}, waitForInitialLoad = false }) {
   validOrigin(origin);
   const target = new URL(url, origin);
   if (target.origin !== origin || target.username || target.password) throw new TypeError('Same-origin shop entry required');
@@ -30,8 +31,13 @@ export function mountShopFrame({ frame, url, origin, compileOperation, getLaunch
   // form-action CSP blocks native transport, and the remaining sandbox flags
   // preserve the opaque boundary.
   frame.setAttribute('sandbox', 'allow-scripts allow-forms');
-  frame.src = target.href;
+  frame.setAttribute('loading', 'eager');
+  // Production hosts wait for the new browsing context's first empty load
+  // before navigating it; that load must never establish an authenticated port.
+  frame.src = waitForInitialLoad ? 'about:blank' : target.href;
+  let entryNavigationStarted = !waitForInitialLoad;
   let closed = false; let connected = false; let loaded = false; let transport; let stateTransport;
+  let closeError = cancelled();
   let lastActivity = 0;
   let resolveReady; let rejectReady;
   const ready = new Promise((resolve, reject) => { resolveReady = resolve; rejectReady = reject; });
@@ -41,10 +47,18 @@ export function mountShopFrame({ frame, url, origin, compileOperation, getLaunch
     hostWindow.removeEventListener('message', receive);
     hostWindow.removeEventListener('pagehide', close);
     frame.removeEventListener('load', onLoad);
-    transport?.close(); stateTransport?.close(); rejectReady(cancelled());
+    transport?.close(); stateTransport?.close(); rejectReady(closeError);
   };
   const onLoad = () => {
-    if (loaded) { close(); return; }
+    if (!entryNavigationStarted) {
+      entryNavigationStarted = true;
+      frame.src = target.href;
+      return;
+    }
+    // A fresh iframe may load about:blank before its entry document. No port or
+    // authority has been transferred until a verified ready message arrives.
+    // Once connected, navigation must revoke those ports and use a fresh frame.
+    if (connected) { close(); onDisconnect(); return; }
     loaded = true;
     try { frame.contentWindow.postMessage({ channel: CHANNEL, type: 'offer', nonce }, '*'); } catch { close(); }
   };
@@ -72,7 +86,12 @@ export function mountShopFrame({ frame, url, origin, compileOperation, getLaunch
       frame.contentWindow.postMessage({ channel: CHANNEL, type: 'connect', nonce }, '*', ports);
     } catch { channel?.port1.close(); channel?.port2.close(); stateChannel?.port1.close(); stateChannel?.port2.close(); close(); }
   };
-  const timer = setTimeout(() => { close(); }, timeoutMs);
+  const timer = setTimeout(() => {
+    // Retrying is safe only before any message ports or authority were sent.
+    if (!connected) closeError = Object.assign(new Error('The shop page did not finish connecting'),
+      { name: 'AbortError', code: 'SHOP_FRAME_LOAD_TIMEOUT' });
+    close();
+  }, timeoutMs);
   hostWindow.addEventListener('message', receive);
   hostWindow.addEventListener('pagehide', close);
   frame.addEventListener('load', onLoad);

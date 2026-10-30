@@ -136,9 +136,9 @@ if(${browser}){
  const grant={version:1,cohort:'pricing-v34-browser',runId,launcherPid:0,workerPid:0,workspace:root,
   ownerPlanSha256:'a'.repeat(64),snapshotSha256:'b'.repeat(64),directory,descriptorPath,
   descriptorSha256:crypto.createHash('sha256').update(fs.readFileSync(descriptorPath)).digest('hex'),
-  evidencePath:evidence,profilePath:path.join(directory,'tmp/dvaia-pricing-chat-owned'),
+  evidencePath:evidence,profilePath:path.join(directory,'tmp/owasp-ai-goat-pricing-chat-owned'),
   browser:process.execPath,browserSha256:'c'.repeat(64),remainingMs:20000};
- const env={...process.env,DVAIA_CURRENT_MAIN_WORKSPACE:root,LAB_MODE:'vuln',SS_BOUND_PRICING_ENABLED:'true',JUDGE_PROVIDER:'ollama',
+ const env={...process.env,OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:root,LAB_MODE:'vuln',SS_BOUND_PRICING_ENABLED:'true',JUDGE_PROVIDER:'ollama',
   SECURESHOP_PRICING_V34_MANUAL_EXPERIMENT_NATIVE:'1',SECURESHOP_PRICING_V34_EVIDENCE_PATH:evidence,
   SECURESHOP_STANDALONE_PRICING_DESCRIPTOR:descriptorPath,SECURESHOP_STANDALONE_PRICING_DESCRIPTOR_SHA256:grant.descriptorSha256,
   PUPPETEER_EXECUTABLE_PATH:process.execPath,TMPDIR:path.join(directory,'tmp'),
@@ -241,7 +241,7 @@ async function setupControl(change=()=>{},v34=true){
  for(const [name,store]of Object.entries({identity:'identity',agents:'secureshop_agents',review:'secureshop_review',commerce:'secureshop'})){
   const entry=stores[name]={};
   for(const role of ['runtime','migration']){
-   const database=`dvaia_test_agent_host_012345abcdef_${store}`,username=`dvaia_${store}_${role}`;
+   const database=`owasp_ai_goat_test_agent_host_012345abcdef_${store}`,username=`dvaia_${store}_${role}`;
    const url=`postgresql://${username}@127.0.0.1:54321/${database}`;
    const query=async(sql,params)=>{
     state.queries.push(sql);const rows=value=>({rows:value});
@@ -318,7 +318,7 @@ async function setupControl(change=()=>{},v34=true){
 async function routeGet(router,path){
  const layer=router.stack.find(item=>item.route?.path===path&&item.route.methods.get);
  assert.ok(layer,'actual route exists');
- const req={query:{},headers:{cookie:'dvaia_shop_session='+ 'a'.repeat(43)}};
+ const req={query:{},headers:{cookie:'owasp_ai_goat_shop_session='+ 'a'.repeat(43)}};
  const res={statusCode:200,status(code){this.statusCode=code;return this;},json(body){this.body=body;return this;}};
  await layer.route.stack.at(-1).handle(req,res,()=>assert.fail('unexpected route next'));
  return res;

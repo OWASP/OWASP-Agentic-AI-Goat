@@ -148,6 +148,6 @@ class FreshInterruption(unittest.TestCase):
   import shutil
   root=Path(__file__).resolve().parents[2];evidence=launcher.prospective_evidence(root,'fresh-interruption')
   try:
-   self.assertFalse(evidence.is_relative_to(root));self.assertTrue(evidence.name.startswith('dvaia-setup-phase-'));self.assertEqual(evidence.stat().st_mode&0o777,0o700)
+   self.assertFalse(evidence.is_relative_to(root));self.assertTrue(evidence.name.startswith('owasp-ai-goat-setup-phase-'));self.assertEqual(evidence.stat().st_mode&0o777,0o700)
   finally:shutil.rmtree(evidence)
 if __name__=='__main__':unittest.main()

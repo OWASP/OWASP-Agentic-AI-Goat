@@ -27,7 +27,7 @@ STAGE = 'legacy-ai-history-protected-storage-source-r1'
 SCOPE = 'legacy_ai_history_protected_storage_pg18'
 POSTGRES_IMAGE = 'postgres:18'
 POSTGRES_IMAGE_ID = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
-DOCKER_HOST = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+DOCKER_HOST = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 DOCKER_DAEMON_ID = '2c9da9a7-1f8c-490b-af98-87bbf6bf83db'
 NODE_VERSION = 'v26.8.2'
 MIGRATION_ROLE = 'dvaia_identity_migration'
@@ -392,7 +392,7 @@ def remove_owned_container(docker, container_name, container_id, labels):
 def database_name(nonce):
     if not re.fullmatch(r'[0-9a-f]{12}', nonce):
         raise ValueError('12-character lowercase hexadecimal nonce required')
-    return f'dvaia_test_legacy_ai_history_{nonce}'
+    return f'owasp_ai_goat_test_legacy_ai_history_{nonce}'
 
 
 def verify_tap(log_path):
@@ -412,7 +412,7 @@ def expected_grant(args, manifest, owner_handle, node_sha, manifest_sha):
         'allowedLaunches': 1,
         'dockerHost': DOCKER_HOST,
         'containerNonce': args.container_nonce,
-        'containerName': f'dvaia-legacy-ai-history-{args.container_nonce}',
+        'containerName': f'owasp-ai-goat-legacy-ai-history-{args.container_nonce}',
         'databaseName': database_name(args.container_nonce),
         'canonicalWorkspaceRoot': str(Path(args.canonical_workspace).resolve()),
         'candidateSourceRoot': str(package / 'source'),
@@ -509,12 +509,12 @@ def main(argv=None):
     container_name = expected['containerName']
     database = expected['databaseName']
     labels = {
-        'dvaia.owner': '/root',
-        'dvaia.grant': args.grant_id,
-        'dvaia.scope': SCOPE,
-        'dvaia.nonce': args.container_nonce,
-        'dvaia.manifest': manifest_sha,
-        'dvaia.image': POSTGRES_IMAGE_ID,
+        'owasp-ai-goat.owner': '/root',
+        'owasp-ai-goat.grant': args.grant_id,
+        'owasp-ai-goat.scope': SCOPE,
+        'owasp-ai-goat.nonce': args.container_nonce,
+        'owasp-ai-goat.manifest': manifest_sha,
+        'owasp-ai-goat.image': POSTGRES_IMAGE_ID,
     }
     state = {
         'version': 1,
@@ -568,7 +568,7 @@ def main(argv=None):
         signal.signal(signum, handle_signal)
 
     def psql(sql, selected_database='postgres', timeout=60):
-        result = run(docker + ['exec', container_id, 'psql', '-U', 'dvaia_bootstrap',
+        result = run(docker + ['exec', container_id, 'psql', '-U', 'owasp_ai_goat_bootstrap',
             '-d', selected_database, '-v', 'ON_ERROR_STOP=1', '-c', sql], capture_output=True,
             timeout=timeout)
         if result.returncode:
@@ -597,7 +597,7 @@ def main(argv=None):
         except (TypeError, ValueError):
             daemon_info = None
         if not daemon_info or daemon_info.get('ID') != DOCKER_DAEMON_ID \
-                or daemon_info.get('Name') != 'colima-dvaia-pg-verify' \
+                or daemon_info.get('Name') != 'colima-owasp-ai-goat-pg-verify' \
                 or daemon_info.get('Architecture') != 'aarch64':
             raise RuntimeError('exact Colima verification daemon required')
         state['dockerDaemon'] = {'id': daemon_info['ID'], 'name': daemon_info['Name'],
@@ -615,7 +615,7 @@ def main(argv=None):
         created = run(docker + ['run', '--detach', '--pull', 'never', '--name', container_name,
             *sum((['--label', f'{key}={value}'] for key, value in labels.items()), []),
             '--tmpfs', '/var/lib/postgresql:rw,size=536870912',
-            '-e', 'POSTGRES_USER=dvaia_bootstrap', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust',
+            '-e', 'POSTGRES_USER=owasp_ai_goat_bootstrap', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust',
             '-p', '127.0.0.1::5432', POSTGRES_IMAGE,
             '-c', 'shared_buffers=24MB', '-c', 'max_connections=32'],
             capture_output=True, timeout=60)
@@ -633,7 +633,7 @@ def main(argv=None):
         persist()
         for _ in range(120):
             ready = run(docker + ['exec', container_id, 'pg_isready', '-h', '127.0.0.1',
-                '-U', 'dvaia_bootstrap'],
+                '-U', 'owasp_ai_goat_bootstrap'],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
             if ready.returncode == 0:
                 break
@@ -665,8 +665,8 @@ def main(argv=None):
         base_env = {key: os.environ[key] for key in ('PATH',) if key in os.environ}
         base_env.update(HOME=str(home), TMPDIR=str(temporary), TMP=str(temporary), TEMP=str(temporary),
             NODE_ENV='test', PG_TEST_DISPOSABLE='yes', AWS_EC2_METADATA_DISABLED='true',
-            DVAIA_ISOLATED_TEST_WORKSPACE=str(source), LOGS_DIR=str(application_logs),
-            DVAIA_APP_DATA_ROOT=str(application_data),
+            OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(source), LOGS_DIR=str(application_logs),
+            OWASP_AI_GOAT_APP_DATA_ROOT=str(application_data),
             PG_LEGACY_AI_HISTORY_IDENTITY_MIGRATION_URL=
                 f'postgresql://{MIGRATION_ROLE}@127.0.0.1:{postgres_port}/{database}',
             PG_LEGACY_AI_HISTORY_IDENTITY_RUNTIME_URL=
@@ -724,11 +724,11 @@ def main(argv=None):
                     'databaseName': database}
                 persist()
                 if container_id:
-                    dropped = run(docker + ['exec', container_id, 'psql', '-U', 'dvaia_bootstrap',
+                    dropped = run(docker + ['exec', container_id, 'psql', '-U', 'owasp_ai_goat_bootstrap',
                         '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c',
                         f'DROP DATABASE IF EXISTS {database} WITH (FORCE)'], capture_output=True,
                         timeout=60)
-                    remaining = run(docker + ['exec', container_id, 'psql', '-U', 'dvaia_bootstrap',
+                    remaining = run(docker + ['exec', container_id, 'psql', '-U', 'owasp_ai_goat_bootstrap',
                         '-d', 'postgres', '-At', '-v', 'ON_ERROR_STOP=1', '-c',
                         f"SELECT datname FROM pg_database WHERE datname='{database}'"],
                         capture_output=True, timeout=30)

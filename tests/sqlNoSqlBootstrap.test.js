@@ -16,10 +16,10 @@ test('bootstrap diagnostics expose only allowlisted stage and categorical code',
 function environment() {
   const env = { PG_TEST_DISPOSABLE: 'yes', SQL_NOSQL_ROUTE_ISOLATED: '1',
     PLATFORM_DATABASE_ENGINE: 'postgres', WORKSHOP_DATABASE_ENGINE: 'postgres',
-    DVAIA_ISOLATED_TEST_WORKSPACE: process.cwd() };
+    OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE: process.cwd() };
   for (const [family, prefix] of [['identity', 'IDENTITY'], ['aria', 'SQL_WORKSHOP'], ['nova', 'NOSQL_WORKSHOP']]) {
     for (const role of ['runtime', 'migration']) env[`${prefix}${role === 'migration' ? '_MIGRATION' : ''}_DATABASE_URL`]
-      = `postgresql://dvaia_${family}_${role}@127.0.0.1:15432/dvaia_test_sql_nosql_route_${family}`;
+      = `postgresql://dvaia_${family}_${role}@127.0.0.1:15432/owasp_ai_goat_test_sql_nosql_route_${family}`;
   }
   return env;
 }
@@ -31,11 +31,11 @@ test('bootstrap admission requires the exact six role/store pairs without openin
     assert.throws(() => validateBootstrapEnvironment(env), key);
   }
   for (const replacement of [
-    'postgresql://dvaia_nova_runtime@localhost:15432/dvaia_test_sql_nosql_route_nova',
-    'postgresql://dvaia_nova_migration@127.0.0.1:15432/dvaia_test_sql_nosql_route_nova',
-    'postgresql://dvaia_nova_runtime@127.0.0.1:15433/dvaia_test_sql_nosql_route_nova',
+    'postgresql://dvaia_nova_runtime@localhost:15432/owasp_ai_goat_test_sql_nosql_route_nova',
+    'postgresql://dvaia_nova_migration@127.0.0.1:15432/owasp_ai_goat_test_sql_nosql_route_nova',
+    'postgresql://dvaia_nova_runtime@127.0.0.1:15433/owasp_ai_goat_test_sql_nosql_route_nova',
     'postgresql://dvaia_nova_runtime@127.0.0.1:15432/learner',
-    'postgresql://dvaia_nova_runtime@127.0.0.1:15432/dvaia_test_sql_nosql_route_nova?options=anything',
+    'postgresql://dvaia_nova_runtime@127.0.0.1:15432/owasp_ai_goat_test_sql_nosql_route_nova?options=anything',
   ]) assert.throws(() => validateBootstrapEnvironment({ ...environment(), NOSQL_WORKSHOP_DATABASE_URL: replacement }));
 });
 

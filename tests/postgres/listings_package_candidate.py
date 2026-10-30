@@ -161,7 +161,7 @@ def qualify(api, args, source, after_package=None, expected_runtime_digest=None,
                 or (args.evidence_parent is not None and Path(args.evidence_parent) != current_host.evidence_parent)):
             raise RuntimeError('Reviewed current-host Listings build admission remains closed')
     parent = (Path(current_host.evidence_parent) if current_host is not None else
-              Path(args.evidence_parent or Path(tempfile.gettempdir()).resolve() / 'dvaia-listings-package-native'))
+              Path(args.evidence_parent or Path(tempfile.gettempdir()).resolve() / 'owasp-ai-goat-listings-package-native'))
     if not parent.is_absolute() or (current_host is None and parent.resolve().is_relative_to(source)):
         raise RuntimeError('Private package evidence parent invalid')
     parent.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -182,11 +182,11 @@ def qualify(api, args, source, after_package=None, expected_runtime_digest=None,
     clean.update(DOCKER_CONFIG=str(docker_config), DOCKER_BUILDKIT='1')
     command = api.docker_owner_command(args, clean)
     nonce = uuid.uuid4().hex[:12]
-    name = ('dvaia-listings-goat-' if current_host is not None else 'dvaia-listings-package-') + nonce
+    name = ('owasp-ai-goat-listings-goat-' if current_host is not None else 'owasp-ai-goat-listings-package-') + nonce
     state = {'container': name, 'volume': name + '-journal', 'network': 'none', 'packaged': True,
         'imageTag': name + ':candidate', 'daemon': args.docker_daemon, 'attempted': [],
-        'labels': {'dvaia.owner': str(uuid.uuid4()),
-                   'dvaia.cohort': 'listings-package-goat-current-v1' if current_host is not None else 'listings-package'}}
+        'labels': {'owasp-ai-goat.owner': str(uuid.uuid4()),
+                   'owasp-ai-goat.cohort': 'listings-package-goat-current-v1' if current_host is not None else 'listings-package'}}
     child = None; failure = None; cleanup = {}; results = {}; post_package = None; pins = None; image_attempted = False
     def persist(): api.atomic_json(evidence / 'resources.json', state)
     def unchanged():
@@ -218,9 +218,9 @@ def qualify(api, args, source, after_package=None, expected_runtime_digest=None,
         pins = source_manifest(api, args, source, additional_drivers, current_host); api.atomic_json(evidence / 'source-before.json', pins)
         if expected_source_sha256 is not None and pins['package']['sha256'] != expected_source_sha256:
             raise RuntimeError('Packaged source differs from canonical qualification')
-        state['labels']['dvaia.listings.source'] = pins['package']['sha256']
+        state['labels']['owasp-ai-goat.listings.source'] = pins['package']['sha256']
         if expected_runtime_digest is not None:
-            state['labels']['dvaia.listings.runtime'] = expected_runtime_digest
+            state['labels']['owasp-ai-goat.listings.runtime'] = expected_runtime_digest
         state['profile'] = (current_host.profile_plan(nonce) if current_host is not None else
                             api.listings_profile_plan(source, args.node, args.docker_host, nonce))
         state['environmentSha256'] = hashlib.sha256(('LISTINGS_PROFILE=' + state['profile']['name']).encode()).hexdigest()

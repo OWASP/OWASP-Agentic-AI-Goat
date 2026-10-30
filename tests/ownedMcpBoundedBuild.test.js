@@ -85,7 +85,7 @@ test('metadata-only plan pins real transport and original V23 base without enabl
  assert.match(plan.phases.prepare,/mkdir -m 0700 "\$root\/fs\/metadata-retained"/);
  assert.match(plan.commands.retainedExport,/assert self.count<=145\*1048576/);
  assert.match(plan.commands.retainedExport,/hashlib.file_digest\(f,'sha256'\)/);
- const exporter=plan.commands.retainedExport.split("<<'DVAIA_METADATA_ARCHIVE'\n")[1].split('\nDVAIA_METADATA_ARCHIVE')[0];
+ const exporter=plan.commands.retainedExport.split("<<'OWASP_AI_GOAT_METADATA_ARCHIVE'\n")[1].split('\nOWASP_AI_GOAT_METADATA_ARCHIVE')[0];
  const compiled=spawnSync('python3',['-B','-W','error::SyntaxWarning','-c','import sys;compile(sys.stdin.read(),"<archive>","exec")'],{input:exporter,encoding:'utf8'});
  assert.equal(compiled.status,0,compiled.stderr);
  assert.equal(plan.storageAllocation,'sparse-fixed-size');assert.equal(plan.storageCapBytes,6442450944);
@@ -103,7 +103,7 @@ test('metadata-only plan pins real transport and original V23 base without enabl
  assert.match(acquire,/DOCKER_CONFIG="\$root\/fs\/docker-client" \/usr\/bin\/docker/);
  assert.match(acquire,/env -i PATH=\/usr\/bin:\/bin TMPDIR=/);
  assert.match(acquire,/check_metadata_proxy_env/);
- assert.match(acquire,/DVAIA_METADATA_PROXY_PORT=\$proxy_port/);
+ assert.match(acquire,/OWASP_AI_GOAT_METADATA_PROXY_PORT=\$proxy_port/);
  assert.match(acquire,/metadata-relay/);assert.match(acquire,/metadata-daemons/);
  assert.match(acquire,/metadata-idle-barrier-v4/);
  assert.match(acquire,/relay_control checkpoint >&2/);
@@ -130,7 +130,7 @@ test('metadata Docker client clears inherited credentials and context before any
 });
 test('fixed retained exporter executes bounded USTAR and rejects partial or substituted objects',async()=>{
  const plan=await i.metadataQualificationPlan(path.resolve(__dirname,'..'),'b'.repeat(32));
- const exporter=plan.commands.retainedExport.split("<<'DVAIA_METADATA_ARCHIVE'\n")[1].split('\nDVAIA_METADATA_ARCHIVE')[0];
+ const exporter=plan.commands.retainedExport.split("<<'OWASP_AI_GOAT_METADATA_ARCHIVE'\n")[1].split('\nOWASP_AI_GOAT_METADATA_ARCHIVE')[0];
  const harness=String.raw`
 import sys,json,tempfile,os,hashlib,io,contextlib,tarfile,stat
 packet=json.load(sys.stdin)
@@ -209,7 +209,7 @@ test('actual-admitted lifecycle plan wires only small tmpfs namespace relay and 
   const parsed=spawnSync('/bin/sh',['-n'],{input:command,encoding:'utf8'});
   assert.equal(parsed.status,0,parsed.stderr);
  }
- const source=plan.commands.start.split("<<'DVAIA_RELAY_LIFECYCLE'\n")[1].split('\nDVAIA_RELAY_LIFECYCLE\n')[0]+'\n';
+ const source=plan.commands.start.split("<<'OWASP_AI_GOAT_RELAY_LIFECYCLE'\n")[1].split('\nOWASP_AI_GOAT_RELAY_LIFECYCLE\n')[0]+'\n';
  assert.equal(crypto.createHash('sha256').update(source).digest('hex'),plan.lifecycleSourceSha256);
  const compiled=spawnSync('/opt/homebrew/bin/python3',['-I','-S','-B','-c','import sys; s={"__name__":"controlled"};exec(compile(sys.stdin.read(),"<lifecycle>","exec"),s);assert "evidence" in s;assert all("LIFECYCLE_ONLY_NO_ACQUISITION" in p for p in s["CHILDREN"].values())'],{input:source,encoding:'utf8'});
  assert.equal(compiled.status,0,compiled.stderr);
@@ -234,7 +234,7 @@ test('real transport is a distinct pinned instrumented variant with fixed anonym
  assert.match(plan.commands.start,/TRANSPORT_ONLY=True/);
  assert.match(plan.commands.checkpoint,/relay_control checkpoint/);
  for(const name of ['deny-peer','deny-host','registry','auth','debian']){
-  const shellSource=plan.commands['client-'+name].split("<<'DVAIA_TRANSPORT_CLIENT'")[0];
+  const shellSource=plan.commands['client-'+name].split("<<'OWASP_AI_GOAT_TRANSPORT_CLIENT'")[0];
   const tail=shellSource.slice(shellSource.lastIndexOf('\n}\n')+3);
   assert.match(tail,/namespace_exec \/usr\/bin\/env -i PATH=\/usr\/bin:\/bin/);
   if(name==='deny-peer')assert.ok(!tail.includes('/usr/bin/setpriv'));
@@ -242,7 +242,7 @@ test('real transport is a distinct pinned instrumented variant with fixed anonym
   const shell=spawnSync('/bin/sh',['-n'],{input:plan.commands['client-'+name],encoding:'utf8'});
   assert.equal(shell.status,0,shell.stderr);
  }
- const source=plan.commands.start.split("<<'DVAIA_RELAY_LIFECYCLE'\n")[1].split('\nDVAIA_RELAY_LIFECYCLE\n')[0]+'\n';
+ const source=plan.commands.start.split("<<'OWASP_AI_GOAT_RELAY_LIFECYCLE'\n")[1].split('\nOWASP_AI_GOAT_RELAY_LIFECYCLE\n')[0]+'\n';
  const compiled=spawnSync('/opt/homebrew/bin/python3',['-I','-S','-B','-c','import sys; s={"__name__":"controlled"};exec(compile(sys.stdin.read(),"<transport>","exec"),s);assert "checkpoint" in s;assert all("connect-audit-v1" in p and "LIFECYCLE_ONLY_NO_ACQUISITION" not in p for p in s["CHILDREN"].values())'],{input:source,encoding:'utf8'});
  assert.equal(compiled.status,0,compiled.stderr);
  await assert.rejects(i.lifecycleQualificationPlan(root,'b'.repeat(32),'metadata'),{code:'BUILD_RELAY_PHASE'});
@@ -494,7 +494,7 @@ test('private relay plan requires explicit existing account and binary admission
  assert.equal(plan.executionApproved,false);assert.equal(plan.relaySourceSha256,i.RELAY_SOURCE_SHA);
  assert.equal(crypto.createHash('sha256').update(plan.source).digest('hex'),plan.sourceSha256);
  assert.match(plan.install,/require_private_egress\ncheck_mount; check_namespace/);
- const literal=plan.install.split("<<'DVAIA_RELAY_LIFECYCLE'\n")[1].split('\nDVAIA_RELAY_LIFECYCLE\n')[0]+'\n';
+ const literal=plan.install.split("<<'OWASP_AI_GOAT_RELAY_LIFECYCLE'\n")[1].split('\nOWASP_AI_GOAT_RELAY_LIFECYCLE\n')[0]+'\n';
  assert.equal(literal,plan.source,'installed bytes equal the independently hashed source');
  const parsed=spawnSync('/opt/homebrew/bin/python3',['-I','-S','-B','-c','import sys; scope={"__name__":"controlled"};exec(compile(sys.stdin.read(),"<relay-plan>","exec"),scope);assert set(scope["CHILDREN"])=={"connector","adapter"}'],{input:plan.source,encoding:'utf8',timeout:10000,maxBuffer:131072});
  assert.equal(parsed.status,0,parsed.stderr);
@@ -929,16 +929,16 @@ for scenario in ('zombie','exit-race','live-unreadable','birth-reused'):
         if scenario=='zombie':links.assert_not_called()
 `));
 test('original acquisition deadline precedes preflight and cleanup retires relay before namespace and disk',()=>{
- assert.ok(i.scripts['metadata-acquire'].indexOf('acquisition_deadline=$(')<i.scripts['metadata-acquire'].indexOf("printf 'DVAIA_METADATA_STAGE=preflight"));
+ assert.ok(i.scripts['metadata-acquire'].indexOf('acquisition_deadline=$(')<i.scripts['metadata-acquire'].indexOf("printf 'OWASP_AI_GOAT_METADATA_STAGE=preflight"));
  assert.match(i.scripts['metadata-acquire'],/metadata-prepare "\$root" "\$nonce" "\$acquisition_deadline"/);
  assert.match(i.scripts.prepare,/sys\.argv\[1\].*acquisition\.deadline/);
  const cleanup=i.scripts.cleanup.slice(i.guard.length);
  assert.ok(cleanup.indexOf('stop_private_relay')<cleanup.indexOf('stop_owned daemon'));
  assert.ok(cleanup.indexOf('stop_private_relay')<cleanup.indexOf('stop_namespace'));
  assert.match(i.guard,/relay_control cleanup >&2/);
- assert.match(i.scripts['metadata-cleanup'],/DVAIA_METADATA_STAGE=cleanup-owner/);
+ assert.match(i.scripts['metadata-cleanup'],/OWASP_AI_GOAT_METADATA_STAGE=cleanup-owner/);
  assert.match(i.scripts.metadata,/proxy_port=\$\(relay_control authority\)/);
- assert.match(i.scripts.metadata,/--env "DVAIA_METADATA_PROXY_PORT=\$proxy_port"/);
+ assert.match(i.scripts.metadata,/--env "OWASP_AI_GOAT_METADATA_PROXY_PORT=\$proxy_port"/);
 });
 test('unapproved closed V24 targets fail before source capture, verification or any runner effect',async()=>{
  let effects=0;const effect=async()=>{effects++;throw Error('must not run');};
@@ -980,7 +980,7 @@ if [ "$scenario" = daemon-wrong-net ]; then pid=300; [ "$(process_net "$pid")" =
 stop_namespace
 printf joined
 `;
- const result=spawnSync('/bin/sh',['-c',body,'netns-test','/var/tmp/dvaia-v23-build-'+'a'.repeat(32),'a'.repeat(32),directory,scenario],{encoding:'utf8'});
+ const result=spawnSync('/bin/sh',['-c',body,'netns-test','/var/tmp/owasp-ai-goat-v23-build-'+'a'.repeat(32),'a'.repeat(32),directory,scenario],{encoding:'utf8'});
  if(scenario==='valid'){assert.equal(result.status,0,result.stderr);assert.equal(result.stdout,'holder-stoppedjoined');}
  else{assert.notEqual(result.status,0);assert.doesNotMatch(result.stdout,/holder-stopped|joined/);}
 });
@@ -1035,7 +1035,7 @@ process_net() {
 kill() { [ "$1" = -TERM ] && [ "$2" = 100 ]; printf retired > "$root/fs/retired"; printf 'signal-holder\\n'; }
 `;
  const script=i.scripts.cleanup.replace(i.guard,i.guard+overrides);
- const result=spawnSync('/bin/sh',['-c',script,'netns-cleanup','/var/tmp/dvaia-v23-build-'+'a'.repeat(32),'a'.repeat(32),root,scenario],{encoding:'utf8'});
+ const result=spawnSync('/bin/sh',['-c',script,'netns-cleanup','/var/tmp/owasp-ai-goat-v23-build-'+'a'.repeat(32),'a'.repeat(32),root,scenario],{encoding:'utf8'});
  const allowed=['expired','partial-absent','partial-live','expired-midscan','vanished-member'].includes(scenario);
  if(allowed){assert.equal(result.status,0,result.stderr);assert.equal(syncFs.existsSync(root),false);assert.match(result.stdout,/absent/);}
  else{assert.notEqual(result.status,0);assert.equal(syncFs.existsSync(root),true);assert.doesNotMatch(result.stdout,/absent/);}
@@ -1060,7 +1060,7 @@ test('composed metadata shell isolates phase diagnostics from the JSON report ch
  const invoke=body=>spawnSync('/bin/sh',['-c',body,'metadata-control',spec.guest,spec.runId,'pinned-base'],{encoding:'utf8'});
  const clean=invoke(script);assert.equal(clean.status,0,clean.stderr);
  assert.deepEqual(JSON.parse(clean.stdout),{candidateOnly:true});
- assert.equal(clean.stderr.split('\n').filter(line=>line&&!line.startsWith('DVAIA_METADATA_STAGE=')).join('\n'),
+ assert.equal(clean.stderr.split('\n').filter(line=>line&&!line.startsWith('OWASP_AI_GOAT_METADATA_STAGE=')).join('\n'),
   'preflight-diagnostic\nprepare-diagnostic\nstart-diagnostic');
  const broken=invoke(script.replace('metadata-preflight "$root" "$nonce" >&2','metadata-preflight "$root" "$nonce"'));
  assert.equal(broken.status,0);assert.throws(()=>JSON.parse(broken.stdout));
@@ -1071,9 +1071,9 @@ test('metadata stderr keeps only bounded stage/code provenance, never raw error 
  let observed;
  const execute=i.createExecutor({launch:()=>child,kill:()=>{},delay:async()=>{}});
  const promise=execute(specification('/controlled/repo','a'.repeat(32)),'metadata-cleanup',{onDiagnostics:value=>{observed=value;}});
- child.stderr.emit('data',Buffer.from('DVAIA_METADATA_STA'));
- child.stderr.emit('data',Buffer.from('GE=apt-update\nprivate-url-token\nDVAIA_METADATA_ERROR=ENOSPC\n'));
- child.stderr.emit('data',Buffer.from('x'.repeat(600)+'DVAIA_METADATA_STAGE=report\nDVAIA_METADATA_ERROR=secret-value\n'));
+ child.stderr.emit('data',Buffer.from('OWASP_AI_GOAT_METADATA_STA'));
+ child.stderr.emit('data',Buffer.from('GE=apt-update\nprivate-url-token\nOWASP_AI_GOAT_METADATA_ERROR=ENOSPC\n'));
+ child.stderr.emit('data',Buffer.from('x'.repeat(600)+'OWASP_AI_GOAT_METADATA_STAGE=report\nOWASP_AI_GOAT_METADATA_ERROR=secret-value\n'));
  child.emit('close',1,'SIGTERM');
  await assert.rejects(promise,error=>error.metadataDiagnostics===observed);
  assert.equal(observed.lastStage,'apt-update');assert.equal(observed.errorCode,'ENOSPC');
@@ -1111,7 +1111,7 @@ findmnt() {
 }
 umount() { [ "$1" = -- ] && [ "$2" = "$root/fs/exec/netns/default" ]; printf 'child-unmount\\n'; [ "$scenario" != unmount-failed ] || return 1; removed=1; }
 `+i.metadataNamespaceCleanup+'\nunmount_metadata_namespace\nprintf parent-unmount';
- const result=spawnSync('/bin/sh',['-c',body,'metadata-mount-test','/var/tmp/dvaia-v23-build-'+'a'.repeat(32),'a'.repeat(32),root,scenario],{encoding:'utf8'});
+ const result=spawnSync('/bin/sh',['-c',body,'metadata-mount-test','/var/tmp/owasp-ai-goat-v23-build-'+'a'.repeat(32),'a'.repeat(32),root,scenario],{encoding:'utf8'});
  if(['exact','none'].includes(scenario)){assert.equal(result.status,0,result.stderr);assert.equal(result.stdout,scenario==='exact'?'child-unmount\nparent-unmount':'parent-unmount');}
  else{assert.notEqual(result.status,0);assert.doesNotMatch(result.stdout,/parent-unmount/);if(scenario!=='unmount-failed')assert.doesNotMatch(result.stdout,/child-unmount/);}
  assert.ok(i.scripts['metadata-cleanup'].indexOf('for proc in /proc/')<i.scripts['metadata-cleanup'].indexOf('unmount_metadata_namespace'));
@@ -1121,7 +1121,7 @@ test('metadata stderr cap fails before success and retains only bounded diagnost
  const child=new EventEmitter();Object.assign(child,{pid:12345,stdin:new PassThrough(),stdout:new PassThrough(),stderr:new PassThrough()});
  const kills=[];const execute=i.createExecutor({launch:()=>child,kill:(...args)=>kills.push(args),delay:async()=>{}});
  const promise=execute(specification('/controlled/repo','a'.repeat(32)),'metadata-cleanup');
- child.stderr.emit('data',Buffer.from('DVAIA_METADATA_STAGE=base-pull\n'));
+ child.stderr.emit('data',Buffer.from('OWASP_AI_GOAT_METADATA_STAGE=base-pull\n'));
  child.stderr.emit('data',Buffer.alloc(LIMITS.output,120));child.emit('close',0);
  await assert.rejects(promise,error=>{
   assert.equal(error.code,'BUILD_OUTPUT_LIMIT');assert.equal(error.metadataDiagnostics.lastStage,'base-pull');
@@ -1143,7 +1143,7 @@ function fixture(t,options={}) {
   t.after(()=>fs.rm(root,{recursive:true,force:true}));
   let inventoryReads=0;
   const daemon={ID:'private-daemon',DockerRootDir:spec.mount+'/data',Driver:'overlay2',Architecture:'aarch64'};
-  const image={Id:'sha256:'+'b'.repeat(64),Architecture:'arm64',Os:'linux',Config:{Labels:{'dvaia.registry.package':source.packageDigest(),'dvaia.build-run':runId}}};
+  const image={Id:'sha256:'+'b'.repeat(64),Architecture:'arm64',Os:'linux',Config:{Labels:{'owasp-ai-goat.registry.package':source.packageDigest(),'owasp-ai-goat.build-run':runId}}};
   const runner=async(actual,operation,operationOptions={})=>{
     assert.deepEqual(actual,spec);calls.push(operation);
     if(operation===options.failure)throw Object.assign(Error(options.code||'controlled'),{code:options.code||'CONTROLLED'});
@@ -1178,7 +1178,7 @@ test('bounded build validates identity, exports bounded artifact, verifies clean
 test('invalid paths and run identities cannot form a destructive specification',()=>{
   for(const root of ['/', '.', '/tmp/../tmp','relative'])assert.throws(()=>specification(root,'a'.repeat(32)));
   for(const run of ['../foreign','A'.repeat(32),'a'.repeat(31),'a; rm -rf /'])assert.throws(()=>specification('/tmp/repo',run));
-  assert.equal(specification('/tmp/repo','a'.repeat(32)).guest,'/var/tmp/dvaia-v23-build-'+'a'.repeat(32));
+  assert.equal(specification('/tmp/repo','a'.repeat(32)).guest,'/var/tmp/owasp-ai-goat-v23-build-'+'a'.repeat(32));
 });
 test('host runtime identity fails before runner contact',async()=>{
   let called=false;
@@ -1267,7 +1267,7 @@ for(const scenario of ['unchanged','changed','unavailable'])test(`cleanup still 
  // Only platform probes are replaced. Execute actual comparison and final
  // owned-directory cleanup against this empty controlled artifact directory.
  const script=i.scripts.cleanup.replace(i.guard,i.guard+overrides.replace('check_owner() { [ "$root" = "$3" ]; }','check_owner() { [ -f "$root/owner" ]; }'));
- const result=spawnSync('/bin/sh',['-c',script,'network-cleanup','/var/tmp/dvaia-v23-build-'+'a'.repeat(32),'a'.repeat(32),root],{encoding:'utf8'});
+ const result=spawnSync('/bin/sh',['-c',script,'network-cleanup','/var/tmp/owasp-ai-goat-v23-build-'+'a'.repeat(32),'a'.repeat(32),root],{encoding:'utf8'});
  assert.equal(result.status,scenario==='unchanged'?0:94,result.stderr);
  assert.equal(syncFs.existsSync(root),false,'network mismatch must not retain owned disk root');
  assert.match(result.stdout,/joined:daemon\njoined:containerd/);
@@ -1335,7 +1335,7 @@ test('successful remote acknowledgement does not wait or kill the client',async(
 
 test('actual shell loop validation accepts only a nonempty numeric suffix',()=>{
   for(const device of ['/dev/loop0','/dev/loop123','/dev/loop','/dev/loop1x','/dev/loop1/foreign','/dev/loop1;echo bad','/dev/loop1\n2','/dev/sda']){
-    const result=spawnSync('/bin/sh',['-c',i.guard+'\nvalidate_loop "$3"\nprintf accepted\n','loop-test','/var/tmp/dvaia-v23-build-'+'a'.repeat(32),'a'.repeat(32),device],{encoding:'utf8'});
+    const result=spawnSync('/bin/sh',['-c',i.guard+'\nvalidate_loop "$3"\nprintf accepted\n','loop-test','/var/tmp/owasp-ai-goat-v23-build-'+'a'.repeat(32),'a'.repeat(32),device],{encoding:'utf8'});
     if(['/dev/loop0','/dev/loop123'].includes(device)){assert.equal(result.status,0,result.stderr);assert.equal(result.stdout,'accepted');}
     else{assert.notEqual(result.status,0,device);assert.equal(result.stdout,'');}
   }
@@ -1381,7 +1381,7 @@ stop_owned daemon
 stop_owned containerd
 printf joined
 `;
-  const result=spawnSync('/bin/sh',['-c',body,'cleanup-test','/var/tmp/dvaia-v23-build-'+'a'.repeat(32),'a'.repeat(32),fixtureRoot,scenario],{encoding:'utf8'});
+  const result=spawnSync('/bin/sh',['-c',body,'cleanup-test','/var/tmp/owasp-ai-goat-v23-build-'+'a'.repeat(32),'a'.repeat(32),fixtureRoot,scenario],{encoding:'utf8'});
   if(['both','containerd-only','daemon-only'].includes(scenario)){
     assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/joined$/);
     const expected=scenario==='both'?['signal:-TERM:101','signal:-TERM:102']:scenario==='containerd-only'?['signal:-TERM:102']:['signal:-TERM:101'];

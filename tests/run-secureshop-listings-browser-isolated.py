@@ -2,12 +2,12 @@
 """Owned, bounded browser-only qualification. Never starts a database or model."""
 import hashlib,json,os,pathlib,shutil,signal,subprocess,tempfile,time
 REPO=pathlib.Path(__file__).resolve().parents[1]
-NODE=pathlib.Path.home()/'.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin/node'
+NODE=pathlib.Path.home()/'.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin/node'
 BROWSER=pathlib.Path.home()/'.cache/puppeteer/chrome-headless-shell/mac_arm-152.0.7977.75/chrome-headless-shell-mac-arm64/chrome-headless-shell'
 def digest(p): return hashlib.sha256(p.read_bytes()).hexdigest()
 assert digest(NODE)=='3fbe98203f8f4a86ce5b0b573a1a30aa4253064c4c2a0299c436d259b68e54b0'
 assert digest(BROWSER)=='51083e7cf58ba060a0160b8f447ea04c0e9bada00c30a047259bcfe1217b82c3'
-root=pathlib.Path(tempfile.mkdtemp(prefix='dvaia-listings-browser-')).resolve()
+root=pathlib.Path(tempfile.mkdtemp(prefix='owasp-ai-goat-listings-browser-')).resolve()
 staged=root/'source';staged.mkdir()
 manifest={}
 for folder in ['server','tests','client/src']:

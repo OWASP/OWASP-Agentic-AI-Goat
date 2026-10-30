@@ -179,9 +179,9 @@ function parseWithSax(xml, declaration, secret) {
 }
 
 function createClassicXxeLab({
-  rootPath = path.join(os.tmpdir(), 'dvaia-classic-xxe'),
+  rootPath = path.join(os.tmpdir(), 'owasp-ai-goat-classic-xxe'),
   fixtureFactory = ({ fixturePath }) => {
-    const secret = `DVAIA_XXE_${crypto.randomBytes(24).toString('hex')}`;
+    const secret = `OWASP_AI_GOAT_XXE_${crypto.randomBytes(24).toString('hex')}`;
     fs.writeFileSync(fixturePath, secret, { mode: 0o600, flag: 'wx' });
   },
   removeAttempt = attemptDir => fs.rmSync(attemptDir, { recursive: true, force: true })

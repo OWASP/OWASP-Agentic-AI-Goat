@@ -10,7 +10,7 @@ Five tests passed with no failures or skips. Actual local `llama3.1:8b` actor an
 
 - Candidate: `/tmp/finflow-combined-smoke-candidate.pfksxo4w`
 - Manifest SHA-256: `6ba8fd7dfaee338afca43e7e5a9f855d7c0aaa4d6a83bf2f71228d7f2b7a6e8f`
-- Evidence directory: `/Users/averma5/.dvaia/native-verification/dvaia-finflow-combined-smoke-dm_n3q0y`
+- Evidence directory: `/Users/averma5/.owasp-ai-goat/native-verification/owasp-ai-goat-finflow-combined-smoke-dm_n3q0y`
 - Native owner handle: `50598`; terminal exit: `0`.
 - Combined log SHA-256: `f38923363e173b2a518d6a5668bb578e24e02ed66236b361254e48ca8dbd0e94`
 - Policy evidence SHA-256: `7bf707dce965125e5e7ab8493972a46a39902c6e7e75852e54dfae6c945637cc`

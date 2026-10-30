@@ -40,7 +40,7 @@ class McpInspector:
         except ValueError as exc:
             raise RuntimeError('MCP inspector root outside checkout qualification') from exc
         if len(relative.parts) != 1 or not re.fullmatch(
-                r'dvaia-mcp-assembly-[A-Za-z0-9_-]{8,12}', relative.parts[0]):
+                r'owasp-ai-goat-mcp-assembly-[A-Za-z0-9_-]{8,12}', relative.parts[0]):
             raise RuntimeError('Unsupported MCP inspector root')
         if request['mode'] != 'mcp-browser-root' or request['identity'] != {}:
             raise RuntimeError('Unsupported MCP inspector operation')
@@ -61,7 +61,7 @@ class McpInspector:
         if value.get('root') != str(root) or value.get('launcherPid') != self.child_pid \
                 or not isinstance(owner, str) or not re.fullmatch(r'[a-f0-9]{32}', owner) \
                 or not isinstance(profile, str) or not re.fullmatch(
-                    r'dvaia-owned-mcp-registry-[a-f0-9]{12}', profile):
+                    r'owasp-ai-goat-owned-mcp-registry-[a-f0-9]{12}', profile):
             raise RuntimeError('MCP ownership record binding mismatch')
         binding = (str(root), owner, profile)
         if self.binding is not None and binding != self.binding:

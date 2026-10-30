@@ -18,7 +18,7 @@ class Controls(unittest.TestCase):
             self.assertIn('NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS',sql)
             self.assertIn('REVOKE CONNECT ON DATABASE',sql)
             self.assertEqual(len(pairs),2);urls.update(pairs)
-            for value in pairs.values():self.assertTrue(value.endswith('/dvaia_test_codebot_parity_abcdef012345_'+store))
+            for value in pairs.values():self.assertTrue(value.endswith('/owasp_ai_goat_test_codebot_parity_abcdef012345_'+store))
         self.assertEqual(len(urls),4)
         for args in [('postgres',54321,'abcdef012345'),('identity',True,'abcdef012345'),('identity',1,'../../bad')]:
             with self.assertRaises(ValueError):launcher.codebot_store_configuration(*args)
@@ -31,7 +31,7 @@ class Controls(unittest.TestCase):
         for store in launcher.browser_stores('workshop-history'):
             sql,pairs=launcher.codebot_store_configuration(store,54321,'abcdef012345','workshop-history');urls.update(pairs)
             self.assertIn('NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS',sql)
-            for value in pairs.values():self.assertTrue(value.endswith('/dvaia_test_codebot_parity_abcdef012345_'+store))
+            for value in pairs.values():self.assertTrue(value.endswith('/owasp_ai_goat_test_codebot_parity_abcdef012345_'+store))
         self.assertEqual(set(urls),{p+s for p in ['IDENTITY','SQL_WORKSHOP','NOSQL_WORKSHOP'] for s in ['_DATABASE_URL','_MIGRATION_DATABASE_URL']})
         with self.assertRaises(ValueError):launcher.codebot_store_configuration('supply_chain',54321,'abcdef012345','workshop-history')
         with self.assertRaises(ValueError):launcher.codebot_store_configuration('aria',54321,'abcdef012345')
@@ -149,7 +149,7 @@ class Controls(unittest.TestCase):
         with patch.object(pathlib.Path,'mkdir'):
             env=launcher.codebot_environment(args,pathlib.Path('/e'),pathlib.Path('/e/runtime'),'owner',{'IDENTITY_DATABASE_URL':'controlled'})
         self.assertNotIn('PG_ADMIN_DATABASE_URL',env)
-        self.assertNotIn('DVAIA_ISOLATED_TEST_WORKSPACE',env)
+        self.assertNotIn('OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE',env)
         self.assertEqual(env['HOME'],'/e/runtime/home')
         self.assertEqual(env['CODEBOT_PARITY_SOURCE_ROOT'],'/main')
 
@@ -326,7 +326,7 @@ class ReflectedReceiptCleanupOwnership(unittest.TestCase):
   for profile in launcher.XSS_REFLECTED_PROFILES:
    for fail in (False,True):
     with self.subTest(profile=profile,failedReceipt=fail):
-     original='dvaia-setup-phase-0123456789ab';identifier='a'*64;image='sha256:'+'b'*64;labels={'dvaia.test.owner':'owned'};commands=[];alive=[True];validated=[]
+     original='owasp-ai-goat-setup-phase-0123456789ab';identifier='a'*64;image='sha256:'+'b'*64;labels={'owasp-ai-goat.test.owner':'owned'};commands=[];alive=[True];validated=[]
      class Proof:
       def __init__(self,name):self.name=name
       def lstat(self):
@@ -401,7 +401,7 @@ class CsrfTwelveContent(unittest.TestCase):
   urls={}
   for store in launcher.browser_stores(profile):
    sql,part=launcher.codebot_store_configuration(store,2222,'0123456789ab',profile);urls.update(part)
-   self.assertIn('dvaia_test_codebot_parity_0123456789ab_'+store,sql)
+   self.assertIn('owasp_ai_goat_test_codebot_parity_0123456789ab_'+store,sql)
   with patch.object(pathlib.Path,'mkdir'):
    env=launcher.codebot_environment(args,pathlib.Path('/e'),pathlib.Path('/r'),'owner',urls)
    for bad in [{**urls,'XSS_WORKSHOP_DATABASE_URL':'foreign'},{k:v for k,v in urls.items() if k!='CSRF_WORKSHOP_MIGRATION_DATABASE_URL'}]:
@@ -856,7 +856,7 @@ class EmailMailpitOwnershipControls(unittest.TestCase):
   with patch.object(launcher,'verify_daemon'),patch.object(launcher,'verify_image'),patch.object(launcher,'inspect_owned',return_value=None),patch.object(launcher,'cleanup_owned')as cleanup:
    command.return_value=SimpleNamespace(returncode=1,stdout='',stderr='failure');resource=launcher.OwnedEmailMailpit(command,'daemon',owner,record)
    with self.assertRaises(RuntimeError):resource.start()
-   resource.cleanup();self.assertIsNone(cleanup.call_args.kwargs['captured_id']);self.assertEqual(cleanup.call_args.kwargs['labels']['dvaia.owner'],owner)
+   resource.cleanup();self.assertIsNone(cleanup.call_args.kwargs['captured_id']);self.assertEqual(cleanup.call_args.kwargs['labels']['owasp-ai-goat.owner'],owner)
 
 class EmailActualReceiptControls(unittest.TestCase):
  def fixture(self):

@@ -10,7 +10,7 @@ const { createFileSummaryAttachment } = require('../server/services/secureshopFi
 const { createSceneBinding } = require('../server/services/secureshopSceneBinding');
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 async function fixture(t) {
-  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-v19-prototype-')));
+  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-v19-prototype-')));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const files = createSecureShopFiles({ root });
   const scope = { launchId: randomUUID(), scenarioId: randomUUID(), generation: 2,

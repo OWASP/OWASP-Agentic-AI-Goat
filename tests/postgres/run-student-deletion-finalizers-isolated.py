@@ -6,11 +6,11 @@ from urllib.parse import quote
 
 parser=argparse.ArgumentParser(); parser.add_argument('--docker-host',required=True); args=parser.parse_args()
 source=Path(__file__).resolve().parents[2]
-root=Path(tempfile.mkdtemp(prefix='dvaia-student-deletion-finalizers-')); os.chmod(root,0o700)
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-student-deletion-finalizers-')); os.chmod(root,0o700)
 workspace=root/'source'; workspace.mkdir()
 base={k:os.environ[k] for k in ['PATH','HOME','TMPDIR'] if k in os.environ}
 docker=['docker','--host',args.docker_host]; tag=uuid.uuid4().hex[:12]
-container=f'dvaia-student-deletion-finalizers-{tag}'; child=None; started=False
+container=f'owasp-ai-goat-student-deletion-finalizers-{tag}'; child=None; started=False
 def run(cmd,**kwargs): kwargs.setdefault('timeout',60); return subprocess.run(cmd,check=True,env=base,**kwargs)
 def stop_child():
  global child
@@ -48,11 +48,11 @@ try:
   ('XSS','dvaia_xss_migration','dvaia_xss_runtime'),
   ('FINFLOW','dvaia_finflow_migration','dvaia_finflow_runtime')]
  env=dict(base,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',AWS_EC2_METADATA_DISABLED='true',
-  DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace))
+  OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace))
  for key,migration_role,runtime_role in stores:
   for role in [migration_role,runtime_role]:
    run(psql+['-c',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
-  database=f'dvaia_test_deletion_{key.lower()}_{tag}'
+  database=f'owasp_ai_goat_test_deletion_{key.lower()}_{tag}'
   run(psql+['-c',f'CREATE DATABASE {database} OWNER {migration_role}'],stdout=subprocess.DEVNULL)
   run(psql+['-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration_role},{runtime_role}'],stdout=subprocess.DEVNULL)
   env[f'PG_STUDENT_DELETION_FINALIZER_{key}_MIGRATION_URL']=f'postgresql://{quote(migration_role)}@127.0.0.1:{port}/{database}'

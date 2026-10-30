@@ -10,7 +10,7 @@ test('runtime log retention removes only old activity and cannot delete arbitrar
   assert.ok(['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname));
   assert.equal(url.pathname, '/postgres');
   const admin = new Pool({ connectionString: url.href });
-  const name = `dvaia_test_logretention_${process.pid}_${Date.now()}`;
+  const name = `owasp_ai_goat_test_logretention_${process.pid}_${Date.now()}`;
   let runtime, migration;
   try {
     await admin.query(`CREATE DATABASE ${name} OWNER dvaia_identity_migration`);

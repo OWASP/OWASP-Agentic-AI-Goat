@@ -51,7 +51,7 @@ function fixture() {
   return {state,read,ingestion};
 }
 test('descriptor operation identity preserves historical v1 bytes without exposing scope', () => {
-  const hash=createHash('sha256').update(JSON.stringify(['dvaia-manual-v1',scope,12,7,descriptor.sha256,
+  const hash=createHash('sha256').update(JSON.stringify(['owasp-ai-goat-manual-v1',scope,12,7,descriptor.sha256,
     descriptor.filename,descriptor.mime,false])).digest('hex');
   assert.equal(contract.manualUploadOperationId(scope,12,descriptor),
     `${hash.slice(0,8)}-${hash.slice(8,12)}-5${hash.slice(13,16)}-a${hash.slice(17,20)}-${hash.slice(20,32)}`);

@@ -29,7 +29,7 @@ const enabled = process.env.RUN_ADMIN_PRODUCTION_BROWSER === '1'
 function assertDisposableUrl(value, name) {
   const parsed = new URL(value);
   assert.ok(['127.0.0.1', 'localhost'].includes(parsed.hostname), `${name} must use loopback PostgreSQL`);
-  assert.match(parsed.pathname, /^\/dvaia_test_[a-z0-9_]+$/, `${name} must name a disposable database`);
+  assert.match(parsed.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/, `${name} must name a disposable database`);
 }
 
 async function buildProductionClient(buildDirectory, trackChild) {
@@ -796,7 +796,7 @@ test('production admin UI uses durable PostgreSQL auth and responds to delegated
   assert.ok(Number.isSafeInteger(browserPid) && browserPid > 0, 'owned browser PID must be observable');
   journal.resources.browser = q05
     ? { pid: browserPid, profileDirectory,
-      executablePath: process.env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE }
+      executablePath: process.env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE }
     : { pid: browserPid };
   journal.status = 'browser_launched';
   await persistJournal();

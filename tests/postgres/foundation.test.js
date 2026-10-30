@@ -55,9 +55,9 @@ test('pool registry closes idle/unopened pools idempotently and rejects new work
     const assert=require('node:assert/strict');
     const {createPool,closePostgresPools}=require('./server/database/postgres');
     (async()=>{
-      const pool=createPool({DATABASE_URL:'postgresql://test@127.0.0.1/dvaia_test_shutdown'});
+      const pool=createPool({DATABASE_URL:'postgresql://test@127.0.0.1/owasp_ai_goat_test_shutdown'});
       await Promise.all([closePostgresPools(),pool.end(),closePostgresPools()]);
-      assert.throws(()=>createPool({DATABASE_URL:'postgresql://test@127.0.0.1/dvaia_test_shutdown'}),/shutting down/);
+      assert.throws(()=>createPool({DATABASE_URL:'postgresql://test@127.0.0.1/owasp_ai_goat_test_shutdown'}),/shutting down/);
     })().catch(error=>{console.error(error);process.exitCode=1;});
   `],{cwd:require('node:path').join(__dirname,'../..')});
 });

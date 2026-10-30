@@ -192,7 +192,7 @@ class V30OriginalLauncherTests(unittest.TestCase):
         self.assertEqual(env['LIVE_OLLAMA_TEST'], '1')
         self.assertEqual(env['PG_TEST_ROOT'], str(evidence))
         self.assertEqual(env['V30_ORIGINAL_RESULT'], str(evidence / 'v30-original-result.json'))
-        self.assertEqual(env['DVAIA_CURRENT_MAIN_WORKSPACE'], str(ROOT))
+        self.assertEqual(env['OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE'], str(ROOT))
         self.assertEqual(env['OLLAMA_MODEL'], main.OLLAMA_MODEL)
         self.assertEqual(env['JUDGE_MODEL'], main.OLLAMA_MODEL)
         self.assertEqual({key for key in env if key.startswith('PG_SECURESHOP_DISCLOSURE_')},
@@ -578,13 +578,13 @@ class V30OriginalLauncherTests(unittest.TestCase):
         self.assertEqual(command, [str(node), '--test', '--test-isolation=none', '--test-reporter=tap',
                                    str(ROOT / main.V30_ORIGINAL_TEST)])
         self.assertEqual(descriptors, (81,))
-        self.assertEqual(environment['DVAIA_V30_HOST_WORKER_FD'], '81')
-        self.assertEqual(environment['DVAIA_V30_HOST_NONCE'], 'a' * 64)
+        self.assertEqual(environment['OWASP_AI_GOAT_V30_HOST_WORKER_FD'], '81')
+        self.assertEqual(environment['OWASP_AI_GOAT_V30_HOST_NONCE'], 'a' * 64)
         self.assertEqual(environment['V30_AGENT_HOST_PORT'], '17500')
-        self.assertNotIn('DVAIA_V30_HOST_LAUNCHER_FD', environment)
+        self.assertNotIn('OWASP_AI_GOAT_V30_HOST_LAUNCHER_FD', environment)
         with self.assertRaisesRegex(RuntimeError, 'Exact V30 worker'):
             main.v30_v2_worker_launch(ROOT, node,
-                                      {'DVAIA_V30_HOST_LAUNCHER_FD': '82'},
+                                      {'OWASP_AI_GOAT_V30_HOST_LAUNCHER_FD': '82'},
                                       81, 'a' * 64, 17500)
 
     def test_v2_pg_cleanup_fence_rejects_injected_host_or_worker_stop_failure(self):

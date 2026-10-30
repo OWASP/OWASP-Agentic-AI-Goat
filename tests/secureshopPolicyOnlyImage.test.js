@@ -10,8 +10,8 @@ const dockerfile = fs.readFileSync(path.join(root, 'sidecars/sandbox-runner/poli
 
 test('dedicated image packages only the checked strict policy renderer', () => {
   assert.match(dockerfile, /FROM docker\.io\/library\/node:26\.10\.0-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1/g);
-  assert.match(dockerfile, /gcc -static[^\n]*process-supervisor\.c[^\n]*dvaia-policy-render-supervisor/);
-  assert.match(dockerfile, /gcc -static[^\n]*policy-init\.c[^\n]*dvaia-policy-render-init/);
+  assert.match(dockerfile, /gcc -static[^\n]*process-supervisor\.c[^\n]*owasp-ai-goat-policy-render-supervisor/);
+  assert.match(dockerfile, /gcc -static[^\n]*policy-init\.c[^\n]*owasp-ai-goat-policy-render-init/);
   assert.match(dockerfile, /COPY policy-render\/listener\.js policy-render\/executor\.js policy-render\/http-handler\.js policy-render\/worker\.js/);
   assert.match(dockerfile, /COPY policy-render\/assets \.\/policy-render\/assets/);
   assert.match(dockerfile, /COPY policy-render\/secureshopPromptPolicyContract\.js \/server\/services\/secureshopPromptPolicyContract\.js/);

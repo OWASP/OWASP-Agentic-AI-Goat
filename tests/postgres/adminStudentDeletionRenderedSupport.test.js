@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const s=require('./adminStudentDeletionRenderedSupport');
 function env(){const e={PG_TEST_DISPOSABLE:'yes',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',PG_POOL_BUDGET:'78'};
- for(const row of s.STORES){for(const [key,role]of [[row.runtimeVariable,row.runtimeRole],[row.migrationVariable,row.migrationRole]])e[key]=`postgresql://${role}@127.0.0.1:54321/dvaia_test_student_deletion_123456abcdef_${row.schema}`;}return e;}
+ for(const row of s.STORES){for(const [key,role]of [[row.runtimeVariable,row.runtimeRole],[row.migrationVariable,row.migrationRole]])e[key]=`postgresql://${role}@127.0.0.1:54321/owasp_ai_goat_test_student_deletion_123456abcdef_${row.schema}`;}return e;}
 test('production opener rejects injectable environment before importing allocation modules',async()=>{
  const Module=require('node:module'),original=Module._load;let sideEffects=0;
  Module._load=function(name,...args){if(name==='../../server/database/postgres'||name==='../../server/services/studentDeletionProduction'){

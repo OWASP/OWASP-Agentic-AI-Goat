@@ -14,10 +14,10 @@ class Docker:
         self.fail_remove = False
         self.unknown_absence = False
         self.daemon = 'daemon'
-        self.state = {'container': 'dvaia-standalone-listings-' + 'a' * 12,
+        self.state = {'container': 'owasp-ai-goat-standalone-listings-' + 'a' * 12,
                       'network': 'network', 'volume': 'volume', 'image': 'sha256:' + 'b' * 64,
-                      'daemon': self.daemon, 'profile': {'name': 'dvaia-owned-listings-' + 'a' * 12},
-                      'labels': {'dvaia.owner': 'owner', 'dvaia.cohort': 'listings'},
+                      'daemon': self.daemon, 'profile': {'name': 'owasp-ai-goat-owned-listings-' + 'a' * 12},
+                      'labels': {'owasp-ai-goat.owner': 'owner', 'owasp-ai-goat.cohort': 'listings'},
                       'port': '18095', 'attempted': ['profile', 'network', 'volume', 'container']}
         self.network = {'Name': 'network', 'Id': 'c' * 64, 'Labels': self.state['labels'].copy(),
                         'Driver': 'bridge', 'Internal': False, 'Options': {}, 'Containers': {'d' * 64: {}}}
@@ -112,7 +112,7 @@ class Controls(unittest.TestCase):
         self.assertEqual(d.mutations(), []); self.assertEqual(removed, [])
 
     def test_foreign_container_label_retains_every_resource(self):
-        self.assert_retained(lambda d: d.container['Config']['Labels'].update({'dvaia.owner': 'foreign'}))
+        self.assert_retained(lambda d: d.container['Config']['Labels'].update({'owasp-ai-goat.owner': 'foreign'}))
 
     def test_container_image_drift_retains_every_resource(self):
         self.assert_retained(lambda d: d.container.update(Image='sha256:' + 'e' * 64))
@@ -163,8 +163,8 @@ class Controls(unittest.TestCase):
 
     def test_resource_or_environment_drift_retains_every_resource(self):
         for change in (
-            lambda d: d.volume['Labels'].update({'dvaia.owner': 'foreign'}),
-            lambda d: d.network['Labels'].update({'dvaia.owner': 'foreign'}),
+            lambda d: d.volume['Labels'].update({'owasp-ai-goat.owner': 'foreign'}),
+            lambda d: d.network['Labels'].update({'owasp-ai-goat.owner': 'foreign'}),
             lambda d: d.container['HostConfig'].update(Privileged=True),
             lambda d: d.container['Config']['Env'].append('LISTINGS_CONTROL_TOKEN=other'),
             lambda d: d.container['Mounts'][0].update(Source='/foreign'),
@@ -183,14 +183,14 @@ class Controls(unittest.TestCase):
 
 class PrivateBridgeContract(unittest.TestCase):
     def handoff(self):
-        return dict(runId='a'*32, root='/var/tmp/dvaia-v23-build-'+'a'*32+'/fs',
+        return dict(runId='a'*32, root='/var/tmp/owasp-ai-goat-v23-build-'+'a'*32+'/fs',
                     filesystemDevice=1792, filesystemInode=2, namespaceInode=1234,
                     holderPid=200, holderStart=300, containerPid=400, containerStart=500,
                     containerId='b'*64, imageId='sha256:'+'c'*64, sourceSha256='d'*64,
                     runtimeSha256='e'*64, environmentSha256='f'*64, publicOrigin='http://127.0.0.1:1234',
-                    workspaceId='a'*12,profileName='dvaia-owned-listings-'+'a'*12,
-                    profileSha256='f'*64,containerName='dvaia-owned-listings-'+'a'*12,
-                    privateDockerHost='unix:///var/tmp/dvaia-v23-build-'+'a'*32+'/fs/docker.sock',daemonId='d'*36)
+                    workspaceId='a'*12,profileName='owasp-ai-goat-owned-listings-'+'a'*12,
+                    profileSha256='f'*64,containerName='owasp-ai-goat-owned-listings-'+'a'*12,
+                    privateDockerHost='unix:///var/tmp/owasp-ai-goat-v23-build-'+'a'*32+'/fs/docker.sock',daemonId='d'*36)
 
     def test_closed_handoff_copies_and_rejects_ambiguous_authority(self):
         value = self.handoff(); captured = resource.private_handoff(value)
@@ -247,7 +247,7 @@ class PrivateBridgeContract(unittest.TestCase):
 
     def test_actual_emitted_container_authority_checks(self):
         h = self.handoff()
-        profile='dvaia-owned-listings-'+h['runId'][:12]; volume='dvaia-listings-journal-'+h['runId']
+        profile='owasp-ai-goat-owned-listings-'+h['runId'][:12]; volume='owasp-ai-goat-listings-journal-'+h['runId']
         environment = ['LISTINGS_MANAGER_ENABLED=true', 'LISTINGS_PROFILE='+profile,
                        'LISTINGS_PUBLIC_ORIGIN=http://127.0.0.1:1234', 'LISTINGS_CONTROL_TOKEN=controlled']
         h['environmentSha256'] = hashlib.sha256('\n'.join(sorted(environment)).encode()).hexdigest()
@@ -255,8 +255,8 @@ class PrivateBridgeContract(unittest.TestCase):
                    AppArmorProfile=profile,
                    Mounts=[dict(Type='volume',Name=volume,Source=h['root']+'/data/volumes/'+volume+'/_data',Destination='/journal',Driver='local',Mode='',RW=True,Propagation='')],
                    Config=dict(User='10001:10001', Env=environment, Entrypoint=['node'],Cmd=['/app/sidecars/sandbox-runner/owned-listings/manager-entry.js'], Labels={
-                       'dvaia.test.owner': h['runId'], 'dvaia.listings.source': h['sourceSha256'],
-                       'dvaia.listings.runtime': h['runtimeSha256']}),
+                       'owasp-ai-goat.test.owner': h['runId'], 'owasp-ai-goat.listings.source': h['sourceSha256'],
+                       'owasp-ai-goat.listings.runtime': h['runtimeSha256']}),
                    HostConfig=dict(NetworkMode='host', ReadonlyRootfs=True, Privileged=False,
                        Memory=536870912,NanoCpus=1000000000,PidsLimit=128,CapDrop=['ALL'],
                        SecurityOpt=['apparmor='+profile,'seccomp=unconfined'],
@@ -307,7 +307,7 @@ class PrivateBridgeContract(unittest.TestCase):
         # Repeat all existing container authority denials with the observed z base.
         for path, value in [(('Id',), '0'*64), (('Image',), 'sha256:'+'0'*64),
                             (('State', 'Pid'), 999), (('State', 'Running'), False),
-                            (('Config', 'Labels', 'dvaia.test.owner'), 'foreign'),
+                            (('Config', 'Labels', 'owasp-ai-goat.test.owner'), 'foreign'),
                             (('HostConfig', 'NetworkMode'), 'bridge'),
                             (('Config', 'Cmd'), ['/unapproved.js']),
                             (('Config', 'Entrypoint'), ['sh']),

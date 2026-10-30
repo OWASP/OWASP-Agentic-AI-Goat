@@ -98,14 +98,14 @@ async function runQualification(ownedOptions) {
   if(owned){assert.equal(owned.profile,'actual-admin-enum');assert.equal(source,fs.realpathSync(path.resolve(__dirname,'../..')));assert.equal(fs.realpathSync(process.cwd()),runtime);assert(ports instanceof Set);assert.equal(fs.realpathSync(runtime),runtime);}
   // Fail before importing any application singleton or creating a connection.
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-  if(!owned)assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
+  if(!owned)assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
   assert.equal(process.env.PLATFORM_DATABASE_ENGINE, 'postgres');
   assert.equal(process.env.WORKSHOP_DATABASE_ENGINE, 'postgres');
   if(!owned){
-  binding('IDENTITY_DATABASE_URL', 'dvaia_test_finflow_enum_identity', 'dvaia_identity_runtime');
-  binding('IDENTITY_MIGRATION_DATABASE_URL', 'dvaia_test_finflow_enum_identity', 'dvaia_identity_migration');
-  binding('FINFLOW_WORKSHOP_DATABASE_URL', 'dvaia_test_finflow_enum_store', 'dvaia_finflow_runtime');
-  binding('FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL', 'dvaia_test_finflow_enum_store', 'dvaia_finflow_migration');
+  binding('IDENTITY_DATABASE_URL', 'owasp_ai_goat_test_finflow_enum_identity', 'dvaia_identity_runtime');
+  binding('IDENTITY_MIGRATION_DATABASE_URL', 'owasp_ai_goat_test_finflow_enum_identity', 'dvaia_identity_migration');
+  binding('FINFLOW_WORKSHOP_DATABASE_URL', 'owasp_ai_goat_test_finflow_enum_store', 'dvaia_finflow_runtime');
+  binding('FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL', 'owasp_ai_goat_test_finflow_enum_store', 'dvaia_finflow_migration');
   assert.equal(process.env.AI_PROVIDER, 'ollama');
   assert.equal(process.env.OLLAMA_BASE_URL, 'http://127.0.0.1:11434');
   assert.equal(process.env.OLLAMA_MODEL, MODEL);

@@ -21,7 +21,7 @@ function exact(value, keys) {
 function endpoint(raw, store, role) {
   if (typeof raw !== 'string') throw fail();
   const url = new URL(raw);
-  const match = /^\/dvaia_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
+  const match = /^\/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
   if (url.protocol !== 'postgresql:' || url.hostname !== '127.0.0.1'
       || !/^[1-9][0-9]{0,4}$/.test(url.port) || Number(url.port) > 65535
       || url.username !== `dvaia_${store}_${role}` || url.password || url.search || url.hash

@@ -22,9 +22,9 @@ def arguments(argv):
  return p.parse_args(argv)
 def plan(nonce):
  if not re.fullmatch('[a-f0-9]{12}',nonce):raise ValueError('Invalid nonce')
- return {'auth':'dvaia_test_auth_http_'+nonce,'fresh':'dvaia_test_ctf_adminpolicy_fresh_'+nonce,'populated':'dvaia_test_ctf_adminpolicy_populated_'+nonce}
+ return {'auth':'owasp_ai_goat_test_auth_http_'+nonce,'fresh':'owasp_ai_goat_test_ctf_adminpolicy_fresh_'+nonce,'populated':'owasp_ai_goat_test_ctf_adminpolicy_populated_'+nonce}
 def environment(home,port,databases,suite):
- env={'PATH':'/usr/bin:/bin','HOME':str(home),'TMPDIR':str(home),'PG_TEST_DISPOSABLE':'yes','DVAIA_AUTH_CTF_PROFILE':'1','DVAIA_AUTH_CTF_PORT':str(port),'PGCONNECT_TIMEOUT':'5','PGOPTIONS':'-c statement_timeout=15000 -c idle_in_transaction_session_timeout=30000'}
+ env={'PATH':'/usr/bin:/bin','HOME':str(home),'TMPDIR':str(home),'PG_TEST_DISPOSABLE':'yes','OWASP_AI_GOAT_AUTH_CTF_PROFILE':'1','OWASP_AI_GOAT_AUTH_CTF_PORT':str(port),'PGCONNECT_TIMEOUT':'5','PGOPTIONS':'-c statement_timeout=15000 -c idle_in_transaction_session_timeout=30000'}
  pairs=[('PG_HTTP_TEST',databases['auth'])] if suite=='auth' else [('PG_CTF_CANONICAL_ADMIN_FRESH',databases['fresh']),('PG_CTF_CANONICAL_ADMIN_POPULATED',databases['populated'])]
  for prefix,db in pairs:
   for role in ['MIGRATION','RUNTIME']:env[prefix+'_'+role+'_URL']=f'postgresql://dvaia_identity_{role.lower()}@127.0.0.1:{port}/{db}'
@@ -62,7 +62,7 @@ def main(argv):
  args=arguments(argv);source=Path(__file__).resolve().parents[2];work=CleanupBudget(600)
  node=work.run(lambda:validate(args,source));before=work.run(lambda:inventory(source));before_modes=work.run(lambda:modes(source))
  root=prepare_evidence_root(args.evidence_root,[source.parent]);home=root/'home';home.mkdir(mode=0o700)
- nonce=uuid.uuid4().hex[:12];databases=plan(nonce);name='dvaia-auth-ctf-'+nonce;label=uuid.uuid4().hex
+ nonce=uuid.uuid4().hex[:12];databases=plan(nonce);name='owasp-ai-goat-auth-ctf-'+nonce;label=uuid.uuid4().hex
  docker=[args.docker_binary,'--host',args.docker_host];env={'PATH':'/usr/bin:/bin','HOME':str(home),'TMPDIR':str(home)}
  state={'scope':'platform-auth-ctf0123','status':'preparing','container':name,'owner':label,'suites':{},'cleanup':{},'children':[]};container=None;budget=work
  def save():
@@ -73,7 +73,7 @@ def main(argv):
   if p.returncode==1 and p.stderr.strip() in [f'Error: No such container: {name}',f'Error response from daemon: No such container: {name}',f'Error: No such object: {name}']:return None
   if p.returncode:raise RuntimeError('Container inspection unavailable')
   row=json.loads(p.stdout)[0]
-  if row['Config']['Labels'].get('dvaia.test.owner')!=label or (container and row['Id']!=container):raise RuntimeError('Container identity mismatch')
+  if row['Config']['Labels'].get('owasp-ai-goat.test.owner')!=label or (container and row['Id']!=container):raise RuntimeError('Container identity mismatch')
   return row
  def members(child):
   found=[]
@@ -94,7 +94,7 @@ def main(argv):
    if command(docker+['info','--format','{{.ID}}'],capture_output=True,text=True).stdout.strip()!=args.daemon_id:raise RuntimeError('Daemon mismatch')
    if command(docker+['image','inspect','postgres:18','--format','{{.Id}}'],capture_output=True,text=True).stdout.strip()!=IMAGE:raise RuntimeError('Image mismatch')
    if inspect() is not None:raise RuntimeError('Container exists')
-   command(docker+['run','-d','--pull','never','--name',name,'--label','dvaia.test.owner='+label,'--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=1073741824','-e','POSTGRES_HOST_AUTH_METHOD=trust','-p','127.0.0.1::5432',IMAGE,'-c','max_connections=100'],capture_output=True)
+   command(docker+['run','-d','--pull','never','--name',name,'--label','owasp-ai-goat.test.owner='+label,'--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=1073741824','-e','POSTGRES_HOST_AUTH_METHOD=trust','-p','127.0.0.1::5432',IMAGE,'-c','max_connections=100'],capture_output=True)
    row=inspect();container=row['Id'];state['containerId']=container;save()
    binding=row['NetworkSettings']['Ports']['5432/tcp'];assert len(binding)==1 and binding[0]['HostIp']=='127.0.0.1';port=int(binding[0]['HostPort'])
    ready=time.monotonic()+30

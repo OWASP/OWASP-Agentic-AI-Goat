@@ -55,7 +55,7 @@ test('store inspection retains full exact ledgers and closes every injected pool
 });
 
 test('qualification checks owned private configuration bytes without reading the working environment', t => {
-  const directory=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'dvaia-promotion-config-'));
+  const directory=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'owasp-ai-goat-promotion-config-'));
   t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
   const configPath=path.join(directory,'.env');
   const privateBytes=Buffer.from('OWNED_TEST_SELECTOR=fixture\n');

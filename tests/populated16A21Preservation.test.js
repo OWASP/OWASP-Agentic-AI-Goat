@@ -337,8 +337,8 @@ test('A21 provisions fresh delivery before every restore and retains exact resto
   }
   stores[row.schema]={dump:row.schema+'.dump',tocSha256:createHash('sha256').update('toc').digest('hex'),source:{tables:{},ledger:[]},sequences:[]};
  }
- sourceConfiguration.CTF_DELIVERY_DATABASE_URL='postgresql://delivery:old@installed.invalid/dvaia_ctf';
- const generated='postgresql://delivery:fresh@127.0.0.1:55432/dvaia_ctf';
+ sourceConfiguration.CTF_DELIVERY_DATABASE_URL='postgresql://delivery:old@installed.invalid/owasp_ai_goat_ctf';
+ const generated='postgresql://delivery:fresh@127.0.0.1:55432/owasp_ai_goat_ctf';
  const options={sourceConfiguration,provision:{plan,configuration},directory:'/owned/private',admin:'postgresql://postgres@127.0.0.1:55432/postgres',port:55432,installation:'/owned/installation',home:'/owned/home',mappings:{},saved:{stores},backupRoot:'/owned/backup'};
  const calls=[];let failure=null;
  const deps={delivery:async()=>{calls.push('delivery');return{configuration:{CTF_DELIVERY_DATABASE_URL:generated}};},
@@ -500,7 +500,7 @@ test('A21 managed env encoding matches each actual consumer dialect without chan
  const bytes=encodeRestoredManagedEnvironment('secureshop-qualified.env',values,options);
  assert(bytes.startsWith('SS_ENABLE=true\n'));assert.deepEqual({...qualified.parse(Buffer.from(bytes),{root:options.installation,home:options.home})},values);
  for(const patch of [{SS_ENABLE:'"true"'},{SS_ENABLE:'false'},{SS_PERSONA_INBOX_READY:'false'},{SS_MCP_TRUST_FIXTURE_ROOT:'/foreign/root'},{SS_MCP_TRUST_FIXTURE_ROOT:roots.SS_MCP_TRUST_FIXTURE_ROOT+'\nSS_ENABLE=false'}])assert.throws(()=>encodeRestoredManagedEnvironment('secureshop-qualified.env',{...values,...patch},options));
- const mcp={MCP_OWNED_TARGET_APPARMOR_PROFILE:'dvaia-mcp-sandbox',MCP_OWNED_TARGET_PORT:'8092',MCP_OWNED_TARGET_URL:'http://127.0.0.1:8092',MCP_OWNED_TARGET_TOKEN:'a'.repeat(64),MCP_OWNED_RESOURCES_ENABLED:'true',MCP_OBSERVED_ACTION_ENABLED:'true',MCP_INDIRECT_INJECTION_ENABLED:'true',MCP_SUPPLY_CHAIN_ENABLED:'true',MCP_PROTECTED_RECOVERY_ENABLED:'true',CODEBOT_SANDBOX_RUNNER_URL:'http://127.0.0.1:8092',CODEBOT_OWNED_EXECUTION_ENABLED:'true'};
+ const mcp={MCP_OWNED_TARGET_APPARMOR_PROFILE:'owasp-ai-goat-mcp-sandbox',MCP_OWNED_TARGET_PORT:'8092',MCP_OWNED_TARGET_URL:'http://127.0.0.1:8092',MCP_OWNED_TARGET_TOKEN:'a'.repeat(64),MCP_OWNED_RESOURCES_ENABLED:'true',MCP_OBSERVED_ACTION_ENABLED:'true',MCP_INDIRECT_INJECTION_ENABLED:'true',MCP_SUPPLY_CHAIN_ENABLED:'true',MCP_PROTECTED_RECOVERY_ENABLED:'true',CODEBOT_SANDBOX_RUNNER_URL:'http://127.0.0.1:8092',CODEBOT_OWNED_EXECUTION_ENABLED:'true'};
  const encodedMcp=encodeRestoredManagedEnvironment('mcp-owned.env',mcp,options);
  assert.deepEqual({...require('../server/services/mcp/ownedManagedConfiguration').parseManagedConfiguration(Buffer.from(encodedMcp))},mcp);
  const password='a'.repeat(64);
@@ -542,7 +542,7 @@ test('A21 retains every existing assessment objective and admits only the canoni
   const queries=[];
   const run=async(_command,args)=>{
     const query=args.at(-1);queries.push(query);
-    if(query.includes('CREATE TABLE dvaia_qualification.retained_assessment_objectives')){
+    if(query.includes('CREATE TABLE owasp_ai_goat_qualification.retained_assessment_objectives')){
       return {stdout:JSON.stringify({rows:25,targetRows:0})};
     }
     if(query.includes("clock_timestamp()")) return {stdout:JSON.stringify({at:'2026-10-10T00:00:00.000Z'})};

@@ -122,8 +122,8 @@ def main():
         path=root/name
         with path.open('w') as output:
             os.chmod(path,0o600);json.dump(value,output,sort_keys=True);output.write('\n');output.flush();os.fsync(output.fileno())
-    nonce=uuid.uuid4().hex;tag='dvaia-mcp-owned-build:'+nonce
-    labels={'dvaia.qualification':'mcp_connected_baseline','dvaia.build-nonce':nonce,'dvaia.owner-uid':str(os.getuid()),'dvaia.context-sha256':args.context_sha256}
+    nonce=uuid.uuid4().hex;tag='owasp-ai-goat-mcp-owned-build:'+nonce
+    labels={'owasp-ai-goat.qualification':'mcp_connected_baseline','owasp-ai-goat.build-nonce':nonce,'owasp-ai-goat.owner-uid':str(os.getuid()),'owasp-ai-goat.context-sha256':args.context_sha256}
     processes=OwnedProcesses(stop_group,lambda value:record('process-'+value['name']+'.json',value))
     passed=False;failures=[];intended=False;identifier=None
     processes.install()

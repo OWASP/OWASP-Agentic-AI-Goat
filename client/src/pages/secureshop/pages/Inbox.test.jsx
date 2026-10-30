@@ -27,7 +27,7 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); });
 async function select() { await act(async () => [...container.querySelectorAll('div')].find(x => x.textContent === mail.subject).click()); }
 test('HTTP errors remain load errors and retry can establish empty inbox', async () => {
-  fetch.mockResolvedValueOnce(response({ error: 'Bound SecureShop operation unavailable' }, false));
+  fetch.mockResolvedValueOnce(response({ error: 'Bound OWASP AI SecureShop operation unavailable' }, false));
   await render(); expect(container.textContent).toContain('Unable to load inbox'); expect(container.textContent).not.toContain('No mail yet');
   fetch.mockResolvedValueOnce(response({ ok: true, emails: [] })); await click('Retry'); expect(container.textContent).toContain('No mail yet');
 });

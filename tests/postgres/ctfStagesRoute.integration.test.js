@@ -235,8 +235,8 @@ async function request(base, path, token, body) {
 test('mounted CTF uses actual guardians, defenses, Judge receipts, progress, and reset through the configured stage', {
   skip: !enabled, timeout: stageEnd <= 4 ? 600_000 : 1_800_000,
 }, async t => {
-  ownedUrl('IDENTITY_DATABASE_URL', 'dvaia_test_ctf_stages_identity');
-  ownedUrl('CTF_DATABASE_URL', 'dvaia_test_ctf_stages_store');
+  ownedUrl('IDENTITY_DATABASE_URL', 'owasp_ai_goat_test_ctf_stages_identity');
+  ownedUrl('CTF_DATABASE_URL', 'owasp_ai_goat_test_ctf_stages_store');
   assert.ok(Number.isInteger(stageEnd) && stageEnd >= 2 && stageEnd <= 10);
   assert.ok(targetStage === null || targetStages.has(targetStage));
   if (targetStage !== null) assert.equal(stageEnd, targetStage);
@@ -245,7 +245,7 @@ test('mounted CTF uses actual guardians, defenses, Judge receipts, progress, and
     assert.match(process.env.CTF_STAGE6_CANDIDATE_SHA256 || '', /^[a-f0-9]{64}$/);
     assert.ok(process.env.CTF_STAGE6_EVIDENCE_ROOT);
   }
-  assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
+  assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
   const transport = stage6Fixed
     ? await require('./ctfStage9ActualTransport').createTransport({ evidence: process.env.CTF_STAGE6_EVIDENCE_ROOT }) : null;
   if (transport) process.env.OLLAMA_BASE_URL = transport.actorUrl;

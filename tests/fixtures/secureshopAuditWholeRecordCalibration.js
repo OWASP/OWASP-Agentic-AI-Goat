@@ -142,7 +142,7 @@ function assess(contract, raw, expected) {
   return { result, observedFields: fields, matchesExpected: JSON.stringify(fields) === JSON.stringify(expected) };
 }
 async function run(directory, pin) {
-  assert.equal(process.env.DVAIA_AUDIT_WHOLE_RECORD_CALIBRATION, '1');
+  assert.equal(process.env.OWASP_AI_GOAT_AUDIT_WHOLE_RECORD_CALIBRATION, '1');
   assert(path.isAbsolute(directory));
   const outputStat = fs.lstatSync(directory);
   assert(outputStat.isDirectory() && (outputStat.mode & 0o777) === 0o700);

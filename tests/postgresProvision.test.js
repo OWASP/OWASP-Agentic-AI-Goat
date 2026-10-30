@@ -1,10 +1,10 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
 const {provisionApplication,provisioningPlan}=require('../db/postgres/provision-application');
-test('provision plan contains only sixteen fixed names and no credentials',()=>{const plan=provisioningPlan();assert.equal(plan.length,16);assert.ok(plan.every(row=>/^dvaia_[a-z_]+$/.test(row.database)));assert.doesNotMatch(JSON.stringify(plan),/password|postgresql:\/\//);});
+test('provision plan contains only sixteen fixed names and no credentials',()=>{const plan=provisioningPlan();assert.equal(plan.length,16);assert.ok(plan.every(row=>/^owasp_ai_goat_[a-z_]+$/.test(row.database)));assert.doesNotMatch(JSON.stringify(plan),/password|postgresql:\/\//);});
 test('collision preflight creates no roles, files or databases',async()=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'provision-test-')),queries=[];
- try{await assert.rejects(provisionApplication({adminUrl:'postgresql://admin:secret@localhost/postgres',manifestPath:path.join(dir,'manifest.json'),clientFactory:()=>({connect:async()=>{},end:async()=>{},query:async(sql)=>{queries.push(sql);return{rows:sql.includes('server_version_num')?[{server_version_num:'180000'}]:sql.includes('pg_control_system')?[{system_identifier:'fixture'}]:sql.includes('UNION ALL')?[{name:'dvaia_identity'}]:[]};}})}),{code:'PROVISIONING_NAME_COLLISION'});assert.ok(!queries.some(sql=>sql.startsWith('CREATE')));assert.ok(queries.findIndex(sql=>sql.includes('server_version_num'))<queries.findIndex(sql=>sql.includes('pg_advisory_lock')));assert.deepEqual(await fs.readdir(dir),[]);}finally{await fs.rm(dir,{recursive:true,force:true});}
+ try{await assert.rejects(provisionApplication({adminUrl:'postgresql://admin:secret@localhost/postgres',manifestPath:path.join(dir,'manifest.json'),clientFactory:()=>({connect:async()=>{},end:async()=>{},query:async(sql)=>{queries.push(sql);return{rows:sql.includes('server_version_num')?[{server_version_num:'180000'}]:sql.includes('pg_control_system')?[{system_identifier:'fixture'}]:sql.includes('UNION ALL')?[{name:'owasp_ai_goat_identity'}]:[]};}})}),{code:'PROVISIONING_NAME_COLLISION'});assert.ok(!queries.some(sql=>sql.startsWith('CREATE')));assert.ok(queries.findIndex(sql=>sql.includes('server_version_num'))<queries.findIndex(sql=>sql.includes('pg_advisory_lock')));assert.deepEqual(await fs.readdir(dir),[]);}finally{await fs.rm(dir,{recursive:true,force:true});}
 });
 test('fresh provision persists exclusive private credentials and emits no secret in public plan',async()=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'provision-test-'));const file=path.join(dir,'manifest.json');
@@ -38,9 +38,9 @@ test('provision rejects remote plaintext and URL TLS overrides before connecting
  assert.equal(connected,false);
 });
 
-test('session disclosure has dedicated database and role configuration',()=>{const row=provisioningPlan().find(item=>item.schema==='session_disclosure');assert.equal(row.database,'dvaia_session_disclosure');assert.equal(row.runtimeRole,'dvaia_session_disclosure_runtime');assert.equal(row.runtimeVariable,'SESSION_DISCLOSURE_DATABASE_URL');assert.equal(row.migrationVariable,'SESSION_DISCLOSURE_MIGRATION_DATABASE_URL');});
+test('session disclosure has dedicated database and role configuration',()=>{const row=provisioningPlan().find(item=>item.schema==='session_disclosure');assert.equal(row.database,'owasp_ai_goat_session_disclosure');assert.equal(row.runtimeRole,'dvaia_session_disclosure_runtime');assert.equal(row.runtimeVariable,'SESSION_DISCLOSURE_DATABASE_URL');assert.equal(row.migrationVariable,'SESSION_DISCLOSURE_MIGRATION_DATABASE_URL');});
 
-test('bound reviews have a dedicated database and role configuration',()=>{const row=provisioningPlan().find(item=>item.schema==='secureshop_review');assert.deepEqual(row,{schema:'secureshop_review',database:'dvaia_secureshop_review',runtimeRole:'dvaia_secureshop_review_runtime',migrationRole:'dvaia_secureshop_review_migration',runtimeVariable:'SECURESHOP_REVIEW_DATABASE_URL',migrationVariable:'SECURESHOP_REVIEW_MIGRATION_DATABASE_URL'});});
+test('bound reviews have a dedicated database and role configuration',()=>{const row=provisioningPlan().find(item=>item.schema==='secureshop_review');assert.deepEqual(row,{schema:'secureshop_review',database:'owasp_ai_goat_secureshop_review',runtimeRole:'dvaia_secureshop_review_runtime',migrationRole:'dvaia_secureshop_review_migration',runtimeVariable:'SECURESHOP_REVIEW_DATABASE_URL',migrationVariable:'SECURESHOP_REVIEW_MIGRATION_DATABASE_URL'});});
 
 test('fresh credential directory publication must succeed before any external DDL', async t => {
  const dir=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'provision-durability-test-')));

@@ -7,7 +7,7 @@ const {createOwnedAnalyticsService}=require('../sidecars/analytics-sql-target/se
 const {request,hash}=require('../sidecars/analytics-sql-target/contract');
 
 const uuid=n=>`${String(n).padStart(8,'0')}-0000-4000-8000-000000000001`;
-const identity={systemIdentifier:'123456789012',controlDatabase:'dvaia_analytics_control_123456abcdef',clusterName:'dvaia-owned-analytics-123456abcdef'};
+const identity={systemIdentifier:'123456789012',controlDatabase:'owasp_ai_goat_analytics_control_123456abcdef',clusterName:'owasp-ai-goat-owned-analytics-123456abcdef'};
 const scope={launchId:uuid(1),scenarioId:uuid(2),generation:1,platformOwnerId:11,platformSessionId:12};
 const target={targetId:uuid(3),scope,sourceManifestSha256:'a'.repeat(64)};
 const input={target,operationId:uuid(4),runId:uuid(5),requestId:uuid(6),sessionId:uuid(7),callId:'call-1',sql:'SELECT 1'};

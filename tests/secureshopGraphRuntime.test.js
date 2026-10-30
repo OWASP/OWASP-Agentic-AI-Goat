@@ -785,7 +785,7 @@ test('graph feeds actual isolated file bytes from the reserved adapter into its 
   const { createSecureShopFiles } = require('../sidecars/sandbox-runner/secureshopFiles');
   const { createSecureShopReservedFileReader } = require('../server/services/secureshopReservedFiles');
   const { createSecureShopReservedFileTools } = require('../server/services/secureshopReservedFileTools');
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-graph-real-files-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-graph-real-files-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const target = { targetId: '40000000-0000-4000-8000-000000000001', launchId: '40000000-0000-4000-8000-000000000002', scenarioId: '40000000-0000-4000-8000-000000000003', generation: 1, kind: 'files' };
   const trustedScope = { platformOwnerId: 71, platformSessionId: 81, launchId: target.launchId, generation: 1 };

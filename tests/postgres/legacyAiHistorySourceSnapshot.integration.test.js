@@ -28,7 +28,7 @@ function disposableUrl(key, role) {
   assert.ok(['postgres:', 'postgresql:'].includes(value.protocol));
   assert.ok(['127.0.0.1', 'localhost', '[::1]'].includes(value.hostname),
     'disposable PostgreSQL must be loopback');
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/,
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/,
     'owned disposable database name required');
   assert.equal(decodeURIComponent(value.username), role, `${key} role differs`);
   assert.equal(value.search, '');

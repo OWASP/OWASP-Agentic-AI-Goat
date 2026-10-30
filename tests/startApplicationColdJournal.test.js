@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{spawnSync}=require('node:child_process');
 test('cold actual startup CLI exposes cleanup before journal helper circular import',()=>{
- const directory=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-cold-entry-')),home=fs.realpathSync(directory);const preload=path.join(directory,'guard.cjs');
+ const directory=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-cold-entry-')),home=fs.realpathSync(directory);const preload=path.join(directory,'guard.cjs');
  fs.writeFileSync(preload,`
  const Module=require('node:module'),{EventEmitter}=require('node:events');const load=Module._load;let cleanup=false;process.execArgv=[];
  process.kill=(pid,signal)=>{if(pid!==-424242)throw Error('Unexpected signal target');cleanup=true;throw Object.assign(Error('absent'),{code:'ESRCH'});};

@@ -6,7 +6,7 @@ const { createHash } = require('node:crypto');
 const { createSecureShopSvgAssetBrowserQualification } = require('../../../../server/services/secureshopSvgAssetBrowserQualification');
 const URL = 'http://127.0.0.2:43191/assets/abc_DEF-123';
 const ORIGIN = 'http://127.0.0.2:43191';
-const marker = 'dvaia-v08-7bb6c3f5';
+const marker = 'owasp-ai-goat-v08-7bb6c3f5';
 const body = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg"><script>console.log('${marker}')</script></svg>`);
 const sha = value => createHash('sha256').update(value).digest('hex');
 function environment({bytes=body,contentType='image/svg+xml',csp='sandbox allow-scripts',count=1,consoleContext=7,scriptContext=7,consoleScriptId='s1',source=`console.log('${marker}')`,subresource=false,repeatNavigation=false,closeFails=false,pageCloseHangs=false,gotoHangs=false,teardownHangs=false,flood=false}={}) {

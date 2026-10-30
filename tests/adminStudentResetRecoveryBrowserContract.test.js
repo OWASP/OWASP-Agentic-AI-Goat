@@ -164,8 +164,8 @@ test('native composition denies identity database substitution before pool creat
  const { createResetSupport } = require('./postgres/adminStudentResetRecoverySupport');
  const saved = { ...process.env };
  try {
-  process.env.FINFLOW_WORKSHOP_DATABASE_URL = 'postgresql://dvaia_finflow_runtime@127.0.0.1:1/dvaia_test_student_reset_finflow_abcdef123456';
-  process.env.FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL = 'postgresql://dvaia_finflow_migration@127.0.0.1:1/dvaia_test_student_reset_finflow_abcdef123456';
+  process.env.FINFLOW_WORKSHOP_DATABASE_URL = 'postgresql://dvaia_finflow_runtime@127.0.0.1:1/owasp_ai_goat_test_student_reset_finflow_abcdef123456';
+  process.env.FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL = 'postgresql://dvaia_finflow_migration@127.0.0.1:1/owasp_ai_goat_test_student_reset_finflow_abcdef123456';
   process.env.PG_ADMIN_BROWSER_TEST_RUNTIME_URL = process.env.FINFLOW_WORKSHOP_DATABASE_URL;
   await assert.rejects(createResetSupport({}), /strictly unequal|not equal|notStrictEqual/);
  } finally {

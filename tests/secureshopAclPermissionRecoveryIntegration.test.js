@@ -6,23 +6,23 @@ const acl=fs.readFileSync('tests/fixtures/secureshopEnabledAclBrowser.js','utf8'
 function binding(enabled,request,controller=new AbortController()){
  const text=owner.slice(owner.indexOf('prepareAclRecovery: process.env'),owner.indexOf('prepareMcpTools:async headers'));
  const child={exitCode:null};
- const value=vm.runInNewContext('({'+text+'})',{process:{env:{DVAIA_ACL_PERMISSION_RECOVERY:enabled}},assert,t:{signal:controller.signal},child,request,AbortController,AbortSignal,ownerDeadline:Date.now()+180000});
+ const value=vm.runInNewContext('({'+text+'})',{process:{env:{OWASP_AI_GOAT_ACL_PERMISSION_RECOVERY:enabled}},assert,t:{signal:controller.signal},child,request,AbortController,AbortSignal,ownerDeadline:Date.now()+180000});
  return{prepare:value.prepareAclRecovery,controller,child};
 }
 test('actual owner binds persona token and launch scope to bounded GET only',async()=>{
  const calls=[],receipt={operationId:'12345678-1234-1234-1234-123456789012'};
  const b=binding('1',async(...args)=>{calls.push(args);return{status:200,body:{ok:true,receipt}};});
- const options=await b.prepare({'x-dvaia-secureshop-launch':'private-launch'},'private-persona');
+ const options=await b.prepare({'x-owasp-ai-goat-secureshop-launch':'private-launch'},'private-persona');
  assert.equal(options.signal.aborted,false);options.check();
  assert.equal((await options.readOperation(receipt.operationId)).receipt,receipt);
  assert.equal(calls.length,1);assert.equal(calls[0][2],undefined);
- assert.equal(calls[0][1],'private-persona');assert.equal(calls[0][3]['x-dvaia-secureshop-launch'],'private-launch');
+ assert.equal(calls[0][1],'private-persona');assert.equal(calls[0][3]['x-owasp-ai-goat-secureshop-launch'],'private-launch');
  b.controller.abort();await assert.rejects(options.readOperation(receipt.operationId));assert.equal(calls.length,1);
 });
 test('owner rejects HTTP denial and stopped backend; default never prepares recovery',async()=>{
  assert.equal(binding(undefined,()=>assert.fail()).prepare,undefined);
  const b=binding('1',async()=>({status:403,body:{}}));
- const options=await b.prepare({'x-dvaia-secureshop-launch':'scope'},'persona');
+ const options=await b.prepare({'x-owasp-ai-goat-secureshop-launch':'scope'},'persona');
  await assert.rejects(options.readOperation('12345678-1234-1234-1234-123456789012'));
  b.child.exitCode=1;assert.throws(options.check);
 });

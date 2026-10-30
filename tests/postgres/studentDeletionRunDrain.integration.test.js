@@ -4,7 +4,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 test('native run drain fences all generations, waits for active work and aborts without a leaked lease',{
  skip:process.env.PG_TEST_DISPOSABLE!=='yes'||!process.env.PG_RUN_DRAIN_RUNTIME_URL,
 },async()=>{
- for(const key of ['PG_RUN_DRAIN_RUNTIME_URL','PG_RUN_DRAIN_MIGRATION_URL','PG_RUN_DRAIN_LEASE_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_/);
+ for(const key of ['PG_RUN_DRAIN_RUNTIME_URL','PG_RUN_DRAIN_MIGRATION_URL','PG_RUN_DRAIN_LEASE_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_/);
  const {createPool}=require('../../server/database/postgres');
  const runtime=createPool(process.env,'PG_RUN_DRAIN_RUNTIME_URL');
  const migration=createPool(process.env,'PG_RUN_DRAIN_MIGRATION_URL');

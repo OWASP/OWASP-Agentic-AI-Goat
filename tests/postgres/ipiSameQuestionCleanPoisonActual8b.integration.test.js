@@ -9,10 +9,10 @@ test('mounted IPI actual model distinguishes one same-question clean and poison 
   skip: process.env.IPI_SAME_QUESTION_ACTUAL8B !== '1', timeout: 1200000,
 }, async () => {
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
+  assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
   const url = role => {
     const u = new URL(process.env['WORKSHOP_RAG_' + role.toUpperCase() + '_URL']);
-    assert.equal(u.hostname, '127.0.0.1'); assert.match(u.pathname, /^\/dvaia_test_workshop_rag_[a-f0-9]+$/);
+    assert.equal(u.hostname, '127.0.0.1'); assert.match(u.pathname, /^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/);
     assert.equal(u.username, 'dvaia_identity_' + role); return u.href;
   };
   process.env.PLATFORM_DATABASE_ENGINE = 'postgres';process.env.WORKSHOP_DATABASE_ENGINE='postgres';process.env.AI_PROVIDER='ollama';process.env.JUDGE_PROVIDER='ollama';process.env.OLLAMA_MODEL='llama3.1:8b';process.env.JUDGE_MODEL='llama3.1:8b';process.env.OLLAMA_BASE_URL='http://127.0.0.1:11434';process.env.JUDGE_BASE_URL='http://127.0.0.1:11434';

@@ -7,13 +7,13 @@ import { createGuestCartHost, exactCartMessage, GUEST_CART_CHANNEL, validGuestCa
 import NotFound from './pages/NotFound.jsx';
 import './theme.css';
 
-const CHANNEL = 'dvaia-secureshop-guest-route-v1';
+const CHANNEL = 'owasp-ai-goat-secureshop-guest-route-v1';
 
-function ShopOpening({ message = 'Opening SecureShop…', error = false, onRetry }) {
+function ShopOpening({ message = 'Opening OWASP AI SecureShop…', error = false, onRetry }) {
   return <main className="ss-root" style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center',
     background: 'var(--paper, #f8f6f1)', color: 'var(--ink, #242422)' }}>
     <div style={{ textAlign: 'center', padding: 24 }}>
-      <div className="ss-mono" style={{ fontSize: 12, letterSpacing: '0.12em', marginBottom: 20 }}>SECURESHOP</div>
+      <div className="ss-mono" style={{ fontSize: 12, letterSpacing: '0.12em', marginBottom: 20 }}>OWASP AI SecureShop</div>
       {!error && <div className="ss-skel" aria-hidden="true" style={{ width: 96, height: 3, margin: '0 auto 20px' }} />}
       <p role={error ? 'alert' : 'status'}>{message}</p>
       {error && <><button type="button" className="ss-btn ss-btn--ghost" onClick={onRetry}>Retry</button>{' '}
@@ -57,12 +57,16 @@ export default function SecureShopGuestLanding() {
     const initial = safeShopRoute(routeRef.current);
     if (!initial) return undefined;
     const element = document.createElement('iframe');
-    element.title = 'SecureShop storefront';
-    element.setAttribute('aria-label', 'SecureShop storefront');
+    element.title = 'OWASP AI SecureShop storefront';
+    element.setAttribute('aria-label', 'OWASP AI SecureShop storefront');
     Object.assign(element.style, { width: '100%', height: '100%', border: '0', display: 'block' });
     const url = `/secureshop-frame.html?guest=1&entry=${encodeURIComponent(initial)}`;
     const active = mountShopFrame({ frame: element, url, origin: window.location.origin,
-      compileOperation: compileGuestRead, transportOptions: { publicOnly: true } });
+      waitForInitialLoad: true,
+      compileOperation: compileGuestRead, transportOptions: { publicOnly: true },
+      onDisconnect: () => {
+        if (session.current === active) setStatus('connection-error');
+      } });
     frame.current = element;
     session.current = active;
     host.current.replaceChildren(element);
@@ -127,12 +131,12 @@ export default function SecureShopGuestLanding() {
 
   if (!publicRoute) {
     if (protectedRoute) return <ShopOpening message="Opening shop sign in…" />;
-    return <main className="ss-root" aria-label="SecureShop"><NotFound /></main>;
+    return <main className="ss-root" aria-label="OWASP AI SecureShop"><NotFound /></main>;
   }
   if (status === 'connection-error') {
-    return <ShopOpening error message="SecureShop is currently unavailable." onRetry={() => { setStatus('visible'); setRetry(n => n + 1); }} />;
+    return <ShopOpening error message="OWASP AI SecureShop is currently unavailable." onRetry={() => { setStatus('visible'); setRetry(n => n + 1); }} />;
   }
-  return <main aria-label="SecureShop" style={{ position: 'fixed', inset: 0, zIndex: 1000,
+  return <main aria-label="OWASP AI SecureShop" style={{ position: 'fixed', inset: 0, zIndex: 1000,
     background: 'var(--paper, #f8f6f1)' }}>
     <div ref={host} style={{ width: '100%', height: '100dvh' }} />
     {status !== 'ready' && <div style={{ position: 'absolute', inset: 0 }}><ShopOpening /></div>}

@@ -80,14 +80,14 @@ source-v86 cold-start check then restarted the exact same enabled container and
 matched its managed configuration, image, network and journal mount. See
 `listingsActivationV85` in the [retained evidence summary](../../tasks/secureshop-cart-browser-2026-10-09.json)
 and the private v86 receipt at
-`~/.dvaia/recovery/secureshop-activation-preservation-2026-10-10/coldrestart-v86.json`.
+`~/.owasp-ai-goat/recovery/secureshop-activation-preservation-2026-10-10/coldrestart-v86.json`.
 
 A separate benign installed workflow used actual `llama3.1:8b` to fetch the
 owned synthetic JSON source, then publish **Supplier lamp** as product 127. The
 product survived reload and the qualified cold restart. Its immutable receipt
 is summarized as `listingsBenignImportV85` in the retained evidence summary and
 stored privately as
-`~/.dvaia/recovery/secureshop-activation-preservation-2026-10-10/benign-import-v85.json`.
+`~/.owasp-ai-goat/recovery/secureshop-activation-preservation-2026-10-10/benign-import-v85.json`.
 This proves that one bounded benign fetch-to-publish path and persisted product;
 it does not prove an exploit, Judge result, broader Listings workflows or model
 reliability.

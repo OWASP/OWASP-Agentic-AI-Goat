@@ -428,10 +428,10 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
         self.assertEqual(len(read_calls),3)
         marker=object();api=object();owner=SimpleNamespace(_owned_pgid=77,pid=77)
         for suite,expected_capture,expected_prefix,expected_session in (
-                ('manual-rag-fixed-browser',True,'dvaia-manual-rag-browser-',True),
-                ('manual-rag-browser',True,'dvaia-manual-rag-browser-',True),
-                ('manual-rag-paired-browser',True,'dvaia-manual-rag-browser-',True),
-                ('product-summary-browser',True,'dvaia-similar-browser-',True),
+                ('manual-rag-fixed-browser',True,'owasp-ai-goat-manual-rag-browser-',True),
+                ('manual-rag-browser',True,'owasp-ai-goat-manual-rag-browser-',True),
+                ('manual-rag-paired-browser',True,'owasp-ai-goat-manual-rag-browser-',True),
+                ('product-summary-browser',True,'owasp-ai-goat-similar-browser-',True),
                 ('review',False,None,False),('manual-rag-source',False,None,False)):
             args=SimpleNamespace(suite=suite,browser_sha256='a'*64)
             captures=mock.Mock(return_value=marker)
@@ -545,7 +545,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
         self.assertNotIn(name, self.module.EMBEDDING_CACHE_SUITES)
         for store, expected in self.module.AGENT_HOST_STORE_NAMES.items():
             self.assertEqual(self.module.database_name(name, store, 'f' * 12),
-                f'dvaia_test_agent_host_ffffffffffff_{expected}')
+                f'owasp_ai_goat_test_agent_host_ffffffffffff_{expected}')
         inventory = self.module.main_checkout_inventory(ROOT, name)
         self.assertEqual(inventory['files'][suite['test']], self.module.REVIEW_RECOVERY_TEST_SHA256)
         self.assertEqual(inventory['files']['tests/secureshopReviewModerationRecoveryActualHarness.test.js'],
@@ -577,7 +577,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
             self.module.validate_current_host_selection(arguments)
         for store in ('COMMERCE', 'AGENTS'):
             self.assertEqual(self.module.database_name(name, store, 'f' * 12),
-                f'dvaia_test_v14_ffffffffffff_{self.module.AGENT_HOST_STORE_NAMES[store]}')
+                f'owasp_ai_goat_test_v14_ffffffffffff_{self.module.AGENT_HOST_STORE_NAMES[store]}')
         inventory = self.module.main_checkout_inventory(ROOT, name)
         for filename, expected in self.module.direct_source_pins().items():
             self.assertEqual(inventory['files'][filename], expected)
@@ -698,7 +698,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
             self.assertIn(filename, inventory['files'])
         for store in ('COMMERCE', 'AGENTS'):
             self.assertEqual(self.module.database_name(name, store, 'f' * 12),
-                f'dvaia_test_agent_host_ffffffffffff_{self.module.AGENT_HOST_STORE_NAMES[store]}')
+                f'owasp_ai_goat_test_agent_host_ffffffffffff_{self.module.AGENT_HOST_STORE_NAMES[store]}')
         self.assertIn('480 if args.suite == "tool-output-actual"', self.source)
         self.assertIn('assert_exact_single_tap(log_path, TOOL_OUTPUT_ASSERTION)', self.source)
         self.assertIn('assert_tool_output_evidence(root, node, tool_output_source_variant(args))', self.source)
@@ -767,7 +767,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
             self.assertIn(filename, inventory['files'])
         for store in ('COMMERCE', 'AGENTS'):
             self.assertEqual(self.module.database_name(name, store, 'f' * 12),
-                f'dvaia_test_agent_host_ffffffffffff_{self.module.AGENT_HOST_STORE_NAMES[store]}')
+                f'owasp_ai_goat_test_agent_host_ffffffffffff_{self.module.AGENT_HOST_STORE_NAMES[store]}')
         self.assertIn('480 if args.suite == "analytics-resource"', self.source)
         self.assertIn('assert_exact_single_tap(log_path, ANALYTICS_RESOURCE_ASSERTION)', self.source)
         self.assertIn('assert_analytics_resource_evidence(root, node)', self.source)
@@ -934,7 +934,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
         self.assertNotIn('manual-private-model', ast.literal_eval(browser_guard[0].test.comparators[0]))
         for store, _ in suite['stores']:
             self.assertEqual(self.module.database_name('manual-private-model', store, 'f' * 12),
-                             f'dvaia_test_agent_host_{"f" * 12}_{self.module.AGENT_HOST_STORE_NAMES[store]}')
+                             f'owasp_ai_goat_test_agent_host_{"f" * 12}_{self.module.AGENT_HOST_STORE_NAMES[store]}')
         self.assertIn('assert_private_manual_model_evidence(root)', self.source)
         self.assertIn('"maxActorHttpCalls": 14, "maxJudgeHttpCalls": 0', self.source)
         inventory = self.module.main_checkout_inventory(ROOT, 'manual-private-model')
@@ -960,7 +960,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
                          'e1b015f531b6b46f434163ba7e7d8c15c5c6b883dfc3886b03323285b7af80a7')
         for store, _ in suite['stores']:
             self.assertEqual(self.module.database_name('manual-ranking-model', store, 'f' * 12),
-                             f'dvaia_test_agent_host_{"f" * 12}_{self.module.AGENT_HOST_STORE_NAMES[store]}')
+                             f'owasp_ai_goat_test_agent_host_{"f" * 12}_{self.module.AGENT_HOST_STORE_NAMES[store]}')
         self.assertIn('SECURESHOP_MANUAL_RANKING_NATIVE="1"', self.source)
         self.assertIn('SECURESHOP_MANUAL_RANKING_EVIDENCE_PATH=str(root / "manual-ranking-model-evidence.json")', self.source)
         self.assertIn('TRANSFORMERS_OFFLINE="1"', self.source)
@@ -1198,10 +1198,10 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
 
     def test_current_host_cleanup_requires_exact_identity_and_recorded_id_absence(self):
         identifier = "a" * 64
-        intent = {"name": "dvaia-secureshop-manual-rag-browser-abc123",
+        intent = {"name": "owasp-ai-goat-secureshop-manual-rag-browser-abc123",
             "image": "sha256:" + "b" * 64,
-            "labels": {"dvaia.qualifier": "bound-review-current-host",
-                       "dvaia.run": "abc123", "dvaia.suite": "manual-rag-browser"},
+            "labels": {"owasp-ai-goat.qualifier": "bound-review-current-host",
+                       "owasp-ai-goat.run": "abc123", "owasp-ai-goat.suite": "manual-rag-browser"},
             "containerId": identifier}
         calls = []
         def result(code=0, stdout="", stderr=""):
@@ -1292,7 +1292,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
         self.assertIn("v01-checkout-audit", self.module.MAIN_CHECKOUT_SUITES)
         self.assertIn("v01-checkout-audit", self.module.REQUIRES_MAIN_CHECKOUT)
         self.assertEqual(self.module.database_name("v01-checkout-audit", "REVIEW", "f" * 12),
-            "dvaia_test_v01_checkout_audit_review_ffffffffffff")
+            "owasp_ai_goat_test_v01_checkout_audit_review_ffffffffffff")
         audit = self.module.SUITES["audit-journal"]
         self.assertEqual(audit["stores"], (("IDENTITY", "IDENTITY"), ("AGENTS", "AGENTS"), ("REVIEW", "REVIEW"), ("COMMERCE", "COMMERCE")))
         self.assertEqual(audit["env_prefix"], "PG_SECURESHOP_BOUND_AUDIT_")
@@ -1319,7 +1319,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
         self.assertEqual(lineage["env_prefix"], "EMBEDDING_")
         self.assertEqual(lineage["test"], "tests/postgres/secureshopEmbeddingRevision.integration.test.js")
         self.assertEqual(self.module.database_name("embedding-revision", "FRESH", "f" * 12),
-                         "dvaia_test_embedding_fresh_ffffffffffff")
+                         "owasp_ai_goat_test_embedding_fresh_ffffffffffff")
         self.assertIn('env["EMBEDDING_REVISION_NATIVE"] = "1"', self.source)
         adapter = self.module.SUITES["manual-rag-source"]
         self.assertEqual(adapter["stores"], (("IDENTITY", "IDENTITY"),
@@ -1330,9 +1330,9 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
         self.assertEqual(adapter["test"],
             "tests/postgres/secureshopManualRagSourceAdapter.integration.test.js")
         self.assertIn('env["SECURESHOP_MANUAL_RAG_SOURCE_NATIVE"] = "1"', self.source)
-        self.assertIn('env["DVAIA_CURRENT_MAIN_WORKSPACE"] = str(source)', self.source)
+        self.assertIn('env["OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE"] = str(source)', self.source)
         self.assertEqual(self.module.database_name("manual-rag-source", "REVIEW", "f" * 12),
-            "dvaia_test_manual_rag_source_review_ffffffffffff")
+            "owasp_ai_goat_test_manual_rag_source_review_ffffffffffff")
         preimages = self.module.SUITES["manual-rag-preimages"]
         self.assertEqual(preimages["stores"], (("FRESH_REVIEW", "REVIEW"),
             ("POPULATED_REVIEW", "REVIEW")))
@@ -1341,7 +1341,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
             "tests/postgres/secureshopManualRagPreimages.integration.test.js")
         self.assertIn('env["SECURESHOP_MANUAL_RAG_PREIMAGES_NATIVE"] = "1"', self.source)
         self.assertEqual(self.module.database_name("manual-rag-preimages", "FRESH_REVIEW", "f" * 12),
-            "dvaia_test_manual_rag_preimages_fresh_review_ffffffffffff")
+            "owasp_ai_goat_test_manual_rag_preimages_fresh_review_ffffffffffff")
         browser = self.module.SUITES["product-similar-browser"]
         self.assertEqual(browser["stores"], (("IDENTITY", "IDENTITY"), ("AGENTS", "AGENTS"),
             ("REVIEW", "REVIEW"), ("COMMERCE", "COMMERCE")))
@@ -1350,7 +1350,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
             "tests/postgres/secureshopStandaloneProductSimilarRendered.integration.test.js")
         for store, name in self.module.AGENT_HOST_STORE_NAMES.items():
             self.assertEqual(self.module.database_name("product-similar-browser", store, "f" * 12),
-                f"dvaia_test_agent_host_ffffffffffff_{name}")
+                f"owasp_ai_goat_test_agent_host_ffffffffffff_{name}")
         self.assertEqual(self.module.SUITES["composition"]["stores"], (
             ("IDENTITY", "IDENTITY"), ("AGENTS", "AGENTS"),
             ("REVIEW", "REVIEW"), ("COMMERCE", "COMMERCE")))
@@ -1384,7 +1384,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
             for store, _family in row["stores"]:
                 name = self.module.database_name(suite, store, "f" * 12)
                 self.assertLessEqual(len(name.encode("utf-8")), 63)
-                self.assertRegex(name, r"^dvaia_(?:test_[a-z0-9_]+|sql_copy_[a-f0-9]{12})$")
+                self.assertRegex(name, r"^owasp_ai_goat_(?:test_[a-z0-9_]+|sql_copy_[a-f0-9]{12})$")
         refund = self.module.SUITES["refund"]
         self.assertEqual(refund["stores"], (("REVIEW", "REVIEW"),))
         self.assertEqual(refund["env_prefix"], "PG_SECURESHOP_BOUND_REFUND_")
@@ -1401,12 +1401,12 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
         self.assertEqual(capacity["env_prefix"] + capacity["stores"][0][0] + "_MIGRATION_URL",
                          "PG_CAPACITY_MIGRATION_URL")
         self.assertEqual(capacity["test"], "tests/postgres/workshopCapacity.integration.test.js")
-        self.assertIn('env["DVAIA_CAPACITY_QUALIFICATION"] = "yes"', self.source)
+        self.assertIn('env["OWASP_AI_GOAT_CAPACITY_QUALIFICATION"] = "yes"', self.source)
         actual = self.module.SUITES["capacity-actual-8b"]
         self.assertEqual(actual["stores"], (("IDENTITY", "IDENTITY"),))
         self.assertEqual(actual["env_prefix"], "PG_CAPACITY_ACTUAL8B_")
         self.assertEqual(actual["test"], "tests/postgres/workshopCapacityActual8b.integration.test.js")
-        self.assertIn('env.update(DVAIA_CAPACITY_ACTUAL8B="yes"', self.source)
+        self.assertIn('env.update(OWASP_AI_GOAT_CAPACITY_ACTUAL8B="yes"', self.source)
         self.assertIn('"capacity-actual-8b": "capacity_actual_8b"', self.source)
         sql_copy = self.module.SUITES["sql-teaching-copy"]
         self.assertEqual(sql_copy["stores"], (("IDENTITY", "IDENTITY"),))
@@ -1414,7 +1414,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
         self.assertEqual(sql_copy["test"],
             "tests/postgres/sqlTeachingCopyDefaults.integration.test.js")
         self.assertEqual(self.module.database_name("sql-teaching-copy", "IDENTITY", "f" * 12),
-            "dvaia_sql_copy_ffffffffffff")
+            "owasp_ai_goat_sql_copy_ffffffffffff")
         self.assertIn('env["PG_SQL_TEACHING_COPY_TEST_URL"] = migration_url', self.source)
         self.assertNotIn('PG_SQL_TEACHING_COPY_TEST_RUNTIME_URL', self.source)
         output = StringIO()
@@ -1481,7 +1481,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
         self.assertTrue(copy_calls)
         self.assertTrue(all(guarded.lineno < call.lineno < guarded.end_lineno for call in copy_calls))
         self.assertIn('workspace = source if args.main_checkout else root / "source"', self.source)
-        self.assertIn('DVAIA_ISOLATED_TEST_WORKSPACE=str(root if args.main_checkout else workspace)', self.source)
+        self.assertIn('OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(root if args.main_checkout else workspace)', self.source)
         self.assertIn('write_private_json(root / "source-before.json", source_before)', self.source)
         self.assertIn('write_private_json(root / "source-after.json", source_after)', self.source)
 
@@ -1536,7 +1536,7 @@ class BoundReviewCompositionLauncherContract(unittest.TestCase):
         self.assertEqual(self.module.sha256(ROOT/suite['test']),self.module.PRODUCT_SIMILAR_TEST_SHA256)
         for store,_ in suite['stores']:
             self.assertEqual(self.module.database_name('product-summary-browser',store,'f'*12),
-                f"dvaia_test_agent_host_{'f'*12}_{self.module.AGENT_HOST_STORE_NAMES[store]}")
+                f"owasp_ai_goat_test_agent_host_{'f'*12}_{self.module.AGENT_HOST_STORE_NAMES[store]}")
         tree=ast.parse(self.source)
         blocks=[n for n in ast.walk(tree) if isinstance(n,ast.If) and ast.unparse(n.test)=="args.suite in ('product-similar-browser', 'product-summary-browser')"
                 and any(isinstance(x,ast.Constant) and x.value=='SECURESHOP_PRODUCT_SUMMARY_BROWSER_NATIVE' for x in ast.walk(n))]
@@ -1737,7 +1737,7 @@ process.stdout.write(JSON.stringify({receipt,wire}));"""
         self.assertEqual(suite["test"], "tests/postgres/secureshopManualRagRendered.integration.test.js")
         for store in ("IDENTITY", "AGENTS", "REVIEW", "COMMERCE"):
             self.assertEqual(self.module.database_name("manual-rag-browser", store, "f" * 12),
-                f"dvaia_test_agent_host_{'f' * 12}_{self.module.AGENT_HOST_STORE_NAMES[store]}")
+                f"owasp_ai_goat_test_agent_host_{'f' * 12}_{self.module.AGENT_HOST_STORE_NAMES[store]}")
         arguments = ["--docker-host", "unix:///unused", "--docker-cli", "/unused/docker",
             "--docker-cli-sha256", "0" * 64, "--node", "/unused/node",
             "--node-sha256", "1" * 64, "--suite", "manual-rag-browser"]
@@ -1958,7 +1958,7 @@ process.stdout.write(JSON.stringify({input,proof}));"""
         self.assertNotEqual(suite["child_name"], original["child_name"])
         for store in ("IDENTITY", "AGENTS", "REVIEW", "COMMERCE"):
             self.assertEqual(self.module.database_name("manual-rag-fixed-browser", store, "f" * 12),
-                f"dvaia_test_agent_host_{'f' * 12}_{self.module.AGENT_HOST_STORE_NAMES[store]}")
+                f"owasp_ai_goat_test_agent_host_{'f' * 12}_{self.module.AGENT_HOST_STORE_NAMES[store]}")
         arguments = ["--docker-host", "unix:///unused", "--docker-cli", "/unused/docker",
             "--docker-cli-sha256", "0" * 64, "--node", "/unused/node",
             "--node-sha256", "1" * 64, "--suite", "manual-rag-fixed-browser"]

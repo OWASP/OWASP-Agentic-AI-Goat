@@ -18,7 +18,7 @@ function plainExact(value, keys) {
 function occurrences(req) {
   let count = 0;
   for (let index = 0; index < (req.rawHeaders || []).length; index += 2) {
-    if (String(req.rawHeaders[index]).toLowerCase() === 'x-dvaia-secureshop-launch') count++;
+    if (String(req.rawHeaders[index]).toLowerCase() === 'x-owasp-ai-goat-secureshop-launch') count++;
   }
   return count;
 }

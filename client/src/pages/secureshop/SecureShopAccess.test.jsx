@@ -16,7 +16,7 @@ function RolePrefillNavigation() {
   </button>;
 }
 
-describe('standalone SecureShop sign in', () => {
+describe('standalone OWASP AI SecureShop sign in', () => {
   let container;
   let root;
 
@@ -59,7 +59,7 @@ describe('standalone SecureShop sign in', () => {
     const login = jest.fn().mockResolvedValue({ username: 'student_customer', role: 'customer' });
     await renderAccess(login);
     expect(container.textContent).toContain('Demo accounts');
-    expect(container.textContent).not.toContain('DVAIA platform account');
+    expect(container.textContent).not.toContain('OWASP Agentic AI GOAT platform account');
     await submit();
     expect(login).toHaveBeenCalledWith('student_customer', 'student123');
     expect(container.querySelector('[data-testid="location"]')?.textContent).toBe('/secureshop/checkout');

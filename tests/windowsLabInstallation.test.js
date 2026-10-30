@@ -12,11 +12,11 @@ const { createWindowsProvisioningJournal } = require('../scripts/lib/windows-pro
 const root = 'C:\\Users\\Learner\\repo';
 const homeDirectory = 'C:\\Users\\Learner';
 const id = crypto.createHash('sha256').update(root).digest('hex').slice(0, 12);
-const directory = path.win32.join(homeDirectory, '.dvaia', id);
+const directory = path.win32.join(homeDirectory, '.owasp-ai-goat', id);
 const configPath = path.win32.join(directory, 'windows-lab-installation.json');
 const environment = {
-  DVAIA_WINDOWS_MULTIPASS_EXECUTABLE: 'C:\\Program Files\\Multipass\\bin\\multipass.exe',
-  DVAIA_WINDOWS_SSH_EXECUTABLE: 'C:\\Windows\\System32\\OpenSSH\\ssh.exe',
+  OWASP_AI_GOAT_WINDOWS_MULTIPASS_EXECUTABLE: 'C:\\Program Files\\Multipass\\bin\\multipass.exe',
+  OWASP_AI_GOAT_WINDOWS_SSH_EXECUTABLE: 'C:\\Windows\\System32\\OpenSSH\\ssh.exe',
 };
 const identity = fileId => ({ volumeSerial: 9, fileId: fileId.toString(16).padStart(16, '0') });
 
@@ -73,8 +73,8 @@ test('fresh journals branded installation identity before owned VM preparation a
   assert.equal(f.minted, 2);
   assert.deepEqual(config, { version: 1, workspaceId: id, workspaceRoot: root,
     installationId: '11111111-1111-4111-8111-111111111111', operationId: '22222222-2222-4222-8222-222222222222',
-    instanceName: 'dvaia-lab-' + id, multipassExecutable: environment.DVAIA_WINDOWS_MULTIPASS_EXECUTABLE,
-    sshExecutable: environment.DVAIA_WINDOWS_SSH_EXECUTABLE, image: '24.04' });
+    instanceName: 'owasp-ai-goat-lab-' + id, multipassExecutable: environment.OWASP_AI_GOAT_WINDOWS_MULTIPASS_EXECUTABLE,
+    sshExecutable: environment.OWASP_AI_GOAT_WINDOWS_SSH_EXECUTABLE, image: '24.04' });
   assert.equal(f.calls.findIndex(call => call[0] === 'publish') < f.calls.findIndex(call => call[0] === 'prepare-lab'), true);
   assert.equal(f.calls.findIndex(call => call[0] === 'prepare-lab') < f.calls.findIndex(call => call[0] === 'bind'), true);
   assert.equal(f.calls.findIndex(call => call[0] === 'bind') < f.calls.findIndex(call => call[0] === 'owner'), true);
@@ -113,12 +113,12 @@ test('fresh requires admitted absolute executable bindings and refuses malformed
   await assert.rejects(f.facade.prepareWindowsLabInstallation({ root, homeDirectory, environment: {}, mode: 'fresh' }),
     { code: 'WINDOWS_LAB_INSTALLATION_DENIED' });
   await assert.rejects(f.facade.prepareWindowsLabInstallation({ root, homeDirectory,
-    environment: { ...environment, DVAIA_WINDOWS_SSH_EXECUTABLE: 'C:\\Windows\\System32\\cmd.exe' }, mode: 'fresh' }),
+    environment: { ...environment, OWASP_AI_GOAT_WINDOWS_SSH_EXECUTABLE: 'C:\\Windows\\System32\\cmd.exe' }, mode: 'fresh' }),
   { code: 'WINDOWS_LAB_INSTALLATION_DENIED' });
   assert.equal(f.minted, 0); assert.equal(f.files.size, 0);
   await f.facade.prepareWindowsLabInstallation({ root, homeDirectory, environment, mode: 'fresh' });
   const config = JSON.parse(f.files.get(configPath));
-  f.files.set(configPath, Buffer.from(JSON.stringify({ ...config, instanceName: 'dvaia-lab-foreign' }) + '\n'));
+  f.files.set(configPath, Buffer.from(JSON.stringify({ ...config, instanceName: 'owasp-ai-goat-lab-foreign' }) + '\n'));
   const count = f.calls.filter(call => call[0] === 'prepare-lab').length;
   await assert.rejects(f.facade.prepareWindowsLabInstallation({ root, homeDirectory, environment: {}, mode: 'existing' }),
     { code: 'WINDOWS_LAB_INSTALLATION_DENIED' });

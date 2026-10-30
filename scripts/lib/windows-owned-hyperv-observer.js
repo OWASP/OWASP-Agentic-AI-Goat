@@ -4,7 +4,7 @@
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const HELPER = path.resolve(__dirname, '../install/Windows/owned-hyperv-observer.ps1');
-const NAME = /^dvaia-lab-[a-z0-9](?:[a-z0-9-]{0,45}[a-z0-9])?$/;
+const NAME = /^owasp-ai-goat-lab-[a-z0-9](?:[a-z0-9-]{0,45}[a-z0-9])?$/;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const ZERO = '00000000-0000-0000-0000-000000000000';
 const denied = () => Object.assign(Error('Owned Hyper-V VM observation unavailable.'), { code: 'WINDOWS_OWNED_HYPERV_OBSERVATION_DENIED' });

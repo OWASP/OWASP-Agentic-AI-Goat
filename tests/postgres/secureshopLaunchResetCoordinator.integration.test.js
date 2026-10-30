@@ -39,7 +39,7 @@ test('native launch reset composes all durable stages, replay, recovery, and cat
     .map(key => [key, new URL(process.env[`${PREFIX}_${key}_URL`])]));
   for (const url of Object.values(urls)) {
     assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   assert.equal(urls.IDENTITY_MIGRATION.pathname, urls.IDENTITY_RUNTIME.pathname);
   assert.equal(urls.AGENTS_MIGRATION.pathname, urls.AGENTS_RUNTIME.pathname);

@@ -1,7 +1,7 @@
 'use strict';
 // Fixture-only transform: no production expressions are replaced or reordered.
 const {createHash}=require('node:crypto');
-const SYMBOL='dvaia.capacity.coordinator.observer';
+const SYMBOL='owasp-ai-goat.capacity.coordinator.observer';
 // Exact source reviewed against the retained capacity cohort before admitting a run.
 const REVIEWED_COORDINATOR_SHA256='acf235a04e3d538cd7ea6bf289fa7863b00096c01d06ee81e0861f15808e8c50';
 function reviewedCoordinatorSha256(source){

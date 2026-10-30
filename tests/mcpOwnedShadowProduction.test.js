@@ -7,10 +7,10 @@ const crypto=require('node:crypto');
 const path=require('node:path');
 const {collectOwnedServiceBuildContext,_internals:buildContext}=require('../scripts/install/mcp-owned-service-build-context');
 test('private service plan uses separate profile and local-only port on mac and Linux',()=>{
- const linux=plan({root:'/tmp/dvaia-owned-plan',home:'/tmp/home',platform:'linux'});
- const mac=plan({root:'/tmp/dvaia-owned-plan',home:'/tmp/home',platform:'darwin',colimaProfile:'colima-owned-test'});
- assert.match(linux.profile,/^dvaia-owned-shadow-/);assert.equal(mac.profile,linux.profile);
- assert.equal(linux.port,8094);assert.notEqual(linux.destination,'/etc/apparmor.d/dvaia-mcp-sandbox');
+ const linux=plan({root:'/tmp/owasp-ai-goat-owned-plan',home:'/tmp/home',platform:'linux'});
+ const mac=plan({root:'/tmp/owasp-ai-goat-owned-plan',home:'/tmp/home',platform:'darwin',colimaProfile:'colima-owned-test'});
+ assert.match(linux.profile,/^owasp-ai-goat-owned-shadow-/);assert.equal(mac.profile,linux.profile);
+ assert.equal(linux.port,8094);assert.notEqual(linux.destination,'/etc/apparmor.d/owasp-ai-goat-mcp-sandbox');
  assert.match(mac.dockerHost,/colima\/owned-test\/docker.sock$/);
  const value={version:1,enabled:false,url:'http://127.0.0.1:8094',token:'a'.repeat(64),profile:linux.profile,container:linux.profile,image:'sha256:'+'b'.repeat(64),runtimeDigest:null};
  assert.equal(config.validate(value),value);assert.throws(()=>config.validate({...value,url:'http://public.example:8094'}));
@@ -21,7 +21,7 @@ test('Windows shadow plan refuses an unowned guest session',()=>{
 });
 test('shadow guest build bundle retains its Docker COPY closure and relative hashes',async()=>{
  const fs=require('node:fs/promises'),os=require('node:os');
- const root=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-shadow-copy-test-'));
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-shadow-copy-test-'));
  try {
   const base=path.join(root,'sidecars/sandbox-runner'),source=buildContext.sources.shadow;
   for(const name of source.files){const file=path.join(base,name);await fs.mkdir(path.dirname(file),{recursive:true});await fs.writeFile(file,name);}
@@ -40,9 +40,9 @@ test('shadow guest build bundle retains its Docker COPY closure and relative has
 });
 test('staged Linux provision keeps token private and never enables or migrates',async()=>{
  const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
- const home=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-shadow-install-test-'));
+ const home=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-shadow-install-test-'));
  try {
-  const root='/tmp/dvaia-shadow-controlled-root',p=plan({root,home,platform:'linux'}),calls=[];
+  const root='/tmp/owasp-ai-goat-shadow-controlled-root',p=plan({root,home,platform:'linux'}),calls=[];
   const run=async(file,args,options)=>{
    calls.push({file,args,stage:options.stage});let stdout='';
    if(options.stage==='profile-existing-state')return {exitCode:1,stdout:''};
@@ -50,7 +50,7 @@ test('staged Linux provision keeps token private and never enables or migrates',
    if(options.stage==='profile-published-digest')stdout=profileDigest(p);
    if(options.stage==='profile-verify')stdout=p.profile+' (enforce)\n';
    if(options.stage==='shadow-image')stdout=JSON.stringify([{Id:'sha256:'+'b'.repeat(64)}]);
-   if(options.stage==='shadow-volume-inspect')stdout=JSON.stringify([{Labels:{'dvaia.shadow.owner':p.profile}}]);
+   if(options.stage==='shadow-volume-inspect')stdout=JSON.stringify([{Labels:{'owasp-ai-goat.shadow.owner':p.profile}}]);
    return {exitCode:0,stdout};
   };
   const result=await require('../scripts/install/mcp-owned-shadow').provision({root,home,platform:'linux',commandEnv:{},run,
@@ -60,7 +60,7 @@ test('staged Linux provision keeps token private and never enables or migrates',
   const start=calls.find(c=>c.stage==='shadow-start');assert.ok(start.args.includes('--env-file'));
   assert.equal(start.args.some(arg=>arg.includes(saved.token)),false);
   assert.ok(start.args.includes('127.0.0.1:8094:8092'));
-  assert.equal(calls.some(c=>c.args.includes('dvaia-mcp-sandbox')),false);
+  assert.equal(calls.some(c=>c.args.includes('owasp-ai-goat-mcp-sandbox')),false);
   assert.equal((await fs.stat(p.managedPath)).mode&0o077,0);
  }finally{await fs.rm(home,{recursive:true,force:true});}
 });
@@ -82,7 +82,7 @@ test('live shadow readiness checks pinned executable digest before capability gr
 });
 test('activation checks actual repository exports, applied checksums, and pins runtime for the qualified source release',async()=>{
  const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path'),crypto=require('node:crypto');
- const home=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-shadow-activation-'));
+ const home=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-shadow-activation-'));
  try{
   const p=plan({root:'/tmp/shadow-activation',home,platform:'linux'}),file=p.managedPath;
   await fs.mkdir(path.dirname(file),{recursive:true,mode:0o700});
@@ -103,11 +103,11 @@ test('activation checks actual repository exports, applied checksums, and pins r
 });
 test('repeat provisioning rejects privileged, host-network and extra-mount drift before service admission',async()=>{
  const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
- const home=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-shadow-drift-'));
+ const home=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-shadow-drift-'));
  try{
   const root='/tmp/shadow-drift',p=plan({root,home,platform:'linux'}),image='sha256:'+'b'.repeat(64),token='a'.repeat(64);
   await fs.mkdir(path.dirname(p.managedPath),{recursive:true});await fs.writeFile(p.managedPath,JSON.stringify({version:1,enabled:false,url:'http://127.0.0.1:8094',token,profile:p.profile,container:p.container,image,runtimeDigest:null}),{mode:0o600});
-  const baseline={Image:image,Config:{User:'10001:10001',Labels:{'dvaia.shadow.owner':p.profile},Env:[`MCP_OWNED_SHADOW_TOKEN=${token}`,'MCP_OWNED_SHADOW_ROOT=/state/targets',`MCP_OWNED_TARGET_APPARMOR_PROFILE=${p.profile}`]},HostConfig:{Privileged:false,NetworkMode:'default',SecurityOpt:[`apparmor=${p.profile}`,'seccomp=unconfined'],PortBindings:{'8092/tcp':[{HostIp:'127.0.0.1',HostPort:'8094'}]}},Mounts:[{Type:'volume',Name:p.volume,Destination:'/state',RW:true}]};
+  const baseline={Image:image,Config:{User:'10001:10001',Labels:{'owasp-ai-goat.shadow.owner':p.profile},Env:[`MCP_OWNED_SHADOW_TOKEN=${token}`,'MCP_OWNED_SHADOW_ROOT=/state/targets',`MCP_OWNED_TARGET_APPARMOR_PROFILE=${p.profile}`]},HostConfig:{Privileged:false,NetworkMode:'default',SecurityOpt:[`apparmor=${p.profile}`,'seccomp=unconfined'],PortBindings:{'8092/tcp':[{HostIp:'127.0.0.1',HostPort:'8094'}]}},Mounts:[{Type:'volume',Name:p.volume,Destination:'/state',RW:true}]};
   for(const mutate of [v=>v.HostConfig.Privileged=true,v=>v.HostConfig.NetworkMode='host',v=>v.Mounts.push({Type:'bind',Destination:'/private'})]){
    const found=structuredClone(baseline);mutate(found);let readinessCalled=false;
    const run=async(_file,_args,{stage})=>{let stdout='';if(stage==='profile-existing-state')return{exitCode:1,stdout};if(stage==='profile-trust')stdout='0:0:600:regular file\n';if(stage==='profile-published-digest')stdout=profileDigest(p);if(stage==='profile-verify')stdout=p.profile+' (enforce)\n';if(stage==='shadow-image')stdout=JSON.stringify([{Id:image}]);if(stage==='shadow-existing')stdout='owned-id';if(stage==='shadow-inspect')stdout=JSON.stringify([found]);return{exitCode:0,stdout};};
@@ -118,7 +118,7 @@ test('repeat provisioning rejects privileged, host-network and extra-mount drift
 test('Windows shadow startExisting only resumes a pinned retained enabled container',async()=>{
  const root='/tmp/shadow-existing-only',p=plan({root,home:'/tmp/home',platform:'linux'}),image='sha256:'+'b'.repeat(64),id='c'.repeat(64),token='a'.repeat(64);
  const existing={version:1,enabled:true,url:'http://127.0.0.1:8094',token,profile:p.profile,container:p.container,image,runtimeDigest:'d'.repeat(64)};
- const found={Id:id,Image:image,State:{Running:false},Config:{User:'10001:10001',Labels:{'dvaia.shadow.owner':p.profile},
+ const found={Id:id,Image:image,State:{Running:false},Config:{User:'10001:10001',Labels:{'owasp-ai-goat.shadow.owner':p.profile},
   Env:[`MCP_OWNED_SHADOW_TOKEN=${token}`,'MCP_OWNED_SHADOW_ROOT=/state/targets',`MCP_OWNED_TARGET_APPARMOR_PROFILE=${p.profile}`]},
   HostConfig:{SecurityOpt:[`apparmor=${p.profile}`,'seccomp=unconfined'],Privileged:false,NetworkMode:'default',PortBindings:{'8092/tcp':[{HostIp:'127.0.0.1',HostPort:'8094'}]}},
   Mounts:[{Type:'volume',Name:p.volume,Destination:'/state',RW:true}]};

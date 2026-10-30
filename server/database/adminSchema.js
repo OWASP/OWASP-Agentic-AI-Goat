@@ -251,7 +251,7 @@ function insertAdminDefaultData(db) {
     username, email, password, role, admin_level, full_name, email_verified, is_active
   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
     'admin',
-    'admin@dvaia.local',
+    'admin@owasp-ai-goat.local',
     adminPassword,
     'admin',
     2, // super_admin
@@ -266,7 +266,7 @@ function insertAdminDefaultData(db) {
     username, email, password, role, admin_level, full_name, email_verified, is_active
   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
     'administrator',
-    'administrator@dvaia.local',
+    'administrator@owasp-ai-goat.local',
     admin2Password,
     'admin',
     1, // regular admin

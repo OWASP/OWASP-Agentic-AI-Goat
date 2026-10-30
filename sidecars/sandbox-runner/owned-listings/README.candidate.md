@@ -37,7 +37,7 @@ requests, timeout child teardown, and replay across two sequential containers
 sharing a dedicated volume without re-dispatch. Both container runs had the
 same verified asset digest. Exact container, volume, image, profile, temporary
 remote directory and process-group cleanup passed. Evidence directory:
-`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-owned-listings-executor-b1359412`.
+`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-owned-listings-executor-b1359412`.
 
 Remaining gates include explicit read-only write-denial probes, native outer
 HTTP authentication/readback, concurrent launcher ownership/retirement,

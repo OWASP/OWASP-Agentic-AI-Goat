@@ -32,7 +32,7 @@ function disposableUrl(key) {
   const url = new URL(process.env[prefix + key]);
   assert.equal(url.protocol,'postgresql:');
   assert.equal(url.hostname,'127.0.0.1');
-  assert.match(url.pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(url.pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   assert.equal(url.password,''); assert.equal(url.search,''); assert.equal(url.hash,'');
   return url.href;
 }
@@ -56,7 +56,7 @@ function historicalMigrator(directory, ceiling) {
 
 test('standalone shop principals preserve demo evidence and fence cross-owner sessions',
   { skip: !enabled, timeout: 180000 }, async t => {
-    assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'),process.cwd());
+    assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'),process.cwd());
     const evidencePath = process.env.WORKSHOP_RAG_EVIDENCE_PATH || '';
     require('../fixtures/secureshopNativeEvidencePath').assertNativeEvidencePath(evidencePath, {
       root: process.cwd(), dockerHost: process.env.DOCKER_HOST,
@@ -386,10 +386,10 @@ test('standalone shop principals preserve demo evidence and fence cross-owner se
       scope:secondLaunch.binding})).user.id,second.context.shopUserId);
     for(const extra of extras) await bound.logout({scope:firstLaunch.binding,token:extra.token});
     const originalHeaders=Object.freeze({authorization:`Bearer ${originalBootstrap.persona.token}`,
-      'x-dvaia-secureshop-launch':originalBootstrap.bearer});
+      'x-owasp-ai-goat-secureshop-launch':originalBootstrap.bearer});
     const originalHeadersSnapshot={...originalHeaders};
     const refreshedHeaders=Object.freeze({authorization:`Bearer ${refreshedBootstrap.persona.token}`,
-      'x-dvaia-secureshop-launch':refreshedBootstrap.bearer});
+      'x-owasp-ai-goat-secureshop-launch':refreshedBootstrap.bearer});
     const recoveryDependencies={composition:{launches,personaAuth:bound},auth:standalone,
       systemAuthByLaunch:new Map([[firstLaunch.binding.launchId,firstAuth.context]]),
       username:originalBootstrap.persona.user.username,scope:firstLaunch.binding,
@@ -397,37 +397,37 @@ test('standalone shop principals preserve demo evidence and fence cross-owner se
       personaSession:{sessionId:firstVerified.sessionId,
         authorityVersion:firstVerified.authorityVersion},principal:first.context};
     const identicalBootstraps=[{username:originalBootstrap.persona.user.username,
-      authorization:originalHeaders.authorization,launch:originalHeaders['x-dvaia-secureshop-launch']}];
+      authorization:originalHeaders.authorization,launch:originalHeaders['x-owasp-ai-goat-secureshop-launch']}];
     const identicalAuthority=createV11RecoveryAuthority({...recoveryDependencies,
       browserBootstraps:identicalBootstraps});
     identicalAuthority.arm();
     identicalBootstraps.push({username:originalBootstrap.persona.user.username,
-      authorization:originalHeaders.authorization,launch:originalHeaders['x-dvaia-secureshop-launch']});
+      authorization:originalHeaders.authorization,launch:originalHeaders['x-owasp-ai-goat-secureshop-launch']});
     assert.deepEqual(await identicalAuthority.authorize({headers:()=>originalHeaders}),originalHeaders);
     const refreshedBootstraps=[{username:originalBootstrap.persona.user.username,
-      authorization:originalHeaders.authorization,launch:originalHeaders['x-dvaia-secureshop-launch']}];
+      authorization:originalHeaders.authorization,launch:originalHeaders['x-owasp-ai-goat-secureshop-launch']}];
     const refreshedAuthority=createV11RecoveryAuthority({...recoveryDependencies,
       browserBootstraps:refreshedBootstraps});
     refreshedAuthority.arm();
     refreshedBootstraps.push({username:originalBootstrap.persona.user.username,
-      authorization:refreshedHeaders.authorization,launch:refreshedHeaders['x-dvaia-secureshop-launch']});
+      authorization:refreshedHeaders.authorization,launch:refreshedHeaders['x-owasp-ai-goat-secureshop-launch']});
     assert.deepEqual(await refreshedAuthority.authorize({headers:()=>refreshedHeaders}),refreshedHeaders);
     const requestLog=[],assessmentIds={sessionId:randomUUID(),requestId:randomUUID()};
     const savedPath=`/agents/merchant/assistant/mail-read/assessment/${assessmentIds.sessionId}/${assessmentIds.requestId}`;
     const siblingHeaders={authorization:`Bearer ${siblingBound.token}`,
-      'x-dvaia-secureshop-launch':secondLaunch.bearer};
+      'x-owasp-ai-goat-secureshop-launch':secondLaunch.bearer};
     const httpCounters=createV11HttpCounters({requestLog,headers:originalHeaders,
       siblingHeaders,scope:firstLaunch.binding,siblingScope:secondLaunch.binding,
       getIds:()=>assessmentIds});
     assert.equal(httpCounters.registerOwner(originalHeaders),true);
     requestLog.push({method:'GET',path:savedPath,status:200,
-      authorization:originalHeaders.authorization,launch:originalHeaders['x-dvaia-secureshop-launch']});
+      authorization:originalHeaders.authorization,launch:originalHeaders['x-owasp-ai-goat-secureshop-launch']});
     assert.deepEqual(httpCounters(),{assessmentPosts:0,savedAssessmentGets:1,
       deniedAssessmentPosts:0,deniedSourceGets:0,deniedSavedAssessmentGets:0});
     assert.equal(httpCounters.registerOwner(refreshedHeaders),true);
     assert.equal(httpCounters.registerOwner(refreshedHeaders),true);
     requestLog.push({method:'GET',path:savedPath,status:200,
-      authorization:refreshedHeaders.authorization,launch:refreshedHeaders['x-dvaia-secureshop-launch']});
+      authorization:refreshedHeaders.authorization,launch:refreshedHeaders['x-owasp-ai-goat-secureshop-launch']});
     assert.deepEqual(httpCounters(),{assessmentPosts:0,savedAssessmentGets:2,
       deniedAssessmentPosts:0,deniedSourceGets:0,deniedSavedAssessmentGets:0});
     assert.equal(requestLog.length,2);

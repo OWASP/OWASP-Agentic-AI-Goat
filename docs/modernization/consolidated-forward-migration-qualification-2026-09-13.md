@@ -18,7 +18,7 @@ and NOVA0005 (5). The historical baseline below remains the upgrade test input.
 After promotion, the test stages that baseline separately from the complete
 candidate directory and verifies promoted SQL against the qualified checksums.
 The real-loader fresh/populated/replay rerun passed 1/1 in
-`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-consolidated-draft-promotion-mcf5nm9e/result.log`;
+`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-consolidated-draft-promotion-mcf5nm9e/result.log`;
 its exact disposable container was removed.
 
 The exact manifest is
@@ -59,8 +59,8 @@ remain safe when their target rows do not exist yet.
 
 The final owned PostgreSQL 18 run passed 1/1. Its exact container was removed.
 Evidence is retained at
-`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-consolidated-draft-promotion-hahbctkp/result.log`.
-An earlier successful run at `.../dvaia-consolidated-draft-promotion-xyvbjnc7`
+`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-consolidated-draft-promotion-hahbctkp/result.log`.
+An earlier successful run at `.../owasp-ai-goat-consolidated-draft-promotion-xyvbjnc7`
 predated the added existing-launch/reservation preservation assertion and is
 retained as historical evidence.
 

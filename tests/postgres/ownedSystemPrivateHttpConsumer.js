@@ -11,7 +11,7 @@ const adapter = require('./ownedSystemConfigBuildAdapter');
 const { createSecureShopSystemConfigClient } = require('../../server/services/secureshopSystemConfigClient');
 const ROOT = path.resolve(__dirname, '../..');
 const PYTHON = path.join(__dirname, 'owned_system_private_http_channel.py');
-const PROFILE = path.join(ROOT, 'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in');
+const PROFILE = path.join(ROOT, 'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in');
 const PROFILE_SHA = 'dbd654c9ec9c10de04c77b76fc55c57ef5750a8cbe19870e132fc145f86a89d2';
 // Informational native-admission status, not a second capability mint or an
 // independently configurable gate. The sole public build gate is the producer.
@@ -26,7 +26,7 @@ function validateBinding(value) {
     || value.version !== 1 || !['original-v24-system','original-v24-policy','original-v03-diagnostic'].includes(value.target)
     || !/^[a-f0-9]{32}$/.test(value.runId) || !/^sha256:[a-f0-9]{64}$/.test(value.imageId)
     || !/^[a-f0-9]{64}$/.test(value.inputSha256) || !/^[A-Za-z0-9:-]{20,128}$/.test(value.daemonId)) throw fail('SYSTEM_BINDING');
-  const p = value.physical, root = '/var/tmp/dvaia-v23-build-' + value.runId + '/fs';
+  const p = value.physical, root = '/var/tmp/owasp-ai-goat-v23-build-' + value.runId + '/fs';
   if (!exact(p, ['privateDockerHost','namespaceInode','filesystemIdentity','daemonProcess','namespaceHolder'])
     || p.privateDockerHost !== 'unix://' + root + '/docker.sock' || !/^net:\[[1-9][0-9]*\]$/.test(p.namespaceInode)
     || !exact(p.filesystemIdentity, ['device','inode']) || !Number.isSafeInteger(p.filesystemIdentity.device)

@@ -4,7 +4,7 @@ const {createOwnedAnalyticsService}=require('../sidecars/analytics-sql-target/se
 const {hash}=require('../sidecars/analytics-sql-target/contract');
 const Probe=require('../server/services/secureshopCouponProbeContract');
 function fixture({seedFailure=false,beforeLock}={}){
- const identity={systemIdentifier:'123456789012',controlDatabase:'dvaia_analytics_control_123456abcdef',clusterName:'dvaia-owned-analytics-123456abcdef'};
+ const identity={systemIdentifier:'123456789012',controlDatabase:'owasp_ai_goat_analytics_control_123456abcdef',clusterName:'owasp-ai-goat-owned-analytics-123456abcdef'};
  const tables=new Map(),queries=new Map(),credentials=new Map(),dbs=new Map(),sql=[],journalSql=[],pools=[];let discarded=0,couponProbeFailure=null;
  let referencePassword='0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',referenceCharacter=null;
  let productRows=[],productFailure=null,productReference='SYNTHETIC_KEY_'+'a'.repeat(48);const productQueries=[];

@@ -33,7 +33,7 @@ test('HTTP conversation lifecycle binds launch and persona and suppresses revoke
   const base = `http://127.0.0.1:${server.address().port}`;
   async function call(path, { token = 'a'.repeat(43), body, role } = {}) {
     const response = await fetch(base + path, { method: body === undefined ? 'GET' : 'POST', headers: {
-      'x-dvaia-secureshop-launch': token, 'content-type': 'application/json', ...(role ? { 'x-test-role': role } : {}),
+      'x-owasp-ai-goat-secureshop-launch': token, 'content-type': 'application/json', ...(role ? { 'x-test-role': role } : {}),
     }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     assert.equal(response.headers.get('cache-control'), 'no-store');
     return { status: response.status, body: await response.json() };
@@ -78,7 +78,7 @@ test('production shop JWT middleware remains separate from launch authority', as
   async function request(token, launch = 'a'.repeat(43)) {
     return fetch(`http://127.0.0.1:${server.address().port}/api/secureshop/bound/sessions`, { method: 'POST', headers: {
       Origin: 'http://localhost:3000',
-      'content-type': 'application/json', 'x-dvaia-secureshop-launch': launch,
+      'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': launch,
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     }, body: '{}' });
   }
@@ -91,10 +91,10 @@ test('production shop JWT middleware remains separate from launch authority', as
   assert.equal((await request(sign({ id: '1', role: 'customer' }))).status, 401);
   assert.equal((await request(customer, 'b'.repeat(43))).status, 401);
   assert.equal(creates, 0);
-  const preflight = await fetch(`http://127.0.0.1:${server.address().port}/api/secureshop/bound/sessions`, { method: 'OPTIONS', headers: { Origin: 'http://localhost:3000', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'authorization,content-type,x-dvaia-secureshop-launch' } });
+  const preflight = await fetch(`http://127.0.0.1:${server.address().port}/api/secureshop/bound/sessions`, { method: 'OPTIONS', headers: { Origin: 'http://localhost:3000', 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': 'authorization,content-type,x-owasp-ai-goat-secureshop-launch' } });
   assert.equal(preflight.status, 204);
   assert.equal(creates, 0);
-  const wrongType = await fetch(`http://127.0.0.1:${server.address().port}/api/secureshop/bound/sessions`, { method: 'POST', headers: { authorization: `Bearer ${customer}`, 'x-dvaia-secureshop-launch': 'a'.repeat(43), 'content-type': 'text/plain' }, body: '{}' });
+  const wrongType = await fetch(`http://127.0.0.1:${server.address().port}/api/secureshop/bound/sessions`, { method: 'POST', headers: { authorization: `Bearer ${customer}`, 'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43), 'content-type': 'text/plain' }, body: '{}' });
   assert.equal(wrongType.status, 415);
   const accepted = await request(customer);
   assert.equal(accepted.status, 200);

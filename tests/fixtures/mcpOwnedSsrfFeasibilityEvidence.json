@@ -1,5 +1,5 @@
 {
-  "container": "dvaia-ssrf-feasibility-6390174d4150",
+  "container": "owasp-ai-goat-ssrf-feasibility-6390174d4150",
   "image": "sha256:a3d5f773664ac2efc5a5fa3eb281aa697188b759c38681c59eb677aa03be0d43",
   "exitCode": 0,
   "stdout": "{\"version\":1,\"productionQualified\":false,\"httpTopologyQualified\":false,\"packagedBoundaryProbePassed\":true,\"prototypeChanges\":[\"namespace uid/gid0 avoids devpts second userns\",\"namespaced NET_ADMIN and SETPCAP\",\"proc-free ioctl/netlink/prctl attestation\"],\"status\":\"partial-prototype-pass\",\"exitCode\":0,\"stdout\":\"{\\\"prototypeOnly\\\":true,\\\"rawUrlSocketPassed\\\":true,\\\"zeroFinalCapabilities\\\":true,\\\"noDefaultRoute\\\":true,\\\"interfaces\\\":[\\\"lo\\\"],\\\"negativeDestinations\\\":5,\\\"joinedServer\\\":true,\\\"metadataPort80Qualified\\\":false}\\n\",\"stderr\":\"setup_cap_words=4352,4352,4352,0,0,0\\n\",\"modelCalls\":0,\"metadataPort80Qualified\":false}\n",
@@ -25,8 +25,8 @@
     "installedFileMatchesRenderedTemplate": true,
     "sha256": "c3cd8e253e789d459705ab7d31d822cbd6b6d12cbd0a02d562d9af22645ba2d0",
     "loadedProfilesEnforcing": [
-      "dvaia-mcp-sandbox",
-      "dvaia-mcp-sandbox//bwrap"
+      "owasp-ai-goat-mcp-sandbox",
+      "owasp-ai-goat-mcp-sandbox//bwrap"
     ],
     "kernelCompiledPolicyHashCompared": false
   },
@@ -50,7 +50,7 @@
       "historicalSha256": "6b08ef0b9a0cdc49c0918e14156112c33ddf918811822a1de3059f7d41b45add",
       "purpose": "Preserved failed private-proc feasibility attempt; not production, model, objective or HTTP topology qualification",
       "record": {
-        "container": "dvaia-ssrf-feasibility-0db344f0a142",
+        "container": "owasp-ai-goat-ssrf-feasibility-0db344f0a142",
         "image": "sha256:a3d5f773664ac2efc5a5fa3eb281aa697188b759c38681c59eb677aa03be0d43",
         "exitCode": 0,
         "stdout": "{\"version\":1,\"productionQualified\":false,\"httpTopologyQualified\":false,\"packagedBoundaryProbePassed\":true,\"prototypeChanges\":[\"namespaced NET_ADMIN and SETPCAP\",\"namespace-private proc mount\"],\"status\":\"prototype-failed\",\"exitCode\":1,\"stdout\":\"\",\"stderr\":\"bwrap: Can't mount proc on /proc: Operation not permitted\\n\",\"modelCalls\":0,\"metadataPort80Qualified\":false}\n",

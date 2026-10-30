@@ -503,7 +503,7 @@ MCP_RENDERED_REQUIRED = {
     'tests/postgres/full_backend_mcp_resources.py',
     'tests/postgres/mcp_connected_baseline_contract.py',
     'tests/postgres/mcp_strict_runner_ownership.py',
-    'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in',
+    'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in',
     'tests/fixtures/fullBackendMcpAdmission.js',
     'tests/fixtures/fullBackendRenderedMcp.js',
     'tests/fixtures/mcpRenderedAdminLifecycle.js',

@@ -35,7 +35,7 @@ def validate(args):
 
 def database_environment(owner,port):
     if not re.fullmatch('[a-f0-9]{12}',owner) or not str(port).isdigit() or not 1<=int(port)<=65535: raise ValueError('Invalid owned database address')
-    return {f'WORKSHOP_RAG_{role.upper()}_URL':f'postgresql://dvaia_identity_{role}@127.0.0.1:{port}/dvaia_test_workshop_rag_{owner}' for role in ('runtime','migration')}
+    return {f'WORKSHOP_RAG_{role.upper()}_URL':f'postgresql://dvaia_identity_{role}@127.0.0.1:{port}/owasp_ai_goat_test_workshop_rag_{owner}' for role in ('runtime','migration')}
 
 def validate_layout(row):
     try:
@@ -65,9 +65,9 @@ def main(argv=None):
             if {p.relative_to(Path(args.source)).as_posix():p.lstat().st_mode for p in Path(args.source).rglob('*')}!=frozen_modes: raise RuntimeError('Frozen source modes changed')
         version=subprocess.run([args.node_binary,'--version'],env=clean,capture_output=True,text=True,timeout=remaining(5))
         if version.returncode or version.stdout.strip()!='v26.10.0': raise RuntimeError('Node26.10.0 required')
-        evidence=Path(tempfile.mkdtemp(prefix='dvaia-rag-alignment-')).resolve();evidence.chmod(0o700)
-        source=Path(args.source);workspace=evidence/'source';owner=uuid.uuid4().hex;name='dvaia-rag-alignment-'+owner[:12]
-        labels={'dvaia.test.owner':owner,'dvaia.test.cohort':'rag-defense-alignment-v1'}
+        evidence=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-rag-alignment-')).resolve();evidence.chmod(0o700)
+        source=Path(args.source);workspace=evidence/'source';owner=uuid.uuid4().hex;name='owasp-ai-goat-rag-alignment-'+owner[:12]
+        labels={'owasp-ai-goat.test.owner':owner,'owasp-ai-goat.test.cohort':'rag-defense-alignment-v1'}
         state={'version':1,'owner':owner,'containerName':name,'children':[],'nativeStarted':False,'creationAttempted':False,'semanticAcceptance':False,'bounds':{'workSeconds':WORK_SECONDS,'childSeconds':CHILD_SECONDS,'cleanupSeconds':CLEANUP_SECONDS,'actorPerCase':8,'judgePerCase':6,'globalHTTP':140}}
         def record():
             p=evidence/'ownership.json';p.write_text(json.dumps(state,indent=2)+'\n');p.chmod(0o600)
@@ -116,11 +116,11 @@ def main(argv=None):
             return result.stdout.strip()
         if sql('SHOW server_version_num')!='180006': raise RuntimeError('PostgreSQL18.6 required')
         for role in ('runtime','migration'): sql('CREATE ROLE dvaia_identity_'+role+' LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS')
-        database='dvaia_test_workshop_rag_'+owner[:12]
+        database='owasp_ai_goat_test_workshop_rag_'+owner[:12]
         sql('CREATE DATABASE '+database+' OWNER dvaia_identity_migration')
         sql('REVOKE ALL ON DATABASE '+database+' FROM PUBLIC; GRANT CONNECT ON DATABASE '+database+' TO dvaia_identity_runtime')
         sql('REVOKE ALL ON SCHEMA public FROM PUBLIC; GRANT USAGE ON SCHEMA public TO dvaia_identity_runtime,dvaia_identity_migration',database)
-        env={**clean,**database_environment(owner[:12],port),'HOME':str(evidence),'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes','PG_TLS':'disable','PLATFORM_DATABASE_ENGINE':'postgres','WORKSHOP_DATABASE_ENGINE':'postgres','WORKSHOP_RAG_AGENT_ACTUAL8B':'1','WORKSHOP_RAG_ACTUAL_EMBEDDING':'1','WORKSHOP_RAG_DEFENSE_ALIGNMENT':'1','DVAIA_ISOLATED_TEST_WORKSPACE':str(workspace),'WORKSHOP_RAG_EVIDENCE_PATH':str(evidence/'rag-evidence.json'),'AI_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b','OLLAMA_BASE_URL':'http://127.0.0.1:11434','HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1','XENOVA_CACHE':str(cache),'TRANSFORMERS_CACHE':str(cache)}
+        env={**clean,**database_environment(owner[:12],port),'HOME':str(evidence),'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes','PG_TLS':'disable','PLATFORM_DATABASE_ENGINE':'postgres','WORKSHOP_DATABASE_ENGINE':'postgres','WORKSHOP_RAG_AGENT_ACTUAL8B':'1','WORKSHOP_RAG_ACTUAL_EMBEDDING':'1','WORKSHOP_RAG_DEFENSE_ALIGNMENT':'1','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE':str(workspace),'WORKSHOP_RAG_EVIDENCE_PATH':str(evidence/'rag-evidence.json'),'AI_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b','OLLAMA_BASE_URL':'http://127.0.0.1:11434','HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1','XENOVA_CACHE':str(cache),'TRANSFORMERS_CACHE':str(cache)}
         # Canonical identity migrate() creates its ledger foundation itself. Never
         # prepend the separate bootstrap stream to this identity migration ledger.
         with (evidence/'result.tap').open('x') as log:

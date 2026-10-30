@@ -38,7 +38,7 @@ test('historical exclusion retains every ordinary private manager and excludes o
     const home = path.join(directory, 'home');
     fs.mkdirSync(path.join(workspace, 'server', 'database'), { recursive: true, mode: 0o700 });
     const workspaceId = crypto.createHash('sha256').update(fs.realpathSync(workspace)).digest('hex').slice(0, 12);
-    const privateRoot = path.join(home, '.dvaia', workspaceId);
+    const privateRoot = path.join(home, '.owasp-ai-goat', workspaceId);
     fs.mkdirSync(privateRoot, { recursive: true, mode: 0o700 });
 
     for (const name of ['activation-backups', 'dependency-backups', 'model-cache', 'app-data']) {

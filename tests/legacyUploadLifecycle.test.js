@@ -39,7 +39,7 @@ test('connection loss while creating the namespace aborts and removes it without
  await assert.rejects(running,/connection lost/);assert.equal(entered,false);assert.equal(events.some(row=>String(row[0]).includes('admit_legacy_upload')),false);assert.ok(events.some(row=>row[0]==='rm'));
 });
 test('connection loss after admission lets deletion remove the namespace and a delayed writer cannot recreate it',async()=>{
- const root=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-upload-fence-'));const first=new EventEmitter(),second=new EventEmitter();let admitted=false;
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-upload-fence-'));const first=new EventEmitter(),second=new EventEmitter();let admitted=false;
  for(const client of [first,second]){client.release=()=>{};client.query=async sql=>{if(String(sql).includes('admit_legacy_upload'))admitted=true;if(String(sql).includes('list_legacy_upload_cleanup'))return{rows:[{intent_id:'retired-intent',file_path:null,state:'admitted'}]};return{rows:[{}]};};}
  let calls=0;const lifecycle=createLegacyUploadLifecycle({identityPool:{connect:async()=>calls++===0?first:second},uploadRoot:root});let lease,continueWrite;const gate=new Promise(resolve=>{continueWrite=resolve;});
  const upload=lifecycle.runUpload({ownerId:7,sessionId:8},async value=>{lease=value;await gate;await fs.writeFile(path.join(value.directory,'late.bin'),'late');});

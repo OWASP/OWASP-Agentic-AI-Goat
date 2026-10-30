@@ -11,7 +11,7 @@ function installBackendReadinessIpc({ Server = http.Server, environment = proces
   send = typeof process.send === 'function' ? process.send.bind(process) : null,
   pid = process.pid } = {}) {
   const expectedPort = configuredPort(environment.PORT || 8081);
-  const token = environment.DVAIA_LAUNCH_READINESS_TOKEN;
+  const token = environment.OWASP_AI_GOAT_LAUNCH_READINESS_TOKEN;
   if (!expectedPort || !/^[A-Za-z0-9_-]{43}$/.test(String(token || '')) || typeof send !== 'function') {
     throw Object.assign(new Error('Supported launcher readiness channel is invalid'), { code: 'INVALID_LAUNCH_READINESS' });
   }
@@ -24,7 +24,7 @@ function installBackendReadinessIpc({ Server = http.Server, environment = proces
       if (address && typeof address === 'object' && address.port === expectedPort) {
         reported = true;
         Server.prototype.emit = originalEmit;
-        send({ type: 'dvaia-backend-ready', token, pid, port: expectedPort });
+        send({ type: 'owasp-ai-goat-backend-ready', token, pid, port: expectedPort });
       }
     }
     return result;
@@ -32,6 +32,6 @@ function installBackendReadinessIpc({ Server = http.Server, environment = proces
   return () => { Server.prototype.emit = originalEmit; };
 }
 
-if (process.env.DVAIA_LAUNCH_READINESS_TOKEN) installBackendReadinessIpc();
+if (process.env.OWASP_AI_GOAT_LAUNCH_READINESS_TOKEN) installBackendReadinessIpc();
 
 module.exports = { configuredPort, installBackendReadinessIpc };

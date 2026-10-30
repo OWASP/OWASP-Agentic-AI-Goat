@@ -32,7 +32,7 @@ R45_ASSERTION_DIFF = '''  error: |-
       }
 
   code: 'ERR_ASSERTION'\n'''
-_NODE = os.environ.get('DVAIA_MANAGED_NODE') or shutil.which('node')
+_NODE = os.environ.get('OWASP_AI_GOAT_MANAGED_NODE') or shutil.which('node')
 MANAGED_NODE = Path(_NODE) if _NODE else None
 
 

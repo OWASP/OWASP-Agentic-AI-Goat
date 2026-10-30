@@ -8,7 +8,7 @@ const { describeOwnedLab } = require('../lib/windows-owned-lab');
 const { workspaceId } = require('../../server/services/mcp/ownedManagedConfiguration');
 const { MAILPIT_IMAGE } = require('../local-mailpit');
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
-const IMAGE_LABEL = 'org.dvaia.reviewed-source';
+const IMAGE_LABEL = 'org.owasp-ai-goat.reviewed-source';
 const SERVICES = Object.freeze([
   Object.freeze({ name: 'mcp-sandbox', image: 'mcp-sandbox-runner:dev', context: 'sandbox-runner', ports: [8090] }),
   Object.freeze({ name: 'mailpit', image: MAILPIT_IMAGE, ports: [1025, 8025] }),
@@ -75,7 +75,7 @@ function createWindowsBaseLabServices({ describeSession = describeOwnedLab, file
         || !Number.isInteger(healthTimeoutMs) || healthTimeoutMs < 1 || healthTimeoutMs > 60000) throw denied();
       await session.assertCurrent();
       const { files, sourceHashes } = await reviewedBaseBundle(root), bundlePath = await session.stageReviewedBundle(files);
-      const project = 'dvaia-' + binding.workspaceId;
+      const project = 'owasp-ai-goat-' + binding.workspaceId;
       const docker = (args, timeoutMs) => session.executeDocker(args, { scope: 'provision', bundlePath, ...(timeoutMs === undefined ? {} : { timeoutMs }) });
       const compose = (args, timeoutMs) => docker(['compose', '--project-name', project, ...args], timeoutMs);
       const parse = text => { if (typeof text !== 'string' || Buffer.byteLength(text) > 1024 * 1024) throw denied(); const value = JSON.parse(text); return Array.isArray(value) && value.length === 1 ? value[0] : value; };

@@ -16,7 +16,7 @@ function migrationView(before){
 }
 test('unmounted protected central candidate preserves immutable admission and append-only reconciliation',{skip:process.env.PG_TEST_DISPOSABLE!=='yes'||!process.env.PG_GRAPH_TEST_RUNTIME_URL},async t=>{
  const runtime=new Pool({connectionString:process.env.PG_GRAPH_TEST_RUNTIME_URL}),migration=new Pool({connectionString:process.env.PG_GRAPH_TEST_MIGRATION_URL}),fresh=new Pool({connectionString:process.env.PG_PROTECTED_FRESH_MIGRATION_URL});t.after(()=>Promise.all([runtime.end(),migration.end(),fresh.end()]));
- for(const url of [runtime.options.connectionString,migration.options.connectionString,fresh.options.connectionString]){assert.equal(new URL(url).hostname,'127.0.0.1');assert.match(new URL(url).pathname,/^\/dvaia_test_[a-z0-9_]+$/);}
+ for(const url of [runtime.options.connectionString,migration.options.connectionString,fresh.options.connectionString]){assert.equal(new URL(url).hostname,'127.0.0.1');assert.match(new URL(url).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);}
  const {migrate,readMigrations}=require('../../db/postgres/migrate');
  const canonical=await readMigrations(directory),names=canonical.map(row=>row.name);
  const candidate='0097_mcp_protected_reconciliation.sql';

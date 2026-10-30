@@ -5,11 +5,11 @@ const {Pool}=require('pg');
 const {migrate}=require('../../db/postgres/migrate');
 const prefix='PG_HISTORY_OPERATOR_';
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&process.env[prefix+'SOURCE_URL']&&process.env[prefix+'TARGET_URL'];
-function url(key,role){const value=new URL(process.env[prefix+key]);assert.equal(value.hostname,'127.0.0.1');assert.match(value.pathname,/^\/dvaia_test_history_operator_[a-f0-9]+$/);assert.equal(value.username,role);assert.equal(value.search,'');assert.equal(value.hash,'');return value.href;}
+function url(key,role){const value=new URL(process.env[prefix+key]);assert.equal(value.hostname,'127.0.0.1');assert.match(value.pathname,/^\/owasp_ai_goat_test_history_operator_[a-f0-9]+$/);assert.equal(value.username,role);assert.equal(value.search,'');assert.equal(value.hash,'');return value.href;}
 test('operator plan, archive and cleanup preserve unknown history and support explicit replay', {skip:!enabled,timeout:30000},async()=>{
  const sourceUrl=url('SOURCE_URL','dvaia_legacy_challenge_migration'),targetUrl=url('TARGET_URL','dvaia_identity_migration');
  const source=new Pool({connectionString:sourceUrl}),target=new Pool({connectionString:targetUrl});
- const directory=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-operator-native-')));
+ const directory=await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-operator-native-')));
  try{
   await migrate(source,path.resolve(__dirname,'../../db/postgres/workshop-migrations/legacy_challenge'));
   await migrate(target,path.resolve(__dirname,'../../db/postgres/identity-migrations'));

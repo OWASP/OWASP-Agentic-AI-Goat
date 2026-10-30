@@ -24,7 +24,7 @@ function migratorThrough(directory,ceiling){
 const PREFIX='PG_SECURESHOP_SSRF_';const KEYS=['IDENTITY_MIGRATION_URL','IDENTITY_RUNTIME_URL','AGENTS_MIGRATION_URL','AGENTS_RUNTIME_URL'];
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&KEYS.every(key=>process.env[PREFIX+key]);const uuid=crypto.randomUUID;
 function checked(key){const value=new URL(process.env[PREFIX+key]);assert.ok(['127.0.0.1','localhost'].includes(value.hostname));
-  assert.match(value.pathname,/^\/dvaia_test_[a-z0-9_]+$/);return value.href;}
+  assert.match(value.pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);return value.href;}
 async function protocol(t){const [{Client},{InMemoryTransport}]=await Promise.all([import('@modelcontextprotocol/sdk/client/index.js'),
   import('@modelcontextprotocol/sdk/inMemory.js')]);
   // Register the original policy tool through the production MCP/LangGraph seam.
@@ -50,8 +50,8 @@ async function protocol(t){const [{Client},{InMemoryTransport}]=await Promise.al
 module.exports={protocol};
 
 test('controlled SSRF repository binds real MCP effects, active scope and restart-safe reset',{skip:!enabled,timeout:120000},async t=>{
-  assert.ok(process.env.DVAIA_ISOLATED_TEST_WORKSPACE,'Explicit source workspace is required');
-  const workspace=await fs.realpath(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);assert.equal(await fs.realpath(process.cwd()),workspace);
+  assert.ok(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE,'Explicit source workspace is required');
+  const workspace=await fs.realpath(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);assert.equal(await fs.realpath(process.cwd()),workspace);
   const evidencePath=process.env.PG_SECURESHOP_SSRF_EVIDENCE_PATH;
   if(evidencePath){assert(path.isAbsolute(evidencePath));assert(!path.resolve(evidencePath).startsWith(workspace+path.sep));}
   const status={scope:'controlled V27 policy HTML native storage and C32 persistence; no model, browser or credit',
@@ -60,7 +60,7 @@ test('controlled SSRF repository binds real MCP effects, active scope and restar
     resetFenced:false,historyPreserved:false,recordedHtmlInvocations:0,controlledMcpInvocations:0,historicalMigrationInvocations:2};
   const identityMigration=new Pool({connectionString:checked('IDENTITY_MIGRATION_URL'),max:2}),identity=new Pool({connectionString:checked('IDENTITY_RUNTIME_URL'),max:8});
   const agentsMigration=new Pool({connectionString:checked('AGENTS_MIGRATION_URL'),max:2}),agents=new Pool({connectionString:checked('AGENTS_RUNTIME_URL'),max:8});
-  const fixtureRoot=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-ssrf-pg-fixture-'));t.after(()=>fs.rm(fixtureRoot,{recursive:true,force:true}));
+  const fixtureRoot=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-ssrf-pg-fixture-'));t.after(()=>fs.rm(fixtureRoot,{recursive:true,force:true}));
   try{await initializeIdentityRepository(identity,identityMigration);
     const agentsDirectoryBefore=path.join(workspace,'db/postgres/workshop-migrations/secureshop_agents');
     await migratorThrough(agentsDirectoryBefore,109)(agentsMigration,agentsDirectoryBefore);

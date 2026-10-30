@@ -229,7 +229,7 @@ function projectModerationFailureDiagnostic(value) {
 }
 
 function requestSha(binding, persona, submission) {
-  return sha(JSON.stringify(['dvaia-secureshop-review-submission', 1,
+  return sha(JSON.stringify(['owasp-ai-goat-secureshop-review-submission', 1,
     binding.targetId, binding.launchId, binding.scenarioId, binding.generation,
     binding.platformOwnerId, binding.platformSessionId, persona.id, persona.role,
     submission.submissionId, submission.productId, submission.authorId,

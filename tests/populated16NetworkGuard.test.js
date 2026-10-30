@@ -134,8 +134,8 @@ test('retained ownership uses a fresh guarded canonical initializer child for ev
 });
 
 test('disposable CTF delivery is provisioned before target environment publication', async () => {
-  const oldDelivery = 'postgresql://dvaia_ctf_delivery:installed-secret@installed.invalid/dvaia_ctf';
-  const newDelivery = 'postgresql://dvaia_ctf_delivery:disposable-secret@127.0.0.1:55432/dvaia_ctf';
+  const oldDelivery = 'postgresql://dvaia_ctf_delivery:installed-secret@installed.invalid/owasp_ai_goat_ctf';
+  const newDelivery = 'postgresql://dvaia_ctf_delivery:disposable-secret@127.0.0.1:55432/owasp_ai_goat_ctf';
   const calls = [];
   const environment = await prepareDisposableEnvironment({
     sourceConfiguration: {

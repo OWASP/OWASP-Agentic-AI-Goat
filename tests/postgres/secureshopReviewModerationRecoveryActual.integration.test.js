@@ -18,7 +18,7 @@ function disposableUrls(env=process.env){
   const urls={};let nonce,port;
   for(const [store,name]of Object.entries(STORES))for(const role of ['MIGRATION','RUNTIME']){
     const url=new URL(env[`${PREFIX}${store}_${role}_URL`]);
-    const match=/^\/dvaia_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
+    const match=/^\/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
     assert.equal(url.protocol,'postgresql:');assert.equal(url.hostname,'127.0.0.1');assert.equal(url.username,`dvaia_${name}_${role.toLowerCase()}`);
     assert.equal(url.password,'');assert.equal(url.search,'');assert.equal(url.hash,'');assert.ok(match&&match[2]===name);
     assert.match(url.port,/^[1-9]\d{0,4}$/);assert.ok(Number(url.port)<=65535);
@@ -218,7 +218,7 @@ function assertEvidence(wire,status){
 
 const ENABLED=process.env.SECURESHOP_REVIEW_RECOVERY_NATIVE==='1'&&process.env.PG_TEST_DISPOSABLE==='yes'&&process.env.LIVE_OLLAMA_TEST==='1';
 if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},async t=>{
-  assert.equal(process.cwd(),ROOT);assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE||'/'),ROOT);
+  assert.equal(process.cwd(),ROOT);assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE||'/'),ROOT);
   assert.equal(process.env.OLLAMA_MODEL,MODEL);assert.equal(process.env.AI_PROVIDER,'ollama');assert.equal(process.env.LAB_MODE,'vuln');
   const evidencePath=process.env.SECURESHOP_REVIEW_RECOVERY_EVIDENCE_PATH;
   require('../fixtures/secureshopNativeEvidencePath').assertNativeEvidencePath(evidencePath,{root:ROOT,dockerHost:process.env.DOCKER_HOST,basename:'review-moderation-recovery-evidence.json'});
@@ -271,7 +271,7 @@ if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},asy
     const login=async(name,role)=>{const registered=await auth.register({username:name,password,email:`${name}@example.invalid`,role});await auth.logout(registered.token);
       const active=await auth.login({username:name,password}),boot=await bootstrap(active.context),scope=await composition.launches.resolveCapability(boot.bearer);
       const actor=await composition.personaAuth.authenticateBoundToken({scope,token:boot.persona.token});return {registered,active,boot,scope,persona:actor.user,
-        personaSession:{sessionId:actor.sessionId,authorityVersion:actor.authorityVersion},headers:{authorization:`Bearer ${boot.persona.token}`,'x-dvaia-secureshop-launch':boot.bearer},cookie:{cookie:`dvaia_shop_session=${active.token}`}};};
+        personaSession:{sessionId:actor.sessionId,authorityVersion:actor.authorityVersion},headers:{authorization:`Bearer ${boot.persona.token}`,'x-owasp-ai-goat-secureshop-launch':boot.bearer},cookie:{cookie:`owasp_ai_goat_shop_session=${active.token}`}};};
     const merchant=await login(`q05m_${suffix}`,'merchant'),customer=await login(`q05c_${suffix}`,'customer'),foreign=await login(`q05f_${suffix}`,'merchant');
     const listing=await composition.catalog.createMerchantProduct({scope:merchant.scope,persona:merchant.persona,personaSession:merchant.personaSession,
       listing:{name:'Owned recovery headphones',description:'Wireless headphones for everyday listening.',price:21.25,category:'Electronics',images:[],templateSource:null}});
@@ -332,12 +332,12 @@ if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},asy
     const peerAuth=require('../../server/services/secureshopStandaloneAuth').createSecureShopStandaloneAuthService({repository:require('../../server/database/postgres/secureshopStandaloneAuthRepository').createSecureShopStandaloneAuthRepository({pool:identity,executionTenantSlug:peerSlug})});
     const peerLogin=await peerAuth.login({username:`q05c_${suffix}`,password});
     const peerBoot=await require('../../server/services/secureshopStandaloneBootstrap').createSecureShopStandaloneBootstrap({launches:composition.launches,personaAuth:composition.personaAuth,authService:peerAuth})(peerLogin.context);
-    const peerHeaders={authorization:`Bearer ${peerBoot.persona.token}`,'x-dvaia-secureshop-launch':peerBoot.bearer};
+    const peerHeaders={authorization:`Bearer ${peerBoot.persona.token}`,'x-owasp-ai-goat-secureshop-launch':peerBoot.bearer};
     const peerProducts=await request('/products?limit=1',{headers:peerHeaders});assert.ok(peerProducts.products.length);
     const peerReview=await request(`/products/${peerProducts.products[0].id}/reviews`,{headers:peerHeaders,method:'POST',body:{submission_id:randomUUID(),author_id:customer.persona.id,body:'Sibling product works well.',rating:4}});
     const peerRows=async()=>(await review.query('SELECT to_jsonb(r) AS row FROM secureshop_review.reviews r WHERE id=$1',[peerReview.review_id])).rows;
     wire.siblingBefore=await peerRows();assert.equal(wire.siblingBefore.length,1);
-    stage='authenticated-reset';const admin=await auth.login({username:'student_admin',password:'student123'}),adminHeaders={cookie:`dvaia_shop_session=${admin.token}`};
+    stage='authenticated-reset';const admin=await auth.login({username:'student_admin',password:'student123'}),adminHeaders={cookie:`owasp_ai_goat_shop_session=${admin.token}`};
     const boot=await request('/auth/bootstrap',{method:'POST',headers:adminHeaders,body:{}}),ready=await request('/auth/reset-readiness',{headers:adminHeaders});
     assert.equal(ready.available,true);assert.equal(ready.launchId,boot.launch.launchId);assert.equal(ready.generation,boot.launch.generation);
     wire.ledger.beforeReset=await credits();assert.deepEqual(wire.ledger.beforeReset,wire.ledger.afterOriginal);

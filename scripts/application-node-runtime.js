@@ -15,7 +15,7 @@ function isSupportedApplicationNodeVersion(version) {
 function assertSupportedApplicationNodeVersion(version) {
   if (isSupportedApplicationNodeVersion(version)) return;
   const error = new Error(
-    `Unsupported Node.js runtime ${String(version)}; DVAIA requires ${APPLICATION_NODE_RANGE}.`,
+    `Unsupported Node.js runtime ${String(version)}; OWASP-AI-GOAT requires ${APPLICATION_NODE_RANGE}.`,
   );
   error.code = 'UNSUPPORTED_NODE_RUNTIME';
   throw error;

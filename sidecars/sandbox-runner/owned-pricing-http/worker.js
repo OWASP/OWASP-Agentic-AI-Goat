@@ -5,12 +5,12 @@ const http = require('node:http');
 const dns = require('node:dns/promises');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
-const manifest = JSON.parse(fs.readFileSync(require('node:path').join(__dirname, require.main === module ? 'dvaia-owned-pricing-http-manifest.json' : 'network-manifest.json'), 'utf8'));
+const manifest = JSON.parse(fs.readFileSync(require('node:path').join(__dirname, require.main === module ? 'owasp-ai-goat-owned-pricing-http-manifest.json' : 'network-manifest.json'), 'utf8'));
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 const {
   parseUrl,
   normalizeInput
-} = require(require.main === module ? './dvaia-owned-pricing-http-input.js' : './input');
+} = require(require.main === module ? './owasp-ai-goat-owned-pricing-http-input.js' : './input');
 async function fetchHop(url, mode, signal) {
   const resolved = await dns.lookup(url.hostname, {
     family: 4
@@ -152,7 +152,7 @@ async function run(raw, {
     }
     return {
       version: 1,
-      isolationAttestation: process.env.DVAIA_OWNED_PRICING_HTTP_ATTESTED === '1' ? {
+      isolationAttestation: process.env.OWASP_AI_GOAT_OWNED_PRICING_HTTP_ATTESTED === '1' ? {
         zeroCapabilities: true,
         noNewPrivileges: true,
         loopbackOnly: true,
@@ -180,7 +180,7 @@ async function run(raw, {
   }
 }
 async function main() {
-  if (process.platform !== 'linux' || process.env.DVAIA_OWNED_PRICING_HTTP_ATTESTED !== '1') throw Error('unattested_worker');
+  if (process.platform !== 'linux' || process.env.OWASP_AI_GOAT_OWNED_PRICING_HTTP_ATTESTED !== '1') throw Error('unattested_worker');
   // Bound stdin before parsing; no learner string becomes executable code.
   const chunks = [];
   let bytes = 0;

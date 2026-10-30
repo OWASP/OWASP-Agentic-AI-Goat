@@ -3,7 +3,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const bcrypt=require('bcryptjs');
 const {bootstrapAdmin,BOOTSTRAP_PERMISSIONS}=require('../db/postgres/bootstrap-admin');
-const defaults={username:'admin',email:'admin@dvaia.local',password:'admin123',initialTrainingProfile:true};
+const defaults={username:'admin',email:'admin@owasp-ai-goat.local',password:'admin123',initialTrainingProfile:true};
 
 // Owned in-memory transaction adapter: never creates a PostgreSQL connection.
 function fixture({users=[],failStudent=false}={}){
@@ -36,8 +36,8 @@ test('fresh training profile creates exactly admin and student with bcrypt and t
  const f=fixture(),result=await bootstrapAdmin({pool:f.pool,...defaults});
  assert.equal(result.created,true);assert.equal(result.user.username,'admin');assert.equal(result.student.username,'student');
  assert.deepEqual(f.state.users.map(({username,email,role,admin_level})=>({username,email,role,admin_level})),[
-  {username:'admin',email:'admin@dvaia.local',role:'super_admin',admin_level:2},
-  {username:'student',email:'student@dvaia.local',role:'student',admin_level:0},
+  {username:'admin',email:'admin@owasp-ai-goat.local',role:'super_admin',admin_level:2},
+  {username:'student',email:'student@owasp-ai-goat.local',role:'student',admin_level:0},
  ]);
  for(const user of f.state.users){assert.match(user.password,/^\$2[aby]\$12\$/);assert.equal(user.email_verified,1);assert.equal(user.is_active,1);}
  assert(await bcrypt.compare('admin123',f.state.users[0].password));
@@ -55,7 +55,7 @@ test('generic bootstrap retains long password policy and creates only the reques
 });
 
 test('empty identity with a retained older journal preserves its administrator and uses the requested fresh student profile',async()=>{
- const f=fixture();await bootstrapAdmin({pool:f.pool,username:'Abhinav',email:'admin@dvaia.local',password:'owned older journal credential',initialTrainingProfile:true});
+ const f=fixture();await bootstrapAdmin({pool:f.pool,username:'Abhinav',email:'admin@owasp-ai-goat.local',password:'owned older journal credential',initialTrainingProfile:true});
  assert.deepEqual(f.state.users.map(user=>user.username),['Abhinav','student']);assert(await bcrypt.compare('owned older journal credential',f.state.users[0].password));
 });
 

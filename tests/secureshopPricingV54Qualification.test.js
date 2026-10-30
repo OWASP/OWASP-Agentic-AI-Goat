@@ -203,7 +203,7 @@ test('V34 physical manual consumer accepts the actual ingestion DTO and rejects 
 test('V34 rendered receipt joins actual ingestion readback, client contract, POST and hook projection',async()=>{
  const {manual,body,lookup,visible,lookupUrl}=await v34ManualProducer();
  const validate=require('./fixtures/secureshopPricingRenderedBrowser')._internals.assertV34ManualRenderedReceipt;
- const headers={authorization:'Bearer controlled.persona.token','x-dvaia-secureshop-launch':'a'.repeat(43)};
+ const headers={authorization:'Bearer controlled.persona.token','x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)};
  const posted={url:()=> 'http://owned.invalid/api/secureshop/uploads',headers:()=>headers};
  const input=()=>({visible:structuredClone(visible),lookup:structuredClone(lookup),status:200,
   lookupRequest:{method:()=> 'GET',url:()=>lookupUrl,headers:()=>headers},posted,postBody:structuredClone(body),source:manual,productId:7});
@@ -225,7 +225,7 @@ test('V34 rendered receipt joins actual ingestion readback, client contract, POS
   x=>{x.lookup.receipt.chunkIds=x.lookup.receipt.chunkIds.map((_,i)=>`manual:999:${i}`);x.visible.receipt=structuredClone(x.lookup.receipt);},
   x=>{x.status=503;},x=>{x.lookupRequest={...x.lookupRequest,method:()=> 'POST'};},
   x=>{x.lookupRequest={...x.lookupRequest,headers:()=>({...headers,authorization:'Bearer foreign'})};},
-  x=>{x.lookupRequest={...x.lookupRequest,headers:()=>({...headers,'x-dvaia-secureshop-launch':'b'.repeat(43)})};},
+  x=>{x.lookupRequest={...x.lookupRequest,headers:()=>({...headers,'x-owasp-ai-goat-secureshop-launch':'b'.repeat(43)})};},
   ...[lookupUrl.replace('owned.invalid','foreign.invalid'),lookupUrl+'#fragment',lookupUrl+'&productId=7',lookupUrl+'&extra=1',
    lookupUrl.replace('productId=7','productId=8'),lookupUrl.replace('public=true','public=false'),
    lookupUrl.replace('/receipt?','/other?'),lookupUrl.replace('http://','http://secret@')]
@@ -236,7 +236,7 @@ for(const [reportClaim,manualVersion] of [[false,undefined],[true,undefined],[fa
  const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{manual,f,body,lookup,visible,lookupUrl}=await v34ManualProducer(reportClaim,manualVersion);
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'v34-manual-control-')),filePath=path.join(directory,manual.filename);
  const actions=[];let value='',posts=0,readEffects=false;
- const headers={authorization:'Bearer controlled.persona.token','x-dvaia-secureshop-launch':'a'.repeat(43)};
+ const headers={authorization:'Bearer controlled.persona.token','x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)};
  const posted={method:()=> 'POST',url:()=> 'http://owned.invalid/api/secureshop/uploads',headers:()=>headers};
  const httpResponse={request:()=>posted,status:()=>200,json:async()=>structuredClone(body)};
  const lookupRequest={method:()=> 'GET',url:()=>lookupUrl,headers:()=>headers};

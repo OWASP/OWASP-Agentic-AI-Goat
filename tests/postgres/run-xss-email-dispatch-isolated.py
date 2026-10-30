@@ -9,12 +9,12 @@ parser.add_argument('--docker-host', required=True)
 parser.add_argument('--mailpit', action='store_true', help='also run the native dispatch test against an owned Mailpit')
 args = parser.parse_args()
 source = Path(__file__).resolve().parents[2]
-root = Path(tempfile.mkdtemp(prefix='dvaia-xss-email-dispatch-'))
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-xss-email-dispatch-'))
 workspace = root / 'source'; workspace.mkdir(); os.chmod(root, 0o700)
 base_env = {key: os.environ[key] for key in ['PATH','HOME','TMPDIR'] if key in os.environ}
 docker = ['docker', '--host', args.docker_host]
-container = 'dvaia-xss-email-test-' + uuid.uuid4().hex[:12]
-mailpit_container = 'dvaia-xss-email-mailpit-' + uuid.uuid4().hex[:12]
+container = 'owasp-ai-goat-xss-email-test-' + uuid.uuid4().hex[:12]
+mailpit_container = 'owasp-ai-goat-xss-email-mailpit-' + uuid.uuid4().hex[:12]
 postgres_started = False
 mailpit_started = False
 
@@ -105,12 +105,12 @@ try:
     port = int(address.rsplit(':',1)[1])
     psql = ['psql','-h','127.0.0.1','-p',str(port),'-U','xss_email_test_admin','-d','postgres','-v','ON_ERROR_STOP=1']
     migration, runtime = 'dvaia_identity_migration', 'dvaia_identity_runtime'
-    database = 'dvaia_test_xss_email_dispatch_identity'
+    database = 'owasp_ai_goat_test_xss_email_dispatch_identity'
     for role in [migration,runtime]:
         run(psql + ['-c',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'], stdout=subprocess.DEVNULL)
     run(psql + ['-c',f'CREATE DATABASE {database} OWNER {migration}'], stdout=subprocess.DEVNULL)
     run(psql + ['-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration}, {runtime}'], stdout=subprocess.DEVNULL)
-    env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes', DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+    env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes', OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
         PLATFORM_DATABASE_ENGINE='postgres', WORKSHOP_DATABASE_ENGINE='postgres', AI_PROVIDER='mock', JUDGE_PROVIDER='mock',
         AWS_EC2_METADATA_DISABLED='true', MCP_WORKSHOP_AUTOSTART='false', MCP_SIDECARS_AUTOSTART='false', SS_ENABLE='false', HF_HUB_OFFLINE='1',
         SANDBOX_RUNNER_URL='http://127.0.0.1:1', SSRF_TARGET_URL='http://127.0.0.1:1', ROGUE_MCP_URL='http://127.0.0.1:1',

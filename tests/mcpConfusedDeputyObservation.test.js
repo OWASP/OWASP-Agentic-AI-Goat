@@ -31,9 +31,9 @@ async function privateTool({ args = defaultArgs, run = execution(), observationE
   const invocation = await protocol.withProtocolInvocation({ sessionId: `mcp_${owner}`, execution: run,
     surface: 'chat', effectKey: protocolEffect }, async () => {
     const intentId = deputy.intentIdFor(run.runId, observationEffect);
-    const delivered = deputy.bindDelivery({ ok: true, messageId: `mcp-${intentId}@dvaia.local` }, {
+    const delivered = deputy.bindDelivery({ ok: true, messageId: `mcp-${intentId}@owasp-ai-goat.local` }, {
       scope, intentId, runId: run.runId, effectKey: observationEffect, to: recipient,
-      subject: 'Operations report', body, messageId: `mcp-${intentId}@dvaia.local`,
+      subject: 'Operations report', body, messageId: `mcp-${intentId}@owasp-ai-goat.local`,
     });
     const raw = deputy.bindTool(delivered, { output: 'delivered', objective: 'mcp_confused_deputy',
       achieved: true, real: true }, protectedContent);

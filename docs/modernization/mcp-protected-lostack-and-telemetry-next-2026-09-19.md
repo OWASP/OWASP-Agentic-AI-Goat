@@ -22,7 +22,7 @@ The route at `server/routes/mcpWorkshop.js:422` deliberately records `set_audit_
 
 ## Retained positive proof
 
-The Sept14 cohort `~/.dvaia/native-verification/dvaia-mcp-owned-connected-5et0_cw9` passed all three protected objectives with actual actor/Judge and canonical awards. `tasks/mcp-protected-current-review-2026-09-19.json` records hashes, cleanup and scope. Current target-state and private-witness modules match that snapshot; adapters/grader and schema chain have since changed. Matrix pointers now retain that historical proof while current rendered/admin parity remains pending. No additional model calls were needed.
+The Sept14 cohort `~/.owasp-ai-goat/native-verification/owasp-ai-goat-mcp-owned-connected-5et0_cw9` passed all three protected objectives with actual actor/Judge and canonical awards. `tasks/mcp-protected-current-review-2026-09-19.json` records hashes, cleanup and scope. Current target-state and private-witness modules match that snapshot; adapters/grader and schema chain have since changed. Matrix pointers now retain that historical proof while current rendered/admin parity remains pending. No additional model calls were needed.
 
 ## Return-fence correction
 

@@ -122,7 +122,7 @@ class BoundUploadJournalLauncherContract(unittest.TestCase):
         source = LAUNCHER.read_text()
         self.assertIn("DAEMON = '2c9da9a7-1f8c-490b-af98-87bbf6bf83db'", source)
         self.assertIn("IMAGE = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'", source)
-        self.assertIn("HOST = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'", source)
+        self.assertIn("HOST = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'", source)
         self.assertIn("'--pull', 'never'", source)
         self.assertIn("'containerAbsent'", source)
         self.assertIn("'sourceUnchanged'", source)

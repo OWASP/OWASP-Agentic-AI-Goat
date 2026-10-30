@@ -74,7 +74,7 @@ test('real Express GET parameters preserve the exact read-only source contract',
 });
 test('customer guard denies other roles and duplicate launch headers do not select assessment',()=>{
   const f=fixture(),res=response();let next;
-  f.post[0].handle({rawHeaders:['X-DVAIA-SecureShop-Launch','a','X-DVAIA-SecureShop-Launch','b']},res,x=>{next=x;});
+  f.post[0].handle({rawHeaders:['X-OWASP-AI-GOAT-SecureShop-Launch','a','X-OWASP-AI-GOAT-SecureShop-Launch','b']},res,x=>{next=x;});
   assert.equal(next,'route');
   for(const role of ['admin','merchant',undefined]){
     f.post.at(-2).handle({...f.req,ssUser:{id:17,role}},res,()=>assert.fail('unauthorized continuation'));

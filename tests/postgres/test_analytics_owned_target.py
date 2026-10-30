@@ -46,7 +46,7 @@ class Commands:
             if 'count(*)' in sql: return self.result('0')
             if 'json_build_object' in sql:
                 return self.result(json.dumps({'systemIdentifier': '123456789',
-                    'cluster': 'foreign' if self.bad_cluster else 'dvaia-owned-analytics-012345abcdef'}))
+                    'cluster': 'foreign' if self.bad_cluster else 'owasp-ai-goat-owned-analytics-012345abcdef'}))
             return self.result()
         if args[0] == 'logs':
             return self.result(stderr='FATAL: "min_wal_size" must be at least twice "wal_segment_size"\npassword=private-value postgres://private:secret@host/db')
@@ -72,8 +72,8 @@ class AnalyticsOwnedTargetTest(unittest.TestCase):
         self.assertEqual(target.start(), {
             'SECURESHOP_COUPON_ANALYTICS_OWNER': '012345abcdef',
             'SECURESHOP_COUPON_ANALYTICS_PORT': '45678',
-            'SECURESHOP_COUPON_ANALYTICS_DATABASE': 'dvaia_analytics_control_012345abcdef',
-            'SECURESHOP_COUPON_ANALYTICS_CLUSTER': 'dvaia-owned-analytics-012345abcdef',
+            'SECURESHOP_COUPON_ANALYTICS_DATABASE': 'owasp_ai_goat_analytics_control_012345abcdef',
+            'SECURESHOP_COUPON_ANALYTICS_CLUSTER': 'owasp-ai-goat-owned-analytics-012345abcdef',
             'SECURESHOP_COUPON_ANALYTICS_SYSTEM_IDENTIFIER': '123456789'})
         self.assertTrue(persisted[0]['attempted']); self.assertIsNone(persisted[0]['containerId'])
         create = next(args for args in command.calls if args[0] == 'run')

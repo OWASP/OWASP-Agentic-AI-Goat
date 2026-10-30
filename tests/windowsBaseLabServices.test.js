@@ -16,8 +16,8 @@ function fixture() {
     async assertCurrent(){calls.push(['assert']);},
     async stageReviewedBundle(files){
       calls.push(['stage',files]); const compose=files.find(file=>file.path==='docker-compose.yml').bytes.toString();
-      for(const name of services.filter(name=>name!=='mailpit'))stagedHashes[name]=compose.match(new RegExp('  '+name+':\\n[\\s\\S]*?org\\.dvaia\\.reviewed-source: "([a-f0-9]{64})"'))[1];
-      return '/var/lib/dvaia/owned/bundles/'+hash(Buffer.from(compose));
+      for(const name of services.filter(name=>name!=='mailpit'))stagedHashes[name]=compose.match(new RegExp('  '+name+':\\n[\\s\\S]*?org\\.owasp-ai-goat\\.reviewed-source: "([a-f0-9]{64})"'))[1];
+      return '/var/lib/owasp-ai-goat/owned/bundles/'+hash(Buffer.from(compose));
     },
     async executeDocker(args,options){
       calls.push(['docker',args,options]);
@@ -26,12 +26,12 @@ function fixture() {
       if(args[0]==='image'){
         if(!created||missing)throw Object.assign(Error('private-password'),{code:1});
         const index=images.indexOf(args.at(-1)),name=services[index];
-        return JSON.stringify({Id:'sha256:'+ids[index],RepoDigests:name==='mailpit'?[MAILPIT_IMAGE]:[],Config:{Labels:{'org.dvaia.reviewed-source':actualHashes[name]}}});
+        return JSON.stringify({Id:'sha256:'+ids[index],RepoDigests:name==='mailpit'?[MAILPIT_IMAGE]:[],Config:{Labels:{'org.owasp-ai-goat.reviewed-source':actualHashes[name]}}});
       }
       if(args[0]==='inspect'){
         const index=ids.indexOf(args.at(-1)),name=services[index],ports=name==='mailpit'?[1025,8025]:[index===0?8090:index===2?9099:8091];
-        return JSON.stringify({Id:ids[index],Image:'sha256:'+ids[index],Config:{Image:images[index],Labels:{'com.docker.compose.project':'dvaia-'+binding.workspaceId,'com.docker.compose.service':unsafe?'foreign':name}},
-          HostConfig:{Privileged:false,NetworkMode:'dvaia_'+binding.workspaceId+'_mcplab',PortBindings:Object.fromEntries(ports.map(port=>[port+'/tcp',[{HostIp:'127.0.0.1',HostPort:String(port)}]]))},Mounts:[],State:{Running:true}});
+        return JSON.stringify({Id:ids[index],Image:'sha256:'+ids[index],Config:{Image:images[index],Labels:{'com.docker.compose.project':'owasp-ai-goat-'+binding.workspaceId,'com.docker.compose.service':unsafe?'foreign':name}},
+          HostConfig:{Privileged:false,NetworkMode:'owasp_ai_goat_'+binding.workspaceId+'_mcplab',PortBindings:Object.fromEntries(ports.map(port=>[port+'/tcp',[{HostIp:'127.0.0.1',HostPort:String(port)}]]))},Mounts:[],State:{Running:true}});
       }
       throw Error('unexpected controlled command');
     },
@@ -58,10 +58,10 @@ test('base bundle includes exact ordinary Dockerfile COPY inputs, guest loopback
 });
 test('fresh base services build through branded guest stable project then forward before localhost readiness',async()=>{
   const f=fixture(),result=await f.factory.provisionWindowsBaseLabServices(f.options);
-  assert.equal(result.project,'dvaia-'+workspaceId(root));assert.deepEqual(Object.keys(result.containers),services);
+  assert.equal(result.project,'owasp-ai-goat-'+workspaceId(root));assert.deepEqual(Object.keys(result.containers),services);
   const up=f.calls.find(call=>call[0]==='docker'&&call[1].includes('up'));
   assert(up[1].includes('--build'));assert(up[1].includes('--wait'));assert.deepEqual(up[1].slice(-4),services);
-  assert(up[2].bundlePath.startsWith('/var/lib/dvaia/owned/bundles/'));assert.equal(up[2].scope,'provision');
+  assert(up[2].bundlePath.startsWith('/var/lib/owasp-ai-goat/owned/bundles/'));assert.equal(up[2].scope,'provision');
   assert.equal(up[2].timeoutMs,600000);
   assert(f.calls.filter(call=>call[0]==='docker'&&call!==up).every(call=>!Object.hasOwn(call[2],'timeoutMs')));
   assert(f.calls.findIndex(call=>call[0]==='forward')<f.calls.findIndex(call=>call[0]==='fetch'));

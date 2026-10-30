@@ -43,8 +43,8 @@ function plan({
   if (resourceNamespace !== undefined && (typeof resourceNamespace !== 'string' || !/^[a-f0-9]{12}$/.test(resourceNamespace))) throw fail('REGISTRY_NAMESPACE_INVALID');
   if (!IMAGE.test(imageId || '') || !Number.isInteger(port) || port < 1024 || port > 65535 || !['vuln', 'fixed'].includes(mode)) throw fail('REGISTRY_PLAN_INVALID');
   const workspace = workspaceId(root),
-    profile = 'dvaia-owned-mcp-registry-' + workspace,
-    directory = path.join(configurationHome, '.dvaia', workspace);
+    profile = 'owasp-ai-goat-owned-mcp-registry-' + workspace,
+    directory = path.join(configurationHome, '.owasp-ai-goat', workspace);
   return Object.freeze({
     ...localProfilePlan({
       root,
@@ -102,13 +102,13 @@ async function writePrivate(file, value, previous) {
 }
 function labels(p) {
   return {
-    'dvaia.registry.workspace': p.workspace,
-    'dvaia.registry.owner': p.profile,
-    ...(p.resourceNamespace === undefined ? {} : { 'dvaia.registry.namespace': p.resourceNamespace })
+    'owasp-ai-goat.registry.workspace': p.workspace,
+    'owasp-ai-goat.registry.owner': p.profile,
+    ...(p.resourceNamespace === undefined ? {} : { 'owasp-ai-goat.registry.namespace': p.resourceNamespace })
   };
 }
 function validateNetwork(n, p, record) {
-  if (!n || !ID.test(n.Id || '') || n.Name !== p.network || n.Driver !== 'bridge' || n.Internal !== false || n.EnableIPv6 !== false || n.Ingress === true || n.Labels?.['dvaia.registry.namespace'] !== p.resourceNamespace || Object.entries(labels(p)).some(([k, v]) => n.Labels?.[k] !== v) || record?.networkId && record.networkId !== n.Id) throw fail('REGISTRY_NETWORK_CONFLICT');
+  if (!n || !ID.test(n.Id || '') || n.Name !== p.network || n.Driver !== 'bridge' || n.Internal !== false || n.EnableIPv6 !== false || n.Ingress === true || n.Labels?.['owasp-ai-goat.registry.namespace'] !== p.resourceNamespace || Object.entries(labels(p)).some(([k, v]) => n.Labels?.[k] !== v) || record?.networkId && record.networkId !== n.Id) throw fail('REGISTRY_NETWORK_CONFLICT');
   const ids = Object.keys(n.Containers || {});
   if (ids.some(id => id !== record?.containerId)) throw fail('REGISTRY_NETWORK_FOREIGN_ENDPOINT');
   return n;
@@ -118,7 +118,7 @@ function validateContainer(c, p, record, token) {
     e = c?.Config,
     net = c?.NetworkSettings?.Networks;
   const expectedEnv = [`SECURESHOP_MCP_REGISTRY_ENABLED=true`, `SECURESHOP_MCP_REGISTRY_TOKEN=${token}`, `SECURESHOP_MCP_REGISTRY_PROFILE=${p.profile}`, 'SECURESHOP_MCP_REGISTRY_HOST=0.0.0.0', 'SECURESHOP_MCP_REGISTRY_PORT=8094'];
-  if (!c || !ID.test(c.Id || '') || record.containerId && c.Id !== record.containerId || c.Name !== '/' + p.container || c.Image !== p.imageId || e?.Labels?.['dvaia.registry.namespace'] !== p.resourceNamespace || Object.entries(labels(p)).some(([k, v]) => e?.Labels?.[k] !== v) || e?.User !== '10001:10001' || JSON.stringify(e.Entrypoint) !== JSON.stringify(['node', 'sidecars/sandbox-runner/owned-mcp-registry/http-listener.js']) || e.Cmd?.length || !expectedEnv.every(v => e.Env?.includes(v)) || e.Env.filter(v => v.startsWith('SECURESHOP_MCP_REGISTRY_')).length !== 5 || h?.Privileged || h?.ReadonlyRootfs !== true || h?.NetworkMode !== p.network || h?.PidMode || h?.IpcMode === 'host' || h?.CapAdd?.length || JSON.stringify(h?.CapDrop) !== JSON.stringify(['ALL']) || h?.Memory !== 536870912 || h?.NanoCpus !== 1000000000 || h?.PidsLimit !== 128 || h?.RestartPolicy?.Name !== 'unless-stopped' || h?.SecurityOpt?.length !== 2 || !h.SecurityOpt.includes('apparmor=' + p.profile) || !h.SecurityOpt.includes('seccomp=unconfined') || JSON.stringify(h.PortBindings) !== JSON.stringify({
+  if (!c || !ID.test(c.Id || '') || record.containerId && c.Id !== record.containerId || c.Name !== '/' + p.container || c.Image !== p.imageId || e?.Labels?.['owasp-ai-goat.registry.namespace'] !== p.resourceNamespace || Object.entries(labels(p)).some(([k, v]) => e?.Labels?.[k] !== v) || e?.User !== '10001:10001' || JSON.stringify(e.Entrypoint) !== JSON.stringify(['node', 'sidecars/sandbox-runner/owned-mcp-registry/http-listener.js']) || e.Cmd?.length || !expectedEnv.every(v => e.Env?.includes(v)) || e.Env.filter(v => v.startsWith('SECURESHOP_MCP_REGISTRY_')).length !== 5 || h?.Privileged || h?.ReadonlyRootfs !== true || h?.NetworkMode !== p.network || h?.PidMode || h?.IpcMode === 'host' || h?.CapAdd?.length || JSON.stringify(h?.CapDrop) !== JSON.stringify(['ALL']) || h?.Memory !== 536870912 || h?.NanoCpus !== 1000000000 || h?.PidsLimit !== 128 || h?.RestartPolicy?.Name !== 'unless-stopped' || h?.SecurityOpt?.length !== 2 || !h.SecurityOpt.includes('apparmor=' + p.profile) || !h.SecurityOpt.includes('seccomp=unconfined') || JSON.stringify(h.PortBindings) !== JSON.stringify({
     '8094/tcp': [{
       HostIp: '127.0.0.1',
       HostPort: String(p.port)
@@ -143,7 +143,7 @@ function validateRunningContainer(c, p, record, token) {
 }
 // Executes only immutable-image packaged assets, never host source. This derives
 // the digest independently of the serving health endpoint and verifies each asset.
-const IMAGE_PROBE = "const f=require('fs'),c=require('crypto'),e=require('./sidecars/sandbox-runner/owned-mcp-registry/executor');const a=JSON.parse(f.readFileSync('/usr/share/dvaia/owned-mcp-registry-assets.json'));if(Object.keys(a).sort().join()!=[...e.ASSETS].sort().join())throw Error('assets');for(const p of e.ASSETS){const s=f.lstatSync(p);if(!s.isFile()||s.isSymbolicLink()||s.uid!==0||(s.mode&18)||(()=>{const h=c.createHash('sha256'),fd=f.openSync(p,'r'),b=Buffer.alloc(65536);try{let n;while((n=f.readSync(fd,b,0,b.length,null))>0)h.update(b.subarray(0,n));return h.digest('hex');}finally{f.closeSync(fd);}})()!==a[p])throw Error('asset');}process.stdout.write(c.createHash('sha256').update(JSON.stringify(a)).digest('hex'));";
+const IMAGE_PROBE = "const f=require('fs'),c=require('crypto'),e=require('./sidecars/sandbox-runner/owned-mcp-registry/executor');const a=JSON.parse(f.readFileSync('/usr/share/owasp-ai-goat/owned-mcp-registry-assets.json'));if(Object.keys(a).sort().join()!=[...e.ASSETS].sort().join())throw Error('assets');for(const p of e.ASSETS){const s=f.lstatSync(p);if(!s.isFile()||s.isSymbolicLink()||s.uid!==0||(s.mode&18)||(()=>{const h=c.createHash('sha256'),fd=f.openSync(p,'r'),b=Buffer.alloc(65536);try{let n;while((n=f.readSync(fd,b,0,b.length,null))>0)h.update(b.subarray(0,n));return h.digest('hex');}finally{f.closeSync(fd);}})()!==a[p])throw Error('asset');}process.stdout.write(c.createHash('sha256').update(JSON.stringify(a)).digest('hex'));";
 async function waitForHealth(client, runtimeDigest, {
   timeoutMs = 10000,
   intervalMs = 200,
@@ -262,17 +262,17 @@ async function provision(options = {}) {
     const probeName = p.container + '-assets-' + crypto.randomBytes(6).toString('hex');
     let probeId, digest;
     try {
-      probeId = (await docker(['create', '--name', probeName, '--label', 'dvaia.registry.probe=' + p.workspace, '--network', 'none', '--read-only', '--cap-drop', 'ALL', '--memory', '512m', '--pids-limit', '32', '--user', '10001:10001', '--entrypoint', 'node', p.imageId, '-e', IMAGE_PROBE], 'image-assets-create')).trim();
+      probeId = (await docker(['create', '--name', probeName, '--label', 'owasp-ai-goat.registry.probe=' + p.workspace, '--network', 'none', '--read-only', '--cap-drop', 'ALL', '--memory', '512m', '--pids-limit', '32', '--user', '10001:10001', '--entrypoint', 'node', p.imageId, '-e', IMAGE_PROBE], 'image-assets-create')).trim();
       if (!ID.test(probeId)) throw fail('REGISTRY_PROBE_CREATE_UNCERTAIN');
       const probe = await inspect('container', probeId);
-      if (probe?.Id !== probeId || probe.Name !== '/' + probeName || probe.Image !== p.imageId || probe.Config?.Labels?.['dvaia.registry.probe'] !== p.workspace || probe.HostConfig?.NetworkMode !== 'none') throw fail('REGISTRY_PROBE_CONFLICT');
+      if (probe?.Id !== probeId || probe.Name !== '/' + probeName || probe.Image !== p.imageId || probe.Config?.Labels?.['owasp-ai-goat.registry.probe'] !== p.workspace || probe.HostConfig?.NetworkMode !== 'none') throw fail('REGISTRY_PROBE_CONFLICT');
       digest = (await docker(['start', '--attach', probeId], 'image-assets')).trim();
       const ended = await inspect('container', probeId);
       if (ended?.State?.Running || ended?.State?.ExitCode !== 0) throw fail('REGISTRY_PROBE_FAILED');
     } finally {
       if (probeId && ID.test(probeId)) {
         const probe = await inspect('container', probeId);
-        if (probe?.Id !== probeId || probe.Name !== '/' + probeName || probe.Image !== p.imageId || probe.Config?.Labels?.['dvaia.registry.probe'] !== p.workspace) throw fail('REGISTRY_PROBE_CLEANUP_CONFLICT');
+        if (probe?.Id !== probeId || probe.Name !== '/' + probeName || probe.Image !== p.imageId || probe.Config?.Labels?.['owasp-ai-goat.registry.probe'] !== p.workspace) throw fail('REGISTRY_PROBE_CLEANUP_CONFLICT');
         if (probe.State?.Running) await docker(['stop', '--time', '5', probeId], 'image-assets-stop');
         await docker(['rm', probeId], 'image-assets-remove');
         if (await inspect('container', probeId)) throw fail('REGISTRY_PROBE_REMAINS');
@@ -317,7 +317,7 @@ async function provision(options = {}) {
       await writePrivate(p.receiptFile, next, record);
       record = next;
     };
-    temp = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-registry-install-'));
+    temp = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-registry-install-'));
     await fs.chmod(temp, 0o700);
     const renderedFile = path.join(temp, 'profile');
     await fs.writeFile(renderedFile, rendered, {
@@ -542,7 +542,7 @@ async function replace(options = {}) {
     validateNetwork(await inspect('network', original.networkId), p, original);
     const image = await inspect('image', p.imageId);
     if (image?.Id !== p.imageId || image.Architecture !== 'arm64' || image.Os !== 'linux' || image.Config?.User !== '10001:10001'
-        || image.Config?.Labels?.['dvaia.registry.package'] !== nextBuild.packageDigest
+        || image.Config?.Labels?.['owasp-ai-goat.registry.package'] !== nextBuild.packageDigest
         || JSON.stringify(image.Config.Entrypoint) !== JSON.stringify(['node', 'sidecars/sandbox-runner/owned-mcp-registry/http-listener.js'])
         || image.Config.Volumes && Object.keys(image.Config.Volumes).length) throw fail('REGISTRY_IMAGE_UNQUALIFIED');
     await assertNoUpgradeDebt({ environment: applicationEnvironment, maintenanceScope, createPool: options.createPool });
@@ -555,11 +555,11 @@ async function replace(options = {}) {
     // Probe before stopping the old service; derive digest from immutable assets.
     const probeName = p.container + '-assets-' + id;
     await advance({ phase: 'probe-intent', probeName });
-    probeId = (await docker(['create', '--name', probeName, '--label', 'dvaia.registry.probe=' + p.workspace, '--network', 'none', '--read-only', '--cap-drop', 'ALL', '--memory', '512m', '--pids-limit', '32', '--user', '10001:10001', '--entrypoint', 'node', p.imageId, '-e', IMAGE_PROBE], 'upgrade-probe-create')).trim();
+    probeId = (await docker(['create', '--name', probeName, '--label', 'owasp-ai-goat.registry.probe=' + p.workspace, '--network', 'none', '--read-only', '--cap-drop', 'ALL', '--memory', '512m', '--pids-limit', '32', '--user', '10001:10001', '--entrypoint', 'node', p.imageId, '-e', IMAGE_PROBE], 'upgrade-probe-create')).trim();
     if (!ID.test(probeId)) throw fail('REGISTRY_PROBE_CREATE_UNCERTAIN');
     await advance({ probeId });
     const probe = await inspect('container', probeId);
-    if (probe?.Id !== probeId || probe.Name !== '/' + probeName || probe.Image !== p.imageId || probe.Config?.Labels?.['dvaia.registry.probe'] !== p.workspace || probe.HostConfig?.NetworkMode !== 'none') throw fail('REGISTRY_PROBE_CONFLICT');
+    if (probe?.Id !== probeId || probe.Name !== '/' + probeName || probe.Image !== p.imageId || probe.Config?.Labels?.['owasp-ai-goat.registry.probe'] !== p.workspace || probe.HostConfig?.NetworkMode !== 'none') throw fail('REGISTRY_PROBE_CONFLICT');
     digest = (await docker(['start', '--attach', probeId], 'upgrade-probe-start')).trim();
     const ended = await inspect('container', probeId);
     if (!ID.test(digest) || ended?.State?.Running || ended?.State?.ExitCode !== 0) throw fail('REGISTRY_PROBE_FAILED');
@@ -574,10 +574,10 @@ async function replace(options = {}) {
     await docker(['rename', original.containerId, rollbackName], 'upgrade-old-rename');
     validateContainer(await inspect('container', original.containerId), { ...oldPlan, container: rollbackName }, original, original.token);
     await advance({ phase: 'candidate-create-intent' });
-    temp = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-registry-upgrade-')); await fs.chmod(temp, 0o700);
+    temp = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-registry-upgrade-')); await fs.chmod(temp, 0o700);
     const envFile = path.join(temp, 'runtime.env');
     await fs.writeFile(envFile, `SECURESHOP_MCP_REGISTRY_ENABLED=true\nSECURESHOP_MCP_REGISTRY_TOKEN=${original.token}\nSECURESHOP_MCP_REGISTRY_PROFILE=${p.profile}\nSECURESHOP_MCP_REGISTRY_HOST=0.0.0.0\nSECURESHOP_MCP_REGISTRY_PORT=8094\n`, { flag: 'wx', mode: 0o600 });
-    const labelArgs = Object.entries({ ...labels(p), 'dvaia.registry.upgrade': id }).flatMap(([k, v]) => ['--label', k + '=' + v]);
+    const labelArgs = Object.entries({ ...labels(p), 'owasp-ai-goat.registry.upgrade': id }).flatMap(([k, v]) => ['--label', k + '=' + v]);
     candidateId = (await docker(['create', '--name', p.container, ...labelArgs, '--network', p.network, '--read-only', '--user', '10001:10001', '--memory', '512m', '--cpus', '1', '--pids-limit', '128', '--cap-drop', 'ALL', '--tmpfs', '/tmp:rw,nosuid,nodev,noexec,size=16m', '--security-opt', 'apparmor=' + p.profile, '--security-opt', 'seccomp=unconfined', '--restart', 'unless-stopped', '--publish', `127.0.0.1:${p.port}:8094`, '--env-file', envFile, p.imageId], 'upgrade-create')).trim();
     if (!ID.test(candidateId)) throw fail('REGISTRY_CONTAINER_CREATE_UNCERTAIN');
     await advance({ phase: 'candidate-start-intent', candidate: { ...transition.candidate, containerId: candidateId } });
@@ -611,7 +611,7 @@ async function replace(options = {}) {
         if (transition.probeName) {
           const probe = await inspect('container', probeId || transition.probeName);
           if (probe) {
-            if (probe.Name !== '/' + transition.probeName || probe.Image !== p.imageId || probe.Config?.Labels?.['dvaia.registry.probe'] !== p.workspace || probe.HostConfig?.NetworkMode !== 'none' || probeId && probe.Id !== probeId) throw fail('REGISTRY_UPGRADE_PROBE_RECOVERY_REQUIRED');
+            if (probe.Name !== '/' + transition.probeName || probe.Image !== p.imageId || probe.Config?.Labels?.['owasp-ai-goat.registry.probe'] !== p.workspace || probe.HostConfig?.NetworkMode !== 'none' || probeId && probe.Id !== probeId) throw fail('REGISTRY_UPGRADE_PROBE_RECOVERY_REQUIRED');
             if (probe.State?.Running) await docker(['stop','--time','5',probe.Id], 'upgrade-rollback-probe-stop');
             await docker(['rm',probe.Id], 'upgrade-rollback-probe-remove');
             if (await inspect('container',probe.Id)) throw fail('REGISTRY_PROBE_REMAINS');
@@ -620,7 +620,7 @@ async function replace(options = {}) {
         const current = await inspect('container', p.container);
         if (current && current.Id !== original.containerId) {
           const record = { ...original, containerId: candidateId || transition.candidate.containerId };
-          if (current.Config?.Labels?.['dvaia.registry.upgrade'] !== transition.id || record.containerId && current.Id !== record.containerId) throw fail('REGISTRY_UPGRADE_CANDIDATE_UNCERTAIN');
+          if (current.Config?.Labels?.['owasp-ai-goat.registry.upgrade'] !== transition.id || record.containerId && current.Id !== record.containerId) throw fail('REGISTRY_UPGRADE_CANDIDATE_UNCERTAIN');
           record.containerId = current.Id;
           validateContainer(current, p, record, original.token);
           if (current.State?.Running) await docker(['stop', '--time', '20', current.Id], 'upgrade-rollback-stop');

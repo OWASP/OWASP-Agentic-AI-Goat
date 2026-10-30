@@ -17,9 +17,9 @@ test('actual enabled index admits only the qualified launch-owned policy rendere
   skip: process.env.PG_SECURESHOP_POLICY_ENABLED_INDEX !== '1', timeout: 300000,
 }, async t => {
   const source = path.resolve(__dirname, '../..');
-  assert.equal(fs.realpathSync(source), process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  assert.equal(fs.realpathSync(source), process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   assert.equal(fs.statSync(source).mode & 0o222, 0, 'source must be frozen');
-  const root = process.env.DVAIA_FULL_BACKEND_RUNTIME_ROOT;
+  const root = process.env.OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT;
   assert.ok(root && path.isAbsolute(root));
   assert.equal(fs.realpathSync(root), root);
   assert.equal(fs.statSync(root).uid, process.getuid());
@@ -36,7 +36,7 @@ test('actual enabled index admits only the qualified launch-owned policy rendere
   const env = {
     PATH: process.env.PATH, NODE_ENV: 'test', PLATFORM_DATABASE_ENGINE: 'postgres',
     WORKSHOP_DATABASE_ENGINE: 'postgres', PG_TEST_DISPOSABLE: 'yes',
-    HOME: path.join(root, 'home'), DVAIA_APP_DATA_ROOT: path.join(root, 'app-data'),
+    HOME: path.join(root, 'home'), OWASP_AI_GOAT_APP_DATA_ROOT: path.join(root, 'app-data'),
     LOGS_DIR: path.join(root, 'logs'), LEGACY_SENSITIVE_FILES_ROOT: path.join(root, 'legacy-sensitive-files'),
     SS_ENABLE: 'true', SS_BOUND_REVIEWS_ENABLED: 'true', SS_PERSONA_INBOX_READY: 'true',
     SS_MCP_TRUST_READY: 'true', SS_CONTROLLED_SSRF_READY: 'true', SS_AUDIT_SUMMARY_ENABLED: 'false',
@@ -55,15 +55,15 @@ test('actual enabled index admits only the qualified launch-owned policy rendere
       assert.equal(url.hostname, '127.0.0.1'); assert.ok(url.port);
       assert.equal(url.search, ''); assert.equal(url.hash, '');
       assert.equal(decodeURIComponent(url.username), role);
-      assert.equal(url.pathname, `/dvaia_test_full_backend_${row.schema}`);
+      assert.equal(url.pathname, `/owasp_ai_goat_test_full_backend_${row.schema}`);
       if (database) assert.equal(url.pathname, database);
       database = url.pathname; roles.add(role); endpoints.add(url.host); env[key] = url.href;
     }
     databases.add(database);
   }
   assert.equal(databases.size, 16); assert.equal(roles.size, 32); assert.equal(endpoints.size, 1);
-  for (const directory of [env.HOME, env.LOGS_DIR, env.DVAIA_APP_DATA_ROOT]) fs.mkdirSync(directory, { mode: 0o700 });
-  env.SS_PASSWORD_RESET_KEY_PATH = path.join(env.DVAIA_APP_DATA_ROOT, 'password-reset-keys.json');
+  for (const directory of [env.HOME, env.LOGS_DIR, env.OWASP_AI_GOAT_APP_DATA_ROOT]) fs.mkdirSync(directory, { mode: 0o700 });
+  env.SS_PASSWORD_RESET_KEY_PATH = path.join(env.OWASP_AI_GOAT_APP_DATA_ROOT, 'password-reset-keys.json');
   fs.writeFileSync(env.SS_PASSWORD_RESET_KEY_PATH, JSON.stringify({ version: 1, activeKeyId: 'native',
     keys: { native: randomBytes(32).toString('base64url') } }), { mode: 0o600, flag: 'wx' });
   for (const [key, name] of [['SS_MCP_TRUST_FIXTURE_ROOT', 'mcp-trust'], ['SS_CONTROLLED_SSRF_FIXTURE_ROOT', 'ssrf']]) {
@@ -160,7 +160,7 @@ test('actual enabled index admits only the qualified launch-owned policy rendere
     const login = await request('/api/auth/login', null, { username: platformUser.username, password });
     assert.equal(login.status, 200); const token = login.body.token;
     const launched = await request('/api/auth/secureshop-launch', token, {}); assert.equal(launched.status, 201);
-    const launchHeader = { 'x-dvaia-secureshop-launch': launched.body.bearer };
+    const launchHeader = { 'x-owasp-ai-goat-secureshop-launch': launched.body.bearer };
     const persona = await request('/api/secureshop/v2/auth/login', token,
       { username: 'student_admin', password: 'student123' }, launchHeader);
     assert.equal(persona.status, 200); const personaToken = persona.body.token;

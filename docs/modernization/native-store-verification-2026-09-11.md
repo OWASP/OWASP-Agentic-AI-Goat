@@ -21,7 +21,7 @@ The200-attendee regression uses injected storage and deterministic model respons
 
 Learning dependency preservation passed, with four investigation/frozen entries. All62 currently mapped intentional SecureShop vulnerability IDs retain code/test annotations; this coverage check does not replace executable exploit tests after the future SecureShop migration.
 
-Local diagnostic logs: `/tmp/dvaia-native-stores-regression-final.log`, `/tmp/dvaia-final-ctf-ea-snapshot.log`. Disposable PostgreSQL clusters were stopped; application databases were not reset or imported.
+Local diagnostic logs: `/tmp/owasp-ai-goat-native-stores-regression-final.log`, `/tmp/owasp-ai-goat-final-ctf-ea-snapshot.log`. Disposable PostgreSQL clusters were stopped; application databases were not reset or imported.
 
 ## Remaining work
 
@@ -29,6 +29,6 @@ Remove hidden legacy imports in DPI/RAG/rate-limit paths; migrate legacy sensiti
 
 ## Latest startup closure checkpoint
 
-The fresh disposable PostgreSQL suite passed36/36 tests after adding generic legacy challenges and sensitive lookup, with all14 initializer repositories, ARIA105 and NOVA137 checks passing. Logs: `/tmp/dvaia-legacy-native-pg.log`. Both new stores use separate runtime/migration roles and databases; no platform data is placed in raw-SQL teaching stores. Compatibility sensitive-info URLs remain available, with PostgreSQL dialect explicitly reported.
+The fresh disposable PostgreSQL suite passed36/36 tests after adding generic legacy challenges and sensitive lookup, with all14 initializer repositories, ARIA105 and NOVA137 checks passing. Logs: `/tmp/owasp-ai-goat-legacy-native-pg.log`. Both new stores use separate runtime/migration roles and databases; no platform data is placed in raw-SQL teaching stores. Compatibility sensitive-info URLs remain available, with PostgreSQL dialect explicitly reported.
 
 SecureShop startup now gates application readiness. Its supervisor uses the current Node executable, verifies its own child instance in health responses, destroys stalled health requests, and bounds child shutdown. The agent host closes SSE transports before awaiting HTTP drain. Focused lifecycle6/6 tests pass; a separate disposable full-process boot passed, with legacy drivers forbidden in parent and child, all17 agents, native catalog HTTP, and clean shutdown.

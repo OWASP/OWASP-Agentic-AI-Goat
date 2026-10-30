@@ -2,10 +2,10 @@
 // Model-free, candidate-only UI projection. No actor/Judge success is claimed.
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),express=require('express');
 test('released audit instruction full App instructor projection',{skip:process.env.PG_TEST_DISPOSABLE!=='yes'},async()=>{
- const root=process.cwd();assert.match(root,/dvaia-secureshop-bound-review-composition-/);
+ const root=process.cwd();assert.match(root,/owasp-ai-goat-secureshop-bound-review-composition-/);
  const prefix='PG_SECURESHOP_BOUND_REVIEW_COMPOSITION_';
  const {Pool}=require('pg');const pools=[];let server;
- const make=(store,role)=>{const url=process.env[prefix+store+'_'+role+'_URL'];assert.equal(new URL(url).hostname,'127.0.0.1');assert.match(new URL(url).pathname,/^\/dvaia_test_/);const pool=new Pool({connectionString:url,max:3});pools.push(pool);return pool;};
+ const make=(store,role)=>{const url=process.env[prefix+store+'_'+role+'_URL'];assert.equal(new URL(url).hostname,'127.0.0.1');assert.match(new URL(url).pathname,/^\/owasp_ai_goat_test_/);const pool=new Pool({connectionString:url,max:3});pools.push(pool);return pool;};
  const identity=make('IDENTITY','RUNTIME'),migration=make('IDENTITY','MIGRATION'),agents=make('AGENTS','RUNTIME'),agentsMigration=make('AGENTS','MIGRATION');
  process.env.PLATFORM_DATABASE_ENGINE='postgres';process.env.WORKSHOP_DATABASE_ENGINE='postgres';process.env.IDENTITY_DATABASE_URL=process.env[prefix+'IDENTITY_RUNTIME_URL'];process.env.JWT_SECRET=crypto.randomBytes(48).toString('hex');
  process.env.AUDIT_SQL_RENDERED_WORKSPACE=path.join(root,'client');

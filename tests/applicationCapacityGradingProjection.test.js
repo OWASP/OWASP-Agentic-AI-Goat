@@ -1,6 +1,6 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict');
-process.env.DVAIA_CAPACITY_ASSERTIONS_TEST='1';
+process.env.OWASP_AI_GOAT_CAPACITY_ASSERTIONS_TEST='1';
 const {assertGradingReceipt,gradingProbe}=require('./fixtures/applicationCapacityLoad.cjs');
 const runId='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',userId=7,term="' || CAST('capacity-owner-7-run-aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa-capacity-grading-projection-v1' AS integer) || '";
 function fixture(){const judgment={runId,objectiveId:'sqli_1',verdict:'unavailable',disposition:'not_pass',errorCode:'INVALID_JUDGE_OUTPUT'};return{body:{run:{runId,decisionSource:'model'},toolUsed:'search_products',completedObjectives:[],judgments:[judgment]},detail:{judgments:[judgment]},row:{run_id:runId,verdict:'unavailable',disposition:'not_pass',error_code:'INVALID_JUDGE_OUTPUT',owner_key:'["ARIA","7"]',owner_generation:'0'},evidence:{run_id:runId,tool:'search_products',decision_source:'model',params:{searchTerm:term,maxPrice:null}},userId,term};}

@@ -4,7 +4,7 @@ const {EventEmitter}=require('node:events');
 const {runSetupDatabasePhase,runOwnedPhase,executeDatabasePhase}=require('../scripts/install/setup-database-phase');
 const tick=()=>new Promise(setImmediate);
 function deferred(){let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return{promise,resolve,reject};}
-function request(){const root=path.resolve(__dirname,'..'),homeDirectory=os.homedir(),id=crypto.createHash('sha256').update(root).digest('hex').slice(0,12);return{kind:'fresh',context:{root,homeDirectory,id,envPath:path.join(root,'.env'),directory:path.join(homeDirectory,'.dvaia',id),appDataRoot:'/controlled/private',processEnvironment:{},config:{IDENTITY_DATABASE_URL:'postgres://controlled-runtime@localhost/fixture',IDENTITY_MIGRATION_DATABASE_URL:'postgres://controlled-migration@localhost/fixture'}}};}
+function request(){const root=path.resolve(__dirname,'..'),homeDirectory=os.homedir(),id=crypto.createHash('sha256').update(root).digest('hex').slice(0,12);return{kind:'fresh',context:{root,homeDirectory,id,envPath:path.join(root,'.env'),directory:path.join(homeDirectory,'.owasp-ai-goat',id),appDataRoot:'/controlled/private',processEnvironment:{},config:{IDENTITY_DATABASE_URL:'postgres://controlled-runtime@localhost/fixture',IDENTITY_MIGRATION_DATABASE_URL:'postgres://controlled-migration@localhost/fixture'}}};}
 function parentHarness(){
  const child=new EventEmitter(),calls=[],sent=[],admission=deferred(),barrier=deferred(),drain=deferred(),close=deferred(),lifetime=deferred();let admitted=false;
  Object.assign(child,{pid:412,connected:true,send:(message,callback)=>{sent.push(message);callback?.();}});
@@ -13,14 +13,14 @@ function parentHarness(){
  const exit=code=>{child.emit('exit',code,null);child.emit('close',code);};
  return{child,calls,sent,admission,barrier,drain,close,lifetime,job,options,exit};
 }
-const proof={type:'dvaia-setup-phase-publication-proof',id:'a'.repeat(64),nonce:'b'.repeat(64)};
+const proof={type:'owasp-ai-goat-setup-phase-publication-proof',id:'a'.repeat(64),nonce:'b'.repeat(64)};
 
 test('controlled Windows parent admits phase before request and joins exit, zero members and helper close',async()=>{
  const h=parentHarness();let settled=false;const pending=runSetupDatabasePhase(request(),{},h.options).then(value=>{settled=true;return value;});
  await tick();assert.deepEqual(h.calls,['create-job','spawn','admit']);assert.deepEqual(h.sent,[]);
  h.admission.resolve();await tick();assert.equal(h.sent[0].kind,'fresh');
  h.child.emit('message',proof);await tick();assert.deepEqual(h.calls.at(-1),'barrier');assert.equal(h.sent.length,1);
- h.barrier.resolve();await tick();assert.deepEqual(h.sent.at(-1),{type:'dvaia-setup-phase-publication-approved',id:proof.id,nonce:proof.nonce});
+ h.barrier.resolve();await tick();assert.deepEqual(h.sent.at(-1),{type:'owasp-ai-goat-setup-phase-publication-approved',id:proof.id,nonce:proof.nonce});
  h.child.emit('message',{type:'result',result:{envPath:'/private/.env',secret:'excluded'}});assert.equal(h.calls.at(-1),'expect-exit');assert.equal(settled,false);
  h.exit(0);await tick();assert.equal(h.calls.at(-1),'drain');assert.equal(settled,false);
  h.drain.resolve();await tick();assert.equal(h.calls.at(-1),'close');assert.equal(settled,false);
@@ -30,7 +30,7 @@ test('controlled Windows parent admits phase before request and joins exit, zero
 test('controlled Windows publication refusal never approves or publishes and drains the owned job',async()=>{
  const h=parentHarness(),pending=runSetupDatabasePhase(request(),{},h.options).catch(error=>error);
  await tick();h.admission.resolve();await tick();h.child.emit('message',proof);h.barrier.reject(Error('remaining descendants'));await tick();
- assert.equal(h.sent.some(message=>message.type==='dvaia-setup-phase-publication-approved'),false);assert(h.calls.includes('stop'));
+ assert.equal(h.sent.some(message=>message.type==='owasp-ai-goat-setup-phase-publication-approved'),false);assert(h.calls.includes('stop'));
  h.exit(1);h.close.resolve();assert.equal((await pending).code,'SETUP_PHASE_PUBLICATION_INVALID');
 });
 
@@ -67,9 +67,9 @@ function childHarness(executePhase){
  Object.assign(runtime,{pid:412,connected:true,send:(message,callback)=>{sent.push(message);if(callback)callbacks.push(callback);},exit:code=>exits.push(code)});
  runOwnedPhase({runtime,platform:'win32',executePhase,proofTimeoutMs:50});
  const activate=()=>{
-  runtime.emit('message',{type:'dvaia-owned-guardian-hello'});const challenge=sent.at(-1).challenge,nonce='c'.repeat(64);
-  runtime.emit('message',{type:'dvaia-owned-guardian-probe',challenge,nonce});
-  runtime.emit('message',{type:'dvaia-owned-guardian-activate',challenge,nonce});
+  runtime.emit('message',{type:'owasp-ai-goat-owned-guardian-hello'});const challenge=sent.at(-1).challenge,nonce='c'.repeat(64);
+  runtime.emit('message',{type:'owasp-ai-goat-owned-guardian-probe',challenge,nonce});
+  runtime.emit('message',{type:'owasp-ai-goat-owned-guardian-activate',challenge,nonce});
  };
  return{runtime,sent,callbacks,exits,activate};
 }
@@ -87,8 +87,8 @@ test('controlled Windows phase refuses requests before activation and disconnect
 test('controlled activated Windows phase requires matching nonce proof before publication and result',async()=>{
  const calls=[],h=childHarness(async(_request,{beforePublication})=>{calls.push('drained');await beforePublication();calls.push('publish');return{envPath:'/private/.env'};});
  h.activate();h.callbacks.shift()();h.runtime.emit('message',request());await tick();
- assert.deepEqual(calls,['drained']);const message=h.sent.at(-1);assert.equal(message.type,'dvaia-setup-phase-publication-proof');assert.match(message.id,/^[a-f0-9]{64}$/);assert.match(message.nonce,/^[a-f0-9]{64}$/);
- h.runtime.emit('message',{type:'dvaia-setup-phase-publication-approved',id:message.id,nonce:message.nonce});await tick();assert.deepEqual(calls,['drained','publish']);assert.equal(h.sent.at(-1).type,'result');
+ assert.deepEqual(calls,['drained']);const message=h.sent.at(-1);assert.equal(message.type,'owasp-ai-goat-setup-phase-publication-proof');assert.match(message.id,/^[a-f0-9]{64}$/);assert.match(message.nonce,/^[a-f0-9]{64}$/);
+ h.runtime.emit('message',{type:'owasp-ai-goat-setup-phase-publication-approved',id:message.id,nonce:message.nonce});await tick();assert.deepEqual(calls,['drained','publish']);assert.equal(h.sent.at(-1).type,'result');
  for(const callback of h.callbacks)callback();assert.deepEqual(h.exits,[0]);
 });
 
@@ -96,7 +96,7 @@ test('controlled phase mismatched publication reply or cancellation never calls 
  for(const event of ['mismatch','cancel']){
   let published=false;const h=childHarness(async(_request,{beforePublication})=>{await beforePublication();published=true;return{};});
   h.activate();h.callbacks.shift()();h.runtime.emit('message',request());await tick();const message=h.sent.at(-1);
-  if(event==='mismatch')h.runtime.emit('message',{type:'dvaia-setup-phase-publication-approved',id:message.id,nonce:'f'.repeat(64)});else h.runtime.emit('message',{type:'cancel'});
+  if(event==='mismatch')h.runtime.emit('message',{type:'owasp-ai-goat-setup-phase-publication-approved',id:message.id,nonce:'f'.repeat(64)});else h.runtime.emit('message',{type:'cancel'});
   await tick();assert.equal(published,false);assert.equal(h.sent.at(-1).type,'failure');assert.deepEqual(h.exits,[1]);
  }
 });

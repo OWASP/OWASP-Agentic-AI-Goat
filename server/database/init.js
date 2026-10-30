@@ -3,7 +3,7 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 
 /**
- * VULNERABLE WORKSHOP DATABASE (dvaia.db)
+ * VULNERABLE WORKSHOP DATABASE (owasp-ai-goat.db)
  * ========================================
  * ⚠️  WARNING: This database is INTENTIONALLY VULNERABLE for educational purposes!
  * 
@@ -31,14 +31,14 @@ const bcrypt = require('bcryptjs');
  * DO NOT use this database for actual user authentication!
  */
 
-const dbPath = path.join(__dirname, 'dvaia.db');
+const dbPath = path.join(__dirname, 'owasp-ai-goat.db');
 
 // Create database connection
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('❌ Error opening vulnerable workshop database:', err.message);
   } else {
-    console.log('⚠️  Connected to VULNERABLE WORKSHOP database (dvaia.db)');
+    console.log('⚠️  Connected to VULNERABLE WORKSHOP database (owasp-ai-goat.db)');
     console.log('   ℹ️  This database contains DEMO DATA for security exercises');
     console.log('   ℹ️  Real users authenticate via users_auth.db (separate database)');
     initializeDatabase();
@@ -304,23 +304,23 @@ function insertDefaultData() {
   // Insert student account
   const studentPassword = bcrypt.hashSync('student123', 10);
   db.run(`INSERT OR IGNORE INTO users (username, email, password, role) 
-          VALUES ('student', 'student@dvaia.local', ?, 'student')`, [studentPassword], (err) => {
+          VALUES ('student', 'student@owasp-ai-goat.local', ?, 'student')`, [studentPassword], (err) => {
     if (!err) console.log('   ✓ Created demo account: student / student123');
   });
 
   // Insert student123 account (common username format)
   db.run(`INSERT OR IGNORE INTO users (username, email, password, role) 
-          VALUES ('student123', 'student123@dvaia.local', ?, 'student')`, [studentPassword]);
+          VALUES ('student123', 'student123@owasp-ai-goat.local', ?, 'student')`, [studentPassword]);
 
   // Insert default test users
   const userPassword = bcrypt.hashSync('password', 10);
   db.run(`INSERT OR IGNORE INTO users (username, email, password, role) 
-          VALUES ('user', 'user@dvaia.local', ?, 'student')`, [userPassword]);
+          VALUES ('user', 'user@owasp-ai-goat.local', ?, 'student')`, [userPassword]);
   
   // Insert test user
   const testPassword = bcrypt.hashSync('test123', 10);
   db.run(`INSERT OR IGNORE INTO users (username, email, password, role) 
-          VALUES ('Test User', 'test@dvaia.local', ?, 'student')`, [testPassword]);
+          VALUES ('Test User', 'test@owasp-ai-goat.local', ?, 'student')`, [testPassword]);
 
   // Sample products for SQL injection demos
   const products = [
@@ -352,7 +352,7 @@ function insertDefaultData() {
   console.log('');
   console.log('⚠️  ============================================');
   console.log('   VULNERABLE WORKSHOP DATABASE READY');
-  console.log('   Database: dvaia.db');
+  console.log('   Database: owasp-ai-goat.db');
   console.log('   Purpose: Demo data for security exercises');
   console.log('   Status: INTENTIONALLY VULNERABLE');
   console.log('   Note: Real users authenticate via users_auth.db');

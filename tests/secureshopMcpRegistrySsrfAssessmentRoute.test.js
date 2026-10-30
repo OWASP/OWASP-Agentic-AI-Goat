@@ -42,7 +42,7 @@ async function fixture(t, assessment) {
 }
 
 const headers = () => ({ authorization: 'Bearer admin-71',
-  'x-dvaia-secureshop-launch': bearer, 'content-type': 'application/json' });
+  'x-owasp-ai-goat-secureshop-launch': bearer, 'content-type': 'application/json' });
 const post = (base, body, suffix = '', supplied = headers()) =>
   fetch(`${base}/mcp-discovery/assess${suffix}`, { method: 'POST', headers: supplied,
     body: JSON.stringify(body) });

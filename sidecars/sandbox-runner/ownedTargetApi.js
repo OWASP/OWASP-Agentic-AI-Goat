@@ -52,7 +52,7 @@ function createOwnedTargetApi({ token, store, expectedSupervisorProfile,
       || typeof store.listInstalledPackages !== 'function'
       || typeof store.retireTarget !== 'function' || typeof store.readRetirementReceipt !== 'function'
       || typeof store.checkReadiness !== 'function' || typeof expectedSupervisorProfile !== 'string'
-      || !/^dvaia-mcp-sandbox(?:-[a-f0-9]{12})?$/.test(expectedSupervisorProfile)) {
+      || !/^owasp-ai-goat-mcp-sandbox(?:-[a-f0-9]{12})?$/.test(expectedSupervisorProfile)) {
     throw new TypeError('Strict owned target API configuration is required');
   }
   const authorize = async () => true;

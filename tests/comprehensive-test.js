@@ -467,7 +467,7 @@ class VulnerabilityTests {
 
 // Main test runner
 async function runAllTests() {
-  console.log('🚀 Starting DVAIA Comprehensive Testing Suite\n');
+  console.log('🚀 Starting OWASP-AI-GOAT Comprehensive Testing Suite\n');
   console.log('=' .repeat(60));
   
   // Wait for server to be ready

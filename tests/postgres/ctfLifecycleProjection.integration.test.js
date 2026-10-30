@@ -25,7 +25,7 @@ test('CTF 2B SQL fresh/populated/noop, closed validators, grants, receipt replay
   for(const kind of ['IDENTITY','CTF']){
    const keys=['RUNTIME','MIGRATION'].map(role=>`PG_CTF_LIFECYCLE_${state}_${kind}_${role}_URL`);
    assert(keys.every(k=>typeof process.env[k]==='string'&&process.env[k]),'Explicit disposable pair required');
-   const urls=keys.map(k=>new URL(process.env[k]));for(const u of urls){assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_ctf_lifecycle_/);}
+   const urls=keys.map(k=>new URL(process.env[k]));for(const u of urls){assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_ctf_lifecycle_/);}
    assert.equal(urls[0].pathname,urls[1].pathname);assert.equal(urls[0].port,urls[1].port);assert.notEqual(urls[0].username,urls[1].username);assert(!databases.has(urls[0].pathname));databases.add(urls[0].pathname);
    const [runtime,migration]=keys.map(k=>createPool(process.env,k));pools.push(runtime,migration);stores[kind]={runtime,migration};
    assert.equal((await runtime.query('SELECT current_user AS role')).rows[0].role,`dvaia_${kind.toLowerCase()}_runtime`);

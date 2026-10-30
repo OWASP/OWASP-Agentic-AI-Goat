@@ -35,7 +35,7 @@ class Admission(unittest.TestCase):
         plan = current.private_lifetime_plan('a' * 32, 'b' * 64, 'c' * 64)
         self.assertEqual(plan['storageCapBytes'], 6 * 1024**3)
         self.assertEqual(plan['privateDockerHost'],
-                         'unix:///var/tmp/dvaia-v23-build-' + 'a' * 32 + '/fs/docker.sock')
+                         'unix:///var/tmp/owasp-ai-goat-v23-build-' + 'a' * 32 + '/fs/docker.sock')
         self.assertFalse(plan['sharedImageLoadAllowed'])
         self.assertFalse(plan['sharedNetworkAttachmentAllowed'])
         self.assertFalse(plan['executionApproved'])
@@ -78,7 +78,7 @@ class Admission(unittest.TestCase):
         authority = self.authority()
         with self.assertRaisesRegex(RuntimeError, 'nonce-owned'):
             authority.build_argv(['build', '--platform', 'linux/arm64', '--pull=false', '-'])
-        builder = 'dvaia-listings-builder-123456789abc'
+        builder = 'owasp-ai-goat-listings-builder-123456789abc'
         argv = authority.build_argv(['build', '--platform', 'linux/arm64', '--pull=false', '-'], builder=builder)
         self.assertEqual(argv[:4], ['/usr/bin/ssh', '-F', authority.ssh['config'], current.SSH_HOST])
         self.assertIn('/usr/libexec/docker/cli-plugins/docker-buildx build --builder '+builder+' --load --no-cache', argv[4])
@@ -98,7 +98,7 @@ class Admission(unittest.TestCase):
                                       'DOCKER_CLI_PLUGIN_EXTRA_DIRS': '/tmp/foreign-plugin'}):
             authority = current.CurrentHost(ROOT, DAEMON, runner=runner)
             authority.guest_identity()
-            build = authority.build_argv(['build', '-'], builder='dvaia-listings-builder-123456789abc')
+            build = authority.build_argv(['build', '-'], builder='owasp-ai-goat-listings-builder-123456789abc')
         probe, options = commands[0]
         self.assertEqual(options['env'], {'PATH': '/usr/bin:/bin'})
         self.assertNotIn('foreign', repr(probe) + repr(build))
@@ -109,7 +109,7 @@ class Admission(unittest.TestCase):
     def test_profile_comes_from_original_template_with_only_fresh_nonce(self):
         authority = self.authority()
         value = authority.profile_plan('123456789abc')
-        self.assertEqual(value['name'], 'dvaia-owned-listings-123456789abc')
+        self.assertEqual(value['name'], 'owasp-ai-goat-owned-listings-123456789abc')
         self.assertEqual(value['platform'], 'darwin')
         self.assertEqual(value['sshHost'], current.SSH_HOST)
         self.assertEqual(value['sshConfig'], authority.ssh['config'])

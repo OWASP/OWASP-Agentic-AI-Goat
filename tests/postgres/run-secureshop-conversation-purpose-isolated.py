@@ -19,10 +19,10 @@ from urllib.parse import quote
 from native_source_provenance import verify_source_copy
 from sensitive_info_recovery_safety import SignalGate
 
-EXPECTED_DOCKER = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+EXPECTED_DOCKER = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 OWNER = '/root/purpose_native_review'
 SOURCE = Path(__file__).resolve().parents[2]
-NODE_BIN = Path('/Users/averma5/.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin')
+NODE_BIN = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin')
 STAGED = {
     'db/postgres/workshop-migrations/secureshop_agents/0011_secureshop_mcp_trust.sql':
         'docs/modernization/drafts/secureshop-mcp-trust-agents.sql',
@@ -67,11 +67,11 @@ if grant_path != (SOURCE / 'tasks/native-verification-slot.json').resolve():
 if any((SOURCE / destination).exists() for destination in STAGED):
     raise RuntimeError('a reserved agents0011-0013 migration is already registered; this draft qualifier is stale')
 
-evidence = Path(tempfile.mkdtemp(prefix='dvaia-secureshop-conversation-purpose-'))
+evidence = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-secureshop-conversation-purpose-'))
 os.chmod(evidence, 0o700)
 workspace = evidence / 'source'
 workspace.mkdir()
-container = f'dvaia-secureshop-conversation-purpose-{uuid.uuid4().hex[:12]}'
+container = f'owasp-ai-goat-secureshop-conversation-purpose-{uuid.uuid4().hex[:12]}'
 ownership_path = evidence / 'ownership.json'
 result_path = evidence / 'result.log'
 base_env = {key: os.environ[key] for key in ('PATH', 'HOME', 'TMPDIR') if key in os.environ}
@@ -229,7 +229,7 @@ try:
                            'NOREPLICATION NOBYPASSRLS'], stdout=subprocess.DEVNULL)
     urls = {}
     for variant in ('fresh', 'populated'):
-        database = f'dvaia_test_secureshop_purpose_{variant}'
+        database = f'owasp_ai_goat_test_secureshop_purpose_{variant}'
         run(admin + ['-c', f'CREATE DATABASE {database} OWNER {migration_role}'],
             stdout=subprocess.DEVNULL)
         run(admin + ['-c', f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; '
@@ -241,7 +241,7 @@ try:
         }
     env = dict(base_env, NODE_ENV='test', PLATFORM_DATABASE_ENGINE='postgres',
                WORKSHOP_DATABASE_ENGINE='postgres', PG_TEST_DISPOSABLE='yes',
-               DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true')
+               OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true')
     for variant in ('fresh', 'populated'):
         prefix = f'PG_SECURESHOP_CONVERSATION_PURPOSE_{variant.upper()}_'
         env[prefix + 'MIGRATION_URL'] = urls[variant]['migration']

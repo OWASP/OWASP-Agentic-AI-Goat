@@ -116,7 +116,7 @@ provides the ACL configuration APIs that control Layer-B tool enforcement.
 The current standalone controller uses `/api/secureshop/auth` for shop-only
 `login`, `register`, `session`, `renew`, `logout`, `password`, and `bootstrap`
 operations. The server stores the standalone session in an HTTP-only,
-same-site `dvaia_shop_session` cookie scoped to `/api/secureshop`; it does not
+same-site `owasp_ai_goat_shop_session` cookie scoped to `/api/secureshop`; it does not
 consult a workshop bearer or platform login. Bootstrap supplies the bounded
 launch and persona material used inside the authenticated frame.
 

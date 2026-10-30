@@ -10,7 +10,7 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes'
 
 test('native run ledger preserves provisional Judge state until source verification finishes', { skip: !enabled }, async () => {
   for (const name of ['PG_GRAPH_PROVISIONAL_TEST_RUNTIME_URL', 'PG_GRAPH_PROVISIONAL_TEST_MIGRATION_URL']) {
-    assert.match(new URL(process.env[name]).pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(new URL(process.env[name]).pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   const runtime = new Pool({ connectionString: process.env.PG_GRAPH_PROVISIONAL_TEST_RUNTIME_URL, max: 2 });
   const migration = new Pool({ connectionString: process.env.PG_GRAPH_PROVISIONAL_TEST_MIGRATION_URL, max: 1 });

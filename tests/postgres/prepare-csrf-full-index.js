@@ -1,7 +1,7 @@
 'use strict';
 // Source-only: no Docker, browser, HTTP, database or model calls.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{createHash}=require('node:crypto'),{execFileSync}=require('node:child_process');
-const source=fs.realpathSync(path.resolve(__dirname,'../..')),root=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-csrf-full-index-preflight-')),workspace=path.join(root,'source');fs.chmodSync(root,0o700);
+const source=fs.realpathSync(path.resolve(__dirname,'../..')),root=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-csrf-full-index-preflight-')),workspace=path.join(root,'source');fs.chmodSync(root,0o700);
 const sha=file=>createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 const node=fs.realpathSync(process.execPath);assert.equal(process.version,'v26.10.0');assert.equal(sha(node),'56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861');
 const copied=require('../fixtures/csrfSourceCopy').copyIsolatedSource(source,workspace);

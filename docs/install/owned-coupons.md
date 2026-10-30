@@ -5,12 +5,12 @@ teaching query runs inside the learner's isolated target; the application stores
 the selected coupon, exact integer-cent discounts, and checkout replay receipts
 in the bound review store. Fixed mode parameterizes the coupon input.
 
-Qualified local SecureShop fresh setup prepares this bundle by default. An
+Qualified local OWASP AI SecureShop fresh setup prepares this bundle by default. An
 additive upgrade of an existing bound installation also prepares it when
 Analytics and coupon preferences have not been disabled. The commands below
 remain available for an explicit existing-install preview or repair.
 
-For an existing configured bound SecureShop installation:
+For an existing configured bound OWASP AI SecureShop installation:
 
 ```bash
 npm run setup -- --plan --owned-coupons
@@ -19,7 +19,7 @@ npm run setup -- --upgrade --owned-coupons
 ./start_all.sh
 ```
 
-The coupon bundle requires enabled bound SecureShop and the canonical PostgreSQL
+The coupon bundle requires enabled bound OWASP AI SecureShop and the canonical PostgreSQL
 runtime/migration configuration. It automatically prepares owned Analytics,
 applies additive review migrations and checks the coupon tables, permissions,
 and reset triggers before activation. It preserves existing application data,
@@ -28,7 +28,7 @@ must be explicitly enabled through its documented `--enable-owned-analytics`
 flow before coupon activation can succeed.
 
 Coupon activation is stored privately in
-`~/.dvaia/<workspace-id>/coupons-managed.json`; setup creates it with private
+`~/.owasp-ai-goat/<workspace-id>/coupons-managed.json`; setup creates it with private
 permissions. It contains the workspace identity and activation preference, not
 provider credentials. Repeated setup preserves an existing disabled coupon
 record. Do not reset databases or replace installation credentials to recover

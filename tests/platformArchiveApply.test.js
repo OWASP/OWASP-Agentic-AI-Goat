@@ -52,7 +52,7 @@ test('reviewed full archive prepares once with exact retained coverage and reval
    }
    const schemaFile=`schema-${index++}.json`,schema=await write(schemaFile,JSON.stringify(tables.map(table=>({type:'table',name:table.name}))));files.push({name,sourceSha256:'b'.repeat(64),schemaFile,schema,tables});
   }
-  const manifest=JSON.stringify({version:1,format:'dvaia-sqlite-archive-v1',complete:true,files});await write('manifest.json',manifest);
+  const manifest=JSON.stringify({version:1,format:'owasp-ai-goat-sqlite-archive-v1',complete:true,files});await write('manifest.json',manifest);
   const archiveDigest=crypto.createHash('sha256').update(manifest).digest('hex');
   const review={version:1,archiveDigest,identityMap:{71:71},naiveTimestamps:'UTC',resolutions:{},identityNormalizations:[],platformDefaults:Object.fromEntries(['exercises','objectiveVisibility','hintVisibility'].map(key=>[key,'catalog_visibility_defaults_without_content'])),retainedPlatformTables:[{table:'retired_private_table',policy:'retain_archive_only'}]};
   const prepared=await preparePlatformApply({archive:directory,review});

@@ -30,7 +30,7 @@ const empty = () => Object.create(null);
 function ownedUrl(key) {
   const value = new URL(process.env[key]);
   assert.ok(['127.0.0.1','localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 function input(version, { title = 'Managed title', hint = { title:'Managed hint',hints:['alpha'] },
@@ -90,7 +90,7 @@ test('catalog provenance serializes seed/admin changes and preserves ambiguous, 
   const runtime = new Pool({ connectionString:ownedUrl('PG_CATALOG_PROVENANCE_RUNTIME_URL'),max:10 });
   t.after(async () => Promise.allSettled([runtime.end(),migration.end()]));
   const migrationDir = path.join(ROOT,'db/postgres/identity-migrations');
-  const priorDir = fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-catalog-provenance-prior-'));
+  const priorDir = fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-catalog-provenance-prior-'));
   t.after(() => fs.rmSync(priorDir,{recursive:true,force:true}));
   for (const name of fs.readdirSync(migrationDir).filter(name => name.endsWith('.sql')
     && name !== '9999_workshop_catalog_field_provenance.sql')) {

@@ -101,7 +101,7 @@ function startProductionBuildServer(buildDir) {
 }
 
 test('production admin bundle loads without CommonJS/ES-module runtime rejection', { timeout: 180000 }, async (t) => {
-  const tempRoot = await fs.promises.mkdtemp(path.join(fs.realpathSync(os.tmpdir()), 'dvaia-admin-production-'));
+  const tempRoot = await fs.promises.mkdtemp(path.join(fs.realpathSync(os.tmpdir()), 'owasp-ai-goat-admin-production-'));
   const buildDir = path.join(tempRoot, 'build');
   let server;
   let browser;

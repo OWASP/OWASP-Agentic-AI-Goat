@@ -26,7 +26,7 @@ const currentMigrations = Object.freeze(fs.readdirSync(agentsMigrations)
 
 function pool(url, max = 5) {
   return new Pool({ connectionString: url, max, statement_timeout: 15000,
-    lock_timeout: 3000, application_name: 'dvaia-session-inventory-native' });
+    lock_timeout: 3000, application_name: 'owasp-ai-goat-session-inventory-native' });
 }
 
 function scope(overrides = {}) {
@@ -60,7 +60,7 @@ function historicalMigrator(ceiling) {
 function assertDisposable(url) {
   const parsed = new URL(url);
   assert.ok(['127.0.0.1', 'localhost'].includes(parsed.hostname));
-  assert.match(parsed.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(parsed.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
 }
 
 async function waitForAdvisoryWait(observer, pid) {

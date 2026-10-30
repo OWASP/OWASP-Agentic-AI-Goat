@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const enabled=process.env.RUN_LIVE_XSS_BROWSER_WORKFLOW==='1'&&process.env.PG_TEST_DISPOSABLE==='yes';
 test('XSS actual reflected actor and isolated browser execution through native Judge receipts',{skip:!enabled,timeout:240000},async t=>{
  if(!process.env.XSS_BROWSER_LIVE_ISOLATED){
-  const root=path.resolve(__dirname,'../..'),copy=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-xssbrowser-live-'));
+  const root=path.resolve(__dirname,'../..'),copy=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-xssbrowser-live-'));
   try{
    for(const dir of ['server','db','tests'])fs.cpSync(path.join(root,dir),path.join(copy,dir),{recursive:true,filter:file=>{const rel=path.relative(root,file);if(/(?:^|\/)(?:logs|uploads|vector-indexes|sensitive_files|workshop_data|\.env[^/]*)(?:\/|$)/.test(rel))return false;return fs.statSync(file).isDirectory()||/\.(?:js|json|sql)$/.test(file);}});
    fs.symlinkSync(path.join(root,'node_modules'),path.join(copy,'node_modules'),'dir');
@@ -15,7 +15,7 @@ test('XSS actual reflected actor and isolated browser execution through native J
  const Module=require('node:module'),original=Module._load;Module._load=function(name,...args){if(['sqlite3','better-sqlite3'].includes(name)||/authDb$/.test(name))throw Error('Working SQLite import forbidden');return original.call(this,name,...args);};
  const {Pool}=require('pg'),adminUrl=new URL(process.env.PG_LIVE_ADMIN_URL);assert.ok(['postgres:','postgresql:'].includes(adminUrl.protocol));assert.ok(['127.0.0.1','localhost','[::1]'].includes(adminUrl.hostname));assert.equal(adminUrl.pathname,'/postgres');
  assert.ok((await(await fetch('http://127.0.0.1:11434/api/tags')).json()).models.some(m=>m.name==='llama3.1:8b'));
- const admin=new Pool({connectionString:adminUrl.href}),name=`dvaia_test_xssbrowserlive_${process.pid}`,pools=[];let server;const finName=name+'_xss';
+ const admin=new Pool({connectionString:adminUrl.href}),name=`owasp_ai_goat_test_xssbrowserlive_${process.pid}`,pools=[];let server;const finName=name+'_xss';
  try{
   await admin.query(`CREATE DATABASE ${name} OWNER dvaia_identity_migration`);await admin.query(`REVOKE CONNECT ON DATABASE ${name} FROM PUBLIC`);await admin.query(`GRANT CONNECT ON DATABASE ${name} TO dvaia_identity_runtime`);
   const pool=role=>{const u=new URL(adminUrl);u.pathname='/'+name;u.username=role;u.password='';const p=new Pool({connectionString:u.href,max:4});pools.push(p);return p;};

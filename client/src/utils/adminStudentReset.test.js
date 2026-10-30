@@ -57,7 +57,7 @@ test('real WebCrypto SHA256 and random UUID persist no bearer', async () => {
     f.api.post.mockRejectedValue(new Error('lost'));
     await expect(runAdminStudentReset(f)).rejects.toThrow('lost');
     const [[key, id]] = [...f.values];
-    expect(key).toBe(`dvaia:admin-student-reset:${createHash('sha256').update(f.token).digest('hex')}:7:sensitive_info_disclosure`);
+    expect(key).toBe(`owasp-ai-goat:admin-student-reset:${createHash('sha256').update(f.token).digest('hex')}:7:sensitive_info_disclosure`);
     expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(JSON.stringify([...f.values])).not.toContain(f.token);
   } finally {

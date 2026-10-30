@@ -43,7 +43,7 @@ test('actual blocked response publication requires current original authority an
    const keys=['RUNTIME','MIGRATION'].map(role=>`PG_CTF_BLOCKED_PUBLICATION_${state}_${kind}_${role}_URL`);
    assert(keys.every(k=>process.env[k]),'Explicit isolated pairs required');
    const urls=keys.map(k=>new URL(process.env[k]));
-   for(const u of urls){assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_ctf_blockpub_/);}
+   for(const u of urls){assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_ctf_blockpub_/);}
    assert.equal(urls[0].pathname,urls[1].pathname);assert.equal(urls[0].port,urls[1].port);assert.notEqual(urls[0].username,urls[1].username);assert(!databases.has(urls[0].pathname));databases.add(urls[0].pathname);
    const [runtime,migration]=keys.map(k=>createPool({...process.env,PG_POOL_MAX_WORKSHOP:kind==='IDENTITY'?'2':'1'},k));pools.push(runtime,migration);stores[kind]={runtime,migration};
    assert.equal((await one(runtime,'SELECT current_user AS role')).role,`dvaia_${kind.toLowerCase()}_runtime`);

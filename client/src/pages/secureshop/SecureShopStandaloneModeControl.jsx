@@ -59,7 +59,7 @@ export default function SecureShopStandaloneModeControl({ client, onModeChanged 
 
   return <div role="group" aria-label="Shop feature mode">
     <strong style={{ fontFamily: 'var(--display)', fontSize: 17 }}>Feature mode</strong>
-    <p style={{ margin: '6px 0 12px', fontSize: 12, opacity: 0.72 }}>Applies to this SecureShop account.</p>
+    <p style={{ margin: '6px 0 12px', fontSize: 12, opacity: 0.72 }}>Applies to this OWASP AI SecureShop account.</p>
     {status === 'loading' && <p role="status" style={{ fontSize: 13 }}>Loading mode…</p>}
     {current && <>
       <p style={{ margin: '0 0 10px', fontSize: 13 }}>

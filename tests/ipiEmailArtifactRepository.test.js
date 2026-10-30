@@ -97,17 +97,17 @@ test('normalization retains exact manual bytes and unknown provenance with a bou
 test('normalization retains the actual controlled inbox provider identity', () => {
   const mailpit = normalizeArtifact({ artifactId:ARTIFACT, ingestionKind:'inbox_provider',
     provider:'mailpit', providerMessageId:'mailpit-message-7', sentReceiptId:null,
-    sender:'attacker@dvaia.invalid', recipient:'ipi-email-7@dvaia.invalid',
+    sender:'attacker@owasp-ai-goat.invalid', recipient:'ipi-email-7@owasp-ai-goat.invalid',
     subject:'Controlled training email', body:'Exact controlled inbox bytes.' });
   assert.equal(mailpit.provider, 'mailpit');
   assert.equal(mailpit.providerMessageId, 'mailpit-message-7');
   assert.throws(() => normalizeArtifact({ artifactId:ARTIFACT, ingestionKind:'inbox_provider',
     provider:'mailpit', providerMessageId:'mailpit-message-7', sentReceiptId:99,
-    sender:'attacker@dvaia.invalid', recipient:'ipi-email-7@dvaia.invalid',
+    sender:'attacker@owasp-ai-goat.invalid', recipient:'ipi-email-7@owasp-ai-goat.invalid',
     subject:'Controlled training email', body:'Exact controlled inbox bytes.' }), /not established/);
   assert.throws(() => normalizeArtifact({ artifactId:ARTIFACT, ingestionKind:'inbox_provider',
     provider:'invented-provider', providerMessageId:'mailpit-message-7', sentReceiptId:null,
-    sender:'attacker@dvaia.invalid', recipient:'ipi-email-7@dvaia.invalid',
+    sender:'attacker@owasp-ai-goat.invalid', recipient:'ipi-email-7@owasp-ai-goat.invalid',
     subject:'Controlled training email', body:'Exact controlled inbox bytes.' }), /provider/);
 });
 

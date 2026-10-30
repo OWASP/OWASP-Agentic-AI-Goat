@@ -138,7 +138,7 @@ test('public indirect profiles preserve catalog and optional supply-chain object
 test('ticket readiness is projected without requiring package or catalog capabilities', async () => {
   const readiness = createMcpOwnedResourceReadiness({ resourcePool: resourcePool(), targets: {
     async readiness() { return { ready: true, runnerReady: true, version: 'mcp-owned-target-http.v1',
-      isolation: 'bwrap-seccomp-v1', supervisorProfile: 'dvaia-mcp-sandbox (enforce)',
+      isolation: 'bwrap-seccomp-v1', supervisorProfile: 'owasp-ai-goat-mcp-sandbox (enforce)',
       endpoint: 'http://127.0.0.1:48123/', ...exactCapabilities() }; },
   } });
   const result = await readiness();
@@ -158,7 +158,7 @@ function productionFixture(capabilities = exactCapabilities()) {
     resourcePool: resourcePool(),
     targets: { async readiness() { return { ready: true, runnerReady: true,
       version: 'mcp-owned-target-http.v1', isolation: 'bwrap-seccomp-v1',
-      supervisorProfile: 'dvaia-mcp-sandbox (enforce)', endpoint: 'http://127.0.0.1:48123/',
+      supervisorProfile: 'owasp-ai-goat-mcp-sandbox (enforce)', endpoint: 'http://127.0.0.1:48123/',
       ...capabilities }; } },
     mailReadiness: async () => ({ ready: true }),
     compositionFactory(value) { composition = value; return { enabled: true,

@@ -11,7 +11,7 @@ const { spawnSync } = require('node:child_process');
 // with a controlled inventory failure before the native fixture imports models.
 // It must never contact Ollama, and cannot qualify any actual actor or Judge.
 test('actual8B fixture retains sanitized provenance failure evidence without invoking a model', t => {
-  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-model-provenance-fixture-'));
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-model-provenance-fixture-'));
   t.after(() => fs.rmSync(temporary, { recursive: true, force: true }));
   const fixture = path.join(__dirname, 'postgres/legacyAiExperimentProductionActual8b.integration.test.js');
   for (const failure of ['wrong-digest', 'inventory-error']) {

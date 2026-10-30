@@ -30,7 +30,7 @@ const secret = 'owned-api-key-secret-at-least-32-bytes';
 
 function pool(url, max = 8) {
   return new Pool({ connectionString: url, max, statement_timeout: 15000,
-    lock_timeout: 3000, application_name: 'dvaia-api-key-native' });
+    lock_timeout: 3000, application_name: 'owasp-ai-goat-api-key-native' });
 }
 function scope(overrides = {}) {
   return Object.freeze({ launchId: randomUUID(), scenarioId: randomUUID(), generation: 1,
@@ -39,10 +39,10 @@ function scope(overrides = {}) {
 function assertDisposable(url) {
   const parsed = new URL(url);
   assert.ok(['127.0.0.1', 'localhost'].includes(parsed.hostname));
-  assert.match(parsed.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(parsed.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
 }
 function copyPrefixThrough0015(t) {
-  const workspace = process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
+  const workspace = process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
   assert.equal(typeof workspace, 'string');
   const directory = fs.mkdtempSync(path.join(workspace, 'agents-0015-prefix-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
@@ -69,7 +69,7 @@ async function waitForAdvisoryWaitCount(observer, expected) {
   const deadline = Date.now() + 3000;
   while (Date.now() < deadline) {
     const count = Number((await observer.query(`SELECT count(*)::integer AS count
-      FROM pg_stat_activity WHERE application_name='dvaia-api-key-native'
+      FROM pg_stat_activity WHERE application_name='owasp-ai-goat-api-key-native'
         AND wait_event_type='Lock' AND wait_event='advisory'`)).rows[0].count);
     if (count >= expected) return;
     await new Promise(resolve => setTimeout(resolve, 10));
@@ -177,7 +177,7 @@ test('fresh 0016 binds API keys to one current launch and deletes them on retire
   const orders = await prepareReview(reviewMigration, owner, persona.id);
   const api = await openApiGateway(t, { owner, sibling, targetId: orders.targetId,
     personaAuth: auth, reviewPool: reviewRuntime });
-  const apiHeaders = { 'x-dvaia-secureshop-launch': api.ownerBearer, 'x-api-key': first.api_key };
+  const apiHeaders = { 'x-owasp-ai-goat-secureshop-launch': api.ownerBearer, 'x-api-key': first.api_key };
   const listed = await fetch(`${api.base}/v2/api/orders`, { headers: apiHeaders });
   assert.equal(listed.status, 200);
   assert.deepEqual((await listed.json()).orders.map(row => row.id), [orders.ownOrder]);
@@ -187,7 +187,7 @@ test('fresh 0016 binds API keys to one current launch and deletes them on retire
   assert.equal((await fetch(`${api.base}/v2/api/orders/${orders.foreignOrder}`,
     { headers: apiHeaders })).status, 404);
   assert.equal((await fetch(`${api.base}/v2/api/orders`, { headers: {
-    'x-dvaia-secureshop-launch': api.siblingBearer, 'x-api-key': first.api_key,
+    'x-owasp-ai-goat-secureshop-launch': api.siblingBearer, 'x-api-key': first.api_key,
   } })).status, 401);
 
   const second = await auth.rotateApiKey({ scope: owner, shopPersona: persona });
@@ -196,7 +196,7 @@ test('fresh 0016 binds API keys to one current launch and deletes them on retire
     presentedKey: first.api_key }), { code: 'SHOP_API_KEY_INVALID' });
   assert.equal((await fetch(`${api.base}/v2/api/orders`, { headers: apiHeaders })).status, 401);
   assert.equal((await fetch(`${api.base}/v2/api/orders`, { headers: {
-    'x-dvaia-secureshop-launch': api.ownerBearer, 'x-api-key': second.api_key,
+    'x-owasp-ai-goat-secureshop-launch': api.ownerBearer, 'x-api-key': second.api_key,
   } })).status, 200);
   assert.equal((await auth.authenticateApiKey({ scope: owner,
     presentedKey: second.api_key })).apiKeyVersion, 2);

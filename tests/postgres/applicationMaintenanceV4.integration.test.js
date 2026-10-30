@@ -12,13 +12,13 @@ function environments(env=process.env){
  return Object.fromEntries(CASES.map(name=>{
   const urls=['RUNTIME','MIGRATION'].map(role=>{const raw=env[`PG_MAINTENANCE_V4_${name.toUpperCase()}_${role}_URL`];assert.equal(typeof raw,'string');const u=new URL(raw);
    assert(['postgres:','postgresql:'].includes(u.protocol));assert.equal(u.hostname,'127.0.0.1');assert.match(u.port,/^[1-9][0-9]*$/);assert(Number(u.port)<=65535);assert.equal(u.search,'');assert.equal(u.hash,'');assert.equal(u.username,'dvaia_identity_'+role.toLowerCase());
-   const match=u.pathname.match(new RegExp('^/dvaia_test_maintenance_v4_([a-f0-9]{12})_'+name+'$'));assert(match);const key=match[1]+':'+u.port;if(identity)assert.equal(key,identity);else identity=key;return u.href;});
+   const match=u.pathname.match(new RegExp('^/owasp_ai_goat_test_maintenance_v4_([a-f0-9]{12})_'+name+'$'));assert(match);const key=match[1]+':'+u.port;if(identity)assert.equal(key,identity);else identity=key;return u.href;});
   return[name,{IDENTITY_DATABASE_URL:urls[0],IDENTITY_MIGRATION_DATABASE_URL:urls[1],PG_TLS:'disable',PG_POOL_BUDGET:'16'}];
  }));
 }
 function failure(error,location){return{location,code:/^[A-Z0-9]{5}$/.test(error?.code||'')?error.code:'SCHEMA_FIXTURE_FAILURE',position:/^[1-9][0-9]{0,8}$/.test(error?.position||'')?error.position:null,routine:/^[A-Za-z_][A-Za-z0-9_]{0,79}$/.test(error?.routine||'')?error.routine:null};}
 const hash=x=>createHash('sha256').update(x).digest('hex');
-function binding(root){return{version:1,profile:'upgrade-canonical16-v1',workspaceRoot:root,publicationId:randomUUID(),publicationSha256:HEX,sourceManifestSha256:'c'.repeat(64),stores:requiredStoreManifest.map((s,i)=>({storeKey:s.schema,clusterIdentifier:'123456789',databaseOid:i+100,databaseName:'dvaia_'+s.schema,runtimeRole:s.runtimeRole,migrationRole:'dvaia_'+s.schema+'_migration',deliveryRole:s.schema==='ctf'?'dvaia_ctf_delivery':null,endpointPolicySha256:'d'.repeat(64)}))};}
+function binding(root){return{version:1,profile:'upgrade-canonical16-v1',workspaceRoot:root,publicationId:randomUUID(),publicationSha256:HEX,sourceManifestSha256:'c'.repeat(64),stores:requiredStoreManifest.map((s,i)=>({storeKey:s.schema,clusterIdentifier:'123456789',databaseOid:i+100,databaseName:'owasp_ai_goat_'+s.schema,runtimeRole:s.runtimeRole,migrationRole:'dvaia_'+s.schema+'_migration',deliveryRole:s.schema==='ctf'?'dvaia_ctf_delivery':null,endpointPolicySha256:'d'.repeat(64)}))};}
 async function bounded(p,ms){let timer;try{return await Promise.race([p,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Owned schema cleanup deadline')),ms);})]);}finally{clearTimeout(timer);}}
 async function installProfile(q,epoch,alter=()=>{}){
  const b=(await q('SELECT * FROM dvaia_maintenance.epoch_bindings WHERE epoch=$1',[epoch])).rows[0];
@@ -87,7 +87,7 @@ async function waitBlocked(q,pid,blocker,deadline){
 const constraintCodes=e=>['P0001','P0002','23503','23505','23514','23502'].includes(e.code);
 
 test('0004 admission rejects wrong nonce/port/role/protocol before creating resources',()=>{
- const valid={PG_TEST_DISPOSABLE:'yes'};for(const name of CASES)for(const role of ['RUNTIME','MIGRATION'])valid[`PG_MAINTENANCE_V4_${name.toUpperCase()}_${role}_URL`]=`postgresql://dvaia_identity_${role.toLowerCase()}@127.0.0.1:54321/dvaia_test_maintenance_v4_abcdef012345_${name}`;
+ const valid={PG_TEST_DISPOSABLE:'yes'};for(const name of CASES)for(const role of ['RUNTIME','MIGRATION'])valid[`PG_MAINTENANCE_V4_${name.toUpperCase()}_${role}_URL`]=`postgresql://dvaia_identity_${role.toLowerCase()}@127.0.0.1:54321/owasp_ai_goat_test_maintenance_v4_abcdef012345_${name}`;
  assert.equal(Object.keys(environments(valid)).length,3);
  const key='PG_MAINTENANCE_V4_FRESH_RUNTIME_URL';for(const value of [undefined,valid[key].replace('postgresql:','https:'),valid[key].replace(':54321',''),valid[key]+'?x=1',valid[key]+'#x',valid[key].replace('abcdef012345','123456abcdef'),valid[key].replace('_runtime@','_migration@'),valid[key].replace('127.0.0.1','localhost')])assert.throws(()=>environments({...valid,[key]:value}));
 });
@@ -95,7 +95,7 @@ test('0004 diagnostics exclude private query and connection fields',()=>{const r
 test('0004 blocker observation rejects late success and requires exact PID tuple',async()=>{const calls=[];await assert.rejects(waitBlocked(async(sql,args)=>{calls.push(args);const end=performance.now()+8;while(performance.now()<end){}return{rows:[{blocked:true}]};},31,42,performance.now()+3));assert.deepEqual(calls,[[31,42]]);});
 
 test('0004 schema-only qualification',{skip:process.env.APPLICATION_MAINTENANCE_V4_ISOLATED!=='1',timeout:180000},async()=>{
- const envs=environments(),{Client}=require('pg'),root=await fs.realpath(process.cwd()),evidence=await fs.realpath(process.env.MAINTENANCE_V4_EVIDENCE);assert.equal(root,await fs.realpath(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));if(process.env.APPLICATION_MAINTENANCE_V4_MAIN_WORKSPACE==='1'){assert.equal(root,path.resolve(__dirname,'../..'));assert.equal(path.dirname(evidence),path.join(root,'tasks/maintenance-v4-native-evidence'));assert.match(path.basename(evidence),/^run-[A-Za-z0-9_-]+$/);const st=await fs.stat(evidence);assert.equal(st.uid,process.getuid());assert.equal(st.mode&0o777,0o700);}else assert.equal(path.dirname(root),evidence);
+ const envs=environments(),{Client}=require('pg'),root=await fs.realpath(process.cwd()),evidence=await fs.realpath(process.env.MAINTENANCE_V4_EVIDENCE);assert.equal(root,await fs.realpath(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));if(process.env.APPLICATION_MAINTENANCE_V4_MAIN_WORKSPACE==='1'){assert.equal(root,path.resolve(__dirname,'../..'));assert.equal(path.dirname(evidence),path.join(root,'tasks/maintenance-v4-native-evidence'));assert.match(path.basename(evidence),/^run-[A-Za-z0-9_-]+$/);const st=await fs.stat(evidence);assert.equal(st.uid,process.getuid());assert.equal(st.mode&0o777,0o700);}else assert.equal(path.dirname(root),evidence);
  const clients=new Set(),leases=new Set(),state={passed:false,cases:[],limits:['Three owned databases; synthetic16 tuples/owner records are SQL inputs only','No proof issuer, executable recovery, setup, model, browser or installed data']};let primary;
  const checkpoint=async label=>{state.location=label;await fs.writeFile(path.join(evidence,'maintenance-v4-result.json'),JSON.stringify(state,null,2)+'\n',{mode:0o600});};
  const connect=async url=>{assert(clients.size<6);const c=new Client({connectionString:url,connectionTimeoutMillis:2000,statement_timeout:3000,query_timeout:4000});clients.add(c);c.on('error',()=>{});await c.connect();return c;};

@@ -18,12 +18,12 @@ SOURCE = Path(__file__).resolve().parents[2]
 CASE = 'tests/postgres/secureshopOwnedIdorLesson.native.js'
 DRAFT = 'docs/secureshop/drafts/0048_owned_idor_lesson_receipts.sql'
 DRAFT_SHA256 = '666390897e178442b86202223b62ea9f769d0fb8d4e65384484fa776a42123ad'
-DOCKER_HOST = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+DOCKER_HOST = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 DOCKER_BIN = Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 DOCKER_SHA256 = '95fab203ab36bd2b4f3cd8a1d0dc6d084252f2ec224dc76bfbaebe1540cdd15e'
 DOCKER_DAEMON = '2c9da9a7-1f8c-490b-af98-87bbf6bf83db'
 POSTGRES_IMAGE_ID = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
-NODE_BIN = Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+NODE_BIN = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 NODE_SHA256 = '56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 TEST_NAME = 'owned IDOR migration qualifies only in five disposable stores with controlled mode tokens'
 FAMILIES = {'IDENTITY': 'identity', 'AGENTS': 'secureshop_agents',
@@ -41,12 +41,12 @@ def selected_cohort(purpose_only=False):
     if purpose_only:
         return {'case': PURPOSE_CASE, 'testName': PURPOSE_TEST_NAME,
                 'families': {'FRESH': 'secureshop_agents', 'POPULATED': 'secureshop_agents'},
-                'prefix': 'PG_SECURESHOP_IDOR_PURPOSE_', 'databasePrefix': 'dvaia_test_idor_purpose_',
+                'prefix': 'PG_SECURESHOP_IDOR_PURPOSE_', 'databasePrefix': 'owasp_ai_goat_test_idor_purpose_',
                 'gate': 'SECURESHOP_IDOR_PURPOSE_MIGRATION_NATIVE',
                 'draft': PURPOSE_DRAFT, 'migrationSha256': PURPOSE_SHA256,
                 'active': 'db/postgres/workshop-migrations/secureshop_agents/0086_idor_lesson_conversation_purpose.sql'}
     return {'case': CASE, 'testName': TEST_NAME, 'families': FAMILIES,
-            'prefix': 'OWNED_IDOR_NATIVE_', 'databasePrefix': 'dvaia_test_owned_idor_',
+            'prefix': 'OWNED_IDOR_NATIVE_', 'databasePrefix': 'owasp_ai_goat_test_owned_idor_',
             'gate': 'OWNED_IDOR_LESSON_NATIVE', 'draft': DRAFT, 'migrationSha256': DRAFT_SHA256,
             'active': 'db/postgres/workshop-migrations/secureshop_review/' + Path(DRAFT).name}
 
@@ -130,7 +130,7 @@ def inspect_owned(docker, name, owner):
     value = values[0]
     host = value.get('HostConfig', {})
     if (value.get('Name') != '/' + name or value.get('Image') != POSTGRES_IMAGE_ID
-            or value.get('Config', {}).get('Labels', {}).get('dvaia.test.owner') != owner
+            or value.get('Config', {}).get('Labels', {}).get('owasp-ai-goat.test.owner') != owner
             or host.get('Memory') != 1073741824 or host.get('NanoCpus') != 2000000000
             or host.get('PidsLimit') != 128
             or host.get('Tmpfs', {}).get('/var/lib/postgresql') != 'rw,size=536870912'
@@ -237,10 +237,10 @@ def main():
     image = json.loads(docker_call(docker, ['image', 'inspect', POSTGRES_IMAGE_ID], timeout=10))
     if len(image) != 1 or image[0].get('Id') != POSTGRES_IMAGE_ID:
         raise RuntimeError('Local PostgreSQL image ID mismatch')
-    root = Path(tempfile.mkdtemp(prefix='dvaia-owned-idor-native-')).resolve()
+    root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-owned-idor-native-')).resolve()
     root.chmod(0o700)
     owner = secrets.token_hex(6)
-    name = 'dvaia-owned-idor-' + owner
+    name = 'owasp-ai-goat-owned-idor-' + owner
     log = root / 'node.tap'
     result_path = root / 'result.json'
     runtime_home = root / 'runtime-home'
@@ -260,7 +260,7 @@ def main():
                'executablesUnchanged': False, 'nodeGroupAbsent': False}
     try:
         raw = docker_call(docker, ['run', '-d', '--pull', 'never', '--name', name,
-                                   '--label', 'dvaia.test.owner=' + owner,
+                                   '--label', 'owasp-ai-goat.test.owner=' + owner,
                                    '--memory', '1g', '--cpus', '2', '--pids-limit', '128',
                                    '--tmpfs', '/var/lib/postgresql:rw,size=536870912',
                                    '-e', 'POSTGRES_USER=owned_idor_admin',
@@ -315,7 +315,7 @@ def main():
         env = dict(BASE_ENV, HOME=str(runtime_home), TMPDIR=str(runtime_tmp),
                    TMP=str(runtime_tmp), TEMP=str(runtime_tmp),
                    XDG_CACHE_HOME=str(runtime_home), NODE_ENV='test', PG_TEST_DISPOSABLE='yes',
-                   DVAIA_CURRENT_MAIN_WORKSPACE=str(SOURCE),
+                   OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(SOURCE),
                    AWS_EC2_METADATA_DISABLED='true', **url_env)
         env[cohort['gate']] = '1'
         env[cohort['prefix'] + 'OWNER'] = owner

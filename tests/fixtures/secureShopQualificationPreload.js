@@ -16,7 +16,7 @@ const { createSecureShopEndpointBridge } = require('./secureShopEndpointBridge')
 const { createObservedTargetFactory } = require('./secureShopPostBindObserver');
 const { installStaticDynamicSocketGuard } = require('./secureShopStaticDynamicSocketGuard');
 
-const QUALIFICATION_PRELOAD_KEY = 'dvaia.secureshop.review-renderer-worker-token';
+const QUALIFICATION_PRELOAD_KEY = 'owasp-ai-goat.secureshop.review-renderer-worker-token';
 const MAX_BROWSER_LIFECYCLE_RECORDS = 64;
 const SAFE_ERROR_NAMES = new Set(['Error', 'TypeError', 'RangeError', 'AbortError']);
 const SAFE_ERROR_CODES = new Set(['STALE_LAUNCH', 'LAUNCH_UNAVAILABLE', 'SESSION_UNAVAILABLE',
@@ -159,7 +159,7 @@ function initialize(input) {
   const child = entry === path.join(config.sourceRoot, 'agent-host/index.js');
   if ((!parent && !child) || process.cwd() !== config.sourceRoot
       || fs.realpathSync(entry) !== entry) throw Error('SecureShop preload entry');
-  const marker = Symbol.for('dvaia.secureshop.qualification.preload');
+  const marker = Symbol.for('owasp-ai-goat.secureshop.qualification.preload');
   const hooks = ['server/services/secureshop/agentHostSupervisor.js', 'server/services/secureshopSsrfTargetPool.js',
     'server/services/xssBrowserQualification.js', 'server/routes/secureshop/boundBrowser.js'];
   if (globalThis[marker] || hooks.some(file => require.cache[path.join(config.sourceRoot, file)])) throw Error('SecureShop preload already initialized or imported');

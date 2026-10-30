@@ -28,14 +28,14 @@ function validateUrls(env, port) {
   for (const [key, [label, role]] of Object.entries({...STORES,...(env.PG_SECURESHOP_REGISTRY_RENDERED==='1'?{COMMERCE:['commerce','secureshop']}:{}),...(env.PG_SECURESHOP_REGISTRY_INVOCATION_UPGRADE==='1'?{UPGRADE:['agents_upgrade','secureshop_agents']}:{})})) for (const kind of ['MIGRATION', 'RUNTIME']) {
     const value = new URL(env[PREFIX + key + '_' + kind + '_URL']);
     assert.equal(value.protocol, 'postgresql:'); assert.equal(value.hostname, '127.0.0.1'); assert.equal(Number(value.port), port);
-    assert.equal(value.pathname, '/dvaia_test_secureshop_loop_' + label);
+    assert.equal(value.pathname, '/owasp_ai_goat_test_secureshop_loop_' + label);
     assert.equal(value.username, 'dvaia_' + role + '_' + kind.toLowerCase());
     assert.equal(value.password + value.search + value.hash, '');
   }
 }
 function admit(env = process.env) {
   assert.equal(env.PG_SECURESHOP_LOOP_MAIN, '1'); assert.equal(env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(env.DVAIA_ISOLATED_TEST_WORKSPACE, undefined);
+  assert.equal(env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE, undefined);
   const source = path.resolve(__dirname, '../..');
   const evidence = env.SECURESHOP_LOOP_EVIDENCE;
   assert.equal(fs.realpathSync(evidence), evidence); assert.ok(evidence.startsWith(source + '/backups/private-recovery/secureshop-loop/'));
@@ -270,7 +270,7 @@ async function runRegistryControlPlane(owned) {
     const app=express();app.use(express.json());if(!rendered)app.use(require('../../server/middleware/secureshopLaunch').requireSecureShopLaunch({launches}));if(!rendered)app.use(production.router);
     server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});ports.add(server.address().port);
     async function owner(role='student_admin') {const passwordHash=await require('bcryptjs').hash('owned-registry',4),user=await users.createUser({username:'registry-'+randomUUID(),email:randomUUID()+'@owned.invalid',passwordHash}),session=await users.createSession({userId:user.id,token:randomUUID(),expiresAt:new Date(Date.now()+3600000).toISOString(),expectedPasswordHash:passwordHash});const issued=await launches.issueOrRenew({platformOwnerId:user.id,platformSessionId:session.id,expiresAt:new Date(Date.now()+3600000).toISOString()});const scope={...issued.binding,platformOwnerId:user.id,platformSessionId:session.id};const signed=await auth.login({scope,username:role,password:'student123'});return {user,session,issued,scope,token:signed.token};}
-    async function request(who,route,body,method='POST',token=who.token){const response=await fetch('http://127.0.0.1:'+server.address().port+route,{method,signal:AbortSignal.timeout(20000),headers:{'content-type':'application/json',authorization:'Bearer '+token,'x-dvaia-secureshop-launch':who.issued.bearer},...(body===undefined?{}:{body:JSON.stringify(body)})});return {status:response.status,body:await response.json()};}
+    async function request(who,route,body,method='POST',token=who.token){const response=await fetch('http://127.0.0.1:'+server.address().port+route,{method,signal:AbortSignal.timeout(20000),headers:{'content-type':'application/json',authorization:'Bearer '+token,'x-owasp-ai-goat-secureshop-launch':who.issued.bearer},...(body===undefined?{}:{body:JSON.stringify(body)})});return {status:response.status,body:await response.json()};}
     let actualChat;
     if(actualChatEnabled||roleChatEnabled){
      modelTransport=await actualTransportModule.createTransport({evidence:owned.evidence,policyCohort:roleChatEnabled?'secureshop-registry-role-chat':'secureshop-registry-admin-chat'});
@@ -300,7 +300,7 @@ async function runRegistryControlPlane(owned) {
     await users.revokeAllUserSessions(revoked.user.id);assert.notEqual((await request(revoked,'/admin/mcp/register',register('revoked'))).status,200);
     result.cases.push('real SDK registration, canonical replay/readback, foreign/merchant/revoked denial');save();
     const imported=await request(a,'/admin/mcp/import-manifest',{version:1,action:'import',operationId:randomUUID(),expectedVersion:'1',xml_url:'http://metadata.training/manifest.xml'});assert.equal(imported.status,200);assert.match(JSON.stringify(imported.body),/owned-mcp-registry-xxe/);
-    const stdio=await request(a,'/admin/mcp/register',register('stdio','2',{transport:'stdio',url:'',stdio_cmd:'printf owned-stdio-effect > /owned-mcp-files/stdio-effect; /usr/local/bin/node /usr/local/libexec/dvaia-owned-mcp-registry-worker.js --stdio-peer'}));assert.equal(stdio.status,200);assert.match(JSON.stringify(stdio.body),/owned-stdio-effect/);result.importReceipt=imported.body;result.stdioReceipt=stdio.body;
+    const stdio=await request(a,'/admin/mcp/register',register('stdio','2',{transport:'stdio',url:'',stdio_cmd:'printf owned-stdio-effect > /owned-mcp-files/stdio-effect; /usr/local/bin/node /usr/local/libexec/owasp-ai-goat-owned-mcp-registry-worker.js --stdio-peer'}));assert.equal(stdio.status,200);assert.match(JSON.stringify(stdio.body),/owned-stdio-effect/);result.importReceipt=imported.body;result.stdioReceipt=stdio.body;
     const retired=await request(a,'/admin/mcp/catalog',{version:1,action:'retire',operationId:randomUUID(),expectedVersion:'3',name:'catalog'},'DELETE');assert.equal(retired.status,200);result.retirement=retired.body;await assertReceipt(a,imported);await assertReceipt(a,stdio);await assertReceipt(a,retired);assert(!(await snapshot(a)).some(x=>x.name==='catalog'));
     assert.equal((await request(b,'/admin/mcp/register',register('sibling'))).status,200);const sibling=await snapshot(b);result.cases.push('actual namespace XXE import and stdio effect; retirement');save();
     result.invocations=await qualifyRegistryInvocations({owner,request,register,snapshot,auth,authority,launches,lifecycle,agents,am,invocationJournal,client:invocationClient,siblingOwner:b,sibling,checkpoint:value=>{result.invocations=value;save();}});save();
@@ -330,7 +330,7 @@ async function qualifyRegistryInvocations({owner,request,register,snapshot,auth,
   const progress={version:1,stage:"registration",cases:[],calls,modelCalls:0,genuineCredit:0};
   const stage=value=>{progress.stage=value;checkpoint(progress);};stage("registration");
   const who=await owner(),unknownOwner=await owner();
-  const definitions=[['http','streamable-http','http://attacker.training:8080/mcp',''],['sse','sse','http://attacker.training:8080/mcp',''],['stdio','stdio','','/usr/local/bin/node /usr/local/libexec/dvaia-owned-mcp-registry-worker.js --stdio-peer']];
+  const definitions=[['http','streamable-http','http://attacker.training:8080/mcp',''],['sse','sse','http://attacker.training:8080/mcp',''],['stdio','stdio','','/usr/local/bin/node /usr/local/libexec/owasp-ai-goat-owned-mcp-registry-worker.js --stdio-peer']];
   for(let index=0;index<definitions.length;index++){
     const [name,transport,url,stdio_cmd]=definitions[index];
     assert.equal((await request(who,'/admin/mcp/register',register(name,String(index),{transport,url,stdio_cmd}))).status,200);

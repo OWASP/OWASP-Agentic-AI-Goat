@@ -14,7 +14,7 @@ const runtimes = [['current-runtime', process.execPath]];
 if (process.env.LEGACY_RAM_RAG_RUNTIME_QUALIFICATION === '1') {
   runtimes.push(
     ['installed-node-26.7', '/Users/averma5/.local/opt/agentic-ai-goat/node-v26.7.0-darwin-arm64/bin/node'],
-    ['managed-node-26.9', '/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node'],
+    ['managed-node-26.9', '/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node'],
   );
 }
 
@@ -28,7 +28,7 @@ async function freePort() {
 
 async function fixture(t, executable) {
   assert.ok(fs.statSync(executable).isFile());
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-rag-inspector-life-')); fs.chmodSync(root, 0o700);
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-rag-inspector-life-')); fs.chmodSync(root, 0o700);
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const port = await freePort(), stderr = path.join(root, 'stderr.log'), descriptor = fs.openSync(stderr, 'wx', 0o600);
   const child = fork(path.join(__dirname, 'fixtures/legacyRamRagExportTarget.js'), [], {

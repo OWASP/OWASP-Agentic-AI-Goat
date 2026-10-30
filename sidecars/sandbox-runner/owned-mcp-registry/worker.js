@@ -38,14 +38,14 @@ function createDiscoveryWitness(){
  const pending=new Map();
  return Object.freeze({
   begin(request,endpoint){request=normalizeRegistryRequest(request);if(request.action!=='register'||request.transport==='stdio'||request.url!==endpoint)throw fail('MCP_REGISTRY_DISCOVERY_RECEIPT_INVALID');const nonce=crypto.randomUUID();pending.set(nonce,{request,endpoint,rows:[]});return nonce;},
-  capture(peer,req,body){const nonce=req.headers['x-dvaia-registry-discovery'],entry=pending.get(nonce);if(!entry)return;
+  capture(peer,req,body){const nonce=req.headers['x-owasp-ai-goat-registry-discovery'],entry=pending.get(nonce);if(!entry)return;
    const packet=JSON.parse(body);if(packet.method!=='tools/list')return;
    const destination=NETWORK.listeners.find(value=>value.id===peer.kind),address=req.socket.localAddress?.replace(/^::ffff:/,'');
    if(!destination||address!==destination.address||req.socket.localPort!==destination.port||packet.jsonrpc!=='2.0'
     ||!['number','string'].includes(typeof packet.id)||entry.rows.length>=8)throw fail('MCP_REGISTRY_DISCOVERY_RECEIPT_INVALID');
    entry.rows.push({id:packet.id,body,destination:{listenerId:destination.id,address,port:req.socket.localPort,sensitive:destination.sensitive},response:null});
   },
-  complete(_peer,request,result,extra){const nonce=extra?.requestInfo?.headers?.['x-dvaia-registry-discovery'],entry=pending.get(nonce);if(!entry)return;
+  complete(_peer,request,result,extra){const nonce=extra?.requestInfo?.headers?.['x-owasp-ai-goat-registry-discovery'],entry=pending.get(nonce);if(!entry)return;
    const rows=entry.rows.filter(row=>row.id===extra.requestId);if(rows.length!==1||rows[0].response!==null||request.method!=='tools/list')throw fail('MCP_REGISTRY_DISCOVERY_RECEIPT_INVALID');
    rows[0].response=JSON.parse(JSON.stringify(result));
   },
@@ -121,18 +121,18 @@ async function startOwnedPeers(){
  return async()=>{await Promise.allSettled([...transports.values(),...[...atomicTransports.values()].flatMap(sessions=>[...sessions.values()])].map(value=>value.close()));await Promise.allSettled(servers.map(value=>value.close()));for(const listener of listeners){listener.closeAllConnections();await new Promise(resolve=>listener.listening?listener.close(resolve):resolve());}await fs.rm('/owned-mcp-files',{recursive:true,force:true});};
 }
 async function discover(definition,{signal,invocation,discoveryNonce}={}){
- const fetchDiscovery=discoveryNonce?(url,options={})=>{const headers=new Headers(options.headers);headers.set('x-dvaia-registry-discovery',discoveryNonce);return boundedFetch(url,{...options,headers});}:boundedFetch;
- let transport,client=new Client({name:'dvaia-owned-mcp-registry',version:'1.0.0'},{capabilities:{}});
+ const fetchDiscovery=discoveryNonce?(url,options={})=>{const headers=new Headers(options.headers);headers.set('x-owasp-ai-goat-registry-discovery',discoveryNonce);return boundedFetch(url,{...options,headers});}:boundedFetch;
+ let transport,client=new Client({name:'owasp-ai-goat-owned-mcp-registry',version:'1.0.0'},{capabilities:{}});
  try{
   if(definition.transport==='sse')transport=new SSEClientTransport(new URL(definition.endpoint),{fetch:fetchDiscovery});
   else if(definition.transport==='streamable-http')transport=new StreamableHTTPClientTransport(new URL(definition.endpoint),{fetch:fetchDiscovery});
-  else transport=new StdioClientTransport({command:'/bin/sh',args:['-c',definition.endpoint],cwd:'/owned-mcp-files',stderr:'pipe',env:{PATH:'/usr/bin:/bin',DVAIA_OWNED_MCP_REGISTRY_ATTESTED:'1'}});
+  else transport=new StdioClientTransport({command:'/bin/sh',args:['-c',definition.endpoint],cwd:'/owned-mcp-files',stderr:'pipe',env:{PATH:'/usr/bin:/bin',OWASP_AI_GOAT_OWNED_MCP_REGISTRY_ATTESTED:'1'}});
   await client.connect(transport,{timeout:10000,signal});if(invocation)return await require('./invoke-protocol').callCapturedTool(invocation,client,{signal});const identity=client.getServerVersion();const result=await discoverRegistryTools(client,{signal});
   return{...result,identity};
  }finally{await client.close().catch(()=>{});}
 }
 async function startStdioPeer(){
- if(process.env.DVAIA_OWNED_MCP_REGISTRY_ATTESTED!=='1'||syncFs.existsSync('/proc/self/status'))throw fail('MCP_REGISTRY_EXECUTOR_UNATTESTED',true);
+ if(process.env.OWASP_AI_GOAT_OWNED_MCP_REGISTRY_ATTESTED!=='1'||syncFs.existsSync('/proc/self/status'))throw fail('MCP_REGISTRY_EXECUTOR_UNATTESTED',true);
  const server=new McpServer({name:'owned-stdio',version:'1.0.0'});
  server.registerTool('owned_shell_result',{description:'Read the bounded result created by the submitted namespace command.',inputSchema:{}},async()=>({content:[{type:'text',text:JSON.stringify(await readOwnedCatalog())}]}));
  await server.connect(new StdioServerTransport());
@@ -177,7 +177,7 @@ async function operation(input,{signal,root='/owned-mcp-files',attestation}={}){
  return changes;
 }
 async function main(){
- if(process.platform!=='linux'||process.env.DVAIA_OWNED_MCP_REGISTRY_ATTESTED!=='1'||syncFs.existsSync('/proc/self/status'))throw fail('MCP_REGISTRY_EXECUTOR_UNATTESTED',true);
+ if(process.platform!=='linux'||process.env.OWASP_AI_GOAT_OWNED_MCP_REGISTRY_ATTESTED!=='1'||syncFs.existsSync('/proc/self/status'))throw fail('MCP_REGISTRY_EXECUTOR_UNATTESTED',true);
  const close=await startOwnedPeers();try{let size=0,parts=[];for await(const chunk of process.stdin){size+=chunk.length;if(size>196608)throw fail('MCP_REGISTRY_EXECUTOR_INPUT_LIMIT',true);parts.push(chunk);}const input=JSON.parse(Buffer.concat(parts));let result;try{result=await operation(input,{attestation:ATTESTATION});}catch(error){if(!destinationDenials.has(error))throw error;result=destinationDenials.get(error);}process.stdout.write(JSON.stringify(result)+'\n');}finally{await close();}
 }
 if(require.main===module)(process.argv[2]==='--stdio-peer'?startStdioPeer():main()).catch(error=>{process.stderr.write(`owned-mcp-registry:${error.code||'failed'}\n`);process.exitCode=70;});

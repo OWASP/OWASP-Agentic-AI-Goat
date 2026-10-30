@@ -76,7 +76,7 @@ def body_digest(reader, fields):
 def execute(case, port, directory, namespace, deadline):
     require(case in {*CASES, 'deny-peer', 'deny-host'}, 'CASE')
     require(type(port) is int and 1 <= port <= 65535, 'PORT')
-    require(re.fullmatch('/var/tmp/dvaia-v23-relay-[a-f0-9]{32}', directory) is not None, 'DIRECTORY')
+    require(re.fullmatch('/var/tmp/owasp-ai-goat-v23-relay-[a-f0-9]{32}', directory) is not None, 'DIRECTORY')
     require(re.fullmatch(r'net:\[[1-9][0-9]*\]', namespace) is not None
             and os.readlink('/proc/self/ns/net') == namespace, 'NAMESPACE')
     require(os.geteuid() == (0 if case == 'deny-peer' else 501), 'UID')

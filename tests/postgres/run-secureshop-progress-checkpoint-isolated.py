@@ -15,14 +15,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--docker-host', required=True)
 args = parser.parse_args()
 source = Path(__file__).resolve().parents[2]
-root = Path(tempfile.mkdtemp(prefix='dvaia-secureshop-progress-checkpoint-'))
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-secureshop-progress-checkpoint-'))
 workspace = root / 'source'
 workspace.mkdir()
 os.chmod(root, 0o700)
 base_env = {key: os.environ[key] for key in ['PATH', 'HOME', 'TMPDIR'] if key in os.environ}
 docker = ['docker', '--host', args.docker_host]
 run_id = uuid.uuid4().hex[:12]
-container = f'dvaia-secureshop-progress-checkpoint-{run_id}'
+container = f'owasp-ai-goat-secureshop-progress-checkpoint-{run_id}'
 started = False
 child = None
 
@@ -107,7 +107,7 @@ try:
             '-d', 'postgres', '-v', 'ON_ERROR_STOP=1']
     migration_role = 'dvaia_identity_migration'
     runtime_role = 'dvaia_identity_runtime'
-    database = f'dvaia_test_progress_checkpoint_{run_id}'
+    database = f'owasp_ai_goat_test_progress_checkpoint_{run_id}'
     for role in [migration_role, runtime_role]:
         run(psql + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE '
                           'NOREPLICATION NOBYPASSRLS'], stdout=subprocess.DEVNULL)
@@ -116,7 +116,7 @@ try:
                       f'GRANT CONNECT ON DATABASE {database} TO {migration_role}, {runtime_role}'],
         stdout=subprocess.DEVNULL)
     env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes',
-        DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true',
+        OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true',
         PG_SECURESHOP_PROGRESS_CHECKPOINT_TEST_MIGRATION_URL=
         f'postgresql://{quote(migration_role)}@127.0.0.1:{port}/{database}',
         PG_SECURESHOP_PROGRESS_CHECKPOINT_TEST_RUNTIME_URL=

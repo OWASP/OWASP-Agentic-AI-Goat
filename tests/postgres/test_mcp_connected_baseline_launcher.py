@@ -79,7 +79,7 @@ class LauncherFailures(unittest.TestCase):
   with tempfile.TemporaryDirectory() as directory:
    root=Path(directory)
    (root/'source/sidecars/sandbox-runner/apparmor').mkdir(parents=True)
-   (root/'source/sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in').write_text('@@SUPERVISOR_PROFILE@@')
+   (root/'source/sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in').write_text('@@SUPERVISOR_PROFILE@@')
    (root/'receipt.json').write_text('{}')
    argv=['launcher','--indirect-injection-production' if public else ('--indirect-injection-candidate' if indirect else ('--observed-action-candidate' if observed else '--baseline-production'))]
    for name,value in [('docker-cli','/controlled/docker'),('docker-cli-sha256','f'*64),('docker-host','unix:///controlled'),('docker-daemon-id','controlled'),('postgres-image-id','sha256:'+'b'*64),('package',str(root/'source')),('manifest',str(root/'manifest.json')),('manifest-sha256','c'*64),('node','/controlled/node'),('node-sha256','d'*64),('evidence-root',str(root)),('mailpit-image-id','sha256:'+'e'*64),('control',str(root.parent/'control.json')),('owner-handle','123'),('ssh','/usr/bin/ssh'),('ssh-sha256','a'*64),('ssh-config','/controlled/config'),('ssh-config-sha256','b'*64),('ssh-host','controlled'),('runner-image-id','sha256:'+'f'*64),('runner-build-receipt',str(root/'receipt.json')),('runner-build-receipt-sha256','same'),('runner-context-sha256','a'*64),('model-digest','b'*64)]:argv.extend(['--'+name,value])

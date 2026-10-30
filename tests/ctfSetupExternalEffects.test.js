@@ -22,7 +22,7 @@ test('fixture profile matches actual strict client receipt schema; diagnostics n
  const {createMcpOwnedTargetClient}=require('../server/services/mcp/ownedTargetClient');
  const client=name=>createMcpOwnedTargetClient({baseURL:'http://127.0.0.1:1',token:'a'.repeat(48),fetchImpl:async()=>({ok:true,json:async()=>({version:'mcp-owned-target-http.v1',ready:true,isolation:'bwrap-seccomp-v1',supervisorProfile:name+' (enforce)'})})});
  assert.equal((await client(profile).readiness()).runnerReady,true);
- await assert.rejects(client('dvaia-ctf-'+'a'.repeat(32)).readiness(),{code:'MCP_OWNED_TARGET_UNAVAILABLE'});
+ await assert.rejects(client('owasp-ai-goat-ctf-'+'a'.repeat(32)).readiness(),{code:'MCP_OWNED_TARGET_UNAVAILABLE'});
  const {readinessDiagnostic}=require('./fixtures/ctfSetupExternalEffects');
  const diagnostic=readinessDiagnostic([{status:'rejected',reason:new Error('private token URL')},{status:'fulfilled',value:{ready:false,smtp:true,api:false,token:'private',endpoint:'private'}}]);
  assert.deepEqual(diagnostic,{sandbox:{ready:false,runnerReady:false,reason:'readiness_rejected'},mail:{ready:false,smtp:true,api:false,reason:'receipt_not_ready'}});

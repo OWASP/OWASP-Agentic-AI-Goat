@@ -118,7 +118,7 @@ test('review outcome admission is closed and never inferred from a moderation re
 });
 
 function requestDigest() {
-  return sha(JSON.stringify(['dvaia-secureshop-review-submission', 1, ids.target, ids.launch,
+  return sha(JSON.stringify(['owasp-ai-goat-secureshop-review-submission', 1, ids.target, ids.launch,
     ids.scenario, 3, 41, 51, 76, 'customer', ids.submission, 7, 76, body, 1]));
 }
 function reviewRow(status = 'pending') {

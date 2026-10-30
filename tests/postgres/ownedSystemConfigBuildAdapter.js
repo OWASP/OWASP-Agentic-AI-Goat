@@ -96,9 +96,9 @@ async function guestMain(load, binding, deriveArtifacts, mode = 'legacy') {
   // The shared builder records Linux time.monotonic(), in this same guest
   // kernel. Node hrtime shares that clock; never compare with host or epoch time.
   const monotonic = () => Number(process.hrtime.bigint()) / 1e6;
-  const deadline = Number(process.env.DVAIA_ARTIFACT_DEADLINE_SECONDS) * 1000;
+  const deadline = Number(process.env.OWASP_AI_GOAT_ARTIFACT_DEADLINE_SECONDS) * 1000;
   const remaining = deadline - monotonic();
-  const port = Number(process.env.DVAIA_ARTIFACT_PROXY_PORT);
+  const port = Number(process.env.OWASP_AI_GOAT_ARTIFACT_PROXY_PORT);
   if (mode!=='replay' && (!(remaining > 0 && remaining <= 300000) || !Number.isInteger(port) || port < 1 || port > 65535))
     throw error('SYSTEM_GUEST_ADMISSION');
   const current = () => { controller.signal.throwIfAborted(); if (monotonic() >= deadline) throw error('SYSTEM_ACQUISITION_DEADLINE'); };
@@ -271,7 +271,7 @@ system_identity() {
  cid=$(cat "$root/fs/system.cid")
  [ "$(printf '%s' "$cid" | wc -c | tr -d ' ')" = 64 ]; case "$cid" in *[!a-f0-9]*) return 97;; esac
  [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Id}}' "$cid")" = "$cid" ]
- [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "dvaia.system.closure"}}' "$cid")" = "$nonce" ]
+ [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "owasp-ai-goat.system.closure"}}' "$cid")" = "$nonce" ]
  [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Image}}' "$cid")" = "$(docker --host "unix://$root/fs/docker.sock" image inspect --format '{{.Id}}' 'node@BASE')" ]
 }
 `.replace('node@BASE','node@'+captured.recipe.base);
@@ -282,7 +282,7 @@ mkdir -m 0700 "$root/fs/system-closure"
 /usr/bin/python3 -I -S -B -c 'import sys,os,hashlib; b=sys.stdin.buffer.read(1048577); assert 0<len(b)<=1048576 and hashlib.sha256(b).hexdigest()==sys.argv[2]; f=os.fdopen(os.open(sys.argv[1],os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o400),"wb"); f.write(b); f.flush(); os.fsync(f.fileno()); f.close()' "$root/fs/system-guest.js" GUEST_SHA
 proxy_port=$(relay_control authority); deadline=$(cat "$root/acquisition.deadline")
 printf '%s' "$nonce" > "$root/fs/system.intent"
-docker --host "unix://$root/fs/docker.sock" create --cidfile "$root/fs/system.cid" --name "dvaia-system-closure-$nonce" --label "dvaia.system.closure=$nonce" --pull never --network host --read-only --memory 768m --cpus 1 --pids-limit 64 --cap-drop ALL --security-opt no-new-privileges --log-driver local --log-opt max-size=1m --log-opt max-file=1 --log-opt compress=false --mount "type=bind,source=$root/fs/metadata-retained,target=/metadata-retained,readonly" --mount "type=bind,source=$root/fs/system-closure,target=/system-closure" --mount "type=bind,source=$root/fs/system-guest.js,target=/system-guest.js,readonly" --tmpfs /metadata:rw,nosuid,nodev,noexec,size=512m --tmpfs /tmp:rw,nosuid,nodev,noexec,size=16m --env "DVAIA_ARTIFACT_DEADLINE_SECONDS=$deadline" --env "DVAIA_ARTIFACT_PROXY_PORT=$proxy_port" --entrypoint /usr/local/bin/node 'node@BASE' /system-guest.js >/dev/null
+docker --host "unix://$root/fs/docker.sock" create --cidfile "$root/fs/system.cid" --name "owasp-ai-goat-system-closure-$nonce" --label "owasp-ai-goat.system.closure=$nonce" --pull never --network host --read-only --memory 768m --cpus 1 --pids-limit 64 --cap-drop ALL --security-opt no-new-privileges --log-driver local --log-opt max-size=1m --log-opt max-file=1 --log-opt compress=false --mount "type=bind,source=$root/fs/metadata-retained,target=/metadata-retained,readonly" --mount "type=bind,source=$root/fs/system-closure,target=/system-closure" --mount "type=bind,source=$root/fs/system-guest.js,target=/system-guest.js,readonly" --tmpfs /metadata:rw,nosuid,nodev,noexec,size=512m --tmpfs /tmp:rw,nosuid,nodev,noexec,size=16m --env "OWASP_AI_GOAT_ARTIFACT_DEADLINE_SECONDS=$deadline" --env "OWASP_AI_GOAT_ARTIFACT_PROXY_PORT=$proxy_port" --entrypoint /usr/local/bin/node 'node@BASE' /system-guest.js >/dev/null
 system_identity; docker --host "unix://$root/fs/docker.sock" start "$cid" >/dev/null
 attempt=0
 until [ -f "$root/fs/system-closure/ready.json" ]; do
@@ -323,7 +323,7 @@ with os.fdopen(os.open(root+'/fs/system.Dockerfile',os.O_WRONLY|os.O_CREAT|os.O_
     +'/usr/bin/python3 -I -S -B -c '+quote(unpack)+' "$root" '+quote(JSON.stringify(rows))+' '+quote(JSON.stringify(captured.recipe))+' '+quote(JSON.stringify(directories))+'\n'
     + 'port=$(/usr/bin/python3 -I -S -B -c '+quote("import sys,json,os; f=os.fdopen(os.open(sys.argv[1],os.O_RDONLY|os.O_NOFOLLOW)); assert os.fstat(f.fileno()).st_size<=1048576; r=json.load(f); assert r['binding']==json.loads(sys.argv[2]) and r['metadataAuthenticated'] is True and r['artifactBytesVerified'] is True; assert type(r['port']) is int and 0<r['port']<65536; print(r['port'])")+' "$root/fs/system-closure/ready.json" '+quote(JSON.stringify(meta.binding))+')\n'
     +'stop_private_relay\nproxy="http://127.0.0.1:$port"\n'
-    +'timeout --signal=TERM --kill-after=10 300 docker --host "unix://$root/fs/docker.sock" build --pull=false --network=host --platform linux/arm64 --build-arg "HTTP_PROXY=$proxy" --build-arg "HTTPS_PROXY=$proxy" --build-arg "http_proxy=$proxy" --build-arg "https_proxy=$proxy" --build-arg NO_PROXY= --build-arg no_proxy= --label '+quote('dvaia.system.inputs='+captured.inputSha256)+' --label "dvaia.build-run=$nonce" -f "$root/fs/system.Dockerfile" -t "dvaia-system-build:$nonce" "$root/fs/system-context"\nsystem_identity\n';
+    +'timeout --signal=TERM --kill-after=10 300 docker --host "unix://$root/fs/docker.sock" build --pull=false --network=host --platform linux/arm64 --build-arg "HTTP_PROXY=$proxy" --build-arg "HTTPS_PROXY=$proxy" --build-arg "http_proxy=$proxy" --build-arg "https_proxy=$proxy" --build-arg NO_PROXY= --build-arg no_proxy= --label '+quote('owasp-ai-goat.system.inputs='+captured.inputSha256)+' --label "owasp-ai-goat.build-run=$nonce" -f "$root/fs/system.Dockerfile" -t "owasp-ai-goat-system-build:$nonce" "$root/fs/system-context"\nsystem_identity\n';
   const terminalCheck=String.raw`
 import sys,json,os,stat
 f=os.fdopen(os.open(sys.argv[1],os.O_RDONLY|os.O_NOFOLLOW));s=os.fstat(f.fileno())
@@ -393,10 +393,10 @@ SYSTEM_HANDOFF
 
   const commands={inventory:meta.commands.inventory,...Object.fromEntries(Object.entries(meta.phases).filter(([key])=>key!=='version')),
     inspect:meta.commands.inspect,startArtifacts:start,build,retireArtifacts:retire,closureEvidence:evidence,handoff,
-    image:guard+'\ncheck_mount; check_runtime\ndocker --host "unix://$root/fs/docker.sock" image inspect "dvaia-system-build:$nonce"\n'};
+    image:guard+'\ncheck_mount; check_runtime\ndocker --host "unix://$root/fs/docker.sock" image inspect "owasp-ai-goat-system-build:$nonce"\n'};
   if(diagnostic){
     commands.handoff=commands.handoff.replace("'target':'original-v24-system'","'target':'original-v03-diagnostic'");
-    for(const key of ['build','image'])commands[key]=commands[key].replaceAll('dvaia-system-build:','dvaia-diagnostic-build:').replaceAll('dvaia.system.inputs=','dvaia.diagnostic.inputs=');
+    for(const key of ['build','image'])commands[key]=commands[key].replaceAll('owasp-ai-goat-system-build:','owasp-ai-goat-diagnostic-build:').replaceAll('owasp-ai-goat.system.inputs=','owasp-ai-goat.diagnostic.inputs=');
   }
   return commands;
 }
@@ -503,13 +503,13 @@ function slotCommands(meta,spec,captured,acquisition,replay,slot){
   const original=commandsFor(meta,spec,adapted,replay),acq=commandsFor(meta,spec,adapted,acquisition);
   const host=text=>text.replaceAll('$root/fs/system',`$root/fs/${slot}`)
     .replaceAll('/fs/system-context',`/fs/${slot}-context`).replaceAll('/fs/system.Dockerfile',`/fs/${slot}.Dockerfile`)
-    .replaceAll('dvaia-system-',`dvaia-${slot}-`).replaceAll('dvaia.system.',`dvaia.${slot}.`)
+    .replaceAll('owasp-ai-goat-system-',`owasp-ai-goat-${slot}-`).replaceAll('owasp-ai-goat.system.',`owasp-ai-goat.${slot}.`)
     .replaceAll('$root/fs/metadata-retained',`$root/fs/${slot}-metadata-retained`);
   const acquisitionIdentity=text=>text.replaceAll('$root/fs/'+slot+'.cid','$root/fs/'+slot+'-acquire.cid')
     .replaceAll('$root/fs/'+slot+'.intent','$root/fs/'+slot+'-acquire.intent')
     .replaceAll('$root/fs/'+slot+'-guest.js','$root/fs/'+slot+'-acquire-guest.js')
-    .replaceAll(`dvaia-${slot}-closure-`,`dvaia-${slot}-acquire-`)
-    .replaceAll(`dvaia.${slot}.closure`,`dvaia.${slot}.acquire`);
+    .replaceAll(`owasp-ai-goat-${slot}-closure-`,`owasp-ai-goat-${slot}-acquire-`)
+    .replaceAll(`owasp-ai-goat.${slot}.closure`,`owasp-ai-goat.${slot}.acquire`);
   let acquire=acquisitionIdentity(host(acq.startArtifacts));
   acquire=replaceRequired(acquire,`$root/fs/${slot}-closure/ready.json`,`$root/fs/${slot}-closure/acquisition-terminal.json`);
   // Publication alone is not process/descriptor retirement. Wait for the real
@@ -539,23 +539,23 @@ cat "$root/fs/SLOT-closure/acquisition-terminal.json"
   let build=replaceRequired(host(original.build),'stop_private_relay\n','');
   if(slot==='policy')build=replaceRequired(build,'-f "$root/fs/policy.Dockerfile"','-f "$root/fs/policy-context/policy-render/Dockerfile"');
   let fetch=meta.phases.metadataFetch.replaceAll('$root/fs/metadata-retained',`$root/fs/${slot}-metadata-retained`)
-    .replaceAll('$root/fs/metadata.cid',`$root/fs/${slot}-metadata.cid`).replaceAll('dvaia-metadata-',`dvaia-${slot}-metadata-`)
-    .replaceAll('dvaia.metadata.owner',`dvaia.${slot}.metadata.owner`);
+    .replaceAll('$root/fs/metadata.cid',`$root/fs/${slot}-metadata.cid`).replaceAll('owasp-ai-goat-metadata-',`owasp-ai-goat-${slot}-metadata-`)
+    .replaceAll('owasp-ai-goat.metadata.owner',`owasp-ai-goat.${slot}.metadata.owner`);
   const evidence=replaceRequired(host(original.closureEvidence),"'closure.json','ready.json'","'closure.json','acquisition-terminal.json','ready.json'");
   const exported=meta.phases.retainedExport.replaceAll('$root/fs/metadata-retained',`$root/fs/${slot}-metadata-retained`);
-  const archiveAnchor=`/usr/bin/python3 -I -S -B - "$root/fs/${slot}-metadata-retained" "$nonce" <<'DVAIA_METADATA_ARCHIVE'\n`;
+  const archiveAnchor=`/usr/bin/python3 -I -S -B - "$root/fs/${slot}-metadata-retained" "$nonce" <<'OWASP_AI_GOAT_METADATA_ARCHIVE'\n`;
   const archiveAt=exported.indexOf(archiveAnchor);
   if(archiveAt<0||exported.indexOf(archiveAnchor,archiveAt+1)!==-1)throw fail('SYSTEM_GUARD_SHAPE');
   // Reuse exact owner/mount and stopped-daemon guards, not success-manifest
   // assertions. No missing or malformed report is manufactured or repaired.
-  const failureExport=exported.slice(0,archiveAt)+`/usr/bin/python3 -I -S -B - "$root/fs/${slot}-metadata-retained" "$nonce" <<'DVAIA_FAILED_SLOT_ARCHIVE'\n`+
+  const failureExport=exported.slice(0,archiveAt)+`/usr/bin/python3 -I -S -B - "$root/fs/${slot}-metadata-retained" "$nonce" <<'OWASP_AI_GOAT_FAILED_SLOT_ARCHIVE'\n`+
     FAILED_SLOT_ARCHIVE+`\nproof=json.loads(${JSON.stringify(JSON.stringify({slot,binding:meta.binding,metadataSourceSha256:meta.guestSourceSha256}))})\n`+
-    "assert proof['binding']['runId']==sys.argv[2]\nfailed_slot_archive(sys.argv[1],proof,sys.stdout.buffer)\nDVAIA_FAILED_SLOT_ARCHIVE\n";
+    "assert proof['binding']['runId']==sys.argv[2]\nfailed_slot_archive(sys.argv[1],proof,sys.stdout.buffer)\nOWASP_AI_GOAT_FAILED_SLOT_ARCHIVE\n";
   const suffix='\ncheck_mount; check_runtime\ndocker --host "unix://$root/fs/docker.sock" info --format \'{{json .}}\'\n';
   if(!meta.commands.inspect.endsWith(suffix))throw fail('SYSTEM_GUARD_SHAPE');
   const metadataRetire=meta.commands.inspect.slice(0,-suffix.length)+String.raw`
 check_mount; check_runtime
-name="dvaia-SLOT-metadata-$nonce"
+name="owasp-ai-goat-SLOT-metadata-$nonce"
 listing=$(docker --host "unix://$root/fs/docker.sock" ps --all --quiet --no-trunc --filter "name=^/$name$")
 if [ -n "$listing" ]; then
  [ -f "$root/fs/SLOT-metadata.cid" ] && [ ! -L "$root/fs/SLOT-metadata.cid" ]
@@ -563,7 +563,7 @@ if [ -n "$listing" ]; then
  [ "$(printf '%s' "$cid" | wc -c | tr -d ' ')" = 64 ]; case "$cid" in *[!a-f0-9]*) exit 97;; esac
  [ "$listing" = "$cid" ]
  [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Id}}' "$cid")" = "$cid" ]
- [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "dvaia.SLOT.metadata.owner"}}' "$cid")" = "$nonce" ]
+ [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "owasp-ai-goat.SLOT.metadata.owner"}}' "$cid")" = "$nonce" ]
  [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Image}}' "$cid")" = "$(docker --host "unix://$root/fs/docker.sock" image inspect --format '{{.Id}}' 'node@BASE')" ]
  docker --host "unix://$root/fs/docker.sock" rm -f "$cid" >/dev/null
 fi
@@ -608,7 +608,7 @@ async function systemPolicyBuildPlan(root,runId,recipe){
       metadataSource:metadata.guestMetadataSource(meta.binding,{retention:meta.metadataRetention.mode}),
       storage:{metadata:system.spec.mount+'/'+slot+'-metadata-retained',closure:system.spec.mount+'/'+slot+'-closure',
         context:system.spec.mount+'/'+slot+'-context',acquisitionCid:system.spec.mount+'/'+slot+'-acquire.cid',
-        replayCid:system.spec.mount+'/'+slot+'.cid',image:'dvaia-'+slot+'-build:'+runId}};
+        replayCid:system.spec.mount+'/'+slot+'.cid',image:'owasp-ai-goat-'+slot+'-build:'+runId}};
     if(sha(slots[slot].metadataSource)!==meta.guestSourceSha256)throw fail('SYSTEM_METADATA_SOURCE_CHANGED');
     for(const [suffix,key]of [['Metadata','metadata'],['MetadataRetire','metadataRetire'],['Acquire','acquire'],['AcquireRetire','acquireRetire'],
       ['Replay','replay'],['ReplayRetire','replayRetire'],['Build','build'],['Image','image'],['Evidence','evidence'],['Export','export'],['FailureExport','failureExport']])commands[slot+suffix]=produced[key];
@@ -719,7 +719,7 @@ async function runControlledPipeline(plan,options={}){
     await step('build',Readable.from([await context(plan.spec.root,plan.captured)]));
     const rows=JSON.parse(await step('image'));image=rows?.[0];
     if(rows.length!==1||!/^sha256:[a-f0-9]{64}$/.test(image?.Id)||image.Architecture!=='arm64'||image.Os!=='linux'
-      ||image.Config?.Labels?.[diagnostic?'dvaia.diagnostic.inputs':'dvaia.system.inputs']!==plan.captured.inputSha256||image.Config?.Labels?.['dvaia.build-run']!==plan.runId
+      ||image.Config?.Labels?.[diagnostic?'owasp-ai-goat.diagnostic.inputs':'owasp-ai-goat.system.inputs']!==plan.captured.inputSha256||image.Config?.Labels?.['owasp-ai-goat.build-run']!==plan.runId
       ||image.Config?.User!=='10001:10001'||!equal(image.Config?.Entrypoint,plan.captured.recipe.entrypoint))throw fail('SYSTEM_IMAGE_IDENTITY');
     retired=(await step('retireArtifacts')).trim()==='absent';if(!retired)throw fail('SYSTEM_ARTIFACT_RETIREMENT');
     const terminal=JSON.parse(JSON.parse(await step('closureEvidence'))['terminal.json']);
@@ -978,7 +978,7 @@ async function validatePairDriverObservations(plan,observations){
     for(const suffix of ['MetadataRetire','AcquireRetire','ReplayRetire'])if(values(slot+suffix)[0].trim()!=='absent')throw fail('SYSTEM_PAIR_RETIREMENT');
     const image=JSON.parse(values(slot+'Image')[0]),captured=plan.slots[slot].captured;
     if(!Array.isArray(image)||image.length!==1||!/^sha256:[a-f0-9]{64}$/.test(image[0]?.Id)||image[0].Architecture!=='arm64'||image[0].Os!=='linux'
-      ||image[0].Config?.Labels?.[`dvaia.${slot}.inputs`]!==captured.inputSha256||image[0].Config?.Labels?.['dvaia.build-run']!==plan.runId
+      ||image[0].Config?.Labels?.[`owasp-ai-goat.${slot}.inputs`]!==captured.inputSha256||image[0].Config?.Labels?.['owasp-ai-goat.build-run']!==plan.runId
       ||image[0].Config?.User!==captured.recipe.user||!equal(image[0].Config?.Entrypoint,captured.recipe.entrypoint))throw fail('SYSTEM_PAIR_IMAGE');
     images[slot]={imageId:image[0].Id,inputSha256:captured.inputSha256,base:captured.recipe.base,closureSha256:digest};
   }

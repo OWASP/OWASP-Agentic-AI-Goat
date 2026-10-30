@@ -53,7 +53,7 @@ const parse = value => { try { return JSON.parse(value); } catch { return null; 
 function checked(key) {
   const value = new URL(process.env[PREFIX + key]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 function templates() {
@@ -78,8 +78,8 @@ function scopeOf(owner) {
 test('mounted production persona-inbox composition uses actual 8B actor and Judge then resets only its launch', {
   skip: !enabled, timeout: 240000,
 }, async t => {
-  const workspace = path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-secureshop-persona-inbox-live-/);
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-secureshop-persona-inbox-live-/);
   const identityMigration = new Pool({ connectionString: checked('IDENTITY_MIGRATION_URL'), max: 2 });
   const identity = new Pool({ connectionString: checked('IDENTITY_RUNTIME_URL'), max: 10 });
   const leases = new Pool({ connectionString: checked('IDENTITY_RUNTIME_URL'), max: 3,
@@ -246,7 +246,7 @@ test('mounted production persona-inbox composition uses actual 8B actor and Judg
     const app = express(); app.use(express.json()); app.use('/api/secureshop', feature.router);
     server = await new Promise(resolve => { const value = app.listen(0, '127.0.0.1', () => resolve(value)); });
     const base = `http://127.0.0.1:${server.address().port}/api/secureshop/v2/persona-inbox`;
-    const headers = { 'x-dvaia-secureshop-launch': owner.issued.bearer,
+    const headers = { 'x-owasp-ai-goat-secureshop-launch': owner.issued.bearer,
       authorization: 'Bearer live-merchant', 'content-type': 'application/json' };
     const readinessResponse = await fetch(`${base}/readiness`, { headers });
     assert.equal(readinessResponse.status, 200);
@@ -254,7 +254,7 @@ test('mounted production persona-inbox composition uses actual 8B actor and Judg
     assert.equal(readiness.ready, true); assert.equal(readiness.capabilities.enforceAcl, true);
     assert.ok(readiness.messages.some(row => row.messageId === adminMessage.messageId));
     assert.equal((await fetch(`${base}/readiness`, { headers: { ...headers,
-      'x-dvaia-secureshop-launch': sibling.issued.bearer } })).status, 403,
+      'x-owasp-ai-goat-secureshop-launch': sibling.issued.bearer } })).status, 403,
     'a persona credential is never portable to a sibling owner launch');
 
     const assertProjectedAccesses = async (result, requestId, expectedMode) => {

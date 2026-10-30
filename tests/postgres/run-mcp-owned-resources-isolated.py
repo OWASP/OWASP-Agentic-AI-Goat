@@ -27,15 +27,15 @@ owner_handle = int(args.owner_handle)
 source = Path(__file__).resolve().parents[2]
 grant_path = (source / args.grant_file).resolve() if not Path(args.grant_file).is_absolute() else Path(args.grant_file)
 grant_lock = grant_path.with_suffix(grant_path.suffix + '.consume-lock')
-root = Path(tempfile.mkdtemp(prefix='dvaia-mcp-owned-resources-'))
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-owned-resources-'))
 workspace = root / 'source'
 workspace.mkdir()
 os.chmod(root, 0o700)
 base_env = {key: os.environ[key] for key in ['PATH', 'HOME', 'TMPDIR'] if key in os.environ}
-managed_node = Path(base_env.get('HOME', '/nonexistent')) / '.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin'
+managed_node = Path(base_env.get('HOME', '/nonexistent')) / '.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin'
 base_env['PATH'] = str(managed_node) + os.pathsep + base_env.get('PATH', '')
 docker = ['docker', '--host', args.docker_host]
-container = 'dvaia-mcp-owned-resources-' + uuid.uuid4().hex[:12]
+container = 'owasp-ai-goat-mcp-owned-resources-' + uuid.uuid4().hex[:12]
 ownership_path = root / 'ownership.json'
 tracked = [
     'db/postgres/workshop-migrations/mcp/0001_schema.sql',
@@ -164,11 +164,11 @@ try:
     psql = ['psql', '-h', '127.0.0.1', '-p', str(port), '-U', 'mcp_owned_admin', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1']
     for role in ['dvaia_mcp_migration', 'dvaia_mcp_runtime']:
         run(psql + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'], stdout=subprocess.DEVNULL)
-    database = 'dvaia_test_mcp_owned_resources'
+    database = 'owasp_ai_goat_test_mcp_owned_resources'
     run(psql + ['-c', f'CREATE DATABASE {database} OWNER dvaia_mcp_migration'], stdout=subprocess.DEVNULL)
     run(psql + ['-c', f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO dvaia_mcp_migration,dvaia_mcp_runtime'], stdout=subprocess.DEVNULL)
     env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes', AWS_EC2_METADATA_DISABLED='true',
-      DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+      OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
       PG_MCP_OWNED_RESOURCES_TEST_MIGRATION_URL=f'postgresql://{quote("dvaia_mcp_migration")}@127.0.0.1:{port}/{database}',
       PG_MCP_OWNED_RESOURCES_TEST_RUNTIME_URL=f'postgresql://{quote("dvaia_mcp_runtime")}@127.0.0.1:{port}/{database}')
     result = root / 'result.log'

@@ -177,7 +177,7 @@ async function mounted(t){const calls=[],launches={async resolveCapability(value
   const app=express();app.use(express.json());app.use('/api/secureshop',createBoundMcpTrustRouter({launches,authenticatePersona,application}));
   app.use((_req,res)=>res.status(599).end());const server=await new Promise(resolve=>{const value=app.listen(0,'127.0.0.1',()=>resolve(value));});
   t.after(()=>new Promise(resolve=>server.close(resolve)));return{base:`http://127.0.0.1:${server.address().port}/api/secureshop`,calls};}
-const headers=(role='admin')=>({authorization:`Bearer ${role}-13`,'x-dvaia-secureshop-launch':bearer,'content-type':'application/json'});
+const headers=(role='admin')=>({authorization:`Bearer ${role}-13`,'x-owasp-ai-goat-secureshop-launch':bearer,'content-type':'application/json'});
 
 test('mounted MCP trust routes derive scope/persona and accept only closed action bodies',async t=>{const f=await mounted(t);
   assert.equal((await fetch(`${f.base}/v2/mcp-trust/readiness`,{headers:headers()})).status,200);

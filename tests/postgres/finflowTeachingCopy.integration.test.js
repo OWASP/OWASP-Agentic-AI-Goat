@@ -30,7 +30,7 @@ test('0041 real loader updates exact FinFlow defaults, preserves instructor copy
 }, async () => {
   const migration = new Pool({ connectionString: process.env.PG_FINFLOW_COPY_MIGRATION_URL, max: 2 });
   const runtime = new Pool({ connectionString: process.env.PG_FINFLOW_COPY_RUNTIME_URL, max: 2 });
-  const staged = await fs.mkdtemp(path.join(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || os.tmpdir(), 'finflow-copy-'));
+  const staged = await fs.mkdtemp(path.join(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || os.tmpdir(), 'finflow-copy-'));
   try {
     const candidateName = '0041_finflow_response_repair_copy.sql';
     const priorMigrations = (await readMigrations(path.join(root, 'db/postgres/identity-migrations')))

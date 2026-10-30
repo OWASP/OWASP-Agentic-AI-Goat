@@ -25,10 +25,10 @@ from sensitive_info_recovery_safety import (
     classify_inventory_difference, protected_cleanup, wait_for_exit,
 )
 
-EXPECTED_DOCKER = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+EXPECTED_DOCKER = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 OWNER = '/root/secureshop_architecture'
 SOURCE = Path(__file__).resolve().parents[2]
-NODE_BIN = Path('/Users/averma5/.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin')
+NODE_BIN = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin')
 APPLICATION_SCHEMAS = {
     'identity': ('dvaia_migrations','graph_runtime','identity','workshop_platform'),
     'finflow': ('dvaia_migrations','finflow','legacy_sensitive'),
@@ -67,11 +67,11 @@ else:
             or args.backend_pid <= 1 or args.watcher_pid == args.backend_pid):
         raise SystemExit('distinct reviewed watcher and backend PIDs are required')
 
-evidence = Path(tempfile.mkdtemp(prefix='dvaia-sensitive-reset-recovery-'))
+evidence = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-sensitive-reset-recovery-'))
 os.chmod(evidence, 0o700)
 ownership_path = evidence / 'ownership.json'
 result_path = evidence / 'result.log'
-container = f'dvaia-sensitive-reset-recovery-{uuid.uuid4().hex[:12]}'
+container = f'owasp-ai-goat-sensitive-reset-recovery-{uuid.uuid4().hex[:12]}'
 docker = ['docker', '--host', args.docker_host]
 base_env = {key: os.environ[key] for key in ('PATH', 'HOME', 'TMPDIR') if key in os.environ}
 base_env['PATH'] = f'{NODE_BIN}:{base_env.get("PATH", "")}'
@@ -368,7 +368,7 @@ def apply_database_privileges(admin_env, database, store, recorded_inventory):
 
 def create_catalog_fixture(admin_env, port, store):
     migration_role, runtime_role = STORE_ROLES[store]
-    database = f'dvaia_acl_source_{store}'
+    database = f'owasp_ai_goat_acl_source_{store}'
     run(['psql','-X','-v','ON_ERROR_STOP=1','-c',
          f'CREATE DATABASE {quote_identifier(database)} OWNER {quote_identifier(migration_role)}'],env=admin_env)
     fixture_env = dict(admin_env,PGDATABASE=database,PGUSER=migration_role)
@@ -441,7 +441,7 @@ def atomic_copy(source, destination):
 
 def qualification_stage(argument, filename):
     assert_private_config_unchanged()
-    stage_env=dict(base_env, DVAIA_EXPECTED_PRIVATE_CONFIG_SHA256=private_config_sha256)
+    stage_env=dict(base_env, OWASP_AI_GOAT_EXPECTED_PRIVATE_CONFIG_SHA256=private_config_sha256)
     completed=run([str(NODE_BIN/'node'),'scripts/qualify-sensitive-info-reset-promotion.js',argument],
                   env=stage_env,text=True,timeout=300)
     assert_private_config_unchanged()
@@ -536,8 +536,8 @@ if restore_only:
     roles = retained_manifest.get('roles',{})
 elif catalog_self_test:
     roles = {
-        name:{'migration':{'role':STORE_ROLES[name][0],'database':f'dvaia_acl_source_{name}'},
-              'runtime':{'role':STORE_ROLES[name][1],'database':f'dvaia_acl_source_{name}'}}
+        name:{'migration':{'role':STORE_ROLES[name][0],'database':f'owasp_ai_goat_acl_source_{name}'},
+              'runtime':{'role':STORE_ROLES[name][1],'database':f'owasp_ai_goat_acl_source_{name}'}}
         for name in ('identity','finflow')
     }
 else:
@@ -697,7 +697,7 @@ try:
     restored_urls = {}
     restored_admin_urls = {}
     for name in ('identity','finflow'):
-        migration_role = roles[name]['migration']['role']; database = f'dvaia_reset_restore_{name}'
+        migration_role = roles[name]['migration']['role']; database = f'owasp_ai_goat_reset_restore_{name}'
         run(['psql','-X','-v','ON_ERROR_STOP=1','-c',f'CREATE DATABASE {database} OWNER {migration_role}'],env=admin)
         restore_env = dict(admin, PGDATABASE=database)
         run(['pg_restore','--exit-on-error','--dbname',database,str(dump_paths[name])],env=restore_env,timeout=180)
@@ -716,7 +716,7 @@ try:
     if {name:ledger(url) for name,url in restored_urls.items()} != live_ledgers:
         raise RuntimeError('restored migration ledger differs from the quiet backup')
     restored_runtime_urls = {
-        name:f'postgresql://{roles[name]["runtime"]["role"]}@127.0.0.1:{port}/dvaia_reset_restore_{name}'
+        name:f'postgresql://{roles[name]["runtime"]["role"]}@127.0.0.1:{port}/owasp_ai_goat_reset_restore_{name}'
         for name in ('identity','finflow')
     }
     runtime_relations = ({'identity':'identity.acl_fixture','finflow':'finflow.acl_fixture'}
@@ -736,7 +736,7 @@ try:
             {'identity':inventory(identity_admin,'identity')})
         privilege_entry = privilege_comparison['identity']['@ownership_acl_effective']
         sql(identity_restored,'REVOKE SELECT ON identity.acl_fixture FROM PUBLIC')
-        changed_env=dict(admin,PGDATABASE='dvaia_reset_restore_identity')
+        changed_env=dict(admin,PGDATABASE='owasp_ai_goat_reset_restore_identity')
         run(['psql','-X','-v','ON_ERROR_STOP=1','-c',
              'ALTER TABLE identity.acl_fixture OWNER TO dvaia_identity_runtime'],env=changed_env)
         owner_comparison, owner_changed = classify_inventory_difference(

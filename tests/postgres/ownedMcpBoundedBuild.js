@@ -119,7 +119,7 @@ def group_members(pgid):
             except RelayFailure as error: raise mark_lookup(error,site)
     return rows
 def context():
-    require(os.geteuid()==0 and ROOT=='/var/tmp/dvaia-v23-build-'+RUN and os.path.realpath(ROOT)==ROOT)
+    require(os.geteuid()==0 and ROOT=='/var/tmp/owasp-ai-goat-v23-build-'+RUN and os.path.realpath(ROOT)==ROOT)
     info=os.lstat(ROOT);require(stat.S_ISDIR(info.st_mode) and info.st_uid==0 and stat.S_IMODE(info.st_mode)==0o700)
     require(os.path.realpath(ROOT+'/fs')==ROOT+'/fs');info=os.lstat(ROOT+'/fs')
     require(stat.S_ISDIR(info.st_mode) and info.st_uid==0 and not info.st_mode&0o022)
@@ -465,17 +465,17 @@ async function privateRelayPlan(spec,value,{lifecycleOnly=false,transportOnly=fa
   if(lifecycleOnly&&transportOnly)throw fail('BUILD_RELAY_VARIANT');
   if(metadataOnly&&(!transportOnly||lifecycleOnly))throw fail('BUILD_RELAY_VARIANT');
   const admission=relayAdmission(value);
-  if(spec.guest!=='/var/tmp/dvaia-v23-build-'+spec.runId||!/^[a-f0-9]{32}$/.test(spec.runId))throw fail('BUILD_RELAY_ADMISSION_REQUIRED');
+  if(spec.guest!=='/var/tmp/owasp-ai-goat-v23-build-'+spec.runId||!/^[a-f0-9]{32}$/.test(spec.runId))throw fail('BUILD_RELAY_ADMISSION_REQUIRED');
   const modulePath=path.join(__dirname,'ownedMcpPrivateEgress.js');
   if(sha(await fs.readFile(modulePath))!==RELAY_SOURCE_SHA)throw fail('BUILD_RELAY_SOURCE_CHANGED');
   const relay=require('./ownedMcpPrivateEgress');
   const children=Object.fromEntries(['connector','adapter'].map(mode=>[mode,lifecycleOnly||transportOnly?
-    (metadataOnly?metadataAdmissionProgram(relay._internals.program):relay._internals.program)+(lifecycleOnly?lifecycleNoConnect:`\nTRANSPORT_MODE=${JSON.stringify(mode)}\nTRANSPORT_RUN=${JSON.stringify(spec.runId)}\n`+(metadataOnly?metadataAdmissionAudit.replace("variant='metadata-admission-audit-v3'","variant='metadata-idle-barrier-v4'"):transportAudit))+`\nserve(${JSON.stringify(mode)},${JSON.stringify('/var/tmp/dvaia-v23-relay-'+spec.runId)},${admission.uid},deadline_from_argv(sys.argv))\n`:
+    (metadataOnly?metadataAdmissionProgram(relay._internals.program):relay._internals.program)+(lifecycleOnly?lifecycleNoConnect:`\nTRANSPORT_MODE=${JSON.stringify(mode)}\nTRANSPORT_RUN=${JSON.stringify(spec.runId)}\n`+(metadataOnly?metadataAdmissionAudit.replace("variant='metadata-admission-audit-v3'","variant='metadata-idle-barrier-v4'"):transportAudit))+`\nserve(${JSON.stringify(mode)},${JSON.stringify('/var/tmp/owasp-ai-goat-v23-relay-'+spec.runId)},${admission.uid},deadline_from_argv(sys.argv))\n`:
     relay.guestProgram({runId:spec.runId,uid:admission.uid,mode,deadlineFromArgv:true})]));
   // Loading the frozen definition supplies DNS_CODE for exact descendant checks;
   // it does not invoke serve or open any sockets.
   const hosts=metadataOnly?[...relay.HOSTS,METADATA_BLOB_HOST]:relay.HOSTS;
-  const configuration=`\nROOT=${JSON.stringify(spec.guest)}\nRUN=${JSON.stringify(spec.runId)}\nRELAY=${JSON.stringify('/var/tmp/dvaia-v23-relay-'+spec.runId)}\nADMISSION=json.loads(${JSON.stringify(JSON.stringify(admission))})\nSOURCE_SHA=${JSON.stringify(RELAY_SOURCE_SHA)}\nCHILDREN=json.loads(${JSON.stringify(JSON.stringify(children))})\nHOSTS=json.loads(${JSON.stringify(JSON.stringify(hosts))})\n_library={}\nexec(${JSON.stringify(relay._internals.program)},_library)\nDNS_CODE=_library['DNS_CODE']\n`;
+  const configuration=`\nROOT=${JSON.stringify(spec.guest)}\nRUN=${JSON.stringify(spec.runId)}\nRELAY=${JSON.stringify('/var/tmp/owasp-ai-goat-v23-relay-'+spec.runId)}\nADMISSION=json.loads(${JSON.stringify(JSON.stringify(admission))})\nSOURCE_SHA=${JSON.stringify(RELAY_SOURCE_SHA)}\nCHILDREN=json.loads(${JSON.stringify(JSON.stringify(children))})\nHOSTS=json.loads(${JSON.stringify(JSON.stringify(hosts))})\n_library={}\nexec(${JSON.stringify(relay._internals.program)},_library)\nDNS_CODE=_library['DNS_CODE']\n`;
   const evidenceProgram=metadataOnly?lifecycleEvidenceProgram.replace('capBytes=16777216','capBytes=6442450944,logicalBytes=os.stat(ROOT+\'/disk\').st_size,allocatedBytes=os.stat(ROOT+\'/disk\').st_blocks*512')
     .replace("names=['relay.intent'","names=['relay.idle.intent','relay.idle.result','relay.intent'"):lifecycleEvidenceProgram;
   const checkpointProgram=metadataOnly?transportCheckpointProgram.replace("variant='connect-audit-v1'","variant='metadata-idle-barrier-v4'")
@@ -487,7 +487,7 @@ async function privateRelayPlan(spec,value,{lifecycleOnly=false,transportOnly=fa
       "    packet=dict(version=1,runId=RUN,variant='metadata-idle-barrier-v4',rows=rows)\n    print(json.dumps(packet),flush=True)\n    return packet")+metadataIdleProgram:transportCheckpointProgram;
   const source=relayLifecycleProgram+configuration+(transportOnly?'\nTRANSPORT_ONLY=True\n':'')+((lifecycleOnly||transportOnly)?evidenceProgram:'')+(transportOnly?checkpointProgram:'')+"\nif __name__=='__main__':\n    require(len(sys.argv)==2 and sys.argv[1] in "+(metadataOnly?"('start','authority','cleanup','evidence','checkpoint','idle')":transportOnly?"('start','authority','cleanup','evidence','checkpoint')":lifecycleOnly?"('start','authority','cleanup','evidence')":"('start','authority','cleanup')")+")\n    if sys.argv[1]=='authority': print(authority(),flush=True)\n    else: globals()[sys.argv[1]]()\n";
   const sourceSha256=sha(source);
-  const install=guard+`\nrequire_private_egress\ncheck_mount; check_namespace\n[ ! -e "$root/fs/relay-lifecycle.py" ] && [ ! -L "$root/fs/relay-lifecycle.py" ]\n( set -C; cat > "$root/fs/relay-lifecycle.py" <<'DVAIA_RELAY_LIFECYCLE'\n${source}DVAIA_RELAY_LIFECYCLE\n)\nchmod 0400 "$root/fs/relay-lifecycle.py"\nprintf '%s' '${sourceSha256}' > "$root/fs/relay-lifecycle.sha256"\nprintf '%s' '${admission.python}' > "$root/fs/relay-lifecycle.python"\nprintf '%s' '${admission.pythonSha256}' > "$root/fs/relay-lifecycle.python.sha256"\n${admission.python} -I -S -B "$root/fs/relay-lifecycle.py" start\n`;
+  const install=guard+`\nrequire_private_egress\ncheck_mount; check_namespace\n[ ! -e "$root/fs/relay-lifecycle.py" ] && [ ! -L "$root/fs/relay-lifecycle.py" ]\n( set -C; cat > "$root/fs/relay-lifecycle.py" <<'OWASP_AI_GOAT_RELAY_LIFECYCLE'\n${source}OWASP_AI_GOAT_RELAY_LIFECYCLE\n)\nchmod 0400 "$root/fs/relay-lifecycle.py"\nprintf '%s' '${sourceSha256}' > "$root/fs/relay-lifecycle.sha256"\nprintf '%s' '${admission.python}' > "$root/fs/relay-lifecycle.python"\nprintf '%s' '${admission.pythonSha256}' > "$root/fs/relay-lifecycle.python.sha256"\n${admission.python} -I -S -B "$root/fs/relay-lifecycle.py" start\n`;
   return Object.freeze({source,sourceSha256,relaySourceSha256:RELAY_SOURCE_SHA,admission,install,executionApproved:false});
 }
 const lifecycleEvidenceProgram=String.raw`
@@ -532,11 +532,11 @@ const TRANSPORT_CLIENT_SHA='0b319bcdb6c2fc185e5662a052e001043802f251f739eba6e875
 function specification(root, runId) {
   if(typeof root!=='string'||!path.isAbsolute(root)||path.resolve(root)!==root||root==='/'||
     !/^[a-f0-9]{32}$/.test(runId))throw fail('BUILD_INVALID_PATH_OR_ID');
-  const guest='/var/tmp/dvaia-v23-build-'+runId;
+  const guest='/var/tmp/owasp-ai-goat-v23-build-'+runId;
   return Object.freeze({root,runId,guest, mount:guest+'/fs', socket:guest+'/fs/docker.sock',
     artifact:path.join(root,'tasks/tmp/v23-build-'+runId),
     lima:path.join(root,'tasks/runtime/container/bin/limactl'),
-    limaHome:path.join(root,'tasks/l'),tag:'dvaia-v23-build:'+runId});
+    limaHome:path.join(root,'tasks/l'),tag:'owasp-ai-goat-v23-build:'+runId});
 }
 
 // Read-only shared-network witness. No bridge repair, forwarding, namespace or
@@ -605,9 +605,9 @@ print(json.dumps(snapshot(), sort_keys=True, separators=(',', ':')))
 `;
 const networkShell = `
 network_snapshot() {
- /usr/bin/python3 -B - <<'DVAIA_NETWORK_PY'
+ /usr/bin/python3 -B - <<'OWASP_AI_GOAT_NETWORK_PY'
 ${networkSnapshotProgram}
-DVAIA_NETWORK_PY
+OWASP_AI_GOAT_NETWORK_PY
 }
 check_network() {
  [ -f "$root/network.before.json" ] && [ ! -L "$root/network.before.json" ] || return 94
@@ -621,7 +621,7 @@ const guard = `set -eu
 ${networkShell}
 umask 077
 root="$1"; nonce="$2"
-[ "$root" = "/var/tmp/dvaia-v23-build-$nonce" ]
+[ "$root" = "/var/tmp/owasp-ai-goat-v23-build-$nonce" ]
 [ "\${#nonce}" = 32 ]
 case "$nonce" in *[!a-f0-9]*) exit 80;; esac
 require_private_egress() { printf '%s\\n' BUILD_PRIVATE_EGRESS_UNAVAILABLE >&2; return 95; }
@@ -932,11 +932,11 @@ docker --host "unix://$root/fs/docker.sock" info --format '{{json .}}'
   build:guard+`
 require_private_egress
 check_mount; check_runtime
-timeout --signal=TERM --kill-after=10 300 docker --host "unix://$root/fs/docker.sock" build --pull=false --network=host --platform linux/arm64 --label "dvaia.registry.package=$3" --label "dvaia.build-run=$nonce" -f "$4" -t "dvaia-v23-build:$nonce" -
+timeout --signal=TERM --kill-after=10 300 docker --host "unix://$root/fs/docker.sock" build --pull=false --network=host --platform linux/arm64 --label "owasp-ai-goat.registry.package=$3" --label "owasp-ai-goat.build-run=$nonce" -f "$4" -t "owasp-ai-goat-v23-build:$nonce" -
 `,
   image:guard+`
 check_mount; check_runtime
-docker --host "unix://$root/fs/docker.sock" image inspect "dvaia-v23-build:$nonce"
+docker --host "unix://$root/fs/docker.sock" image inspect "owasp-ai-goat-v23-build:$nonce"
 `,
   metadata:guard+`
 require_private_egress
@@ -944,14 +944,14 @@ check_mount; check_runtime
 proxy_port=$(relay_control authority)
 case "$proxy_port" in ''|*[!0-9]*) exit 97;; esac
 [ "$proxy_port" -ge 1 ] && [ "$proxy_port" -le 65535 ]
-printf 'DVAIA_METADATA_STAGE=base-pull\\n' >&2
+printf 'OWASP_AI_GOAT_METADATA_STAGE=base-pull\\n' >&2
 case "$3" in
  sha256:3a771f83944bb763050c23c0225c260638c4b7899e7a72485ef75e5e570499e5|sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1) ;;
  *) exit 90;;
 esac
 timeout --signal=TERM --kill-after=10 120 docker --host "unix://$root/fs/docker.sock" pull --platform linux/arm64 "node@$3" >&2
-printf 'DVAIA_METADATA_STAGE=base-pulled\\n' >&2
-name="dvaia-metadata-$nonce"
+printf 'OWASP_AI_GOAT_METADATA_STAGE=base-pulled\\n' >&2
+name="owasp-ai-goat-metadata-$nonce"
 base_image=$(docker --host "unix://$root/fs/docker.sock" image inspect --format '{{.Id}}' "node@$3")
 [ -z "$(docker --host "unix://$root/fs/docker.sock" ps -aq --filter "name=^/$name$")" ]
 cleanup_metadata() {
@@ -962,14 +962,14 @@ cleanup_metadata() {
   case "$cid" in *[!a-f0-9]*) exit 91;; esac
   [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Id}}' "$name")" = "$cid" ] || exit 91
   [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Image}}' "$cid")" = "$base_image" ] || exit 91
-  [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "dvaia.metadata.owner"}}' "$name")" = "$nonce" ] || exit 91
+  [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "owasp-ai-goat.metadata.owner"}}' "$name")" = "$nonce" ] || exit 91
   docker --host "unix://$root/fs/docker.sock" rm -f "$cid" >&2 || exit 92
  fi
 }
 trap cleanup_metadata EXIT
 trap 'exit 124' TERM INT
-printf 'DVAIA_METADATA_STAGE=guest-start\\n' >&2
-timeout --signal=TERM --kill-after=10 170 docker --host "unix://$root/fs/docker.sock" run --cidfile "$root/fs/metadata.cid" --name "$name" --label "dvaia.metadata.owner=$nonce" --pull never --network host --read-only --memory 768m --cpus 1 --pids-limit 64 --cap-drop ALL --security-opt no-new-privileges --env "DVAIA_METADATA_PROXY_PORT=$proxy_port" --tmpfs /metadata:rw,nosuid,nodev,noexec,size=512m --tmpfs /tmp:rw,nosuid,nodev,noexec,size=16m --entrypoint /usr/local/bin/node -i "node@$3" -
+printf 'OWASP_AI_GOAT_METADATA_STAGE=guest-start\\n' >&2
+timeout --signal=TERM --kill-after=10 170 docker --host "unix://$root/fs/docker.sock" run --cidfile "$root/fs/metadata.cid" --name "$name" --label "owasp-ai-goat.metadata.owner=$nonce" --pull never --network host --read-only --memory 768m --cpus 1 --pids-limit 64 --cap-drop ALL --security-opt no-new-privileges --env "OWASP_AI_GOAT_METADATA_PROXY_PORT=$proxy_port" --tmpfs /metadata:rw,nosuid,nodev,noexec,size=512m --tmpfs /tmp:rw,nosuid,nodev,noexec,size=16m --entrypoint /usr/local/bin/node -i "node@$3" -
 `,
   export:guard+`
 check_mount; check_runtime
@@ -1046,22 +1046,22 @@ unmount_metadata_namespace() {
 const scripts=Object.freeze({...baseScripts,'metadata-acquire':guard+`
 require_private_egress
 acquisition_deadline=$(/usr/bin/python3 -I -S -B -c 'import time; print(format(time.monotonic()+300,".6f"),end="")')
-printf 'DVAIA_METADATA_STAGE=preflight\\n' >&2
+printf 'OWASP_AI_GOAT_METADATA_STAGE=preflight\\n' >&2
 /bin/sh -c ${quoteScript(baseScripts.preflight)} metadata-preflight "$root" "$nonce" >&2
-printf 'DVAIA_METADATA_STAGE=prepare\\n' >&2
+printf 'OWASP_AI_GOAT_METADATA_STAGE=prepare\\n' >&2
 /bin/sh -c ${quoteScript(baseScripts.prepare)} metadata-prepare "$root" "$nonce" "$acquisition_deadline" >&2
-printf 'DVAIA_METADATA_STAGE=daemon-start\\n' >&2
+printf 'OWASP_AI_GOAT_METADATA_STAGE=daemon-start\\n' >&2
 /bin/sh -c ${quoteScript(baseScripts.start)} metadata-start "$root" "$nonce" >&2
 /bin/sh -c ${quoteScript(baseScripts.metadata)} metadata-fetch "$root" "$nonce" "$3"
 `,'metadata-cleanup':baseScripts.cleanup.replace(
  'if mountpoint -q "$root/fs"; then check_mount; umount "$root/fs"; fi',
  metadataNamespaceCleanup+'\nif mountpoint -q "$root/fs"; then unmount_metadata_namespace; check_mount; umount "$root/fs"; fi')
- .replace('check_owner\nstop_private_relay\n# Sibling',"printf 'DVAIA_METADATA_STAGE=cleanup-owner\\n' >&2\ncheck_owner\nstop_private_relay\n# Sibling")
- .replace('stop_owned daemon',"printf 'DVAIA_METADATA_STAGE=cleanup-daemon\\n' >&2\nstop_owned daemon")
- .replace('stop_owned containerd',"printf 'DVAIA_METADATA_STAGE=cleanup-containerd\\n' >&2\nstop_owned containerd")
- .replace('for proc in /proc/',"printf 'DVAIA_METADATA_STAGE=cleanup-process-scan\\n' >&2\nfor proc in /proc/")
- .replace('if mountpoint -q "$root/fs";',"printf 'DVAIA_METADATA_STAGE=cleanup-mounts\\n' >&2\nif mountpoint -q \"$root/fs\";")
- .replace('if [ -f "$root/loop" ];',"printf 'DVAIA_METADATA_STAGE=cleanup-loop\\n' >&2\nif [ -f \"$root/loop\" ];")});
+ .replace('check_owner\nstop_private_relay\n# Sibling',"printf 'OWASP_AI_GOAT_METADATA_STAGE=cleanup-owner\\n' >&2\ncheck_owner\nstop_private_relay\n# Sibling")
+ .replace('stop_owned daemon',"printf 'OWASP_AI_GOAT_METADATA_STAGE=cleanup-daemon\\n' >&2\nstop_owned daemon")
+ .replace('stop_owned containerd',"printf 'OWASP_AI_GOAT_METADATA_STAGE=cleanup-containerd\\n' >&2\nstop_owned containerd")
+ .replace('for proc in /proc/',"printf 'OWASP_AI_GOAT_METADATA_STAGE=cleanup-process-scan\\n' >&2\nfor proc in /proc/")
+ .replace('if mountpoint -q "$root/fs";',"printf 'OWASP_AI_GOAT_METADATA_STAGE=cleanup-mounts\\n' >&2\nif mountpoint -q \"$root/fs\";")
+ .replace('if [ -f "$root/loop" ];',"printf 'OWASP_AI_GOAT_METADATA_STAGE=cleanup-loop\\n' >&2\nif [ -f \"$root/loop\" ];")});
 
 // Separate non-acquiring entry; the full-build mount and egress guards above
 // remain unchanged. Only a previously reviewed, exact guest probe is admitted.
@@ -1091,7 +1091,7 @@ async function lifecycleQualificationPlan(root,runId,phase='lifecycle') {
   const mountGuard=`check_mount() {
  check_owner
  [ -d "$root/fs" ] && [ ! -L "$root/fs" ]
- [ "$(findmnt -rn -o SOURCE --mountpoint "$root/fs")" = "dvaia-relay-$nonce" ]
+ [ "$(findmnt -rn -o SOURCE --mountpoint "$root/fs")" = "owasp-ai-goat-relay-$nonce" ]
  [ "$(findmnt -rn -o FSTYPE --mountpoint "$root/fs")" = tmpfs ]
  [ "$(findmnt -rn -o ID --mountpoint "$root/fs")" = "$(cat "$root/mount.id")" ]
  options=",$(findmnt -rn -o OPTIONS --mountpoint "$root/fs"),"
@@ -1121,7 +1121,7 @@ printf '%s' "$nonce" > "$root/owner"
 ${interpreter} -I -S -B -c 'import time; print(format(time.monotonic()+300,".6f"),end="")' > "$root/acquisition.deadline"
 network_snapshot > "$root/network.before.json"
 mkdir -m 700 "$root/fs"
-mount -t tmpfs -o size=16m,nosuid,nodev,noexec,mode=700 "dvaia-relay-$nonce" "$root/fs"
+mount -t tmpfs -o size=16m,nosuid,nodev,noexec,mode=700 "owasp-ai-goat-relay-$nonce" "$root/fs"
 findmnt -rn -o ID --mountpoint "$root/fs" > "$root/mount.id"
 check_mount
 `,
@@ -1153,7 +1153,7 @@ printf 'absent\\n'
     commands.checkpoint=lifecycleGuard+'\ncheck_mount; check_namespace\nrelay_control checkpoint\n';
     for(const name of ['deny-peer','deny-host','registry','auth','debian']){
       const privilege=name==='deny-peer'?'':`/usr/bin/setpriv --reuid=${admission.uid} --regid=${admission.gid} --clear-groups --no-new-privs --bounding-set=-all --inh-caps=-all --ambient-caps=-all `;
-      commands['client-'+name]=lifecycleGuard+`\ncheck_mount; check_namespace\nport=$(relay_control authority)\ndeadline=$(cat "$root/acquisition.deadline")\nnamespace_exec /usr/bin/env -i PATH=/usr/bin:/bin ${privilege}${interpreter} -I -S -B - '${name}' "$port" '/var/tmp/dvaia-v23-relay-${runId}' "$private_net" "$deadline" <<'DVAIA_TRANSPORT_CLIENT'\n${client}\nDVAIA_TRANSPORT_CLIENT\n`;
+      commands['client-'+name]=lifecycleGuard+`\ncheck_mount; check_namespace\nport=$(relay_control authority)\ndeadline=$(cat "$root/acquisition.deadline")\nnamespace_exec /usr/bin/env -i PATH=/usr/bin:/bin ${privilege}${interpreter} -I -S -B - '${name}' "$port" '/var/tmp/owasp-ai-goat-v23-relay-${runId}' "$private_net" "$deadline" <<'OWASP_AI_GOAT_TRANSPORT_CLIENT'\n${client}\nOWASP_AI_GOAT_TRANSPORT_CLIENT\n`;
     }
   }
   return {version:1,kind:phase==='transport'?'private-relay-real-transport':'private-relay-lifecycle-only',phase,runId,guest:spec.guest,
@@ -1218,7 +1218,7 @@ async function closedMetadataQualificationPlan(root,runId,targetName){
   const base=targetName==='v24-system'?'sha256:3a771f83944bb763050c23c0225c260638c4b7899e7a72485ef75e5e570499e5':'sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1';
   if(target.base!==base)throw fail('BUILD_METADATA_BASE');
   const binding={runId,target:targetName,base},guestSource=metadata.guestMetadataSource(binding,{retention:retention.mode});
-  if(Buffer.byteLength(guestSource)>262144||guestSource.includes('\nDVAIA_METADATA_GUEST\n'))throw fail('BUILD_METADATA_SOURCE_SIZE');
+  if(Buffer.byteLength(guestSource)>262144||guestSource.includes('\nOWASP_AI_GOAT_METADATA_GUEST\n'))throw fail('BUILD_METADATA_SOURCE_SIZE');
   const relay=await privateRelayPlan(spec,prerequisite.admission,{transportOnly:true,metadataOnly:true});
   // Explicit per-run proxy authority. No ambient proxy or daemon configuration
   // can become authority; the loopback address exists only in the owned netns.
@@ -1248,7 +1248,7 @@ metadata_daemon_config() {
 }
 check_metadata_proxy_env() {
  port=$(metadata_proxy_port)
- /usr/bin/python3 -I -S -B - "$1" "$root" "$port" <<'DVAIA_PROXY_ENV'
+ /usr/bin/python3 -I -S -B - "$1" "$root" "$port" <<'OWASP_AI_GOAT_PROXY_ENV'
 import sys
 pid,root,port=sys.argv[1:]
 with open('/proc/'+pid+'/environ','rb') as f: data=f.read(65537)
@@ -1256,7 +1256,7 @@ assert len(data)<=65536 and data.endswith(b'\0')
 values=data[:-1].split(b'\0')
 expected=[('PATH=/usr/bin:/bin').encode(),('TMPDIR='+root+'/fs/tmp').encode(),('HTTP_PROXY=http://127.0.0.1:'+port).encode(),('HTTPS_PROXY=http://127.0.0.1:'+port).encode(),b'NO_PROXY=']
 assert sorted(values)==sorted(expected)
-DVAIA_PROXY_ENV
+OWASP_AI_GOAT_PROXY_ENV
 }
 stop_metadata_daemon() {
  case "$1" in daemon|containerd) ;; *) return 97;; esac
@@ -1273,14 +1273,14 @@ stop_metadata_daemon() {
   let prepare=stage(baseScripts.prepare);
   prepare+='\nmkdir -m 0700 "$root/fs/docker-client"\nprintf \'{}\\n\' > "$root/fs/docker-client/config.json"\nchmod 0600 "$root/fs/docker-client/config.json"\n';
   prepare+='\nmkdir -m 0700 "$root/fs/metadata-retained"\n';
-  prepare=replaceOnce(prepare,'fallocate -l 6442450944 "$root/disk"',String.raw`/usr/bin/python3 -I -S -B - "$root/disk" <<'DVAIA_SPARSE_DISK'
+  prepare=replaceOnce(prepare,'fallocate -l 6442450944 "$root/disk"',String.raw`/usr/bin/python3 -I -S -B - "$root/disk" <<'OWASP_AI_GOAT_SPARSE_DISK'
 import os,sys
 fd=os.open(sys.argv[1],os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
 try:
  os.ftruncate(fd,6442450944);os.fsync(fd)
  s=os.fstat(fd);assert s.st_size==6442450944 and s.st_nlink==1 and s.st_blocks*512<=1048576
 finally: os.close(fd)
-DVAIA_SPARSE_DISK`);
+OWASP_AI_GOAT_SPARSE_DISK`);
   const split=baseScripts.start.indexOf('TMPDIR="$root/fs/tmp" setsid /usr/bin/nsenter');
   if(split<guard.length)throw fail('BUILD_METADATA_START_SHAPE');
   const namespace=metadataGuard+baseScripts.start.slice(guard.length,split);
@@ -1292,29 +1292,29 @@ DVAIA_SPARSE_DISK`);
   const daemons=metadataGuard+`\ncheck_mount; check_namespace\nholder=$(cat "$root/fs/namespace.pid")\nproxy_port=$(relay_control authority)\nprintf '%s' "$proxy_port" > "$root/fs/metadata.proxy.port"\nchmod 0600 "$root/fs/metadata.proxy.port"\nmetadata_daemon_config > "$root/fs/daemon.json"\n`+daemonBody;
   let install=stage(relay.install);install=replaceOnce(install,'\nrequire_private_egress\n','\n');
   let fetch=stage(baseScripts.metadata);fetch=replaceOnce(fetch,'\nrequire_private_egress\n','\n');
-  fetch=replaceOnce(fetch,'name="dvaia-metadata-$nonce"',
-    'printf \'DVAIA_METADATA_STAGE=pull-checkpoint\\n\' >&2\nrelay_control checkpoint >&2\nprintf \'DVAIA_METADATA_STAGE=pull-idle\\n\' >&2\nrelay_control idle >&2\nname="dvaia-metadata-$nonce"');
+  fetch=replaceOnce(fetch,'name="owasp-ai-goat-metadata-$nonce"',
+    'printf \'OWASP_AI_GOAT_METADATA_STAGE=pull-checkpoint\\n\' >&2\nrelay_control checkpoint >&2\nprintf \'OWASP_AI_GOAT_METADATA_STAGE=pull-idle\\n\' >&2\nrelay_control idle >&2\nname="owasp-ai-goat-metadata-$nonce"');
   fetch=replaceOnce(fetch,'--tmpfs /metadata:rw,nosuid,nodev,noexec,size=512m',
     '--mount "type=bind,source=$root/fs/metadata-retained,target=/metadata-retained,bind-propagation=rprivate" --tmpfs /metadata:rw,nosuid,nodev,noexec,size=512m');
-  fetch=replaceOnce(fetch,'printf \'DVAIA_METADATA_STAGE=guest-start\\n\' >&2',
+  fetch=replaceOnce(fetch,'printf \'OWASP_AI_GOAT_METADATA_STAGE=guest-start\\n\' >&2',
     '[ -d "$root/fs/metadata-retained" ] && [ ! -L "$root/fs/metadata-retained" ]\n[ "$(stat -c %u "$root/fs/metadata-retained")" = 0 ] && [ "$(stat -c %a "$root/fs/metadata-retained")" = 700 ]\n'+
-    'printf \'DVAIA_METADATA_STAGE=guest-start\\n\' >&2');
+    'printf \'OWASP_AI_GOAT_METADATA_STAGE=guest-start\\n\' >&2');
   const preflight=replaceOnce(stage(baseScripts.preflight),'docker buildx version','[ -x /usr/bin/docker ]');
   const acquire=metadataGuard+`
 acquisition_deadline=$(/usr/bin/python3 -I -S -B -c 'import time; print(format(time.monotonic()+300,".6f"),end="")')
-printf 'DVAIA_METADATA_STAGE=preflight\\n' >&2
+printf 'OWASP_AI_GOAT_METADATA_STAGE=preflight\\n' >&2
 /bin/sh -c ${quoteScript(preflight)} metadata-preflight "$root" "$nonce" >&2
-printf 'DVAIA_METADATA_STAGE=prepare\\n' >&2
+printf 'OWASP_AI_GOAT_METADATA_STAGE=prepare\\n' >&2
 /bin/sh -c ${quoteScript(prepare)} metadata-prepare "$root" "$nonce" "$acquisition_deadline" >&2
-printf 'DVAIA_METADATA_STAGE=namespace\\n' >&2
+printf 'OWASP_AI_GOAT_METADATA_STAGE=namespace\\n' >&2
 /bin/sh -c ${quoteScript(namespace)} metadata-namespace "$root" "$nonce" >&2
-printf 'DVAIA_METADATA_STAGE=relay-start\\n' >&2
+printf 'OWASP_AI_GOAT_METADATA_STAGE=relay-start\\n' >&2
 /bin/sh -c ${quoteScript(install)} metadata-relay "$root" "$nonce" >&2
-printf 'DVAIA_METADATA_STAGE=daemon-start\\n' >&2
+printf 'OWASP_AI_GOAT_METADATA_STAGE=daemon-start\\n' >&2
 /bin/sh -c ${quoteScript(daemons)} metadata-daemons "$root" "$nonce" >&2
-/bin/sh -c ${quoteScript(fetch)} metadata-fetch "$root" "$nonce" '${base}' <<'DVAIA_METADATA_GUEST'
+/bin/sh -c ${quoteScript(fetch)} metadata-fetch "$root" "$nonce" '${base}' <<'OWASP_AI_GOAT_METADATA_GUEST'
 ${guestSource}
-DVAIA_METADATA_GUEST
+OWASP_AI_GOAT_METADATA_GUEST
 `;
   // Evidence is retained after process retirement and before deleting journals.
   // A partial daemon spawn without its captured PID is never absence.
@@ -1345,7 +1345,7 @@ for name in daemon containerd; do
  pid=$(cat "$root/fs/$name.pid"); case "$pid" in ''|*[!0-9]*) exit 97;; esac
  [ ! -e "/proc/$pid" ]
 done
-/usr/bin/python3 -I -S -B - "$root/fs/metadata-retained" "$nonce" <<'DVAIA_METADATA_ARCHIVE'
+/usr/bin/python3 -I -S -B - "$root/fs/metadata-retained" "$nonce" <<'OWASP_AI_GOAT_METADATA_ARCHIVE'
 import os,sys,stat,json,hashlib,tarfile
 root,run=sys.argv[1:];cap=144*1024**2
 assert os.path.realpath(root)==root
@@ -1385,7 +1385,7 @@ with tarfile.open(fileobj=sink,mode='w|',format=tarfile.USTAR_FORMAT) as archive
    archive.addfile(info,f)
    after=os.fstat(f.fileno());assert (after.st_dev,after.st_ino,after.st_size,after.st_mtime_ns,after.st_ctime_ns)==(s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns)
 sys.stdout.buffer.flush()
-DVAIA_METADATA_ARCHIVE
+OWASP_AI_GOAT_METADATA_ARCHIVE
 `;
   return {version:1,kind:targetName==='listings-package'?'private-listings-metadata':targetName==='v23-registry'?'private-v23-registry-metadata':targetName==='v24-system'?'private-v24-system-metadata':targetName==='v24-policy'?'private-v24-policy-metadata':'private-v33-pricing-metadata',runId,guest:spec.guest,binding,
     ...(rendererInputs?{rendererInputs}:{}),executionApproved:false,buildApproved:false,candidateOnly:true,storageCapBytes:LIMITS.disk,storageAllocation:'sparse-fixed-size',
@@ -1435,9 +1435,9 @@ function metadataDiagnostics(){
  let tail='',dropping=false,bytes=0,lastStage=null,errorCode=null;
  const hash=crypto.createHash('sha256');
  function line(value){
-  const stage=/^DVAIA_METADATA_STAGE=([a-z-]+)$/.exec(value);
+  const stage=/^OWASP_AI_GOAT_METADATA_STAGE=([a-z-]+)$/.exec(value);
   if(stage&&stages.has(stage[1]))lastStage=stage[1];
-  const error=/^DVAIA_METADATA_ERROR=([A-Z_]+)$/.exec(value);
+  const error=/^OWASP_AI_GOAT_METADATA_ERROR=([A-Z_]+)$/.exec(value);
   if(error&&(codes.has(error[1])||/^METADATA_[A-Z_]{1,64}$/.test(error[1])))errorCode=error[1];
   if(/^SyntaxError:/.test(value))errorCode='NODE_SYNTAX_ERROR';
  }
@@ -1532,7 +1532,7 @@ async function runBoundedBuild({root,runId,runner=execute,capture=source.capture
     const rows=JSON.parse(await runner(spec,'image'));
     const image=rows?.[0];
     if(rows.length!==1||!/^sha256:[a-f0-9]{64}$/.test(image?.Id)||image.Architecture!=='arm64'||image.Os!=='linux'||
-      image.Config?.Labels?.['dvaia.registry.package']!==digest||image.Config?.Labels?.['dvaia.build-run']!==runId)throw fail('BUILD_IMAGE_MISMATCH');
+      image.Config?.Labels?.['owasp-ai-goat.registry.package']!==digest||image.Config?.Labels?.['owasp-ai-goat.build-run']!==runId)throw fail('BUILD_IMAGE_MISMATCH');
     await capture(root);
     const file=await fs.open(path.join(spec.artifact,'image.tar'),'wx',0o600),hash=crypto.createHash('sha256');
     let bytes=0;

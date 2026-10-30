@@ -1,7 +1,7 @@
 'use strict';
 const {test,after}=require('node:test'),assert=require('node:assert/strict'),Module=require('node:module'),path=require('node:path'),fs=require('node:fs'),os=require('node:os');
 const routePath=path.resolve(__dirname,'../server/routes/sensitiveInfo.js');const load=Module._load;const captured=[];
-const sensitiveFilesDir=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-legacy-sensitive-route-')),publicDir=path.join(sensitiveFilesDir,'public');
+const sensitiveFilesDir=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-legacy-sensitive-route-')),publicDir=path.join(sensitiveFilesDir,'public');
 let resetComposition=null, canonicalFailure=false;
 let selectedModeScope={generation:0,mode:null,modeStamp:'default'};
 const fixtureLegacyRuns=require('../server/agent-runtime/runCoordinator').createRunCoordinator({family:'LegacySensitiveInfoFixture',ledger:null});
@@ -72,7 +72,7 @@ test('Payload helper uses the selected provider service and remains text-only wi
  assert.equal(res.statusCode,200);assert.equal(res.body.generatedPayload,'fixture-text-only');assert.equal(res.body.vulnerability,'ssi_injection');assert.deepEqual(captured,[]);
 });
 test('Mounted file route cannot traverse or follow a symlink outside the owned teaching root',async()=>{
- const outside=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-legacy-sensitive-host-fixture-'));
+ const outside=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-legacy-sensitive-host-fixture-'));
  try{
   fs.writeFileSync(path.join(outside,'private.txt'),'host-private-fixture');
   fs.symlinkSync(path.join(outside,'private.txt'),path.join(publicDir,'escape.txt'));

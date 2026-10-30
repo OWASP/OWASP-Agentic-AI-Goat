@@ -237,7 +237,7 @@ const LandingPage = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.8 }}
           >
-            DVAIA Platform
+            OWASP Agentic AI GOAT
           </Title>
           
           <Subtitle
@@ -295,7 +295,7 @@ const LandingPage = () => {
                   <FiShoppingCart />
                 </CardIcon>
                 
-                <CardTitle>SecureShop Playground</CardTitle>
+                <CardTitle>OWASP AI SecureShop Playground</CardTitle>
 
                 <CardDescription>
                   Explore an agentic e-commerce site with real login, cart, checkout

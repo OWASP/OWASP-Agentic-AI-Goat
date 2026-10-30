@@ -35,7 +35,7 @@ function admittedUrls() {
   const owner = process.env[`${PREFIX}OWNER`];
   assert.match(owner, /^[a-f0-9]{12}$/);
   assert.equal(path.resolve(process.cwd()), ROOT);
-  assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
+  assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
   const urls = {}, databases = new Set();
   let port;
   for (const [store, family] of Object.entries(STORES)) {
@@ -49,7 +49,7 @@ function admittedUrls() {
       assert.equal(url.password, '');
       assert.equal(url.search, '');
       assert.equal(url.hash, '');
-      assert.equal(url.pathname, `/dvaia_test_owned_idor_${owner}_${store.toLowerCase()}`);
+      assert.equal(url.pathname, `/owasp_ai_goat_test_owned_idor_${owner}_${store.toLowerCase()}`);
       assert.ok(Number(url.port) > 0 && Number(url.port) <= 65535);
       if (port === undefined) port = url.port;
       else assert.equal(url.port, port);
@@ -64,7 +64,7 @@ function admittedUrls() {
 }
 
 async function candidateDirectory() {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-owned-idor-migration-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-owned-idor-migration-'));
   for (const name of (await fs.readdir(REVIEW_MIGRATIONS)).filter(name => /^\d{4}_[a-z0-9_]+\.sql$/.test(name))) {
     if (name === path.basename(ACTIVE)) continue;
     assert.ok(Number(name.slice(0, 4)) < 48, 'only the reviewed 0048 successor may follow predecessors');

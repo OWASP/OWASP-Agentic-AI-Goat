@@ -181,7 +181,7 @@ def run(args):
     if args.plan:
         print(json.dumps({'status':'plan-only','requiredFreeBytes':required,'nodeVersionExecutionVerified':False,'creditAuthorized':False}))
         return
-    root = Path(tempfile.mkdtemp(prefix='dvaia-dpi-technique-a-',dir=parent));root.chmod(0o700)
+    root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-dpi-technique-a-',dir=parent));root.chmod(0o700)
     for name in ('home','tmp','evidence'): (root/name).mkdir(mode=0o700)
     env = environment(root,node,input_path,root/'evidence')
     state = {'status':'preparing','creditAuthorized':False,'semanticAccepted':None,'children':[],'primaryError':None,'cleanupErrors':[],'integrityErrors':[]}

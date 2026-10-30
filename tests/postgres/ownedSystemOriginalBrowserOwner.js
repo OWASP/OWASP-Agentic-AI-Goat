@@ -150,7 +150,7 @@ def read_browser_record():
   row=json.loads(raw)
   require(type(row) is dict and list(row)==['version','runId','workerPid','browserPid','profilePath'] and raw==json.dumps(row,separators=(',',':'),ensure_ascii=False).encode()+b'\n','BROWSER_RECORD')
   require(type(row['version']) is int and row['version']==1 and row['runId']==CONF['runId'] and all(type(row[k]) is int and row[k]>1 for k in ('workerPid','browserPid')),'BROWSER_RECORD')
-  require(type(row['profilePath']) is str and re.fullmatch(re.escape(CONF['temporary'])+r'/dvaia-role-policy-instruction-[A-Za-z0-9]{6}',row['profilePath']),'BROWSER_PROFILE')
+  require(type(row['profilePath']) is str and re.fullmatch(re.escape(CONF['temporary'])+r'/owasp-ai-goat-role-policy-instruction-[A-Za-z0-9]{6}',row['profilePath']),'BROWSER_PROFILE')
   try:partial=os.lstat(filename+'.partial')
   except FileNotFoundError:partial=None
   if s.st_nlink==2:
@@ -461,7 +461,7 @@ function childEnvironment(options,endpoint){
   NODE_ENV:'test',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',PG_TEST_DISPOSABLE:'yes',
   AWS_EC2_METADATA_DISABLED:'true',LOGS_DIR:path.join(p.runtime,'logs'),SECURESHOP_UPLOAD_ROOT:path.join(p.runtime,'uploads'),
   SECURESHOP_POLICY_INSTRUCTION_BROWSER_POLICY_VERSION:options.policyVersion,
-  SECURESHOP_POLICY_INSTRUCTION_BROWSER_NATIVE:'1',SECURESHOP_POLICY_INSTRUCTION_BROWSER_TEST_NO_SANDBOX:'1',LIVE_OLLAMA_TEST:'1',LAB_MODE:'vuln',DVAIA_CURRENT_MAIN_WORKSPACE:ROOT,
+  SECURESHOP_POLICY_INSTRUCTION_BROWSER_NATIVE:'1',SECURESHOP_POLICY_INSTRUCTION_BROWSER_TEST_NO_SANDBOX:'1',LIVE_OLLAMA_TEST:'1',LAB_MODE:'vuln',OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:ROOT,
   SECURESHOP_POLICY_INSTRUCTION_BROWSER_RENDERER_TRANSPORT:'owned-pair-v1',
   SECURESHOP_POLICY_INSTRUCTION_BROWSER_POLICY_RENDERER_URL:endpoint.policy.baseURL,
   SECURESHOP_POLICY_INSTRUCTION_BROWSER_BUILD:path.join(ROOT,'client/build'),
@@ -473,7 +473,7 @@ function childEnvironment(options,endpoint){
   SS_DISABLE_OLLAMA:'false',SS_ENABLE_REAL_LLM_TESTS:'true',OLLAMA_BASE_URL:'http://127.0.0.1:11434',OLLAMA_MODEL:'llama3.1:8b'};
  for(const [role,store]of [['IDENTITY','identity'],['AGENTS','secureshop_agents'],['REVIEW','secureshop_review'],['COMMERCE','secureshop']])
   for(const type of ['runtime','migration'])env['PG_SECURESHOP_POLICY_INSTRUCTION_BROWSER_'+role+'_'+type.toUpperCase()+'_URL']=
-   `postgresql://dvaia_${store}_${type}@127.0.0.1:${options.pgPort}/dvaia_test_agent_host_${options.pgNonce}_${store}`;
+   `postgresql://dvaia_${store}_${type}@127.0.0.1:${options.pgPort}/owasp_ai_goat_test_agent_host_${options.pgNonce}_${store}`;
  return Object.freeze(env);
 }
 function controllerProgram(options,environmentKeys,environment){
@@ -562,7 +562,7 @@ function validateTerminal(value,runId){
  if(b!==null&&(!exact(b,'pid,birth,pgid,workerPid,profilePath,birthSha256,acknowledged,groupAbsent,processAbsent,profileAbsent,errors')
   ||!integer(b.pid,2)||b.pgid!==b.pid||b.pid===c.pid||!integer(b.workerPid,2)||b.workerPid===b.pid||!validBirth(b.birth)||!digest(b.birthSha256)
   ||typeof b.profilePath!=='string'||path.dirname(b.profilePath)!==path.join(ROOT,'tasks/qualification','system-original-owner-'+runId,'runtime/tmp')
-  ||!/^dvaia-role-policy-instruction-[A-Za-z0-9]{6}$/.test(path.basename(b.profilePath))
+  ||!/^owasp-ai-goat-role-policy-instruction-[A-Za-z0-9]{6}$/.test(path.basename(b.profilePath))
   ||!['acknowledged','groupAbsent','processAbsent','profileAbsent'].every(k=>typeof b[k]==='boolean')
   ||!Array.isArray(b.errors)||b.errors.length>3||!b.errors.every(e=>['BROWSER_RETIREMENT_UNPROVEN','BROWSER_PROFILE_UNPROVEN'].includes(e))))throw fail('SYSTEM_ORIGINAL_TERMINAL');
  const retired=['reaped','groupAbsent','browserProcessesAbsent','profilesAbsent'].every(k=>c[k])&&c.errors.length===0

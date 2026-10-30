@@ -11,7 +11,7 @@ const { once } = require('node:events');
 const { exportLegacyRamRag, expressionFor, evaluateInspector } = require('./fixtures/legacyRamRagExport');
 
 test('one inspector event exports only the cached legacy RAG singleton Maps without pausing', async t => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-legacy-rag-export-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-legacy-rag-export-'));
   fs.chmodSync(root, 0o700); t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const child = fork(path.join(__dirname, 'fixtures/legacyRamRagExportTarget.js'), [], {
     execArgv: ['--inspect=127.0.0.1:0'], stdio: ['ignore', 'ignore', 'ignore', 'ipc'],

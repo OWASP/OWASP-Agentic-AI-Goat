@@ -34,7 +34,7 @@ const secret = 'owned-password-overlay-secret-at-least-32-bytes';
 
 function pool(url, max = 6) {
   return new Pool({ connectionString: url, max, statement_timeout: 15000,
-    lock_timeout: 3000, application_name: 'dvaia-password-overlay-native' });
+    lock_timeout: 3000, application_name: 'owasp-ai-goat-password-overlay-native' });
 }
 function scope(overrides = {}) {
   return Object.freeze({ launchId: randomUUID(), scenarioId: randomUUID(), generation: 1,
@@ -67,7 +67,7 @@ function expires(minutes = 30) { return new Date(Date.now() + minutes * 60000).t
 function assertDisposable(url) {
   const parsed = new URL(url);
   assert.ok(['127.0.0.1', 'localhost'].includes(parsed.hostname));
-  assert.match(parsed.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(parsed.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
 }
 async function prepareCommerce(migration) {
   await migrate(migration, path.join(root, 'db/postgres/workshop-migrations/secureshop'));

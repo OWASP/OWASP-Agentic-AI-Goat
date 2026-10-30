@@ -23,11 +23,11 @@ function text(value, name, maximum) {
   if (typeof value !== 'string' || !value.length || Buffer.byteLength(value) > maximum) fail('MCP_MAIL_INVALID', `${name} is invalid`);
   return value;
 }
-function messageId(intentId) { return `mcp-${intentId.toLowerCase()}@dvaia.local`; }
+function messageId(intentId) { return `mcp-${intentId.toLowerCase()}@owasp-ai-goat.local`; }
 function exactMessageIds(values) {
   if (!Array.isArray(values)) fail('MCP_MAIL_CLEANUP_INCOMPLETE', 'Owned SMTP message set is invalid');
   const ids = values.map(value => text(value, 'messageId', 320));
-  if (ids.some(value => !/^mcp-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}@dvaia\.local$/i.test(value))
+  if (ids.some(value => !/^mcp-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}@owasp-ai-goat\.local$/i.test(value))
       || new Set(ids).size !== ids.length) fail('MCP_MAIL_CLEANUP_INCOMPLETE', 'Owned SMTP message set is invalid');
   return ids;
 }

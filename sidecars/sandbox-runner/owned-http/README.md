@@ -27,9 +27,9 @@ listener descriptors 3–6, clears capability sets, enables no-new-privileges an
 re-executes its attestation branch before the fixed Node worker. The second
 process checks capability sets, loopback-only interfaces, no IPv4/IPv6 default
 route and actual descriptor addresses. Packaging is expected to place this at
-`/usr/local/libexec/dvaia-owned-http-init`, the worker at
-`/usr/local/libexec/dvaia-owned-http-worker.js`, and the manifest alongside it as
-`dvaia-owned-http-manifest.json`, root-owned and non-writable. Future production
+`/usr/local/libexec/owasp-ai-goat-owned-http-init`, the worker at
+`/usr/local/libexec/owasp-ai-goat-owned-http-worker.js`, and the manifest alongside it as
+`owasp-ai-goat-owned-http-manifest.json`, root-owned and non-writable. Future production
 readiness must verify exact open-descriptor ownership/modes/hashes; this is not
 implemented by the candidate itself.
 

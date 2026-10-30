@@ -19,7 +19,7 @@ function privateBrowserOptions({directory,origin,profile,executablePath}){
  assert.equal(target.hostname,'127.0.0.1');assert.match(target.port,/^[1-9][0-9]{0,4}$/);
  assert.equal(target.pathname,'/');assert.equal(target.search,'');assert.equal(target.hash,'');
  assert.equal(path.dirname(profile),path.join(directory,'tmp'));
- assert.match(path.basename(profile),/^dvaia-v23-public-admin-[A-Za-z0-9_-]+$/);
+ assert.match(path.basename(profile),/^owasp-ai-goat-v23-public-admin-[A-Za-z0-9_-]+$/);
  const info=require('node:fs').lstatSync(profile);
  assert(info.isDirectory()&&!info.isSymbolicLink());assert.equal(info.uid,process.getuid());
  assert.equal(info.mode&0o777,0o700);assert.equal(require('node:fs').realpathSync(profile),profile);
@@ -288,7 +288,7 @@ function urls(env){
   for(const role of ['RUNTIME','MIGRATION']){
    const u=new URL(env[PREFIX+key+'_'+role+'_URL']);assert.equal(u.protocol,'postgresql:');assert.equal(u.hostname,'127.0.0.1');
    assert.equal(u.username,'dvaia_'+store+'_'+role.toLowerCase());assert.equal(u.search,'');assert.equal(u.hash,'');
-   const m=new RegExp('^/dvaia_test_agent_host_([a-f0-9]{12})_'+store+'$').exec(u.pathname);assert(m);nonces.add(m[1]);ports.add(u.port);names.add(u.pathname);result[key+'_'+role]=u.href;
+   const m=new RegExp('^/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_'+store+'$').exec(u.pathname);assert(m);nonces.add(m[1]);ports.add(u.port);names.add(u.pathname);result[key+'_'+role]=u.href;
   }
  }assert.equal(names.size,4);assert.equal(nonces.size,1);assert.equal(ports.size,1);assert(!ports.has(''));return result;
 }
@@ -358,7 +358,7 @@ function assertReceipt(r){
 }
 async function freePort(){return new Promise((resolve,reject)=>{const s=net.createServer();s.once('error',reject);s.listen(0,'127.0.0.1',()=>{const p=s.address().port;s.close(e=>e?reject(e):resolve(p));});});}
 async function runNative(env=process.env,ownedScope){
- assert.equal(env.SECURESHOP_V23_ORIGINAL_NATIVE,'1');assert.equal(env.LIVE_OLLAMA_TEST,'1');assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE,ROOT);
+ assert.equal(env.SECURESHOP_V23_ORIGINAL_NATIVE,'1');assert.equal(env.LIVE_OLLAMA_TEST,'1');assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,ROOT);
  assert(fixture.REQUEST_VARIANTS.includes(env.V23_REQUEST_VARIANT));const requestVariant=env.V23_REQUEST_VARIANT;
  assert(fixture.BOUNDARY_CONTRACTS.includes(env.V23_BOUNDARY_CONTRACT));const boundaryContract=env.V23_BOUNDARY_CONTRACT;
  const owned=require('./ownedMcpOriginalCohortDriver').assertScope(ownedScope);
@@ -557,7 +557,7 @@ function publicFailureDiagnostic(stage,error){
 }
 async function runPublicNative(env=process.env,ownedScope){
  assert.equal(env.SECURESHOP_V23_PUBLIC_RENDERED_NATIVE,'1');
- assert.equal(env.LIVE_OLLAMA_TEST,'1');assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE,ROOT);
+ assert.equal(env.LIVE_OLLAMA_TEST,'1');assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,ROOT);
  assert(fixture.REQUEST_VARIANTS.includes(env.V23_REQUEST_VARIANT));
  assert(fixture.BOUNDARY_CONTRACTS.includes(env.V23_BOUNDARY_CONTRACT));
  const owned=require('../../tests/postgres/ownedMcpOriginalCohortDriver').assertScope(ownedScope);
@@ -750,7 +750,7 @@ async function runPublicNative(env=process.env,ownedScope){
   profile=path.resolve(env.V23_PUBLIC_BROWSER_PROFILE||'/');
   assert.equal(profile,env.V23_PUBLIC_BROWSER_PROFILE);
   assert.equal(path.dirname(profile),process.env.TMPDIR);
-  assert.match(path.basename(profile),/^dvaia-v23-public-admin-[A-Za-z0-9_-]+$/);
+  assert.match(path.basename(profile),/^owasp-ai-goat-v23-public-admin-[A-Za-z0-9_-]+$/);
   const profileInfo=await fs.lstat(profile);
   assert(profileInfo.isDirectory()&&!profileInfo.isSymbolicLink());
   assert.equal(profileInfo.uid,process.getuid());assert.equal(profileInfo.mode&0o777,0o700);
@@ -831,7 +831,7 @@ async function runPublicNative(env=process.env,ownedScope){
     executorClient:registrationClient,scope,persona,personaSession,rowsBefore,
     readExecutorCalls:()=>executorCalls,executorCallsBefore:executorCalls,check:owned.check});
    const headers={authorization:`Bearer ${publicBootstrap.persona.token}`,
-    'x-dvaia-secureshop-launch':publicBootstrap.bearer};
+    'x-owasp-ai-goat-secureshop-launch':publicBootstrap.bearer};
    let savedTurn;
    const readProtected=savedReader.createProtectedSavedReader({origin,headers,fetchImpl:fetch,
     check:owned.check,record:row=>browserPaths.push({...row,protectedGet:true})});
@@ -969,7 +969,7 @@ async function runPublicNative(env=process.env,ownedScope){
   const positiveRequest={sessionId:positive.observation.sessionId,
    requestId:positive.observation.requestId,message:positive.spec.message};
   const callsBeforeFences=result.actorCalls,effectsBeforeFences=executorCalls;
-  await denied({...positive.headers,'x-dvaia-secureshop-launch':benign.headers['x-dvaia-secureshop-launch']},
+  await denied({...positive.headers,'x-owasp-ai-goat-secureshop-launch':benign.headers['x-owasp-ai-goat-secureshop-launch']},
    positiveRequest);result.gates.foreignOwnerDenied=true;
   await denied({...positive.headers,authorization:benign.headers.authorization},positiveRequest);
   result.gates.foreignSessionDenied=true;

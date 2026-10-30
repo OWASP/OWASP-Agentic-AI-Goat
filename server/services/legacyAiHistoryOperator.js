@@ -159,7 +159,7 @@ function createLegacyAiHistoryOperator({ env = process.env,
       }
       const pool = key => {
         const result = createPool({ connectionString: env[key], max: 1, connectionTimeoutMillis: 10000,
-          statement_timeout: 120000, application_name: 'dvaia-history-operator' });
+          statement_timeout: 120000, application_name: 'owasp-ai-goat-history-operator' });
         if (typeof result?.end !== 'function') throw failure();
         pools.push(result); return result;
       };

@@ -26,7 +26,7 @@ Backend admission, original persona/session authority, quotas, immutable durable
 
 ## Prepared native command (not yet run)
 
-`python3.14 -B tests/run-system-diagnostic-native-isolated.py --docker-host unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock`
+`python3.14 -B tests/run-system-diagnostic-native-isolated.py --docker-host unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock`
 
 The launcher freezes only the dedicated diagnostic closure and itself. It checks the exact ARM64 base, builds both root-owned helpers and their manifests with warnings-as-errors, records resolved packages, then uses an owned network-none readonly container (uid10001,512MiB,1CPU,128PIDs,128MiB tmpfs). Build deadline300s; execution120s. Cleanup verifies owner labels before deletion and absence of exact container, image tag/ID and build process group. No DB, model, application stack or host mount is involved. Source remains unlaunched pending resource review.
 

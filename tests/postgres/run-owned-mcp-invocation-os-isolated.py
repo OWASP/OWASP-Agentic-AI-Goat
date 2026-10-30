@@ -27,7 +27,7 @@ def capture_claim_receipt(root,kind='claim'):
  finally:os.close(fd)
 def retain_native_failure(command,root,container):
  """No child bytes in subprocess output; only the fixed private file is copied."""
- remote='/var/lib/dvaia-invocation/first-worker-failure.bin'
+ remote='/var/lib/owasp-ai-goat-invocation/first-worker-failure.bin'
  probe=command(['exec',container,'test','-e',remote])
  if probe.returncode==1:return {'status':'absent'}
  if probe.returncode:raise RuntimeError('Private failure probe unavailable')
@@ -76,7 +76,7 @@ const procMounts=buffer.subarray(0,length).toString('utf8').split('\n').filter(l
  const destination=line.split(' ')[4];return destination==='/proc'||destination?.startsWith('/proc/');
 });
 process.stdout.write(JSON.stringify({bwrapVersion:version,packageVersion,kernelRelease:kernel,procMounts,commandEvidence}));
-} catch {process.stderr.write(JSON.stringify({marker:'DVAIA_BOOTSTRAP_METADATA_FAILURE',stage,category,commandEvidence})+'\n');process.exitCode=70;}
+} catch {process.stderr.write(JSON.stringify({marker:'OWASP_AI_GOAT_BOOTSTRAP_METADATA_FAILURE',stage,category,commandEvidence})+'\n');process.exitCode=70;}
 """
 def run_metadata_command(argv,root,timeout=5,limit=65536):
  """Own process group; file-size cap bounds trusted bootstrap output privately."""
@@ -121,7 +121,7 @@ def capture_attestation_artifacts(root):
  return artifacts
 
 def parse_attestation_asset(raw):
- match=re.fullmatch(r'([a-f0-9]{64})  /usr/local/libexec/dvaia-invocation-attestation-controls\n',raw)
+ match=re.fullmatch(r'([a-f0-9]{64})  /usr/local/libexec/owasp-ai-goat-invocation-attestation-controls\n',raw)
  if not match:raise ValueError('Invalid qualification asset manifest')
  return match.group(1)
 
@@ -141,7 +141,7 @@ def cleanup_image(command,tag,owner,captured_id=None):
  row=M.inspect_resource(command,'image',tag)
  if row is not None:
   identifier=row.get('Id')
-  if not isinstance(identifier,str) or not identifier.startswith('sha256:') or row.get('Config',{}).get('Labels',{}).get('dvaia.owner')!=owner or captured_id is not None and identifier!=captured_id:raise RuntimeError('Owned image identity mismatch')
+  if not isinstance(identifier,str) or not identifier.startswith('sha256:') or row.get('Config',{}).get('Labels',{}).get('owasp-ai-goat.owner')!=owner or captured_id is not None and identifier!=captured_id:raise RuntimeError('Owned image identity mismatch')
   if command(['image','rm',tag]).returncode:raise RuntimeError('Owned image removal failed')
   captured_id=identifier
  if M.inspect_resource(command,'image',tag) is not None:raise RuntimeError('Owned image tag remains')
@@ -151,8 +151,8 @@ def cleanup_image(command,tag,owner,captured_id=None):
 def compile_only(args):
  # This branch intentionally has no container, network, SSH, profile or state-volume API.
  reviewed=verify(SOURCE,args.source_sha256,args.dependency_sha256)
- root=Path(tempfile.mkdtemp(prefix='dvaia-mcp-invocation-compile-'));root.chmod(0o700)
- owner=uuid.uuid4().hex;tag='dvaia-mcp-invocation-compile-'+owner[:12]+':owned';docker=[M.DOCKER,'--host',M.HOST]
+ root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-invocation-compile-'));root.chmod(0o700)
+ owner=uuid.uuid4().hex;tag='owasp-ai-goat-mcp-invocation-compile-'+owner[:12]+':owned';docker=[M.DOCKER,'--host',M.HOST]
  state={'status':'preparing','root':str(root),'owner':owner,'launcherPid':os.getpid(),'scope':'compile-only; no kernel qualification','bounds':{'parentSeconds':600,'buildSeconds':300,'childSeconds':0,'modelCalls':0,'browserCalls':0,'databaseCount':0},'reviewed':reviewed,'imageTag':tag,'cleanup':{}}
  started=time.monotonic();build=None;image=None;admitted=False;ca=root/'build-ca.pem'
  def persist():(root/'ownership.json').write_text(json.dumps(state,indent=2)+'\n')
@@ -173,14 +173,14 @@ def compile_only(args):
   certificate=run(['/usr/bin/security','find-certificate','-a','-p','/Library/Keychains/System.keychain']).stdout+run(['/usr/bin/security','find-certificate','-a','-p',str(Path.home()/'Library/Keychains/login.keychain-db')]).stdout
   if '-----BEGIN CERTIFICATE-----' not in certificate:raise RuntimeError('Build CA unavailable')
   ca.write_text(certificate);ca.chmod(0o600)
-  argv=docker+['build','--platform','linux/arm64','--target','runtime','--label','dvaia.owner='+owner,'--secret','id=npm_ca,src='+str(ca),'--tag',tag,'--file',str(SOURCE/'sidecars/sandbox-runner/owned-mcp-registry/Dockerfile.invocation'),str(SOURCE)]
+  argv=docker+['build','--platform','linux/arm64','--target','runtime','--label','owasp-ai-goat.owner='+owner,'--secret','id=npm_ca,src='+str(ca),'--tag',tag,'--file',str(SOURCE/'sidecars/sandbox-runner/owned-mcp-registry/Dockerfile.invocation'),str(SOURCE)]
   with (root/'build.log').open('w') as log:
    build=subprocess.Popen(argv,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
    state['buildPgid']=build.pid;persist()
    state['buildExitCode']=build.wait(timeout=min(300,540-(time.monotonic()-started)))
   if state['buildExitCode']!=0:raise RuntimeError('Invocation image compilation failed; retained build.log')
   row=M.inspect_resource(command,'image',tag)
-  if row is None or row.get('Config',{}).get('Labels',{}).get('dvaia.owner')!=owner:raise RuntimeError('Compiled image ownership mismatch')
+  if row is None or row.get('Config',{}).get('Labels',{}).get('owasp-ai-goat.owner')!=owner:raise RuntimeError('Compiled image ownership mismatch')
   image=row['Id'];state['imageId']=image
   state['finalIntegrity']=verify(SOURCE,args.source_sha256,args.dependency_sha256)
   state['status']='passed'
@@ -227,7 +227,7 @@ def create_remote_root(ssh,remote,owner,state,persist):
  return True
 
 def cancellation_cohort(args):
- root=Path(tempfile.mkdtemp(prefix='dvaia-mcp-handshake-cohort-'));root.chmod(0o700)
+ root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-handshake-cohort-'));root.chmod(0o700)
  started=time.monotonic();limits={'workDeadline':started+510,'buildSeconds':300.0,'childSeconds':180.0,'cleanupSeconds':75.0};report={'status':'running','scope':'three sequential independent containments; no concurrent sibling proof','root':str(root),'variants':[],'launcherPid':os.getpid(),'limits':dict(limits)}
  def persist():(root/'cohort.json').write_text(json.dumps(report,indent=2)+'\n')
  persist()
@@ -256,7 +256,7 @@ def main(qualification=None):
  if a.compile_only:return compile_only(a)
  if not a.kernel_only:raise RuntimeError('Full kernel launcher remains unqualified without explicit --kernel-only reviewed opt-in')
  reviewed=verify(SOURCE,a.source_sha256,a.dependency_sha256)
- root=Path(tempfile.mkdtemp(prefix='dvaia-mcp-invocation-os-'));root.chmod(0o700);owner=uuid.uuid4().hex;nonce=owner[:12];name='dvaia-owned-mcp-registry-'+nonce;tag=name+':invocation';network=name+'-net';remote='/tmp/'+name
+ root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-invocation-os-'));root.chmod(0o700);owner=uuid.uuid4().hex;nonce=owner[:12];name='owasp-ai-goat-owned-mcp-registry-'+nonce;tag=name+':invocation';network=name+'-net';remote='/tmp/'+name
  if qualification:qualification['onAdmit'](root,owner)
  state={'status':'preparing','root':str(root),'owner':owner,'launcherPid':os.getpid(),'bounds':BOUNDS,'reviewed':reviewed,'containerIds':{},'cleanup':{}}
  started=time.monotonic();work_until=min(started+510,qualification['limits']['workDeadline']) if qualification else started+510;build_budget=min(300,qualification['limits']['buildSeconds']) if qualification else 300;child_budget=min(180,qualification['limits']['childSeconds']) if qualification else 180;cleanup_budget=min(75,qualification['limits']['cleanupSeconds']) if qualification else 75;state['measured']={};state['allocation']={'workDeadline':work_until,'buildSeconds':build_budget,'childSeconds':child_budget,'cleanupSeconds':cleanup_budget};state['qualificationPhase']=qualification['phase'] if qualification else None;build=child=tunnel=None;image=None;remote_owned=profile=False;created=[];private=[];key=b'';token='';docker=[M.DOCKER,'--host',M.HOST]
@@ -287,20 +287,20 @@ def main(qualification=None):
   ca.write_text(cert);ca.chmod(0o600);private.append(ca)
   build_started=time.monotonic()
   with (root/'build.log').open('w') as log:
-   build=subprocess.Popen(docker+['build','--platform','linux/arm64','--target',('cancellation-'+qualification['phase'] if qualification and qualification['phase']!='control' else 'attestation-qualification' if a.attestation_controls else 'runtime'),'--label','dvaia.owner='+owner,'--secret','id=npm_ca,src='+str(ca),'--tag',tag,'--file',str(workspace/'sidecars/sandbox-runner/owned-mcp-registry/Dockerfile.invocation'),str(workspace)],stdout=log,stderr=subprocess.STDOUT,start_new_session=True);state['buildPgid']=build.pid;persist()
+   build=subprocess.Popen(docker+['build','--platform','linux/arm64','--target',('cancellation-'+qualification['phase'] if qualification and qualification['phase']!='control' else 'attestation-qualification' if a.attestation_controls else 'runtime'),'--label','owasp-ai-goat.owner='+owner,'--secret','id=npm_ca,src='+str(ca),'--tag',tag,'--file',str(workspace/'sidecars/sandbox-runner/owned-mcp-registry/Dockerfile.invocation'),str(workspace)],stdout=log,stderr=subprocess.STDOUT,start_new_session=True);state['buildPgid']=build.pid;persist()
    state['buildExitCode']=build.wait(timeout=min(build_budget,work_until-time.monotonic()))
    state['measured']['buildSeconds']=time.monotonic()-build_started
    if state['buildExitCode']!=0:raise RuntimeError('Invocation compile/image build failed; see build.log')
   image=run(docker+['image','inspect',tag,'--format','{{.Id}}']).stdout.strip();state['imageId']=image
-  run(docker+['network','create','--internal','--label','dvaia.owner='+owner,network])
+  run(docker+['network','create','--internal','--label','owasp-ai-goat.owner='+owner,network])
   # Exact owned stopped container extracts only the public asset manifest.
   state['pendingContainerCreate']=name;persist()
-  run(docker+['create','--name',name,'--label','dvaia.owner='+owner,'--network',network,image]);state.pop('pendingContainerCreate',None);created.append(name);state['containerIds'][name]=inspect_owned(command,name=name,labels={'dvaia.owner':owner},image=image)['Id'];persist()
-  run(docker+['cp',name+':/usr/share/dvaia/invocation-assets.json',str(root/'assets.json')]);assets=json.loads((root/'assets.json').read_text());runtime=hashlib.sha256(json.dumps(assets,separators=(',',':')).encode()).hexdigest();state['runtimeSha256']=runtime
-  cleanup_owned(command,daemon_id=M.DAEMON_ID,name=name,labels={'dvaia.owner':owner},image=image,captured_id=state['containerIds'][name]);created.remove(name);state['extractContainerId']=state['containerIds'].pop(name)
+  run(docker+['create','--name',name,'--label','owasp-ai-goat.owner='+owner,'--network',network,image]);state.pop('pendingContainerCreate',None);created.append(name);state['containerIds'][name]=inspect_owned(command,name=name,labels={'owasp-ai-goat.owner':owner},image=image)['Id'];persist()
+  run(docker+['cp',name+':/usr/share/owasp-ai-goat/invocation-assets.json',str(root/'assets.json')]);assets=json.loads((root/'assets.json').read_text());runtime=hashlib.sha256(json.dumps(assets,separators=(',',':')).encode()).hexdigest();state['runtimeSha256']=runtime
+  cleanup_owned(command,daemon_id=M.DAEMON_ID,name=name,labels={'owasp-ai-goat.owner':owner},image=image,captured_id=state['containerIds'][name]);created.remove(name);state['extractContainerId']=state['containerIds'].pop(name)
   manager=str(uuid.uuid4());volume=str(uuid.uuid4());key=secrets.token_bytes(32);token=secrets.token_urlsafe(32);keyid='native-owned'
   config={'managerInstanceId':manager,'volumeId':volume,'runtimeSha256':runtime,'keyId':keyid,'keySha256':hashlib.sha256(key).hexdigest(),'qualificationEpochProbe':True}
-  files={'state/supervisor.lock':'','state/identity':manager+'\n'+volume+'\n'+runtime+'\n','state/state.json':json.dumps({'version':1,'managerInstanceId':manager,'runtimeSha256':runtime,'claims':{},'fences':{}},separators=(',',':'),sort_keys=True)+'\n','secrets/dvaia-invocation.json':json.dumps(config),'secrets/dvaia-invocation.token':token}
+  files={'state/supervisor.lock':'','state/identity':manager+'\n'+volume+'\n'+runtime+'\n','state/state.json':json.dumps({'version':1,'managerInstanceId':manager,'runtimeSha256':runtime,'claims':{},'fences':{}},separators=(',',':'),sort_keys=True)+'\n','secrets/owasp-ai-goat-invocation.json':json.dumps(config),'secrets/owasp-ai-goat-invocation.token':token}
   for rel,data in files.items():ssh(['tee',remote+'/'+rel],input=data);ssh(['chmod','0600',remote+'/'+rel])
   # Binary key travels on stdin only; never argv, environment or retained logs.
   keyfile=root/'signing.key';keyfile.write_bytes(key);keyfile.chmod(0o600);private.append(keyfile)
@@ -308,18 +308,18 @@ def main(qualification=None):
   ssh(['chmod','0600',remote+'/state/signing.key']);ssh(['sudo','chown','-R','10001:10001',remote+'/state',remote+'/secrets'])
   def create(container,deadline=None):
    state['pendingContainerCreate']=container;persist()
-   run(docker+['create','--name',container,'--label','dvaia.owner='+owner,'--network',network,'--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--tmpfs','/run/dvaia-invocation:rw,nosuid,nodev,noexec,size=1m,mode=0700,uid=10001,gid=10001','--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--security-opt','apparmor='+name,'--security-opt','seccomp=unconfined','--user','10001:10001','--env','DVAIA_INVOCATION_PRIVATE_DIAGNOSTICS=1','--mount','type=bind,src='+remote+'/state,dst=/var/lib/dvaia-invocation','--mount','type=bind,src='+remote+'/secrets,dst=/run/secrets,readonly',image,manager,volume,runtime],timeout=M.startup_timeout(deadline) if deadline else 15);state.pop('pendingContainerCreate',None);created.append(container);state['containerIds'][container]=inspect_owned(command,name=container,labels={'dvaia.owner':owner},image=image)['Id'];persist()
+   run(docker+['create','--name',container,'--label','owasp-ai-goat.owner='+owner,'--network',network,'--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--tmpfs','/run/owasp-ai-goat-invocation:rw,nosuid,nodev,noexec,size=1m,mode=0700,uid=10001,gid=10001','--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--security-opt','apparmor='+name,'--security-opt','seccomp=unconfined','--user','10001:10001','--env','OWASP_AI_GOAT_INVOCATION_PRIVATE_DIAGNOSTICS=1','--mount','type=bind,src='+remote+'/state,dst=/var/lib/owasp-ai-goat-invocation','--mount','type=bind,src='+remote+'/secrets,dst=/run/secrets,readonly',image,manager,volume,runtime],timeout=M.startup_timeout(deadline) if deadline else 15);state.pop('pendingContainerCreate',None);created.append(container);state['containerIds'][container]=inspect_owned(command,name=container,labels={'owasp-ai-goat.owner':owner},image=image)['Id'];persist()
   startup_deadline=time.monotonic()+30
   create(name,startup_deadline);run(docker+['start',name],timeout=M.startup_timeout(startup_deadline));startup_command=lambda argv:run(docker+argv,timeout=M.startup_timeout(startup_deadline),check=False)
-  info=inspect_owned(startup_command,name=name,labels={'dvaia.owner':owner},image=image,captured_id=state['containerIds'][name]);net=M.inspect_resource(startup_command,'network',network)
+  info=inspect_owned(startup_command,name=name,labels={'owasp-ai-goat.owner':owner},image=image,captured_id=state['containerIds'][name]);net=M.inspect_resource(startup_command,'network',network)
   # Validate equivalent sole internal endpoint with the exact owner label.
   address=M.validate_internal_endpoint(info,net,network,owner,state['containerIds'][name],binding_mode='invocation')
   if a.attestation_controls:
    control_root=root/'attestation-controls';control_root.mkdir(mode=0o700)
    manifest=control_root/'asset.sha256'
-   run(docker+['cp',state['containerIds'][name]+':/usr/share/dvaia/invocation-attestation-controls.sha256',str(manifest)]);manifest.chmod(0o600)
+   run(docker+['cp',state['containerIds'][name]+':/usr/share/owasp-ai-goat/invocation-attestation-controls.sha256',str(manifest)]);manifest.chmod(0o600)
    state['attestationControlAsset']={'name':'attestation-controls/asset.sha256','sha256':sha(manifest),'bytes':manifest.stat().st_size,'imageId':image,'helperSha256':parse_attestation_asset(manifest.read_text())};persist()
-   attempt=run_metadata_command(docker+['exec',state['containerIds'][name],'/usr/local/libexec/dvaia-invocation-attestation-controls'],control_root,timeout=8)
+   attempt=run_metadata_command(docker+['exec',state['containerIds'][name],'/usr/local/libexec/owasp-ai-goat-invocation-attestation-controls'],control_root,timeout=8)
    for artifact in attempt['artifacts']:artifact['name']='attestation-controls/'+artifact['name']
    state['attestationControlAttempt']=attempt;persist()
    if attempt['returncode'] or attempt['timedOut'] or attempt['truncated']:raise RuntimeError('Native attestation controls failed; private evidence retained')
@@ -359,8 +359,8 @@ def main(qualification=None):
    child=subprocess.Popen([str(M.NODE),str(workspace/('tests/fixtures/secureshopOwnedMcpHandshakeCancellation.native.js' if qualification else 'tests/fixtures/secureshopOwnedMcpInvocationOs.native.js'))],env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True);state['childPgid']=child.pid;persist()
    child_exit=child.wait(timeout=min(child_budget,work_until-time.monotonic()));state['measured']['childSeconds']=time.monotonic()-child_started
    if child_exit!=0:raise RuntimeError('Invocation kernel cohort failed')
-  run(docker+['kill','--signal','KILL',name]);info=inspect_owned(command,name=name,labels={'dvaia.owner':owner},image=image,captured_id=state['containerIds'][name]);assert info['State']['Running'] is False
-  cleanup_owned(command,daemon_id=M.DAEMON_ID,name=name,labels={'dvaia.owner':owner},image=image,captured_id=state['containerIds'][name]);created.remove(name)
+  run(docker+['kill','--signal','KILL',name]);info=inspect_owned(command,name=name,labels={'owasp-ai-goat.owner':owner},image=image,captured_id=state['containerIds'][name]);assert info['State']['Running'] is False
+  cleanup_owned(command,daemon_id=M.DAEMON_ID,name=name,labels={'owasp-ai-goat.owner':owner},image=image,captured_id=state['containerIds'][name]);created.remove(name)
   if not qualification:
    create(name+'-takeover');run(docker+['start',name+'-takeover']);waited=run(docker+['wait',name+'-takeover'],timeout=30);assert waited.stdout.strip()=='70';state['unprovedTakeoverDenied']=True
   state['finalIntegrity']=verify(workspace,a.source_sha256,a.dependency_sha256);state['resultSha256']=sha(root/'candidate-result.json');state['status']='passed'
@@ -391,13 +391,13 @@ def main(qualification=None):
   containers_clean=True
   for container in [name+'-takeover',name]:
    try:
-    proof=cleanup_owned(clean_command,daemon_id=M.DAEMON_ID,name=container,labels={'dvaia.owner':owner},image=image,captured_id=state['containerIds'].get(container));state['cleanup'][container]=proof
+    proof=cleanup_owned(clean_command,daemon_id=M.DAEMON_ID,name=container,labels={'owasp-ai-goat.owner':owner},image=image,captured_id=state['containerIds'].get(container));state['cleanup'][container]=proof
     identifier=proof.get('containerId')
-    if identifier and inspect_owned(clean_command,name=identifier,labels={'dvaia.owner':owner},image=image) is not None:raise RuntimeError('Exact container ID remains')
+    if identifier and inspect_owned(clean_command,name=identifier,labels={'owasp-ai-goat.owner':owner},image=image) is not None:raise RuntimeError('Exact container ID remains')
    except Exception as error:containers_clean=False;errors.append(str(error))
   try:
    identifier=state.get('extractContainerId')
-   if identifier and inspect_owned(clean_command,name=identifier,labels={'dvaia.owner':owner},image=image) is not None:raise RuntimeError('Extraction container remains')
+   if identifier and inspect_owned(clean_command,name=identifier,labels={'owasp-ai-goat.owner':owner},image=image) is not None:raise RuntimeError('Extraction container remains')
   except Exception as error:containers_clean=False;errors.append(str(error))
   try:
    if tunnel is not None:state['cleanup']['tunnel']=M.verify_tunnel_closed(state['tunnelPort'],tunnel.pid,lambda argv:clean_run(argv,False),members=lambda pgid:M.group_members(pgid,deadline=cleanup_deadline))
@@ -412,7 +412,7 @@ def main(qualification=None):
     if any(x.startswith(name+' ') or x.startswith(name+'//') for x in profiles):raise RuntimeError('Owned profile remains')
     state['cleanup']['profileAbsent']=True
     # Only the exact closed fixture paths are removed; unexpected contents retain the volume.
-    for rel in ['state/first-worker-failure.bin','state/supervisor.lock','state/identity','state/state.json','state/signing.key','state/supervisor.epoch','secrets/dvaia-invocation.json','secrets/dvaia-invocation.token']:
+    for rel in ['state/first-worker-failure.bin','state/supervisor.lock','state/identity','state/state.json','state/signing.key','state/supervisor.epoch','secrets/owasp-ai-goat-invocation.json','secrets/owasp-ai-goat-invocation.token']:
      clean_ssh(['sudo','rm','-f','--',remote+'/'+rel])
     clean_ssh(['sudo','find',remote+'/state','-maxdepth','1','-type','f','-name','state.*.tmp','-delete'])
     for rel in ['state','secrets']:clean_ssh(['sudo','rmdir','--',remote+'/'+rel])
@@ -422,7 +422,7 @@ def main(qualification=None):
   try:
    net=M.inspect_resource(clean_command,'network',network)
    if net is not None:
-    if net.get('Labels',{}).get('dvaia.owner')!=owner:raise RuntimeError('Network ownership changed')
+    if net.get('Labels',{}).get('owasp-ai-goat.owner')!=owner:raise RuntimeError('Network ownership changed')
     if clean_command(['network','rm',network]).returncode:raise RuntimeError('Network removal failed')
    if M.inspect_resource(clean_command,'network',network) is not None:raise RuntimeError('Network remains')
    state['cleanup']['networkAbsent']=True

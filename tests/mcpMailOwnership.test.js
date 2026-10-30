@@ -146,9 +146,9 @@ test('durable SMTP adapter rejects a non-server-assigned Message-ID before trans
     messageId: 'learner-selected@example.test' }), /Canonical server-assigned MCP Message-ID is required/);
 });
 
-const readbackMessageId = 'mcp-123e4567-e89b-42d3-a456-426614174000@dvaia.local';
+const readbackMessageId = 'mcp-123e4567-e89b-42d3-a456-426614174000@owasp-ai-goat.local';
 const readbackInput = Object.freeze({ messageId: readbackMessageId,
-  to: 'mcp-audit-0123456789abcdefabcd@dvaia.invalid',
+  to: 'mcp-audit-0123456789abcdefabcd@owasp-ai-goat.invalid',
   subject: 'RE: Integration diagnostic',
   body: 'Ticket escalation report\n\n--- attached internal data ---\nDB_PASSWORD=TRAINING_ONLY' });
 function readbackSummary(overrides = {}) {
@@ -235,13 +235,13 @@ test('readback rejects reserved, traversal and escaped Mailpit row IDs before de
 
 test('readback rejects summary and detail identity, recipient, subject and payload mismatches', async () => {
   const searchMismatch = await mailClient.verifyMessageReadback(readbackInput, { fetcher: async () =>
-    jsonResponse({ messages_count: 1, messages: [readbackSummary({ MessageID: 'foreign@dvaia.local' })] }) });
+    jsonResponse({ messages_count: 1, messages: [readbackSummary({ MessageID: 'foreign@owasp-ai-goat.local' })] }) });
   assert.deepEqual(searchMismatch, { ok: false, status: 'mismatch' });
   const cases = [
     readbackDetail({ ID: 'different-row' }),
-    readbackDetail({ MessageID: 'foreign@dvaia.local' }),
-    readbackDetail({ To: [{ Address: 'different@dvaia.invalid' }] }),
-    readbackDetail({ To: [{ Address: readbackInput.to }, { Address: 'copy@dvaia.invalid' }] }),
+    readbackDetail({ MessageID: 'foreign@owasp-ai-goat.local' }),
+    readbackDetail({ To: [{ Address: 'different@owasp-ai-goat.invalid' }] }),
+    readbackDetail({ To: [{ Address: readbackInput.to }, { Address: 'copy@owasp-ai-goat.invalid' }] }),
     readbackDetail({ Subject: `${readbackInput.subject} changed` }),
     readbackDetail({ Text: 'unrelated full body' }),
   ];

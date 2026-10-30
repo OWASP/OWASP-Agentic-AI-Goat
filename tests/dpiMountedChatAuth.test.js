@@ -4,7 +4,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 test('full-app DPI chat mounts canonical session authentication without closing public status',async t=>{
  const envKeys=['PLATFORM_DATABASE_ENGINE','WORKSHOP_DATABASE_ENGINE','JWT_SECRET','IDENTITY_DATABASE_URL'];
  const prior=Object.fromEntries(envKeys.map(key=>[key,process.env[key]]));
- Object.assign(process.env,{PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',JWT_SECRET:require('node:crypto').randomBytes(48).toString('base64url'),IDENTITY_DATABASE_URL:'postgresql://fixture@127.0.0.1:1/dvaia_test_dpi_mounted'});
+ Object.assign(process.env,{PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',JWT_SECRET:require('node:crypto').randomBytes(48).toString('base64url'),IDENTITY_DATABASE_URL:'postgresql://fixture@127.0.0.1:1/owasp_ai_goat_test_dpi_mounted'});
  const Module=require('node:module'),originalLoad=Module._load;
  const controlledAi={getActiveProviderInfo:()=>({provider:'controlled',providerName:'Controlled fixture',model:'no-model'}),verifyProviderConnectionLite:async()=>({available:true,healthy:true,configured:true})};
  Module._load=function(name,parent,isMain){

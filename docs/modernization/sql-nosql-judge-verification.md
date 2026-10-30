@@ -29,8 +29,8 @@ Qualification exposed two application inconsistencies, both corrected:
 Validation:22 PostgreSQL tests, ARIA105, NOVA137, and adapter/projection/default
 parity unit tests pass. The isolated cluster is stopped after capture. The live
 model runner is `tests/manual/sqlNoSqlJudge8b.js`; its input is the harness-created
-`/tmp/dvaia-sql-nosql-judge-cases.json` and its result output is
-`/tmp/dvaia-sql-nosql-judge-results.json`.
+`/tmp/owasp-ai-goat-sql-nosql-judge-cases.json` and its result output is
+`/tmp/owasp-ai-goat-sql-nosql-judge-results.json`.
 
 The first local8B diagnostic run (roles-v3, policy digest
 `1032728f69e094d23f27dd99b7e5d0c90627729602ac2c310205713e57db5cb8`)

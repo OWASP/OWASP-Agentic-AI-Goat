@@ -1,7 +1,7 @@
 {
   "version": 1,
   "scope": "Judge-only unmounted RAG objective-plan diagnostic on four preregistered controlled inputs; no actor, native service ownership, database, persistence, objective credit, or release qualification.",
-  "root": "/Users/averma5/Documents/github/Damn-Vulnerable-AI-Application",
+  "root": "/Users/averma5/Documents/github/OWASP Agentic AI GOAT",
   "model": {
     "name": "llama3.1:8b",
     "digest": "46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e"

@@ -58,7 +58,7 @@ branch=next(node for node in ast.walk(tree) if isinstance(node,ast.If)
  and any(isinstance(child,ast.Assign) and any(ast.unparse(target)=="env['PERSONA_PRICING_NATIVE']" for target in child.targets) for child in node.body))
 values={ast.unparse(target):ast.literal_eval(node.value) if isinstance(node.value,ast.Constant) else ast.unparse(node.value)
  for node in branch.body if isinstance(node,ast.Assign) for target in node.targets}
-assert values=={"env['DVAIA_ISOLATED_TEST_WORKSPACE']":'str(ROOT)',"env['DVAIA_PRICING_OWNED_OUTPUT_ROOT']":'str(workspace)',
+assert values=={"env['OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE']":'str(ROOT)',"env['OWASP_AI_GOAT_PRICING_OWNED_OUTPUT_ROOT']":'str(workspace)',
  "env['PERSONA_PRICING_NATIVE']":'1',"env['PERSONA_PRICING_CANONICAL']":'1'}
 cohort=next(child for child in branch.body if isinstance(child,ast.If))
 assert ast.unparse(cohort.test)=="args.pricing_cohort == 'canonical-current'"
@@ -73,7 +73,7 @@ allocation=next(n for n in ast.walk(tree) if isinstance(n,ast.Call) and ast.unpa
 assert ast.unparse(next(k.value for k in allocation.keywords if k.arg=='dir'))=="None if args.suite == 'pricing-journal' else ROOT / 'tests/release-inputs'"
 database=next(n.value for n in ast.walk(tree) if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='database' for t in n.targets) and isinstance(n.value,ast.IfExp))
 assert 'pricing-journal' in ast.literal_eval(database.test.comparators[0])
-assert ast.unparse(database.body)=="'dvaia_test_persona_' + nonce[:12] + '_' + store.lower()"
+assert ast.unparse(database.body)=="'owasp_ai_goat_test_persona_' + nonce[:12] + '_' + store.lower()"
 source=pathlib.Path('tests/postgres/run-persona-transition-main-isolated.py').read_text()
 assert "ROOT/'tests/fixtures/pricingOwnedOutput.js'" in source
 assert "ROOT/'tests/fixtures/secureshopPricingJudgmentPersistence.js'" in source

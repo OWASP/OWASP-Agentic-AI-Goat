@@ -45,7 +45,7 @@ function childEnvironment(env){
    const name={identity:'IDENTITY',secureshop_agents:'AGENTS',secureshop_review:'REVIEW',
     secureshop:'COMMERCE'}[store];
    result[`PG_SECURESHOP_STANDALONE_PERSONA_${name}_${role}_URL`]=
-    `postgresql://dvaia_${store}_${role.toLowerCase()}@127.0.0.1:5432/dvaia_test_agent_host_abcdef123456_${store}`;
+    `postgresql://dvaia_${store}_${role.toLowerCase()}@127.0.0.1:5432/owasp_ai_goat_test_agent_host_abcdef123456_${store}`;
   }
  return result;
 }
@@ -57,7 +57,7 @@ async function owned(callback){
    path.join(evidence,'runtime')])fs.mkdirSync(directory,{mode:0o700});
  const executable=path.join(source,'tasks/runtime/node/node_modules/node/bin/node');
  const env={SECURESHOP_STANDALONE_PERSONA_CURRENT_HOST_EVIDENCE:'1',
-  SECURESHOP_STANDALONE_PERSONA_EVIDENCE_PATH:evidence,DVAIA_CURRENT_MAIN_WORKSPACE:source,
+  SECURESHOP_STANDALONE_PERSONA_EVIDENCE_PATH:evidence,OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:source,
   TMPDIR:path.join(outer,'tmp'),MAC_CHROMIUM_TMPDIR:path.join(outer,'tmp'),
   XDG_CACHE_HOME:path.join(outer,'home/.cache'),XDG_CONFIG_HOME:path.join(outer,'home/.config'),
   ANALYTICS_BROWSER_EXECUTABLE:executable,
@@ -74,7 +74,7 @@ test('C31 current-host child admits only its exact private repository evidence d
  for(const changed of [
   {env:{...env,SECURESHOP_STANDALONE_PERSONA_CURRENT_HOST_EVIDENCE:'0'}},
   {env:{...env,SECURESHOP_STANDALONE_PERSONA_EVIDENCE_PATH:path.join(run,'other')}},
-  {env:{...env,DVAIA_CURRENT_MAIN_WORKSPACE:path.join(source,'other')}},
+  {env:{...env,OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:path.join(source,'other')}},
   {evidence:path.join(run,'other')},
   {evidence:`${evidence}/../persona-inbox-rendered`},
  ])assert.throws(()=>admission.admit(changed.env||env,source,changed.evidence||evidence));

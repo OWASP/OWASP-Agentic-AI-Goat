@@ -36,5 +36,5 @@ export function opaqueFrameCors() {
     }
     next();
   }); };
-  return { name: 'dvaia-opaque-frame-public-modules', configureServer: install, configurePreviewServer: install };
+  return { name: 'owasp-ai-goat-opaque-frame-public-modules', configureServer: install, configurePreviewServer: install };
 }

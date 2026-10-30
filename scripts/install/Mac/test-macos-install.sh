@@ -9,7 +9,7 @@ for component in node npm git ollama; do
   command -v "$component" >/dev/null || { echo "$component is missing; run the macOS installer." >&2; exit 1; }
 done
 source "$ROOT/scripts/install/runtime-version-policy.sh"
-validate_node || { echo "Unix installer runtime target not met; requires Node.js ${DVAIA_MINIMUM_NODE_VERSION}+ and npm ${DVAIA_MINIMUM_NPM_VERSION}+." >&2; exit 1; }
+validate_node || { echo "Unix installer runtime target not met; requires Node.js ${OWASP_AI_GOAT_MINIMUM_NODE_VERSION}+ and npm ${OWASP_AI_GOAT_MINIMUM_NPM_VERSION}+." >&2; exit 1; }
 OLLAMA_HOST=http://127.0.0.1:11434 ollama show llama3.1:8b >/dev/null
 node - <<'JS'
 const { verifyInstalledComponents, verifyBrowserRuntime } = require('./scripts/setup-application');

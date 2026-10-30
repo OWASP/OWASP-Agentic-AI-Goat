@@ -43,7 +43,7 @@ class V36LauncherContract(unittest.TestCase):
             ruid=os.getuid(), pgid=parent_pid, start_sec=10, start_usec=20, status=0)
         browser = SimpleNamespace(pid=browser_pid, ppid=parent_pid, uid=os.getuid(),
             ruid=os.getuid(), pgid=browser_pid, start_sec=30, start_usec=40, status=0)
-        profile = '/owned/run/runtime/tmp/dvaia-admin-audit-jobs-controlled'
+        profile = '/owned/run/runtime/tmp/owasp-ai-goat-admin-audit-jobs-controlled'
         class Api:
             def identity(self, pid):
                 return {parent_pid: parent, browser_pid: browser}.get(pid)

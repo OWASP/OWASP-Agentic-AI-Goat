@@ -3,7 +3,7 @@ const test = require('node:test'), assert = require('node:assert/strict');
 const runtime = require('./postgres/ownedSystemPrivateHttpConsumer');
 const {validateBinding,operationProgram,validateRetirement} = runtime._internals;
 function binding() { return {version:1,target:'original-v24-system',runId:'a'.repeat(32),imageId:'sha256:'+'b'.repeat(64),
-  inputSha256:'c'.repeat(64),daemonId:'d'.repeat(36),physical:{privateDockerHost:'unix:///var/tmp/dvaia-v23-build-'+'a'.repeat(32)+'/fs/docker.sock',
+  inputSha256:'c'.repeat(64),daemonId:'d'.repeat(36),physical:{privateDockerHost:'unix:///var/tmp/owasp-ai-goat-v23-build-'+'a'.repeat(32)+'/fs/docker.sock',
     namespaceInode:'net:[12345]',filesystemIdentity:{device:1,inode:2},daemonProcess:{pid:101,startTicks:'100',exe:'/usr/bin/dockerd'},
     namespaceHolder:{pid:102,startTicks:'101',exe:'/usr/bin/sleep'}}}; }
 test('public entry remains closed for serialized or cloned image receipts before consumer effects', async()=>{

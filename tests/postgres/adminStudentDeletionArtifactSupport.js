@@ -65,7 +65,7 @@ function validateInput(input) {
     try { fs.lstatSync(ownerDirectory); fail('Fresh synthetic upload owner required'); }
     catch (error) { if (error.code !== 'ENOENT') throw error; }
   }
-  if (path.resolve(process.env.DVAIA_APP_DATA_ROOT || '') !== runtimeRoot) fail('Production FinFlow application root must match fixture runtime');
+  if (path.resolve(process.env.OWASP_AI_GOAT_APP_DATA_ROOT || '') !== runtimeRoot) fail('Production FinFlow application root must match fixture runtime');
   input.signal?.throwIfAborted();
   return { runtimeRoot, target, sibling, identityRuntime, identityMigration, finflowRuntime, finflowMigration };
 }

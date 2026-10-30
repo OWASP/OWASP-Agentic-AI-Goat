@@ -12,7 +12,7 @@ function response() {
 }
 
 test('provider mutations use injected environment file and preserve unrelated settings', async () => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-admin-ops-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-admin-ops-'));
   const envPath = path.join(directory, '.env');
   fs.writeFileSync(envPath, 'PORT=8081\nAI_PROVIDER=mock\n');
   const environment = { AI_PROVIDER: 'mock' };
@@ -38,7 +38,7 @@ test('provider mutations use injected environment file and preserve unrelated se
 });
 
 test('log handlers read only injected disposable log paths and filter structured entries', () => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-admin-logs-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-admin-logs-'));
   fs.writeFileSync(path.join(directory, 'app.log'), [
     JSON.stringify({ timestamp: '2026-09-10T00:00:00.000Z', level: 'info', message: 'meaningful', username: 'student' }),
     JSON.stringify({ timestamp: '2026-09-10T00:01:00.000Z', level: 'error', message: 'llm_call_error', provider: 'ollama', success: false, error: 'fixture' }),

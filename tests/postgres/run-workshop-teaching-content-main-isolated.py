@@ -5,11 +5,11 @@ sys.dont_write_bytecode = True
 import argparse, hashlib, importlib.util, json, os, pathlib, re, signal, subprocess, tempfile, time, uuid
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-NODE = pathlib.Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+NODE = pathlib.Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 NODE_SHA = '56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 IMAGE = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 DAEMON = '2c9da9a7-1f8c-490b-af98-87bbf6bf83db'
-DOCKER = ['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker', '--host', 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock']
+DOCKER = ['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker', '--host', 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock']
 FIXTURE = 'tests/postgres/workshopTeachingContentMigration.integration.test.js'
 MIGRATION = 'db/postgres/identity-migrations/0023_workshop_teaching_content.sql'
 OBJECTIVE_FIXTURE = 'tests/postgres/objectiveDescriptions.integration.test.js'
@@ -38,8 +38,8 @@ def main():
             'plan': True,
             'fixture': fixture,
             'migration': migration,
-            'databasePattern': ('dvaia_test_objective_description_{fresh,populated}_<nonce>'
-                                if objective_case else 'dvaia_test_teaching_content_<nonce>'),
+            'databasePattern': ('owasp_ai_goat_test_objective_description_{fresh,populated}_<nonce>'
+                                if objective_case else 'owasp_ai_goat_test_teaching_content_<nonce>'),
             'expectedTests': expected_tests,
             'expectedSkipped': 0,
             'sourceCopies': False,
@@ -74,7 +74,7 @@ def main():
     env = lifecycle.owned_environment(evidence, NODE)
     workspace = evidence / 'runtime/workspace'
     workspace.mkdir(mode=0o700)
-    env['DVAIA_ISOLATED_TEST_WORKSPACE'] = str(workspace)
+    env['OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE'] = str(workspace)
     logs = evidence / 'logs'
     logs.mkdir(mode=0o700)
     env['LOGS_DIR'] = str(logs)
@@ -91,7 +91,7 @@ def main():
             raise RuntimeError('Docker daemon mismatch')
 
     nonce = uuid.uuid4().hex
-    name = ('dvaia-objective-descriptions-' if objective_case else 'dvaia-teaching-content-') + nonce[:12]
+    name = ('owasp-ai-goat-objective-descriptions-' if objective_case else 'owasp-ai-goat-teaching-content-') + nonce[:12]
     children = []
     attempted = False
     container_id = None
@@ -146,7 +146,7 @@ def main():
         row = json.loads(run(DOCKER + ['inspect', ids[0]]).stdout)[0]
         ports = row.get('HostConfig', {}).get('PortBindings', {}).get('5432/tcp', [])
         if (row['Name'] != '/' + name or row['Image'] != IMAGE
-                or row['Config'].get('Labels', {}).get('dvaia.owner') != nonce
+                or row['Config'].get('Labels', {}).get('owasp-ai-goat.owner') != nonce
                 or (container_id is not None and row['Id'] != container_id)
                 or len(ports) != 1 or ports[0]['HostIp'] != '127.0.0.1'
                 or row.get('HostConfig', {}).get('Memory') != 536870912
@@ -170,7 +170,7 @@ def main():
         if run(DOCKER + ['ps', '-aq', '--filter', 'name=^/' + name + '$']).stdout.strip():
             raise RuntimeError('Container namespace occupied')
         attempted = True
-        run(DOCKER + ['run', '-d', '--pull', 'never', '--name', name, '--label', 'dvaia.owner=' + nonce,
+        run(DOCKER + ['run', '-d', '--pull', 'never', '--name', name, '--label', 'owasp-ai-goat.owner=' + nonce,
             '--memory', '512m', '--cpus', '2', '--pids-limit', '256', '--tmpfs',
             '/var/lib/postgresql:rw,size=536870912', '-e', 'POSTGRES_USER=merchant_admin',
             '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', '-e', 'POSTGRES_INITDB_ARGS=--wal-segsize=1',
@@ -192,9 +192,9 @@ def main():
             raise RuntimeError('Invalid owned port')
         run(DOCKER + ['exec', container_id, 'psql', '-U', 'merchant_admin', '-d', 'postgres',
             '-v', 'ON_ERROR_STOP=1', '-c', 'CREATE ROLE dvaia_identity_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE dvaia_identity_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;'])
-        databases = ([(kind, 'dvaia_test_objective_description_' + kind.lower() + '_' + nonce[:12])
+        databases = ([(kind, 'owasp_ai_goat_test_objective_description_' + kind.lower() + '_' + nonce[:12])
                      for kind in ('FRESH', 'POPULATED')] if objective_case else
-                     [('TEACHING_CONTENT_TEST', 'dvaia_test_teaching_content_' + nonce[:12])])
+                     [('TEACHING_CONTENT_TEST', 'owasp_ai_goat_test_teaching_content_' + nonce[:12])])
         for kind, database in databases:
             run(DOCKER + ['exec', container_id, 'psql', '-U', 'merchant_admin', '-d', 'postgres',
                 '-v', 'ON_ERROR_STOP=1', '-c', 'CREATE DATABASE ' + database + ' OWNER dvaia_identity_migration'])

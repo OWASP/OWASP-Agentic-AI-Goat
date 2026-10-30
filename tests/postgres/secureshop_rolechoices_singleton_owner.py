@@ -10,9 +10,9 @@ TEST='tests/postgres/secureshopStandaloneRoleChoicesRendered.integration.test.js
 RECORD='rolechoices-browser-birth.json'
 ACK='rolechoices-browser-ack.json'
 KIND='rolechoices_browser'
-SCOPES={'admin-policy-chat-browser':('SECURESHOP_ADMIN_POLICY_CHAT_BROWSER','dvaia-role-admin-policy-'),
-        'admin-audit-browser':('SECURESHOP_ADMIN_AUDIT_CHAT_BROWSER','dvaia-role-admin-audit-'),
-        'admin-acl-chat-browser':('SECURESHOP_ADMIN_ACL_CHAT_BROWSER','dvaia-q64-admin-acl-')}
+SCOPES={'admin-policy-chat-browser':('SECURESHOP_ADMIN_POLICY_CHAT_BROWSER','owasp-ai-goat-role-admin-policy-'),
+        'admin-audit-browser':('SECURESHOP_ADMIN_AUDIT_CHAT_BROWSER','owasp-ai-goat-role-admin-audit-'),
+        'admin-acl-chat-browser':('SECURESHOP_ADMIN_ACL_CHAT_BROWSER','owasp-ai-goat-q64-admin-acl-')}
 TESTS={scope:TEST for scope in SCOPES}
 TESTS['admin-acl-chat-browser']='tests/postgres/secureshopStandaloneAdminAclChatRendered.integration.test.js'
 def load(relative,name):

@@ -34,7 +34,7 @@ async function fixture(t, runner) {
 }
 
 function headers(contentType = 'application/json') {
-  return { 'x-dvaia-secureshop-launch': launchToken, 'content-type': contentType };
+  return { 'x-owasp-ai-goat-secureshop-launch': launchToken, 'content-type': contentType };
 }
 
 function eventNames(text) {

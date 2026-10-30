@@ -12,15 +12,15 @@ test('four email-builder levels require current owned persisted source, real mod
   skip: !enabled, timeout: 300000,
 }, async t => {
   const workspace = require('./xssCurrentCheckoutAdmission').verifyCurrentCheckout({ keys, cohort: 'builder' })
-    || fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+    || fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   assert.equal(fs.realpathSync(process.cwd()), workspace);
-  if (process.env.DVAIA_XSS_CURRENT_CHECKOUT !== 'yes') {
-    assert.match(path.basename(path.dirname(workspace)), /^dvaia-xss-email-route-/);
+  if (process.env.OWASP_AI_GOAT_XSS_CURRENT_CHECKOUT !== 'yes') {
+    assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-xss-email-route-/);
   }
   for (const key of keys) {
     const url = new URL(process.env[key]);
     assert.equal(url.hostname, '127.0.0.1');
-    assert.match(url.pathname, /^\/dvaia_test_xss_email_route_(identity|xss)$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_xss_email_route_(identity|xss)$/);
   }
   Object.assign(process.env, {
     PLATFORM_DATABASE_ENGINE: 'postgres', WORKSHOP_DATABASE_ENGINE: 'postgres',
@@ -102,7 +102,7 @@ test('four email-builder levels require current owned persisted source, real mod
       results.push({ userId: user.id, templateId, level });
     }
     const receipts = (await xssRuntime.query('SELECT user_id,challenge_level,verdict,browser_executed FROM xss.xss_email_judge_receipts ORDER BY id')).rows;
-    const evidenceRoot = process.env.DVAIA_XSS_RENDERED_RUNTIME_ROOT;
+    const evidenceRoot = process.env.OWASP_AI_GOAT_XSS_RENDERED_RUNTIME_ROOT;
     fs.writeFileSync(path.join(evidenceRoot, 'artifacts', 'email-builder-outcomes.json'), JSON.stringify({ outcomes, receipts }, null, 2));
     for (const row of results) {
       const before = (await xssRuntime.query('SELECT id,user_id FROM xss.email_templates WHERE user_id<>$1 ORDER BY id', [row.userId])).rows;

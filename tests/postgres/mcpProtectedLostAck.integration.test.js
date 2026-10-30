@@ -16,8 +16,8 @@ const {createMcpProtocolSessionManager}=require('../../server/services/mcp/sdk/s
 const observation=require('../../server/services/mcp/protectedStateObservation');
 const canonical=v=>JSON.stringify(Object.fromEntries(Object.entries(v).sort(([a],[b])=>a.localeCompare(b))));
 test('protected rotation lost acknowledgement stays uncertain; known rejection and success stay distinct',{skip:process.env.PG_TEST_DISPOSABLE!=='yes'||!process.env.PG_GRAPH_TEST_RUNTIME_URL},async t=>{
- for(const key of ['PG_GRAPH_TEST_MIGRATION_URL','PG_GRAPH_TEST_RUNTIME_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
- const root=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-protected-lostack-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
+ for(const key of ['PG_GRAPH_TEST_MIGRATION_URL','PG_GRAPH_TEST_RUNTIME_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-protected-lostack-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
  const pool=createPool(process.env,'PG_GRAPH_TEST_RUNTIME_URL'),migration=createPool(process.env,'PG_GRAPH_TEST_MIGRATION_URL');t.after(()=>Promise.all([pool.end(),migration.end()]));await initializeIdentityRepository(pool,migration);
  const scope={targetId:crypto.randomUUID(),platformOwnerId:7,platformSessionId:71,generation:0};
  const sibling={...scope,targetId:crypto.randomUUID(),platformOwnerId:8,platformSessionId:81};
@@ -69,7 +69,7 @@ test('connected protected journal readback recovers exact committed result witho
  const token=crypto.randomBytes(32).toString('base64url');
  // Native macOS fixture cannot attest Linux AppArmor/bwrap. Only readiness is
  // controlled; target/API/journal/client/SDK/PG behavior below is production code.
- const api=createOwnedTargetApi({token,store:{...f.store,checkReadiness:async()=>({ready:true})},expectedSupervisorProfile:'dvaia-mcp-sandbox',readSupervisorProfile:async()=> 'dvaia-mcp-sandbox (enforce)'});
+ const api=createOwnedTargetApi({token,store:{...f.store,checkReadiness:async()=>({ready:true})},expectedSupervisorProfile:'owasp-ai-goat-mcp-sandbox',readSupervisorProfile:async()=> 'owasp-ai-goat-mcp-sandbox (enforce)'});
  let dropAck=true;const httpServer=http.createServer(async(req,res)=>{let bytes='';for await(const chunk of req)bytes+=chunk;const reply=await api.handle({method:req.method,path:req.url,token:(req.headers.authorization||'').replace(/^Bearer /,''),body:bytes?JSON.parse(bytes):undefined});if(dropAck&&req.url==='/owned-targets/protected-operation'&&reply.body.state==='completed'){dropAck=false;req.socket.destroy();return;}res.statusCode=reply.status;res.setHeader('content-type','application/json');res.end(JSON.stringify(reply.body));});
  await new Promise(r=>httpServer.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>{httpServer.closeAllConnections();httpServer.close(r);}));
  const client=createMcpOwnedTargetClient({baseURL:'http://127.0.0.1:'+httpServer.address().port,token});assert.equal((await client.readiness()).protectedJournalCapability,'mcp-owned-protected-operation-journal.v1');

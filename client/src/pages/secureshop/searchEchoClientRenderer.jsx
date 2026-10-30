@@ -44,7 +44,7 @@ function currentSearchMode(value) {
     && value.scope.id === 'customer_chat' ? value.effectiveMode : null;
 }
 
-Object.defineProperty(globalThis, '__DVAIA_SEARCH_ECHO_MOUNT__', { value: value => {
+Object.defineProperty(globalThis, '__OWASP_AI_GOAT_SEARCH_ECHO_MOUNT__', { value: value => {
   if (!(exact(value, ['echoHtml', 'modeCapability'])
       || (exact(value, ['echoHtml', 'modeCapability', 'captureDom']) && value.captureDom === true)) || root
     || typeof value.echoHtml !== 'string' || !value.echoHtml.length

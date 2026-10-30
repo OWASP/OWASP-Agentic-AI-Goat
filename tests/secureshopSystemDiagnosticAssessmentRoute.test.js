@@ -73,7 +73,7 @@ async function fixture(t, handlers = {}) {
 }
 
 const headers = (extra = {}) => ({ authorization: 'Bearer diagnostic-admin',
-  'x-dvaia-secureshop-launch': launchBearer, 'content-type': 'application/json', ...extra });
+  'x-owasp-ai-goat-secureshop-launch': launchBearer, 'content-type': 'application/json', ...extra });
 const post = (base, body = ids, suffix = '', requestHeaders = headers()) => fetch(`${base}${suffix}`, {
   method: 'POST', headers: requestHeaders, body: JSON.stringify(body),
 });

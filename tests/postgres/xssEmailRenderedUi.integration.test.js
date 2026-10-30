@@ -13,21 +13,21 @@ const KEYS = ['PG_XSS_EMAIL_ROUTE_IDENTITY_RUNTIME_URL', 'PG_XSS_EMAIL_ROUTE_IDE
   'PG_XSS_EMAIL_ROUTE_XSS_RUNTIME_URL', 'PG_XSS_EMAIL_ROUTE_XSS_MIGRATION_URL',
   'PG_XSS_EMAIL_ROUTE_CTF_RUNTIME_URL', 'PG_XSS_EMAIL_ROUTE_CTF_MIGRATION_URL'];
 const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && process.env.XSS_EMAIL_ROUTE_UI === 'yes'
-  && KEYS.every(key => process.env[key]) && process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
+  && KEYS.every(key => process.env[key]) && process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
 
 function verifyInputs() {
   const current = require('./xssCurrentCheckoutAdmission').verifyCurrentCheckout({ keys: KEYS, cohort: 'email' });
   if (current) return current;
-  const workspace = fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  const workspace = fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   assert.equal(fs.realpathSync(process.cwd()), workspace);
   assert.equal(path.basename(workspace), 'source');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-xss-email-route-/);
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-xss-email-route-/);
   assert.ok(fs.existsSync(path.join(workspace, 'client', 'package.json')));
   assert.ok(fs.existsSync(path.join(workspace, 'client', 'node_modules')));
   for (const key of KEYS) {
     const url = new URL(process.env[key]);
     assert.equal(url.hostname, '127.0.0.1');
-    assert.match(url.pathname, /^\/dvaia_test_xss_email_route_(?:identity|xss|ctf)$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_xss_email_route_(?:identity|xss|ctf)$/);
   }
   return workspace;
 }
@@ -98,8 +98,8 @@ test('rendered XSS email tab performs real local-mail objectives and reset throu
   let restoreAi; let restoreGrader; let viteOutput = ''; let runtimeRoot;
   const pageErrors = []; const unexpectedResponses = []; const blockedExternalRequests = []; const sendBodies = [];
   try {
-    assert.ok(process.env.DVAIA_XSS_RENDERED_RUNTIME_ROOT);
-    runtimeRoot = fs.realpathSync(process.env.DVAIA_XSS_RENDERED_RUNTIME_ROOT);
+    assert.ok(process.env.OWASP_AI_GOAT_XSS_RENDERED_RUNTIME_ROOT);
+    runtimeRoot = fs.realpathSync(process.env.OWASP_AI_GOAT_XSS_RENDERED_RUNTIME_ROOT);
     for (const name of ['logs', 'artifacts', 'vite-cache']) {
       assert.equal(fs.realpathSync(path.join(runtimeRoot, name)), path.join(runtimeRoot, name));
     }
@@ -211,7 +211,7 @@ test('rendered XSS email tab performs real local-mail objectives and reset throu
     await page.type('input[placeholder="Enter your password"]', password);
     await Promise.all([page.waitForFunction(() => !location.pathname.includes('login')), page.click('button[type="submit"]')]);
     await page.goto(`${pageBase}/vulnerabilities/xss`, { waitUntil: 'domcontentloaded' });
-    const expectedInbox = `xss-${user.id}@dvaia.invalid`;
+    const expectedInbox = `xss-${user.id}@owasp-ai-goat.invalid`;
     await page.waitForSelector('[data-scenario-tab="email"]', { timeout: 15000 });
     // VisibilityProtectedRoute can replace its child once while reconciling the
     // first config snapshot. Click only after that initial render settles.
@@ -254,9 +254,9 @@ test('rendered XSS email tab performs real local-mail objectives and reset throu
     assert.equal(sent.status(), 200, JSON.stringify(sentBody)); assert.equal(sentBody.completedObjectiveId, 'xss_e2');
     t.diagnostic('Rendered e2 completed through SMTP.');
     assert.equal(sendBodies.length, 1); assert.deepEqual(JSON.parse(sendBodies[0]), {
-      fromEmail: `xss-${user.id}@dvaia.invalid`, payload,
+      fromEmail: `xss-${user.id}@owasp-ai-goat.invalid`, payload,
     });
-    await waitForOwnedMail(`xss-${user.id}@dvaia.invalid`);
+    await waitForOwnedMail(`xss-${user.id}@owasp-ai-goat.invalid`);
     assert.equal((await chat('Summarize my latest exercise attack email')).completedObjectiveId, 'xss_e3');
     t.diagnostic('Rendered e3 completed through retrieval and browser qualification.');
     await page.waitForFunction(() => document.body.innerText.includes('XSS Executed!')

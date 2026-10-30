@@ -22,8 +22,8 @@ async function provision(resources,ownerId,name){return resources.createBackup({
 
 test('registered 0011 readiness detects missing/spoofed/drifted objects through the canonical loader',
  {skip:!enabled,timeout:120000},async t=>{
-  const runtime=pool(ownedUrl('FINFLOW_TRAVERSAL_PROBE_DATABASE_URL','dvaia_test_finflow_traversal_probe'));
-  const migration=pool(ownedUrl('FINFLOW_TRAVERSAL_PROBE_MIGRATION_DATABASE_URL','dvaia_test_finflow_traversal_probe'));
+  const runtime=pool(ownedUrl('FINFLOW_TRAVERSAL_PROBE_DATABASE_URL','owasp_ai_goat_test_finflow_traversal_probe'));
+  const migration=pool(ownedUrl('FINFLOW_TRAVERSAL_PROBE_MIGRATION_DATABASE_URL','owasp_ai_goat_test_finflow_traversal_probe'));
   t.after(async()=>Promise.allSettled([runtime.end(),migration.end()]));
   const repo=createFinflowDurableResourceRepository(runtime);
   await migration.query('DROP SCHEMA IF EXISTS finflow CASCADE');
@@ -65,8 +65,8 @@ test('registered 0011 readiness detects missing/spoofed/drifted objects through 
 
 test('actual files and SQL prove reset history, job retry, account scrub, siblings, guards and old-overload denial',
  {skip:!enabled,timeout:120000},async t=>{
-  const runtime=pool(ownedUrl('FINFLOW_WORKSHOP_DATABASE_URL','dvaia_test_finflow_traversal_store'));
-  const migration=pool(ownedUrl('FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL','dvaia_test_finflow_traversal_store'));
+  const runtime=pool(ownedUrl('FINFLOW_WORKSHOP_DATABASE_URL','owasp_ai_goat_test_finflow_traversal_store'));
+  const migration=pool(ownedUrl('FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL','owasp_ai_goat_test_finflow_traversal_store'));
   t.after(async()=>Promise.allSettled([runtime.end(),migration.end()]));
   const workshop=createFinflowWorkshopDb(runtime);
   await workshop.initialize(migration);

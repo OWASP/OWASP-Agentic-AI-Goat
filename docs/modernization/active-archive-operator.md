@@ -6,7 +6,7 @@ The normal fresh installer seeds demo data. These import targets instead require
 
 | Target | Migration connection environment variable | Imported source |
 | --- | --- | --- |
-| `legacy_challenge` | `LEGACY_CHALLENGE_MIGRATION_DATABASE_URL` | Ten mounted generic demo table families from `dvaia.db` |
+| `legacy_challenge` | `LEGACY_CHALLENGE_MIGRATION_DATABASE_URL` | Ten mounted generic demo table families from `owasp-ai-goat.db` |
 | `legacy_sensitive` | `FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL` | Documents and access logs from `sensitive_info.db` |
 | `secureshop` | `SECURESHOP_MIGRATION_DATABASE_URL` | Commerce data from `secureshop.db` |
 | `secureshop_agents` | `SECURESHOP_AGENTS_MIGRATION_DATABASE_URL` | Agent history, registry and vector data from `secureshop_agents.db` |

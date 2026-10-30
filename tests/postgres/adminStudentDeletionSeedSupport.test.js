@@ -40,7 +40,7 @@ async function admitted(work){
  const {STORES}=require('./adminStudentDeletionRenderedSupport');
  const values={PG_TEST_DISPOSABLE:'yes',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',PG_POOL_BUDGET:'78',LEGACY_PLATFORM_LIFECYCLE_ENABLED:undefined};
  for(const row of STORES)for(const [key,role]of [[row.runtimeVariable,row.runtimeRole],[row.migrationVariable,row.migrationRole]])
-  values[key]=`postgresql://${role}@127.0.0.1:54321/dvaia_test_student_deletion_123456abcdef_${row.schema}`;
+  values[key]=`postgresql://${role}@127.0.0.1:54321/owasp_ai_goat_test_student_deletion_123456abcdef_${row.schema}`;
  const prior=Object.fromEntries(Object.keys(values).map(key=>[key,process.env[key]]));
  try{for(const [key,value]of Object.entries(values))if(value===undefined)delete process.env[key];else process.env[key]=value;return await work();}
  finally{for(const [key,value]of Object.entries(prior))if(value===undefined)delete process.env[key];else process.env[key]=value;}
@@ -75,7 +75,7 @@ test('non-CTF path runs real EA/session factories for both owners without CTF au
  for(const id of ['19','20']){
   assert.deepEqual(data.get('excessive_agency.users').get(id).map(row=>row.user_id),['alice','bob','charlie','dave','eve']);
   assert.ok(data.get('excessive_agency.notes').get(id).length>0);assert.ok(data.get('excessive_agency.orders').get(id).length>0);
-  const lab=data.get('session_disclosure.labs').get(id)[0];assert.match(lab.lab_cookie,/^dvaia_lab_[A-Za-z0-9_-]{43}$/);assert.equal(lab.generation,1);
+  const lab=data.get('session_disclosure.labs').get(id)[0];assert.match(lab.lab_cookie,/^owasp_ai_goat_lab_[A-Za-z0-9_-]{43}$/);assert.equal(lab.generation,1);
  }
  assert.notEqual(data.get('session_disclosure.labs').get('19')[0].lab_session_id,data.get('session_disclosure.labs').get('20')[0].lab_session_id);
  // Controlled post-deletion state only; actual deletion/cascade is a native gate.

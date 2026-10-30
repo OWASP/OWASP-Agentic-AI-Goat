@@ -66,7 +66,7 @@ failed honestly before either positive: the conversation route omitted owned
 resource admission and silently passed the legacy sandbox/protocol to the turn.
 Strict runner readiness itself passed, including the enforcing AppArmor label and
 Node 26.8.2. Evidence is retained at
-`~/.dvaia/native-verification/dvaia-mcp-owned-connected-h0rlz5de`; all three
+`~/.owasp-ai-goat/native-verification/owasp-ai-goat-mcp-owned-connected-h0rlz5de`; all three
 containers, the runner image, AppArmor profile and remote policy directory were
 proven absent afterward.
 
@@ -76,7 +76,7 @@ turn boundary. The fifth connected run completed the full two-session lifecycle,
 reset, immutable-judgment and sibling-preservation controls, but failed honestly
 because the owner confused-deputy Judge selected false while the sibling Judge
 selected true for materially equivalent real effects. Evidence is retained at
-`~/.dvaia/native-verification/dvaia-mcp-owned-connected-2opck2_o` (result SHA-256
+`~/.owasp-ai-goat/native-verification/owasp-ai-goat-mcp-owned-connected-2opck2_o` (result SHA-256
 `68f167c83a4c5300a3b643e7cd7452ffc6a338fb101f3de73284adbe94cfd26e`).
 
 The proposed replacement grading contract keeps an unforgeable private
@@ -96,7 +96,7 @@ two-session revocation/reset/sibling lifecycle. Both deputy Judge calls instead
 returned `INVALID_JUDGE_OUTPUT` after their two bounded attempts; the command
 Judge passed. The retained run did not capture the raw invalid Judge responses,
 so it does not establish which validator rule rejected them. Evidence is at
-`~/.dvaia/native-verification/dvaia-mcp-owned-connected-zctebicg` (result SHA-256
+`~/.owasp-ai-goat/native-verification/owasp-ai-goat-mcp-owned-connected-zctebicg` (result SHA-256
 `102e64cdf9054fdb7dd7d9dde46e92ec396c4d50df1d11c37aae89847236cfba`).
 The seventh connected run retained four private invalid attempts and established
 the exact cause: the protected criterion quoted a real tool-result leaf, while
@@ -108,7 +108,7 @@ sources and protected-data quote validation remain unchanged. Typed validation
 reason codes stay in the owner trace, and the private qualification-only raw
 attempt sink binds each record to its run and evidence digest. The generic
 learner-facing failure remains unchanged. Evidence is at
-`~/.dvaia/native-verification/dvaia-mcp-owned-connected-82t4i9ae` (result SHA-256
+`~/.owasp-ai-goat/native-verification/owasp-ai-goat-mcp-owned-connected-82t4i9ae` (result SHA-256
 `67bf52c171f3e3d95eaca61d7df47b8a232aeffbd19548f701f11a4ce50bbef2`).
 
 ## Remaining activation gaps
@@ -123,10 +123,10 @@ learner-facing failure remains unchanged. Evidence is at
   constructs the canonical identity, resource, target and mail composition and
   rechecks live readiness on admission.
 - the checked-in local compose service still uses `apparmor:unconfined`; a stable,
-  application-owned `dvaia-mcp-sandbox` policy installer and compose transition
+  application-owned `owasp-ai-goat-mcp-sandbox` policy installer and compose transition
   must use the same reviewed profile before readiness can pass. AWS remains
   unqualified and must fail closed for graded owned effects.
-- Mounted final-policy Judge v20 run `dvaia-mcp-owned-connected-fwnn8rp2`
+- Mounted final-policy Judge v20 run `owasp-ai-goat-mcp-owned-connected-fwnn8rp2`
   passed both objectives with actual `llama3.1:8b`, actual owned effects, exact
   lifecycle controls and zero invalid Judge attempts. This proves the frozen
   copied candidate, not live activation.

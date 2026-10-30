@@ -16,9 +16,9 @@ const BCRYPT_ROUNDS = 10;
 // Shared admins present in EVERY environment. Abhinav is the pre-existing owner
 // admin; ashok + mukesh are the two additional event admins.
 const ADMINS = [
-  { username: 'Abhinav', email: 'abhinav@dvaia.local', password: 'Abh1nav@DVAIA#2026' },
-  { username: 'ashok', email: 'ashok@dvaia.local', password: 'Ashok#Adm1n@DC34!' },
-  { username: 'mukesh', email: 'mukesh@dvaia.local', password: 'Mukesh#Adm1n@DC34!' },
+  { username: 'Abhinav', email: 'abhinav@owasp-ai-goat.local', password: 'Abh1nav@OWASP-AI-GOAT#2026' },
+  { username: 'ashok', email: 'ashok@owasp-ai-goat.local', password: 'Ashok#Adm1n@DC34!' },
+  { username: 'mukesh', email: 'mukesh@owasp-ai-goat.local', password: 'Mukesh#Adm1n@DC34!' },
 ];
 
 const ADMIN_PERMISSIONS = [

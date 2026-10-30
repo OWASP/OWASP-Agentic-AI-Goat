@@ -73,7 +73,7 @@ test('summarize_return_policy fetches and returns owned loopback content', async
 });
 
 test('summarize_file reads an owned temporary teaching fixture verbatim', async (t) => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-summarizer-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-summarizer-'));
   const filePath = path.join(directory, 'owned-summary.txt');
   const content = 'Owned teaching fixture\nraw-marker: preserve-me\n';
   fs.writeFileSync(filePath, content, 'utf8');

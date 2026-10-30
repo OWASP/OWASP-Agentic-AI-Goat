@@ -5,8 +5,8 @@ const crypto = require('node:crypto');
 const {spawn} = require('node:child_process');
 const {validate} = require('./contract');
 const ROOT='/usr/local/libexec/';
-const ASSETS=Object.freeze(['/usr/bin/bwrap','/usr/local/bin/node',`${ROOT}dvaia-owned-shadow-init`,`${ROOT}dvaia-owned-shadow-supervisor`,`${ROOT}dvaia-owned-shadow-worker.js`,`${ROOT}dvaia-owned-shadow-manifest.json`,`${ROOT}dvaia-owned-shadow-hosts`,`${ROOT}dvaia-owned-shadow-nsswitch`,`${ROOT}dvaia-owned-shadow-resolv`,'/usr/share/dvaia/mcp-target.seccomp.bpf',...['service.js','operationStore.js','contract.js','executor.js'].map(name=>'/app/owned-shadow/'+name),'/app/mcpTargets.js','/app/mcpProtectedState.js','/app/mcpPackageCatalog.js','/app/owned-http/canonical.js']);
-const REGISTRY='/usr/share/dvaia/owned-shadow-assets.json';
+const ASSETS=Object.freeze(['/usr/bin/bwrap','/usr/local/bin/node',`${ROOT}owasp-ai-goat-owned-shadow-init`,`${ROOT}owasp-ai-goat-owned-shadow-supervisor`,`${ROOT}owasp-ai-goat-owned-shadow-worker.js`,`${ROOT}owasp-ai-goat-owned-shadow-manifest.json`,`${ROOT}owasp-ai-goat-owned-shadow-hosts`,`${ROOT}owasp-ai-goat-owned-shadow-nsswitch`,`${ROOT}owasp-ai-goat-owned-shadow-resolv`,'/usr/share/owasp-ai-goat/mcp-target.seccomp.bpf',...['service.js','operationStore.js','contract.js','executor.js'].map(name=>'/app/owned-shadow/'+name),'/app/mcpTargets.js','/app/mcpProtectedState.js','/app/mcpPackageCatalog.js','/app/owned-http/canonical.js']);
+const REGISTRY='/usr/share/owasp-ai-goat/owned-shadow-assets.json';
 function fail(code){throw Object.assign(Error(code),{code});}
 function trustedBytes(file,max=268435456){
  const fd=fs.openSync(file,fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);
@@ -27,24 +27,24 @@ function verifyAssets(){
  return registry;
 }
 function createOwnedShadowExecutor({expectedProfile,timeoutMs=8000}={}){
- if(!/^dvaia-owned-(?:http|shadow)-[a-f0-9]{12}$/.test(expectedProfile||'')||!Number.isSafeInteger(timeoutMs)||timeoutMs<1||timeoutMs>30000)throw TypeError('Qualified dedicated HTTP profile required');
+ if(!/^owasp-ai-goat-owned-(?:http|shadow)-[a-f0-9]{12}$/.test(expectedProfile||'')||!Number.isSafeInteger(timeoutMs)||timeoutMs<1||timeoutMs>30000)throw TypeError('Qualified dedicated HTTP profile required');
  async function checkReadiness(){
   if(process.platform!=='linux'||process.getuid()===0)fail('HTTP_PLATFORM_UNAVAILABLE');
   const label=(await fsp.readFile('/proc/self/attr/current','utf8')).trim();if(label!==`${expectedProfile} (enforce)`)fail('HTTP_PROFILE_UNAVAILABLE');
   const status=await fsp.readFile('/proc/self/status','utf8');for(const key of ['CapEff','CapPrm','CapInh','CapAmb'])if(!new RegExp('^'+key+':\\s+0+$','m').test(status))fail('HTTP_SUPERVISOR_CAPABILITIES');
-  const hashes=verifyAssets();return {ready:true,manifestSha256:hashes[`${ROOT}dvaia-owned-shadow-manifest.json`],runtimeDigest:crypto.createHash('sha256').update(JSON.stringify(hashes)).digest('hex')};
+  const hashes=verifyAssets();return {ready:true,manifestSha256:hashes[`${ROOT}owasp-ai-goat-owned-shadow-manifest.json`],runtimeDigest:crypto.createHash('sha256').update(JSON.stringify(hashes)).digest('hex')};
  }
  async function execute({input,signal}){
   validate(input);const bytes=JSON.stringify(input);if(Buffer.byteLength(bytes)>49152)fail('SHADOW_REQUEST_INVALID');
   await checkReadiness();if(signal?.aborted)fail('HTTP_OPERATION_ABORTED');
   const argv=['--uid','0','--gid','0','--cap-add','CAP_NET_ADMIN','--cap-add','CAP_SETPCAP','--cap-add','CAP_NET_BIND_SERVICE','--unshare-user','--unshare-net','--unshare-pid','--unshare-uts','--unshare-ipc','--die-with-parent','--new-session','--clearenv','--tmpfs','/','--dev','/dev','--dir','/proc'];
   for(const p of ['/usr','/bin','/lib','/lib64'])if(fs.existsSync(p))argv.push('--dir',p,'--ro-bind',p,p);
-  argv.push('--dir','/etc','--ro-bind',`${ROOT}dvaia-owned-shadow-hosts`,'/etc/hosts','--ro-bind',`${ROOT}dvaia-owned-shadow-nsswitch`,'/etc/nsswitch.conf','--ro-bind',`${ROOT}dvaia-owned-shadow-resolv`,'/etc/resolv.conf','--dir','/tmp','--hostname','mcp-owned-shadow','--seccomp','3','--chdir','/tmp',`${ROOT}dvaia-owned-shadow-init`,'--initialize');
-  const fd=fs.openSync('/usr/share/dvaia/mcp-target.seccomp.bpf',fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);
+  argv.push('--dir','/etc','--ro-bind',`${ROOT}owasp-ai-goat-owned-shadow-hosts`,'/etc/hosts','--ro-bind',`${ROOT}owasp-ai-goat-owned-shadow-nsswitch`,'/etc/nsswitch.conf','--ro-bind',`${ROOT}owasp-ai-goat-owned-shadow-resolv`,'/etc/resolv.conf','--dir','/tmp','--hostname','mcp-owned-shadow','--seccomp','3','--chdir','/tmp',`${ROOT}owasp-ai-goat-owned-shadow-init`,'--initialize');
+  const fd=fs.openSync('/usr/share/owasp-ai-goat/mcp-target.seccomp.bpf',fs.constants.O_RDONLY|fs.constants.O_NOFOLLOW);
   // Recheck the exact opened filter, not only its pathname before launch.
-  try {const filter=Buffer.alloc(fs.fstatSync(fd).size);if(filter.length>65536||fs.readSync(fd,filter,0,filter.length,0)!==filter.length)fail('HTTP_ASSET_CHANGED');const hash=crypto.createHash('sha256').update(filter).digest('hex');if(hash!==verifyAssets()['/usr/share/dvaia/mcp-target.seccomp.bpf'])fail('HTTP_ASSET_CHANGED');}catch(error){fs.closeSync(fd);throw error;}
+  try {const filter=Buffer.alloc(fs.fstatSync(fd).size);if(filter.length>65536||fs.readSync(fd,filter,0,filter.length,0)!==filter.length)fail('HTTP_ASSET_CHANGED');const hash=crypto.createHash('sha256').update(filter).digest('hex');if(hash!==verifyAssets()['/usr/share/owasp-ai-goat/mcp-target.seccomp.bpf'])fail('HTTP_ASSET_CHANGED');}catch(error){fs.closeSync(fd);throw error;}
   return new Promise((resolve,reject)=>{
-   let child;try{child=spawn(`${ROOT}dvaia-owned-shadow-supervisor`,argv,{env:{PATH:'/usr/bin:/bin'},stdio:['pipe','pipe','pipe',fd]});}catch(error){fs.closeSync(fd);reject(error);return;}fs.closeSync(fd);
+   let child;try{child=spawn(`${ROOT}owasp-ai-goat-owned-shadow-supervisor`,argv,{env:{PATH:'/usr/bin:/bin'},stdio:['pipe','pipe','pipe',fd]});}catch(error){fs.closeSync(fd);reject(error);return;}fs.closeSync(fd);
    let failure=null,count=0;const chunks=[],errors=[];
    const stop=code=>{failure ||= Object.assign(Error(code),{code});child.kill('SIGTERM');};
    const abort=()=>stop('HTTP_OPERATION_ABORTED');signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)abort();

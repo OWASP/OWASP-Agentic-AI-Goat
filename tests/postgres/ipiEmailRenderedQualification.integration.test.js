@@ -19,7 +19,7 @@ const enabled = process.env.IPI_EMAIL_RENDERED_UI === '1'
   && process.env.IPI_RENDERED_SIBLING_USER
   && process.env.IPI_RENDERED_SIBLING_PASSWORD
   && process.env.IPI_RENDERED_IDENTITY_RUNTIME_URL
-  && process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
+  && process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
 
 // Observe rejection immediately so cleanup cannot mask an earlier assertion.
 // Awaiting the original promise still reports response failures normally.
@@ -40,7 +40,7 @@ function assertOwnedMailpit(value) {
 function assertOwnedWorkspace(value) {
   const resolved = require('node:fs').realpathSync(value);
   assert.equal(require('node:path').basename(resolved), 'source');
-  assert.match(require('node:path').basename(require('node:path').dirname(resolved)), /^dvaia-ipi-email-rendered-/);
+  assert.match(require('node:path').basename(require('node:path').dirname(resolved)), /^owasp-ai-goat-ipi-email-rendered-/);
   return resolved;
 }
 
@@ -72,7 +72,7 @@ async function readObjectiveJudgments(identity, username, objectiveId = null) {
 }
 
 async function writeFailureDiagnostics(page, failedApi, error) {
-  const root = process.env.IPI_RENDERED_FAILURE_DIAGNOSTICS || path.join(os.tmpdir(), `dvaia-ipi-email-rendered-failure-${process.pid}`);
+  const root = process.env.IPI_RENDERED_FAILURE_DIAGNOSTICS || path.join(os.tmpdir(), `owasp-ai-goat-ipi-email-rendered-failure-${process.pid}`);
   fs.mkdirSync(root, { recursive: true, mode: 0o700 });
   let safeUrl = null;
   try { const url = new URL(page.url()); safeUrl = `${url.origin}${url.pathname}`; } catch {}
@@ -119,7 +119,7 @@ test('assembled IPI email UI covers all five objectives, receipts, reset and sib
 }, async t => {
   const base = new URL(process.env.IPI_RENDERED_APP_URL).origin;
   const mailpit = assertOwnedMailpit(process.env.IPI_RENDERED_MAILPIT_API_URL);
-  const workspace = assertOwnedWorkspace(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  const workspace = assertOwnedWorkspace(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   const writePrivateDiagnostic = createPrivateDiagnosticWriter(
     process.env.IPI_RENDERED_EMAIL_DIAGNOSTICS || path.join(workspace, 'private-email-diagnostics'),
   );
@@ -157,7 +157,7 @@ test('assembled IPI email UI covers all five objectives, receipts, reset and sib
     await page.waitForSelector('[data-scenario-tab="email"]');
     await page.click('[data-scenario-tab="email"]');
     await page.waitForSelector('input[type="email"]');
-    await page.waitForFunction(() => document.querySelector('input[type="email"]')?.value.endsWith('@dvaia.invalid'));
+    await page.waitForFunction(() => document.querySelector('input[type="email"]')?.value.endsWith('@owasp-ai-goat.invalid'));
     await page.waitForFunction(() => document.body.innerText.includes('0 of 5 objectives completed'));
 
     const address = await page.$eval('input[type="email"]', input => input.value);
@@ -236,7 +236,7 @@ test('assembled IPI email UI covers all five objectives, receipts, reset and sib
     assert.equal(siblingInitial.data.completedCount, 0, 'sibling must start with independent progress');
     const siblingInbox = await api(siblingPage, '/api/email-agent/owned-inbox');
     assert.equal(siblingInbox.status, 200);
-    assert.match(siblingInbox.data.ownedInbox, /@dvaia\.invalid$/);
+    assert.match(siblingInbox.data.ownedInbox, /@owasp-ai-goat\.invalid$/);
     assert.notEqual(siblingInbox.data.ownedInbox, address);
     const foreignFetch = await api(siblingPage, '/api/email-agent/fetch-sharklasers', { tempEmail: address });
     assert.equal(foreignFetch.status, 403, 'sibling cannot retrieve the owner inbox');

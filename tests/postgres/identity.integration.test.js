@@ -36,7 +36,7 @@ test('identity import validates DTOs without opening source databases',async()=>
 });
 
 test('real PG18 identity: import, permissions, session ownership/expiry/revocation, atomic rotation and lockout', {skip:!enabled},async()=>{
-  for(const key of ['PG_IDENTITY_TEST_MIGRATION_URL','PG_IDENTITY_TEST_RUNTIME_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+  for(const key of ['PG_IDENTITY_TEST_MIGRATION_URL','PG_IDENTITY_TEST_RUNTIME_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   const migration=createPool(process.env,'PG_IDENTITY_TEST_MIGRATION_URL');
   const pool=createPool(process.env,'PG_IDENTITY_TEST_RUNTIME_URL');
   const lifecyclePool=createPool(process.env,'PG_IDENTITY_TEST_RUNTIME_URL',{purpose:'lease'});

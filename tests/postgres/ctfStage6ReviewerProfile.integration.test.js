@@ -1,6 +1,6 @@
 'use strict';
 // Disposable identity-store contract check. The owning launcher provisions two
-// isolated roles and a database named dvaia_test_ctf_stage6_profile_*.
+// isolated roles and a database named owasp_ai_goat_test_ctf_stage6_profile_*.
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {createHash,randomUUID}=require('node:crypto');
@@ -17,7 +17,7 @@ test('forward Stage 6 reviewer profile SQL accepts only exact bound shape and pr
  const keys=['PG_CTF_STAGE6_PROFILE_IDENTITY_RUNTIME_URL','PG_CTF_STAGE6_PROFILE_IDENTITY_MIGRATION_URL'];
  assert(keys.every(key=>process.env[key]),'Explicit disposable identity URL pair required');
  const urls=keys.map(key=>new URL(process.env[key]));
- for(const url of urls){assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/dvaia_test_ctf_stage6_profile_/);}
+ for(const url of urls){assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/owasp_ai_goat_test_ctf_stage6_profile_/);}
  assert.equal(urls[0].pathname,urls[1].pathname);assert.equal(urls[0].port,urls[1].port);assert.notEqual(urls[0].username,urls[1].username);
  const runtime=createPool(process.env,keys[0]),migration=createPool(process.env,keys[1]);
  try{

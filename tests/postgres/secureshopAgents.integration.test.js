@@ -6,7 +6,7 @@ const {createPool}=require('../../server/database/postgres');
 const {initializeSecureShopAgentsDb,createSecureShopAgentsDb}=require('../../server/database/postgres/secureshopAgentsDb');
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_SECURESHOP_AGENTS_TEST_RUNTIME_URL;
 test('SecureShop agent state persists concurrent messages, cross-process audit, registry poison and async MCP results',{skip:!enabled,timeout:30000},async()=>{
- for(const key of ['PG_SECURESHOP_AGENTS_TEST_RUNTIME_URL','PG_SECURESHOP_AGENTS_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const key of ['PG_SECURESHOP_AGENTS_TEST_RUNTIME_URL','PG_SECURESHOP_AGENTS_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const pool=createPool(process.env,'PG_SECURESHOP_AGENTS_TEST_RUNTIME_URL'),migration=createPool(process.env,'PG_SECURESHOP_AGENTS_TEST_MIGRATION_URL');
  const prior=process.env.PLATFORM_DATABASE_ENGINE,priorUrl=process.env.SECURESHOP_AGENTS_DATABASE_URL;process.env.PLATFORM_DATABASE_ENGINE='postgres';process.env.SECURESHOP_AGENTS_DATABASE_URL=process.env.PG_SECURESHOP_AGENTS_TEST_RUNTIME_URL;
  try{

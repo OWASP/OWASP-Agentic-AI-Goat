@@ -11,7 +11,7 @@ const { loadSecureShopProductDescriptionRenderer }
 
 function digest(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
 function fixture(t, artifact) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-product-description-renderer-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-product-description-renderer-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.writeFileSync(path.join(root, 'renderer.cjs'), artifact);
   fs.writeFileSync(path.join(root, 'manifest.json'), `${JSON.stringify({

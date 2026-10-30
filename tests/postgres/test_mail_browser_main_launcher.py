@@ -13,7 +13,7 @@ class Controls(unittest.TestCase):
   self.assertEqual(m.content_mode(args),'standalone-disclosure-actual')
   env=m.child_environment({'HOME':'/private/home'},Path('/evidence'),Path('/evidence/runtime'),'owner',args)
   self.assertEqual(env['MAIL_BROWSER_STANDALONE_DISCLOSURE_ACTUAL'],'1')
-  self.assertEqual(env['DVAIA_MAIL_BROWSER_BUILD_ROOT'],'/main/client/build')
+  self.assertEqual(env['OWASP_AI_GOAT_MAIL_BROWSER_BUILD_ROOT'],'/main/client/build')
   import tempfile
   with tempfile.TemporaryDirectory() as directory:
    with self.assertRaisesRegex(RuntimeError,'browser ownership'):
@@ -122,8 +122,8 @@ class Controls(unittest.TestCase):
  def test_four_exact_stores(self):
   for name,label in [('identity','IDENTITY'),('secureshop','COMMERCE'),('secureshop_agents','AGENTS'),('secureshop_review','REVIEW')]:
    sql,env=m.store_configuration(name,54321,'abcdef012345')
-   self.assertIn('CREATE DATABASE dvaia_test_mail_browser_abcdef012345_'+name,sql)
-   self.assertEqual(env['MAIL_'+label+'_RUNTIME_URL'],f'postgresql://dvaia_{name}_runtime@127.0.0.1:54321/dvaia_test_mail_browser_abcdef012345_{name}')
+   self.assertIn('CREATE DATABASE owasp_ai_goat_test_mail_browser_abcdef012345_'+name,sql)
+   self.assertEqual(env['MAIL_'+label+'_RUNTIME_URL'],f'postgresql://dvaia_{name}_runtime@127.0.0.1:54321/owasp_ai_goat_test_mail_browser_abcdef012345_{name}')
   for name in ['postgres','aria','unknown']:
    with self.assertRaises(ValueError):m.store_configuration(name,54321,'abcdef012345')
  def test_closed_flags(self):
@@ -133,14 +133,14 @@ class Controls(unittest.TestCase):
   a=SimpleNamespace(main_workspace='/main',manifest='/private/m.json',manifest_sha256='a'*64,input='/private/i.json',input_sha256='b'*64,browser='/native/chrome',browser_sha256='c'*64)
   env=m.child_environment({'HOME':'/private/home'},Path('/evidence'),Path('/evidence/runtime'),'owner',a)
   self.assertEqual(env['MAIL_BROWSER_NATIVE'],'1');self.assertEqual(env['ANALYTICS_BROWSER_EXECUTABLE'],a.browser)
-  self.assertNotIn('DVAIA_ISOLATED_TEST_WORKSPACE',env);self.assertNotIn('OLLAMA_BASE_URL',env)
+  self.assertNotIn('OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE',env);self.assertNotIn('OLLAMA_BASE_URL',env)
   a.content_only=True;controlled=m.child_environment({'HOME':'/private/home'},Path('/evidence'),Path('/evidence/runtime'),'owner',a)
   self.assertEqual(controlled['MAIL_BROWSER_CONTENT_ONLY'],'1');self.assertEqual(controlled['AI_PROVIDER'],'mock');self.assertEqual(controlled['JUDGE_PROVIDER'],'mock');self.assertEqual(controlled['OLLAMA_BASE_URL'],'http://127.0.0.1:1')
  def test_default_actual_exposes_current_build_root_without_standalone_mode(self):
   a=SimpleNamespace(main_workspace='/main',manifest='/private/m.json',manifest_sha256='a'*64,input='/private/i.json',input_sha256='b'*64,browser='/native/chrome',browser_sha256='c'*64)
   self.assertEqual(m.content_mode(a),'actual')
   env=m.child_environment({'HOME':'/private/home'},Path('/evidence'),Path('/evidence/runtime'),'owner',a)
-  self.assertEqual(env['DVAIA_MAIL_BROWSER_BUILD_ROOT'],'/main/client/build')
+  self.assertEqual(env['OWASP_AI_GOAT_MAIL_BROWSER_BUILD_ROOT'],'/main/client/build')
   self.assertNotIn('MAIL_BROWSER_STANDALONE_DISCLOSURE_ACTUAL',env)
   self.assertEqual((env['AI_PROVIDER'],env['JUDGE_PROVIDER'],env['OLLAMA_MODEL'],env['SS_BOUND_PROMPT_POLICIES_ENABLED']),('ollama','ollama','llama3.1:8b','false'))
  def test_listings_closed_receipt(self):

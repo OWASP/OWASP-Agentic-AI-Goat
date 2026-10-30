@@ -17,7 +17,7 @@ for (const [kind, customBefore] of cases) {
     assert.equal(url.search, '');
     assert.equal(url.hash, '');
     const database = url.pathname.slice(1);
-    assert.match(database, new RegExp(`^dvaia_audit_defaults_${kind}_[a-f0-9]{12}$`));
+    assert.match(database, new RegExp(`^owasp_ai_goat_audit_defaults_${kind}_[a-f0-9]{12}$`));
     const migration = new Pool({ connectionString, max: 2, connectionTimeoutMillis: 5000,
       statement_timeout: 30000, lock_timeout: 5000 });
     try {

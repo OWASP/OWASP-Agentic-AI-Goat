@@ -11,7 +11,7 @@ function createTeachingSessionIds({ secret, now = Date.now, random = randomBytes
     throw new TypeError('A persisted private teaching-session issuance key is required');
   }
   if (typeof now !== 'function' || typeof random !== 'function') throw new TypeError('Session clock and entropy required');
-  const sign = payload => createHmac('sha256', secret).update('dvaia-teaching-session-v1\0').update(payload).digest();
+  const sign = payload => createHmac('sha256', secret).update('owasp-ai-goat-teaching-session-v1\0').update(payload).digest();
   const decode = sid => {
     if (typeof sid !== 'string' || !/^t1\.[0-9]{13}\.[A-Za-z0-9_-]{43}\.[A-Za-z0-9_-]{43}$/.test(sid)) return null;
     const parts = sid.split('.');

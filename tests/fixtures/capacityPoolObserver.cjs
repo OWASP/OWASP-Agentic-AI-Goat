@@ -2,7 +2,7 @@
 // Read-only telemetry for owned qualification children. Never expose URLs,
 // SQL, identity rows, tokens, prompts or response bodies.
 const fs=require('node:fs'),path=require('node:path');
-const directory=process.env.DVAIA_CAPACITY_METRICS;
+const directory=process.env.OWASP_AI_GOAT_CAPACITY_METRICS;
 if(!directory||!path.isAbsolute(directory)||!fs.statSync(directory).isDirectory())throw Error('Owned metric directory required');
 const pg=require('pg'),Original=pg.Pool,pools=[];
 pg.Pool=class ObservedPool extends Original{constructor(options){super(options);pools.push(this);}};

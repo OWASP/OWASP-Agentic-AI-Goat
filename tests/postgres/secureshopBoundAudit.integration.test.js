@@ -16,7 +16,7 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && ['IDENTITY','AGENTS'
   ['MIGRATION','RUNTIME'].every(role => process.env[`${prefix}${store}_${role}_URL`]));
 function ownedPool(store, role) {
   const url=process.env[`${prefix}${store}_${role}_URL`]; const parsed=new URL(url);
-  assert.equal(parsed.hostname,'127.0.0.1');assert.match(parsed.pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+  assert.equal(parsed.hostname,'127.0.0.1');assert.match(parsed.pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return new Pool({connectionString:url,max:3,statement_timeout:15000,lock_timeout:5000});
 }
 function scope(owner=7) {return {launchId:randomUUID(),scenarioId:randomUUID(),generation:1,platformOwnerId:owner,platformSessionId:owner+100};}
@@ -30,7 +30,7 @@ test('audit journals retain scope, transactional provenance, append-only privile
       const schema=`secureshop_${store.toLowerCase()}`;
       const migration=ownedPool(store,'MIGRATION'), runtime=ownedPool(store,'RUNTIME');pools.push(migration,runtime);
       migrationPools[store]=migration;
-      const directory=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-audit-migrations-'));directories.push(directory);
+      const directory=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-audit-migrations-'));directories.push(directory);
       const baseline=path.join(root,'db/postgres/workshop-migrations',schema);
       const migrationName=(store==='AGENTS'?'0020':'0013')+'_secureshop_bound_audit_events.sql';
       for(const file of fs.readdirSync(baseline).filter(name=>name.endsWith('.sql')&&name<migrationName)) {
@@ -417,7 +417,7 @@ test('audit journals retain scope, transactional provenance, append-only privile
     assert.equal((await reader.recent(largeScope,{limit:1})).events[0].params_json,'{"late":true}');
     const emptySnapshot=await Array.fromAsync(snapshot.rows({scope:scope(999),requestedCount:10000000,checkCurrent:async()=>{}}));
     assert.deepEqual(emptySnapshot,[],'streaming summary source must not cross ownership');
-    const spoolRoot=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-audit-spool-native-'));directories.push(spoolRoot);
+    const spoolRoot=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-audit-spool-native-'));directories.push(spoolRoot);
     const staged=await require('../../server/services/secureshopAuditObservationSpool').spoolAuditObservation({
       root:spoolRoot,rows:snapshot.rows({scope:largeScope,requestedCount:10000000,checkCurrent:async()=>{}}),
       scope:largeScope,runId:randomUUID(),requestedCount:10000000,checkCurrent:async()=>{}});
@@ -431,7 +431,7 @@ test('audit journals retain scope, transactional provenance, append-only privile
 
 
     if(process.env.SS_AUDIT_GRAPH_LIVE_MODEL==='1') {
-      const evidenceRoot=path.dirname(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+      const evidenceRoot=path.dirname(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
       const evidence=await require('../helpers/secureshopAuditGraphQualification').qualifyAuditGraph({snapshot,scope:owner,evidenceRoot});
       assert.equal(evidence.sourceCount,2,'one current-generation event per journal; sibling and next generation excluded');
       assert.equal(evidence.objectiveCredit,false);

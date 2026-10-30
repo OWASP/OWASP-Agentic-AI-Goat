@@ -16,7 +16,7 @@ from pathlib import Path
 
 SCOPE = 'teaching-copy-assets-candidates-native-r2'
 POSTGRES_IMAGE_ID = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
-NODE = Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+NODE = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 DOCKER = Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 PSQL = Path('/Users/averma5/.local/opt/agentic-ai-goat/Postgres-2.9.6-18.app/Contents/Versions/18/bin/psql')
 EXECUTABLE_HASHES = {
@@ -68,7 +68,7 @@ owner_handle = int(handle_path.read_text().strip())
 
 source = Path(__file__).resolve().parents[2]
 grant_path = Path(args.grant_file).resolve()
-evidence = Path(tempfile.mkdtemp(prefix='dvaia-copy-assets-candidates-'))
+evidence = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-copy-assets-candidates-'))
 workspace = evidence / 'source'
 workspace.mkdir(mode=0o700)
 os.chmod(evidence, 0o700)
@@ -77,7 +77,7 @@ base_env['PATH'] = '/usr/bin:/bin:/usr/sbin:/sbin'
 base_env['NODE_PATH'] = str(workspace / 'node_modules')
 docker = [str(DOCKER), '--host', args.docker_host]
 nonce = uuid.uuid4().hex[:12]
-container = f'dvaia-copy-assets-{nonce}'
+container = f'owasp-ai-goat-copy-assets-{nonce}'
 ownership_path = evidence / 'ownership.json'
 result_path = evidence / 'result.tap'
 state = {
@@ -330,9 +330,9 @@ try:
         run(admin + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],
             stdout=subprocess.DEVNULL)
     databases = {
-        'dpi': (f'dvaia_dpi_copy_{nonce}', 'dvaia_identity_migration', 'dvaia_identity_runtime'),
-        'assets': (f'dvaia_secureshop_assets_{nonce}', 'dvaia_secureshop_migration', 'dvaia_secureshop_runtime'),
-        'ctf': (f'dvaia_ctf_wrapper_{nonce}', 'dvaia_ctf_migration', 'dvaia_ctf_runtime'),
+        'dpi': (f'owasp_ai_goat_dpi_copy_{nonce}', 'dvaia_identity_migration', 'dvaia_identity_runtime'),
+        'assets': (f'owasp_ai_goat_secureshop_assets_{nonce}', 'dvaia_secureshop_migration', 'dvaia_secureshop_runtime'),
+        'ctf': (f'owasp_ai_goat_ctf_wrapper_{nonce}', 'dvaia_ctf_migration', 'dvaia_ctf_runtime'),
     }
     urls = {}
     for key, (database, migration_role, runtime_role) in databases.items():
@@ -342,7 +342,7 @@ try:
             stdout=subprocess.DEVNULL)
         urls[key] = f'postgresql://{migration_role}@127.0.0.1:{port}/{database}'
     env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes',
-               DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true',
+               OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true',
                PG_DPI_COPY_MIGRATION_URL=urls['dpi'],
                PG_SECURESHOP_LOCAL_ASSETS_MIGRATION_URL=urls['assets'],
                PG_CTF_WRAPPER_MIGRATION_URL=urls['ctf'])

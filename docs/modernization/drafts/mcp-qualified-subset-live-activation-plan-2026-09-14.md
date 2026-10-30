@@ -2,7 +2,7 @@
 
 ## Qualified boundary
 
-The mounted native run `dvaia-mcp-owned-connected-fwnn8rp2` qualifies exactly
+The mounted native run `owasp-ai-goat-mcp-owned-connected-fwnn8rp2` qualifies exactly
 `mcp_cmd_injection` and `mcp_confused_deputy` through actual student/admin JWTs,
 the shared MCP SDK, a strict owner/session/generation runner, real Mailpit,
 actual `llama3.1:8b` actor and Judge, durable progress/history, replay,
@@ -82,7 +82,7 @@ Install the same application-owned runner boundary used by the native gate:
 - Node 26.8.2 runner image;
 - no added Linux capabilities, privileged mode, host network, host root bind, or
   unsandboxed grading fallback;
-- stable enforcing `dvaia-mcp-sandbox` AppArmor supervisor profile;
+- stable enforcing `owasp-ai-goat-mcp-sandbox` AppArmor supervisor profile;
 - bwrap owner target with private user/PID/network/mount namespaces, empty
   procfs, minimal target root, kernel-held flock, and mandatory trusted final
   seccomp filter;
@@ -104,7 +104,7 @@ The source-only provisioning candidate is `scripts/install/mcp-owned-local.js`
 plus `scripts/install/mcp-owned-provision.js` (`npm run setup:mcp-owned`). It
 reads and validates the existing private signing configuration without changing
 the repository `.env`, and stores the owned target token and runtime flags in
-the workspace-scoped private `~/.dvaia/<workspace-id>/mcp-owned.env` file,
+the workspace-scoped private `~/.owasp-ai-goat/<workspace-id>/mcp-owned.env` file,
 rejects a conflicting stable policy, requires the installed policy to be an
 exact root-owned mode-0600 regular file, verifies the exact enforcing label,
 and only then starts the opt-in Compose runner and Mailpit. Its authenticated
@@ -116,7 +116,7 @@ The
 candidate has controlled command-adapter coverage only and has not installed a
 host or guest policy.
 
-The compose service must use `apparmor=dvaia-mcp-sandbox` rather than
+The compose service must use `apparmor=owasp-ai-goat-mcp-sandbox` rather than
 `apparmor:unconfined`, pass the private token/profile/enablement values, persist
 only the intended private target root, and expose the health endpoint consumed
 by `ownedTargetClient`. Mailpit stays the controlled SMTP/API sink. Backend

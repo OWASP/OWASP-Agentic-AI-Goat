@@ -4,13 +4,13 @@ import argparse,json,os,shutil,subprocess,tempfile
 from pathlib import Path
 from owned_mcp_assembly_freeze import inventory,dependencies,digest,verify,sha
 SOURCE=Path(__file__).resolve().parents[2]
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 NODE_SHA='56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 def main():
  parser=argparse.ArgumentParser();parser.add_argument('--startup-only',action='store_true');parser.add_argument('--invocation-journal',action='store_true');parser.add_argument('--invocation-compile-only',action='store_true');parser.add_argument('--invocation-kernel-only',action='store_true');args=parser.parse_args()
  if sum([args.startup_only,args.invocation_journal,args.invocation_compile_only,args.invocation_kernel_only])>1:raise RuntimeError('Closed diagnostic modes are exclusive')
  if sha(NODE)!=NODE_SHA:raise RuntimeError('Node pin mismatch')
- root=Path(tempfile.mkdtemp(prefix='dvaia-mcp-assembly-preflight-'));root.chmod(0o700);destination=root/'source';destination.mkdir(mode=0o700)
+ root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-assembly-preflight-'));root.chmod(0o700);destination=root/'source';destination.mkdir(mode=0o700)
  source=inventory(SOURCE);deps=dependencies(SOURCE);source_sha,dependency_sha=digest(source),digest(deps)
  for name,row in source.items():
   original=SOURCE/name;target=destination/name;target.parent.mkdir(parents=True,exist_ok=True)
@@ -31,7 +31,7 @@ def main():
   if row['kind']=='file':(destination/name).chmod(0o400)
  # Root directory remains writable so execution-copy symlink creation cannot
  # mutate the frozen tree. File hashes are the authority; no shared deps edited.
- report={'status':'prepared-no-resources','source':str(destination),'snapshot':snapshot,'sourceManifest':source,'dependencyManifestSha256':dependency_sha,'nodeSha256':NODE_SHA,'bounds':{'parentSeconds':900,'buildSeconds':300,'childSeconds':480,'postgresMiB':1024,'executorMiB':512,'modelCalls':0,'browserCalls':0},'launchArgv':['python3','-B',str(destination/'tests/postgres/run-owned-mcp-assembly-isolated.py'),'--docker-host','unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock','--source-sha256',source_sha,'--dependency-sha256',dependency_sha,'--run'],'artifacts':{name:sha(root/name) for name in [label+'-controls.log' for label,argv in controls]},'resourceLaunch':False}
+ report={'status':'prepared-no-resources','source':str(destination),'snapshot':snapshot,'sourceManifest':source,'dependencyManifestSha256':dependency_sha,'nodeSha256':NODE_SHA,'bounds':{'parentSeconds':900,'buildSeconds':300,'childSeconds':480,'postgresMiB':1024,'executorMiB':512,'modelCalls':0,'browserCalls':0},'launchArgv':['python3','-B',str(destination/'tests/postgres/run-owned-mcp-assembly-isolated.py'),'--docker-host','unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock','--source-sha256',source_sha,'--dependency-sha256',dependency_sha,'--run'],'artifacts':{name:sha(root/name) for name in [label+'-controls.log' for label,argv in controls]},'resourceLaunch':False}
  if args.startup_only:
   report['bounds']={'parentSeconds':420,'buildSeconds':300,'startupSeconds':30,'childSeconds':0,'postgresMiB':0,'executorMiB':512,'modelCalls':0,'browserCalls':0}
   report['launchArgv'].append('--startup-only');report['scope']='startup-only diagnostic; no native assembly qualification'

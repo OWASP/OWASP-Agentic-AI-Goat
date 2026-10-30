@@ -136,7 +136,7 @@ test('V36 actual rendered configuration prelude accepts only the qualified conte
  const start=source.indexOf('  const workspace = path.resolve',source.indexOf('async function runAuditFixture('));
  const end=source.indexOf('  const db = urls()',start);assert(start>=0&&end>start);
  const prelude=source.slice(start,end),workspace=path.resolve(__dirname,'..');
- const env={DVAIA_CURRENT_MAIN_WORKSPACE:workspace,SECURESHOP_ADMIN_AUDIT_JOBS_BROWSER_BUILD:path.join(workspace,'client/build'),
+ const env={OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:workspace,SECURESHOP_ADMIN_AUDIT_JOBS_BROWSER_BUILD:path.join(workspace,'client/build'),
   TMPDIR:'/owned/evidence/runtime/tmp',SECURESHOP_ADMIN_AUDIT_JOBS_BROWSER_EVIDENCE_PATH:'/owned/evidence/receipt.json',
   OLLAMA_MODEL:'llama3.1:8b',JUDGE_MODEL:'llama3.1:8b',AI_PROVIDER:'ollama',JUDGE_PROVIDER:'ollama',
   OLLAMA_BASE_URL:'http://127.0.0.1:11434',LAB_MODE:'vuln',OLLAMA_CONTEXT_WINDOW:'32768'};

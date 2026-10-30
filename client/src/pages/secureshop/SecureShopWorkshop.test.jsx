@@ -52,7 +52,7 @@ test('starts one controller, confirms the scoped reset, and closes without revok
   });
   await act(async () => { renderWorkshop(createController); });
   expect(controller.start).toHaveBeenCalledWith(node.querySelector('[data-testid="secureshop-frame-host"]'));
-  expect(node.querySelector('main[aria-label="SecureShop"]').style.position).toBe('fixed');
+  expect(node.querySelector('main[aria-label="OWASP AI SecureShop"]').style.position).toBe('fixed');
   expect(node.textContent).not.toMatch(/workshop|objectives|exercises/i);
   await act(async () => node.querySelector('button[aria-controls="secureshop-settings"]').click());
   const reset = [...node.querySelectorAll('button')].find(button => button.textContent === 'Reset shop');
@@ -87,7 +87,7 @@ test('syncs current bound-frame routes to the parent URL and parent navigation b
   await act(async () => renderWorkshop(createController));
   const postMessage = jest.spyOn(frame.contentWindow, 'postMessage').mockImplementation(() => {});
   const send = (source, route, messageNonce = nonce) => window.dispatchEvent(new MessageEvent('message', {
-    origin: 'null', source, data: { channel: 'dvaia-secureshop-bound-route-v1', type: 'route',
+    origin: 'null', source, data: { channel: 'owasp-ai-goat-secureshop-bound-route-v1', type: 'route',
       nonce: messageNonce, route },
   }));
   await act(async () => send(frame.contentWindow, '/secureshop/home'));
@@ -97,7 +97,7 @@ test('syncs current bound-frame routes to the parent URL and parent navigation b
   expect(node.querySelector('[data-testid="parent-route"]').textContent).toBe('/secureshop/home');
   await act(async () => node.querySelector('[data-testid="parent-navigation"]').click());
   expect(node.querySelector('[data-testid="parent-route"]').textContent).toBe('/secureshop/catalog?q=phone');
-  expect(postMessage).toHaveBeenCalledWith({ channel: 'dvaia-secureshop-bound-route-v1', type: 'set-route',
+  expect(postMessage).toHaveBeenCalledWith({ channel: 'owasp-ai-goat-secureshop-bound-route-v1', type: 'set-route',
     nonce, route: '/secureshop/catalog?q=phone' }, '*');
   expect(controller.start).toHaveBeenCalledTimes(1);
 });
@@ -123,7 +123,7 @@ test('terminal launch offers sign out without reconnecting or resetting', async 
   const controller = { start: jest.fn().mockResolvedValue({}), reset: jest.fn(), close: jest.fn() };
   const createController = jest.fn(options => {
     queueMicrotask(() => options.onState({ status: 'error', terminalLaunch: true,
-      message: 'This platform session’s SecureShop launch has ended. Sign out and sign in again to start a new session.' }));
+      message: 'This platform session’s OWASP AI SecureShop launch has ended. Sign out and sign in again to start a new session.' }));
     return controller;
   });
   await act(async () => renderWorkshop(createController));

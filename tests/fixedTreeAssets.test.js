@@ -25,7 +25,7 @@ async function fixture(relativePaths = [
   ['server/uploads/report.txt', 'source-report'],
   ['server/sensitive_files/config/secret.txt', 'source-secret'],
 ]) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-fixed-tree-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-fixed-tree-'));
   const source = path.join(root, 'source');
   const oldInstall = path.join(root, 'old-install');
   const candidate = path.join(root, 'candidate');

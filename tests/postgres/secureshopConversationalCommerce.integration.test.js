@@ -33,9 +33,9 @@ assert.equal(CURRENT.at(-1), '0046_customer_profile_receipts.sql', 'qualificatio
 function pool(url, max = 8) {
   const parsed = new URL(url);
   assert.ok(['127.0.0.1', 'localhost'].includes(parsed.hostname));
-  assert.match(parsed.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(parsed.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return new Pool({ connectionString: url, max, statement_timeout: 15000,
-    lock_timeout: 3000, application_name: 'dvaia-conversational-commerce-native' });
+    lock_timeout: 3000, application_name: 'owasp-ai-goat-conversational-commerce-native' });
 }
 
 // Apply a historical prefix from the current checkout without copying source.

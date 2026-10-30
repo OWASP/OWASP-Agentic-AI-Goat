@@ -703,8 +703,8 @@ V03_OPTIMIZE_FRESH_APPROVED = {
     'dependenciesSha256': '14c51895d3cf075c6d9878991962c9035ed8d100d495c2a499d44aec7852208b',
     'sourceAdmission': ('tasks/qualification/v03-prerequisite-admission-cQd6o3Ez/source-admission.json', '30d334e3ffb6adbe6ce5aab6ea5ddba2a883cf7f143dc98d1321453419aa8352'),
     'admission': ('tasks/qualification/v03-prerequisite-admission-cQd6o3Ez/admission.json', 'dd1d255ef8afb2c1f06f3583c60f31c6bd0c23862d4e86aa326d1f17089fb396'),
-    'result': ('tasks/qualification/dvaia-v03-main-yp3z4t1d/result.json', '10c71a57b2be92a18e8d74e0c6f39deba166ea19aff7624d56b50fd8bc35f75c'),
-    'tap': ('tasks/qualification/dvaia-v03-main-yp3z4t1d/owned-command-19.stdout.log', '60b277575ca9d785cd35f8d919e64600fb36d49d4ef13bc924d067d52c9148e8'),
+    'result': ('tasks/qualification/owasp-ai-goat-v03-main-yp3z4t1d/result.json', '10c71a57b2be92a18e8d74e0c6f39deba166ea19aff7624d56b50fd8bc35f75c'),
+    'tap': ('tasks/qualification/owasp-ai-goat-v03-main-yp3z4t1d/owned-command-19.stdout.log', '60b277575ca9d785cd35f8d919e64600fb36d49d4ef13bc924d067d52c9148e8'),
     'terminal': ('tasks/qualification/v03-prerequisite-admission-cQd6o3Ez/native-outer-terminal.json', '7c1329c9fd8277ddba7a004e793517881e94f95934f3f79f9161066a3b4b424f'),
     'full': ('tasks/qualification/v03-45869-current-closure/result.json', '6943afa6ccfc2f991ac77ab46010774c1040fe60836443ff192018088bbaf2b6'),
 }
@@ -1497,7 +1497,7 @@ def plan_requires_browser(cohort):
 
 OLLAMA_BASE_URL = 'http://127.0.0.1:11434'
 OLLAMA_MODEL = 'llama3.1:8b'
-EXPECTED_DOCKER_HOST = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+EXPECTED_DOCKER_HOST = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 NODE_VERSION = 'v26.10.0'
 NODE_SHA256 = '56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 TEST = 'tests/postgres/secureshopAgentHostTransport.integration.test.js'
@@ -3727,7 +3727,7 @@ def source_snapshot(source, node, cohort, registry=None, browser_root=None, brow
         policy_source_sha256 = closure['source']['sha256']
         if not re.fullmatch(r'[a-f0-9]{64}', policy_source_sha256): raise RuntimeError('Invalid renderer source digest')
         files.update(closure['source']['files'])
-        files.add('sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in')
+        files.add('sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in')
         for name in closure['loaded']:
             path = Path(name)
             if not path.is_absolute() or not path.is_relative_to(source): raise RuntimeError('External renderer helper import')
@@ -4087,7 +4087,7 @@ def create_v25_stores(args, clean, container, port, nonce):
     stores, families = {}, set()
     for store, family in V25_STORES.items():
         migration, runtime = f'dvaia_{family}_migration', f'dvaia_{family}_runtime'
-        database = f'dvaia_test_persona_{nonce}_{store}'
+        database = f'owasp_ai_goat_test_persona_{nonce}_{store}'
         statements = []
         if family not in families:
             statements.extend(f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'
@@ -4110,7 +4110,7 @@ def v25_environment(args, source, stores):
     result = dict(PERSONA_PRICING_NATIVE='1', PERSONA_PRICING_ACTUAL='1',
         PERSONA_PRICING_MANUAL_ONLY='1', PERSONA_PRICING_ACTUAL_REMAINING='0',
         PERSONA_PRICING_COHORT='baseline', PERSONA_PRICING_CANONICAL='1',
-        PERSONA_REVIEW_CANONICAL_NATIVE='1', DVAIA_ISOLATED_TEST_WORKSPACE=str(source),
+        PERSONA_REVIEW_CANONICAL_NATIVE='1', OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(source),
         JWT_SECRET=secrets.token_hex(32), SESSION_SECRET=secrets.token_hex(32),
         MCP_WORKSHOP_AUTOSTART='false', MCP_SIDECARS_AUTOSTART='false', SS_ENABLE='false',
         HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1', XENOVA_CACHE=args.embedding_cache,
@@ -4348,11 +4348,11 @@ b._internals.checkInventory(text);process.stdout.write(text);
 class OwnedPostgresNetwork:
     """One pre-admitted network, owned by the parent rather than the producer."""
     def __init__(self, cohort, command, daemon, name, labels, evidence, snapshot, *, private_listings=False):
-        if not owned_pg_network_selected(cohort, private_listings=private_listings) or not re.fullmatch(r'dvaia-[a-z0-9-]+-[a-f0-9]{12}-pg-network', name) \
-                or set(labels) != {'dvaia.owner', 'dvaia.cohort'} or not labels['dvaia.owner'] or not labels['dvaia.cohort']:
+        if not owned_pg_network_selected(cohort, private_listings=private_listings) or not re.fullmatch(r'owasp-ai-goat-[a-z0-9-]+-[a-f0-9]{12}-pg-network', name) \
+                or set(labels) != {'owasp-ai-goat.owner', 'owasp-ai-goat.cohort'} or not labels['owasp-ai-goat.owner'] or not labels['owasp-ai-goat.cohort']:
             raise RuntimeError('Closed owned PostgreSQL network identity required')
         self.command, self.daemon, self.name = command, daemon, name
-        self.labels = {**labels, 'dvaia.pg-network': 'v1'}
+        self.labels = {**labels, 'owasp-ai-goat.pg-network': 'v1'}
         self.evidence, self.snapshot = Path(evidence), snapshot
         self.identifier, self.before, self.before_networks = None, None, None
         self.intent = False
@@ -4507,7 +4507,7 @@ def create_store(args, clean, container, port, nonce, store):
     role_store = 'secureshop_agents' if store == 'secureshop_conversation' else \
         'secureshop_review' if store == 'secureshop_review_populated' else store
     migration = f'dvaia_{role_store}_migration'; runtime = f'dvaia_{role_store}_runtime'
-    database = f'dvaia_test_agent_host_{nonce}_{store}'
+    database = f'owasp_ai_goat_test_agent_host_{nonce}_{store}'
     statements = [
         ('create-migration-role', f'CREATE ROLE {migration} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'),
         ('create-runtime-role', f'CREATE ROLE {runtime} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'),
@@ -4534,7 +4534,7 @@ def create_ticket_store(args, clean, container, port, owner, store, role_familie
         raise RuntimeError('Closed ticket repository store identity required')
     family = families[store]
     migration = f'dvaia_{family}_migration'; runtime = f'dvaia_{family}_runtime'
-    database = f'dvaia_test_ticket_{owner}_{store.lower()}'
+    database = f'owasp_ai_goat_test_ticket_{owner}_{store.lower()}'
     statements = []
     if family not in role_families:
         statements.extend([
@@ -4979,7 +4979,7 @@ def v23_original_environment(source, identity, agents, commerce, reviews, reques
            'SS_ENABLE_REAL_LLM_TESTS': 'true', 'OLLAMA_BASE_URL': OLLAMA_BASE_URL,
            'OLLAMA_MODEL': OLLAMA_MODEL, 'OLLAMA_CONTEXT_WINDOW': '8192',
            'JUDGE_PROVIDER': 'ollama',
-           'JUDGE_MODEL': OLLAMA_MODEL, 'DVAIA_CURRENT_MAIN_WORKSPACE': str(source),
+           'JUDGE_MODEL': OLLAMA_MODEL, 'OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE': str(source),
            'V23_REQUEST_VARIANT': request_variant,
            'V23_BOUNDARY_CONTRACT': boundary_contract}
     for name, pair in [('IDENTITY', identity), ('AGENTS', agents),
@@ -4996,7 +4996,7 @@ def v37_consumption_environment(source, evidence, identity, agents, commerce, re
            'OLLAMA_MODEL': OLLAMA_MODEL, 'OLLAMA_CONTEXT_WINDOW': '8192',
            'SS_AGENT_MAX_STEPS': '8', 'SS_AGENT_MAX_PARALLEL_TOOLS': '4',
            'SS_AGENT_SESSION_TOKEN_BUDGET': '100000',
-           'DVAIA_CURRENT_MAIN_WORKSPACE': str(source), 'PG_TEST_ROOT': str(evidence),
+           'OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE': str(source), 'PG_TEST_ROOT': str(evidence),
            'SECURESHOP_CONSUMPTION_EVIDENCE_PATH': str(evidence / 'customer-consumption-evidence.json'),
            'SECURESHOP_DATABASE_URL': commerce['runtime'],
            'SECURESHOP_AGENTS_DATABASE_URL': agents['runtime']}
@@ -5036,7 +5036,7 @@ def v30_original_environment(source, evidence, identity, agents, commerce, revie
            'SS_ENABLE_REAL_LLM_TESTS': 'true', 'OLLAMA_BASE_URL': OLLAMA_BASE_URL,
            'OLLAMA_MODEL': OLLAMA_MODEL, 'OLLAMA_CONTEXT_WINDOW': '8192',
            'JUDGE_PROVIDER': 'ollama', 'JUDGE_MODEL': OLLAMA_MODEL,
-           'DVAIA_CURRENT_MAIN_WORKSPACE': str(source), 'PG_TEST_ROOT': str(evidence),
+           'OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE': str(source), 'PG_TEST_ROOT': str(evidence),
            'V30_ORIGINAL_RESULT': str(evidence / 'v30-original-result.json'),
            'SECURESHOP_DATABASE_URL': commerce['runtime'],
            'SECURESHOP_AGENTS_DATABASE_URL': agents['runtime']}
@@ -5120,14 +5120,14 @@ def v30_v2_worker_launch(source, node, environment, worker_fd, nonce, host_port)
             or not re.fullmatch(r'[a-f0-9]{64}', nonce or '')
             or type(host_port) is not int or not 1024 <= host_port <= 65535
             or any(key in environment for key in (
-                'DVAIA_V30_HOST_LAUNCHER_FD', 'DVAIA_V30_HOST_WORKER_FD',
-                'DVAIA_V30_HOST_NONCE', 'V30_AGENT_HOST_PORT'))):
+                'OWASP_AI_GOAT_V30_HOST_LAUNCHER_FD', 'OWASP_AI_GOAT_V30_HOST_WORKER_FD',
+                'OWASP_AI_GOAT_V30_HOST_NONCE', 'V30_AGENT_HOST_PORT'))):
         raise RuntimeError('Exact V30 worker capability launch required')
     command = [str(node), '--test', '--test-isolation=none', '--test-reporter=tap',
                str(source / V30_ORIGINAL_TEST)]
     child_environment = {**environment,
-                         'DVAIA_V30_HOST_WORKER_FD': str(worker_fd),
-                         'DVAIA_V30_HOST_NONCE': nonce,
+                         'OWASP_AI_GOAT_V30_HOST_WORKER_FD': str(worker_fd),
+                         'OWASP_AI_GOAT_V30_HOST_NONCE': nonce,
                          'V30_AGENT_HOST_PORT': str(host_port)}
     return command, child_environment, (worker_fd,)
 
@@ -5601,7 +5601,7 @@ def v23_public_profile_allocate(runtime):
                 or not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid()
                 or stat.S_IMODE(info.st_mode) != 0o700):
             raise RuntimeError('Private public V23 runtime required')
-    profile = Path(tempfile.mkdtemp(prefix='dvaia-v23-public-admin-', dir=temporary))
+    profile = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-v23-public-admin-', dir=temporary))
     info = profile.lstat()
     parent = temporary.lstat()
     return {'path': profile, 'identity': (info.st_dev, info.st_ino, info.st_uid),
@@ -5616,7 +5616,7 @@ def v23_public_profile_retire(runtime, allocation, child_quiescent, terminal):
     profile = allocation['path']
     temporary = runtime / 'tmp'
     if (not isinstance(profile, Path) or profile.parent != temporary
-            or not re.fullmatch(r'dvaia-v23-public-admin-[A-Za-z0-9_-]+', profile.name)
+            or not re.fullmatch(r'owasp-ai-goat-v23-public-admin-[A-Za-z0-9_-]+', profile.name)
             or temporary.resolve() != temporary or temporary.is_symlink()):
         raise RuntimeError('Public V23 exact profile authority required')
     parent = temporary.lstat()
@@ -10822,7 +10822,7 @@ class Q05ReviewBrowserOwner:
     ACK = 'q05-review-moderation-browser-ack.json'
     RECEIPT = 'q05-review-moderation-rendered.json'
     KIND = 'q05_review_moderation_browser'
-    PROFILE = 'dvaia-q05-review-'
+    PROFILE = 'owasp-ai-goat-q05-review-'
 
     def __init__(self, original, source, evidence, runtime, node, browser,
                  browser_sha256, build_sha256, snapshot_sha256, api=None,
@@ -11035,7 +11035,7 @@ class AdminResetBrowserOwner(Q05ReviewBrowserOwner):
     ACK = 'admin-reset-browser-ack.json'
     RECEIPT = 'admin-password-reset-chat-browser.json'
     KIND = 'admin_reset_browser'
-    PROFILE = 'dvaia-role-admin-reset-'
+    PROFILE = 'owasp-ai-goat-role-admin-reset-'
 
     def _retire(self):
         # run_node and the outer finally may both finalize a failed worker.
@@ -12200,7 +12200,7 @@ def capture_owned_diagnostic_ids(executor, owner, evidence):
         if names.get(kind) == name:
             labels = row.get('Labels', {}) if kind == 'network' else row.get('Config', {}).get('Labels', {})
             identity = row.get('Id')
-            if (labels.get('dvaia.test.owner') != owner
+            if (labels.get('owasp-ai-goat.test.owner') != owner
                     or (kind == 'container' and row.get('Name') != '/' + name)
                     or (kind == 'network' and row.get('Name') != name)
                     or not isinstance(identity, str)
@@ -12884,7 +12884,7 @@ def v24_owner_terminal(target, run_id, code, source):
                     or type(browser['workerPid']) is not int or browser['workerPid'] <= 1 or browser['workerPid'] == browser['pid'] \
                     or not valid_birth(browser['birth']) or type(browser['birthSha256']) is not str or not re.fullmatch(r'[a-f0-9]{64}',browser['birthSha256']) \
                     or type(browser['acknowledged']) is not bool or type(browser.get('profilePath')) is not str or Path(browser['profilePath']).parent != expected_prefix \
-                    or not re.fullmatch(r'dvaia-role-policy-instruction-[A-Za-z0-9]{6}', Path(browser.get('profilePath', '')).name) \
+                    or not re.fullmatch(r'owasp-ai-goat-role-policy-instruction-[A-Za-z0-9]{6}', Path(browser.get('profilePath', '')).name) \
                     or any(browser.get(k) is not True for k in ('groupAbsent','processAbsent','profileAbsent')) or browser.get('errors') != []:
                 raise RuntimeError('V24 browser retirement incomplete')
         if packet['passed'] and (browser is None or browser.get('acknowledged') is not True or child.get('failure') is not None or child.get('exitCode') != 0):
@@ -13206,7 +13206,7 @@ def listings_candidate(source, node, docker_host, daemon_id):
 const m=require('./scripts/install/secureshop-owned-listings'); const id=require('./scripts/application-data-root').workspaceId(process.argv[1]);
 const authority=crypto.createHash('sha256').update(JSON.stringify({version:1,workspaceId:id,host:process.argv[2],daemonId:process.argv[3]})).digest('hex');
 const v=q.qualifiedPackage({root:process.argv[1],architecture:'arm64'}), s=m.sourceManifest(process.argv[1]);
-process.stdout.write(JSON.stringify({workspaceId:id,runtimeDigest:v.runtimeDigest,sourceSha256:v.qualifiedSourceSha256,manifestSha256:s.sha256,authoritySha256:authority,tag:'dvaia-owned-listings-'+id+':local'}));"""
+process.stdout.write(JSON.stringify({workspaceId:id,runtimeDigest:v.runtimeDigest,sourceSha256:v.qualifiedSourceSha256,manifestSha256:s.sha256,authoritySha256:authority,tag:'owasp-ai-goat-owned-listings-'+id+':local'}));"""
     output = subprocess.run([node, '-e', program, str(source), docker_host, daemon_id], cwd=source,
         check=True, capture_output=True, text=True, timeout=30, env={'PATH': str(Path(node).parent)}).stdout
     value = json.loads(output)
@@ -13220,13 +13220,13 @@ process.stdout.write(JSON.stringify({workspaceId:id,runtimeDigest:v.runtimeDiges
 def listings_profile_plan(source, node, docker_host, nonce):
     """Use the installer export to locate the admitted local Linux/Colima authority."""
     program = """const fs=require('node:fs'),crypto=require('node:crypto'),q=require('./scripts/install/secureshop-owned-listings-qualified-candidate')._internals;
-const name='dvaia-owned-listings-'+process.argv[3], bytes=Buffer.from(fs.readFileSync('sidecars/sandbox-runner/owned-listings/profile.apparmor.in','utf8').replaceAll('@@SUPERVISOR_PROFILE@@',name));
+const name='owasp-ai-goat-owned-listings-'+process.argv[3], bytes=Buffer.from(fs.readFileSync('sidecars/sandbox-runner/owned-listings/profile.apparmor.in','utf8').replaceAll('@@SUPERVISOR_PROFILE@@',name));
 const p=q.profileLocation({authority:{host:process.argv[2]},root:process.argv[1],home:process.env.HOME,platform:process.platform});
 process.stdout.write(JSON.stringify({name,bytes:bytes.toString('base64'),sha256:crypto.createHash('sha256').update(bytes).digest('hex'),sshConfig:p.sshConfig||null,sshHost:p.sshHost||null,platform:p.platform}));"""
     raw = subprocess.run([node, '-e', program, str(source), docker_host, nonce], cwd=source,
         check=True, capture_output=True, text=True, timeout=30, env={'PATH': str(Path(node).parent), 'HOME': os.environ['HOME']}).stdout
     value = json.loads(raw)
-    if not re.fullmatch(r'dvaia-owned-listings-[0-9a-f]{12}', value.get('name', '')) \
+    if not re.fullmatch(r'owasp-ai-goat-owned-listings-[0-9a-f]{12}', value.get('name', '')) \
             or not re.fullmatch(r'[0-9a-f]{64}', value.get('sha256', '')) or value.get('platform') not in ('linux', 'darwin'):
         raise RuntimeError('Nonce Listings profile plan invalid')
     return value
@@ -13235,7 +13235,7 @@ process.stdout.write(JSON.stringify({name,bytes:bytes.toString('base64'),sha256:
 def check_listings_profile_absent(source, node, clean, plan):
     check = r'''import os,sys,stat,fcntl
 name=sys.argv[1]
-assert name.startswith('dvaia-owned-listings-') and len(name)==33 and all(c in '0123456789abcdef' for c in name[-12:])
+assert name.startswith('owasp-ai-goat-owned-listings-') and len(name)==33 and all(c in '0123456789abcdef' for c in name[-12:])
 assert os.geteuid()==0
 root='/etc/apparmor.d'; lock=root+'/.'+name+'.install-lock'
 fd=os.open(lock,os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW|os.O_NONBLOCK,0o600)
@@ -13276,7 +13276,7 @@ def remove_listings_profile(source, node, clean, plan):
     """Retain on every ambiguity; missing is admitted only after kernel absence."""
     cleanup = r'''import os,sys,base64,stat,hashlib,fcntl,subprocess
 name,data,expected=sys.argv[1],base64.b64decode(sys.argv[2],validate=True),sys.argv[3]
-assert name.startswith('dvaia-owned-listings-') and len(name)==33 and all(c in '0123456789abcdef' for c in name[-12:])
+assert name.startswith('owasp-ai-goat-owned-listings-') and len(name)==33 and all(c in '0123456789abcdef' for c in name[-12:])
 assert hashlib.sha256(data).hexdigest()==expected and os.geteuid()==0
 root='/etc/apparmor.d'; dst=root+'/'+name; lock=root+'/.'+name+'.install-lock'
 lfd=os.open(lock,os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW|os.O_NONBLOCK,0o600)
@@ -13342,8 +13342,8 @@ def verify_ollama_model(expected_digest):
 def validate_v03_listings_image(row, image_id, source_sha256, runtime_digest):
     labels = row.get('Config', {}).get('Labels', {}) if isinstance(row, dict) else {}
     if (row.get('Id') != image_id or row.get('Architecture') != 'arm64' or row.get('Os') != 'linux'
-            or labels.get('dvaia.listings.source') != source_sha256
-            or labels.get('dvaia.listings.runtime') not in (None, runtime_digest)):
+            or labels.get('owasp-ai-goat.listings.source') != source_sha256
+            or labels.get('owasp-ai-goat.listings.runtime') not in (None, runtime_digest)):
         raise RuntimeError('Qualified V03 Listings image identity mismatch')
     return labels
 
@@ -13406,8 +13406,8 @@ def standalone_browser_cleanup_state(runtime, *, deadline=None):
             raise RuntimeError('Browser inspection deadline expired')
     check()
     temporary = runtime / 'tmp'
-    profiles = [path for pattern in ('dvaia-v23-public-admin-*', 'dvaia-q05-review-*', 'dvaia-inline-mail-*', 'dvaia-role-named-order-*', 'dvaia-role-catalog-page-*', 'dvaia-progress-rendered-*', 'dvaia-manual-browser-*', 'dvaia-manual-ingest-files-*', 'dvaia-standalone-browser-*', 'dvaia-standalone-inventory-*', 'dvaia-standalone-commerce-*', 'dvaia-secureshop-route-*', 'dvaia-standalone-d22-*', 'dvaia-listings-browser-*', 'dvaia-pricing-chat-*', 'dvaia-v34-manual-files-*', 'dvaia-customer-checkout-*', 'dvaia-customer-idor-browser-*', 'dvaia-search-echo-browser-*', 'dvaia-customer-coupon-browser-*', 'dvaia-coupon-blind-browser-*', 'dvaia-product-search-browser-*', 'dvaia-order-status-browser-*', 'dvaia-customer-cart-lifecycle-*', 'dvaia-customer-ticket-browser-*', 'dvaia-role-choices-*', 'dvaia-role-inventory-*', 'dvaia-role-listing-edit-*', 'dvaia-role-listing-create-*', 'dvaia-role-listing-raw-browser-*', 'dvaia-role-order-*', 'dvaia-role-mail-*', 'dvaia-role-review-*', 'dvaia-role-admin-user-*', 'dvaia-user-lookup-browser-*', 'dvaia-role-admin-audit-*', 'dvaia-role-admin-read-*', 'dvaia-role-admin-reset-*', 'dvaia-admin-diagnostic-chat-*', 'dvaia-role-admin-policy-*', 'dvaia-chat-presentation-*', 'ss-review-browser-*',
-                                      'dvaia-customer-profile-*',
+    profiles = [path for pattern in ('owasp-ai-goat-v23-public-admin-*', 'owasp-ai-goat-q05-review-*', 'owasp-ai-goat-inline-mail-*', 'owasp-ai-goat-role-named-order-*', 'owasp-ai-goat-role-catalog-page-*', 'owasp-ai-goat-progress-rendered-*', 'owasp-ai-goat-manual-browser-*', 'owasp-ai-goat-manual-ingest-files-*', 'owasp-ai-goat-standalone-browser-*', 'owasp-ai-goat-standalone-inventory-*', 'owasp-ai-goat-standalone-commerce-*', 'owasp-ai-goat-secureshop-route-*', 'owasp-ai-goat-standalone-d22-*', 'owasp-ai-goat-listings-browser-*', 'owasp-ai-goat-pricing-chat-*', 'owasp-ai-goat-v34-manual-files-*', 'owasp-ai-goat-customer-checkout-*', 'owasp-ai-goat-customer-idor-browser-*', 'owasp-ai-goat-search-echo-browser-*', 'owasp-ai-goat-customer-coupon-browser-*', 'owasp-ai-goat-coupon-blind-browser-*', 'owasp-ai-goat-product-search-browser-*', 'owasp-ai-goat-order-status-browser-*', 'owasp-ai-goat-customer-cart-lifecycle-*', 'owasp-ai-goat-customer-ticket-browser-*', 'owasp-ai-goat-role-choices-*', 'owasp-ai-goat-role-inventory-*', 'owasp-ai-goat-role-listing-edit-*', 'owasp-ai-goat-role-listing-create-*', 'owasp-ai-goat-role-listing-raw-browser-*', 'owasp-ai-goat-role-order-*', 'owasp-ai-goat-role-mail-*', 'owasp-ai-goat-role-review-*', 'owasp-ai-goat-role-admin-user-*', 'owasp-ai-goat-user-lookup-browser-*', 'owasp-ai-goat-role-admin-audit-*', 'owasp-ai-goat-role-admin-read-*', 'owasp-ai-goat-role-admin-reset-*', 'owasp-ai-goat-admin-diagnostic-chat-*', 'owasp-ai-goat-role-admin-policy-*', 'owasp-ai-goat-chat-presentation-*', 'ss-review-browser-*',
+                                      'owasp-ai-goat-customer-profile-*',
                                       'puppeteer_dev_chrome_profile-*', 'com.google.Chrome.*') for path in temporary.glob(pattern)]
     if sys.platform == 'darwin':
         check()
@@ -13817,7 +13817,7 @@ def c31_browser_profile_cleanup(evidence, qualification_pgid, browser_sha256):
 def select_evidence_parent(args, source, default_parent):
     if args.current_host_profile is not None:
         return current_host_evidence_parent(source, args.evidence_parent)
-    default_evidence_parent = Path(tempfile.gettempdir()).resolve() / f'dvaia-secureshop-{args.cohort}-native' \
+    default_evidence_parent = Path(tempfile.gettempdir()).resolve() / f'owasp-ai-goat-secureshop-{args.cohort}-native' \
         if args.cohort in ('scene', 'review-admission', 'standalone-actor', 'scene-effects', 'scene-reset', 'standalone-assessment', 'standalone-mail', 'registered-admin-reset', 'assessment-progress', 'practice-admission', 'merchant-inventory-chat', 'merchant-listing-create', 'account-commerce-native', 'persona-inbox-native', 'mail-inline-binding-native', 'ticket-repository-native', 'terminal-authority-matrix-native') + STANDALONE_BROWSER_COHORTS else source / 'backups/private-recovery' / default_parent
     return Path(args.evidence_parent or default_evidence_parent)
 
@@ -14403,8 +14403,8 @@ def main(argv=None):
     verify_daemon(ownership_command, args.docker_daemon)
     verify_image(ownership_command, args.image_id)
     owner = str(uuid.uuid4()); nonce = uuid.uuid4().hex[:12]
-    container = f'dvaia-{args.cohort}-{nonce}'
-    expected_labels = {'dvaia.owner': owner, 'dvaia.cohort': cohort_name}
+    container = f'owasp-ai-goat-{args.cohort}-{nonce}'
+    expected_labels = {'owasp-ai-goat.owner': owner, 'owasp-ai-goat.cohort': cohort_name}
     labels = sum((['--label', f'{key}={value}'] for key, value in expected_labels.items()), [])
     pg_network = OwnedPostgresNetwork(args.cohort, ownership_command, args.docker_daemon,
         container + '-pg-network', expected_labels, evidence,
@@ -14770,7 +14770,7 @@ def main(argv=None):
             atomic_json(evidence / 'pg-port-settle.json', settled_port)
         if args.cohort in ('standalone-access-control-audit-browser', 'admin-read-browser', 'admin-audit-jobs-browser', 'admin-direct-audit-browser', SCENE_AUDIT_BROWSER, 'admin-acl-chat-browser'):
             audit_container = f'{container}-audit-control'
-            audit_labels = {**expected_labels, 'dvaia.role': 'audit-control'}
+            audit_labels = {**expected_labels, 'owasp-ai-goat.role': 'audit-control'}
             audit_label_args = sum((['--label', f'{key}={value}'] for key, value in audit_labels.items()), [])
             if inspect_owned(ownership_command, name=audit_container, labels=audit_labels, image=args.image_id) is not None:
                 raise RuntimeError('Owned audit control container name unexpectedly occupied')
@@ -14795,7 +14795,7 @@ def main(argv=None):
                 if ready.returncode == 0: break
                 time.sleep(.1)
             else: raise RuntimeError('Owned audit control PostgreSQL readiness timeout')
-            audit_database = f'dvaia_audit_control_{nonce}'
+            audit_database = f'owasp_ai_goat_audit_control_{nonce}'
             stage = 'audit-control-database-create'
             docker_command(args, clean, 'exec', audit_captured_id, 'psql', '-h', '127.0.0.1', '-p', '5432', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', f'CREATE DATABASE {audit_database}', stage=stage)
             stage = 'audit-control-database-revoke'
@@ -14920,7 +14920,7 @@ def main(argv=None):
             if d16_path.exists() or d16_path.is_symlink():
                 raise RuntimeError('Fresh D16 result path required')
             env.update(MCP_TRUST_STANDALONE_RENDERED_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                       LAB_MODE='vuln', DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                       LAB_MODE='vuln', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                        MCP_TRUST_STANDALONE_RENDERED_BUILD=str(source / 'client/build'),
                        MCP_TRUST_STANDALONE_RENDERED_RESULT=str(d16_path),
                        SS_MCP_TRUST_FIXTURE_ROOT=str(fixture_root), SS_MCP_TRUST_READY='true',
@@ -14935,27 +14935,27 @@ def main(argv=None):
                 env[f'MCP_ASSEMBLY_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'MCP_ASSEMBLY_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'practice-admission':
-            env.update(SECURESHOP_PRACTICE_ADMISSION_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+            env.update(SECURESHOP_PRACTICE_ADMISSION_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
             for name, pair in [('IDENTITY', identity), ('AGENTS', agents), ('REVIEW', reviews), ('COMMERCE', commerce)]:
                 env[f'PG_SECURESHOP_PRACTICE_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'PG_SECURESHOP_PRACTICE_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'merchant-inventory-chat':
-            env.update(SECURESHOP_MERCHANT_INVENTORY_CHAT_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+            env.update(SECURESHOP_MERCHANT_INVENTORY_CHAT_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
             for name, pair in [('IDENTITY', identity), ('AGENTS', agents), ('REVIEW', reviews), ('COMMERCE', commerce)]:
                 env[f'PG_SECURESHOP_MERCHANT_INVENTORY_CHAT_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'PG_SECURESHOP_MERCHANT_INVENTORY_CHAT_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'merchant-listing-create':
-            env.update(SECURESHOP_MERCHANT_LISTING_CREATE_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+            env.update(SECURESHOP_MERCHANT_LISTING_CREATE_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
             for name, pair in [('IDENTITY', identity), ('AGENTS', agents), ('REVIEW', reviews), ('COMMERCE', commerce)]:
                 env[f'PG_SECURESHOP_MERCHANT_LISTING_CREATE_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'PG_SECURESHOP_MERCHANT_LISTING_CREATE_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'account-commerce-native':
-            env.update(SECURESHOP_ADMIN_DIRECTORY_ISOLATION_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+            env.update(SECURESHOP_ADMIN_DIRECTORY_ISOLATION_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
             for name, pair in [('IDENTITY', identity), ('FRESH', agents), ('REVIEW', reviews), ('COMMERCE', commerce)]:
                 env[f'PERSONA_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'PERSONA_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'persona-inbox-native':
-            env.update(SECURESHOP_PERSONA_INBOX_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+            env.update(SECURESHOP_PERSONA_INBOX_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
             for name, pair in [('IDENTITY', identity), ('AGENTS', agents), ('REVIEW', reviews), ('COMMERCE', commerce)]:
                 env[f'PG_SECURESHOP_PERSONA_INBOX_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'PG_SECURESHOP_PERSONA_INBOX_{name}_MIGRATION_URL'] = pair['migration']
@@ -14963,7 +14963,7 @@ def main(argv=None):
             c31_evidence = evidence / 'persona-inbox-rendered'
             c31_evidence.mkdir(mode=0o700)
             env.update(SECURESHOP_STANDALONE_PERSONA_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_STANDALONE_PERSONA_BUILD=str(source / 'client/build'),
                 SECURESHOP_STANDALONE_PERSONA_EVIDENCE_PATH=str(c31_evidence),
                 ANALYTICS_BROWSER_EXECUTABLE=args.browser,
@@ -14996,7 +14996,7 @@ def main(argv=None):
                 OLLAMA_BASE_URL=OLLAMA_BASE_URL, OLLAMA_MODEL=OLLAMA_MODEL)
         elif args.cohort == 'chat-stop-watching-browser':
             env.update(SECURESHOP_CHAT_STOP_WATCHING_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CHAT_STOP_WATCHING_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15006,7 +15006,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CHAT_STOP_WATCHING_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'standalone-role-choices-browser':
             env.update(SECURESHOP_STANDALONE_ROLE_CHOICES_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_STANDALONE_ROLE_CHOICES_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15016,7 +15016,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_STANDALONE_ROLE_CHOICES_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'chat-presentation-browser':
             env.update(SECURESHOP_CHAT_PRESENTATION_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CHAT_PRESENTATION_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15026,7 +15026,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CHAT_PRESENTATION_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'merchant-inventory-chat-browser':
             env.update(SECURESHOP_MERCHANT_INVENTORY_CHAT_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_MERCHANT_INVENTORY_CHAT_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15036,7 +15036,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_MERCHANT_INVENTORY_CHAT_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'merchant-listing-edit-browser':
             env.update(SECURESHOP_MERCHANT_LISTING_EDIT_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_MERCHANT_LISTING_EDIT_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15046,7 +15046,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_MERCHANT_LISTING_EDIT_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'merchant-listing-create-browser':
             env.update(SECURESHOP_MERCHANT_LISTING_CREATE_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_MERCHANT_LISTING_CREATE_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15056,7 +15056,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_MERCHANT_LISTING_CREATE_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'merchant-order-browser':
             env.update(SECURESHOP_MERCHANT_ORDER_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_MERCHANT_ORDER_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15066,7 +15066,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_MERCHANT_ORDER_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'merchant-mail-browser':
             env.update(SECURESHOP_MERCHANT_MAIL_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_MERCHANT_MAIL_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15076,7 +15076,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_MERCHANT_MAIL_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'merchant-mail-actions-browser':
             env.update(SECURESHOP_MERCHANT_MAIL_ACTIONS_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_MERCHANT_MAIL_ACTIONS_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15088,7 +15088,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_MERCHANT_MAIL_ACTIONS_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == V11_BROWSER:
             env.update(SECURESHOP_MERCHANT_MAIL_AGENT_READ_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_MERCHANT_MAIL_AGENT_READ_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15098,7 +15098,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_MERCHANT_MAIL_AGENT_READ_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == V09_BROWSER:
             env.update(SECURESHOP_MERCHANT_MAIL_HTML_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_MERCHANT_MAIL_HTML_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15108,7 +15108,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_MERCHANT_MAIL_HTML_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'merchant-mail-header-browser':
             env.update(SECURESHOP_MERCHANT_MAIL_HEADER_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_MERCHANT_MAIL_HEADER_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15118,7 +15118,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_MERCHANT_MAIL_HEADER_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == LISTING_RAW_BROWSER:
             env.update(SECURESHOP_LISTING_RAW_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_LISTING_RAW_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15128,7 +15128,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_LISTING_RAW_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == PROGRESS_BROWSER:
             env.update(SECURESHOP_ASSESSMENT_PROGRESS_RENDERED_NATIVE='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ASSESSMENT_PROGRESS_RENDERED_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser)
             for name, pair in [('IDENTITY', identity), ('AGENTS', agents), ('REVIEW', reviews), ('COMMERCE', commerce)]:
@@ -15136,7 +15136,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_ASSESSMENT_PROGRESS_RENDERED_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == COUPON_BROWSER:
             env.update(SECURESHOP_CUSTOMER_COUPON_AGENT_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_COUPON_AGENT_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15147,7 +15147,7 @@ def main(argv=None):
             env.update(analytics_environment)
         elif args.cohort == COUPON_BLIND_BROWSER:
             env.update(SECURESHOP_COUPON_BLIND_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_COUPON_BLIND_BROWSER_BUILD=str(source / 'client/build'),
                 SECURESHOP_COUPON_BLIND_BROWSER_SHA256=args.browser_sha256,
                 SECURESHOP_COUPON_BLIND_BROWSER_MODEL_DIGEST=args.ollama_model_sha256,
@@ -15160,7 +15160,7 @@ def main(argv=None):
             env.update(analytics_environment)
         elif args.cohort == PRODUCT_SEARCH_BROWSER:
             env.update(SECURESHOP_PRODUCT_SEARCH_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_PRODUCT_SEARCH_BROWSER_BUILD=str(source / 'client/build'),
                 SECURESHOP_PRODUCT_SEARCH_BROWSER_SHA256=args.browser_sha256,
                 SECURESHOP_PRODUCT_SEARCH_BROWSER_MODEL_DIGEST=args.ollama_model_sha256,
@@ -15173,7 +15173,7 @@ def main(argv=None):
             env.update(analytics_environment)
         elif args.cohort == ORDER_STATUS_BROWSER:
             env.update(SECURESHOP_ORDER_STATUS_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ORDER_STATUS_BROWSER_BUILD=str(source / 'client/build'),
                 SECURESHOP_ORDER_STATUS_BROWSER_SHA256=args.browser_sha256,
                 SECURESHOP_ORDER_STATUS_BROWSER_MODEL_DIGEST=args.ollama_model_sha256,
@@ -15186,7 +15186,7 @@ def main(argv=None):
             env.update(analytics_environment)
         elif args.cohort in IDOR_BROWSER_COHORTS:
             env.update(SECURESHOP_CUSTOMER_IDOR_LESSON_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_IDOR_LESSON_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15200,7 +15200,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_IDOR_LESSON_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == SEARCH_ECHO_BROWSER:
             env.update(SECURESHOP_SEARCH_ECHO_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_SEARCH_ECHO_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15210,7 +15210,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_SEARCH_ECHO_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == Q05_REVIEW_BROWSER:
             env.update(SECURESHOP_Q05_REVIEW_MODERATION_BROWSER_NATIVE='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_Q05_REVIEW_MODERATION_BROWSER_BUILD=str(source / 'client/build'),
                 SECURESHOP_Q05_REVIEW_MODERATION_BROWSER_EVIDENCE_PATH=str(evidence / 'q05-review-moderation-rendered.json'),
                 SECURESHOP_Q05_REVIEW_MODERATION_TEST_NO_SANDBOX='1',
@@ -15233,7 +15233,7 @@ def main(argv=None):
         elif args.cohort == 'review-injection-browser':
             env['SECURESHOP_REVIEW_INJECTION_SOURCE_CASE'] = args.review_injection_case or 'approve_advertisement'
             env.update(SECURESHOP_REVIEW_INJECTION_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_REVIEW_INJECTION_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15243,7 +15243,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_REVIEW_INJECTION_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'merchant-review-browser':
             env.update(SECURESHOP_MERCHANT_REVIEW_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_MERCHANT_REVIEW_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15255,7 +15255,7 @@ def main(argv=None):
             env['SECURESHOP_USER_LOOKUP_DISCLOSURE_BROWSER_NATIVE'] = '1' if args.user_lookup_disclosure else '0'
             env['SECURESHOP_USER_LOOKUP_BENIGN_CAPTURE'] = '1' if args.user_lookup_benign_capture else '0'
             env.update(SECURESHOP_ADMIN_USER_CHAT_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ADMIN_USER_CHAT_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15265,7 +15265,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_ADMIN_USER_CHAT_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'admin-audit-browser':
             env.update(SECURESHOP_ADMIN_AUDIT_CHAT_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ADMIN_AUDIT_CHAT_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15276,7 +15276,7 @@ def main(argv=None):
         elif args.cohort == 'system-config-traversal-browser':
             env['SECURESHOP_SYSTEM_CREDENTIAL_DISCLOSURE_BROWSER_NATIVE'] = '1' if args.system_credential_disclosure else '0'
             env.update(SECURESHOP_SYSTEM_CONFIG_TRAVERSAL_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_SYSTEM_CONFIG_TRAVERSAL_BROWSER_BUILD=str(source / 'client/build'),
                 SECURESHOP_SYSTEM_CONFIG_TRAVERSAL_BROWSER_SYSTEM_URL=system_executor_url,
                 SECURESHOP_SYSTEM_CONFIG_TRAVERSAL_BROWSER_SYSTEM_TOKEN=system_executor_token,
@@ -15289,7 +15289,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_SYSTEM_CONFIG_TRAVERSAL_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'admin-read-browser':
             env.update(SECURESHOP_ADMIN_READ_CHAT_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ADMIN_READ_CHAT_BROWSER_BUILD=str(source / 'client/build'),
                 SECURESHOP_ADMIN_READ_CHAT_AUDIT_CONTROL_URL=f'postgresql://postgres@127.0.0.1:{audit_port}/{audit_database}',
                 SECURESHOP_ADMIN_READ_CHAT_SYSTEM_URL=system_executor_url,
@@ -15302,7 +15302,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_ADMIN_READ_CHAT_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'admin-restart-chat-browser':
             env.update(SECURESHOP_ADMIN_RESTART_CHAT_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ADMIN_RESTART_CHAT_BROWSER_BUILD=str(source / 'client/build'),
                 SECURESHOP_ADMIN_RESTART_CHAT_BROWSER_RESTART_URL=restart_executor_url,
                 SECURESHOP_ADMIN_RESTART_CHAT_BROWSER_RESTART_TOKEN=restart_executor_token,
@@ -15314,7 +15314,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_ADMIN_RESTART_CHAT_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'admin-system-diagnostic-chat-browser':
             env.update(SECURESHOP_ADMIN_SYSTEM_DIAGNOSTIC_CHAT_BROWSER_NATIVE='1',
-                LIVE_OLLAMA_TEST='1', LAB_MODE='vuln', DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                LIVE_OLLAMA_TEST='1', LAB_MODE='vuln', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ADMIN_SYSTEM_DIAGNOSTIC_CHAT_BROWSER_BUILD=str(source / 'client/build'),
                 SECURESHOP_ADMIN_SYSTEM_DIAGNOSTIC_CHAT_BROWSER_SHA256=args.browser_sha256,
                 SECURESHOP_ADMIN_SYSTEM_DIAGNOSTIC_CHAT_BROWSER_RECORD_PATH=str(evidence / 'admin-system-diagnostic-chat-browser-process.json'),
@@ -15332,7 +15332,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_ADMIN_SYSTEM_DIAGNOSTIC_CHAT_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == MAIL_INLINE_BROWSER:
             env.update(SECURESHOP_MAIL_INLINE_SUMMARY_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                LAB_MODE='vuln', DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                LAB_MODE='vuln', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_MAIL_INLINE_SUMMARY_BROWSER_BUILD=str(source / 'client/build'),
                 SECURESHOP_MAIL_INLINE_SUMMARY_BROWSER_BROWSER_SHA256=args.browser_sha256,
                 SECURESHOP_MAIL_INLINE_SUMMARY_BROWSER_MODEL_DIGEST=args.ollama_model_sha256,
@@ -15347,7 +15347,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_MAIL_INLINE_SUMMARY_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'admin-system-diagnostic-graded-browser':
             env.update(SECURESHOP_ADMIN_SYSTEM_DIAGNOSTIC_GRADED_BROWSER_NATIVE='1',
-                LIVE_OLLAMA_TEST='1', LAB_MODE='vuln', DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                LIVE_OLLAMA_TEST='1', LAB_MODE='vuln', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ADMIN_SYSTEM_DIAGNOSTIC_GRADED_BROWSER_BUILD=str(source / 'client/build'),
                 SECURESHOP_ADMIN_SYSTEM_DIAGNOSTIC_GRADED_BROWSER_SHA256=args.browser_sha256,
                 SECURESHOP_ADMIN_SYSTEM_DIAGNOSTIC_GRADED_BROWSER_RECORD_PATH=str(evidence / 'admin-system-diagnostic-graded-browser-process.json'),
@@ -15366,7 +15366,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_ADMIN_SYSTEM_DIAGNOSTIC_GRADED_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort in ('admin-audit-jobs-browser', 'admin-direct-audit-browser', SCENE_AUDIT_BROWSER):
             env.update(SECURESHOP_ADMIN_AUDIT_JOBS_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ADMIN_AUDIT_JOBS_BROWSER_BUILD=str(source / 'client/build'),
                 SECURESHOP_ADMIN_AUDIT_JOBS_BROWSER_AUDIT_CONTROL_URL=f'postgresql://postgres@127.0.0.1:{audit_port}/{audit_database}',
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
@@ -15384,7 +15384,7 @@ def main(argv=None):
                 env['SS_AUDIT_SUMMARY_ENABLED'] = 'true'
         elif args.cohort == 'admin-acl-chat-browser':
             env.update(SECURESHOP_ADMIN_ACL_CHAT_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ADMIN_ACL_CHAT_BROWSER_BUILD=str(source / 'client/build'),
                 SECURESHOP_ADMIN_ACL_CHAT_BROWSER_AUDIT_CONTROL_URL=f'postgresql://postgres@127.0.0.1:{audit_port}/{audit_database}',
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
@@ -15395,7 +15395,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_ADMIN_ACL_CHAT_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'role-ambiguity-browser':
             env.update(SECURESHOP_ROLE_AMBIGUITY_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ROLE_AMBIGUITY_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15405,7 +15405,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_ROLE_AMBIGUITY_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'named-order-filter-browser':
             env.update(SECURESHOP_NAMED_ORDER_FILTER_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_NAMED_ORDER_FILTER_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15415,7 +15415,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_NAMED_ORDER_FILTER_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'catalog-page-browser':
             env.update(SECURESHOP_CATALOG_PAGE_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CATALOG_PAGE_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15425,7 +15425,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CATALOG_PAGE_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'admin-password-reset-chat-browser':
             env.update(SECURESHOP_ADMIN_PASSWORD_RESET_CHAT_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ADMIN_PASSWORD_RESET_CHAT_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15438,7 +15438,7 @@ def main(argv=None):
         elif args.cohort == 'admin-policy-chat-browser':
             env.update(SECURESHOP_ADMIN_POLICY_CHAT_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
                 SECURESHOP_ADMIN_POLICY_CHAT_BROWSER_POLICY_RENDERER_ADMISSION=policy_admission['path'],
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ADMIN_POLICY_CHAT_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15449,7 +15449,7 @@ def main(argv=None):
         elif args.cohort == POLICY_TEMPLATE_BROWSER:
             env.update(SECURESHOP_POLICY_TEMPLATE_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
                 SECURESHOP_POLICY_TEMPLATE_BROWSER_POLICY_RENDERER_ADMISSION=policy_admission['path'],
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_POLICY_TEMPLATE_BROWSER_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15463,7 +15463,7 @@ def main(argv=None):
             v24_grant = v24_owner_grant(args, source, nonce, port, admitted_node_sha256)
             for name, pair in [('identity', identity), ('secureshop_agents', agents), ('secureshop_review', reviews), ('secureshop', commerce)]:
                 for role in ('runtime', 'migration'):
-                    if pair[role] != f'postgresql://dvaia_{name}_{role}@127.0.0.1:{port}/dvaia_test_agent_host_{nonce}_{name}':
+                    if pair[role] != f'postgresql://dvaia_{name}_{role}@127.0.0.1:{port}/owasp_ai_goat_test_agent_host_{nonce}_{name}':
                         raise RuntimeError('Original V24 owner database binding mismatch')
         elif args.cohort == V03_OPTIMIZE_BROWSER and v03_private_facade is not None:
             # Preserve the original evidence, model and Judge contract. Private
@@ -15487,7 +15487,7 @@ def main(argv=None):
                 'frontendInventorySha256':digest(v03_frontend_path),'browserSha256':args.browser_sha256,
                 'modelManifestSha256':digest(v03_model_path)}
             env.update(SECURESHOP_LISTING_IMAGE_OPTIMIZE_V03_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source), SECURESHOP_LISTING_IMAGE_OPTIMIZE_V03_BROWSER_BUILD=str(source/'client/build'),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source), SECURESHOP_LISTING_IMAGE_OPTIMIZE_V03_BROWSER_BUILD=str(source/'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama', JUDGE_MODEL=OLLAMA_MODEL,
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true', OLLAMA_BASE_URL=OLLAMA_BASE_URL, OLLAMA_MODEL=OLLAMA_MODEL,
                 SECURESHOP_LISTING_IMAGE_OPTIMIZE_V03_BROWSER_EVIDENCE_PATH=str(v03_receipt_path),
@@ -15520,11 +15520,11 @@ def main(argv=None):
             stage = 'v03-listings-workspace-authority'
             workspace_id=json.loads(subprocess.run([args.node,'-e',"process.stdout.write(JSON.stringify(require('./scripts/application-data-root').workspaceId(process.cwd())))"],cwd=source,check=True,capture_output=True,text=True,timeout=20,env={'PATH':str(Path(args.node).parent)}).stdout)
             authority=hashlib.sha256(json.dumps({'version':1,'workspaceId':workspace_id,'host':args.docker_host,'daemonId':args.docker_daemon},separators=(',',':')).encode()).hexdigest()
-            manager_name=f'dvaia-v03-listings-{nonce}';manager_network=manager_name+'-network';manager_volume=manager_name+'-journal';manager_token=uuid.uuid4().hex+uuid.uuid4().hex[:22]
+            manager_name=f'owasp-ai-goat-v03-listings-{nonce}';manager_network=manager_name+'-network';manager_volume=manager_name+'-journal';manager_token=uuid.uuid4().hex+uuid.uuid4().hex[:22]
             with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as reserved_port:
                 reserved_port.bind(('127.0.0.1',0));manager_port=str(reserved_port.getsockname()[1])
             profile=listings_profile_plan(source,args.node,args.docker_host,nonce)
-            manager_labels={'dvaia.owner':owner,'dvaia.cohort':cohort_name,'dvaia.listings.source':manifest['sha256'],'dvaia.listings.runtime':args.listings_runtime_digest}
+            manager_labels={'owasp-ai-goat.owner':owner,'owasp-ai-goat.cohort':cohort_name,'owasp-ai-goat.listings.source':manifest['sha256'],'owasp-ai-goat.listings.runtime':args.listings_runtime_digest}
             label_args=sum((['--label',f'{key}={value}'] for key,value in manager_labels.items()),[])
             listings_resources={'container':manager_name,'network':manager_network,'volume':manager_volume,'profile':profile,'image':row['Id'],'daemon':args.docker_daemon,'labels':manager_labels,'port':manager_port,'attempted':[]}
             stage = 'v03-listings-resource-admission'
@@ -15571,7 +15571,7 @@ def main(argv=None):
                 'frontendInventorySha256':digest(v03_frontend_path),'browserSha256':args.browser_sha256,
                 'modelManifestSha256':digest(v03_model_path)}
             env.update(SECURESHOP_LISTING_IMAGE_OPTIMIZE_V03_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source), SECURESHOP_LISTING_IMAGE_OPTIMIZE_V03_BROWSER_BUILD=str(source/'client/build'),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source), SECURESHOP_LISTING_IMAGE_OPTIMIZE_V03_BROWSER_BUILD=str(source/'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama', JUDGE_MODEL=OLLAMA_MODEL,
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true', OLLAMA_BASE_URL=OLLAMA_BASE_URL, OLLAMA_MODEL=OLLAMA_MODEL,
                 SECURESHOP_LISTING_IMAGE_OPTIMIZE_V03_BROWSER_EVIDENCE_PATH=str(v03_receipt_path),
@@ -15591,7 +15591,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_LISTING_IMAGE_OPTIMIZE_V03_BROWSER_{name}_MIGRATION_URL']=pair['migration']
         elif args.cohort == V29_AGENCY_BROWSER:
             env.update(SECURESHOP_V29_AGENCY_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_CHECKOUT_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15601,7 +15601,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_CHECKOUT_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == V01_AUDIT_BROWSER:
             env.update(SECURESHOP_V01_AUDIT_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_CHECKOUT_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15611,7 +15611,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_CHECKOUT_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == V06_UPLOAD_BROWSER:
             env.update(SECURESHOP_V06_UPLOAD_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_CHECKOUT_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15627,7 +15627,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_CHECKOUT_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == V44_PATH_BROWSER:
             env.update(SECURESHOP_V44_FILE_PATH_SUMMARY_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_CHECKOUT_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15643,7 +15643,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_CHECKOUT_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == V46_TRAVERSAL_BROWSER:
             env.update(SECURESHOP_V46_TRAVERSAL_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_CHECKOUT_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15678,7 +15678,7 @@ def main(argv=None):
                 'browserSha256': args.browser_sha256, 'nodeSha256': admitted_node_sha256}
             env.update(SECURESHOP_V19_FILE_SUMMARY_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
                 **({'SECURESHOP_V19_FILE_SUMMARY_DIAGNOSTIC_NATIVE':'1'} if args.v19_graph_diagnostic else {}),
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source), SECURESHOP_CUSTOMER_CHECKOUT_BUILD=str(source/'client/build'),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source), SECURESHOP_CUSTOMER_CHECKOUT_BUILD=str(source/'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama', JUDGE_MODEL=OLLAMA_MODEL,
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true', OLLAMA_BASE_URL=OLLAMA_BASE_URL,
                 OLLAMA_MODEL=OLLAMA_MODEL, SECURESHOP_V19_OWNED_FILES_ROOT=str(v19_files_root),
@@ -15691,7 +15691,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_CHECKOUT_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == V08_SVG_BROWSER:
             env.update(SECURESHOP_V08_SVG_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source), SECURESHOP_CUSTOMER_CHECKOUT_BUILD=str(source/'client/build'),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source), SECURESHOP_CUSTOMER_CHECKOUT_BUILD=str(source/'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama',
                 JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
                 OLLAMA_BASE_URL=OLLAMA_BASE_URL, OLLAMA_MODEL=OLLAMA_MODEL,
@@ -15704,7 +15704,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_CHECKOUT_{name}_MIGRATION_URL']=pair['migration']
         elif args.cohort == MANUAL_CHECKOUT_BROWSER:
             env.update(SECURESHOP_CUSTOMER_MANUAL_CHECKOUT_NATIVE='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_MANUAL_CHECKOUT_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15714,7 +15714,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_CHECKOUT_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'customer-checkout-browser':
             env.update(SECURESHOP_CUSTOMER_CHECKOUT_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_CHECKOUT_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15724,7 +15724,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_CHECKOUT_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'customer-older-orders-browser':
             env.update(SECURESHOP_CUSTOMER_OLDER_ORDERS_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_OLDER_ORDERS_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15734,7 +15734,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_OLDER_ORDERS_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'customer-checkout-fences':
             env.update(SECURESHOP_CUSTOMER_CHECKOUT_FENCES_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_CHECKOUT_FENCES_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15744,7 +15744,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_CHECKOUT_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'customer-cart-lifecycle-browser':
             env.update(SECURESHOP_CUSTOMER_CART_LIFECYCLE_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_CART_LIFECYCLE_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15754,7 +15754,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_CART_LIFECYCLE_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'customer-payment-setup-browser':
             env.update(SECURESHOP_CUSTOMER_PAYMENT_SETUP_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_PAYMENT_SETUP_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15764,7 +15764,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_PAYMENT_SETUP_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'customer-address-setup-browser':
             env.update(SECURESHOP_CUSTOMER_ADDRESS_SETUP_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_ADDRESS_SETUP_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15774,7 +15774,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_ADDRESS_SETUP_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'customer-profile-browser':
             env.update(SECURESHOP_CUSTOMER_PROFILE_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_PROFILE_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15784,7 +15784,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_PROFILE_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'customer-refund-handoff-browser':
             env.update(SECURESHOP_CUSTOMER_REFUND_HANDOFF_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_REFUND_HANDOFF_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15794,7 +15794,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_REFUND_HANDOFF_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'customer-product-disambiguation-browser':
             env.update(SECURESHOP_CUSTOMER_PRODUCT_DETAILS_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_PRODUCT_DETAILS_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15804,7 +15804,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_PRODUCT_DETAILS_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'customer-out-of-stock-browser':
             env.update(SECURESHOP_CUSTOMER_OUT_OF_STOCK_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_CUSTOMER_OUT_OF_STOCK_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15841,7 +15841,7 @@ def main(argv=None):
                     SECURESHOP_PRODUCT_MANUAL_EMBEDDING_FINGERPRINT=pins['embeddingRuntime']['fingerprint'])
             env.update(PG_TEST_DISPOSABLE='yes',
                 LIVE_OLLAMA_TEST='0' if args.pricing_v34_transition_preflight else '1', LAB_MODE='vuln', SS_BOUND_PRICING_ENABLED='true',
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_STANDALONE_PRICING_BUILD=str(source / 'client/build'),
                 PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                 SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true',
@@ -15857,7 +15857,7 @@ def main(argv=None):
                 listings_private_producer = ListingsPrivateProducer(source, args.node, admitted_node_sha256,
                     listings_private_admitted, runtime, evidence)
                 env.update(listings_private_producer.start())
-                env.update(LIVE_OLLAMA_TEST='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                env.update(LIVE_OLLAMA_TEST='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                     SECURESHOP_STANDALONE_LISTINGS_BUILD=str(source / 'client/build'),
                     PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                     JUDGE_PROVIDER='ollama', JUDGE_MODEL=OLLAMA_MODEL, SS_DISABLE_OLLAMA='false',
@@ -15870,18 +15870,18 @@ def main(argv=None):
                 rows = json.loads(image.stdout)
                 if not isinstance(rows, list) or len(rows) != 1 or rows[0].get('Id') != args.listings_image_id \
                         or rows[0].get('Architecture') != 'arm64' or rows[0].get('Os') != 'linux' \
-                        or rows[0].get('Config', {}).get('Labels', {}).get('dvaia.listings.source') != candidate['sourceSha256'] \
-                        or rows[0].get('Config', {}).get('Labels', {}).get('dvaia.listings.runtime') != candidate['runtimeDigest']:
+                        or rows[0].get('Config', {}).get('Labels', {}).get('owasp-ai-goat.listings.source') != candidate['sourceSha256'] \
+                        or rows[0].get('Config', {}).get('Labels', {}).get('owasp-ai-goat.listings.runtime') != candidate['runtimeDigest']:
                     raise RuntimeError('Qualified Listings image identity mismatch')
-                manager_image = rows[0]['Id']; manager_name = f'dvaia-standalone-listings-{nonce}'
+                manager_image = rows[0]['Id']; manager_name = f'owasp-ai-goat-standalone-listings-{nonce}'
                 manager_network = manager_name + '-network'; manager_volume = manager_name + '-journal'
                 manager_token = uuid.uuid4().hex + uuid.uuid4().hex[:22]
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as reserved_port:
                     reserved_port.bind(('127.0.0.1', 0)); manager_port = str(reserved_port.getsockname()[1])
                 profile = listings_profile_plan(source, args.node, args.docker_host, nonce)
-                manager_labels = {'dvaia.owner': owner, 'dvaia.cohort': cohort_name,
-                                  'dvaia.listings.source': candidate['sourceSha256'],
-                                  'dvaia.listings.runtime': candidate['runtimeDigest']}
+                manager_labels = {'owasp-ai-goat.owner': owner, 'owasp-ai-goat.cohort': cohort_name,
+                                  'owasp-ai-goat.listings.source': candidate['sourceSha256'],
+                                  'owasp-ai-goat.listings.runtime': candidate['runtimeDigest']}
                 label_args = sum((['--label', f'{k}={v}'] for k, v in manager_labels.items()), [])
                 listings_resources = {'container': manager_name, 'network': manager_network,
                     'volume': manager_volume, 'profile': profile, 'image': manager_image,
@@ -15926,7 +15926,7 @@ def main(argv=None):
                     raise RuntimeError('Disposable Listings manager loopback binding required')
                 manager_origin = 'http://127.0.0.1:' + ports[0]['HostPort']
                 env.update(LIVE_OLLAMA_TEST='1',
-                           DVAIA_CURRENT_MAIN_WORKSPACE=str(source), SECURESHOP_STANDALONE_LISTINGS_BUILD=str(source / 'client/build'),
+                           OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source), SECURESHOP_STANDALONE_LISTINGS_BUILD=str(source / 'client/build'),
                            PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama', JUDGE_MODEL=OLLAMA_MODEL,
                            SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true', OLLAMA_BASE_URL=OLLAMA_BASE_URL, OLLAMA_MODEL=OLLAMA_MODEL,
                            SECURESHOP_LISTINGS_TEST_MANAGER_ORIGIN=manager_origin, SECURESHOP_LISTINGS_TEST_MANAGER_TOKEN=manager_token,
@@ -15969,7 +15969,7 @@ def main(argv=None):
                           {'SECURESHOP_ACCOUNT_AVATAR_NATIVE': '1'}
                           if args.cohort == ACCOUNT_AVATAR_BROWSER else
                           {'SECURESHOP_STANDALONE_COMMERCE_NATIVE': '1'}),
-                       DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                       OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                        SECURESHOP_STANDALONE_COMMERCE_BUILD=str(source / 'client/build'),
                        PUPPETEER_EXECUTABLE_PATH=args.browser)
             for name, pair in [('IDENTITY', identity), ('AGENTS', agents),
@@ -15978,7 +15978,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_STANDALONE_COMMERCE_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == ROUTE_AVAILABILITY_COHORT:
             env.update(SECURESHOP_STANDALONE_ROUTE_AVAILABILITY_NATIVE='1',
-                       DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                       OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                        SECURESHOP_STANDALONE_ROUTE_AVAILABILITY_BUILD=str(source / 'client/build'),
                        PUPPETEER_EXECUTABLE_PATH=args.browser)
             for name, pair in [('IDENTITY', identity), ('AGENTS', agents),
@@ -15987,7 +15987,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_STANDALONE_ROUTE_AVAILABILITY_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'standalone-access-control-audit-browser':
             env.update(SECURESHOP_STANDALONE_D22_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                       DVAIA_CURRENT_MAIN_WORKSPACE=str(source), SECURESHOP_STANDALONE_D22_BUILD=str(source / 'client/build'),
+                       OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source), SECURESHOP_STANDALONE_D22_BUILD=str(source / 'client/build'),
                        PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama', JUDGE_MODEL=OLLAMA_MODEL,
                        SS_DISABLE_OLLAMA='false', SS_ENABLE_REAL_LLM_TESTS='true', OLLAMA_BASE_URL=OLLAMA_BASE_URL, OLLAMA_MODEL=OLLAMA_MODEL,
                        SECURESHOP_STANDALONE_D22_AUDIT_CONTROL_URL=f'postgresql://postgres@127.0.0.1:{audit_port}/{audit_database}')
@@ -15999,7 +15999,7 @@ def main(argv=None):
                        SECURESHOP_STANDALONE_INVENTORY_RETRY_NATIVE='1' if args.cohort == 'standalone-inventory-retry-browser' else '0',
                        LIVE_OLLAMA_TEST='1',
                        LAB_MODE='vuln', SS_BOUND_INVENTORY_ENABLED='true',
-                       DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                       OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                        SECURESHOP_STANDALONE_INVENTORY_BUILD=str(source / 'client/build'),
                        PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                        JUDGE_PROVIDER='ollama', JUDGE_MODEL=OLLAMA_MODEL,
@@ -16011,7 +16011,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_STANDALONE_INVENTORY_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'standalone-stored-browser':
             env.update(SECURESHOP_STANDALONE_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1',
-                       DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                       OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                        SECURESHOP_STANDALONE_BROWSER_BUILD=str(source / 'client/build'),
                        PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                        JUDGE_PROVIDER='ollama', JUDGE_MODEL=OLLAMA_MODEL,
@@ -16023,7 +16023,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_STANDALONE_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'customer-ticket-browser':
             env.update(SECURESHOP_CUSTOMER_TICKET_BROWSER_NATIVE='1', LIVE_OLLAMA_TEST='1', LAB_MODE='vuln',
-                       DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                       OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                        SECURESHOP_CUSTOMER_TICKET_BUILD=str(source / 'client/build'),
                        PUPPETEER_EXECUTABLE_PATH=args.browser, AI_PROVIDER='ollama',
                        JUDGE_PROVIDER='ollama', JUDGE_MODEL=OLLAMA_MODEL,
@@ -16035,7 +16035,7 @@ def main(argv=None):
                 env[f'PG_SECURESHOP_CUSTOMER_TICKET_BROWSER_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'ticket-repository-native':
             env.update(SECURESHOP_TICKET_REPOSITORY_NATIVE='1',
-                       DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                       OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                        PG_SECURESHOP_TICKET_REPOSITORY_OWNER=nonce)
             for store, pair in ticket_stores.items():
                 env[f'PG_SECURESHOP_TICKET_REPOSITORY_{store}_RUNTIME_URL'] = pair['runtime']
@@ -16045,7 +16045,7 @@ def main(argv=None):
                        LIVE_OLLAMA_TEST='1', AI_PROVIDER='ollama', SS_DISABLE_OLLAMA='false',
                        SS_ENABLE_REAL_LLM_TESTS='true',
                        OLLAMA_BASE_URL=OLLAMA_BASE_URL, OLLAMA_MODEL=OLLAMA_MODEL,
-                       DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+                       OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
             for name, pair in [('IDENTITY', identity), ('AGENTS', agents),
                                ('REVIEW', reviews), ('COMMERCE', commerce)]:
                 env[f'PG_SECURESHOP_TERMINAL_AUTHORITY_MATRIX_{name}_RUNTIME_URL'] = pair['runtime']
@@ -16054,52 +16054,52 @@ def main(argv=None):
             env.update(PG_SECURESHOP_PRODUCT_ADMISSION_TEST_RUNTIME_URL=identity['runtime'],
                        PG_SECURESHOP_PRODUCT_ADMISSION_TEST_MIGRATION_URL=identity['migration'])
         elif args.cohort == 'assessment-progress':
-            env.update(SECURESHOP_ASSESSMENT_PROGRESS_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+            env.update(SECURESHOP_ASSESSMENT_PROGRESS_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                        PG_SECURESHOP_ASSESSMENT_PROGRESS_RUNTIME_URL=identity['runtime'],
                        PG_SECURESHOP_ASSESSMENT_PROGRESS_MIGRATION_URL=identity['migration'])
         elif args.cohort == 'registered-admin-reset':
-            env.update(SECURESHOP_REGISTERED_ADMIN_RESET_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+            env.update(SECURESHOP_REGISTERED_ADMIN_RESET_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                        PG_SECURESHOP_REGISTERED_RESET_IDENTITY_RUNTIME_URL=identity['runtime'],
                        PG_SECURESHOP_REGISTERED_RESET_IDENTITY_MIGRATION_URL=identity['migration'])
         elif args.cohort in ('bound-merchant-listings', 'conversational-commerce'):
-            env.update(DVAIA_ISOLATED_TEST_WORKSPACE=str(runtime / 'tmp'))
+            env.update(OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(runtime / 'tmp'))
             prefix = 'PG_SECURESHOP_CONVERSATIONAL_COMMERCE' if args.cohort == 'conversational-commerce' else 'PG_SECURESHOP_BOUND_MERCHANT_LISTINGS'
             for name, pair in [('FRESH_REVIEW', fresh_review), ('POPULATED_REVIEW', populated_review)]:
                 env[f'{prefix}_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'{prefix}_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'scene':
-            env.update(SECURESHOP_SCENE_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+            env.update(SECURESHOP_SCENE_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
             for name, pair in [('IDENTITY', identity), ('REVIEW', reviews), ('AGENTS', agents), ('COMMERCE', commerce)]:
                 env[f'PG_SECURESHOP_SCENE_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'PG_SECURESHOP_SCENE_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'review-admission':
-            env.update(SECURESHOP_REVIEW_ADMISSION_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+            env.update(SECURESHOP_REVIEW_ADMISSION_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
             for name, pair in [('IDENTITY', identity), ('REVIEW', reviews)]:
                 env[f'PG_SECURESHOP_REVIEW_ADMISSION_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'PG_SECURESHOP_REVIEW_ADMISSION_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'standalone-actor':
-            env.update(SECURESHOP_STANDALONE_ACTOR_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+            env.update(SECURESHOP_STANDALONE_ACTOR_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
             for name, pair in [('IDENTITY', identity), ('AGENTS', agents)]:
                 env[f'PG_SECURESHOP_STANDALONE_ACTOR_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'PG_SECURESHOP_STANDALONE_ACTOR_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'standalone-assessment':
             if args.policy_output_native:
-                env.update(DVAIA_ISOLATED_TEST_WORKSPACE=str(source), DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+                env.update(OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(source), OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
                 for name, pair in [('IDENTITY', identity), ('AGENTS', agents)]:
                     env[f'PG_SECURESHOP_SSRF_{name}_RUNTIME_URL'] = pair['runtime']
                     env[f'PG_SECURESHOP_SSRF_{name}_MIGRATION_URL'] = pair['migration']
             else:
-                env.update(SECURESHOP_STANDALONE_ASSESSMENT_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+                env.update(SECURESHOP_STANDALONE_ASSESSMENT_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
                 for name, pair in [('IDENTITY', identity), ('AGENTS', agents)]:
                     env[f'PG_SECURESHOP_ASSESSMENT_{name}_RUNTIME_URL'] = pair['runtime']
                     env[f'PG_SECURESHOP_ASSESSMENT_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'mail-inline-binding-native':
-            env.update(MAIL_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+            env.update(MAIL_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
             for name, pair in [('IDENTITY', identity), ('AGENTS', agents), ('COMMERCE', commerce), ('FRESH', mail_inline_fresh)]:
                 env[f'MAIL_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'MAIL_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'standalone-mail':
-            env.update(SECURESHOP_STANDALONE_MAIL_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+            env.update(SECURESHOP_STANDALONE_MAIL_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
             for name, pair in [('IDENTITY', identity), ('AGENTS', agents), ('COMMERCE', commerce), ('REVIEW', reviews)]:
                 env[f'PG_SECURESHOP_MAIL_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'PG_SECURESHOP_MAIL_{name}_MIGRATION_URL'] = pair['migration']
@@ -16123,12 +16123,12 @@ def main(argv=None):
             env.update(v30_original_environment(source, evidence, identity, agents,
                                                 commerce, reviews, args.v30_original_profile, args.v30_question_candidate))
         elif args.cohort == 'scene-reset':
-            env.update(SECURESHOP_SCENE_RESET_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+            env.update(SECURESHOP_SCENE_RESET_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
             for name, pair in [('IDENTITY', identity), ('REVIEW', reviews), ('AGENTS', agents)]:
                 env[f'PG_SECURESHOP_SCENE_RESET_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'PG_SECURESHOP_SCENE_RESET_{name}_MIGRATION_URL'] = pair['migration']
         elif args.cohort == 'scene-effects':
-            env.update(SECURESHOP_SCENE_EFFECTS_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(source))
+            env.update(SECURESHOP_SCENE_EFFECTS_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source))
             for name, pair in [('IDENTITY', identity), ('REVIEW', reviews)]:
                 env[f'PG_SECURESHOP_SCENE_EFFECTS_{name}_RUNTIME_URL'] = pair['runtime']
                 env[f'PG_SECURESHOP_SCENE_EFFECTS_{name}_MIGRATION_URL'] = pair['migration']
@@ -16143,7 +16143,7 @@ def main(argv=None):
                'PG_SECURESHOP_AGENT_HOST_AGENTS_RUNTIME_URL': agents['runtime'],
                'PG_SECURESHOP_AGENT_HOST_AGENTS_MIGRATION_URL': agents['migration']})
             if args.legacy_supervisor_diagnostic:
-                env.update(DVAIA_ISOLATED_TEST_WORKSPACE=str(source), AI_PROVIDER='ollama',
+                env.update(OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(source), AI_PROVIDER='ollama',
                            OLLAMA_BASE_URL=OLLAMA_BASE_URL, OLLAMA_MODEL=OLLAMA_MODEL,
                            SECURESHOP_LEGACY_SUPERVISOR_DIAGNOSTIC=args.legacy_supervisor_diagnostic,
                            SECURESHOP_LEGACY_SUPERVISOR_DIAGNOSTIC_PATH=str(evidence / 'legacy-supervisor-diagnostic.json'))
@@ -18237,7 +18237,7 @@ def main(argv=None):
             if replay_path.exists() or replay_path.is_symlink():
                 raise RuntimeError('New reset replay receipt path required')
             env.update(SECURESHOP_OWNER_RESET_REPLAY_NATIVE='1',
-                       DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                       OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                        WORKSHOP_RAG_EVIDENCE_PATH=str(replay_path))
             for name, pair in [('IDENTITY', identity), ('AGENTS', agents),
                                ('REVIEW', reviews), ('COMMERCE', commerce)]:

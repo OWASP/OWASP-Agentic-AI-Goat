@@ -1,6 +1,6 @@
-# SecureShop v2 — Architecture
+# OWASP AI SecureShop v2 — Architecture
 
-SecureShop combines deliberately vulnerable teaching tools with an independent
+OWASP AI SecureShop combines deliberately vulnerable teaching tools with an independent
 authenticated shop boundary and optional bound platform integration. The
 supported application uses PostgreSQL. SQLite files and path variables belong
 to retained legacy or test fixtures; they are not the supported installation or
@@ -22,14 +22,14 @@ flowchart TD
 
 ## Authority and storage
 
-The canonical store manifest is `db/postgres/initialize-application.js`. SecureShop
+The canonical store manifest is `db/postgres/initialize-application.js`. OWASP AI SecureShop
 uses the `SECURESHOP`, `SECURESHOP_AGENTS`, and `SECURESHOP_REVIEW` runtime and
 migration URL pairs. Platform identity, sessions, canonical progress and grading
 remain in the separate identity database. Runtime roles do not perform schema
 migrations. Startup and migrations preserve existing learner data.
 
 Full bound-workshop requests carry a current platform launch and a shop persona.
-Standalone requests authenticate an independent SecureShop account; the server
+Standalone requests authenticate an independent OWASP AI SecureShop account; the server
 derives their internal launch binding from that shop principal and session without
 requiring a platform login. Some binding fields retain `platform` names for
 compatibility, but in standalone mode they do not grant platform authority. In

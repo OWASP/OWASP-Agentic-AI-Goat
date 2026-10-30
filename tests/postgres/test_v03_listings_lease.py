@@ -11,7 +11,7 @@ SOURCE=Path(__file__).with_name('ownedV03ListingsLease.js').read_text().split('c
 PARENT='a'*32
 BOOT='12345678-1234-1234-1234-123456789abc'
 RUN=hashlib.sha256((PARENT+':v03-listings').encode()).hexdigest()[:32]
-ROOT='/var/tmp/dvaia-v23-build-'+RUN
+ROOT='/var/tmp/owasp-ai-goat-v23-build-'+RUN
 REPO=Path(__file__).resolve().parents[2]
 
 class Controls(unittest.TestCase):

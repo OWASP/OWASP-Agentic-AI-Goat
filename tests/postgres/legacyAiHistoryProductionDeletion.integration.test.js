@@ -63,7 +63,7 @@ async function ledger(pool) {
 function url(kind, cohort = '') {
   const value = new URL(process.env[PREFIX + cohort + kind + '_URL']);
   assert.equal(value.hostname, '127.0.0.1');
-  assert.match(value.pathname, /^\/dvaia_test_history_production_[a-f0-9]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_history_production_[a-f0-9]+$/);
   assert.equal(value.username, `dvaia_identity_${kind.toLowerCase()}`);
   assert.equal(value.search, ''); assert.equal(value.hash, '');
   return value.href;

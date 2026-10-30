@@ -32,7 +32,7 @@ for fault in (None,'owner','lease','holder','shared','image','terminal','token',
   if args[0]=='info':
    if socket=='/run/docker.sock':return B['sharedDaemonId']
    return json.dumps(dict(ID=B['sharedDaemonId'] if fault=='shared' else 'private',DockerRootDir=str(ns['mount']/'data')))
-  return json.dumps([dict(Id=B['imageId'],Architecture='arm64',Os='linux',Config=dict(User='0' if fault=='image' else '10001:10001',Entrypoint=['node','sidecars/sandbox-runner/owned-pricing-http/http-listener.js'],Labels={'dvaia.pricing.package':B['packageSha256'],'dvaia.build-run':B['runId']}))])
+  return json.dumps([dict(Id=B['imageId'],Architecture='arm64',Os='linux',Config=dict(User='0' if fault=='image' else '10001:10001',Entrypoint=['node','sidecars/sandbox-runner/owned-pricing-http/http-listener.js'],Labels={'owasp-ai-goat.pricing.package':B['packageSha256'],'owasp-ai-goat.build-run':B['runId']}))])
  def write(name,value):
   if fault=='token-write' and name=='pricing-token.json' or fault=='handoff-write' and name=='pricing-handoff.json':raise OSError('injected write')
   writes.append((name,value))

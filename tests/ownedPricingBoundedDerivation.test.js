@@ -15,7 +15,7 @@ test('actual emitted lease program rejects cross-profile records, renewal and ex
  const script=String.raw`
 import sys,json,stat,types,os
 from unittest.mock import patch
-source=sys.stdin.read();run='f'*32;root='/var/tmp/dvaia-v23-build-'+run
+source=sys.stdin.read();run='f'*32;root='/var/tmp/owasp-ai-goat-v23-build-'+run
 files={'owner':run.encode()};fds={};counter=[10];clock=[1000000000];synced=[]
 def opened(path,flags,*args):
  name=str(path).rsplit('/',1)[-1]

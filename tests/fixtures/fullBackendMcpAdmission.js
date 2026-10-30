@@ -40,8 +40,8 @@ function assertFullBackendMcpAdmission(env, { sourceRoot, evidenceRoot, endpoint
   if (sourceRoot !== source || !path.isAbsolute(source) || !sourceStat.isDirectory() || sourceStat.uid !== process.getuid?.()
       || (sourceStat.mode & 0o222) !== 0) fail();
   const evidence = ownedDirectory(evidenceRoot, source);
-  if (env.DVAIA_ISOLATED_TEST_WORKSPACE !== source
-      || env.DVAIA_FULL_BACKEND_RUNTIME_ROOT !== evidence) fail();
+  if (env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE !== source
+      || env.OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT !== evidence) fail();
   if (env.PG_FULL_BACKEND_MCP_MODEL_DIGEST !== MODEL_DIGEST) fail();
   if (env.AI_PROVIDER !== 'ollama' || env.OLLAMA_BASE_URL !== `http://${LOOPBACK}:11434`
       || env.OLLAMA_MODEL !== MODEL || env.JUDGE_PROVIDER !== 'ollama' || env.JUDGE_MODEL !== MODEL) fail();

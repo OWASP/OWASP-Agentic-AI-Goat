@@ -28,7 +28,7 @@ function selectFiles(requested) {
 }
 
 function privateRuntime() {
-  const directory = process.env.DVAIA_REPO_LOCAL_UNIT_RUNTIME;
+  const directory = process.env.OWASP_AI_GOAT_REPO_LOCAL_UNIT_RUNTIME;
   if (typeof directory !== 'string' || !directory.startsWith(`${runtimeParent}${path.sep}`)
       || path.dirname(directory) !== runtimeParent || !/^focused-unit\.[A-Za-z0-9]+$/.test(path.basename(directory)))
     throw new Error('Focused unit runner requires the repository-only wrapper mode');
@@ -50,8 +50,8 @@ function childEnvironment(directory) {
     SANDBOX_RUNNER_URL: 'http://127.0.0.1:1', SSRF_TARGET_URL: 'http://127.0.0.1:1',
     ROGUE_MCP_URL: 'http://127.0.0.1:1', MAILPIT_API_URL: 'http://127.0.0.1:1',
     MAILPIT_SMTP_HOST: '127.0.0.1', MAILPIT_SMTP_PORT: '1',
-    DVAIA_ISOLATED_TEST_WORKSPACE: source,
-    DVAIA_REPO_LOCAL_UNIT_RUNTIME: directory,
+    OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE: source,
+    OWASP_AI_GOAT_REPO_LOCAL_UNIT_RUNTIME: directory,
     AWS_EC2_METADATA_DISABLED: 'true', MCP_WORKSHOP_AUTOSTART: 'false',
     MCP_SIDECARS_AUTOSTART: 'false', SS_ENABLE: 'false', HF_HUB_OFFLINE: '1',
     PUPPETEER_CACHE_DIR: path.join(directory, 'browser-cache'),

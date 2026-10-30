@@ -485,10 +485,10 @@ test('V16 Chrome exception is opt-in, owned-profile-only and retains destination
  assert.deepEqual(f.productSummaryBrowserArgs({},{}),[]);
  const run=path.join(root,'tasks/qualification/run-browser-contract');
  const runtime=path.join(run,'runtime'),tmp=path.join(runtime,'tmp');
- const profile=path.join(tmp,'dvaia-similar-browser-controlled');
+ const profile=path.join(tmp,'owasp-ai-goat-similar-browser-controlled');
  const env={SECURESHOP_PRODUCT_SUMMARY_TEST_NO_SANDBOX:'1',
   SECURESHOP_PRODUCT_SUMMARY_BROWSER_NATIVE:'1',PG_TEST_DISPOSABLE:'yes',LIVE_OLLAMA_TEST:'1',
-  NODE_ENV:'test',DVAIA_CURRENT_MAIN_WORKSPACE:root,DVAIA_ISOLATED_TEST_WORKSPACE:run,TMPDIR:tmp,
+  NODE_ENV:'test',OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:root,OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE:run,TMPDIR:tmp,
   SECURESHOP_BOUND_BROWSER_BIRTH_SCRIPT:path.join(root,'tests/postgres/secureshop_darwin_browser_birth.py'),
   SECURESHOP_BOUND_BROWSER_BIRTH_PYTHON:'/controlled/python'};
  const options={profile,origin:'http://127.0.0.1:12345'};
@@ -504,8 +504,8 @@ test('V16 Chrome exception is opt-in, owned-profile-only and retains destination
   {SECURESHOP_PRODUCT_SUMMARY_BROWSER_NATIVE:'0'},
   {SECURESHOP_PRODUCT_SIMILAR_BROWSER_NATIVE:'1'},
   {PG_TEST_DISPOSABLE:'no'},{LIVE_OLLAMA_TEST:'0'},{NODE_ENV:'production'},
-  {DVAIA_CURRENT_MAIN_WORKSPACE:'/other'},{TMPDIR:run},
-  {DVAIA_ISOLATED_TEST_WORKSPACE:tmp},{SECURESHOP_BOUND_BROWSER_BIRTH_SCRIPT:'/other'}
+  {OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:'/other'},{TMPDIR:run},
+  {OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE:tmp},{SECURESHOP_BOUND_BROWSER_BIRTH_SCRIPT:'/other'}
  ])assert.throws(()=>f.productSummaryBrowserArgs({...env,...patch},options));
  for(const origin of ['https://127.0.0.1:12345','http://example.com:12345','http://127.0.0.1:12345/path'])
   assert.throws(()=>f.productSummaryBrowserArgs(env,{...options,origin}));

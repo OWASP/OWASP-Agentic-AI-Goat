@@ -59,10 +59,10 @@ def provenance(root,node,docker):
 
 def plan(root,nonce):
  if not NONCE.fullmatch(nonce): raise RuntimeError('twelve-hex nonce required')
- base='dvaia-listing-template-qual-'+nonce
+ base='owasp-ai-goat-listing-template-qual-'+nonce
  return {'version':1,'candidateOnly':True,'installedActivation':False,'sourceCopy':False,'files':manifest(root),
-  'container':base,'image':base+':candidate','network':base+'-bridge','profile':'dvaia-owned-listing-template-'+nonce,
-  'labels':{'dvaia.qualification':'listing-template','dvaia.qualification.nonce':nonce},'port':'127.0.0.1:<reserved>:8090',
+  'container':base,'image':base+':candidate','network':base+'-bridge','profile':'owasp-ai-goat-owned-listing-template-'+nonce,
+  'labels':{'owasp-ai-goat.qualification':'listing-template','owasp-ai-goat.qualification.nonce':nonce},'port':'127.0.0.1:<reserved>:8090',
   'resources':{'memory':'512m','cpus':'1','pids':128,'readOnlyRoot':True,'loopbackOnly':True},
   'checks':['strict-health','inert-render','command-effect-witness','bounded-drain','exact-owned-cleanup']}
 def atomic_json(path,value):
@@ -227,15 +227,15 @@ def http(port,path,body=None):
   if len(raw)>131072:raise RuntimeError('response bound')
   return r.status,json.loads(raw)
 def profile_plan(root,node,docker_host,nonce):
- program=r"""const i=require('./scripts/install/secureshop-owned-listing-template')._internals;const c=require('node:crypto');const id=process.argv[3],host=process.argv[2],p={workspaceId:id,profile:'dvaia-owned-listing-template-'+id};if(process.platform==='darwin'&&!/^unix:\/\/.+\/.colima\/[a-z0-9-]+\/docker.sock$/.test(host))throw Error('admitted Colima authority');const b=i.profileBytes(process.argv[1],id);process.stdout.write(JSON.stringify({name:p.profile,bytes:b.toString('base64'),sha256:c.createHash('sha256').update(b).digest('hex'),platform:process.platform,host}));"""
+ program=r"""const i=require('./scripts/install/secureshop-owned-listing-template')._internals;const c=require('node:crypto');const id=process.argv[3],host=process.argv[2],p={workspaceId:id,profile:'owasp-ai-goat-owned-listing-template-'+id};if(process.platform==='darwin'&&!/^unix:\/\/.+\/.colima\/[a-z0-9-]+\/docker.sock$/.test(host))throw Error('admitted Colima authority');const b=i.profileBytes(process.argv[1],id);process.stdout.write(JSON.stringify({name:p.profile,bytes:b.toString('base64'),sha256:c.createHash('sha256').update(b).digest('hex'),platform:process.platform,host}));"""
  raw=subprocess.run([node,'-e',program,str(root),docker_host,nonce],cwd=root,capture_output=True,text=True,timeout=30,check=True,env={'PATH':str(Path(node).parent),'HOME':os.environ['HOME']}).stdout
  value=json.loads(raw)
- if not re.fullmatch(r'dvaia-owned-listing-template-[a-f0-9]{12}',value.get('name','')) or not HEX.fullmatch(value.get('sha256','')):raise RuntimeError('nonce profile plan invalid')
+ if not re.fullmatch(r'owasp-ai-goat-owned-listing-template-[a-f0-9]{12}',value.get('name','')) or not HEX.fullmatch(value.get('sha256','')):raise RuntimeError('nonce profile plan invalid')
  return value
 def profile_op(env,plan,action):
  # exact nonce-owned profile lifecycle: mismatches retain rather than delete
  code="""import os,sys,stat,re,base64,subprocess,hashlib
-act,name,encoded,expected=sys.argv[1:];data=base64.b64decode(encoded,validate=True);assert act in ('install','remove') and re.fullmatch(r'dvaia-owned-listing-template-[a-f0-9]{12}',name) and hashlib.sha256(data).hexdigest()==expected and os.geteuid()==0
+act,name,encoded,expected=sys.argv[1:];data=base64.b64decode(encoded,validate=True);assert act in ('install','remove') and re.fullmatch(r'owasp-ai-goat-owned-listing-template-[a-f0-9]{12}',name) and hashlib.sha256(data).hexdigest()==expected and os.geteuid()==0
 path='/etc/apparmor.d/'+name
 def live():return [x for x in open('/sys/kernel/security/apparmor/profiles').read().splitlines() if x.startswith(name+' ') or x.startswith(name+'//')]
 if act=='install':
@@ -274,7 +274,7 @@ def main():
  if parent.is_symlink() or parent.resolve()!=parent or parent.resolve().is_relative_to(root) or parent.stat().st_uid!=os.getuid() or parent.stat().st_mode&0o077:raise RuntimeError('private evidence parent required')
  evidence=Path(tempfile.mkdtemp(prefix='run-',dir=parent));os.chmod(evidence,0o700)
  if not args.node:raise RuntimeError('pinned Node executable required')
- pins=provenance(root,args.node,args.docker);env=build_environment(evidence,args.docker,args.node,pins['buildx']);state={'labels':{**spec['labels'],'dvaia.qualification.owner':str(uuid.uuid4())},'container':spec['container'],'network':spec['network'],'image':spec['image'],'attempted':[]};result={**spec,'provenance':pins,'evidence':str(evidence),'cleanup':{},'passed':False};atomic_json(evidence/'source-before.json',{'files':spec['files'],'provenance':pins})
+ pins=provenance(root,args.node,args.docker);env=build_environment(evidence,args.docker,args.node,pins['buildx']);state={'labels':{**spec['labels'],'owasp-ai-goat.qualification.owner':str(uuid.uuid4())},'container':spec['container'],'network':spec['network'],'image':spec['image'],'attempted':[]};result={**spec,'provenance':pins,'evidence':str(evidence),'cleanup':{},'passed':False};atomic_json(evidence/'source-before.json',{'files':spec['files'],'provenance':pins})
  def persist():atomic_json(evidence/'resources.json',state)
  def attempt(kind):state['attempted'].append(kind);persist()
  def verify_sources():

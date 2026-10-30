@@ -10,7 +10,7 @@ const { createMcpProtectedState, RECEIPT_VERSION } = require('../sidecars/sandbo
 
 const canonical = value => JSON.stringify(Object.fromEntries(Object.keys(value).sort().map(key => [key, value[key]])));
 async function targetFixture(t, { owner = 7, session = 11, generation = 0 } = {}) {
-  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mcp-protected-state-'));
+  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mcp-protected-state-'));
   t.after(() => fs.rm(parent, { recursive: true, force: true }));
   const targetId = crypto.randomUUID(); const directory = path.join(parent, targetId);
   const scope = { targetId, platformOwnerId: owner, platformSessionId: session, generation };

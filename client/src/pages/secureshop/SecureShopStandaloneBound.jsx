@@ -18,13 +18,13 @@ import SecureShopStandalonePasswordReset from './SecureShopStandalonePasswordRes
 import SecureShopStandaloneExternalMail from './SecureShopStandaloneExternalMail.jsx';
 import './theme.css';
 
-const ROUTE_CHANNEL = 'dvaia-secureshop-bound-route-v1';
+const ROUTE_CHANNEL = 'owasp-ai-goat-secureshop-bound-route-v1';
 
 function FrameStatus({ message, error, onRetry }) {
   return <div className="ss-root" style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',
     background: 'var(--paper, #f8f6f1)', color: 'var(--ink, #242422)' }}>
     <div style={{ padding: 24, textAlign: 'center' }}>
-      <div className="ss-mono" style={{ fontSize: 12, letterSpacing: '0.12em', marginBottom: 20 }}>SECURESHOP</div>
+      <div className="ss-mono" style={{ fontSize: 12, letterSpacing: '0.12em', marginBottom: 20 }}>OWASP AI SecureShop</div>
       {!error && <div className="ss-skel" aria-hidden="true" style={{ width: 96, height: 3, margin: '0 auto 20px' }} />}
       <p role={error ? 'alert' : 'status'}>{message}</p>
       {error && <button type="button" className="ss-btn ss-btn--ghost" onClick={onRetry}>Retry</button>}
@@ -36,7 +36,7 @@ function SceneChoice({ scenes, busy, error, onSelect, onCancel }) {
   return <div className="ss-root" style={{ position: 'absolute', inset: 0, overflowY: 'auto',
     background: 'var(--paper, #f8f6f1)', color: 'var(--ink, #242422)' }}>
     <main style={{ maxWidth: 760, margin: '0 auto', padding: 'clamp(28px, 7vw, 72px) 24px' }}>
-      <div className="ss-mono" style={{ fontSize: 12, letterSpacing: '0.12em' }}>SECURESHOP</div>
+      <div className="ss-mono" style={{ fontSize: 12, letterSpacing: '0.12em' }}>OWASP AI SecureShop</div>
       <h1 className="ss-display" style={{ margin: '24px 0 12px' }}>Choose a shop practice.</h1>
       <p style={{ maxWidth: '58ch' }}>Select the existing practice you want to open. Your carts and activity stay with their original practice.</p>
       {error && <p role="alert" style={{ color: 'var(--rust)' }}>{error}</p>}
@@ -61,7 +61,7 @@ function ResetRecovery({ recovery, busy, onResume }) {
   return <div className="ss-root" style={{ position: 'absolute', inset: 0, overflowY: 'auto',
     background: 'var(--paper, #f8f6f1)', color: 'var(--ink, #242422)' }}>
     <main style={{ maxWidth: 760, margin: '0 auto', padding: 'clamp(28px, 7vw, 72px) 24px' }}>
-      <div className="ss-mono" style={{ fontSize: 12, letterSpacing: '0.12em' }}>SECURESHOP</div>
+      <div className="ss-mono" style={{ fontSize: 12, letterSpacing: '0.12em' }}>OWASP AI SecureShop</div>
       <h1 className="ss-display" style={{ margin: '24px 0 12px' }}>Finish a saved practice reset.</h1>
       <p>The reset of <strong>{recovery.scene.label}</strong> needs its protected cleanup checked before this shop can open.
         This shared practice remains closed while its outcome is unresolved.</p>
@@ -78,7 +78,7 @@ function PracticeRecovery({ practice, busy, message, onCheck, onResume, onRetain
   return <div className="ss-root" style={{ position: 'absolute', inset: 0, overflowY: 'auto',
     background: 'var(--paper, #f8f6f1)', color: 'var(--ink, #242422)' }}>
     <main style={{ maxWidth: 760, margin: '0 auto', padding: 'clamp(28px, 7vw, 72px) 24px' }}>
-      <div className="ss-mono" style={{ fontSize: 12, letterSpacing: '0.12em' }}>SECURESHOP</div>
+      <div className="ss-mono" style={{ fontSize: 12, letterSpacing: '0.12em' }}>OWASP AI SecureShop</div>
       <h1 className="ss-display" style={{ margin: '24px 0 12px' }}>Check a saved new practice.</h1>
       <p>The new practice request is saved as <span className="ss-mono">{practice.operationId}</span>.
         Checking its status does not start another practice.</p>
@@ -305,7 +305,7 @@ export default function SecureShopStandaloneBound({ client, user, onSessionInten
     client.getPracticeResetReadiness(controller.signal).then(value => {
       if (controller.signal.aborted) return;
       if (value.launchId !== state.launch?.launchId || value.generation !== state.launch?.generation) {
-        throw new Error('The selected practice changed. Reopen SecureShop before resetting it.');
+        throw new Error('The selected practice changed. Reopen OWASP AI SecureShop before resetting it.');
       }
       setResetReadiness(value); setResetCheck(value.available ? 'ready' : 'unavailable');
     }).catch(error => {
@@ -416,7 +416,7 @@ export default function SecureShopStandaloneBound({ client, user, onSessionInten
         }
       }
       if (!readbackConfirmed) {
-        setCartError('SecureShop accepted your saved items, but the shop cart could not confirm them. Your saved cart is unchanged. Retry Add saved items to check again.');
+        setCartError('OWASP AI SecureShop accepted your saved items, but the shop cart could not confirm them. Your saved cart is unchanged. Retry Add saved items to check again.');
         return;
       }
       if (!clearImportedGuestCart(storageRef.current, prepared)) {
@@ -431,7 +431,7 @@ export default function SecureShopStandaloneBound({ client, user, onSessionInten
         setCartDismissed(true);
         navigate(destination);
       } else {
-        setCartNotice('Your saved items are in your shop cart. Prices and stock were checked by SecureShop.');
+        setCartNotice('Your saved items are in your shop cart. Prices and stock were checked by OWASP AI SecureShop.');
       }
     } catch (error) {
       setCartError(error.message || 'Cart import could not be confirmed. Your saved cart is unchanged.');
@@ -443,12 +443,12 @@ export default function SecureShopStandaloneBound({ client, user, onSessionInten
     if (issue.code === 'CART_QUANTITY_LIMIT') return `${item}: cart quantity limit reached`;
     return `${item}: unavailable`;
   };
-  return <main aria-label="SecureShop" style={{ position: 'fixed', inset: 0, zIndex: 1000,
+  return <main aria-label="OWASP AI SecureShop" style={{ position: 'fixed', inset: 0, zIndex: 1000,
     background: 'var(--paper, #f8f6f1)' }}>
     <div ref={host} style={{ width: '100%', height: '100dvh' }} />
     {['connecting', 'selecting', 'recovering-reset', 'creating-practice', 'checking-practice'].includes(state.status) &&
-      <FrameStatus message={state.status === 'recovering-reset' ? 'Checking saved reset…' : 'Opening SecureShop…'} />}
-    {state.status === 'error' && <FrameStatus error message={state.message || 'SecureShop is unavailable.'}
+      <FrameStatus message={state.status === 'recovering-reset' ? 'Checking saved reset…' : 'Opening OWASP AI SecureShop…'} />}
+    {state.status === 'error' && <FrameStatus error message={state.message || 'OWASP AI SecureShop is unavailable.'}
       onRetry={state.retryRecovery ? resumeRecovery : state.retryReset ? resetPractice
         : () => setAttempt(value => value + 1)} />}
     {state.status === 'reset-recovery' && user?.role !== 'admin' &&
@@ -468,7 +468,7 @@ export default function SecureShopStandaloneBound({ client, user, onSessionInten
         boxShadow: 'var(--shadow-md)', fontSize: 11 }}>
         {resetRenewalNotice === 'pending'
           ? 'A registered account reset is awaiting recovery. Automatic session renewal is paused so this administrator session remains available for status and reveal. Finish recovery before the current session expires; access will not be extended automatically.'
-          : 'SecureShop cannot verify the saved reset reference. Automatic session renewal is paused to preserve any original administrator session needed for recovery. Check reset recovery before the current session expires; access will not be extended automatically.'}
+          : 'OWASP AI SecureShop cannot verify the saved reset reference. Automatic session renewal is paused to preserve any original administrator session needed for recovery. Check reset recovery before the current session expires; access will not be extended automatically.'}
         <button type="button" className="ss-btn ss-btn--sm" onClick={() => setSettingsOpen(true)}
           style={{ display: 'block', marginTop: 8 }}>Open reset recovery</button>
       </div>}
@@ -535,7 +535,7 @@ export default function SecureShopStandaloneBound({ client, user, onSessionInten
           <strong> {resetReadiness?.scene.label}</strong>. Historical evidence remains. This cannot be undone.</p>
         {resetError && <p role="alert" style={{ color: 'var(--rust)' }}>{resetError}</p>}
         {state.retryReset && <p>{state.resetCommitted
-          ? 'Reset cleanup was confirmed, but SecureShop could not reopen. Retry only reopens this practice.'
+          ? 'Reset cleanup was confirmed, but OWASP AI SecureShop could not reopen. Retry only reopens this practice.'
           : 'The previous reset outcome is uncertain. Retry uses the same request; it does not start another reset.'}</p>}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, flexWrap: 'wrap' }}>
           <button type="button" className="ss-btn ss-btn--ghost" disabled={resetPending}

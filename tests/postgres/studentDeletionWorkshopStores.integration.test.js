@@ -4,7 +4,7 @@ const {Pool}=require('pg');
 const PREFIX='PG_STUDENT_DELETION_STORES_';
 const stores=['ARIA','NOVA','MCP','CSRF','SUPPLY','CTF'];
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&stores.every(key=>process.env[`${PREFIX}${key}_MIGRATION_URL`]&&process.env[`${PREFIX}${key}_RUNTIME_URL`]);
-function url(key,kind){const value=new URL(process.env[`${PREFIX}${key}_${kind}_URL`]);assert.ok(['127.0.0.1','localhost'].includes(value.hostname));assert.match(value.pathname,/^\/dvaia_test_[a-z0-9_]+$/);return value.href;}
+function url(key,kind){const value=new URL(process.env[`${PREFIX}${key}_${kind}_URL`]);assert.ok(['127.0.0.1','localhost'].includes(value.hostname));assert.match(value.pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);return value.href;}
 
 test('native workshop destruction removes exact owner state, preserves shared content and siblings, and replays',{skip:!enabled,timeout:60000},async()=>{
  const pools=Object.fromEntries(stores.map(key=>[key,{migration:new Pool({connectionString:url(key,'MIGRATION')}),runtime:new Pool({connectionString:url(key,'RUNTIME')})}]));

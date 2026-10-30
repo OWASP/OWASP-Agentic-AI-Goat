@@ -7,7 +7,7 @@ function admit(env,root){
   for(const key of ['SECURESHOP_POLICY_OUTPUT_BROWSER_NATIVE','SECURESHOP_STANDALONE_SSRF_RENDERED_NATIVE',
     'SECURESHOP_POLICY_OUTPUT_REPOSITORY_EVIDENCE'])assert.equal(env[key],'1');
   assert.equal(env.PG_TEST_DISPOSABLE,'yes');
-  const workspace=env.DVAIA_CURRENT_MAIN_WORKSPACE;
+  const workspace=env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE;
   assert.equal(workspace,process.cwd());
   const evidence=path.dirname(root),run=path.dirname(evidence);
   assert.equal(path.dirname(run),path.join(workspace,'tasks/qualification'));

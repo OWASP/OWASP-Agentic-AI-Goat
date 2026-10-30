@@ -66,7 +66,7 @@ class XssLauncherContract(unittest.TestCase):
             "verify_container(name, image_id, expected_id=None)",
             "container_ids.get(name)",
             "is_relative_to(Path(allowed_root).resolve())",
-            "dvaia.run-nonce",
+            "owasp-ai-goat.run-nonce",
             "validate_package(package, manifest_path, args.manifest_sha256)",
             "verify_copy(workspace, manifest)",
             "manifestSha256",

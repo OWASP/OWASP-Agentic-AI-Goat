@@ -62,7 +62,7 @@ function runSeed(dbPath) {
           const studentHash = bcrypt.hashSync('student123', 10);
           const userHash = bcrypt.hashSync('password', 10);
           const testHash = bcrypt.hashSync('test123', 10);
-          const adminHash = bcrypt.hashSync('Abh1nav@DVAIA#2026', 10);
+          const adminHash = bcrypt.hashSync('Abh1nav@OWASP-AI-GOAT#2026', 10);
           const usersPerTeam = Math.max(parseInt(process.env.USERS_PER_TEAM || '8', 10), 1);
           const workshopPassword = process.env.WORKSHOP_DEFAULT_STUDENT_PASSWORD || 'Workshop2026!';
           const workshopHash = bcrypt.hashSync(workshopPassword, 10);
@@ -72,7 +72,7 @@ function runSeed(dbPath) {
           const teamPassword = process.env.WORKSHOP_TEAM_PASSWORD || `${workshopPassword}-${teamId}`;
           const teamHash = bcrypt.hashSync(teamPassword, 10);
           
-          db.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level, email_verified) VALUES (?,?,?,?,?,?)`, ['Abhinav', 'abhinav@dvaia.local', adminHash, 'admin', 2, 1], function (e) {
+          db.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level, email_verified) VALUES (?,?,?,?,?,?)`, ['Abhinav', 'abhinav@owasp-ai-goat.local', adminHash, 'admin', 2, 1], function (e) {
             if (!e && this.lastID) {
               const adminId = this.lastID;
               ['user_management', 'challenge_management', 'system_config', 'view_analytics', 'manage_progress', 'send_notifications', 'export_data', 'system_logs'].forEach(perm => {
@@ -86,10 +86,10 @@ function runSeed(dbPath) {
           // Skip the generic shared-password accounts so no unassigned login exists.
           const bsidesMode = process.env.BSIDES_MODE === 'true';
           if (!bsidesMode) {
-            db.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level) VALUES (?,?,?,?,?)`, ['student', 'student@dvaia.local', studentHash, 'student', 0]);
-            db.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level) VALUES (?,?,?,?,?)`, ['student123', 'student123@dvaia.local', studentHash, 'student', 0]);
-            db.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level) VALUES (?,?,?,?,?)`, ['user', 'user@dvaia.local', userHash, 'student', 0]);
-            db.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level) VALUES (?,?,?,?,?)`, ['Test User', 'test@dvaia.local', testHash, 'student', 0]);
+            db.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level) VALUES (?,?,?,?,?)`, ['student', 'student@owasp-ai-goat.local', studentHash, 'student', 0]);
+            db.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level) VALUES (?,?,?,?,?)`, ['student123', 'student123@owasp-ai-goat.local', studentHash, 'student', 0]);
+            db.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level) VALUES (?,?,?,?,?)`, ['user', 'user@owasp-ai-goat.local', userHash, 'student', 0]);
+            db.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level) VALUES (?,?,?,?,?)`, ['Test User', 'test@owasp-ai-goat.local', testHash, 'student', 0]);
 
             // Event-day generic users for each team instance.
             // These credentials are exported to CSV/JSON for Google Sheet import.

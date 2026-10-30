@@ -31,7 +31,7 @@ test('successful empty response alone renders the instructor availability empty 
 });
 test('student dashboard shows the full canonical exercise library and compact progress summary',async()=>{
  const ready={...challenge,status:'in_progress',objectiveCount:2,completedObjectiveCount:1,timeSpentSeconds:125,objectives:[{id:'one',text:'First objective',completed:true},{id:'two',text:'Second objective',completed:false}]};
- const locked={...challenge,id:'secure_shop',title:'SecureShop',status:'locked',objectiveCount:0,completedObjectiveCount:0,timeSpentSeconds:0,objectives:[]};
+ const locked={...challenge,id:'secure_shop',title:'OWASP AI SecureShop',status:'locked',objectiveCount:0,completedObjectiveCount:0,timeSpentSeconds:0,objectives:[]};
  axios.get.mockResolvedValue({data:{challenges:[ready,locked]}});await mount();await flush();
  expect(node.querySelector('h1').textContent).toContain('Student Dashboard');
  expect(node.textContent).toContain('Exercise Library (2 visible)');
@@ -40,7 +40,7 @@ test('student dashboard shows the full canonical exercise library and compact pr
  expect(node.textContent).toContain('2m');
  expect(node.querySelector('[role="progressbar"]').getAttribute('aria-valuenow')).toBe('50');
  expect(node.textContent).toContain('Direct Prompt Injection');
- expect(node.textContent).toContain('SecureShop');
+ expect(node.textContent).toContain('OWASP AI SecureShop');
  expect(node.textContent).not.toContain('Back to Student Dashboard');
  const start=[...node.querySelectorAll('button')].find(button=>button.textContent.includes('Continue Exercise'));
  expect(getComputedStyle(start).minHeight).toBe('44px');

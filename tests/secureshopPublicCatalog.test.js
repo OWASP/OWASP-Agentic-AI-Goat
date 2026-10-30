@@ -162,7 +162,7 @@ test('public writes, HEAD, and forged launch selection cannot use the guest boun
     const response = await fixture.request('/products/4/reviews', { method });
     assert.equal(response.status, 405); assert.equal(response.headers.get('allow'), 'GET');
   }
-  assert.equal((await fixture.request('/products', { headers: { 'x-dvaia-secureshop-launch': 'forged' } })).status, 503);
+  assert.equal((await fixture.request('/products', { headers: { 'x-owasp-ai-goat-secureshop-launch': 'forged' } })).status, 503);
   assert.deepEqual(fixture.calls, []); assert.equal(fixture.legacy(), 0);
 });
 

@@ -4,9 +4,9 @@
 const fs=require('node:fs'),net=require('node:net'),{randomUUID}=require('node:crypto');
 const codec=require('./invocation-channel-codec');
 const leases=new WeakMap();
-async function openPrivateChannel({identity,secret,lockFd=4,socketPath='/run/dvaia-invocation/control.sock'}={}){
+async function openPrivateChannel({identity,secret,lockFd=4,socketPath='/run/owasp-ai-goat-invocation/control.sock'}={}){
  if(process.platform!=='linux'||process.pid===1||process.getuid()!==10001||identity.peerPid!==1||identity.peerUid!==10001||!Buffer.isBuffer(secret)||secret.length!==32)throw Error('Private Linux supervisor required');
- const native=require('/usr/local/libexec/dvaia-invocation-peer.node');let closed=false;
+ const native=require('/usr/local/libexec/owasp-ai-goat-invocation-peer.node');let closed=false;
  async function connect(){const socket=net.createConnection(socketPath);await new Promise((resolve,reject)=>{const timer=setTimeout(()=>{socket.destroy();reject(Error('Supervisor connect deadline'));},2000);socket.once('connect',()=>{clearTimeout(timer);resolve();});socket.once('error',e=>{clearTimeout(timer);reject(e);});});try{const peer=native.check(socket._handle.fd,lockFd);if(peer.pid!==identity.peerPid||peer.uid!==identity.peerUid)throw Error('Supervisor peer changed');return socket;}catch(e){socket.destroy();throw e;}}
  const initial=await connect(),leaseRequest={version:'owned-mcp-supervisor-v1',operation:'lease',requestId:randomUUID(),identity,intent:{invocationId:randomUUID(),workerId:randomUUID(),bootId:randomUUID()}};
  const leaseReply=await exchangeOnSocket(initial,leaseRequest,secret,{timeoutMs:2000});if(leaseReply.state!=='completed'||JSON.stringify(leaseReply.result)!=='{"lease":true}')throw Error('Supervisor lease handshake denied');

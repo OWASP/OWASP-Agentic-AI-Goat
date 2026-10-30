@@ -94,7 +94,7 @@ async function waitForPublicationBlocked(observer,blocker){
 }
 test('derived embedding revision fresh/populated migration, immutable preservation, ACL, replay and source/reset races',{skip:!enabled,timeout:90000},async()=>{
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');const pools=[];let prefix;
- const open=key=>{const u=new URL(process.env[key]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_embedding_(fresh|populated)_[a-f0-9]+$/);const p=new Pool({connectionString:u.href,max:5,statement_timeout:15000,lock_timeout:5000});pools.push(p);return p;};
+ const open=key=>{const u=new URL(process.env[key]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_embedding_(fresh|populated)_[a-f0-9]+$/);const p=new Pool({connectionString:u.href,max:5,statement_timeout:15000,lock_timeout:5000});pools.push(p);return p;};
  try{
  const fresh=open('EMBEDDING_FRESH_MIGRATION_URL'),migration=open('EMBEDDING_POPULATED_MIGRATION_URL'),runtime=open('EMBEDDING_POPULATED_RUNTIME_URL');
  const manifest=fs.readdirSync(directory).filter(name=>/^[0-9]{4}_.*\.sql$/.test(name)).sort();

@@ -37,7 +37,7 @@ static int helper(void){
  if(recv(4,release,sizeof(release),MSG_DONTWAIT)!=17||release[0]!='G'||memcmp(release+1,challenge+1,16))return 70;
  ready[0]='D';if(send(4,ready,sizeof(ready),MSG_NOSIGNAL|MSG_DONTWAIT)!=(ssize_t)sizeof(ready))return 70;
  if(syscall(SYS_close_range,3,~0U,0))return 70;
- char *argv[]={"/usr/local/bin/node","/usr/local/libexec/dvaia-invocation-worker.js",NULL};
+ char *argv[]={"/usr/local/bin/node","/usr/local/libexec/owasp-ai-goat-invocation-worker.js",NULL};
  char *env[]={"PATH=/usr/bin:/bin",NULL};
  execve(argv[0],argv,env);return 70;
 }

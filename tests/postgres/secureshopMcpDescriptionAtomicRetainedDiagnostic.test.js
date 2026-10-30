@@ -49,7 +49,7 @@ test('pinned original admission validates real publication, actor trace and reta
  assert.equal(admitted.plan.provenance,'validated-original-source');assert.equal(admitted.plan.maxJudgeCalls,12);
  assert.deepEqual(admitted.plan.evidence.slots.map(x=>x.id),['prefix','titles','preference']);
  assert.equal(admitted.inputs['mcp-description-wire.json'],'d10b81c2a3c848e25c7c4d72a1cf0efe320af153718705ac18f244a3bbef0d8c');
- const q=require('../../tasks/qualification/dvaia-mcp-assembly-iw6u2bic/mcp-description-qualification.json');
+ const q=require('../../tasks/qualification/owasp-ai-goat-mcp-assembly-iw6u2bic/mcp-description-qualification.json');
  const bad=structuredClone(q.original);bad.traces[0].event_id='00000000-0000-4000-8000-000000000000';
  const provider=new OllamaProvider({baseUrl:'http://127.0.0.1:11434',model:'llama3.1:8b'});
  assert.throws(()=>validateSource(bad,createSecureShopModelQualifier(provider)),/evidence unavailable/);

@@ -62,7 +62,7 @@ test('mounted FinFlow route has a complete literal local dependency closure', ()
 });
 
 test('production FinFlow router mounts without database, model, or network execution', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-finflow-closure-'));
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-finflow-closure-'));
   const appData = path.join(tempRoot, 'app-data');
   const logs = path.join(appData, 'logs');
   fs.mkdirSync(logs, { recursive: true, mode: 0o700 });
@@ -100,7 +100,7 @@ test('production FinFlow router mounts without database, model, or network execu
       JWT_SECRET: 'offline-source-closure-only-32-bytes',
       IDENTITY_DATABASE_URL: 'postgresql://offline:offline@127.0.0.1:1/offline',
       FINFLOW_WORKSHOP_DATABASE_URL: 'postgresql://offline:offline@127.0.0.1:1/offline',
-      DVAIA_APP_DATA_ROOT: appData,
+      OWASP_AI_GOAT_APP_DATA_ROOT: appData,
       LOGS_DIR: logs,
     };
     const result = spawnSync(process.execPath, ['-e', probe], {

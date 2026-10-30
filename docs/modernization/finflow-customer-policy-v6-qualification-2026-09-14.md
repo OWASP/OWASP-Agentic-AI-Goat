@@ -32,11 +32,11 @@ Root review found an existing suitable mechanism in `server/agent-runtime/object
 ## Retained evidence
 
 - Grant: `finflow-customer-policy-v6-20260914-01`; actual root-owned exec handle `41992`; consumer PID `60517`.
-- Evidence directory: `/Users/averma5/.dvaia/native-verification/dvaia-finflow-policy-p1ozw5ja`.
+- Evidence directory: `/Users/averma5/.owasp-ai-goat/native-verification/owasp-ai-goat-finflow-policy-p1ozw5ja`.
 - Frozen candidate manifest: `bd77f5047957de7ca9e05de0e2da1893515310abc646823251608e9edf287898`;565 files independently verified against the executed copy and approved overlays.
 - `result.log`: `8d409ce206c390e2acf2817e4dfa645f19ac21135d1a930286a4147841edccb7`;12 passed,0 failed,0 skipped;20 recorded `llm_call` entries.
 - `policy-cohort.json`: `9ebf751b2fbcfb45167d9a5171d6de079b4759f2e7768b5e0ccf5133a0b3d247`; full responses, tool results, durable packets, outcomes and controls.
 - `ownership.json`: `2bdc2ba5c1aeecad6f3a0564cab6d36d5965bae84a734295b7b71539cbb02a93`.
 - Original status remains `terminal_fail`, qualification `incomplete`, verification `controls_passed`.
-- Root independently verified absence of owned container `dvaia-finflow-policy-ba17edfd68ce` and exact ID `49c94bba11147b8f8ec8c774efc6ece8fae8cb0fb3f312fc781686935c5ca266` after cleanup.
+- Root independently verified absence of owned container `owasp-ai-goat-finflow-policy-ba17edfd68ce` and exact ID `49c94bba11147b8f8ec8c774efc6ece8fae8cb0fb3f312fc781686935c5ca266` after cleanup.
 - Shared FinFlow runtime and private `.env` hashes remained unchanged. No application deployment, learner/instructor state change or AWS change occurred.

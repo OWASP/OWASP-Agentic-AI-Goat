@@ -1,6 +1,6 @@
 # Contributing to OWASP Agentic AI Goat
 
-Contributions to lessons, platform fixes, accessibility, documentation and local installation are welcome. The application originates from DVAIA; existing DVAIA identifiers and attribution remain intentionally intact.
+Contributions to lessons, platform fixes, accessibility, documentation and local installation are welcome. Use OWASP Agentic AI GOAT in user-facing text and `owasp-ai-goat` for package names. Existing database migrations and persisted identifiers require compatibility review before renaming.
 
 ## Start here
 

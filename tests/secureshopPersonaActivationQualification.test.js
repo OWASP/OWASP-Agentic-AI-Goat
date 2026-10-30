@@ -28,7 +28,7 @@ test('persona activation qualifier uses real platform JWT and live catalog autho
 
 test('single-use launcher copies reviewed candidate bytes and current promoted migrations', () => {
   const source = read('tests/postgres/run-secureshop-persona-activation-isolated.py');
-  assert.match(source, /EXPECTED_DOCKER = 'unix:\/\/\/Users\/averma5\/\.colima\/dvaia-pg-verify\/docker\.sock'/);
+  assert.match(source, /EXPECTED_DOCKER = 'unix:\/\/\/Users\/averma5\/\.colima\/owasp-ai-goat-pg-verify\/docker\.sock'/);
   assert.match(source, /registered\.get\('ownerHandle'\)/);
   assert.match(source, /handle != os\.getpid\(\)/);
   assert.match(source, /try:\n    register_owner\(\)\n    prepare_workspace\(\)/);

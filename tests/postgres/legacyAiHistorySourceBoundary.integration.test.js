@@ -11,7 +11,7 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && process.env[prefix+'
 function url(kind) {
   const value = new URL(process.env[prefix+kind+'_URL']);
   assert.equal(value.hostname,'127.0.0.1');
-  assert.match(value.pathname,/^\/dvaia_test_history_boundary_[a-f0-9]+$/);
+  assert.match(value.pathname,/^\/owasp_ai_goat_test_history_boundary_[a-f0-9]+$/);
   assert.equal(value.username,'dvaia_legacy_challenge_'+kind.toLowerCase());
   assert.equal(value.search,''); assert.equal(value.hash,'');
   return value.href;
@@ -19,7 +19,7 @@ function url(kind) {
 test('populated source is preserved and isolated while synthetic SQL injection stays demonstrable', {skip: !enabled, timeout:30000}, async () => {
   const migration = new Pool({connectionString:url('MIGRATION')});
   const runtime = new Pool({connectionString:url('RUNTIME')});
-  const prior = await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-history-boundary-'));
+  const prior = await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-history-boundary-'));
   const directory = path.resolve(__dirname,'../../db/postgres/workshop-migrations/legacy_challenge');
   const payload = pool => pool.query('SELECT jsonb_agg(to_jsonb(source) ORDER BY id) AS rows FROM legacy_challenge.ai_conversations source');
   try {

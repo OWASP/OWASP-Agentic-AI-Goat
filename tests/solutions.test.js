@@ -18,7 +18,7 @@ const { WORKSHOP_OBJECTIVES } = require('../server/config/workshopCatalog');
 const BASE_HOST = process.env.TEST_HOST || '127.0.0.1';
 const BASE_PORT = parseInt(process.env.TEST_PORT || '1', 10);
 const ADMIN_USERNAME = process.env.TEST_ADMIN_USERNAME || 'Abhinav';
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'Abh1nav@DVAIA#2026';
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'Abh1nav@OWASP-AI-GOAT#2026';
 const ids = (key) => WORKSHOP_OBJECTIVES[key].map((objective) => objective.id);
 
 let passed = 0;

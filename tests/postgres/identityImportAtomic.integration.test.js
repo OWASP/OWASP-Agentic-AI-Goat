@@ -5,7 +5,7 @@ const{initializeIdentityRepository}=require('../../server/database/postgres/iden
 const{importIdentity,importIdentityInTransaction}=require('../../server/database/postgres/identityImport');
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_IDENTITY_ATOMIC_TEST_RUNTIME_URL;
 test('identity dry run checks native constraints and shared transaction rolls back rows and sequences',{skip:!enabled},async()=>{
- for(const key of ['PG_IDENTITY_ATOMIC_TEST_RUNTIME_URL','PG_IDENTITY_ATOMIC_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const key of ['PG_IDENTITY_ATOMIC_TEST_RUNTIME_URL','PG_IDENTITY_ATOMIC_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const runtime=createPool(process.env,'PG_IDENTITY_ATOMIC_TEST_RUNTIME_URL'),migration=createPool(process.env,'PG_IDENTITY_ATOMIC_TEST_MIGRATION_URL');
  try{
   await initializeIdentityRepository(runtime,migration);

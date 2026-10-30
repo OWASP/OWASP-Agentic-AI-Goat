@@ -8,7 +8,7 @@ const { runSecureShopAuditWorker } = require('../server/services/secureshopAudit
 const { spoolAuditObservation } = require('../server/services/secureshopAuditObservationSpool');
 const scope = { launchId: '10000000-0000-4000-8000-000000000001', scenarioId: '20000000-0000-4000-8000-000000000001', generation: 2, platformOwnerId: 7, platformSessionId: 8 };
 async function fixture(t,{runId='owned-test'}={}) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-audit-worker-test-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-audit-worker-test-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const spool = await spoolAuditObservation({ root, scope, runId, requestedCount: 1, checkCurrent: async () => {},
     rows: (async function *() {})() });

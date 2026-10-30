@@ -12,7 +12,7 @@
 [CmdletBinding()]
 param()
 
-function Get-DvaiaWindowsHostObservation {
+function Get-OwaspAiGoatWindowsHostObservation {
     # Select only public admission facts; no machine names, IDs or serial numbers.
     $os = Get-CimInstance -ClassName Win32_OperatingSystem -Property OperatingSystemSKU,ProductType,Version,BuildNumber -OperationTimeoutSec 10 -ErrorAction Stop
     $system = Get-CimInstance -ClassName Win32_ComputerSystem -Property HypervisorPresent -OperationTimeoutSec 10 -ErrorAction Stop
@@ -50,7 +50,7 @@ function Get-DvaiaWindowsHostObservation {
         hypervAdministrator = [bool]$hypervAdministrator; hypervPowerShellAvailable = [bool]$hypervPowerShellAvailable }
 }
 
-function Test-DvaiaWindowsHostObservation {
+function Test-OwaspAiGoatWindowsHostObservation {
     param($Observation)
     # Explicit approved client families, including N, evaluation and LTSC:
     # Enterprise 4/27/70/72/84, Enterprise S 125/126/129/130;
@@ -104,14 +104,14 @@ function Test-DvaiaWindowsHostObservation {
     return [pscustomobject]$result
 }
 
-function Invoke-DvaiaWindowsHostPreflight {
-    param([scriptblock]$Observe = ${function:Get-DvaiaWindowsHostObservation})
+function Invoke-OwaspAiGoatWindowsHostPreflight {
+    param([scriptblock]$Observe = ${function:Get-OwaspAiGoatWindowsHostObservation})
     try { $observed = & $Observe } catch { $observed = $null }
-    return Test-DvaiaWindowsHostObservation $observed
+    return Test-OwaspAiGoatWindowsHostObservation $observed
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
-    $result = Invoke-DvaiaWindowsHostPreflight
+    $result = Invoke-OwaspAiGoatWindowsHostPreflight
     $result | ConvertTo-Json -Depth 5
     if (-not $result.hostSupported) { exit 1 }
 }

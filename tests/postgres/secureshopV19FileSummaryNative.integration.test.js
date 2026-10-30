@@ -48,7 +48,7 @@ function pools(store, t) {
     assert.equal(url.protocol, 'postgresql:'); assert.equal(url.hostname, '127.0.0.1');
     assert.equal(url.username, `dvaia_${roleBase}_${role.toLowerCase()}`);
     assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-    assert.match(url.pathname, /^\/dvaia_test_v19_[a-f0-9]{12}_[a-z_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_v19_[a-f0-9]{12}_[a-z_]+$/);
     result[role.toLowerCase()] = new Pool({ connectionString: url.href, max: 8,
       statement_timeout: 20000, lock_timeout: 3000 });
   }
@@ -92,7 +92,7 @@ async function insertSession(pool, scope, purpose, id = randomUUID()) {
 }
 async function registeredActor(pool, scope) {
   const actor = { id: 1000000000 + scope.platformOwnerId, username: `native_customer_${scope.platformOwnerId}`,
-    email: `native_customer_${scope.platformOwnerId}@dvaia.local`, role: 'customer', principalId: randomUUID(),
+    email: `native_customer_${scope.platformOwnerId}@owasp-ai-goat.local`, role: 'customer', principalId: randomUUID(),
     tenantId: randomUUID(), membershipVersion: '1' };
   await pool.query(`INSERT INTO secureshop_agents.bound_actor_identities
     (shop_user_id,username,email,base_role,principal_id,original_platform_owner_id)
@@ -381,7 +381,7 @@ test('default graph persists real PG policy/turn/effect and owned bytes; replay/
     const mode = { snapshot: { version: 1, featureId: 'file_summary', policyVersion: POLICIES.file_summary,
       mode: 'vuln', generation: 1, modeStamp: 'c'.repeat(64), scope },
       assertCurrent: () => check(scope), assertCurrentAtEffect: () => check(scope) };
-    const directory = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-v19-native-files-')));
+    const directory = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-v19-native-files-')));
     t.after(() => fs.rm(directory, { recursive: true, force: true }));
     const files = createSecureShopFiles({ root: directory });
     let writes = 0, reserves = 0, provisions = 0, calls = 0;

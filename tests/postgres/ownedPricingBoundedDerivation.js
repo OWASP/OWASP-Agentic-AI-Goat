@@ -11,7 +11,7 @@ const LEASE_PY=String.raw`import os,sys,stat,json,time,re
 root,run,op=sys.argv[1:]
 def need(v):
  if not v:raise RuntimeError('PRICING_LEASE_UNPROVEN')
-need(re.fullmatch('[a-f0-9]{32}',run) and root=='/var/tmp/dvaia-v23-build-'+run and os.path.realpath(root)==root)
+need(re.fullmatch('[a-f0-9]{32}',run) and root=='/var/tmp/owasp-ai-goat-v23-build-'+run and os.path.realpath(root)==root)
 s=os.lstat(root);need(stat.S_ISDIR(s.st_mode) and s.st_uid==0 and stat.S_IMODE(s.st_mode)==0o700)
 def read(name):
  fd=os.open(root+'/'+name,os.O_RDONLY|os.O_NOFOLLOW)

@@ -155,7 +155,7 @@ function ownedAdminEnvironment(admin,port,sourceConfiguration){
  return environment;
 }
 function remapEnvironment(source,configuration,{installation,home,mappings}){
- assert(!Object.hasOwn(source,'NODE_OPTIONS')&&!Object.hasOwn(source,'DVAIA_ISOLATED_TEST_WORKSPACE'),'Unsupported execution override');
+ assert(!Object.hasOwn(source,'NODE_OPTIONS')&&!Object.hasOwn(source,'OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE'),'Unsupported execution override');
  const generatedKeys=new Set(['CTF_DELIVERY_DATABASE_URL']);
  const result={...source,...configuration};for(const key of generatedKeys)if(!Object.hasOwn(configuration,key))delete result[key];
  const urlKeys=new Set([...provisioningPlan().flatMap(x=>[x.runtimeVariable,x.migrationVariable]),...generatedKeys]);
@@ -166,8 +166,8 @@ function remapEnvironment(source,configuration,{installation,home,mappings}){
   const sensitive=/(?:PATH|ROOT|DIR|HOME|URL|HOST|PORT|SOCKET|DOCKER|COLIMA)/.test(key)||/^SS_.*ENABLED$/.test(key)||key==='MCP_SIDECARS_AUTOSTART'||key==='IPI_EMAIL_PROVIDER';
   if(sensitive){assert(Object.hasOwn(mappings,key),`Unresolved installation setting: ${key}`);const replacement=mappings[key];assert(typeof replacement==='string');if(value==='true')assert.equal(replacement,'true','Enabled feature cannot be disabled');if(path.isAbsolute(replacement))assert(replacement===installation||replacement.startsWith(installation+path.sep)||replacement===home||replacement.startsWith(home+path.sep),'Remapped path outside owned roots');result[key]=replacement;}
  }
- Object.assign(result,{HOME:home,TMPDIR:path.join(installation,'tmp'),LOGS_DIR:path.join(installation,'logs'),LEGACY_SENSITIVE_FILES_ROOT:path.join(installation,'sensitive'),DVAIA_APP_DATA_ROOT:path.join(installation,'app-data'),PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres'});
- assert(!('DVAIA_ISOLATED_TEST_WORKSPACE'in result));return result;
+ Object.assign(result,{HOME:home,TMPDIR:path.join(installation,'tmp'),LOGS_DIR:path.join(installation,'logs'),LEGACY_SENSITIVE_FILES_ROOT:path.join(installation,'sensitive'),OWASP_AI_GOAT_APP_DATA_ROOT:path.join(installation,'app-data'),PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres'});
+ assert(!('OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE'in result));return result;
 }
 async function prepareDisposableEnvironment({sourceConfiguration,provision,directory,admin,installation,home,mappings},delivery=prepareCtfDelivery){
  const environment=sourceConfiguration.PG_TLS?{PG_TLS:sourceConfiguration.PG_TLS}:{};
@@ -309,7 +309,7 @@ function preservationTablesForLifecycle(row,tables,lifecycleExclusions=[]){
 }
 function sqlLiteral(value){return `'${String(value).replaceAll("'","''")}'`;}
 async function retainedAssessmentDefaultBaseline(env,run=db.run){
- const result=await run(db.TOOLS.psql.path,['-X','-q','-v','ON_ERROR_STOP=1','-At','-c',`CREATE TABLE dvaia_qualification.retained_assessment_objectives(row_value jsonb NOT NULL,multiplicity bigint NOT NULL); INSERT INTO dvaia_qualification.retained_assessment_objectives SELECT to_jsonb(t),count(*) FROM secureshop_auth.assessment_objectives t GROUP BY to_jsonb(t); SELECT json_build_object('rows',(SELECT COALESCE(sum(multiplicity),0) FROM dvaia_qualification.retained_assessment_objectives),'targetRows',(SELECT COALESCE(sum(multiplicity),0) FROM dvaia_qualification.retained_assessment_objectives WHERE row_value->>'objective_id'=${sqlLiteral(RETAINED_ASSESSMENT_DEFAULT_ID)}))::text`],{env});
+ const result=await run(db.TOOLS.psql.path,['-X','-q','-v','ON_ERROR_STOP=1','-At','-c',`CREATE TABLE owasp_ai_goat_qualification.retained_assessment_objectives(row_value jsonb NOT NULL,multiplicity bigint NOT NULL); INSERT INTO owasp_ai_goat_qualification.retained_assessment_objectives SELECT to_jsonb(t),count(*) FROM secureshop_auth.assessment_objectives t GROUP BY to_jsonb(t); SELECT json_build_object('rows',(SELECT COALESCE(sum(multiplicity),0) FROM owasp_ai_goat_qualification.retained_assessment_objectives),'targetRows',(SELECT COALESCE(sum(multiplicity),0) FROM owasp_ai_goat_qualification.retained_assessment_objectives WHERE row_value->>'objective_id'=${sqlLiteral(RETAINED_ASSESSMENT_DEFAULT_ID)}))::text`],{env});
  const state=JSON.parse(result.stdout);assert(Number.isSafeInteger(Number(state.rows))&&Number(state.rows)>=0,'Retained assessment baseline count invalid');assert.equal(Number(state.targetRows),0,'Retained assessment default already existed');
  return Object.freeze({rows:Number(state.rows)});
 }
@@ -322,7 +322,7 @@ async function verifyRetainedAssessmentDefaultAddition(env,{baseline,startedAt,f
  assert(baseline&&Number.isSafeInteger(baseline.rows)&&baseline.rows>=0,'Retained assessment baseline unavailable');
  assert(typeof startedAt==='string'&&typeof finishedAt==='string'&&Number.isFinite(Date.parse(startedAt))&&Number.isFinite(Date.parse(finishedAt))&&Date.parse(finishedAt)>=Date.parse(startedAt),'Retained assessment initializer interval invalid');
  const expected=retainedAssessmentDefaultContract(),source=JSON.stringify(expected.sourceDocument);
- const query=`WITH baseline AS (SELECT row_value,multiplicity FROM dvaia_qualification.retained_assessment_objectives), current_rows AS (SELECT to_jsonb(t) row_value,count(*)::bigint multiplicity FROM secureshop_auth.assessment_objectives t GROUP BY to_jsonb(t)), additions AS (SELECT c.row_value,c.multiplicity FROM current_rows c LEFT JOIN baseline b USING(row_value) WHERE b.row_value IS NULL), target AS (SELECT t.* FROM secureshop_auth.assessment_objectives t WHERE t.objective_id=${sqlLiteral(expected.objectiveId)}) SELECT json_build_object('missing',COALESCE((SELECT sum(GREATEST(b.multiplicity-COALESCE(c.multiplicity,0),0)) FROM baseline b LEFT JOIN current_rows c USING(row_value)),0),'added',COALESCE((SELECT sum(multiplicity) FROM additions),0),'baselineRows',(SELECT COALESCE(sum(multiplicity),0) FROM baseline),'targetRows',(SELECT count(*) FROM target),'targetMatches',(SELECT count(*) FROM target WHERE label=${sqlLiteral(expected.label)} AND is_enabled=${expected.enabled?'true':'false'} AND catalog_active=${expected.catalogActive?'true':'false'} AND qualification=${sqlLiteral(expected.qualification)} AND source_sha256=${sqlLiteral(expected.sourceSha256)} AND source_document=${sqlLiteral(source)}::jsonb AND configuration_source=${sqlLiteral(expected.configurationSource)} AND updated_at>=${sqlLiteral(startedAt)}::timestamptz AND updated_at<=${sqlLiteral(finishedAt)}::timestamptz))::text`;
+ const query=`WITH baseline AS (SELECT row_value,multiplicity FROM owasp_ai_goat_qualification.retained_assessment_objectives), current_rows AS (SELECT to_jsonb(t) row_value,count(*)::bigint multiplicity FROM secureshop_auth.assessment_objectives t GROUP BY to_jsonb(t)), additions AS (SELECT c.row_value,c.multiplicity FROM current_rows c LEFT JOIN baseline b USING(row_value) WHERE b.row_value IS NULL), target AS (SELECT t.* FROM secureshop_auth.assessment_objectives t WHERE t.objective_id=${sqlLiteral(expected.objectiveId)}) SELECT json_build_object('missing',COALESCE((SELECT sum(GREATEST(b.multiplicity-COALESCE(c.multiplicity,0),0)) FROM baseline b LEFT JOIN current_rows c USING(row_value)),0),'added',COALESCE((SELECT sum(multiplicity) FROM additions),0),'baselineRows',(SELECT COALESCE(sum(multiplicity),0) FROM baseline),'targetRows',(SELECT count(*) FROM target),'targetMatches',(SELECT count(*) FROM target WHERE label=${sqlLiteral(expected.label)} AND is_enabled=${expected.enabled?'true':'false'} AND catalog_active=${expected.catalogActive?'true':'false'} AND qualification=${sqlLiteral(expected.qualification)} AND source_sha256=${sqlLiteral(expected.sourceSha256)} AND source_document=${sqlLiteral(source)}::jsonb AND configuration_source=${sqlLiteral(expected.configurationSource)} AND updated_at>=${sqlLiteral(startedAt)}::timestamptz AND updated_at<=${sqlLiteral(finishedAt)}::timestamptz))::text`;
  const result=await run(db.TOOLS.psql.path,['-X','-q','-v','ON_ERROR_STOP=1','-At','-c',query],{env});
  const state=JSON.parse(result.stdout);
  for(const key of ['missing','added','baselineRows','targetRows','targetMatches'])assert(Number.isSafeInteger(Number(state[key]))&&Number(state[key])>=0,'Retained assessment addition evidence invalid');
@@ -433,7 +433,7 @@ async function verifyCouponBackfill(source,target,run){
   const name='secureshop_review.'+table;if(!source.tables[name])continue;
   // These columns were captured from the restored original schema before setup.
   // Modern coupon values remain protected by the exact retained-row comparison.
-  const original=await run(db.TOOLS.psql.path,['-X','-q','-v','ON_ERROR_STOP=1','-At','-c',`SELECT column_names::text FROM dvaia_qualification.columns WHERE table_name='${name}'`],{env:target});
+  const original=await run(db.TOOLS.psql.path,['-X','-q','-v','ON_ERROR_STOP=1','-At','-c',`SELECT column_names::text FROM owasp_ai_goat_qualification.columns WHERE table_name='${name}'`],{env:target});
   const originalColumns=JSON.parse(original.stdout);assert(Array.isArray(originalColumns));
   assert(columns.every(column=>originalColumns.includes(column)===migrationApplied),'Original coupon schema and ledger disagree');
   if(migrationApplied)continue;
@@ -535,7 +535,7 @@ function chooseA21RestoredSubset(identityRows,reviewRows){
 }
 async function withA21Pools(configuration,work,Pool=require('pg').Pool){
  const options=url=>({connectionString:url,max:2,connectionTimeoutMillis:5000,statement_timeout:10000,lock_timeout:3000,
-  idle_in_transaction_session_timeout:10000,application_name:'dvaia-a21-preservation'});
+  idle_in_transaction_session_timeout:10000,application_name:'owasp-ai-goat-a21-preservation'});
  const identity=new Pool(options(configuration.IDENTITY_DATABASE_URL));
  const review=new Pool(options(configuration.SECURESHOP_REVIEW_DATABASE_URL));let primary;
  try{return await work({identity,review});}catch(error){primary=error;throw error;}
@@ -737,7 +737,7 @@ async function rehearseLifecycle({backupManifest,backupSha256,quietBackupReceipt
  // Resolve write targets before any provisioning or restore mutation.
  remapEnvironment(sourceConfiguration,{}, {installation,home,mappings});
  for(const root of [installation,home]){assert(path.isAbsolute(root)&&!root.startsWith(MAIN+path.sep));assert.equal(fs.realpathSync(root),root);const s=fs.lstatSync(root);assert(s.isDirectory()&&s.uid===process.getuid()&&(s.mode&511)===448);assert.equal(fs.readdirSync(root).length,0);}
- const id=sha(Buffer.from(installation)).slice(0,12),directory=path.join(home,'.dvaia',id);fs.mkdirSync(directory,{recursive:true,mode:448});
+ const id=sha(Buffer.from(installation)).slice(0,12),directory=path.join(home,'.owasp-ai-goat',id);fs.mkdirSync(directory,{recursive:true,mode:448});
  currentStage='filesystem-restore';
  const restoredFiles=restoreFiles(saved,path.dirname(backupManifest),installation,home,directory,mappings),{immutable,regenerated}=restoredFiles;
  assert.deepEqual(sourceConfiguration,require('dotenv').parse(fs.readFileSync(path.join(installation,'backup-restored','environment'))),'Configuration is not backed-up environment');
@@ -747,7 +747,7 @@ async function rehearseLifecycle({backupManifest,backupSha256,quietBackupReceipt
  const {env,restored}=await restoreStoresWithDelivery({sourceConfiguration,provision,directory,admin,port,installation,home,mappings,saved,backupRoot:path.dirname(backupManifest)},deps);
  currentStage='sequence-regression';
  const sequenceProbe=await deps.sequenceRegression(provision.configuration);assert.deepEqual(sequenceProbe,{cases:6,status:'passed'});
- if(fs.existsSync(path.join(directory,'app-data')))env.DVAIA_APP_DATA_ROOT=path.join(directory,'app-data');
+ if(fs.existsSync(path.join(directory,'app-data')))env.OWASP_AI_GOAT_APP_DATA_ROOT=path.join(directory,'app-data');
  fs.writeFileSync(path.join(installation,'.env'),require('../../scripts/setup-application').encodeEnv(env),{flag:'wx',mode:384});
  currentStage='preservation-baseline';
  let retainedAssessmentBaseline=null;
@@ -815,7 +815,7 @@ async function main(){
  const installation=path.join(base,'installation'),home=path.join(base,'home');fs.mkdirSync(installation,{mode:448});if(!fs.existsSync(home))fs.mkdirSync(home,{mode:448});
  const options={...request.value,installation,home,admin:process.env.PG_ADMIN_DATABASE_URL,port:Number(new URL(process.env.PG_ADMIN_DATABASE_URL).port)};
  assert.equal(options.port,journal.databasePort);
- const directory=path.join(home,'.dvaia',sha(Buffer.from(installation)).slice(0,12));
+ const directory=path.join(home,'.owasp-ai-goat',sha(Buffer.from(installation)).slice(0,12));
  options.mappings=Object.fromEntries(Object.entries(options.mappings).map(([key,value])=>[key,value.replace(/^@private(?=\/|$)/,directory).replace(/^@installation(?=\/|$)/,installation).replace(/^@home(?=\/|$)/,home)]));
  const result=await rehearse(options);fs.writeFileSync(path.join(evidence,'result.json'),JSON.stringify(result),{flag:'wx',mode:384});
 }

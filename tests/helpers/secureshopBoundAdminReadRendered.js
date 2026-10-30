@@ -657,7 +657,7 @@ async function qualifyRegistryRoleChatRendered({app,origin,owned,identity,migrat
   const siblingPersona=await auth.login({scope:siblingScope,username:'student_admin',password:'student123'});
   const siblingResponse=await fetch(`${origin}/api/secureshop/admin/mcp/operations/${retireProposal.proposalId}`,
    {headers:{authorization:'Bearer '+siblingPersona.token,
-    'x-dvaia-secureshop-launch':siblingLaunch.bearer},signal:AbortSignal.timeout(20000)});
+    'x-owasp-ai-goat-secureshop-launch':siblingLaunch.bearer},signal:AbortSignal.timeout(20000)});
   assert([403,404].includes(siblingResponse.status),'Sibling must not recover another launch operation');
   assert(!JSON.stringify(await siblingResponse.json()).includes(retireProposal.requestSha256));
   status.siblingDenied=true;
@@ -670,7 +670,7 @@ async function qualifyRegistryRoleChatRendered({app,origin,owned,identity,migrat
    expectedGeneration:Number(resetBinding.generation),idempotencyKey:randomUUID()});
   const staleResponse=await fetch(`${origin}/api/secureshop/admin/mcp/operations/${retireProposal.proposalId}`,
    {headers:{authorization:'Bearer '+browserAuthority.persona,
-    'x-dvaia-secureshop-launch':browserAuthority.launch},signal:AbortSignal.timeout(20000)});
+    'x-owasp-ai-goat-secureshop-launch':browserAuthority.launch},signal:AbortSignal.timeout(20000)});
   assert.notEqual(staleResponse.status,200,'Retired launch cannot recover old operation');
   status.resetDenied=true;
   const credits=(await identity.query('SELECT count(*)::int AS n FROM workshop_platform.completions WHERE user_id=$1',

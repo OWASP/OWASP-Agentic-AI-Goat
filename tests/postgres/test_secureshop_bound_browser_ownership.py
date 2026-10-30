@@ -33,7 +33,7 @@ class BrowserOwnershipTest(unittest.TestCase):
             pgid=412, status=2, start_sec=1234, start_usec=506)
         rows = {411: parent, 412: browser}
         api = SimpleNamespace(identity=lambda pid: rows.get(pid),
-            arguments=lambda pid: ['/owned/chrome', '--user-data-dir=/owned/runtime/tmp/dvaia-similar-browser-test'],
+            arguments=lambda pid: ['/owned/chrome', '--user-data-dir=/owned/runtime/tmp/owasp-ai-goat-similar-browser-test'],
             group_pids=lambda pgid: [pid for pid, value in rows.items() if value.pgid == pgid])
         calls = []
         def terminate(pgid, sig):
@@ -52,14 +52,14 @@ class BrowserOwnershipTest(unittest.TestCase):
                                          api=api, getsid=lambda pid: pid)
         with self.assertRaises(RuntimeError):
             ownership.capture_live(row,(1230,0),'/owned/runtime',api=api,
-                getsid=lambda pid:pid,profile_prefix='dvaia-manual-rag-browser-')
+                getsid=lambda pid:pid,profile_prefix='owasp-ai-goat-manual-rag-browser-')
         with self.assertRaises(RuntimeError):
             ownership.capture_live(row,(1230,0),'/owned/runtime',api=api,
                 getsid=lambda pid:pid,profile_prefix='')
-        api.arguments=lambda pid:['/owned/chrome','--user-data-dir=/owned/runtime/tmp/dvaia-manual-rag-browser-test']
+        api.arguments=lambda pid:['/owned/chrome','--user-data-dir=/owned/runtime/tmp/owasp-ai-goat-manual-rag-browser-test']
         self.assertIsInstance(ownership.capture_live(row,(1230,0),'/owned/runtime',api=api,
-            getsid=lambda pid:pid,profile_prefix='dvaia-manual-rag-browser-'),ownership.CapturedBrowser)
-        api.arguments=lambda pid:['/owned/chrome','--user-data-dir=/owned/runtime/tmp/dvaia-similar-browser-test']
+            getsid=lambda pid:pid,profile_prefix='owasp-ai-goat-manual-rag-browser-'),ownership.CapturedBrowser)
+        api.arguments=lambda pid:['/owned/chrome','--user-data-dir=/owned/runtime/tmp/owasp-ai-goat-similar-browser-test']
         # Parent may die after verified capture; its old journal alone was not authority.
         rows.pop(411)
         ownership.retire_captured(captured, api=api, getsid=lambda pid: pid, killpg=terminate)
@@ -78,7 +78,7 @@ class BrowserOwnershipTest(unittest.TestCase):
             pgid=412, status=2, start_sec=1234, start_usec=506)
         parent = SimpleNamespace(start_sec=1230, start_usec=0, uid=uid, ruid=uid)
         api = SimpleNamespace(identity=lambda pid: browser if pid == 412 else parent,
-            arguments=lambda pid: ['/owned/chrome', '--user-data-dir=/owned/runtime/tmp/dvaia-similar-browser-test'],
+            arguments=lambda pid: ['/owned/chrome', '--user-data-dir=/owned/runtime/tmp/owasp-ai-goat-similar-browser-test'],
             group_pids=lambda pgid: [412])
         row = {'pid':412,'parentPid':411,'uid':uid,'pgid':412,'sessionId':412,
                'birth':[1234,506],'executablePath':'/owned/chrome'}

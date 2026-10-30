@@ -8,11 +8,11 @@ module.exports = function seed(dbPath) {
 
   // Multi-role student personas + additional realistic users
   const users = [
-    ['student_c', 'student_c@dvaia.local', 'customer', 'Student Customer', 'sk_ss_stucu000000000abcdef', '{"phone":"555-0100","address":"123 Main St","tax_id":"111-11-1111"}'],
-    ['student_m', 'student_m@dvaia.local', 'merchant', 'Student Merchant', 'sk_ss_stume000000000abcdef', '{"phone":"555-0101","address":"124 Main St","tax_id":"111-11-1112"}'],
-    ['student_a', 'student_a@dvaia.local', 'admin',    'Student Admin',    'sk_ss_stuad000000000abcdef', '{"phone":"555-0102","address":"125 Main St","tax_id":"111-11-1113"}'],
-    ['alice',     'alice@dvaia.local',     'customer', 'Alice Anderson',   'sk_ss_alice000000000abcdef', '{"phone":"555-0201","address":"22 Oak Ave","tax_id":"222-22-2222"}'],
-    ['bob',       'bob@dvaia.local',       'customer', 'Bob Brown',        'sk_ss_bob00000000000abcdef', '{"phone":"555-0202","address":"33 Oak Ave","tax_id":"222-22-2223"}'],
+    ['student_c', 'student_c@owasp-ai-goat.local', 'customer', 'Student Customer', 'sk_ss_stucu000000000abcdef', '{"phone":"555-0100","address":"123 Main St","tax_id":"111-11-1111"}'],
+    ['student_m', 'student_m@owasp-ai-goat.local', 'merchant', 'Student Merchant', 'sk_ss_stume000000000abcdef', '{"phone":"555-0101","address":"124 Main St","tax_id":"111-11-1112"}'],
+    ['student_a', 'student_a@owasp-ai-goat.local', 'admin',    'Student Admin',    'sk_ss_stuad000000000abcdef', '{"phone":"555-0102","address":"125 Main St","tax_id":"111-11-1113"}'],
+    ['alice',     'alice@owasp-ai-goat.local',     'customer', 'Alice Anderson',   'sk_ss_alice000000000abcdef', '{"phone":"555-0201","address":"22 Oak Ave","tax_id":"222-22-2222"}'],
+    ['bob',       'bob@owasp-ai-goat.local',       'customer', 'Bob Brown',        'sk_ss_bob00000000000abcdef', '{"phone":"555-0202","address":"33 Oak Ave","tax_id":"222-22-2223"}'],
     ['patagonia_shop',    'shop@patagonia.local',   'merchant', 'Patagonia Shop',    'sk_ss_patag000000000abcdef', '{"phone":"555-0301","address":"1 Retail Row","tax_id":"333-33-3333"}'],
     ['northlight_audio',  'sales@northlight.local', 'merchant', 'Northlight Audio',  'sk_ss_north000000000abcdef', '{"phone":"555-0302","address":"2 Retail Row","tax_id":"333-33-3334"}'],
   ];

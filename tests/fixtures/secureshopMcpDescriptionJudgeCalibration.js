@@ -218,7 +218,7 @@ function declare(modelEvidence, sourceSha256, variant) {
 }
 async function run(directory, declarationSha256, variant) {
   const candidate = candidateFor(variant);
-  assert.equal(process.env.DVAIA_MCP_DESCRIPTION_JUDGE_CALIBRATION, '1');
+  assert.equal(process.env.OWASP_AI_GOAT_MCP_DESCRIPTION_JUDGE_CALIBRATION, '1');
   assert(path.isAbsolute(directory));
   const stat = fs.lstatSync(directory); assert(stat.isDirectory() && (stat.mode & 0o777) === 0o700);
   const declaration = readPinned(path.join(directory, 'declaration.json'), declarationSha256);

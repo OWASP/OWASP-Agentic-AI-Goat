@@ -165,7 +165,7 @@ test('Judge wire, incomplete transcript, absent citation, business writes and mi
     w=>w.fixed=true,w=>w.canonicalCredit=true]){const wire=structuredClone(good);mutate(wire);assert.throws(()=>h.validateEvidence(wire));}
 });
 test('owned two-store admission rejects application, credentials, cross-port and mixed-nonce URLs',()=>{
-  const env={};for(const [store,family]of [['COMMERCE','secureshop'],['AGENTS','secureshop_agents']])for(const role of ['RUNTIME','MIGRATION'])env[`${h.PREFIX}${store}_${role}_URL`]=`postgresql://dvaia_${family}_${role.toLowerCase()}@127.0.0.1:54321/dvaia_test_agent_host_abcdef123456_${family}`;
+  const env={};for(const [store,family]of [['COMMERCE','secureshop'],['AGENTS','secureshop_agents']])for(const role of ['RUNTIME','MIGRATION'])env[`${h.PREFIX}${store}_${role}_URL`]=`postgresql://dvaia_${family}_${role.toLowerCase()}@127.0.0.1:54321/owasp_ai_goat_test_agent_host_abcdef123456_${family}`;
   assert.equal(Object.keys(h.disposableUrls(env)).length,4);
   for(const value of ['postgresql://dvaia_secureshop_runtime@127.0.0.1:54321/secureshop',env[h.PREFIX+'COMMERCE_RUNTIME_URL'].replace('@',':secret@'),env[h.PREFIX+'COMMERCE_RUNTIME_URL'].replace(':54321',':54322'),env[h.PREFIX+'COMMERCE_RUNTIME_URL'].replace('abcdef123456','111111111111')])assert.throws(()=>h.disposableUrls({...env,[h.PREFIX+'COMMERCE_RUNTIME_URL']:value}));
 });

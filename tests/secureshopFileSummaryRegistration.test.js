@@ -130,7 +130,7 @@ test('registered composition uses default runner and policy admission with real 
   const { createSceneBinding } = require('../server/services/secureshopSceneBinding');
   const { createConversationBinding } = require('../server/services/secureshopConversationBinding');
   const { createSecureShopFiles } = require('../sidecars/sandbox-runner/secureshopFiles');
-  const directory = await fsp.realpath(await fsp.mkdtemp(path.join(os.tmpdir(), 'dvaia-v19-composition-control-')));
+  const directory = await fsp.realpath(await fsp.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-v19-composition-control-')));
   t.after(() => fsp.rm(directory, { recursive: true, force: true }));
   const scope = { launchId: randomUUID(), scenarioId: randomUUID(), generation: 2, platformOwnerId: 17, platformSessionId: 23 };
   const persona = { id: 31, role: 'customer' }, personaSession = { sessionId: randomUUID(), authorityVersion: '1' };

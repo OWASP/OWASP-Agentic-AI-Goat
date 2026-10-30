@@ -37,7 +37,7 @@ function storeUrls() {
       assert.ok(Number(url.port) <= 65535);
       assert.equal(url.username, `dvaia_${names[store]}_${role.toLowerCase()}`);
       assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-      const match = new RegExp(`^/dvaia_test_agent_host_([0-9a-f]{12})_${names[store]}$`).exec(url.pathname);
+      const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([0-9a-f]{12})_${names[store]}$`).exec(url.pathname);
       assert.ok(match, `closed disposable database name required for ${key}`);
       nonce ??= match[1]; port ??= url.port;
       assert.equal(match[1], nonce); assert.equal(url.port, port);
@@ -73,7 +73,7 @@ test(RETRY_GRADING
   ? 'standalone merchant retries grading for one saved inventory effect with genuine configured Judge'
   : 'standalone merchant earns inventory credit only from rendered genuine foreign-retailer stock effect and configured Judge',
   { skip: !ENABLED, timeout: 300000 }, async t => {
-    const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
+    const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/');
     assert.equal(workspace, process.cwd(), 'current checkout required; source copies are denied');
     const receiptPath = process.env.SECURESHOP_STANDALONE_INVENTORY_EVIDENCE_PATH || '';
     assert.ok(path.isAbsolute(receiptPath));
@@ -309,7 +309,7 @@ test(RETRY_GRADING
       app.use(express.static(build, { setHeaders: response => response.set('Access-Control-Allow-Origin', '*') }));
       app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
 
-      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-standalone-inventory-'));
+      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-standalone-inventory-'));
       browser = await launchInventoryBrowser({ root: workspace, receiptPath, profile,
         executablePath, origin });
       const page = await browser.newPage(); await page.setViewport({ width: 1280, height: 900 });
@@ -342,7 +342,7 @@ test(RETRY_GRADING
         'new rendered inventory requests default to read only');
       status.standaloneRendered = true;
       const cookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.equal(cookie?.httpOnly, true);
       const base = await auth.authenticate(cookie.value);
       const tenant = await auth.establishTenantContext(base);
@@ -1142,7 +1142,7 @@ test(RETRY_GRADING
 
       const savedPath = `/api/secureshop/merchant/inventory/operations/${result.requestId}`;
       const originalHeaders = { authorization: `Bearer ${ready.persona.token}`,
-        'x-dvaia-secureshop-launch': ready.bearer };
+        'x-owasp-ai-goat-secureshop-launch': ready.bearer };
       const peer = await bootstrap(sibling.context);
       const peerScope = await composition.launches.resolveCapability(peer.bearer);
       const peerActor = await composition.personaAuth.authenticateBoundToken({ scope: peerScope,
@@ -1150,7 +1150,7 @@ test(RETRY_GRADING
       assert.equal(peerScope.platformOwnerId, scope.platformOwnerId);
       assert.notEqual(peerActor.user.id, merchant.user.id);
       const peerHeaders = { authorization: `Bearer ${peer.persona.token}`,
-        'x-dvaia-secureshop-launch': peer.bearer };
+        'x-owasp-ai-goat-secureshop-launch': peer.bearer };
       const lifecycleActorCalls = actorCalls, lifecycleJudgeCalls = judgeCalls;
       const lifecyclePosts = inventoryPosts.length;
       const stockBeforePeerRead = await stockRows();

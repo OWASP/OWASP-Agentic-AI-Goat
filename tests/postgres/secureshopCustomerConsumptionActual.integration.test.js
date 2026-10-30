@@ -10,7 +10,7 @@ function disposableUrls(env=process.env){
   const urls={};let nonce,port;
   for(const [key,name]of Object.entries(STORES))for(const role of ['RUNTIME','MIGRATION']){
     const url=new URL(env[`PG_SECURESHOP_CONSUMPTION_${key}_${role}_URL`]);
-    const match=/^\/dvaia_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
+    const match=/^\/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
     assert.equal(url.protocol,'postgresql:');assert.equal(url.hostname,'127.0.0.1');
     assert.equal(url.username,`dvaia_${name}_${role.toLowerCase()}`);
     assert.equal(url.password,'');assert.equal(url.search,'');assert.equal(url.hash,'');
@@ -278,7 +278,7 @@ function admitNative(env=process.env){
   diagnostic.messageFor(promptProfile);
   const sourceArm=env.SECURESHOP_CONSUMPTION_SOURCE_ARM;
   diagnostic.productNameFor(promptProfile,sourceArm);
-  assert.equal(fs.realpathSync(process.cwd()),ROOT);assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE,ROOT);
+  assert.equal(fs.realpathSync(process.cwd()),ROOT);assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,ROOT);
   assert.equal(env.SECURESHOP_CONSUMPTION_NATIVE,'1');assert.equal(env.LIVE_OLLAMA_TEST,'1');
   assert.equal(env.AI_PROVIDER,'ollama');assert.equal(env.OLLAMA_MODEL,original.MODEL);
   assert.ok(env.SS_ENFORCE_TOOL_ACL===undefined||env.SS_ENFORCE_TOOL_ACL===''||env.SS_ENFORCE_TOOL_ACL==='false');

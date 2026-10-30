@@ -356,7 +356,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_LEARNER_ATTEMPT_GATE_RENDERED_ISOLATED": "1", "CTF_RECOVERY_RENDERED_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertTrue(MODULE.main_no_copy_selection(args)); self.assertEqual(MODULE.delivery_role(selected), "dvaia_ctf_delivery")
         self.assertEqual(len(selected["databases"]), 4)
-        self.assertTrue(all(name.startswith("dvaia_test_ctf_learner_attempt_gate_") for name in selected["databases"]))
+        self.assertTrue(all(name.startswith("owasp_ai_goat_test_ctf_learner_attempt_gate_") for name in selected["databases"]))
         urls = {name: {role: f"postgres://{role}/{name}" for role in ("runtime", "migration", "delivery")} for name in selected["databases"]}
         self.assertEqual(len(MODULE.database_environment(selected, urls)), 10)
         for suffix in (("--stage-end", "3"), ("--target-stage", "6"), ("--candidate-set", "reviewer-boundary-v1")):
@@ -379,7 +379,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_FIXED_PRACTICE_RENDERED_ISOLATED": "1", "CTF_RECOVERY_RENDERED_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertTrue(MODULE.main_no_copy_selection(args)); self.assertEqual(MODULE.delivery_role(selected), "dvaia_ctf_delivery")
         self.assertEqual(len(selected["databases"]), 4)
-        self.assertTrue(all(name.startswith("dvaia_test_ctf_fixed_practice_") for name in selected["databases"]))
+        self.assertTrue(all(name.startswith("owasp_ai_goat_test_ctf_fixed_practice_") for name in selected["databases"]))
         urls = {name: {role: f"postgres://{role}/{name}" for role in ("runtime", "migration", "delivery")} for name in selected["databases"]}
         self.assertEqual(len(MODULE.database_environment(selected, urls)), 10)
         for suffix in (("--stage-end", "3"), ("--target-stage", "6"), ("--candidate-set", "reviewer-boundary-v1")):
@@ -1467,7 +1467,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_BLOCKED_PUBLICATION_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_blockpub_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_blockpub_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         env = MODULE.database_environment(selected, urls)
         self.assertEqual(set(env), {f"PG_CTF_BLOCKED_PUBLICATION_{s}_{k}_{r}_URL" for s in ("FRESH", "POPULATED") for k in ("IDENTITY", "CTF") for r in ("RUNTIME", "MIGRATION")})
@@ -1543,7 +1543,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_PREDEFENSE_RECOVERY_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_app_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_app_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         for db in selected["databases"][1::2]: urls[db]["delivery"] = db + "delivery"
         env = MODULE.database_environment(selected, urls)
@@ -1568,7 +1568,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_AUTHORITY_APPLICATION_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_app_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_app_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         for db in selected["databases"][1::2]: urls[db]["delivery"] = db + "delivery"
         env = MODULE.database_environment(selected, urls)
@@ -1593,7 +1593,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_PRODUCTION_RUNTIME_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_prod_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_prod_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         for db in selected["databases"][1::2]: urls[db]["delivery"] = db + "delivery"
         env = MODULE.database_environment(selected, urls)
@@ -1618,7 +1618,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_AUTHORITY_RUNTIME_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_runtime_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_runtime_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         for db in selected["databases"][1::2]: urls[db]["delivery"] = db + "delivery"
         env = MODULE.database_environment(selected, urls)
@@ -1643,7 +1643,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_TELEMETRY_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_telemetry_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_telemetry_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         for db in selected["databases"][1::2]: urls[db]["delivery"] = db + "delivery"
         env = MODULE.database_environment(selected, urls)
@@ -1698,7 +1698,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_DELIVERY_ACTIVATION_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_activation_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_activation_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         for db in selected["databases"][1::2]: urls[db]["delivery"] = db + "delivery"
         env = MODULE.database_environment(selected, urls)
@@ -1723,7 +1723,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_REGISTRATION_LOCATOR_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_locator_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_locator_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         env = MODULE.database_environment(selected, urls)
         self.assertEqual(set(env), {f"PG_CTF_REGISTRATION_LOCATOR_{s}_{k}_{r}_URL" for s in ("FRESH", "POPULATED") for k in ("IDENTITY", "CTF") for r in ("RUNTIME", "MIGRATION")})
@@ -1742,7 +1742,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_RESPONSE_DIAGNOSTICS_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_diagnostics_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_diagnostics_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         env = MODULE.database_environment(selected, urls)
         self.assertEqual(set(env), {f"PG_CTF_RESPONSE_DIAGNOSTICS_{s}_{k}_{r}_URL" for s in ("FRESH", "POPULATED") for k in ("IDENTITY", "CTF") for r in ("RUNTIME", "MIGRATION")})
@@ -1761,7 +1761,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_ADMIN_READ_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_adminread_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_adminread_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         env = MODULE.database_environment(selected, urls)
         self.assertEqual(set(env), {f"PG_CTF_ADMIN_READ_{s}_{k}_{r}_URL" for s in ("FRESH", "POPULATED") for k in ("IDENTITY", "CTF") for r in ("RUNTIME", "MIGRATION")})
@@ -1780,7 +1780,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_BLOCKED_PREDEFENSE_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_blockpre_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_blockpre_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         env = MODULE.database_environment(selected, urls)
         self.assertEqual(set(env), {f"PG_CTF_BLOCKED_PREDEFENSE_{s}_{k}_{r}_URL" for s in ("FRESH", "POPULATED") for k in ("IDENTITY", "CTF") for r in ("RUNTIME", "MIGRATION")})
@@ -1799,7 +1799,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_WORKER_LIFECYCLE_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_worklife_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_worklife_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         env = MODULE.database_environment(selected, urls)
         self.assertEqual(set(env), {f"PG_CTF_WORKER_LIFECYCLE_{s}_{k}_{r}_URL" for s in ("FRESH", "POPULATED") for k in ("IDENTITY", "CTF") for r in ("RUNTIME", "MIGRATION")})
@@ -1818,7 +1818,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_PREDEFENSE_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_predef_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_predef_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         env = MODULE.database_environment(selected, urls)
         self.assertEqual(set(env), {f"PG_CTF_PREDEFENSE_{s}_{k}_{r}_URL" for s in ("FRESH", "POPULATED") for k in ("IDENTITY", "CTF") for r in ("RUNTIME", "MIGRATION")})
@@ -1837,7 +1837,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_DELETION_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_delete_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_delete_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         env = MODULE.database_environment(selected, urls)
         self.assertEqual(set(env), {f"PG_CTF_DELETION_{s}_{k}_{r}_URL" for s in ("FRESH", "POPULATED") for k in ("IDENTITY", "CTF") for r in ("RUNTIME", "MIGRATION")})
@@ -1856,7 +1856,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_ADMIN_RESPONSE_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_opread_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_opread_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         env = MODULE.database_environment(selected, urls)
         self.assertEqual(set(env), {f"PG_CTF_OPERATION_RECOVERY_{s}_{k}_{r}_URL" for s in ("FRESH", "POPULATED") for k in ("IDENTITY", "CTF") for r in ("RUNTIME", "MIGRATION")})
@@ -1875,7 +1875,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_CURRENT_READ_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_read_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_read_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         env = MODULE.database_environment(selected, urls)
         self.assertEqual(set(env), {f"PG_CTF_CURRENT_READ_{s}_{k}_{r}_URL" for s in ("FRESH", "POPULATED") for k in ("IDENTITY", "CTF") for r in ("RUNTIME", "MIGRATION")})
@@ -1894,7 +1894,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual(selected["environment"], {"CTF_CURRENT_RESPONSE_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(len(set(selected["databases"])), 4)
-        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("dvaia_test_ctf_opread_") for n in selected["databases"]))
+        self.assertTrue(all(len(n.encode()) <= 63 and n.startswith("owasp_ai_goat_test_ctf_opread_") for n in selected["databases"]))
         urls = {n: {r: n + r for r in ("runtime", "migration")} for n in selected["databases"]}
         env = MODULE.database_environment(selected, urls)
         self.assertEqual(set(env), {f"PG_CTF_OPERATION_RECOVERY_{s}_{k}_{r}_URL" for s in ("FRESH", "POPULATED") for k in ("IDENTITY", "CTF") for r in ("RUNTIME", "MIGRATION")})
@@ -1919,8 +1919,8 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
     def test_session_fence_exact_two_databases_no_live_model_and_bounds(self):
         args = MODULE.parse_args(self.required_args() + ["--session-fence-only"])
         selected = MODULE.qualification_selection(args, "abc123")
-        self.assertEqual(selected["databases"], ("dvaia_test_ctf_session_identity_abc123",
-                                                 "dvaia_test_ctf_session_store_abc123"))
+        self.assertEqual(selected["databases"], ("owasp_ai_goat_test_ctf_session_identity_abc123",
+                                                 "owasp_ai_goat_test_ctf_session_store_abc123"))
         self.assertEqual(selected["test"], "tests/postgres/ctfAdmittedSessionFence.integration.test.js")
         self.assertEqual([selected[k] for k in ("childSeconds", "workSeconds", "cleanupSeconds")], [180, 300, 120])
         self.assertEqual(selected["environment"]["CTF_SESSION_FENCE_ISOLATED"], "1")
@@ -1953,7 +1953,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         args = MODULE.parse_args(self.required_args() + ["--authority-schema-only"])
         selected = MODULE.qualification_selection(args, "abc123")
         self.assertEqual(selected["test"], "tests/postgres/ctfAuthorityReadModel.integration.test.js")
-        expected = tuple(f"dvaia_test_ctf_authority_{state}_{kind}_abc123"
+        expected = tuple(f"owasp_ai_goat_test_ctf_authority_{state}_{kind}_abc123"
             for state in ("fresh", "populated") for kind in ("identity", "ctf"))
         self.assertEqual(selected["databases"], expected)
         urls = {name: {role: name + ":" + role for role in ("runtime", "migration")} for name in expected}
@@ -1963,7 +1963,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
             for kind in ("IDENTITY", "CTF"):
                 for role in ("RUNTIME", "MIGRATION"):
                     key = f"PG_CTF_AUTHORITY_{state}_{kind}_{role}_URL"
-                    self.assertEqual(env[key], f"dvaia_test_ctf_authority_{state.lower()}_{kind.lower()}_abc123:{role.lower()}")
+                    self.assertEqual(env[key], f"owasp_ai_goat_test_ctf_authority_{state.lower()}_{kind.lower()}_abc123:{role.lower()}")
         self.assertFalse(any(key in env for key in ("IDENTITY_DATABASE_URL", "CTF_DATABASE_URL")))
         self.assertFalse(any(key in selected["environment"] for key in ("AI_PROVIDER", "OLLAMA_BASE_URL", "RUN_LIVE_CTF_WORKFLOW")))
         self.assertEqual([selected[k] for k in ("childSeconds", "workSeconds", "cleanupSeconds", "tmpfsBytes")], [240,420,120,536870912])
@@ -2059,7 +2059,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (300, 480, 120))
         self.assertEqual(selected["environment"], {"CTF_PUBLICATION_CURRENT_NATIVE": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual(selected["databases"], tuple(
-            f"dvaia_test_ctf_publication_current_{state}_{kind}_a1b2c3d4e5f6"
+            f"owasp_ai_goat_test_ctf_publication_current_{state}_{kind}_a1b2c3d4e5f6"
             for state in ("f", "p") for kind in ("i", "c")))
         self.assertTrue(all(len(name.encode()) <= 63 for name in selected["databases"]))
         self.assertEqual(MODULE.delivery_role(selected), "dvaia_ctf_delivery")
@@ -2271,7 +2271,7 @@ class CtfStagesRouteLauncherTests(unittest.TestCase):
         self.assertEqual((selected["childSeconds"], selected["workSeconds"], selected["cleanupSeconds"]), (240, 420, 120))
         self.assertEqual(selected["environment"], {"CTF_OPERATION_RECOVERY_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"})
         self.assertEqual(selected["databases"], tuple(
-            f"dvaia_test_ctf_opread_{state[0]}_{kind[0]}_{'a' * 12}"
+            f"owasp_ai_goat_test_ctf_opread_{state[0]}_{kind[0]}_{'a' * 12}"
             for state in ("fresh", "populated") for kind in ("identity", "ctf")))
         urls = {name: {role: name + role for role in ("runtime", "migration")}
             for name in selected["databases"]}

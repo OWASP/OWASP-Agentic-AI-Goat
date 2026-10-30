@@ -12,7 +12,7 @@ function LocationProbe() {
   return <output data-testid="location">{location.pathname}{location.search}</output>;
 }
 
-describe('SecureShop login destination', () => {
+describe('OWASP AI SecureShop login destination', () => {
   let container;
   let root;
 

@@ -39,7 +39,7 @@ test('System assessment check uses only authenticated authority and original sav
   t.after(() => new Promise(resolve => server.close(resolve)));
   await new Promise(resolve => server.once('listening', resolve));
   const url = `http://127.0.0.1:${server.address().port}/agents/admin/assistant/system/config/assessment-retry`;
-  const headers = { 'content-type': 'application/json', 'x-dvaia-secureshop-launch': 'a'.repeat(43) };
+  const headers = { 'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43) };
   const post = (body = original, suffix = '', suppliedHeaders = headers) => fetch(url + suffix,
     { method: 'POST', headers: suppliedHeaders, body: JSON.stringify(body) });
   const response = await post({ sessionId: original.sessionId.toUpperCase(), requestId: original.requestId.toUpperCase() });
@@ -72,7 +72,7 @@ test('System assessment check uses only authenticated authority and original sav
   failure = Object.assign(new Error('private diagnostic must not escape'), { code: 'SHOP_AUTH_INVALID' });
   const revoked = await post();
   assert.equal(revoked.status, 401);
-  assert.equal(revoked.headers.get('x-dvaia-secureshop-launch-state'), 'unavailable');
+  assert.equal(revoked.headers.get('x-owasp-ai-goat-secureshop-launch-state'), 'unavailable');
   assert.deepEqual(await revoked.json(), { error: 'Shop session unavailable' });
   failure = new Error('private diagnostic must not escape');
   const unavailable = await post();

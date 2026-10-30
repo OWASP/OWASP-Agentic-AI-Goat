@@ -15,7 +15,7 @@ class Controls(unittest.TestCase):
   for label in ['identity','finflow']:
    sql,urls=m.store_configuration(label,54321,'a'*12);self.assertEqual(len(urls),2);self.assertNotIn('SUPERUSER;',sql);self.assertIn('REVOKE CONNECT',sql)
    for key,value in urls.items():
-    u=urlparse(value);self.assertEqual(u.hostname,'127.0.0.1');self.assertEqual(u.port,54321);self.assertEqual(u.path,'/dvaia_test_finflow_browser_'+'a'*12+'_'+label);self.assertEqual(u.username,'dvaia_'+label+('_migration'if '_MIGRATION_'in key else'_runtime'))
+    u=urlparse(value);self.assertEqual(u.hostname,'127.0.0.1');self.assertEqual(u.port,54321);self.assertEqual(u.path,'/owasp_ai_goat_test_finflow_browser_'+'a'*12+'_'+label);self.assertEqual(u.username,'dvaia_'+label+('_migration'if '_MIGRATION_'in key else'_runtime'))
   for values in [('other',54321,'a'*12),('identity',0,'a'*12),('finflow',54321,'not-owned')]:
    with self.assertRaises(ValueError):m.store_configuration(*values)
  def test_dpi_profile_uses_closed_sixteen_store_manifest_and_one_case(self):
@@ -27,7 +27,7 @@ class Controls(unittest.TestCase):
    sql,urls=m.store_configuration(label,54321,'a'*12,'actual-dpi-system-prompt')
    self.assertEqual(set(urls),{prefix+'_DATABASE_URL',prefix+'_MIGRATION_DATABASE_URL'}|({'CTF_DELIVERY_DATABASE_URL'} if label=='ctf' else set()))
    self.assertIn('REVOKE CONNECT',sql)
-   self.assertEqual({urlparse(value).path for value in urls.values()},{'/dvaia_test_dpi_browser_'+'a'*12+'_'+label})
+   self.assertEqual({urlparse(value).path for value in urls.values()},{'/owasp_ai_goat_test_dpi_browser_'+'a'*12+'_'+label})
    if label=='ctf':
     self.assertIn('CREATE ROLE dvaia_ctf_delivery LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS',sql)
     self.assertEqual(urlparse(urls['CTF_DELIVERY_DATABASE_URL']).username,'dvaia_ctf_delivery')
@@ -37,9 +37,9 @@ class Controls(unittest.TestCase):
   self.assertEqual(env['DPI_ACTUAL_SYSTEM_PROMPT_RENDERED'],'1')
   self.assertEqual(env['DPI_ACTUAL_BROWSER_INPUT_SHA256'],m.DPI_INPUT_SHA256)
   self.assertEqual(env['OLLAMA_MODEL'],'llama3.1:8b')
-  self.assertEqual(env['DVAIA_ISOLATED_TEST_WORKSPACE'],'/main')
+  self.assertEqual(env['OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE'],'/main')
   self.assertEqual(env['DPI_BROWSER_RUNTIME_CWD'],'/evidence/runtime')
-  self.assertEqual(env['DVAIA_APP_DATA_ROOT'],'/evidence/runtime/appdata')
+  self.assertEqual(env['OWASP_AI_GOAT_APP_DATA_ROOT'],'/evidence/runtime/appdata')
   for key in ['OPENAI_API_KEY','IDENTITY_DATABASE_URL','NODE_OPTIONS']:self.assertNotIn(key,env)
  def test_dpi_boot_preflight_is_closed_and_reports_no_browser_as_expected(self):
   args=type('Args',(),{'plan':True,'profile':'backup','dpi_boot_preflight':True})()
@@ -61,12 +61,12 @@ class Controls(unittest.TestCase):
  def test_environment_no_inherited_secrets(self):
   args=type('Args',(),dict(main_workspace='/main',manifest='/manifest',manifest_sha256='a'*64,input='/frozen',input_sha256=m.ACTUAL_INPUT_SHA256,browser='/chrome',browser_sha256='b'*64))()
   with patch.dict(os.environ,{'OPENAI_API_KEY':'private','IDENTITY_DATABASE_URL':'installed','NODE_OPTIONS':'unsafe'}):env=m.child_environment({'PATH':'/pinned'},Path('/evidence'),Path('/evidence/runtime'),'owner',args)
-  for key in ['OPENAI_API_KEY','IDENTITY_DATABASE_URL','NODE_OPTIONS','DVAIA_ISOLATED_TEST_WORKSPACE']:self.assertNotIn(key,env)
+  for key in ['OPENAI_API_KEY','IDENTITY_DATABASE_URL','NODE_OPTIONS','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE']:self.assertNotIn(key,env)
   self.assertEqual(env['ANALYTICS_BROWSER_EXECUTABLE'],env['FINFLOW_BROWSER_CHROME'])
-  appdata=Path(env['DVAIA_APP_DATA_ROOT'])
+  appdata=Path(env['OWASP_AI_GOAT_APP_DATA_ROOT'])
   self.assertEqual(Path(env['FINFLOW_BACKUP_ROOT']),appdata/'finflow-backups')
   self.assertEqual(Path(env['FINFLOW_TRAVERSAL_TARGET_ROOT']),appdata/'finflow-traversal-targets')
-  self.assertNotEqual(env['FINFLOW_BACKUP_ROOT'],env['FINFLOW_TRAVERSAL_TARGET_ROOT']);self.assertEqual(env['DVAIA_APP_DATA_ROOT'],'/evidence/runtime/appdata');self.assertEqual(env['FINFLOW_BROWSER_INPUTS_SHA256'],m.ACTUAL_INPUT_SHA256)
+  self.assertNotEqual(env['FINFLOW_BACKUP_ROOT'],env['FINFLOW_TRAVERSAL_TARGET_ROOT']);self.assertEqual(env['OWASP_AI_GOAT_APP_DATA_ROOT'],'/evidence/runtime/appdata');self.assertEqual(env['FINFLOW_BROWSER_INPUTS_SHA256'],m.ACTUAL_INPUT_SHA256)
  def test_browser_absence_retains_profile_and_denies_wrong_identity(self):
   with tempfile.TemporaryDirectory()as d:
    root=Path(d);(root/'browser-profile').mkdir();state={'nativePid':20,'browserSha256':'a'*64,'exitCode':0};row={**{k:20 for k in ['pgid','sessionId','qualificationPid','qualificationPgid','qualificationSessionId','workerPid']},'pid':21,'uid':os.getuid(),'profile':str(root/'browser-profile'),'executableSha256':'a'*64};p=root/'browser-process.json';p.write_text(json.dumps(row));p.chmod(0o600)
@@ -274,7 +274,7 @@ class DpiBaselineLanguageProfile(unittest.TestCase):
   self.assertEqual(len(m.DPI_STORES),16)
   for label,prefix in m.DPI_STORES:
    sql,urls=m.store_configuration(label,54321,'a'*12,args.profile)
-   self.assertEqual({urlparse(value).path for value in urls.values()},{'/dvaia_test_dpi_browser_'+'a'*12+'_'+label})
+   self.assertEqual({urlparse(value).path for value in urls.values()},{'/owasp_ai_goat_test_dpi_browser_'+'a'*12+'_'+label})
    self.assertEqual(set(urls),{prefix+'_DATABASE_URL',prefix+'_MIGRATION_DATABASE_URL'}|({'CTF_DELIVERY_DATABASE_URL'} if label=='ctf' else set()))
    self.assertIn('REVOKE CONNECT',sql)
   with patch.object(m,'private_input_digest',return_value=m.DPI_BASELINE_LANGUAGE_INPUT_SHA256):
@@ -286,7 +286,7 @@ class DpiBaselineLanguageProfile(unittest.TestCase):
   self.assertNotIn('DPI_ACTUAL_SYSTEM_PROMPT_RENDERED',env)
   self.assertEqual(env['DPI_ACTUAL_BROWSER_INPUT_SHA256'],m.DPI_BASELINE_LANGUAGE_INPUT_SHA256)
   self.assertEqual(env['DPI_BROWSER_RUNTIME_CWD'],'/private/tmp/owned-dpi')
-  self.assertEqual(env['DVAIA_APP_DATA_ROOT'],'/private/tmp/owned-dpi/appdata')
+  self.assertEqual(env['OWASP_AI_GOAT_APP_DATA_ROOT'],'/private/tmp/owned-dpi/appdata')
   for key in ['IDENTITY_DATABASE_URL','OPENAI_API_KEY','PORT','NODE_OPTIONS']:self.assertNotIn(key,env)
 
 class PrivateInputAdmission(unittest.TestCase):

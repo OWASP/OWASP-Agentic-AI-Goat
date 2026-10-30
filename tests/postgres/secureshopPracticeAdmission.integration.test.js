@@ -40,7 +40,7 @@ function url(store, role) {
   const value = new URL(process.env[`${PREFIX}${store}_${role}_URL`]);
   assert.equal(value.protocol, 'postgresql:');
   assert.equal(value.hostname, '127.0.0.1');
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   assert.equal(value.username, `dvaia_${STORES[store]}_${role.toLowerCase()}`);
   assert.equal(value.password, ''); assert.equal(value.search, ''); assert.equal(value.hash, '');
   return value.href;
@@ -70,7 +70,7 @@ async function count(pool, sql, args = []) {
 test('explicit shop practice admission preserves current authority, immutable history and recoverable debt',
   { skip: !enabled, timeout: 240000 }, async t => {
     assert.equal(process.cwd(), ROOT);
-    assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
+    assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
     const evidence = process.env.SECURESHOP_PRACTICE_ADMISSION_EVIDENCE_PATH || '';
     assert.ok(path.isAbsolute(evidence));
     assert.ok(!path.resolve(evidence).startsWith(`${ROOT}${path.sep}`));

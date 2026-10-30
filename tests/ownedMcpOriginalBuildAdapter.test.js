@@ -51,7 +51,7 @@ test('Listings build selects original context and same-lock replay without regis
  assert.equal(plan.packageDigest,source.sha256);assert.equal(plan.limits.disk,6*1024**3);
  assert.equal(plan.consumerIntegrationComplete,false);assert.equal(plan.sharedImageLoadAllowed,false);
  assert.equal(plan.buildApproved,false);assert.equal(plan.registryConsumer,undefined);
- assert.deepEqual(plan.imageContract,{entrypoint:['node','sidecars/sandbox-runner/owned-listings/manager-entry.js'],user:'10001:10001',label:'dvaia.listings.source',runtimeDigest:require('../scripts/install/secureshop-owned-listings-qualified-candidate').qualifiedPackage({root,architecture:'arm64'}).runtimeDigest});
+ assert.deepEqual(plan.imageContract,{entrypoint:['node','sidecars/sandbox-runner/owned-listings/manager-entry.js'],user:'10001:10001',label:'owasp-ai-goat.listings.source',runtimeDigest:require('../scripts/install/secureshop-owned-listings-qualified-candidate').qualifiedPackage({root,architecture:'arm64'}).runtimeDigest});
  assert.match(plan.commands.build,/-f 'sidecars\/sandbox-runner\/owned-listings\/Dockerfile\.candidate'/);
  assert.match(plan.commands.build,/unix:\/\/\$root\/fs\/docker.sock/);
  assert.match(plan.commands.build,/--secret "id=npm_ca/);
@@ -129,14 +129,14 @@ test('Listings manager phases bind private source, stdin authority and remote re
  assert.match(plan.commands.prepare,/original-listings-manager-total-lease-v1/);
  assert.match(plan.commands.listingsManagerStart,/check-startup/);
  assert.match(plan.commands.listingsManagerRetire,/check-retirement/);
- assert.equal(plan.listingsConsumer.name,'dvaia-owned-listings-'+require('../scripts/application-data-root').workspaceId(root));
+ assert.equal(plan.listingsConsumer.name,'owasp-ai-goat-owned-listings-'+require('../scripts/application-data-root').workspaceId(root));
  const resource=await fs.readFile(path.join(root,'tests/postgres/listings_native_resources.py'),'utf8');
  assert.equal(plan.helperHashes['tests/postgres/listings_native_resources.py'],digest(resource));
  const capture=await adapter._internals.captureListings(root);
  capture.workspaceId=require('../scripts/application-data-root').workspaceId(root);
  capture.profileSha256=digest((await fs.readFile(path.join(root,'sidecars/sandbox-runner/owned-listings/profile.apparmor.in'),'utf8')).replaceAll('@@SUPERVISOR_PROFILE@@',plan.listingsConsumer.name));
  for(const operation of ['create','start','channels']){
-   const program=adapter._internals.listingsManagerProgram(plan.spec,plan.listingsConsumer.name,'dvaia-listings-journal-'+runId,capture,resource,operation);
+   const program=adapter._internals.listingsManagerProgram(plan.spec,plan.listingsConsumer.name,'owasp-ai-goat-listings-journal-'+runId,capture,resource,operation);
    const result=spawnSync('/opt/homebrew/bin/python3',['-B','-c','import sys;compile(sys.stdin.read(),"<actual-manager>","exec")'],{input:program,encoding:'utf8'});
    assert.equal(result.status,0,result.stderr);
    if(operation==='create'){
@@ -299,14 +299,14 @@ test('original service plan is distinct, source-pinned, fixed proxy and admitted
 function serviceContainer(plan,handoff,token,running=false){
  const name=plan.registryConsumer.name;
  return {Id:'a'.repeat(64),Image:handoff.imageId,Name:'/'+name,State:{Running:running},
-  Config:{Labels:{'dvaia.original.registry':handoff.runId},User:'10001:10001',Entrypoint:['node'],Cmd:['sidecars/sandbox-runner/owned-mcp-registry/http-listener.js'],
+  Config:{Labels:{'owasp-ai-goat.original.registry':handoff.runId},User:'10001:10001',Entrypoint:['node'],Cmd:['sidecars/sandbox-runner/owned-mcp-registry/http-listener.js'],
    Env:['SECURESHOP_MCP_REGISTRY_ENABLED=true','SECURESHOP_MCP_REGISTRY_TOKEN='+token,'SECURESHOP_MCP_REGISTRY_PROFILE='+name,'SECURESHOP_MCP_REGISTRY_HOST=127.0.0.1','SECURESHOP_MCP_REGISTRY_PORT=8094']},
   HostConfig:{NetworkMode:'none',ReadonlyRootfs:true,Privileged:false,CapDrop:['ALL'],Memory:536870912,NanoCpus:1000000000,PidsLimit:128,
    LogConfig:{Type:'none'},RestartPolicy:{Name:'no'},SecurityOpt:['apparmor='+name,'seccomp=unconfined'],Tmpfs:{'/tmp':'rw,nosuid,nodev,noexec,size=16m'}},Mounts:[]};
 }
 test('producer validates actual container shape and rejects changed identity or isolation',()=>{
  const producer=require('./postgres/ownedMcpOriginalServiceProducer');
- const plan={registryConsumer:{name:'dvaia-owned-mcp-registry-'+runId.slice(0,12)}};
+ const plan={registryConsumer:{name:'owasp-ai-goat-owned-mcp-registry-'+runId.slice(0,12)}};
  const handoff={imageId:'sha256:'+'e'.repeat(64),runId};const token='x'.repeat(43);
  const original=serviceContainer(plan,handoff,token,true),binding={imageId:handoff.imageId,runId,name:plan.registryConsumer.name,token,running:true};
  assert.equal(producer.validateContainer([original],binding),original.Id);
@@ -319,7 +319,7 @@ test('producer validates actual container shape and rejects changed identity or 
 test('controlled actual producer pipeline joins fixed service health, cohort and retirement',async()=>{
  const producer=require('./postgres/ownedMcpOriginalServiceProducer');
  for(const scenario of ['success','bad-inspect','cohort-failure','retirement-failure']){
-  const plan={consumerMode:'original-service',spec:{root},registryConsumer:{name:'dvaia-owned-mcp-registry-'+runId.slice(0,12)}};
+  const plan={consumerMode:'original-service',spec:{root},registryConsumer:{name:'owasp-ai-goat-owned-mcp-registry-'+runId.slice(0,12)}};
   const handoff={controlled:true,runId,imageId:'sha256:'+'e'.repeat(64)};
   const calls=[],records=[];let token,confirmed=false,retirementEnd,cohortCalls=0;
   const lifetime={signal:new AbortController().signal,retirementSignal:new AbortController().signal,
@@ -360,7 +360,7 @@ test('controlled actual producer pipeline joins fixed service health, cohort and
 });
 function producerControl({scenario='success',hold=()=>{},record=()=>{},inspectCohort=()=>{},mode='original-service',claimRemaining=480000}={}){
  const producer=require('./postgres/ownedMcpOriginalServiceProducer');
- const plan={consumerMode:mode,spec:{root},registryConsumer:{name:'dvaia-owned-mcp-registry-'+runId.slice(0,12)}};
+ const plan={consumerMode:mode,spec:{root},registryConsumer:{name:'owasp-ai-goat-owned-mcp-registry-'+runId.slice(0,12)}};
  const handoff={controlled:true,runId,imageId:'sha256:'+'e'.repeat(64)};
  const calls=[];let token,dispatch,healthCalls=0,registrations=0,cohortCalls=0;
  const identity={instanceId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',operationId:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',requestSha256:'d'.repeat(64)};
@@ -578,7 +578,7 @@ test('actual original twenty-file plan compiles, preserves Dockerfile, and close
   for (const [name, script] of Object.entries(plan.commands)) {
     const parsed = spawnSync('/bin/sh', ['-n'], { input: script, encoding: 'utf8', timeout: 10000 });
     assert.equal(parsed.status, 0, name + ': ' + parsed.stderr);
-    for (const match of script.matchAll(/<<'(DVAIA_REGISTRY_[A-Z]+)'\n([\s\S]*?)\n\1/g)) {
+    for (const match of script.matchAll(/<<'(OWASP_AI_GOAT_REGISTRY_[A-Z]+)'\n([\s\S]*?)\n\1/g)) {
       const compiled = spawnSync('/opt/homebrew/bin/python3', ['-I', '-S', '-B', '-c', 'import sys;compile(sys.stdin.read(),"<registry-owned>","exec")'], { input: match[2], encoding: 'utf8' });
       assert.equal(compiled.status, 0, name + ': ' + compiled.stderr);
     }
@@ -609,7 +609,7 @@ test('actual emitted profile heredoc delivers exactly the pinned substituted byt
   const expected = Buffer.from(template.toString().replaceAll('@@SUPERVISOR_PROFILE@@', plan.registryConsumer.name));
   assert.equal(expected.at(-1), 10);
   const command = plan.commands.registryProfileInstall;
-  const offset = command.lastIndexOf(" <<'DVAIA_ORIGINAL_REGISTRY_PROFILE'\n");
+  const offset = command.lastIndexOf(" <<'OWASP_AI_GOAT_ORIGINAL_REGISTRY_PROFILE'\n");
   assert.ok(offset > 0);
   // Execute the exact emitted shell redirection with a harmless stdin→stdout
   // capture. No profile parser, VM, file write or native security effect.
@@ -654,17 +654,17 @@ ${tail}`;
   }
 });
 function registryRow(nonce = runId) {
-  const profile = 'dvaia-owned-mcp-registry-' + nonce.slice(0, 12);
+  const profile = 'owasp-ai-goat-owned-mcp-registry-' + nonce.slice(0, 12);
   const imageId = 'sha256:' + '1'.repeat(64), cid = 'a'.repeat(64);
   return { Id: cid, Name: '/' + profile, Image: imageId, Mounts: [],
-    Config: { Labels: { 'dvaia.original.registry': nonce }, User: '10001:10001', OpenStdin: true, Entrypoint: ['node'], Cmd: ['-'], Env: ['SECURESHOP_MCP_REGISTRY_PROFILE=' + profile] },
+    Config: { Labels: { 'owasp-ai-goat.original.registry': nonce }, User: '10001:10001', OpenStdin: true, Entrypoint: ['node'], Cmd: ['-'], Env: ['SECURESHOP_MCP_REGISTRY_PROFILE=' + profile] },
     HostConfig: { NetworkMode: 'none', ReadonlyRootfs: true, Privileged: false, CapDrop: ['ALL'], CapAdd: [], Memory: 536870912, NanoCpus: 1000000000,
       PidsLimit: 128, LogConfig: { Type: 'none' }, SecurityOpt: ['apparmor=' + profile, 'seccomp=unconfined'], Tmpfs: { '/tmp': 'rw,nosuid,nodev,noexec,size=16m' }, Binds: [], Mounts: [] } };
 }
 function registryResult() { return JSON.stringify({ status: 'passed', modelCalls: 0, qualificationComplete: false, runtimeDigest: 'b'.repeat(64),
   cases: [...Array(11).fill('controlled-only'), 'immutable assets and all namespace descendants joined'] }); }
 test('closed original registry consumer confirms release only after exact runtime teardown; failures preserve debt', async () => {
-  const consumer = adapter._internals.originalRegistryConsumer, profile = 'dvaia-owned-mcp-registry-' + runId.slice(0, 12);
+  const consumer = adapter._internals.originalRegistryConsumer, profile = 'owasp-ai-goat-owned-mcp-registry-' + runId.slice(0, 12);
   const row = registryRow(), imageId = row.Image;
   for (const scenario of ['success', 'identity', 'boundary', 'fixture', 'registryRetire', 'registryProfileRetire']) {
     let confirmed = false; const calls = [], primary = Error('controlled runtime failure');
@@ -1118,7 +1118,7 @@ test('actual host lifecycle retains exact primary failures, rejects terminal rep
         return JSON.stringify(packet);
       }
       if (name === 'image') return JSON.stringify([{ Id: 'sha256:' + '1'.repeat(64), Architecture: 'arm64', Os: 'linux',
-        Config: { Labels: { 'dvaia.registry.package': plan.packageDigest, 'dvaia.build-run': nonce } } }]);
+        Config: { Labels: { 'owasp-ai-goat.registry.package': plan.packageDigest, 'owasp-ai-goat.build-run': nonce } } }]);
       if (name === 'handoff') return JSON.stringify({ version: 1, target: 'original-v23-registry', runId: nonce, privateDockerHost: 'unix://' + plan.spec.socket,
         namespaceInode: 'net:[123]', filesystemIdentity: { device: 12, inode: 34 }, daemonProcess: { pid: 20, startTicks: '100', exe: '/usr/bin/dockerd' },
         namespaceHolder: { pid: 21, startTicks: '99', exe: '/usr/bin/sleep' } });
@@ -1276,7 +1276,7 @@ test('serialized guest enforces ordering and joins replay on APT/publication fai
             mode: name.startsWith('/usr/local/lib/node_modules/npm/') ? 0o644 : 0o444, size: files.get(name)?.length, mtimeMs: 1, ctimeMs: 1 }) };
       }
     };
-    const processDouble = new EventEmitter(); Object.assign(processDouble, { env: { DVAIA_ARTIFACT_DEADLINE_SECONDS: '100', DVAIA_ARTIFACT_PROXY_PORT: '12345' },
+    const processDouble = new EventEmitter(); Object.assign(processDouble, { env: { OWASP_AI_GOAT_ARTIFACT_DEADLINE_SECONDS: '100', OWASP_AI_GOAT_ARTIFACT_PROXY_PORT: '12345' },
       hrtime: { bigint: () => 0n }, stderr: { write() {} }, kill() { throw Error('Unexpected real process authority'); } });
     const spawnDouble = (file, args) => {
       commands.push({ file, args }); const child = new EventEmitter(); child.stdout = new PassThrough(); child.stderr = new PassThrough();
@@ -1510,7 +1510,7 @@ test('actual emitted build readiness binds selected target and rejects foreign o
       ? { target, listingsMode: 'manager' } : {});
     // Decode the manager lease shell's POSIX-quoted body without executing it.
     const command = target === 'listings-package' ? plan.commands.build.replaceAll("'\\''", "'") : plan.commands.build;
-    const programs = [...command.matchAll(/<<'DVAIA_CLOSURE_READY'\n([\s\S]*?)\nDVAIA_CLOSURE_READY/g)];
+    const programs = [...command.matchAll(/<<'OWASP_AI_GOAT_CLOSURE_READY'\n([\s\S]*?)\nOWASP_AI_GOAT_CLOSURE_READY/g)];
     assert.equal(programs.length, 1);
     const script = programs[0][1];
     for (const fault of ['none', 'cross-target', 'run', 'base', 'binding-extra', 'closure-hash', 'ca-hash',
@@ -1565,7 +1565,7 @@ test('actual emitted build readiness binds selected target and rejects foreign o
 });
 test('actual emitted owner exit gate rejects post-link publication debt even when terminal bytes look clean', async t => {
   const plan = await adapter.originalBuildPlan(root, runId);
-  const script = /<<'DVAIA_REPLAY_EXIT'\n([\s\S]*?)\nDVAIA_REPLAY_EXIT/.exec(plan.commands.retireArtifacts)[1];
+  const script = /<<'OWASP_AI_GOAT_REPLAY_EXIT'\n([\s\S]*?)\nOWASP_AI_GOAT_REPLAY_EXIT/.exec(plan.commands.retireArtifacts)[1];
   const directory = await fs.mkdtemp(path.join(process.env.TMPDIR, 'replay-exit-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   // Host controlled fixture only: preserve real file mode/type/link/size/time

@@ -7,12 +7,12 @@ from sensitive_info_recovery_safety import SignalGate, classify_process_state, w
 from mcp_owned_runner_upgrade_safety import OwnedPauseSet, smoke_login_payload, validate_qualified_objectives, validate_recovery
 
 ROOT=pathlib.Path(__file__).resolve().parents[2]; OWNER='/root/workshop_authenticity'
-DOCKER_HOST='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-RUNNER='damn-vulnerable-ai-application-mcp-owned-sandbox-1'; MAILPIT='damn-vulnerable-ai-application-mailpit-1'
+DOCKER_HOST='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+RUNNER='OWASP Agentic AI GOAT-mcp-owned-sandbox-1'; MAILPIT='OWASP Agentic AI GOAT-mailpit-1'
 IMAGE='mcp-owned-sandbox-runner:dev'; VOLUME_DEST='/sandbox/owned-targets'
 CAPABILITY='mcp-owned-protected-state-transition.v2'; QUALIFICATION='mcp-owned-connected.protected-v2'
-NODE=pathlib.Path.home()/'.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin/node'
-MANAGED=pathlib.Path.home()/'.dvaia/c231599fa8cd/mcp-owned.env'
+NODE=pathlib.Path.home()/'.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin/node'
+MANAGED=pathlib.Path.home()/'.owasp-ai-goat/c231599fa8cd/mcp-owned.env'
 
 def sha(path): return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
 def private_file(path):
@@ -36,7 +36,7 @@ def parse_env(data):
 ap=argparse.ArgumentParser();ap.add_argument('--grant-file',required=True);ap.add_argument('--grant-id',required=True)
 ap.add_argument('--owner-handle-file',required=True);ap.add_argument('--watcher-pid',type=int,required=True);ap.add_argument('--backend-pid',type=int,required=True)
 ap.add_argument('--smoke-credentials-file',required=True);a=ap.parse_args();os.umask(0o077)
-evidence=pathlib.Path(tempfile.mkdtemp(prefix='dvaia-mcp-runner-upgrade-')); ownership=evidence/'ownership.json'; result=evidence/'result.json'; diagnostics=evidence/'diagnostics.jsonl'
+evidence=pathlib.Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-runner-upgrade-')); ownership=evidence/'ownership.json'; result=evidence/'result.json'; diagnostics=evidence/'diagnostics.jsonl'
 state={'owner':OWNER,'grantId':a.grant_id,'ownerHandle':None,'launcherPid':os.getpid(),'runStatus':'preparing','evidence':str(evidence),'cleanup':None}
 signal_gate=SignalGate()
 for signum in (signal.SIGINT,signal.SIGTERM,signal.SIGHUP):signal.signal(signum,signal_gate.handler)
@@ -102,7 +102,7 @@ def wait_stopped(pid):
   time.sleep(.05)
  raise RuntimeError('owned process did not enter stopped state')
 def require_drained():
- script="""const fs=require('fs'),dotenv=require('dotenv'),{Pool}=require('pg');const e=dotenv.parse(fs.readFileSync('.env'));(async()=>{const p=new Pool({connectionString:e.IDENTITY_MIGRATION_DATABASE_URL,application_name:'dvaia-owned-runner-upgrade-drain'});try{const q=await p.query(\"SELECT (SELECT count(*)::int FROM graph_runtime.runs WHERE status='running') runs,(SELECT count(*)::int FROM graph_runtime.effects WHERE status='started') effects,(SELECT count(*)::int FROM graph_runtime.codebot_requests WHERE status='started') codebot\");console.log(JSON.stringify(q.rows[0]))}finally{await p.end()}})().catch(()=>process.exit(31))"""
+ script="""const fs=require('fs'),dotenv=require('dotenv'),{Pool}=require('pg');const e=dotenv.parse(fs.readFileSync('.env'));(async()=>{const p=new Pool({connectionString:e.IDENTITY_MIGRATION_DATABASE_URL,application_name:'owasp-ai-goat-owned-runner-upgrade-drain'});try{const q=await p.query(\"SELECT (SELECT count(*)::int FROM graph_runtime.runs WHERE status='running') runs,(SELECT count(*)::int FROM graph_runtime.effects WHERE status='started') effects,(SELECT count(*)::int FROM graph_runtime.codebot_requests WHERE status='started') codebot\");console.log(JSON.stringify(q.rows[0]))}finally{await p.end()}})().catch(()=>process.exit(31))"""
  values=json.loads(run([str(NODE),'-e',script],stage='durable-drain').stdout)
  if values!={'runs':0,'effects':0,'codebot':0}:raise RuntimeError('owned work has not drained')
  run(docker+['exec',RUNNER,'/bin/sh','-ceu',"find /sandbox/owned-targets -type f -name '*.lock' -exec flock -n '{}' true ';'"],stage='target-lock-drain')

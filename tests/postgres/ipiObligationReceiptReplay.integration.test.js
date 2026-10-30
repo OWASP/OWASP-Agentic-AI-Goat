@@ -16,7 +16,7 @@ test('retained synthetic v4 receipt survives canonical storage, owner projection
   timeout: 300000,
 }, async () => {
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
+  assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
   assert.deepEqual(Object.keys(process.env).filter(key => key.endsWith('_URL')).sort(),
     ['WORKSHOP_RAG_MIGRATION_URL', 'WORKSHOP_RAG_RUNTIME_URL'], 'installed/application URLs are forbidden');
   for (const key of ['OLLAMA_BASE_URL', 'JUDGE_BASE_URL', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'BEDROCK_MODEL_ID']) {
@@ -32,7 +32,7 @@ test('retained synthetic v4 receipt survives canonical storage, owner projection
     const value = new URL(process.env[`WORKSHOP_RAG_${role.toUpperCase()}_URL`]);
     assert.equal(value.protocol, 'postgresql:');
     assert.equal(value.hostname, '127.0.0.1');
-    assert.match(value.pathname, /^\/dvaia_test_workshop_rag_[a-f0-9]+$/);
+    assert.match(value.pathname, /^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/);
     assert.equal(value.username, `dvaia_identity_${role}`);
     return value.href;
   };

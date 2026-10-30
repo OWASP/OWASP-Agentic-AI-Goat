@@ -31,7 +31,7 @@ class PolicyCleanup(unittest.TestCase):
                         if args[0] == 'inspect':
                             if phase == 'inspect' and args[1] == 'renderer': raise OSError('inspect failed')
                             owner = 'foreign' if phase == 'foreign' and args[1] == 'renderer' else 'owned'
-                            return json.dumps([{'Config': {'Labels': {'dvaia.qualification': owner}}}])
+                            return json.dumps([{'Config': {'Labels': {'owasp-ai-goat.qualification': owner}}}])
                         return ''
                     result = {'status': 'passed', 'error': {'message': 'original failure'}}
                     namespace = dict(signal=SimpleNamespace(alarm=lambda _: None),

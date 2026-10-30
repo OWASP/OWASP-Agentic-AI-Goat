@@ -46,7 +46,7 @@ function pair(state,kind){
  const urls=keys.map(key=>new URL(process.env[key]));
  for(const url of urls){
   assert.equal(url.hostname,'127.0.0.1');
-  assert.match(url.pathname,new RegExp(`^/dvaia_test_ctf_publication_current_${state[0].toLowerCase()}_${kind[0].toLowerCase()}_[a-f0-9]{12}$`));
+  assert.match(url.pathname,new RegExp(`^/owasp_ai_goat_test_ctf_publication_current_${state[0].toLowerCase()}_${kind[0].toLowerCase()}_[a-f0-9]{12}$`));
   assert.equal(url.search,'');assert.equal(url.hash,'');
  }
  assert.equal(urls[0].pathname,urls[1].pathname);assert.equal(urls[0].port,urls[1].port);
@@ -59,7 +59,7 @@ function pair(state,kind){
 test('current 0155 publication is valid before canonical reset and stale only for its owner generation',
  {skip:!ENABLED,timeout:240000},async t=>{
   assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');
-  assert.equal(process.env.DVAIA_CURRENT_MAIN_WORKSPACE,ROOT);
+  assert.equal(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,ROOT);
   const providerModule=require.resolve('../../server/services/multiProviderAIService');
   assert.equal(require.cache[providerModule],undefined,'Provider singleton was loaded before owned endpoint admission');
   const pools=[],runtimes=[],stopped=new Set(),listeners=[],paths=new Set(),provider=[];

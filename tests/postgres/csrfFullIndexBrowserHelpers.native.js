@@ -3,7 +3,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{createHash}=require('node:crypto');
 const {pointer}=require('../fixtures/csrfFullIndexPointer'),{replaceEditorText}=require('../fixtures/csrfFullIndexEditor');
 (async()=>{
- const root=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-csrf-browser-helpers-'));fs.chmodSync(root,0o700);let browser;const result={status:'running',root,actualModelCalls:0,backend:false,database:false,pid:process.pid};
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-csrf-browser-helpers-'));fs.chmodSync(root,0o700);let browser;const result={status:'running',root,actualModelCalls:0,backend:false,database:false,pid:process.pid};
  const names=['tests/fixtures/csrfFullIndexPointer.js','tests/fixtures/csrfFullIndexEditor.js','tests/postgres/csrfFullIndexBrowserHelpers.native.js'];result.sourceSha256=Object.fromEntries(names.map(name=>[name,createHash('sha256').update(fs.readFileSync(name)).digest('hex')]));const save=()=>fs.writeFileSync(path.join(root,'result.json'),JSON.stringify(result,null,2),{mode:0o600});save();console.log(JSON.stringify({root,pid:process.pid}));
  const deadline=setTimeout(()=>{console.error('Owned helper browser deadline');process.exitCode=1;browser?.close().finally(()=>process.exit(1));},45000);
  try{

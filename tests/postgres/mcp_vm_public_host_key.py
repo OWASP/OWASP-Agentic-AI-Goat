@@ -38,7 +38,7 @@ process.stdout.write(JSON.stringify({version:1,publicKey:'ssh-ed25519 '+fields[1
 
 def plan(nonce,image):
     if not re.fullmatch('[a-f0-9]{32}',nonce) or not re.fullmatch('sha256:[a-f0-9]{64}',image):raise ValueError('Exact owner and existing image required')
-    return {'name':'dvaia-vm-public-key-'+nonce,'image':image,'labels':{'dvaia.qualification':'vm-public-host-key','dvaia.owner':nonce},'readerSha256':hashlib.sha256(READER.encode()).hexdigest()}
+    return {'name':'owasp-ai-goat-vm-public-key-'+nonce,'image':image,'labels':{'owasp-ai-goat.qualification':'vm-public-host-key','owasp-ai-goat.owner':nonce},'readerSha256':hashlib.sha256(READER.encode()).hexdigest()}
 
 def create_args(p):
     args=['create','--pull','never','--name',p['name']]

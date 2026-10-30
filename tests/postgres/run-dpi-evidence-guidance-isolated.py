@@ -29,16 +29,16 @@ owner_handle = int(handle_path.read_text().strip())
 
 source = Path(__file__).resolve().parents[2]
 grant_path = Path(args.grant_file).resolve()
-evidence = Path(tempfile.mkdtemp(prefix='dvaia-dpi-guidance-'))
+evidence = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-dpi-guidance-'))
 workspace = evidence / 'source'
 workspace.mkdir()
 os.chmod(evidence, 0o700)
 base_env = {key: os.environ[key] for key in ['PATH', 'HOME', 'TMPDIR'] if key in os.environ}
-managed_node = Path('/Users/averma5/.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin')
+managed_node = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin')
 if managed_node.exists():
     base_env['PATH'] = f'{managed_node}:{base_env.get("PATH", "")}'
 docker = ['docker', '--host', args.docker_host]
-container = f'dvaia-dpi-guidance-{uuid.uuid4().hex[:12]}'
+container = f'owasp-ai-goat-dpi-guidance-{uuid.uuid4().hex[:12]}'
 ownership_path = evidence / 'ownership.json'
 result_path = evidence / 'result.log'
 state = {
@@ -185,7 +185,7 @@ try:
             stdout=subprocess.DEVNULL)
     urls = {}
     for kind in ['fresh', 'populated', 'custom']:
-        database = f'dvaia_dpi_guidance_{kind}'
+        database = f'owasp_ai_goat_dpi_guidance_{kind}'
         run(admin + ['-c', f'CREATE DATABASE {database} OWNER dvaia_identity_migration'], stdout=subprocess.DEVNULL)
         run(admin + ['-c', f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; '
                            f'GRANT CONNECT ON DATABASE {database} TO dvaia_identity_migration,dvaia_identity_runtime'],
@@ -195,7 +195,7 @@ try:
             'RUNTIME': f'postgresql://dvaia_identity_runtime@127.0.0.1:{port}/{database}',
         }
     env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes',
-               DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true')
+               OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true')
     for kind, pair in urls.items():
         for role, url in pair.items():
             env[f'PG_DPI_GUIDANCE_{kind}_{role}_URL'] = url

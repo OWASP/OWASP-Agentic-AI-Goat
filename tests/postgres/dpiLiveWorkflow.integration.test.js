@@ -18,7 +18,7 @@ function privateInvalidAttemptCapture(diagnosticsPath){
 
 test('DPI mounted route qualifies the fixed eight-objective cohort with actual actor, Judge, reset and sibling isolation',{skip:!enabled,timeout:2400000},async()=>{
  if(!process.env.DPI_LIVE_ISOLATED){
-  const root=path.resolve(__dirname,'../..'),copy=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-dpi-live-'));
+  const root=path.resolve(__dirname,'../..'),copy=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-dpi-live-'));
   try{
    for(const dir of ['server','db','tests'])fs.cpSync(path.join(root,dir),path.join(copy,dir),{recursive:true,filter:file=>{const rel=path.relative(root,file);if(/(?:^|\/)(?:logs|uploads|vector-indexes|sensitive_files|workshop_data|\.env[^/]*)(?:\/|$)/.test(rel))return false;return fs.statSync(file).isDirectory()||/\.(?:js|json|sql)$/.test(file);}});
    fs.symlinkSync(path.join(root,'node_modules'),path.join(copy,'node_modules'),'dir');
@@ -33,7 +33,7 @@ test('DPI mounted route qualifies the fixed eight-objective cohort with actual a
  const Module=require('node:module'),originalLoad=Module._load;Module._load=function(name,...args){if(['sqlite3','better-sqlite3'].includes(name)||/authDb$/.test(name))throw Error('Working SQLite import forbidden');return originalLoad.call(this,name,...args);};
  const {Pool}=require('pg'),adminUrl=new URL(process.env.PG_LIVE_ADMIN_URL);assert.ok(['127.0.0.1','localhost','[::1]'].includes(adminUrl.hostname));assert.equal(adminUrl.pathname,'/postgres');
  const tags=await(await fetch('http://127.0.0.1:11434/api/tags')).json();assert.ok(tags.models.some(model=>model.name===MODEL),`${MODEL} must be installed`);
- const poolErrors=[],admin=new Pool({connectionString:adminUrl.href}),database=`dvaia_test_dpilive_${process.pid}`,pools=[];admin.on('error',error=>poolErrors.push(error));let server,ai,originalChat;
+ const poolErrors=[],admin=new Pool({connectionString:adminUrl.href}),database=`owasp_ai_goat_test_dpilive_${process.pid}`,pools=[];admin.on('error',error=>poolErrors.push(error));let server,ai,originalChat;
  try{
   await admin.query(`CREATE DATABASE ${database} OWNER dvaia_identity_migration`);await admin.query(`REVOKE CONNECT ON DATABASE ${database} FROM PUBLIC`);await admin.query(`GRANT CONNECT ON DATABASE ${database} TO dvaia_identity_runtime`);
   const pool=role=>{const url=new URL(adminUrl);url.pathname='/'+database;url.username=role;url.password='';const result=new Pool({connectionString:url.href,max:5});result.on('error',error=>poolErrors.push(error));pools.push(result);return result;};
@@ -52,7 +52,7 @@ test('DPI mounted route qualifies the fixed eight-objective cohort with actual a
   const workshop=require('../../server/services/promptInjectionWorkshop'),progressService=require('../../server/services/promptInjectionProgressService').createPostgresPromptInjectionProgressService({pool:runtime,progress,config});
   const router=require('../../server/routes/promptInjectionWorkshop').createPromptInjectionWorkshopRouter({progressService,completionService:completion,runCoordinator:coordinator});
   ai=require('../../server/services/multiProviderAIService');originalChat=ai.chatWithMessages;const actorCalls=[];ai.chatWithMessages=function(messages,options){actorCalls.push(messages.map(message=>({role:message.role,content:message.content})));return originalChat.call(this,messages,options);};
-  const app=require('express')();app.use(require('express').json());app.use(require('../../server/middleware/postgresAdminAuth').createPostgresAdminAuth(adapter).authenticateToken);app.use((req,res,next)=>{const owner=owners.get(req.get('x-dpi-owner')||'a');if(!owner||owner.id!==req.user.id)return res.status(403).json({code:'OWNER_MISMATCH'});next();});app.use(router);server=await new Promise(resolve=>{const listening=app.listen(0,'127.0.0.1',()=>resolve(listening));});const base=`http://127.0.0.1:${server.address().port}`;globalThis.__DVAIA_DPI_REGISTER_OWNED_ORIGIN?.(base);
+  const app=require('express')();app.use(require('express').json());app.use(require('../../server/middleware/postgresAdminAuth').createPostgresAdminAuth(adapter).authenticateToken);app.use((req,res,next)=>{const owner=owners.get(req.get('x-dpi-owner')||'a');if(!owner||owner.id!==req.user.id)return res.status(403).json({code:'OWNER_MISMATCH'});next();});app.use(router);server=await new Promise(resolve=>{const listening=app.listen(0,'127.0.0.1',()=>resolve(listening));});const base=`http://127.0.0.1:${server.address().port}`;globalThis.__OWASP_AI_GOAT_DPI_REGISTER_OWNED_ORIGIN?.(base);
   const readProgress=async owner=>{const response=await fetch(base+'/progress',{headers:headersFor(owner)});assert.equal(response.status,200);return response.json();};
   const count=async id=>Number((await runtime.query('SELECT count(*)::int count FROM workshop_platform.objective_judgments WHERE user_id=$1',[id])).rows[0].count);
   if(process.env.DPI_LIVE_BOOT_ONLY==='1'){

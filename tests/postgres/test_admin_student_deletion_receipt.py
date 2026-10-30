@@ -80,7 +80,7 @@ def sample():
     journal = dict(version=1, cohort='admin-student-deletion-current-host',
         status='browser_cleanup_delegated_to_current_host_launcher',
         resources=dict(browser=dict(pid=345, profile=str(RUN / 'runtime/tmp' /
-            ('dvaia-student-deletion-browser-' + NONCE)), executable=CHROME),
+            ('owasp-ai-goat-student-deletion-browser-' + NONCE)), executable=CHROME),
             server=dict(address='127.0.0.1', port=4444)))
     captured = dict(version=1, pid=345, pgid=344, sessionId=344,
         uid=os.getuid(), startSec=123, startUsec=456,

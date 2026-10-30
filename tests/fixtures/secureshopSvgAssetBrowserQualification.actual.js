@@ -5,10 +5,10 @@ const http = require('node:http');
 const { createHash } = require('node:crypto');
 const { createSecureShopSvgAssetBrowserQualification } = require('../../server/services/secureshopSvgAssetBrowserQualification');
 const sha = value => createHash('sha256').update(value).digest('hex');
-const marker = 'dvaia-v08-actual-6d379be0';
+const marker = 'owasp-ai-goat-v08-actual-6d379be0';
 const positive = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg"><script>console.log('${marker}')</script></svg>`);
 const noScript = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" onload="console.log('${marker}')"/>`);
-const foreign = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg"><script>if(false){console.log('${marker}')}</script><script>console.log('dvaia-v08-'+'actual-6d379be0')</script></svg>`);
+const foreign = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg"><script>if(false){console.log('${marker}')}</script><script>console.log('owasp-ai-goat-v08-'+'actual-6d379be0')</script></svg>`);
 const changed = Buffer.from(positive); changed[changed.length - 2] ^= 1;
 const assets = new Map([['positive',positive],['no-script',noScript],['foreign-script',foreign],['changed',changed]]);
 function expected(bytes, bodySha256=sha(bytes)){return{byteCount:bytes.length,bodySha256,contentType:'image/svg+xml',contentSecurityPolicy:'sandbox allow-scripts',marker};}

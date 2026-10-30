@@ -12,7 +12,7 @@ const { createConfigSnapshot, CONFIG_SNAPSHOT_VERSION, CONFIG_SNAPSHOT_LIMITS,
 const digest = value => crypto.createHash('sha256').update(value).digest('hex');
 
 async function fixture(t, env, credentials, options = {}) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-config-snapshot-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-config-snapshot-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const envPath = path.join(root, '.env');
   const credentialsPath = path.join(root, 'credentials.json');
@@ -117,7 +117,7 @@ test('missing, empty, malformed, unsupported and oversized sources fail honestly
 
 test('a named pipe is rejected without waiting for a writer', {skip:process.platform==='win32'}, async t => {
   const {execFileSync}=require('node:child_process');
-  const root=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-config-fifo-'));
+  const root=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-config-fifo-'));
   t.after(()=>fs.rm(root,{recursive:true,force:true}));
   const envPath=path.join(root,'.env'),credentialsPath=path.join(root,'credentials.json');
   execFileSync('mkfifo',[envPath]);

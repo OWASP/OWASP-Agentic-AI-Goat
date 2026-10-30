@@ -12,8 +12,8 @@ const {writeLocalDockerAuthority}=require('../../scripts/local-docker-authority'
 const {createSecureShopSystemDiagnosticClient}=require('../../server/services/secureshopSystemDiagnosticClient');
 const root=fs.realpathSync(path.resolve(__dirname,'../..')),out=process.env.SYSTEM_PROVISION_NATIVE_OUT;
 assert.equal(process.env.SYSTEM_PROVISION_NATIVE,'1');assert.ok(out&&root===path.join(fs.realpathSync(out),'source'));
-const host='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock';
-const home='/Users/averma5',id=workspaceId(root),directory=path.join(home,'.dvaia',id);
+const host='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock';
+const home='/Users/averma5',id=workspaceId(root),directory=path.join(home,'.owasp-ai-goat',id);
 const sha=value=>crypto.createHash('sha256').update(value).digest('hex');
 const state={version:1,status:'preparing',workspaceId:id,privateDirectory:directory,containers:[],commands:{},cleanup:{},outerEgressIsolationEstablished:false};
 const persist=()=>fs.writeFileSync(path.join(out,'fixture-result.json'),JSON.stringify(state,null,2)+'\n');
@@ -26,7 +26,7 @@ let privateStat;
 function identity(){const value=managed.load({filePath:path.join(directory,managed.FILE)});return{image:value.imageId,enabled:value.enabled,configToken:sha(value.config.token),diagnosticToken:sha(value.diagnostic.token),restartToken:sha(value.restart.token),bytes:sha(fs.readFileSync(path.join(directory,managed.FILE)))};}
 (async()=>{
  try{
-  assert.equal((await docker(['info','--format','{{.Name}}'])).trim(),'colima-dvaia-pg-verify');
+  assert.equal((await docker(['info','--format','{{.Name}}'])).trim(),'colima-owasp-ai-goat-pg-verify');
   fs.mkdirSync(directory,{mode:0o700});privateStat=fs.lstatSync(directory);state.privateIdentity={dev:privateStat.dev,ino:privateStat.ino};persist();
   const daemonId=JSON.parse((await docker(['info','--format','{{json .ID}}'])).trim());
   const authority={version:1,workspaceId:id,host,daemonId,source:'environment-host',platform:'darwin'};
@@ -35,7 +35,7 @@ function identity(){const value=managed.load({filePath:path.join(directory,manag
   const options={root,home,platform:'darwin',architecture:'arm64',configPort,diagnosticPort,restartPort,run,environment:process.env};
   const execute=async(file,args,o)=>{const r=await run(file,args,{timeoutMs:o.timeout,maxOutputBytes:1048576});assert.equal(r.exitCode,0);return r;};
   const before=fs.readdirSync(directory);const p=await prepare({...options,execute});assert.deepEqual(fs.readdirSync(directory),before);assert.equal(p.mutating,false);assert.equal(p.existing,false);
-  state.authoritySha256=p.dockerAuthoritySha256;state.sourceSha256=p.source.sha256;state.imageTag=`dvaia-owned-system-${id}:local`;state.network=`dvaia-owned-system-${id}-bridge`;state.containers=[p.config.container,p.diagnostic.container,p.restart.container];state.planNonmutating=true;persist();
+  state.authoritySha256=p.dockerAuthoritySha256;state.sourceSha256=p.source.sha256;state.imageTag=`owasp-ai-goat-owned-system-${id}:local`;state.network=`owasp-ai-goat-owned-system-${id}-bridge`;state.containers=[p.config.container,p.diagnostic.container,p.restart.container];state.planNonmutating=true;persist();
   const first=await provision(options);assert.equal(first.ready,true);assert.equal(first.activationEnabled,false);
   state.imageId=first.imageId;state.initialIdentity=identity();assert.equal(state.initialIdentity.enabled,false);
   state.containerIds={};for(const name of state.containers)state.containerIds[name]=(await inspect('container',name)).Id;persist();

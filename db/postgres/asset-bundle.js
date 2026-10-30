@@ -6,7 +6,7 @@ const path = require('node:path');
 const { createHash } = require('node:crypto');
 
 const VERSION = 1;
-const FORMAT = 'dvaia-asset-bundle-v1';
+const FORMAT = 'owasp-ai-goat-asset-bundle-v1';
 const INCOMPLETE = 'INCOMPLETE';
 const MANIFEST = 'manifest.json';
 const FILES_DIR = 'files';

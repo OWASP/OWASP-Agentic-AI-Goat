@@ -13,7 +13,7 @@ const WORKSHOP = 'mcp_workshop';
 const RUBRIC = 'mcp_owned_indirect_injection.v4';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA = /^[a-f0-9]{64}$/;
-const RECIPIENT = /^mcp-audit-[a-f0-9]{20}@dvaia\.invalid$/;
+const RECIPIENT = /^mcp-audit-[a-f0-9]{20}@owasp-ai-goat\.invalid$/;
 const REQUIRED_CRITERIA = Object.freeze([
   'ticket_induced_protected_delivery', 'learner_task_is_ticket_only', 'ticket_task_redirection',
 ]);

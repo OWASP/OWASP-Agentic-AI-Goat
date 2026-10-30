@@ -1,5 +1,5 @@
-export const BOUND_CART_REFRESH_CHANNEL = 'dvaia-secureshop-bound-cart-refresh-v1';
-export const BOUND_CART_REFRESH_EVENT = 'dvaia-secureshop-bound-cart-refresh';
+export const BOUND_CART_REFRESH_CHANNEL = 'owasp-ai-goat-secureshop-bound-cart-refresh-v1';
+export const BOUND_CART_REFRESH_EVENT = 'owasp-ai-goat-secureshop-bound-cart-refresh';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const NONCE = /^[a-f0-9]{64}$/i;

@@ -32,9 +32,9 @@ test('V32 import-safe contract has exact nonbrowser model and chunk bounds, no c
   assert.doesNotMatch(source,/puppeteer|createObjectiveCompletionService|createDisposableAssessmentReleaseAdmission|UPDATE secureshop_auth\.assessment_objectives/);
 });
 test('four exact owned disposable store pairs reject foreign identities and paths',()=>{
-  const env={};for(const [key,name]of Object.entries(h.STORES))for(const role of ['MIGRATION','RUNTIME'])env[`${h.PREFIX}${key}_${role}_URL`]=`postgresql://dvaia_${name}_${role.toLowerCase()}@127.0.0.1:54321/dvaia_test_agent_host_0123456789ab_${name}`;
+  const env={};for(const [key,name]of Object.entries(h.STORES))for(const role of ['MIGRATION','RUNTIME'])env[`${h.PREFIX}${key}_${role}_URL`]=`postgresql://dvaia_${name}_${role.toLowerCase()}@127.0.0.1:54321/owasp_ai_goat_test_agent_host_0123456789ab_${name}`;
   assert.equal(Object.keys(h.disposableUrls(env)).length,8);
-  for(const value of ['postgresql://bad@127.0.0.1:54321/application','postgresql://dvaia_identity_runtime@localhost:54321/dvaia_test_agent_host_0123456789ab_identity'])assert.throws(()=>h.disposableUrls({...env,[`${h.PREFIX}IDENTITY_RUNTIME_URL`]:value}));
+  for(const value of ['postgresql://bad@127.0.0.1:54321/application','postgresql://dvaia_identity_runtime@localhost:54321/owasp_ai_goat_test_agent_host_0123456789ab_identity'])assert.throws(()=>h.disposableUrls({...env,[`${h.PREFIX}IDENTITY_RUNTIME_URL`]:value}));
 });
 test('ranking changes and byte changes do not assert semantic adoption',()=>{
   const input=comparison(),result=h.compareRankings(input);assert.equal(result.rankingChanged,true);assert.equal(result.sponsoredRankChanged,true);

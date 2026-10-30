@@ -97,7 +97,7 @@ test('fixed mode produces the strict rubric without changing the observed packet
 
 // Opt-in, Judge-only calibration of two retained packets. This neither runs an
 // Audit actor nor writes an objective verdict or learner progress.
-if (process.env.DVAIA_AUDIT_JUDGE_70B === '1') test('retained Audit packets: live 70B Judge comparison', async () => {
+if (process.env.OWASP_AI_GOAT_AUDIT_JUDGE_70B === '1') test('retained Audit packets: live 70B Judge comparison', async () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const { createObjectiveJudge, prepareJudgeInput } = require('../server/agent-runtime/objectiveJudge');

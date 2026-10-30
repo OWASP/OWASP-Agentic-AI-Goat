@@ -54,7 +54,7 @@ async function prepareInprocessAdmissionInternal({lease,root,homeDirectory,admin
  if(require('../database/postgres').getPoolBudgetSnapshot().reserved!==1)throw failure();
  const canonical=fs.realpathSync(root);if(canonical!==path.resolve(__dirname,'../..')||root!==canonical)throw failure();
  const sourceRoot=root;if(launch){root=launch.installation.installationRoot;homeDirectory=launch.installation.homeDirectory;launch.assertCurrent();}
- const directory=path.join(fs.realpathSync(homeDirectory),'.dvaia',hash(root).slice(0,12));
+ const directory=path.join(fs.realpathSync(homeDirectory),'.owasp-ai-goat',hash(root).slice(0,12));
  const sourceManifestSha256=sourceBinding(sourceRoot),config=require('../../scripts/lib/application-maintenance-plan-configuration').loadMaintenancePlanConfiguration({root,homeDirectory,adminUrl});
  if(!config.deliveryManifestPath)throw failure();
  const files=['administrator.json','provisioning.json','ctf-delivery.json'];const retained=new Map(files.map(name=>[name,privateRead(path.join(directory,name))]));

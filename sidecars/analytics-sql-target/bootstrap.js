@@ -34,7 +34,7 @@ async function initializeControl({pool,identity,requiredVersion=1}) {
  await createClusterVerifier(pool,identity).verify();
  const client=await pool.connect();let applied=0;
  try {
-  await client.query('BEGIN');await client.query("SELECT pg_advisory_xact_lock(hashtextextended('dvaia-owned-analytics-control-schema-v1',0))");
+  await client.query('BEGIN');await client.query("SELECT pg_advisory_xact_lock(hashtextextended('owasp-ai-goat-owned-analytics-control-schema-v1',0))");
   await client.query('SET LOCAL search_path=public,pg_catalog');
   const exists=(await client.query("SELECT to_regclass('public.owned_analytics_schema_migrations') AS ledger")).rows[0]?.ledger;
   if(exists){

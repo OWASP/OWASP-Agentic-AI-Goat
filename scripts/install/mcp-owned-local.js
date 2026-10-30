@@ -14,7 +14,7 @@ const { assertPlatformSigningConfiguration } = require('../../server/services/pl
 const { KEYS, managedConfigurationPath, parseManagedConfiguration } = require('../../server/services/mcp/ownedManagedConfiguration');
 
 const TOKEN = /^[A-Za-z0-9_-]{43,128}$/;
-const PROFILE = 'dvaia-mcp-sandbox';
+const PROFILE = 'owasp-ai-goat-mcp-sandbox';
 const MANAGED = Object.freeze({
   MCP_OWNED_TARGET_APPARMOR_PROFILE: PROFILE,
   MCP_OWNED_TARGET_PORT: '8092',
@@ -167,10 +167,10 @@ async function prepareOwnedManagedConfiguration({ envPath, managedPath,
 
 function localProfilePlan({ platform = process.platform, root = path.resolve(__dirname, '../..'),
   home = os.homedir(), colimaProfile, ownedLabSession } = {}) {
-  const template = path.join(root, 'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in');
+  const template = path.join(root, 'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in');
   const renderer = path.join(root, 'scripts/render-mcp-sandbox-apparmor.js');
   if (platform === 'linux') return Object.freeze({ platform, profile: PROFILE, template, renderer,
-    destination: '/etc/apparmor.d/dvaia-mcp-sandbox', dockerHost: 'unix:///var/run/docker.sock',
+    destination: '/etc/apparmor.d/owasp-ai-goat-mcp-sandbox', dockerHost: 'unix:///var/run/docker.sock',
     privilegedSteps: 'sudo-non-interactive' });
   if (platform === 'darwin') {
     if (typeof colimaProfile !== 'string' || !/^colima-[a-z0-9][a-z0-9-]{0,47}$/.test(colimaProfile)) {
@@ -178,7 +178,7 @@ function localProfilePlan({ platform = process.platform, root = path.resolve(__d
     }
     return Object.freeze({ platform, profile: PROFILE, template, renderer, colimaProfile,
       sshConfig: path.join(home, '.colima/_lima', colimaProfile, 'ssh.config'),
-      sshHost: `lima-${colimaProfile}`, destination: '/etc/apparmor.d/dvaia-mcp-sandbox',
+      sshHost: `lima-${colimaProfile}`, destination: '/etc/apparmor.d/owasp-ai-goat-mcp-sandbox',
       dockerHost: `unix://${path.join(home, '.colima', colimaProfile.slice('colima-'.length), 'docker.sock')}`,
       privilegedSteps: 'remote-sudo-non-interactive' });
   }

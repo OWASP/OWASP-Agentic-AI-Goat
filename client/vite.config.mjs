@@ -31,7 +31,7 @@ function repositoryPrivateEnvDirectory(real, sourceRoot) {
 }
 function privateEnvDirectory(value) {
   if (value === undefined) return undefined;
-  if (!path.isAbsolute(value)) throw new Error('DVAIA_VITE_ENV_DIR must be absolute');
+  if (!path.isAbsolute(value)) throw new Error('OWASP_AI_GOAT_VITE_ENV_DIR must be absolute');
   const resolved = path.resolve(value);
   const stat = fs.lstatSync(resolved);
   const real = fs.realpathSync(resolved);
@@ -40,7 +40,7 @@ function privateEnvDirectory(value) {
     || stat.uid !== process.getuid?.() || (stat.mode & 0o077)
     || real === sourceRoot || (real.startsWith(`${sourceRoot}${path.sep}`)
       && !repositoryPrivateEnvDirectory(real, sourceRoot))) {
-    throw new Error('DVAIA_VITE_ENV_DIR must be a private owned real directory outside source');
+    throw new Error('OWASP_AI_GOAT_VITE_ENV_DIR must be a private owned real directory outside source');
   }
   return real;
 }
@@ -58,7 +58,7 @@ function localCommonJsCompatibility() {
   const adminDashboard = path.join(clientRoot, 'src/pages/ComprehensiveAdminDashboard.js');
 
   return {
-    name: 'dvaia-local-commonjs-compatibility',
+    name: 'owasp-ai-goat-local-commonjs-compatibility',
     enforce: 'pre',
     transform(code, id) {
       const filename = id.split('?')[0];
@@ -81,7 +81,7 @@ function localCommonJsCompatibility() {
 
 function jsxInJavaScript() {
   return {
-    name: 'dvaia-jsx-in-javascript',
+    name: 'owasp-ai-goat-jsx-in-javascript',
     enforce: 'pre',
     async transform(code, id) {
       if (!id.startsWith(path.join(clientRoot, 'src')) || !id.endsWith('.js')) return null;
@@ -105,7 +105,7 @@ function proxy(timeout, target) {
 }
 
 export default defineConfig(({ mode, command }) => {
-  const envDir = privateEnvDirectory(process.env.DVAIA_VITE_ENV_DIR);
+  const envDir = privateEnvDirectory(process.env.OWASP_AI_GOAT_VITE_ENV_DIR);
   const env = loadEnv(mode, envDir ?? clientRoot, '');
   const applicationEnv = loadEnv(mode, envDir ?? path.resolve(clientRoot, '..'), '');
   // loadEnv also sets VITE_USER_NODE_ENV from the backend .env. Keep the
@@ -117,7 +117,7 @@ export default defineConfig(({ mode, command }) => {
   // production value as an unsupported .env setting.
   process.env.VITE_USER_NODE_ENV = '';
   const backendPort = configuredPort(process.env.PORT || applicationEnv.PORT || 8081, 'PORT');
-  const clientPort = configuredPort(process.env.DVAIA_CLIENT_PORT || applicationEnv.DVAIA_CLIENT_PORT || 3000, 'DVAIA_CLIENT_PORT');
+  const clientPort = configuredPort(process.env.OWASP_AI_GOAT_CLIENT_PORT || applicationEnv.OWASP_AI_GOAT_CLIENT_PORT || 3000, 'OWASP_AI_GOAT_CLIENT_PORT');
   const backendTarget = `http://127.0.0.1:${backendPort}`;
   const craEnvironment = Object.fromEntries(
     Object.entries(env).filter(([key]) => key.startsWith('REACT_APP_')),

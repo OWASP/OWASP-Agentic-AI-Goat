@@ -4,7 +4,7 @@
 $ErrorActionPreference = 'Stop'
 Add-Type -Path (Join-Path $PSScriptRoot '../scripts/windows/windows-private-state.cs')
 $flags = [System.Reflection.BindingFlags]::NonPublic -bor [System.Reflection.BindingFlags]::Static
-$method = [Dvaia.WindowsPrivateState].GetMethod('AncestorAclIsSafe', $flags)
+$method = [OwaspAiGoat.WindowsPrivateState].GetMethod('AncestorAclIsSafe', $flags)
 $user = 'S-1-5-21-101-102-103-1001'
 $other = 'S-1-5-21-101-102-103-1002'
 $trusted = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)

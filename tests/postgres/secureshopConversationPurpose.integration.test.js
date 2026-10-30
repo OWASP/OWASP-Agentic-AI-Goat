@@ -32,7 +32,7 @@ const PURPOSES = Object.freeze(Object.values(SECURESHOP_CONVERSATION_PURPOSES));
 function ownedUrl(name) {
   const value = new URL(process.env[name]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 function binding() {

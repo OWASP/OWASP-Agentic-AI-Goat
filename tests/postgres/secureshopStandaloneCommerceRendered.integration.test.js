@@ -42,7 +42,7 @@ function disposableUrls() {
       assert.ok(Number(url.port) <= 65535);
       assert.equal(url.username, `dvaia_${name}_${role.toLowerCase()}`);
       assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-      const match = new RegExp(`^/dvaia_test_agent_host_([0-9a-f]{12})_${name}$`).exec(url.pathname);
+      const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([0-9a-f]{12})_${name}$`).exec(url.pathname);
       assert.ok(match, `${key} must be an owned disposable store`);
       nonce ??= match[1]; port ??= url.port;
       assert.equal(match[1], nonce); assert.equal(url.port, port);
@@ -620,7 +620,7 @@ async function qualifyRoleButtons(page, surface, role, samples, receiptPath) {
 
 test('standalone commerce renders gallery, imports guest cart, and verifies one checkout across reload',
   { skip: !ENABLED, timeout: 330000 }, async () => {
-    const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
+    const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/');
     assert.equal(workspace, process.cwd(), 'qualification requires the current checkout');
     const receiptPath = process.env.SECURESHOP_STANDALONE_COMMERCE_EVIDENCE_PATH || '';
     assert.ok(path.isAbsolute(receiptPath));
@@ -834,9 +834,9 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       app.use((request, _response, next) => {
         if (/^\/api\/secureshop\/auth\/practices(?:\/[0-9a-f-]{36})?$/.test(request.path))
           practiceTraffic.push({ method: request.method, path: request.path,
-            operationId: request.body?.operationId || null, cookie: /(?:^|;)\s*dvaia_shop_session=/.test(request.headers.cookie || ''),
+            operationId: request.body?.operationId || null, cookie: /(?:^|;)\s*owasp_ai_goat_shop_session=/.test(request.headers.cookie || ''),
             authorization: request.headers.authorization || null,
-            launch: request.headers['x-dvaia-secureshop-launch'] || null });
+            launch: request.headers['x-owasp-ai-goat-secureshop-launch'] || null });
         if (request.method === 'POST' && request.path === '/api/secureshop/email/send')
           mailPosts.push({ requestId: request.body?.requestId });
         if (request.method === 'POST' && request.path === '/api/secureshop/admin/policies')
@@ -903,7 +903,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
           }
           return realPractices.create(...args);
         } });
-      resetKeyDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-commerce-reset-keys-'));
+      resetKeyDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-commerce-reset-keys-'));
       await fs.chmod(resetKeyDirectory, 0o700);
       const resetKeyFile = path.join(resetKeyDirectory, 'keys.json');
       await fs.writeFile(resetKeyFile, JSON.stringify({ version: 1, activeKeyId: 'native',
@@ -951,7 +951,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       // A bound request must terminate in the bound dispatcher. This sentinel
       // makes accidental fall-through to a later legacy mount observable.
       app.use('/api/secureshop', (request, response, next) => {
-        if (request.headers['x-dvaia-secureshop-launch']) {
+        if (request.headers['x-owasp-ai-goat-secureshop-launch']) {
           legacyBoundFallbackHits += 1;
           return response.status(200).json({ legacy: true });
         }
@@ -964,7 +964,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       app.use(express.static(build, { setHeaders: response => response.set('Access-Control-Allow-Origin', '*') }));
       app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
 
-      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-standalone-commerce-'));
+      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-standalone-commerce-'));
       browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
         executablePath, args: browserAdmission ? browserAdmission.browserArgs({ profile, origin, externalMail: externalMailOptIn }) : [] });
       if (browserAdmission) await browserAdmission.acknowledgeBrowser({ browser, profile });
@@ -994,13 +994,13 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
           const headers = request.headers();
           if (request.method() === 'GET'
             && url.pathname === '/api/secureshop/merchant/listings/readiness'
-            && headers.authorization && headers['x-dvaia-secureshop-launch']) {
+            && headers.authorization && headers['x-owasp-ai-goat-secureshop-launch']) {
             boundAuthority = Object.freeze({ authorization: headers.authorization,
-              launch: headers['x-dvaia-secureshop-launch'] });
+              launch: headers['x-owasp-ai-goat-secureshop-launch'] });
           }
           guestRequests.push({ stage, method: request.method(), path: `${url.pathname}${url.search}`,
             authorization: Object.hasOwn(headers, 'authorization'),
-            launch: Object.hasOwn(headers, 'x-dvaia-secureshop-launch') });
+            launch: Object.hasOwn(headers, 'x-owasp-ai-goat-secureshop-launch') });
         }
       });
       const settleGuestApiRequest = request => {
@@ -1127,7 +1127,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       stage = 'a08-landing-buttons';
       await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
       const parentCanary = `guest-parent-${randomUUID()}`;
-      await page.evaluate(value => localStorage.setItem('dvaia.guest-isolation-canary', value), parentCanary);
+      await page.evaluate(value => localStorage.setItem('owasp-ai-goat.guest-isolation-canary', value), parentCanary);
       assert.ok([200, 304].includes((await page.goto(`${origin}/secureshop`)).status()));
       const landingFrame = await stableFrame(page, 'SecureShop storefront');
       await qualifyRoleButtons(page, landingFrame, 'landing', [
@@ -1242,8 +1242,8 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       assert.deepEqual(guestBoundary, { opaqueOrigin: true, ownLocalStorageBlocked: true,
         ownSessionStorageBlocked: true, parentDocumentBlocked: true,
         parentStorageBlocked: true, canaryVisible: false });
-      assert.equal(await page.evaluate(() => localStorage.getItem('dvaia.guest-isolation-canary')), parentCanary);
-      await page.evaluate(() => localStorage.removeItem('dvaia.guest-isolation-canary'));
+      assert.equal(await page.evaluate(() => localStorage.getItem('owasp-ai-goat.guest-isolation-canary')), parentCanary);
+      await page.evaluate(() => localStorage.removeItem('owasp-ai-goat.guest-isolation-canary'));
       status.guestOpaqueIsolation = true;
 
       // G20 begins with the real guest frame/cart channel. Parent session
@@ -1257,12 +1257,12 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       await guestFrame.evaluate(() => [...document.querySelectorAll('button')]
         .find(button => button.textContent.trim() === 'Add to cart').click());
       await page.waitForFunction(productId => {
-        const raw = sessionStorage.getItem('dvaia.secureshop.guest-cart.v1');
+        const raw = sessionStorage.getItem('owasp-ai-goat.secureshop.guest-cart.v1');
         if (!raw) return false;
         try { return JSON.parse(raw).items.some(item => item.productId === productId && item.quantity === 1); }
         catch { return false; }
       }, {}, Number(stocked.product_id));
-      const guestSaved = await page.evaluate(() => sessionStorage.getItem('dvaia.secureshop.guest-cart.v1'));
+      const guestSaved = await page.evaluate(() => sessionStorage.getItem('owasp-ai-goat.secureshop.guest-cart.v1'));
       assert.ok(guestSaved);
       const importResponses = [];
       const cartReadbacks = [];
@@ -1312,7 +1312,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
           route: location.pathname,
           savedCart: document.querySelector('aside[aria-label="Saved guest cart"]')?.textContent.trim().slice(0, 500) || null,
           frameTitles: [...document.querySelectorAll('iframe')].map(frame => frame.title).slice(0, 3),
-          savedIntentPresent: sessionStorage.getItem('dvaia.secureshop.guest-cart.v1') !== null,
+          savedIntentPresent: sessionStorage.getItem('owasp-ai-goat.secureshop.guest-cart.v1') !== null,
         }));
         const response = await Promise.all(importResponses.map(async value => {
           const body = await value.json().catch(() => null);
@@ -1337,7 +1337,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       const imported = await importResponses[0].json();
       assert.equal(imported.imported, true);
       assert.equal(imported.items.find(item => item.productId === Number(stocked.product_id))?.quantity, 1);
-      assert.equal(await page.evaluate(() => sessionStorage.getItem('dvaia.secureshop.guest-cart.v1')), null,
+      assert.equal(await page.evaluate(() => sessionStorage.getItem('owasp-ai-goat.secureshop.guest-cart.v1')), null,
         'guest intent clears only after the bound cart readback');
       const customerFrame = await stableFrame(page);
       await customerFrame.evaluate(() => {
@@ -1495,7 +1495,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       status.checkoutRecovered = true;
       stage = 'commerce-role-readback';
       const cookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.equal(cookie?.httpOnly, true);
       const buyerBase = await auth.authenticate(cookie.value);
       assert.ok(buyerBase);
@@ -1952,7 +1952,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
 
       stage = 'admin-audit-seed';
       const adminCookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.equal(adminCookie?.httpOnly, true);
       const currentAdmin = await actor(await auth.authenticate(adminCookie.value));
       stage = 'admin-synthetic-lookup';
@@ -2100,7 +2100,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       assert.equal(await workStep('registered-admin-old-cookie', () => auth.authenticate(siblingAccount.token), 10000),
         null, 'old target cookie is revoked');
       const oldSession = await workStep('registered-admin-old-session-http', () => fetch(`${origin}/api/secureshop/auth/session`, {
-        headers: { cookie: `dvaia_shop_session=${siblingAccount.token}` } }), 10000);
+        headers: { cookie: `owasp_ai_goat_shop_session=${siblingAccount.token}` } }), 10000);
       assert.equal(oldSession.status, 200);
       assert.deepEqual(await workStep('registered-admin-old-session-json', () => oldSession.json(), 10000),
         { authenticated: false, user: null });
@@ -2154,7 +2154,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       assert.deepEqual(await workStep('registered-admin-reset-ack-json', () => ackHttp.json(), 10000),
         { ok: true, receipt: resetReceipt, secretAvailable: false });
       await workStep('registered-admin-reset-ack-render', () => page.waitForFunction(() => !document.querySelector('output[aria-label="Temporary password"]')
-        && !sessionStorage.getItem('dvaia.secureshop.admin-password-reset.v1'), { timeout: 20000 }));
+        && !sessionStorage.getItem('owasp-ai-goat.secureshop.admin-password-reset.v1'), { timeout: 20000 }));
       privateResetRevealPending = false;
       markStage('registered-admin-reset-verify');
       const deniedReveal = await workStep('registered-admin-reset-denied-reveal-http', () => page.evaluate(async endpoint => (await fetch(endpoint, { method: 'POST',
@@ -2170,7 +2170,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       assert.equal(changedLogin.status, 200, 'new private credential authenticates through the production route');
       const changedUser = await workStep('registered-admin-new-login-json', () => changedLogin.json(), 10000);
       assert.equal(changedUser.authenticated, true); assert.equal(changedUser.user.id, targetId);
-      const newCookie = changedLogin.headers.get('set-cookie')?.match(/dvaia_shop_session=([^;]+)/)?.[1];
+      const newCookie = changedLogin.headers.get('set-cookie')?.match(/owasp_ai_goat_shop_session=([^;]+)/)?.[1];
       assert.ok(newCookie, 'successful changed-password login issued a new private cookie');
       await workStep('registered-admin-new-logout', () => auth.logout(decodeURIComponent(newCookie)), 10000);
       const resetRows = (await workStep('registered-admin-reset-row-query', () => pools.IDENTITY_MIGRATION.query(`SELECT receipt_json FROM
@@ -2184,7 +2184,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         === JSON.stringify(untouchedCredentials), true,
         'buyer, merchant and administrator credentials are unchanged');
       assert.equal((await workStep('registered-admin-cookie-check', () => page.cookies(`${origin}/api/secureshop/auth/session`), 10000))
-        .find(value => value.name === 'dvaia_shop_session')?.value === adminCookie.value, true,
+        .find(value => value.name === 'owasp_ai_goat_shop_session')?.value === adminCookie.value, true,
       'target reset leaves the browser administrator session intact');
       assert.equal(apiStatuses.filter(event => event.method === 'POST' && event.path === `${resetPath}/reset-password`).length, 1);
       status.registeredAdminResetRenderedPrivate = true;
@@ -2384,7 +2384,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
           assert.equal(loginUser.user.id, targetId);
           assert.equal(loginUser.user.role, 'merchant');
           const token = loginHttp.headers.get('set-cookie')
-            ?.match(/dvaia_shop_session=([^;]+)/)?.[1];
+            ?.match(/owasp_ai_goat_shop_session=([^;]+)/)?.[1];
           assert.ok(token);
           const freshBound = await bootstrap(await auth.authenticate(decodeURIComponent(token)));
           assert.equal(freshBound.persona.user.id, targetId);
@@ -2720,7 +2720,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         await page.type('#ss-login-pw', role === 'customer' ? password : 'student123');
         await page.click('button[type="submit"]'); await stableFrame(page);
         const mailCookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-          .find(value => value.name === 'dvaia_shop_session');
+          .find(value => value.name === 'owasp_ai_goat_shop_session');
         assert.equal(mailCookie?.httpOnly, true);
         const mailActor = await actor(await auth.authenticate(mailCookie.value));
         assert.equal(mailActor.persona.role, role);
@@ -2976,7 +2976,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         }
       };
       const listingsCookie = (await listingStep('cookie', () => page.cookies(`${origin}/api/secureshop/auth/session`)))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.equal(listingsCookie?.httpOnly, true);
       const listingsBase = await listingStep('authenticate', () => auth.authenticate(listingsCookie.value));
       const listingsMerchant = await listingStep('actor', () => actor(listingsBase));
@@ -3050,7 +3050,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
           const response = await fetch(path, {
             method,
             headers: { Authorization: authority.authorization,
-              'X-DVAIA-SecureShop-Launch': authority.launch,
+              'X-OWASP-AI-GOAT-SecureShop-Launch': authority.launch,
               ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
             ...(body === undefined ? {} : { body: JSON.stringify(body) }),
           });
@@ -3100,7 +3100,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       await page.click('button[type="submit"]');
       await stableFrame(page);
       const oldCustomerCookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.equal(oldCustomerCookie?.httpOnly, true);
       const oldCustomerPrincipal = await auth.authenticate(oldCustomerCookie.value);
       assert.equal(oldCustomerPrincipal?.shopUserId, buyerBase.shopUserId);
@@ -3181,7 +3181,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         'real browser clipboard holds the revealed first key');
       const apiOrders = async (key, bearer, detail) => {
         const response = await fetch(`${origin}/api/secureshop/v2/api/orders${detail ? `/${detail}` : ''}`, {
-          headers: { 'x-api-key': key, 'x-dvaia-secureshop-launch': bearer },
+          headers: { 'x-api-key': key, 'x-owasp-ai-goat-secureshop-launch': bearer },
           signal: AbortSignal.timeout(5000),
         });
         return { status: response.status, body: await response.json() };
@@ -3296,7 +3296,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       const changedCustomer = await newPasswordLogin.json();
       assert.equal(changedCustomer.user.id, buyerBase.shopUserId);
       const changedCookie = newPasswordLogin.headers.get('set-cookie')
-        ?.match(/dvaia_shop_session=([^;]+)/)?.[1];
+        ?.match(/owasp_ai_goat_shop_session=([^;]+)/)?.[1];
       assert.ok(changedCookie);
       await auth.logout(decodeURIComponent(changedCookie));
       assert.equal(JSON.stringify(await otherPrincipals()) === JSON.stringify(beforeSelfChange), true,
@@ -3340,8 +3340,8 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       pageB.on('request', request => {
         if (request.method() !== 'GET' || new URL(request.url()).pathname !== '/api/secureshop/cart') return;
         const headers = request.headers();
-        if (headers['x-dvaia-secureshop-launch'] && /^Bearer \S+$/.test(headers.authorization || '')) {
-          sessionBBoundHeaders = { launch: headers['x-dvaia-secureshop-launch'],
+        if (headers['x-owasp-ai-goat-secureshop-launch'] && /^Bearer \S+$/.test(headers.authorization || '')) {
+          sessionBBoundHeaders = { launch: headers['x-owasp-ai-goat-secureshop-launch'],
             persona: headers.authorization.slice('Bearer '.length) };
         }
       });
@@ -3355,7 +3355,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       await pageB.waitForFunction(() => location.pathname === '/secureshop/cart',
         { timeout: 20000 });
       const cookieB = (await pageB.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.ok(cookieB?.httpOnly && cookieB.value !== sessionA.token);
       const baseB = await auth.authenticate(cookieB.value);
       assert.ok(baseB);
@@ -3411,14 +3411,14 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         'same live B execution replays the exact committed checkout receipt');
       assert.equal((await postAsB({ ...parallelIntent, shipping_address: 'Changed intent' })).status, 409);
       const currentReceiptA = await fetch(`${origin}/api/secureshop/orders/operations/${parallelOperationId}`,
-        { headers: { cookie: `dvaia_shop_session=${sessionA.token}`,
-          'x-dvaia-secureshop-launch': credentialsA.bearer,
+        { headers: { cookie: `owasp_ai_goat_shop_session=${sessionA.token}`,
+          'x-owasp-ai-goat-secureshop-launch': credentialsA.bearer,
           authorization: `Bearer ${credentialsA.persona.token}` } });
       assert.equal(currentReceiptA.status, 200, 'A is still authorized before its logout');
       assert.equal((await currentReceiptA.json()).order.id, parallelOrderId);
       const replayFromA = await fetch(`${origin}/api/secureshop/orders`, { method: 'POST',
-        headers: { origin, cookie: `dvaia_shop_session=${sessionA.token}`,
-          'x-dvaia-secureshop-launch': credentialsA.bearer,
+        headers: { origin, cookie: `owasp_ai_goat_shop_session=${sessionA.token}`,
+          'x-owasp-ai-goat-secureshop-launch': credentialsA.bearer,
           authorization: `Bearer ${credentialsA.persona.token}`,
           'content-type': 'application/json' }, body: JSON.stringify(parallelIntent) });
       assert.equal(replayFromA.status, 409,
@@ -3443,8 +3443,8 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       assert.equal(await auth.authenticate(sessionA.token), null);
       await assert.rejects(composition.commerce.cart(actorA));
       const deniedA = await fetch(`${origin}/api/secureshop/orders/operations/${parallelOperationId}`,
-        { headers: { cookie: `dvaia_shop_session=${sessionA.token}`,
-          'x-dvaia-secureshop-launch': credentialsA.bearer,
+        { headers: { cookie: `owasp_ai_goat_shop_session=${sessionA.token}`,
+          'x-owasp-ai-goat-secureshop-launch': credentialsA.bearer,
           authorization: `Bearer ${credentialsA.persona.token}` } });
       assert.equal(deniedA.status, 401);
       const retainedB = await ordersB.evaluate(async operationId => {
@@ -3460,13 +3460,13 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       assert.deepEqual((await composition.commerce.cart(actorSibling)).items, []);
       assert.deepEqual(await composition.commerce.orders(actorSibling), []);
       const siblingReceipt = await fetch(`${origin}/api/secureshop/orders/operations/${parallelOperationId}`,
-        { headers: { cookie: `dvaia_shop_session=${parallelSibling.token}`,
-          'x-dvaia-secureshop-launch': parallelSiblingCredentials.bearer,
+        { headers: { cookie: `owasp_ai_goat_shop_session=${parallelSibling.token}`,
+          'x-owasp-ai-goat-secureshop-launch': parallelSiblingCredentials.bearer,
           authorization: `Bearer ${parallelSiblingCredentials.persona.token}` } });
       assert.equal(siblingReceipt.status, 404);
       const replayFromSibling = await fetch(`${origin}/api/secureshop/orders`, { method: 'POST',
-        headers: { origin, cookie: `dvaia_shop_session=${parallelSibling.token}`,
-          'x-dvaia-secureshop-launch': parallelSiblingCredentials.bearer,
+        headers: { origin, cookie: `owasp_ai_goat_shop_session=${parallelSibling.token}`,
+          'x-owasp-ai-goat-secureshop-launch': parallelSiblingCredentials.bearer,
           authorization: `Bearer ${parallelSiblingCredentials.persona.token}`,
           'content-type': 'application/json' }, body: JSON.stringify(parallelIntent) });
       assert.equal(replayFromSibling.status, 409);
@@ -3544,7 +3544,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       }
       await stableFrame(productPage);
       const guardCookie = (await productPage.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.ok(guardCookie?.httpOnly && guardCookie.value);
       const guardBase = await auth.authenticate(guardCookie.value);
       assert.ok(guardBase?.principalId);
@@ -3575,7 +3575,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       assert.equal(await guardFrame.$eval(guardCartLine,
         link => link.closest('tr')?.querySelector('input.ss-qty__val')?.value), '1');
       const guardSnapshotInput = {
-        scopeKey: `dvaia:secureshop:${guardBootstrap.launch.launchId.toLowerCase()}:${guardBootstrap.launch.generation}`,
+        scopeKey: `owasp-ai-goat:secureshop:${guardBootstrap.launch.launchId.toLowerCase()}:${guardBootstrap.launch.generation}`,
         sceneId: guardPractice.id.toLowerCase(), allowedFields: allowedSnapshotFields,
         summaryKey: shopStateNames.SHOP_PRODUCT_SUMMARY_KEY,
       };
@@ -3593,7 +3593,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         && row.path === `/api/secureshop/products/${guardProduct.product_id}/summary`),
       'the retained Product reference follows its real summary request');
       const guardReferenceHandle = await productPage.evaluateHandle(practiceSummaryReference, guardSnapshotInput);
-      const guardReferenceKey = `dvaia:secureshop:practice-admission:v1:${guardBase.principalId.toLowerCase()}`;
+      const guardReferenceKey = `owasp-ai-goat:secureshop:practice-admission:v1:${guardBase.principalId.toLowerCase()}`;
       try {
         assert.equal(await productPage.evaluate(key => localStorage.getItem(key), guardReferenceKey), null);
         const guardPostsBefore = practiceTraffic.filter(row => row.method === 'POST').length;
@@ -3666,11 +3666,11 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       }
       await stableFrame(practicePage);
       const practiceCookie = (await practicePage.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.ok(practiceCookie?.httpOnly && practiceCookie.value);
       const practiceBase = await auth.authenticate(practiceCookie.value);
       assert.ok(practiceBase?.principalId);
-      const referenceKey = `dvaia:secureshop:practice-admission:v1:${practiceBase.principalId.toLowerCase()}`;
+      const referenceKey = `owasp-ai-goat:secureshop:practice-admission:v1:${practiceBase.principalId.toLowerCase()}`;
       const beforePractice = await bootstrap(practiceBase);
       const beforePracticeScope = await composition.launches.resolveCapability(beforePractice.bearer);
       const beforePracticeScenes = await scenes.list(beforePracticeScope);
@@ -3716,7 +3716,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       // Controlled native-storage failure must keep the original frame and
       // never dispatch A18. It is restored before the real admission.
       const snapshotMetadata = await practicePage.evaluate(practiceSnapshotMetadata, {
-        scopeKey: `dvaia:secureshop:${beforePractice.launch.launchId.toLowerCase()}:${beforePractice.launch.generation}`,
+        scopeKey: `owasp-ai-goat:secureshop:${beforePractice.launch.launchId.toLowerCase()}:${beforePractice.launch.generation}`,
         sceneId: originalPractice.id.toLowerCase(), allowedFields: allowedSnapshotFields,
         summaryKey: shopStateNames.SHOP_PRODUCT_SUMMARY_KEY,
       });
@@ -3731,7 +3731,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       await practicePage.evaluate(() => {
         window.__practiceSetItem = Storage.prototype.setItem;
         Storage.prototype.setItem = function(key, value) {
-          if (String(key).startsWith('dvaia:secureshop:practice-admission:v1:'))
+          if (String(key).startsWith('owasp-ai-goat:secureshop:practice-admission:v1:'))
             throw new DOMException('Controlled parent storage denial', 'SecurityError');
           return window.__practiceSetItem.call(this, key, value);
         };
@@ -3814,7 +3814,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
       assert.deepEqual(JSON.parse(await practicePage.evaluate(key => localStorage.getItem(key), referenceKey)),
         { version: 1, operationId: published.request.operationId });
       assert.equal((await practicePage.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session')?.value, practiceCookie.value);
+        .find(value => value.name === 'owasp_ai_goat_shop_session')?.value, practiceCookie.value);
       assert.equal(practiceTraffic.filter(row => row.method === 'POST').length, capacityPostBefore + 2,
         'only the controlled 409 and one committed publication were posted');
       status.renderedNewPracticeSameCookie = true;
@@ -3901,7 +3901,7 @@ test('standalone commerce renders gallery, imports guest cart, and verifies one 
         link => link.closest('tr')?.querySelector('input.ss-qty__val')?.value), '1',
       'returning to the prior scene and reloading preserves the UI-written cart');
       assert.equal((await practicePage.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session')?.value, practiceCookie.value);
+        .find(value => value.name === 'owasp_ai_goat_shop_session')?.value, practiceCookie.value);
       assert.equal((await scenes.readExisting(afterPracticeScope)).targetId, originalTarget.targetId,
         'the returned scene resolves the original product target under current authority');
       assert.equal((await identity.query(`SELECT product_target_id FROM identity.secureshop_scenes

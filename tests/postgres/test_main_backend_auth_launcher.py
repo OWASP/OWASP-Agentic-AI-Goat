@@ -23,7 +23,7 @@ class Auth(unittest.TestCase):
   m.validate_original_case(SimpleNamespace(scenario='prospective-original',main_workspace=True,entry_case=None,original_case=None))
  def test_publication_precedes_release_and_no_copy_sentinel(self):
   text=p.read_text();self.assertLess(text.index("state['nativePid']=child.pid;record()"),text.index("child.stdin.write(b'1')"))
-  self.assertIn("env.pop('DVAIA_ISOLATED_TEST_WORKSPACE',None)",text)
+  self.assertIn("env.pop('OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE',None)",text)
 class Logs(unittest.TestCase):
  def test_aggregate_includes_backend_logs_after_exit(self):
   evidence=Path('/owned/evidence')

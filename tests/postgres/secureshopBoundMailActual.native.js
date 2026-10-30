@@ -4,7 +4,7 @@ const {migrate}=require('../../db/postgres/migrate');
 const {mailQualificationOptions,authenticateMailPersona,mailSourceEnvelope}=require('../fixtures/secureshopMailQualificationContracts');
 (async()=>{
  assert.equal(process.env.MAIL_NATIVE,'1');const pools=[];let transport,built,server;
- const pool=(label,role)=>{const u=new URL(process.env[`MAIL_${label}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_mail_[a-f0-9]+_/);const p=new Pool({connectionString:u.href,max:4,statement_timeout:10000});pools.push(p);return p;};
+ const pool=(label,role)=>{const u=new URL(process.env[`MAIL_${label}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_mail_[a-f0-9]+_/);const p=new Pool({connectionString:u.href,max:4,statement_timeout:10000});pools.push(p);return p;};
  try{
  const identity=pool('IDENTITY','RUNTIME'),im=pool('IDENTITY','MIGRATION'),agents=pool('AGENTS','RUNTIME'),am=pool('AGENTS','MIGRATION'),commerce=pool('COMMERCE','RUNTIME'),cm=pool('COMMERCE','MIGRATION'),review=pool('REVIEW','RUNTIME'),rm=pool('REVIEW','MIGRATION'),lease=pool('IDENTITY','RUNTIME');
  await migrate(im,'db/postgres/identity-migrations');await require('../../server/database/postgres/workshopPlatformSeed').seedWorkshopPlatform(im);await migrate(cm,'db/postgres/workshop-migrations/secureshop');await require('../../server/database/postgres/secureshopSeed').seedSecureShop(cm);

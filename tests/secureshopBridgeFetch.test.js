@@ -58,7 +58,7 @@ test('closed adapter rejects external/platform paths, expanded headers/keys and 
   for (const [url, init] of [
     ['https://evil.example/api/secureshop/products'],['/api/auth/me'],['/api/secureshop/unknown'],
     ['/api/secureshop/products?limit=1&limit=2'],['/api/secureshop/products?platformOwnerId=7'],
-    ['/api/secureshop/products',{headers:{'x-dvaia-secureshop-launch':'private'}}],
+    ['/api/secureshop/products',{headers:{'x-owasp-ai-goat-secureshop-launch':'private'}}],
     ['/api/secureshop/products',{headers:{authorization:'Basic unsupported'}}],
     ['/api/secureshop/agents/customer/chat',{method:'POST',headers:{'content-type':'application/json'},body:'{"platformOwnerId":7}'}],
     ['/api/secureshop/uploads',{method:'POST',body:new FormData()}],
@@ -173,7 +173,7 @@ test('controlled SSRF bridge operation reaches the authenticated mounted route w
   const bridge = Object.freeze({ async request(name, input, { shopBearer, signal }) {
     const operation = compileBridgeOperation(name, input);
     return networkFetch(`${mountedOrigin}${operation.path}`, { method: operation.method, signal,
-      headers: { accept: 'application/json', 'x-dvaia-secureshop-launch': 'b'.repeat(43),
+      headers: { accept: 'application/json', 'x-owasp-ai-goat-secureshop-launch': 'b'.repeat(43),
         ...(shopBearer ? { authorization: `Bearer ${shopBearer}` } : {}),
         ...(operation.body === undefined ? {} : { 'content-type': 'application/json' }) },
       ...(operation.body === undefined ? {} : { body: JSON.stringify(operation.body) }) });

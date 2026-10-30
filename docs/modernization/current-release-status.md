@@ -15,4 +15,4 @@ The exact 24 deferred IDs are V12, V14, V15, V16, V19, V21, V22, V23, V24, V25, 
 
 No clean-machine Windows/Linux/macOS installation qualification is claimed. AMD64 System activation remains disabled pending qualification. Llama 3.1 8B remains the configured local actor/Judge model.
 
-This repository begins from the verified DVAIA source archive with SHA-256 `a20bc1c9f8962fac1ff5fd5920aed71a71badeeacfebc5c0f953e3a1cccbd5a8`. Its full development history and private qualification artifacts remain in the original project; personal planning journals are not part of this contributor repository. Import and contribution-documentation changes do not represent a new native/model qualification.
+This repository begins from the verified OWASP Agentic AI GOAT source archive with SHA-256 `a20bc1c9f8962fac1ff5fd5920aed71a71badeeacfebc5c0f953e3a1cccbd5a8`. Its full development history and private qualification artifacts remain in the original project; personal planning journals are not part of this contributor repository. Import and contribution-documentation changes do not represent a new native/model qualification.

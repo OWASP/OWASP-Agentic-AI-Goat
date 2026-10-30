@@ -18,7 +18,7 @@ function program({runId,ownerId,packageSha256,imageId,sharedDaemonId},profile='v
 const GUEST=String.raw`
 import json,os,stat,time,selectors,subprocess,re,sys
 from pathlib import Path
-root=Path('/var/tmp/dvaia-v23-build-'+B['runId']);mount=root/'fs'
+root=Path('/var/tmp/owasp-ai-goat-v23-build-'+B['runId']);mount=root/'fs'
 deadline=time.monotonic()+30
 def need(ok):
  if not ok:raise RuntimeError('PRICING_HANDOFF_NOT_PROVEN')
@@ -96,7 +96,7 @@ need(docker('/run/docker.sock','info','--format','{{.ID}}')==B['sharedDaemonId']
 images=json.loads(docker(socket,'image','inspect',B['imageId']));need(len(images)==1)
 image=images[0];need(image['Id']==B['imageId'] and image['Architecture']=='arm64' and image['Os']=='linux')
 need(image['Config']['User']=='10001:10001' and image['Config']['Entrypoint']==['node','sidecars/sandbox-runner/owned-pricing-http/http-listener.js'])
-need(image['Config']['Labels'].get('dvaia.pricing.package')==B['packageSha256'] and image['Config']['Labels'].get('dvaia.build-run')==B['runId'])
+need(image['Config']['Labels'].get('owasp-ai-goat.pricing.package')==B['packageSha256'] and image['Config']['Labels'].get('owasp-ai-goat.build-run')==B['runId'])
 # The caller's fixed phase must retire the replay/egress before publication.
 # Do not infer retirement from an absent PID; require original retained receipt.
 terminal=read(mount/'pricing-closure','terminal.json',True)

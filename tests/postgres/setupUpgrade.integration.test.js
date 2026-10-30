@@ -11,22 +11,22 @@ const { setup, encodeEnv } = require('../../scripts/setup-application');
 
 const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' &&
   process.env.PG_SETUP_UPGRADE_FRESH_CLUSTER === 'yes' &&
-  Boolean(process.env.PG_ADMIN_DATABASE_URL) && Boolean(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  Boolean(process.env.PG_ADMIN_DATABASE_URL) && Boolean(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
 const priorCount = Number(process.env.PG_SETUP_UPGRADE_PRIOR_COUNT || 15);
 function quoteIdentifier(value) {
-  assert.match(value, /^dvaia_[a-z_]+$/);
+  assert.match(value, /^owasp_ai_goat_[a-z_]+$/);
   return `"${value}"`;
 }
 test(`application upgrade preserves a ${priorCount}-store installation and initializes only its appended suffix`, {
   skip: !enabled || ![14, 15].includes(priorCount), timeout: 180_000,
 }, async () => {
-  const root = await fs.realpath(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  const root = await fs.realpath(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   assert.equal(path.basename(root), 'source');
-  assert.match(path.basename(path.dirname(root)), /^dvaia-setup-upgrade-/);
+  assert.match(path.basename(path.dirname(root)), /^owasp-ai-goat-setup-upgrade-/);
   const home = path.join(path.dirname(root), 'home');
   await fs.mkdir(home, { mode: 0o700 });
   const workspaceId = createHash('sha256').update(root).digest('hex').slice(0, 12);
-  const privateDirectory = path.join(home, '.dvaia', workspaceId);
+  const privateDirectory = path.join(home, '.owasp-ai-goat', workspaceId);
   await fs.mkdir(privateDirectory, { recursive: true, mode: 0o700 });
   const admin = new Client({ connectionString: process.env.PG_ADMIN_DATABASE_URL });
   const oldPlan = provisioningPlan().slice(0, priorCount), passwords = new Map(), configuration = {};

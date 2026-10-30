@@ -8,7 +8,7 @@ async function createSecureShopAuditRuntimeLifecycle(options,{createRuntime=crea
   if(!Number.isSafeInteger(maxConcurrentRuns)||maxConcurrentRuns<1||maxConcurrentRuns>32)
     throw new TypeError('Audit concurrency must be an integer between 1 and 32');
   let activeRuns=0;
-  const root=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-audit-runtime-'));
+  const root=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-audit-runtime-'));
   const controller=new AbortController(),active=new Set();let closing;
   let runtime;
   try{await fs.chmod(root,0o700);runtime=createRuntime({...options,root});}

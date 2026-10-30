@@ -39,7 +39,7 @@ async function main(){
   evidence.cases.push('actual fixed manifest external entity denial with joined namespace child');
   operationError=undefined;
   const imported=await request('POST','/secureshop/mcp-registry/execute',{activeEntries:[],mode:'vuln',request:manifestRequest()});assert.equal(imported.status,200);const read=imported.value.changes[0].effect.entityReads[0];assert.equal(read.path,'/owned-mcp-files/admin-token.txt');assert.equal(read.value,'DV-AI{owned-mcp-registry-xxe}');assert.equal(read.bytes,Buffer.byteLength(read.value));assert.equal(read.sha256,crypto.createHash('sha256').update(read.value).digest('hex'));evidence.cases.push('actual bounded namespace XXE manifest import');
-  const command="printf 'owned-stdio-effect' > /owned-mcp-files/stdio-effect; exec /usr/local/bin/node /usr/local/libexec/dvaia-owned-mcp-registry-worker.js --stdio-peer";
+  const command="printf 'owned-stdio-effect' > /owned-mcp-files/stdio-effect; exec /usr/local/bin/node /usr/local/libexec/owasp-ai-goat-owned-mcp-registry-worker.js --stdio-peer";
   const stdio=await request('POST','/secureshop/mcp-registry/execute',base('register','stdio-catalog','stdio','',command));if(stdio.status!==200)throw operationError||Object.assign(Error('MCP_REGISTRY_STDIO_FAILED'),{code:'MCP_REGISTRY_STDIO_FAILED'});assert.equal(stdio.value.changes[0].effect.stdioEffect.text,'owned-stdio-effect');assert.equal(stdio.value.changes[0].tools[0].name,'owned_shell_result');evidence.cases.push('actual submitted stdio shell effect confined to namespace');
   const epoch=await request('GET','/secureshop/mcp-registry/invoke/health');assert.equal(epoch.status,200);assert.equal(epoch.value.runtimeDigest,evidence.runtimeDigest);
   const protocol=require('/app/sidecars/sandbox-runner/owned-mcp-registry/invoke-protocol');
@@ -55,7 +55,7 @@ async function main(){
    const stale=await request('POST','/secureshop/mcp-registry/invoke/status',{...identity,instanceId:crypto.randomUUID()});assert.equal(stale.value.state,'unknown');assert.equal(stale.value.drained,false);
    evidence.cases.push(`actual ${label} SDK discovery, exact schema, file-backed callTool and joined retirement`);
   }
-  await assert.rejects(fs.access('/owned-mcp-files/stdio-effect'),{code:'ENOENT'});await assert.rejects(fs.writeFile('/usr/local/libexec/dvaia-owned-mcp-registry-worker.js','tamper'),error=>['EACCES','EROFS'].includes(error.code));
+  await assert.rejects(fs.access('/owned-mcp-files/stdio-effect'),{code:'ENOENT'});await assert.rejects(fs.writeFile('/usr/local/libexec/owasp-ai-goat-owned-mcp-registry-worker.js','tamper'),error=>['EACCES','EROFS'].includes(error.code));
  }finally{await listener.close();}
  const after=(await fs.readFile(`/proc/self/task/${process.pid}/children`,'utf8')).trim();assert.equal(after,before);evidence.cases.push('immutable assets and all namespace descendants joined');evidence.status='passed';return evidence;
 }

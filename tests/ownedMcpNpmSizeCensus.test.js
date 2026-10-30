@@ -210,7 +210,7 @@ test('explicit one-byte range census covers all122 without HEAD fallback or inte
 });
 test('actual serialized evidence exporter retains bounded exact bytes and rejects changed file boundaries', async t => {
   const plan = await census.censusPlan(root, 'f'.repeat(32));
-  const program = plan.commands.censusEvidence.split("<<'DVAIA_CENSUS_EVIDENCE'\n")[1].split('\nDVAIA_CENSUS_EVIDENCE')[0];
+  const program = plan.commands.censusEvidence.split("<<'OWASP_AI_GOAT_CENSUS_EVIDENCE'\n")[1].split('\nOWASP_AI_GOAT_CENSUS_EVIDENCE')[0];
   for (const scenario of ['valid', 'missing', 'mode', 'owner', 'hardlink', 'symlink', 'oversized']) {
     const directory = await temporary(t), file = path.join(directory, 'failure.json');
     const raw = JSON.stringify({ version: 1, error: 'CENSUS_LENGTH', headerClass: 'missing', qualificationComplete: false });

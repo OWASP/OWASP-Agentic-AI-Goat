@@ -39,7 +39,7 @@ function createSecureShopTicketBrowserQualification({ connectBrowser, puppeteer 
       await page.addScriptTag({ content: loaded.script });
       signal?.throwIfAborted();
       // The source is an argument, never interpolated into bootstrap script.
-      await page.evaluate(value => globalThis.__DVAIA_TICKET_MOUNT__(value), { body: html, modeCapability: selectedMode });
+      await page.evaluate(value => globalThis.__OWASP_AI_GOAT_TICKET_MOUNT__(value), { body: html, modeCapability: selectedMode });
       signal?.throwIfAborted();
     } });
   let closed = false;

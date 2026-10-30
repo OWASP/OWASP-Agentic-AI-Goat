@@ -5,11 +5,11 @@ from pathlib import Path
 from urllib.parse import quote
 
 parser=argparse.ArgumentParser();parser.add_argument('--docker-host',required=True);args=parser.parse_args()
-source=Path(__file__).resolve().parents[2];root=Path(tempfile.mkdtemp(prefix='dvaia-consolidated-draft-promotion-'))
+source=Path(__file__).resolve().parents[2];root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-consolidated-draft-promotion-'))
 workspace=root/'source';workspace.mkdir();os.chmod(root,0o700)
 base_env={key:os.environ[key] for key in ['PATH','HOME','TMPDIR'] if key in os.environ}
 docker=['docker','--host',args.docker_host];token=uuid.uuid4().hex[:12]
-container=f'dvaia-consolidated-draft-promotion-{token}';started=False;child=None
+container=f'owasp-ai-goat-consolidated-draft-promotion-{token}';started=False;child=None
 def run(command,**kwargs):kwargs.setdefault('timeout',60);return subprocess.run(command,check=True,env=base_env,**kwargs)
 def stop_child():
  global child
@@ -44,10 +44,10 @@ try:
   'NOVA':('dvaia_nova_migration','dvaia_nova_runtime')}
  for migration,runtime in roles.values():
   for role in [migration,runtime]:run(psql+['-c',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
- env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),AWS_EC2_METADATA_DISABLED='true')
+ env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),AWS_EC2_METADATA_DISABLED='true')
  for variant in ['FRESH','POPULATED']:
   for store,(migration,runtime) in roles.items():
-   database=f'dvaia_test_consolidated_{variant.lower()}_{store.lower()}_{token}'
+   database=f'owasp_ai_goat_test_consolidated_{variant.lower()}_{store.lower()}_{token}'
    run(psql+['-c',f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL)
    run(psql+['-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}'],stdout=subprocess.DEVNULL)
    env[f'PG_CONSOLIDATED_DRAFT_PROMOTION_{variant}_{store}_MIGRATION_URL']=f'postgresql://{quote(migration)}@127.0.0.1:{port}/{database}'

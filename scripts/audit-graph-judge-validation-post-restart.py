@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 SOURCE = Path(__file__).resolve().parents[1]
-NODE = Path.home() / '.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin/node'
+NODE = Path.home() / '.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin/node'
 
 
 def run(command, *, env=None, binary=False):

@@ -6,17 +6,17 @@ from pathlib import Path
 from urllib.parse import quote
 from sensitive_info_recovery_safety import SignalGate
 
-EXPECTED_DOCKER='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+EXPECTED_DOCKER='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 OWNER='/root/secureshop_architecture'
 SOURCE=Path(__file__).resolve().parents[2]
-NODE_BIN=Path('/Users/averma5/.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin')
+NODE_BIN=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin')
 parser=argparse.ArgumentParser();parser.add_argument('--docker-host',required=True)
 parser.add_argument('--grant-file',required=True);parser.add_argument('--grant-id',required=True);args=parser.parse_args()
 if args.docker_host!=EXPECTED_DOCKER:raise SystemExit('the reviewed isolated PostgreSQL Docker daemon is required')
 grant_path=Path(args.grant_file).resolve()
 if grant_path!=(SOURCE/'tasks/native-verification-slot.json').resolve():raise SystemExit('the durable repository grant file is required')
-evidence=Path(tempfile.mkdtemp(prefix='dvaia-workshop-catalog-provenance-'));os.chmod(evidence,0o700)
-workspace=evidence/'source';workspace.mkdir();container=f'dvaia-workshop-catalog-provenance-{uuid.uuid4().hex[:12]}'
+evidence=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-workshop-catalog-provenance-'));os.chmod(evidence,0o700)
+workspace=evidence/'source';workspace.mkdir();container=f'owasp-ai-goat-workshop-catalog-provenance-{uuid.uuid4().hex[:12]}'
 ownership_path=evidence/'ownership.json';result_path=evidence/'result.log';result_path.touch();os.chmod(result_path,0o600)
 base_env={key:os.environ[key] for key in ('PATH','HOME','TMPDIR') if key in os.environ}
 base_env['PATH']=f'{NODE_BIN}:{base_env.get("PATH","")}'
@@ -84,9 +84,9 @@ try:
  for role in ('dvaia_identity_migration','dvaia_identity_runtime'):run(admin+['-c',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
  urls={}
  for variant in ('fresh',):
-  db=f'dvaia_test_workshop_catalog_provenance_{variant}';run(admin+['-c',f'CREATE DATABASE {db} OWNER dvaia_identity_migration'],stdout=subprocess.DEVNULL);run(admin+['-c',f'REVOKE CONNECT ON DATABASE {db} FROM PUBLIC; GRANT CONNECT ON DATABASE {db} TO dvaia_identity_migration,dvaia_identity_runtime'],stdout=subprocess.DEVNULL)
+  db=f'owasp_ai_goat_test_workshop_catalog_provenance_{variant}';run(admin+['-c',f'CREATE DATABASE {db} OWNER dvaia_identity_migration'],stdout=subprocess.DEVNULL);run(admin+['-c',f'REVOKE CONNECT ON DATABASE {db} FROM PUBLIC; GRANT CONNECT ON DATABASE {db} TO dvaia_identity_migration,dvaia_identity_runtime'],stdout=subprocess.DEVNULL)
   urls[variant]={'migration':f'postgresql://{quote("dvaia_identity_migration")}@127.0.0.1:{port}/{db}','runtime':f'postgresql://{quote("dvaia_identity_runtime")}@127.0.0.1:{port}/{db}'}
- env=dict(base_env,NODE_ENV='test',PLATFORM_DATABASE_ENGINE='postgres',PG_TEST_DISPOSABLE='yes',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace))
+ env=dict(base_env,NODE_ENV='test',PLATFORM_DATABASE_ENGINE='postgres',PG_TEST_DISPOSABLE='yes',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace))
  env['PG_CATALOG_PROVENANCE_MIGRATION_URL']=urls['fresh']['migration'];env['PG_CATALOG_PROVENANCE_RUNTIME_URL']=urls['fresh']['runtime']
  with result_path.open('w') as log:
   os.chmod(result_path,0o600);child=subprocess.Popen(['node','--test','--test-reporter=tap','tests/postgres/workshopCatalogFieldProvenance.integration.test.js'],cwd=workspace,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True);state.update({'testPid':child.pid,'runStatus':'test_running'});write_state()

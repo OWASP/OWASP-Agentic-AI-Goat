@@ -10,7 +10,7 @@ const fail=code=>Object.assign(Error('Owned Analytics runtime unavailable'),{cod
 function validateContainer(container,config){
  const labels=container?.Config?.Labels,ports=container?.HostConfig?.PortBindings?.['5432/tcp'],mounts=container?.Mounts,effectivePorts=container?.NetworkSettings?.Ports?.['5432/tcp'];
  if(container?.Id!==config.containerId||container?.Image!==config.imageId||container?.Name!=='/'+config.containerName||container?.State?.Running!==true
-  ||labels?.['dvaia.workspace']!==config.workspaceId||labels?.['dvaia.purpose']!=='owned-analytics'||labels?.['dvaia.owner']!==config.ownerId
+  ||labels?.['owasp-ai-goat.workspace']!==config.workspaceId||labels?.['owasp-ai-goat.purpose']!=='owned-analytics'||labels?.['owasp-ai-goat.owner']!==config.ownerId
   ||!Array.isArray(ports)||ports.length!==1||ports[0].HostIp!=='127.0.0.1'||ports[0].HostPort!==String(config.port)
   ||!Array.isArray(effectivePorts)||effectivePorts.length!==1||effectivePorts[0].HostIp!=='127.0.0.1'||effectivePorts[0].HostPort!==String(config.port)
   ||!Array.isArray(mounts)||mounts.length!==1||mounts[0].Type!=='volume'||mounts[0].Name!==config.volumeName||mounts[0].Destination!=='/var/lib/postgresql'
@@ -51,7 +51,7 @@ function createRuntime({record,readRecord,readAuthority,verifyAuthority,inspectC
 }
 async function getOwnedAnalyticsProduction({root=path.resolve(__dirname,'../..'),homeDirectory=os.homedir(),environment=process.env}={}){
  const options={root,homeDirectory},record=await readManagedAnalyticsConfiguration(options);
- const key=path.join(path.resolve(homeDirectory),'.dvaia',createHash('sha256').update(path.resolve(root)).digest('hex').slice(0,12),'analytics-managed.json');
+ const key=path.join(path.resolve(homeDirectory),'.owasp-ai-goat',createHash('sha256').update(path.resolve(root)).digest('hex').slice(0,12),'analytics-managed.json');
  const existing=cache.get(key);
  if(existing){if(!record||existing.sha256!==record.sha256)throw fail('ANALYTICS_MANAGED_CONFIGURATION_CHANGED');return existing.runtime;}
  if(!record)return null;

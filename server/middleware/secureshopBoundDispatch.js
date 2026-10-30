@@ -1,6 +1,6 @@
 'use strict';
 
-const HEADER = 'x-dvaia-secureshop-launch';
+const HEADER = 'x-owasp-ai-goat-secureshop-launch';
 
 // Install before every legacy shop mount. Even an empty or invalid launch
 // header selects the bound boundary; it must never select shared-state routes.

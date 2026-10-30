@@ -21,12 +21,12 @@ test('Mailpit native launcher defaults to a non-mutating pinned plan', () => {
 });
 
 test('Mailpit native cleanup refuses a replaced container identity', async () => {
-  const state = { version: 1, id: 'fixture', name: 'dvaia-mailpit-fixture', nonce: 'a'.repeat(64),
+  const state = { version: 1, id: 'fixture', name: 'owasp-ai-goat-mailpit-fixture', nonce: 'a'.repeat(64),
     image: MAILPIT_IMAGE, imageVersion: MAILPIT_IMAGE_VERSION, imageDigest: MAILPIT_IMAGE_DIGEST,
     containerId: 'b'.repeat(64), dockerAuthorityDigest: 'c'.repeat(64), smtpPort: 41025, apiPort: 48025 };
   const docker = async args => {
     if (args.includes('inspect')) return { stdout: JSON.stringify([{ Id: 'd'.repeat(64), Config: { Labels: {
-      'org.dvaia.workspace': 'fixture', 'org.dvaia.mailpit.nonce': state.nonce }, Image: MAILPIT_IMAGE }, Image: MAILPIT_IMAGE_DIGEST,
+      'org.owasp-ai-goat.workspace': 'fixture', 'org.owasp-ai-goat.mailpit.nonce': state.nonce }, Image: MAILPIT_IMAGE }, Image: MAILPIT_IMAGE_DIGEST,
       HostConfig: { PortBindings: { '1025/tcp': [{ HostIp: '127.0.0.1', HostPort: '41025' }], '8025/tcp': [{ HostIp: '127.0.0.1', HostPort: '48025' }] } } }]) };
     throw new Error('cleanup must not remove a replaced identity');
   };
@@ -59,13 +59,13 @@ function fakeProvisionTransport({ healthy }) {
       return { stdout: JSON.stringify([container]) };
     }
     if (args.includes('run')) {
-      const label = key => args[args.indexOf('--label', args.indexOf(`org.dvaia.${key}`)) + 1];
+      const label = key => args[args.indexOf('--label', args.indexOf(`org.owasp-ai-goat.${key}`)) + 1];
       const name = args[args.indexOf('--name') + 1];
-      const workspace = args.find(value => String(value).startsWith('org.dvaia.workspace='))?.split('=')[1];
-      const nonce = args.find(value => String(value).startsWith('org.dvaia.mailpit.nonce='))?.split('=')[1];
+      const workspace = args.find(value => String(value).startsWith('org.owasp-ai-goat.workspace='))?.split('=')[1];
+      const nonce = args.find(value => String(value).startsWith('org.owasp-ai-goat.mailpit.nonce='))?.split('=')[1];
       const publishes = args.flatMap((value, index) => value === '--publish' ? [args[index + 1]] : []);
       const port = service => publishes.find(value => value.endsWith(`:${service}`)).split(':')[1];
-      container = { Id: 'f'.repeat(64), Config: { Labels: { 'org.dvaia.workspace': workspace, 'org.dvaia.mailpit.nonce': nonce }, Image: MAILPIT_IMAGE }, Image: MAILPIT_IMAGE_DIGEST,
+      container = { Id: 'f'.repeat(64), Config: { Labels: { 'org.owasp-ai-goat.workspace': workspace, 'org.owasp-ai-goat.mailpit.nonce': nonce }, Image: MAILPIT_IMAGE }, Image: MAILPIT_IMAGE_DIGEST,
         HostConfig: { PortBindings: { '1025/tcp': [{ HostIp: '127.0.0.1', HostPort: port(1025) }], '8025/tcp': [{ HostIp: '127.0.0.1', HostPort: port(8025) }] } }, State: { Running: true }, name };
       return { stdout: '' };
     }

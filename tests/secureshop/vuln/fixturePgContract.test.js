@@ -15,8 +15,8 @@ function controlledEnv(t,values){
 
 test('shared PG fixture refuses missing disposable authority before connecting',async t=>{
   controlledEnv(t,{
-    SECURESHOP_DATABASE_URL:'postgresql://dvaia_secureshop_runtime@127.0.0.1:1/dvaia_test_fixture',
-    SECURESHOP_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_migration@127.0.0.1:1/dvaia_test_fixture',
+    SECURESHOP_DATABASE_URL:'postgresql://dvaia_secureshop_runtime@127.0.0.1:1/owasp_ai_goat_test_fixture',
+    SECURESHOP_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_migration@127.0.0.1:1/owasp_ai_goat_test_fixture',
   });
   await assert.rejects(seedShop(),/PG_TEST_DISPOSABLE=yes/);
 });
@@ -24,20 +24,20 @@ test('shared PG fixture refuses missing disposable authority before connecting',
 test('shared PG fixture refuses non-loopback and wrong-role URL pairs before connecting',async t=>{
   controlledEnv(t,{
     PG_TEST_DISPOSABLE:'yes',
-    SECURESHOP_DATABASE_URL:'postgresql://dvaia_secureshop_runtime@example.com/dvaia_test_fixture',
-    SECURESHOP_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_migration@example.com/dvaia_test_fixture',
+    SECURESHOP_DATABASE_URL:'postgresql://dvaia_secureshop_runtime@example.com/owasp_ai_goat_test_fixture',
+    SECURESHOP_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_migration@example.com/owasp_ai_goat_test_fixture',
   });
   await assert.rejects(seedShop(),/loopback host/);
-  process.env.SECURESHOP_AGENTS_DATABASE_URL='postgresql://wrong_role@127.0.0.1:1/dvaia_test_fixture';
-  process.env.SECURESHOP_AGENTS_MIGRATION_DATABASE_URL='postgresql://dvaia_secureshop_agents_migration@127.0.0.1:1/dvaia_test_fixture';
+  process.env.SECURESHOP_AGENTS_DATABASE_URL='postgresql://wrong_role@127.0.0.1:1/owasp_ai_goat_test_fixture';
+  process.env.SECURESHOP_AGENTS_MIGRATION_DATABASE_URL='postgresql://dvaia_secureshop_agents_migration@127.0.0.1:1/owasp_ai_goat_test_fixture';
   await assert.rejects(seedAgents(),/must use role dvaia_secureshop_agents_runtime/);
 });
 
 test('shared PG fixture refuses mismatched disposable databases before connecting',async t=>{
   controlledEnv(t,{
     PG_TEST_DISPOSABLE:'yes',
-    SECURESHOP_DATABASE_URL:'postgresql://dvaia_secureshop_runtime@127.0.0.1:1/dvaia_test_fixture_a',
-    SECURESHOP_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_migration@127.0.0.1:1/dvaia_test_fixture_b',
+    SECURESHOP_DATABASE_URL:'postgresql://dvaia_secureshop_runtime@127.0.0.1:1/owasp_ai_goat_test_fixture_a',
+    SECURESHOP_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_migration@127.0.0.1:1/owasp_ai_goat_test_fixture_b',
   });
   await assert.rejects(seedShop(),/same disposable database/);
 });
@@ -45,21 +45,21 @@ test('shared PG fixture refuses mismatched disposable databases before connectin
 test('shared PG fixture refuses endpoint mismatches and connection-string overrides before connecting',async t=>{
   controlledEnv(t,{
     PG_TEST_DISPOSABLE:'yes',
-    SECURESHOP_DATABASE_URL:'postgresql://dvaia_secureshop_runtime@127.0.0.1:5432/dvaia_test_fixture',
-    SECURESHOP_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_migration@localhost:5432/dvaia_test_fixture',
+    SECURESHOP_DATABASE_URL:'postgresql://dvaia_secureshop_runtime@127.0.0.1:5432/owasp_ai_goat_test_fixture',
+    SECURESHOP_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_migration@localhost:5432/owasp_ai_goat_test_fixture',
   });
   await assert.rejects(seedShop(),/same loopback endpoint/);
-  process.env.SECURESHOP_DATABASE_URL='postgresql://dvaia_secureshop_runtime@127.0.0.1:5432/dvaia_test_fixture?host=example.com';
-  process.env.SECURESHOP_MIGRATION_DATABASE_URL='postgresql://dvaia_secureshop_migration@127.0.0.1:5432/dvaia_test_fixture';
+  process.env.SECURESHOP_DATABASE_URL='postgresql://dvaia_secureshop_runtime@127.0.0.1:5432/owasp_ai_goat_test_fixture?host=example.com';
+  process.env.SECURESHOP_MIGRATION_DATABASE_URL='postgresql://dvaia_secureshop_migration@127.0.0.1:5432/owasp_ai_goat_test_fixture';
   await assert.rejects(seedShop(),/must not contain query parameters/);
 });
 
 test('shared PG fixture refuses commerce and agents store aliasing before connecting',async t=>{
   controlledEnv(t,{
     PG_TEST_DISPOSABLE:'yes',
-    SECURESHOP_DATABASE_URL:'postgresql://dvaia_secureshop_runtime@127.0.0.1:5432/dvaia_test_shared',
-    SECURESHOP_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_migration@127.0.0.1:5432/dvaia_test_shared',
-    SECURESHOP_AGENTS_DATABASE_URL:'postgresql://dvaia_secureshop_agents_runtime@127.0.0.1:5432/dvaia_test_shared',
+    SECURESHOP_DATABASE_URL:'postgresql://dvaia_secureshop_runtime@127.0.0.1:5432/owasp_ai_goat_test_shared',
+    SECURESHOP_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_migration@127.0.0.1:5432/owasp_ai_goat_test_shared',
+    SECURESHOP_AGENTS_DATABASE_URL:'postgresql://dvaia_secureshop_agents_runtime@127.0.0.1:5432/owasp_ai_goat_test_shared',
   });
   await assert.rejects(seedShop(),/require distinct databases/);
 });

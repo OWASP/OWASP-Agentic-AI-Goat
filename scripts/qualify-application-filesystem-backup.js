@@ -10,7 +10,7 @@ const dotenv=require('dotenv');
 const {workspaceId}=require('./application-data-root');
 
 const SCOPE='application-filesystem-backup-qualification-v1';
-const MAGIC=Buffer.from('DVAIA-FS-ARCHIVE-V1\n');
+const MAGIC=Buffer.from('OWASP-AI-GOAT-FS-ARCHIVE-V1\n');
 const MAX_FILE_BYTES=64*1024*1024;
 const MAX_TOTAL_BYTES=512*1024*1024;
 const MAX_ENTRIES=20000;
@@ -184,9 +184,9 @@ async function qualify({roots,output},{quietCheck=requireQuiet,afterArchive=asyn
   return {scope:SCOPE,status:'passed',output:outputPath,manifestSha256:sha(fs.readFileSync(manifestPath))};
 }
 function inventoryPlan({workspace=path.resolve(__dirname,'..'),home=os.homedir(),environment=process.env}={}){
-  const root=fs.realpathSync(workspace),id=workspaceId(root),privateRoot=path.join(home,'.dvaia',id),envFile=path.join(root,'.env');
+  const root=fs.realpathSync(workspace),id=workspaceId(root),privateRoot=path.join(home,'.owasp-ai-goat',id),envFile=path.join(root,'.env');
   let parsed={};if(fs.existsSync(envFile))parsed=readPrivateConfiguration(envFile);
-  const appDataRoot=parsed.DVAIA_APP_DATA_ROOT?configuredPath(parsed.DVAIA_APP_DATA_ROOT,'DVAIA_APP_DATA_ROOT'):path.join(privateRoot,'app-data');
+  const appDataRoot=parsed.OWASP_AI_GOAT_APP_DATA_ROOT?configuredPath(parsed.OWASP_AI_GOAT_APP_DATA_ROOT,'OWASP_AI_GOAT_APP_DATA_ROOT'):path.join(privateRoot,'app-data');
   const resetKeyPath=parsed.SS_PASSWORD_RESET_KEY_PATH?configuredPath(parsed.SS_PASSWORD_RESET_KEY_PATH,'SS_PASSWORD_RESET_KEY_PATH'):path.join(privateRoot,'secureshop-reset-key.json');
   const logsRoot=parsed.LOGS_DIR?configuredPath(parsed.LOGS_DIR,'LOGS_DIR'):path.join(root,'server','logs');
   const sensitiveRoot=parsed.LEGACY_SENSITIVE_FILES_ROOT?configuredPath(parsed.LEGACY_SENSITIVE_FILES_ROOT,'LEGACY_SENSITIVE_FILES_ROOT'):path.join(root,'server','sensitive_files');

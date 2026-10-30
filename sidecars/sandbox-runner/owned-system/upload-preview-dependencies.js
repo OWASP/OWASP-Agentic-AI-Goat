@@ -1,15 +1,15 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),{spawnSync}=require('node:child_process');
 const {hash}=require('./upload-preview-contract');
-const RUNTIME_ROOT='/opt/dvaia-owned-system/upload-preview-runtime';
-const MANIFEST='/usr/share/dvaia/upload-preview-assets.json';
-const ASSETS=['/usr/local/bin/node','/usr/bin/bwrap','/usr/local/libexec/dvaia-system-config-supervisor',
- '/usr/local/libexec/dvaia-upload-preview-init','/opt/dvaia-owned-system/upload-preview-worker.js',
- '/opt/dvaia-owned-system/upload-preview-contract.js','/opt/dvaia-owned-system/upload-preview-executor.js',
- '/opt/dvaia-owned-system/upload-preview-dependencies.js'];
+const RUNTIME_ROOT='/opt/owasp-ai-goat-owned-system/upload-preview-runtime';
+const MANIFEST='/usr/share/owasp-ai-goat/upload-preview-assets.json';
+const ASSETS=['/usr/local/bin/node','/usr/bin/bwrap','/usr/local/libexec/owasp-ai-goat-system-config-supervisor',
+ '/usr/local/libexec/owasp-ai-goat-upload-preview-init','/opt/owasp-ai-goat-owned-system/upload-preview-worker.js',
+ '/opt/owasp-ai-goat-owned-system/upload-preview-contract.js','/opt/owasp-ai-goat-owned-system/upload-preview-executor.js',
+ '/opt/owasp-ai-goat-owned-system/upload-preview-dependencies.js'];
 function deriveRuntimeLock(lock){
  if(lock.lockfileVersion!==3||lock.packages?.['node_modules/sharp']?.version!=='0.35.4')throw Error('Exact existing sharp lock required');
- const manifest={name:'dvaia-owned-upload-preview-runtime',version:'1.0.0',private:true,dependencies:{sharp:'0.35.4'}};
+ const manifest={name:'owasp-ai-goat-owned-upload-preview-runtime',version:'1.0.0',private:true,dependencies:{sharp:'0.35.4'}};
  const packages={'':{name:manifest.name,version:manifest.version,dependencies:manifest.dependencies}};
  function add(name){
   const key='node_modules/'+name;if(packages[key])return;

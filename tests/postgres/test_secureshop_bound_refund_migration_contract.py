@@ -30,8 +30,8 @@ class RefundMigrationContract(unittest.TestCase):
 
     def test_native_database_prefix_is_short_and_scoped(self):
         prefix = 'bound_refund'
-        self.assertLessEqual(len(f'dvaia_test_{prefix}_populated_review'), 63)
-        self.assertLessEqual(len(f'dvaia_test_{prefix}_fresh_review'), 63)
+        self.assertLessEqual(len(f'owasp_ai_goat_test_{prefix}_populated_review'), 63)
+        self.assertLessEqual(len(f'owasp_ai_goat_test_{prefix}_fresh_review'), 63)
 
 if __name__ == '__main__':
     unittest.main()

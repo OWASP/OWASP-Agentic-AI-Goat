@@ -6,7 +6,7 @@ process.once('message', async ({ sourceUrl, targetUrl, request }) => {
   try {
     for (const [value, role] of [[sourceUrl,'dvaia_legacy_challenge_migration'],[targetUrl,'dvaia_identity_migration']]) {
       const parsed = new URL(value);
-      if (parsed.hostname !== '127.0.0.1' || !/^\/dvaia_test_history_cleanup_[a-f0-9]+$/.test(parsed.pathname)
+      if (parsed.hostname !== '127.0.0.1' || !/^\/owasp_ai_goat_test_history_cleanup_[a-f0-9]+$/.test(parsed.pathname)
           || parsed.username !== role || parsed.search || parsed.hash) throw new Error('Disposable database required');
     }
     const source = new Pool({ connectionString: sourceUrl });

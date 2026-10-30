@@ -22,7 +22,7 @@ function sourceManifest(root){
  return Object.freeze({files:Object.freeze(files),sha256:sha(JSON.stringify(files))});
 }
 function profileBytes(root,id){
- const name='dvaia-owned-policy-renderer-'+id,template=fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'),'utf8');
+ const name='owasp-ai-goat-owned-policy-renderer-'+id,template=fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'),'utf8');
  if(!/^[a-f0-9]{12}$/.test(id)||!template.includes('@@SUPERVISOR_PROFILE@@'))throw fail('POLICY_RENDER_PROFILE_INVALID');
  const bytes=Buffer.from(template.replaceAll('@@SUPERVISOR_PROFILE@@',name));if(bytes.includes('@@'))throw fail('POLICY_RENDER_PROFILE_INVALID');return bytes;
 }
@@ -31,10 +31,10 @@ async function plan({root=ROOT,home=os.homedir(),platform=process.platform,archi
  const p=managed.paths({root,home}),id=workspaceId(root),existing=managed.capture({root,home}),saved=managed.capture({root,home},true);
  port=port??existing?.value.port??saved?.value.port??8098;if(!Number.isInteger(port)||port<1024||port>65535)throw fail('POLICY_RENDER_PORT_INVALID');
  const authority=await readLocalDockerAuthority({directory:p.directory,workspaceId:id,platform});if(!authority)throw fail('POLICY_RENDER_AUTHORITY_REQUIRED');
- await verifyDockerAuthority({authority,execute,environment});const source=sourceManifest(root),profile='dvaia-owned-policy-renderer-'+id;
- const expected={workspaceId:id,architecture:'arm64',dockerAuthoritySha256:authorityDigest(authority),sourceSha256:source.sha256,profile,profileSha256:sha(profileBytes(root,id)),port,container:'dvaia-policy-renderer-'+id};
+ await verifyDockerAuthority({authority,execute,environment});const source=sourceManifest(root),profile='owasp-ai-goat-owned-policy-renderer-'+id;
+ const expected={workspaceId:id,architecture:'arm64',dockerAuthoritySha256:authorityDigest(authority),sourceSha256:source.sha256,profile,profileSha256:sha(profileBytes(root,id)),port,container:'owasp-ai-goat-policy-renderer-'+id};
  for(const record of [existing,saved])if(record&&Object.entries(expected).some(([k,v])=>record.value[k]!==v))throw fail('POLICY_RENDER_RETAINED_CONFLICT');
- return Object.freeze({...expected,source,network:'dvaia-policy-renderer-'+id+'-bridge',managedPath:p.filename,existing:!!existing,enabled:existing?.value.enabled===true,mutating:false});
+ return Object.freeze({...expected,source,network:'owasp-ai-goat-policy-renderer-'+id+'-bridge',managedPath:p.filename,existing:!!existing,enabled:existing?.value.enabled===true,mutating:false});
 }
 async function assertPortAvailable(port){
  const server=net.createServer();await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(port,'127.0.0.1',resolve);});await new Promise((resolve,reject)=>server.close(e=>e?reject(e):resolve()));
@@ -46,14 +46,14 @@ async function provisionProfile({p,authority,root,home,platform,run,existingOnly
   location=localProfilePlan({root,home:authorityHome,platform,colimaProfile:'colima-'+name});
  }
  if(location.dockerHost!==authority.host)throw fail('POLICY_RENDER_PROFILE_AUTHORITY');
- const program=`import os,sys,base64,stat,subprocess\nname=sys.argv[1]; data=base64.b64decode(sys.argv[2],validate=True)\nassert name.startswith('dvaia-owned-policy-renderer-') and len(name)==40 and all(c in '0123456789abcdef' for c in name[-12:])\np='/etc/apparmor.d/'+name\ntry:\n fd=os.open(p,os.O_RDONLY|os.O_NOFOLLOW)\nexcept FileNotFoundError:\n assert sys.argv[3]=='install'\n fd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600); os.write(fd,data); os.fsync(fd); os.close(fd)\nelse:\n st=os.fstat(fd); assert stat.S_ISREG(st.st_mode) and st.st_uid==0 and st.st_nlink==1 and (st.st_mode & 0o022)==0; assert os.read(fd,1048577)==data; os.close(fd)\nif sys.argv[3]=='install': subprocess.run(['apparmor_parser','-r',p],check=True,timeout=15)\nassert name+' (enforce)' in open('/sys/kernel/security/apparmor/profiles').read().splitlines()\n`;
+ const program=`import os,sys,base64,stat,subprocess\nname=sys.argv[1]; data=base64.b64decode(sys.argv[2],validate=True)\nassert name.startswith('owasp-ai-goat-owned-policy-renderer-') and len(name)==40 and all(c in '0123456789abcdef' for c in name[-12:])\np='/etc/apparmor.d/'+name\ntry:\n fd=os.open(p,os.O_RDONLY|os.O_NOFOLLOW)\nexcept FileNotFoundError:\n assert sys.argv[3]=='install'\n fd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600); os.write(fd,data); os.fsync(fd); os.close(fd)\nelse:\n st=os.fstat(fd); assert stat.S_ISREG(st.st_mode) and st.st_uid==0 and st.st_nlink==1 and (st.st_mode & 0o022)==0; assert os.read(fd,1048577)==data; os.close(fd)\nif sys.argv[3]=='install': subprocess.run(['apparmor_parser','-r',p],check=True,timeout=15)\nassert name+' (enforce)' in open('/sys/kernel/security/apparmor/profiles').read().splitlines()\n`;
  const args=['python3','-c',program,p.profile,profileBytes(root,p.workspaceId).toString('base64'),existingOnly?'verify':'install'];
  const result=await run(platform==='linux'?'sudo':'ssh',platform==='linux'?['--non-interactive',...args]:['-F',location.sshConfig,location.sshHost,['sudo','--non-interactive',...args].map(v=>"'"+v.replaceAll("'","'\"'\"'")+"'").join(' ')],{timeoutMs:25000,maxOutputBytes:65536});
  if(result.exitCode!==0)throw fail('POLICY_RENDER_PROFILE_UNAVAILABLE');
 }
 function inspectImage(image,p){
  if(!image||!/^sha256:[a-f0-9]{64}$/.test(image.Id)||image.Architecture!=='arm64'||image.Os!=='linux'
-  ||image.Config?.Labels?.['dvaia.policy.source']!==p.sourceSha256||image.Config.User!=='10001:10001'
+  ||image.Config?.Labels?.['owasp-ai-goat.policy.source']!==p.sourceSha256||image.Config.User!=='10001:10001'
   ||!equal(image.Config.Entrypoint,ENTRY)||image.Config.Cmd?.length||image.Config.Volumes&&Object.keys(image.Config.Volumes).length)throw fail('POLICY_RENDER_IMAGE_CONFLICT');
 }
 function inspectContainer(row,{p,value,image,labels}){
@@ -100,10 +100,10 @@ async function provision(options={}){
  };
  const inspect=async(kind,name)=>{const raw=await docker([kind,'inspect',name],10000,true);if(raw===null)return null;try{const rows=JSON.parse(raw);if(!Array.isArray(rows)||rows.length!==1)throw Error();return rows[0];}catch{throw fail('POLICY_RENDER_INSPECT_INVALID');}};
  const daemon=JSON.parse(await docker(['info','--format','{{json .Architecture}}']));if(!['aarch64','arm64'].includes(daemon))throw fail('POLICY_RENDER_ARCHITECTURE_UNQUALIFIED');
- let image=await inspect('image',saved?.value.imageId||existing?.value.imageId||'dvaia-policy-renderer-'+p.workspaceId+':local');
+ let image=await inspect('image',saved?.value.imageId||existing?.value.imageId||'owasp-ai-goat-policy-renderer-'+p.workspaceId+':local');
  if(!image){if(saved||existing||options.existingOnly)throw fail('POLICY_RENDER_RETAINED_IMAGE_MISSING');
-  await docker(['build','--pull=false','--network=default','--label','dvaia.policy.source='+p.sourceSha256,'-f',path.join(root,'sidecars/sandbox-runner/policy-render/Dockerfile'),'-t','dvaia-policy-renderer-'+p.workspaceId+':local',path.join(root,'sidecars/sandbox-runner')],300000);
-  if(sourceManifest(root).sha256!==p.sourceSha256)throw fail('POLICY_RENDER_SOURCE_CHANGED');image=await inspect('image','dvaia-policy-renderer-'+p.workspaceId+':local');
+  await docker(['build','--pull=false','--network=default','--label','owasp-ai-goat.policy.source='+p.sourceSha256,'-f',path.join(root,'sidecars/sandbox-runner/policy-render/Dockerfile'),'-t','owasp-ai-goat-policy-renderer-'+p.workspaceId+':local',path.join(root,'sidecars/sandbox-runner')],300000);
+  if(sourceManifest(root).sha256!==p.sourceSha256)throw fail('POLICY_RENDER_SOURCE_CHANGED');image=await inspect('image','owasp-ai-goat-policy-renderer-'+p.workspaceId+':local');
  }
  inspectImage(image,p);
  const base={version:1,workspaceId:p.workspaceId,ownerId:existing?.value.ownerId||crypto.randomUUID(),architecture:'arm64',dockerAuthoritySha256:p.dockerAuthoritySha256,sourceSha256:p.sourceSha256,imageId:image.Id,profile:p.profile,profileSha256:p.profileSha256,container:p.container,port:p.port};
@@ -111,7 +111,7 @@ async function provision(options={}){
  if(Object.entries(base).some(([k,v])=>(k!=='ownerId'||existing)&&value[k]!==v))throw fail('POLICY_RENDER_STAGE_CONFLICT');
  if(sha(profileBytes(root,p.workspaceId))!==p.profileSha256)throw fail('POLICY_RENDER_PROFILE_INVALID');
  await(options.provisionProfile||provisionProfile)({p,authority,root,home,platform,run,existingOnly:options.existingOnly===true});
- const labels={'dvaia.policy.workspace':p.workspaceId,'dvaia.policy.owner':value.ownerId,'dvaia.policy.source':p.sourceSha256},labelArgs=Object.entries(labels).flatMap(([k,v])=>['--label',k+'='+v]);
+ const labels={'owasp-ai-goat.policy.workspace':p.workspaceId,'owasp-ai-goat.policy.owner':value.ownerId,'owasp-ai-goat.policy.source':p.sourceSha256},labelArgs=Object.entries(labels).flatMap(([k,v])=>['--label',k+'='+v]);
  let network=await inspect('network',p.network);if(!network){if(options.existingOnly)throw fail('POLICY_RENDER_NETWORK_MISSING');await docker(['network','create',...labelArgs,p.network]);network=await inspect('network',p.network);}
  if(network?.Name!==p.network||network.Driver!=='bridge'||network.Internal!==false||Object.entries(labels).some(([k,v])=>network.Labels?.[k]!==v))throw fail('POLICY_RENDER_NETWORK_CONFLICT');
  let container=await inspect('container',p.container);if(!container){if(options.existingOnly)throw fail('POLICY_RENDER_CONTAINER_MISSING');await(options.assertPortAvailable||assertPortAvailable)(p.port);

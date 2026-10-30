@@ -9,10 +9,10 @@ test('rendered durable IPI restore replacement and interrupted reset retry', {
   skip: process.env.WORKSHOP_RAG_ROUTES_NATIVE !== '1', timeout: 120000,
 }, async () => {
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
+  assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
   const url = role => {
     const u = new URL(process.env['WORKSHOP_RAG_' + role.toUpperCase() + '_URL']);
-    assert.equal(u.hostname, '127.0.0.1'); assert.match(u.pathname, /^\/dvaia_test_workshop_rag_[a-f0-9]+$/);
+    assert.equal(u.hostname, '127.0.0.1'); assert.match(u.pathname, /^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/);
     assert.equal(u.username, 'dvaia_identity_' + role); return u.href;
   };
   process.env.PLATFORM_DATABASE_ENGINE = 'postgres';
@@ -92,7 +92,7 @@ test('rendered durable IPI restore replacement and interrupted reset retry', {
     const listener=net.createServer();await new Promise(resolve=>listener.listen(0,'127.0.0.1',resolve));const port=listener.address().port;await new Promise(resolve=>listener.close(resolve));
     const workspace=process.cwd(),client=path.join(workspace,'client'),viteEntry=fs.realpathSync(path.join(client,'node_modules/vite/dist/node/index.js'));
     const script=`import {createServer} from ${JSON.stringify(require('node:url').pathToFileURL(viteEntry).href)};const server=await createServer({root:${JSON.stringify(client)},configFile:${JSON.stringify(path.join(client,'vite.config.mjs'))},configLoader:'native',cacheDir:${JSON.stringify(path.join(artifacts,'vite-cache'))},server:{host:'127.0.0.1',port:${port},strictPort:true}});await server.listen();process.on('SIGTERM',async()=>{await server.close();process.exit(0)});`;
-    vite=spawn(process.execPath,['--input-type=module','-e',script],{cwd:client,env:{...process.env,PORT:String(server.address().port),DVAIA_CLIENT_PORT:String(port)},stdio:['ignore','pipe','pipe']});
+    vite=spawn(process.execPath,['--input-type=module','-e',script],{cwd:client,env:{...process.env,PORT:String(server.address().port),OWASP_AI_GOAT_CLIENT_PORT:String(port)},stdio:['ignore','pipe','pipe']});
     let viteLog='';for(const stream of [vite.stdout,vite.stderr])stream.on('data',chunk=>{viteLog+=chunk;});
     const pageBase='http://127.0.0.1:'+port;let up=false;for(let n=0;n<100;n++){try{if((await fetch(pageBase)).ok){up=true;break;}}catch{}await new Promise(resolve=>setTimeout(resolve,100));}assert.ok(up,viteLog);
     browser=await require('puppeteer').launch({headless:true});evidence.browserPid=browser.process().pid;save();

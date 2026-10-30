@@ -134,8 +134,8 @@ function assertOwnedPair() {
   for (const url of urls) {
     assert.equal(url.protocol, 'postgresql:');
     assert.equal(url.hostname, '127.0.0.1', 'owned loopback PostgreSQL is required');
-    assert.match(decodeURIComponent(url.pathname), /^\/dvaia_test_[a-z0-9_]+$/,
-      'owned disposable dvaia_test_* database is required');
+    assert.match(decodeURIComponent(url.pathname), /^\/owasp_ai_goat_test_[a-z0-9_]+$/,
+      'owned disposable owasp_ai_goat_test_* database is required');
   }
   assert.equal(urls[0].pathname, urls[1].pathname, 'migration/runtime URLs must name the same owned database');
 }

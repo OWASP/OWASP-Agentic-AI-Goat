@@ -93,7 +93,7 @@ finally:os.close(fd)
 function validateContainer(rows,{id,imageId,name,runId,token,running}){
  const row=rows?.[0],h=row?.HostConfig,c=row?.Config;
  if(!Array.isArray(rows)||rows.length!==1||!/^[a-f0-9]{64}$/.test(row?.Id||'')||(id&&row.Id!==id)
-  ||row.Image!==imageId||row.Name!=='/'+name||c?.Labels?.['dvaia.original.registry']!==runId
+  ||row.Image!==imageId||row.Name!=='/'+name||c?.Labels?.['owasp-ai-goat.original.registry']!==runId
   ||row.State?.Running!==running)throw fail('ORIGINAL_SERVICE_CONTAINER_IDENTITY');
  const expected=['SECURESHOP_MCP_REGISTRY_ENABLED=true','SECURESHOP_MCP_REGISTRY_TOKEN='+token,
   'SECURESHOP_MCP_REGISTRY_PROFILE='+name,'SECURESHOP_MCP_REGISTRY_HOST=127.0.0.1','SECURESHOP_MCP_REGISTRY_PORT=8094'];

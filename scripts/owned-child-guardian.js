@@ -39,12 +39,12 @@ function main(args = process.argv.slice(2), {
         shell: shellMode === 'shell',
       });
     } catch {
-      send({ type: 'dvaia-owned-child-outcome', outcome: { type: 'error' } });
+      send({ type: 'owasp-ai-goat-owned-child-outcome', outcome: { type: 'error' } });
       return;
     }
     if (channel === 'ipc') {
       child.on('message', message => {
-        if (message?.type === 'dvaia-backend-ready') {
+        if (message?.type === 'owasp-ai-goat-backend-ready') {
           send({ ...message, pid: runtime.pid });
         }
       });
@@ -53,7 +53,7 @@ function main(args = process.argv.slice(2), {
     const report = outcome => {
       if (reported) return;
       reported = true;
-      send({ type: 'dvaia-owned-child-outcome', outcome });
+      send({ type: 'owasp-ai-goat-owned-child-outcome', outcome });
     };
     child.once('error', () => report({ type: 'error' }));
     child.once('exit', (code, signal) => report({ type: 'exit', code, signal }));
@@ -70,22 +70,22 @@ function main(args = process.argv.slice(2), {
   runtime.once('disconnect', () => stop(0));
   runtime.on('message', message => {
     if (stopped) return;
-    if (exact(message, ['type']) && message.type === 'dvaia-owned-guardian-stop') { stop(0); return; }
-    if (phase === 'waiting' && exact(message, ['type']) && message.type === 'dvaia-owned-guardian-hello') {
+    if (exact(message, ['type']) && message.type === 'owasp-ai-goat-owned-guardian-stop') { stop(0); return; }
+    if (phase === 'waiting' && exact(message, ['type']) && message.type === 'owasp-ai-goat-owned-guardian-hello') {
       phase = 'ready';
-      send({ type: 'dvaia-owned-guardian-ready', pid: runtime.pid, challenge });
+      send({ type: 'owasp-ai-goat-owned-guardian-ready', pid: runtime.pid, challenge });
     } else if (phase === 'ready' && exact(message, ['type', 'challenge', 'nonce'])
-      && message.type === 'dvaia-owned-guardian-probe' && message.challenge === challenge
+      && message.type === 'owasp-ai-goat-owned-guardian-probe' && message.challenge === challenge
       && typeof message.nonce === 'string' && /^[a-f0-9]{64}$/.test(message.nonce)) {
       phase = 'proved'; nonce = message.nonce;
-      send({ type: 'dvaia-owned-guardian-proof', pid: runtime.pid, challenge, nonce });
+      send({ type: 'owasp-ai-goat-owned-guardian-proof', pid: runtime.pid, challenge, nonce });
     } else if (phase === 'proved' && exact(message, ['type', 'challenge', 'nonce'])
-      && message.type === 'dvaia-owned-guardian-activate' && message.challenge === challenge && message.nonce === nonce) {
+      && message.type === 'owasp-ai-goat-owned-guardian-activate' && message.challenge === challenge && message.nonce === nonce) {
       phase = 'active';
       // The owner activates only after native handle pinning and job assignment.
       // Complete IPC delivery before spawning; loss/error never launches work.
       try {
-        runtime.send({ type: 'dvaia-owned-guardian-active', pid: runtime.pid, challenge, nonce }, error => {
+        runtime.send({ type: 'owasp-ai-goat-owned-guardian-active', pid: runtime.pid, challenge, nonce }, error => {
           if (error) stop(2); else launch();
         });
       } catch { stop(2); }

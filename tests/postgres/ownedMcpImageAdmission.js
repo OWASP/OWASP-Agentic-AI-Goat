@@ -55,8 +55,8 @@ function fileStream(fd){
 function validateConfig(value,expected){
   if(value.architecture!=='arm64'||value.os!=='linux'||value.config?.User!=='10001:10001'||
     JSON.stringify(value.config.Entrypoint)!==JSON.stringify(['node','sidecars/sandbox-runner/owned-mcp-registry/http-listener.js'])||
-    Object.keys(value.config.Volumes||{}).length||value.config.Labels?.['dvaia.registry.package']!==expected.packageDigest||
-    value.config.Labels?.['dvaia.build-run']!==expected.runId)throw fail('ADMISSION_CONFIG_MISMATCH');
+    Object.keys(value.config.Volumes||{}).length||value.config.Labels?.['owasp-ai-goat.registry.package']!==expected.packageDigest||
+    value.config.Labels?.['owasp-ai-goat.build-run']!==expected.runId)throw fail('ADMISSION_CONFIG_MISMATCH');
 }
 async function validateArchive(fd,expected){
   const before=await fd.stat();
@@ -136,14 +136,14 @@ async function probeJournal(spec,name,value){
   try{await directory.sync();}finally{await directory.close();}
 }
 async function probe(spec,run){
-  const name='dvaia-v23-assets-'+spec.expected.runId,token=crypto.randomBytes(16).toString('hex');let id,primary,digest;
-  const args=['create','--name',name,'--label','dvaia.admission='+token,'--network','none','--read-only','--cap-drop','ALL','--memory','512m','--cpus','1','--pids-limit','32','--log-driver','none','--security-opt','no-new-privileges','--user','10001:10001','--entrypoint','node',spec.expected.imageId,'-e',IMAGE_PROBE];
+  const name='owasp-ai-goat-v23-assets-'+spec.expected.runId,token=crypto.randomBytes(16).toString('hex');let id,primary,digest;
+  const args=['create','--name',name,'--label','owasp-ai-goat.admission='+token,'--network','none','--read-only','--cap-drop','ALL','--memory','512m','--cpus','1','--pids-limit','32','--log-driver','none','--security-opt','no-new-privileges','--user','10001:10001','--entrypoint','node',spec.expected.imageId,'-e',IMAGE_PROBE];
   const intent={version:1,name,token,imageId:spec.expected.imageId,daemon:PINS.daemon,host:spec.host,executable:spec.docker,argv:['--host',spec.host,...args],automaticRetry:false};
   // Commit authority before dispatch. An existing/partial journal is never
   // overwritten, and a lost create reply never authorizes removal by name.
   await probeJournal(spec,'probe-intent.json',intent);
   const intentSha256=sha(JSON.stringify(intent));
-  const inspect=async()=>{const rows=JSON.parse(await run(spec,['container','inspect',id]));const row=rows[0];if(rows.length!==1||row.Id!==id||row.Name!=='/'+name||row.Image!==spec.expected.imageId||row.Config?.Labels?.['dvaia.admission']!==token)throw fail('ADMISSION_PROBE_IDENTITY');return row;};
+  const inspect=async()=>{const rows=JSON.parse(await run(spec,['container','inspect',id]));const row=rows[0];if(rows.length!==1||row.Id!==id||row.Name!=='/'+name||row.Image!==spec.expected.imageId||row.Config?.Labels?.['owasp-ai-goat.admission']!==token)throw fail('ADMISSION_PROBE_IDENTITY');return row;};
   try{
     id=(await run(spec,args)).trim();
     if(!/^[a-f0-9]{64}$/.test(id))throw fail('ADMISSION_PROBE_CREATE_UNCERTAIN');

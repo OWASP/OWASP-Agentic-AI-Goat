@@ -729,7 +729,7 @@ def main(argv=None):
             'LANGCHAIN_TRACING_V2': 'false',
             'LANGSMITH_TRACING': 'false',
             'NO_PROXY': '127.0.0.1,localhost',
-            'DVAIA_ISOLATED_TEST_WORKSPACE': str(source),
+            'OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE': str(source),
             'LEGACY_AI_EXPERIMENT_ACTUAL8B_ISOLATED': '1',
             'LEGACY_AI_EXPERIMENT_ACTUAL8B_STAGE': STAGE,
             'AI_PROVIDER': 'ollama',

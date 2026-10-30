@@ -49,8 +49,8 @@ test('issues a launch, scopes parent state by launch and generation, and keeps b
   expect(f.stores[0].options.generation).toBe(2);
   expect(f.mounts[0].getLaunchBearer()).toBe('a'.repeat(43));
   expect(f.host.querySelectorAll('iframe')).toHaveLength(1);
-  expect(f.host.querySelector('iframe').title).toBe('SecureShop');
-  expect(f.host.querySelector('iframe').getAttribute('aria-label')).toBe('SecureShop storefront');
+  expect(f.host.querySelector('iframe').title).toBe('OWASP AI SecureShop');
+  expect(f.host.querySelector('iframe').getAttribute('aria-label')).toBe('OWASP AI SecureShop storefront');
   expect(f.host.querySelector('iframe').style.height).toBe('100%');
   expect(f.host.querySelector('iframe').getAttribute('sandbox')).toBeNull();
   expect(f.states.at(-1)).toEqual({ status: 'ready', launch: launch() });
@@ -82,12 +82,12 @@ test('terminal same-session launch requires a new login without retrying or moun
   expect(f.requests).toHaveLength(2);
   expect(f.mounts).toHaveLength(0);
   expect(f.states.at(-1)).toEqual({ status: 'error', terminalLaunch: true,
-    message: 'This platform session’s SecureShop launch has ended. Sign out and sign in again to start a new session.' });
+    message: 'This platform session’s OWASP AI SecureShop launch has ended. Sign out and sign in again to start a new session.' });
 });
 
 test('capacity denial keeps the backend recovery message and does not race a second launch', async () => {
   const f = harness([response({ launch: null }), response({
-    code: 'LAUNCH_CAPACITY', error: 'SecureShop product target capacity reached. Try again after an instructor retires old targets.',
+    code: 'LAUNCH_CAPACITY', error: 'OWASP AI SecureShop product target capacity reached. Try again after an instructor retires old targets.',
   }, 409)]);
   await expect(f.controller.start(f.host)).rejects.toMatchObject({ code: 'LAUNCH_CAPACITY', status: 409 });
   expect(f.requests.map(item => item.url)).toEqual([
@@ -95,7 +95,7 @@ test('capacity denial keeps the backend recovery message and does not race a sec
   ]);
   expect(f.mounts).toHaveLength(0);
   expect(f.states.at(-1)).toEqual({ status: 'error', capacity: true,
-    message: 'SecureShop product target capacity reached. Try again after an instructor retires old targets.' });
+    message: 'OWASP AI SecureShop product target capacity reached. Try again after an instructor retires old targets.' });
 });
 
 test('changing the platform token immediately fences the mounted bridge and storage authority', async () => {
@@ -107,7 +107,7 @@ test('changing the platform token immediately fences the mounted bridge and stor
   expect(f.stores[0].options.isCurrent()).toBe(true);
   token = 'different-session-token';
   expect(f.stores[0].options.isCurrent()).toBe(false);
-  expect(() => f.mounts[0].getLaunchBearer()).toThrow('SecureShop workshop closed');
+  expect(() => f.mounts[0].getLaunchBearer()).toThrow('OWASP AI SecureShop workshop closed');
   expect(f.requests).toHaveLength(2);
 });
 
@@ -118,7 +118,7 @@ test('trusted current launch rejection detaches the frame and presents the exist
   expect(f.mounts[0].session.close).toHaveBeenCalledTimes(1);
   expect(f.host.querySelector('iframe')).toBeNull();
   expect(f.states.at(-1)).toEqual({ status: 'error',
-    message: 'SecureShop connection needs to be renewed. Reconnect to continue.' });
+    message: 'OWASP AI SecureShop connection needs to be renewed. Reconnect to continue.' });
   expect(f.requests).toHaveLength(2);
   expect(f.stores[0].store.retire).not.toHaveBeenCalled();
 });

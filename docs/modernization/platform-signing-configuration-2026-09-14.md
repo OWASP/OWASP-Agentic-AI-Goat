@@ -23,8 +23,8 @@ operator-controlled maintenance window:
    history or terminal output:
 
    ```bash
-   install -d -m 700 "$HOME/.dvaia"
-   (umask 077; node -e "process.stdout.write(require('node:crypto').randomBytes(48).toString('hex') + '\n')" > "$HOME/.dvaia/jwt-secret.new")
+   install -d -m 700 "$HOME/.owasp-ai-goat"
+   (umask 077; node -e "process.stdout.write(require('node:crypto').randomBytes(48).toString('hex') + '\n')" > "$HOME/.owasp-ai-goat/jwt-secret.new")
    ```
 
 4. In a private editor, replace only the `JWT_SECRET` value in `.env` with the

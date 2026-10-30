@@ -1,6 +1,6 @@
 'use strict';
 async function assertReadiness({pool,controlDatabase,administrator}){
- if(!/^(dvaia_audit_control_|dvaia_test_audit_search_)[a-f0-9]+$/.test(controlDatabase)||!/^[_a-z0-9]+$/.test(administrator))throw Error('Synthetic control identity required');
+ if(!/^(owasp_ai_goat_audit_control_|owasp_ai_goat_test_audit_search_)[a-f0-9]+$/.test(controlDatabase)||!/^[_a-z0-9]+$/.test(administrator))throw Error('Synthetic control identity required');
  const identity=(await pool.query('SELECT current_database() AS database,current_user AS role')).rows[0];
  if(identity.database!==controlDatabase||identity.role!==administrator)throw Error('Synthetic control identity mismatch');
  const databases=(await pool.query('SELECT datname,datacl FROM pg_database WHERE NOT datistemplate')).rows;

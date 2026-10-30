@@ -31,7 +31,7 @@ function assertPersistentPrerequisites({root,homeDirectory=os.homedir(),existing
 function listenerPorts({root,homeDirectory=os.homedir(),environment=process.env}) {
  const existing=managed.load({filePath:managed.managedPath({root,home:homeDirectory})});
  const result={};
- for(const [mode,key,fallback]of [['config','DVAIA_SYSTEM_CONFIG_PORT',8090],['diagnostic','DVAIA_SYSTEM_DIAGNOSTIC_PORT',8091],['restart','DVAIA_SYSTEM_RESTART_PORT',8092],...((existing?.uploadPreview||environment.DVAIA_UPLOAD_PREVIEW_PORT!==undefined)?[['uploadPreview','DVAIA_UPLOAD_PREVIEW_PORT',8093]]:[])]) {
+ for(const [mode,key,fallback]of [['config','OWASP_AI_GOAT_SYSTEM_CONFIG_PORT',8090],['diagnostic','OWASP_AI_GOAT_SYSTEM_DIAGNOSTIC_PORT',8091],['restart','OWASP_AI_GOAT_SYSTEM_RESTART_PORT',8092],...((existing?.uploadPreview||environment.OWASP_AI_GOAT_UPLOAD_PREVIEW_PORT!==undefined)?[['uploadPreview','OWASP_AI_GOAT_UPLOAD_PREVIEW_PORT',8093]]:[])]) {
   const raw=environment[key];let requested;
   if(raw!==undefined){if(typeof raw!=='string'||!/^\d{4,5}$/.test(raw)||String(Number(raw))!==raw||Number(raw)<1024||Number(raw)>65535)throw fail('SYSTEM_INSTALL_PORT_INVALID');requested=Number(raw);}
   const recorded=existing?.[mode]?Number(new URL(existing[mode].url).port):undefined;

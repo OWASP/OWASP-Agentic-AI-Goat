@@ -41,13 +41,13 @@ class ExternalMailAuthorityLauncherContract(unittest.TestCase):
         names = [LAUNCHER.database_name(nonce, store) for store in LAUNCHER.STORES.values()]
         self.assertEqual(len(set(names)), 4)
         for store, name in zip(LAUNCHER.STORES.values(), names):
-            self.assertEqual(name, f'dvaia_test_extmail_auth_{nonce}_{store}')
+            self.assertEqual(name, f'owasp_ai_goat_test_extmail_auth_{nonce}_{store}')
             self.assertLessEqual(len(name.encode('utf-8')), 63)
         for bad_nonce, bad_store in [('x' * 12, 'secureshop_agents'),
                                      (nonce, 'secureshop_agents_extended_to_overrun_pg_identifier')]:
             with self.assertRaisesRegex(RuntimeError, 'Closed disposable store'):
                 LAUNCHER.database_name(bad_nonce, bad_store)
-        with mock.patch.object(LAUNCHER, 'DATABASE_PREFIX', 'dvaia_test_external_mail_authority_'):
+        with mock.patch.object(LAUNCHER, 'DATABASE_PREFIX', 'owasp_ai_goat_test_external_mail_authority_'):
             with self.assertRaisesRegex(RuntimeError, 'exceeds 63 bytes'):
                 LAUNCHER.database_name(nonce, 'secureshop_agents')
 
@@ -67,7 +67,7 @@ class ExternalMailAuthorityLauncherContract(unittest.TestCase):
         wrong = dict(env)
         wrong['PG_EXTERNAL_MAIL_AGENTS_RUNTIME_URL'] = wrong[
             'PG_EXTERNAL_MAIL_AGENTS_RUNTIME_URL'].replace(
-                LAUNCHER.DATABASE_PREFIX, 'dvaia_test_external_mail_authority_')
+                LAUNCHER.DATABASE_PREFIX, 'owasp_ai_goat_test_external_mail_authority_')
         denied = subprocess.run([str(LAUNCHER.NODE), '-e', script], cwd=LAUNCHER.ROOT,
             env=wrong, capture_output=True, text=True, timeout=10)
         self.assertNotEqual(denied.returncode, 0)
@@ -129,7 +129,7 @@ class ExternalMailAuthorityLauncherContract(unittest.TestCase):
                 dir=LAUNCHER.ROOT / 'tasks/tmp') as folder:
             env = LAUNCHER.clean_environment(Path(folder))
             self.assertEqual(env['PG_EXTERNAL_MAIL_AUTHORITY_NATIVE'], 'yes')
-            self.assertEqual(env['DVAIA_CURRENT_MAIN_WORKSPACE'], str(LAUNCHER.ROOT))
+            self.assertEqual(env['OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE'], str(LAUNCHER.ROOT))
             self.assertEqual(env['DOCKER_HOST'], 'unix://' + str(LAUNCHER.SOCKET))
             self.assertEqual(Path(env['PG_EXTERNAL_MAIL_AUTHORITY_EVIDENCE_PATH']).name,
                 'external-mail-authority-evidence.json')

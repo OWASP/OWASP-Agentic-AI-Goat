@@ -4,11 +4,11 @@ import argparse, os, shutil, signal, subprocess, tempfile, time, uuid
 from pathlib import Path
 
 parser=argparse.ArgumentParser();parser.add_argument('--docker-host',required=True);args=parser.parse_args()
-source=Path(__file__).resolve().parents[2];root=Path(tempfile.mkdtemp(prefix='dvaia-finflow-copy-'))
+source=Path(__file__).resolve().parents[2];root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-finflow-copy-'))
 workspace=root/'source';workspace.mkdir();os.chmod(root,0o700)
 base_env={key:os.environ[key] for key in ['PATH','HOME','TMPDIR'] if key in os.environ}
 docker=['docker','--host',args.docker_host];token=uuid.uuid4().hex[:12]
-container=f'dvaia-finflow-copy-{token}';started=False;child=None
+container=f'owasp-ai-goat-finflow-copy-{token}';started=False;child=None
 def run(command,**kwargs):kwargs.setdefault('timeout',60);return subprocess.run(command,check=True,env=base_env,**kwargs)
 def stop_child():
  global child
@@ -35,9 +35,9 @@ try:
  port=int(run(docker+['port',container,'5432'],capture_output=True,text=True).stdout.strip().rsplit(':',1)[1])
  psql=['psql','-h','127.0.0.1','-p',str(port),'-U','finflow_copy_admin','-d','postgres','-v','ON_ERROR_STOP=1']
  for role in ['dvaia_identity_migration','dvaia_identity_runtime']:run(psql+['-c',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
- run(psql+['-c','CREATE DATABASE dvaia_finflow_copy OWNER dvaia_identity_migration'],stdout=subprocess.DEVNULL)
- run(psql+['-c','REVOKE CONNECT ON DATABASE dvaia_finflow_copy FROM PUBLIC; GRANT CONNECT ON DATABASE dvaia_finflow_copy TO dvaia_identity_migration,dvaia_identity_runtime'],stdout=subprocess.DEVNULL)
- env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),AWS_EC2_METADATA_DISABLED='true',PG_FINFLOW_COPY_MIGRATION_URL=f'postgresql://dvaia_identity_migration@127.0.0.1:{port}/dvaia_finflow_copy',PG_FINFLOW_COPY_RUNTIME_URL=f'postgresql://dvaia_identity_runtime@127.0.0.1:{port}/dvaia_finflow_copy')
+ run(psql+['-c','CREATE DATABASE owasp_ai_goat_finflow_copy OWNER dvaia_identity_migration'],stdout=subprocess.DEVNULL)
+ run(psql+['-c','REVOKE CONNECT ON DATABASE owasp_ai_goat_finflow_copy FROM PUBLIC; GRANT CONNECT ON DATABASE owasp_ai_goat_finflow_copy TO dvaia_identity_migration,dvaia_identity_runtime'],stdout=subprocess.DEVNULL)
+ env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),AWS_EC2_METADATA_DISABLED='true',PG_FINFLOW_COPY_MIGRATION_URL=f'postgresql://dvaia_identity_migration@127.0.0.1:{port}/owasp_ai_goat_finflow_copy',PG_FINFLOW_COPY_RUNTIME_URL=f'postgresql://dvaia_identity_runtime@127.0.0.1:{port}/owasp_ai_goat_finflow_copy')
  log_path=root/'result.log'
  with log_path.open('w') as log:
   child=subprocess.Popen(['node','--test','--test-reporter=tap','tests/postgres/finflowTeachingCopy.integration.test.js'],cwd=workspace,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)

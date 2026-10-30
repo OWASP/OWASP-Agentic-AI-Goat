@@ -25,11 +25,11 @@ function owner(overrides = {}) {
 }
 
 function mailAuthority(execution, generation, gadget = GADGET.code) {
-  const mail = Object.freeze({ id: 'mail-1', subject: 'Owned subject', from: 'sender@dvaia.invalid',
+  const mail = Object.freeze({ id: 'mail-1', subject: 'Owned subject', from: 'sender@owasp-ai-goat.invalid',
     body: `opaque retrieved mail ${gadget}` });
   const values = new WeakMap([[mail, Object.freeze({ version: codec.VERSION, state: 'retrieved', hasEventHandler: true,
     dispatchId: 'dispatch-1', dispatchRunId: execution.runId, providerMessageId: 'provider-1',
-    inboxMessageId: 'inbox-1', recipient: 'xss-7@dvaia.invalid', sender: 'attacker@evil.invalid',
+    inboxMessageId: 'inbox-1', recipient: 'xss-7@owasp-ai-goat.invalid', sender: 'attacker@evil.invalid',
     subjectDigest: sha256('subject'), logicalBodyDigest: sha256(gadget),
     payloadDigest: sha256(gadget), htmlDigest: sha256(gadget),
     logicalBodyBytes: Buffer.byteLength(gadget), payloadBytes: Buffer.byteLength(gadget),
@@ -146,8 +146,8 @@ function fixture({ gadget = GADGET.code, browserMessage = GADGET.directive,
 async function productionRetrievedMail(execution, gadget = GADGET.code, selected = false) {
   const records = [];
   let delivered;
-  const recipient = 'xss-7@dvaia.invalid';
-  const sender = 'sender@dvaia.invalid';
+  const recipient = 'xss-7@owasp-ai-goat.invalid';
+  const sender = 'sender@owasp-ai-goat.invalid';
   const repository = {
     async append(input) {
       const row = Object.freeze({ evidenceID: input.evidenceID, runId: input.runId,
@@ -158,7 +158,7 @@ async function productionRetrievedMail(execution, gadget = GADGET.code, selected
   };
   const transport = { async sendEmail(sentTo, subject, body, _owner, { html }) {
     delivered = { id: 'mailpit-1', subject, from: sender, htmlBody: html, body };
-    return { smtpAccepted: true, messageId: '<provider-1@dvaia.invalid>', sentTo,
+    return { smtpAccepted: true, messageId: '<provider-1@owasp-ai-goat.invalid>', sentTo,
       sentFrom: sender, accepted: [sentTo], rejected: [] };
   } };
   const mailbox = {

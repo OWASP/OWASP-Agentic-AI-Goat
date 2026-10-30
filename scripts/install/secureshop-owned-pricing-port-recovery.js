@@ -98,26 +98,26 @@ async function recoverUnusedPricingPort({root,home,environment,port,run,execute,
    const old=await inspect(originalConfig.containerId);
    if(old){await activation.inspectPricingBeforeStart({root,home,env:environment,execute});if(!neverStarted(old)||old.Id!==originalConfig.containerId)throw fail();}
    const named=await inspect(originalConfig.containerName);
-   if(named&&named.Id!==originalConfig.containerId&&named.Config?.Labels?.['dvaia.pricing.retarget']!==label)throw fail();
+   if(named&&named.Id!==originalConfig.containerId&&named.Config?.Labels?.['owasp-ai-goat.pricing.retarget']!==label)throw fail();
    await checkPort(8096);
    const ids=(await docker(['ps','--all','--filter','publish=8096','--format','{{.ID}}'])).trim().split('\n').filter(Boolean);
-   if(ids.some(id=>!named||!named.Id.startsWith(id)||named.Config?.Labels?.['dvaia.pricing.retarget']!==label))throw fail();
+   if(ids.some(id=>!named||!named.Id.startsWith(id)||named.Config?.Labels?.['owasp-ai-goat.pricing.retarget']!==label))throw fail();
    if(old)await docker(['rm',old.Id]);
    let candidate=named&&named.Id!==originalConfig.containerId?named:null;
    if(!candidate){
     const envFile=path.join(location.directory,'.pricing-port-'+crypto.randomUUID()+'.env');let envIdentity;
     try{fs.writeFileSync(envFile,`SECURESHOP_PRICING_ENABLED=true\nSECURESHOP_PRICING_TOKEN=${originalConfig.token}\nSECURESHOP_PRICING_PROFILE=${originalConfig.profile}\nSECURESHOP_PRICING_HOST=0.0.0.0\nSECURESHOP_PRICING_PORT=8093\n`,{mode:0o600,flag:'wx'});envIdentity=fs.lstatSync(envFile);
      try{await docker(['create','--name',originalConfig.containerName,
-      ...Object.entries({'dvaia.pricing.owner':originalConfig.ownerId,'dvaia.pricing.workspace':originalConfig.workspaceId,'dvaia.pricing.package':originalConfig.packageSha256,'dvaia.pricing.retarget':label}).flatMap(([k,v])=>['--label',k+'='+v]),
+      ...Object.entries({'owasp-ai-goat.pricing.owner':originalConfig.ownerId,'owasp-ai-goat.pricing.workspace':originalConfig.workspaceId,'owasp-ai-goat.pricing.package':originalConfig.packageSha256,'owasp-ai-goat.pricing.retarget':label}).flatMap(([k,v])=>['--label',k+'='+v]),
       '--network',originalConfig.containerName+'-network','--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--tmpfs','/tmp:rw,nosuid,nodev,size=134217728','--security-opt','seccomp=unconfined','--security-opt','apparmor='+originalConfig.profile,'--publish','127.0.0.1:8096:8093','--env-file',envFile,originalConfig.imageId]);}catch{}
     }finally{if(envIdentity)removeExact(envFile,envIdentity);}
     candidate=await inspect(originalConfig.containerName);
    }
-   if(!neverStarted(candidate)||candidate.Config?.Labels?.['dvaia.pricing.retarget']!==label)throw fail();
+   if(!neverStarted(candidate)||candidate.Config?.Labels?.['owasp-ai-goat.pricing.retarget']!==label)throw fail();
    await activation.inspectPricingPortCandidate({root,home,env:environment,execute,portCandidate:{port:8096,containerId:candidate.Id}});
    next={version:1,preparedSha256:label,containerId:candidate.Id};managed._private.publishImmutable(successorFile,encode(next));successor=readOptional(successorFile);
   }
-  const candidate=await inspect(next.containerId);if(!neverStarted(candidate)||candidate.Config?.Labels?.['dvaia.pricing.retarget']!==label)throw fail();
+  const candidate=await inspect(next.containerId);if(!neverStarted(candidate)||candidate.Config?.Labels?.['owasp-ai-goat.pricing.retarget']!==label)throw fail();
   const current=managed.load({root,home});if(current.config.enabled)throw fail();
   if(current.config.port===8093)await activation.inspectPricingPortCandidate({root,home,env:environment,execute,portCandidate:{port:8096,containerId:next.containerId}});
   replaceExact(location.filename,value.managed,encode(successorConfig()));

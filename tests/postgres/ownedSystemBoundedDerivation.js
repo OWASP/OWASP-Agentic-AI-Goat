@@ -45,7 +45,7 @@ def pair_read(path,mode,maximum=4096):
 const PAIR_CHILD=PAIR_COMMON+String.raw`
 PAIR_BUDGET=None
 def pair_refresh_checked(budget):
-    row=pair_shape(pair_read('/var/tmp/dvaia-v23-relay-'+TRANSPORT_RUN+'/pair-credit.json',0o444),TRANSPORT_RUN)
+    row=pair_shape(pair_read('/var/tmp/owasp-ai-goat-v23-relay-'+TRANSPORT_RUN+'/pair-credit.json',0o444),TRANSPORT_RUN)
     old=budget.pair_credit
     if old is None:
         if row['sequence']!=0 or budget.connections!=0: raise Denied('pair-initial')
@@ -222,7 +222,7 @@ const LEASE_PY=String.raw`import os,sys,stat,json,time,re
 ROOT,RUN,OP=sys.argv[1:]
 def require(v):
  if not v:raise RuntimeError('SYSTEM_LEASE_UNPROVEN')
-require(re.fullmatch('[a-f0-9]{32}',RUN) and ROOT=='/var/tmp/dvaia-v23-build-'+RUN and os.path.realpath(ROOT)==ROOT)
+require(re.fullmatch('[a-f0-9]{32}',RUN) and ROOT=='/var/tmp/owasp-ai-goat-v23-build-'+RUN and os.path.realpath(ROOT)==ROOT)
 s=os.lstat(ROOT);require(stat.S_ISDIR(s.st_mode) and s.st_uid==0 and stat.S_IMODE(s.st_mode)==0o700)
 def read(name):
  fd=os.open(ROOT+'/'+name,os.O_RDONLY|os.O_NOFOLLOW)

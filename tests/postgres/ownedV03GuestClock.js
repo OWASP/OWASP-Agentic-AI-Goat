@@ -133,7 +133,7 @@ async function sampleGuestClock(options){
   finally{try{await parent.close();}catch(error){parentFailure=retainCloseDebt(parentFailure,error,'V03_CLOCK_DIRECTORY_CLOSE');}}
   if(parentFailure)throw parentFailure;
   const command='/usr/bin/python3 -I -S -B -c '+quote(GUEST)+' '+binding.runId+' '+binding.planSha256;
-  const conf={root,runId:binding.runId,guest:'/var/tmp/dvaia-v23-build-'+binding.runId,base:'',
+  const conf={root,runId:binding.runId,guest:'/var/tmp/owasp-ai-goat-v23-build-'+binding.runId,base:'',
    phase:PHASE,command,commandSha256:sha(command),deps:driver.DEPS,expectedMux:null,
    inputPath:path.join(directory,'input'),inputSha256:sha(''),remoteSeconds:2,outputLimit:1024};
   signal.throwIfAborted();

@@ -10,7 +10,7 @@ const managedFile='pricing-managed.json';
 const {networkGuardSource}=require('./fullBackendBootControls');
 const root=fs.realpathSync(path.resolve(__dirname,'../..')),out=fs.realpathSync(process.env.PRICING_SUPPORTED_NATIVE_OUT);
 assert.equal(process.env.PRICING_SUPPORTED_NATIVE,'1');assert.equal(root,path.join(out,'source'));
-const home=path.join(out,'home'),id=workspaceId(root),directory=path.join(home,'.dvaia',id),host='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock';
+const home=path.join(out,'home'),id=workspaceId(root),directory=path.join(home,'.owasp-ai-goat',id),host='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock';
 const state={version:1,status:'preparing',workspaceId:id,privateDirectory:directory,containers:[],children:[],ownedProcessGroups:[],outerEgressIsolationEstablished:false};
 const persist=()=>fs.writeFileSync(path.join(out,'fixture-result.json'),JSON.stringify(state,null,2)+'\n');
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
@@ -35,13 +35,13 @@ async function closed(p){await new Promise((resolve,reject)=>{const s=net.connec
  const authority={version:1,workspaceId:id,host,daemonId:JSON.parse((await docker(['info','--format','{{json .ID}}'])).trim()),source:'environment-host',platform:'darwin'};await writeLocalDockerAuthority({directory,authority});
  const runtime=path.join(out,'runtime');fs.mkdirSync(runtime,{mode:0o700});
  const ports=[];for(let i=0;i<4;i++){let p;do{p=await port();}while(ports.includes(p));ports.push(p);}const [pricingPort,backendPort,clientPort,agentPort]=ports;
- Object.assign(state,{imageTag:`dvaia-owned-pricing-${id}:local`,network:`dvaia-pricing-${id}-network`,profile:`dvaia-owned-pricing-http-${id}`,containers:[`dvaia-pricing-${id}`]});persist();
+ Object.assign(state,{imageTag:`owasp-ai-goat-owned-pricing-${id}:local`,network:`owasp-ai-goat-pricing-${id}-network`,profile:`owasp-ai-goat-owned-pricing-http-${id}`,containers:[`owasp-ai-goat-pricing-${id}`]});persist();
  const adminUrl=process.env.PRICING_SUPPORTED_PG_ADMIN_URL;assert.ok(adminUrl&&new URL(adminUrl).hostname==='127.0.0.1');
  const provisioning=await require('../../db/postgres/provision-application').provisionApplication({adminUrl,manifestPath:path.join(directory,'provisioning.json')});assert.equal(provisioning.plan.length,16);
  const reset=require('../../scripts/lib/setup-password-reset-key').ensurePasswordResetKey({directory});
  const env={...provisioning.configuration,PATH:process.env.PATH,HOME:home,TMPDIR:out,NODE_ENV:'test',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',PG_TEST_DISPOSABLE:'yes',PG_ADMIN_DATABASE_URL:adminUrl,
-  SS_ENABLE:'true',SS_AUDIT_SUMMARY_ENABLED:'false',SS_ENABLE_REAL_MCP_SPAWN:'false',MCP_SIDECARS_AUTOSTART:'false',MCP_WORKSHOP_AUTOSTART:'false',AI_PROVIDER:'mock',OLLAMA_BASE_URL:'http://127.0.0.1:1',AWS_EC2_METADATA_DISABLED:'true',HF_HUB_OFFLINE:'1',TRANSFORMERS_OFFLINE:'1',EVENT_GATE_ENABLED:'false',JWT_SECRET:crypto.randomBytes(48).toString('hex'),SESSION_SECRET:crypto.randomBytes(48).toString('hex'),LANGCHAIN_TRACING_V2:'false',LANGSMITH_TRACING:'false',SS_PASSWORD_RESET_KEY_PATH:reset.filePath,PORT:String(backendPort),DVAIA_CLIENT_PORT:String(clientPort),SS_AGENT_HOST_PORT:String(agentPort),SS_ALLOWED_ORIGINS:`http://127.0.0.1:${backendPort}`,SECURESHOP_REVIEW_RENDERER_ROOT:path.join(root,'client/build/secureshop-review-renderer'),DVAIA_APP_DATA_ROOT:path.join(runtime,'app-data'),LOGS_DIR:path.join(runtime,'logs'),LEGACY_SENSITIVE_FILES_ROOT:path.join(runtime,'legacy-sensitive-files'),HF_HOME:path.join(runtime,'hf-cache'),NPM_CONFIG_UPDATE_NOTIFIER:'false'};
- for(const key of ['DVAIA_APP_DATA_ROOT','LOGS_DIR','LEGACY_SENSITIVE_FILES_ROOT','HF_HOME'])fs.mkdirSync(env[key],{mode:0o700});
+  SS_ENABLE:'true',SS_AUDIT_SUMMARY_ENABLED:'false',SS_ENABLE_REAL_MCP_SPAWN:'false',MCP_SIDECARS_AUTOSTART:'false',MCP_WORKSHOP_AUTOSTART:'false',AI_PROVIDER:'mock',OLLAMA_BASE_URL:'http://127.0.0.1:1',AWS_EC2_METADATA_DISABLED:'true',HF_HUB_OFFLINE:'1',TRANSFORMERS_OFFLINE:'1',EVENT_GATE_ENABLED:'false',JWT_SECRET:crypto.randomBytes(48).toString('hex'),SESSION_SECRET:crypto.randomBytes(48).toString('hex'),LANGCHAIN_TRACING_V2:'false',LANGSMITH_TRACING:'false',SS_PASSWORD_RESET_KEY_PATH:reset.filePath,PORT:String(backendPort),OWASP_AI_GOAT_CLIENT_PORT:String(clientPort),SS_AGENT_HOST_PORT:String(agentPort),SS_ALLOWED_ORIGINS:`http://127.0.0.1:${backendPort}`,SECURESHOP_REVIEW_RENDERER_ROOT:path.join(root,'client/build/secureshop-review-renderer'),OWASP_AI_GOAT_APP_DATA_ROOT:path.join(runtime,'app-data'),LOGS_DIR:path.join(runtime,'logs'),LEGACY_SENSITIVE_FILES_ROOT:path.join(runtime,'legacy-sensitive-files'),HF_HOME:path.join(runtime,'hf-cache'),NPM_CONFIG_UPDATE_NOTIFIER:'false'};
+ for(const key of ['OWASP_AI_GOAT_APP_DATA_ROOT','LOGS_DIR','LEGACY_SENSITIVE_FILES_ROOT','HF_HOME'])fs.mkdirSync(env[key],{mode:0o700});
  await require('../../scripts/install/secureshop-qualified-local-lib').provision({root,home,enabled:true});
  const guard=path.join(runtime,'network-guard.js');fs.writeFileSync(guard,networkGuardSource({host:'127.0.0.1',port:Number(new URL(adminUrl).port)},{version:1,services:[{name:'agent_host',host:'127.0.0.1',port:agentPort},{name:'fixture_pricing',host:'127.0.0.1',port:pricingPort},{name:'fixture_backend',host:'127.0.0.1',port:backendPort},{name:'fixture_frontend',host:'127.0.0.1',port:clientPort}]}),{mode:0o600});
  const spawnEvents=path.join(runtime,'spawn-events.jsonl');
@@ -63,7 +63,7 @@ async function closed(p){await new Promise((resolve,reject)=>{const s=net.connec
  const dockerWrapper=path.join(bin,'docker');
  fs.writeFileSync(dockerWrapper,'#!'+process.execPath+'\n'+`const fs=require('node:fs'),cp=require('node:child_process'),args=process.argv.slice(2);let i=0;while(args[i]==='--host'||args[i]==='--context'){i+=2;}fs.appendFileSync(${JSON.stringify(dockerCalls)},JSON.stringify({verb:args[i],subverb:args[i]==='network'?args[i+1]:undefined})+'\\n');const r=cp.spawnSync('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker',args,{stdio:'inherit'});process.exit(r.status===null?1:r.status);`,{mode:0o700,flag:'wx'});
  const dockerEvents=()=>fs.existsSync(dockerCalls)?fs.readFileSync(dockerCalls,'utf8').trim().split('\n').filter(Boolean).map(JSON.parse):[];
- const cliEnv={PATH:bin+':'+process.env.PATH,HOME:home,TMPDIR:out,PG_ADMIN_DATABASE_URL:adminUrl,DVAIA_OWNED_PRICING_PORT:String(pricingPort),NODE_OPTIONS:'--max-old-space-size=1024',MCP_SIDECARS_AUTOSTART:'false',AWS_EC2_METADATA_DISABLED:'true',NPM_CONFIG_UPDATE_NOTIFIER:'false'};
+ const cliEnv={PATH:bin+':'+process.env.PATH,HOME:home,TMPDIR:out,PG_ADMIN_DATABASE_URL:adminUrl,OWASP_AI_GOAT_OWNED_PRICING_PORT:String(pricingPort),NODE_OPTIONS:'--max-old-space-size=1024',MCP_SIDECARS_AUTOSTART:'false',AWS_EC2_METADATA_DISABLED:'true',NPM_CONFIG_UPDATE_NOTIFIER:'false'};
  const prePlanFiles=fs.readdirSync(directory).sort();
  const setupPlan=await command(process.execPath,['scripts/setup-application.js','--plan','--no-install','--upgrade','--owned-pricing'],cliEnv);
  assert.deepEqual(fs.readdirSync(directory).sort(),prePlanFiles);assert.equal(sha(fs.readFileSync(path.join(root,'.env'))),envHash);
@@ -84,7 +84,7 @@ async function closed(p){await new Promise((resolve,reject)=>{const s=net.connec
    if(Date.now()>deadline)throw Error('supported startup deadline');await delay(200);
   }
   const tree=collect();assert.ok(tree.length>=4);state.cycles.push({launcherPid:c.pid,observedProcessCount:tree.length,backendAndFrontendReady:true});persist();
-  const login=await req('/api/auth/login',null,{username:user.username,password});assert.equal(login.status,200);const issued=await req('/api/auth/secureshop-launch',login.body.token,{});assert.equal(issued.status,201);const header={'x-dvaia-secureshop-launch':issued.body.bearer};const persona=await req('/api/secureshop/v2/auth/login',login.body.token,{username:'student_merchant',password:'student123'},header);assert.equal(persona.status,200);
+  const login=await req('/api/auth/login',null,{username:user.username,password});assert.equal(login.status,200);const issued=await req('/api/auth/secureshop-launch',login.body.token,{});assert.equal(issued.status,201);const header={'x-owasp-ai-goat-secureshop-launch':issued.body.bearer};const persona=await req('/api/secureshop/v2/auth/login',login.body.token,{username:'student_merchant',password:'student123'},header);assert.equal(persona.status,200);
   assert.equal((await req('/api/secureshop/merchant/pricing/run',persona.body.token,undefined,header)).status,200);
   // Stop command needs its random controller socket; it is trusted and separately
   // invoked without the database-only test network guard.

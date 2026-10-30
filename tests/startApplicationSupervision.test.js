@@ -53,7 +53,7 @@ function fixture(directory) {
       fs.writeFileSync(descendant, String(child.pid));
       setTimeout(() => process.exit(7), 40);
     } else if (mode === 'backend-ready' || mode === 'backend-dies') {
-      process.send({ type: 'dvaia-backend-ready', token: process.env.DVAIA_LAUNCH_READINESS_TOKEN,
+      process.send({ type: 'owasp-ai-goat-backend-ready', token: process.env.OWASP_AI_GOAT_LAUNCH_READINESS_TOKEN,
         pid: process.pid, port: Number(process.env.PORT || 8081) });
       if (mode === 'backend-dies') setTimeout(() => process.exit(0), 250);
       else hold();
@@ -81,7 +81,7 @@ function supervisorFor(directory, backendMode, frontendMode = 'frontend-ready', 
   const frontendDescendant = path.join(directory, 'frontend-descendant.pid');
   const supervisor = createApplicationSupervisor({
     workspace: path.resolve(__dirname, '..'),
-    environment: { ...process.env, PORT: '8081', DVAIA_CLIENT_PORT: '3000' },
+    environment: { ...process.env, PORT: '8081', OWASP_AI_GOAT_CLIENT_PORT: '3000' },
     startupTimeoutMs: options.startupTimeoutMs || 2000,
     backendCommand: process.execPath,
     backendArgs: [script, backendMode, backendPid, backendDescendant],
@@ -105,7 +105,7 @@ test('backend readiness IPC is bound to the exact configured port and child iden
   const messages = [];
   const restore = installBackendReadinessIpc({
     Server: FakeServer,
-    environment: { PORT: '8081', DVAIA_LAUNCH_READINESS_TOKEN: TOKEN },
+    environment: { PORT: '8081', OWASP_AI_GOAT_LAUNCH_READINESS_TOKEN: TOKEN },
     send: message => messages.push(message),
     pid: 4321,
   });
@@ -114,12 +114,12 @@ test('backend readiness IPC is bound to the exact configured port and child iden
     assert.deepEqual(messages, []);
     new FakeServer(8081).emit('listening');
     new FakeServer(8081).emit('listening');
-    assert.deepEqual(messages, [{ type: 'dvaia-backend-ready', token: TOKEN, pid: 4321, port: 8081 }]);
+    assert.deepEqual(messages, [{ type: 'owasp-ai-goat-backend-ready', token: TOKEN, pid: 4321, port: 8081 }]);
   } finally { restore(); }
 });
 
 test('real preload reports readiness only after its exact loopback server listens', async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-ready-ipc-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-ready-ipc-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const reservation = http.createServer();
   await new Promise((resolve, reject) => {
@@ -139,7 +139,7 @@ test('real preload reports readiness only after its exact loopback server listen
   const child = spawn(process.execPath, [
     '--require', path.resolve(__dirname, '../scripts/backend-readiness-ipc.js'), serverFixture,
   ], {
-    env: { ...process.env, PORT: String(selectedPort), DVAIA_LAUNCH_READINESS_TOKEN: TOKEN },
+    env: { ...process.env, PORT: String(selectedPort), OWASP_AI_GOAT_LAUNCH_READINESS_TOKEN: TOKEN },
     stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
     detached: process.platform !== 'win32',
   });
@@ -149,11 +149,11 @@ test('real preload reports readiness only after its exact loopback server listen
     await stopOwnedChild({ child }, { graceMs: 1000, pollMs: 10 }).catch(() => {});
   });
   await waitFor(() => messages.some(message => message.type === 'fixture-before-listen'));
-  assert.equal(messages.some(message => message.type === 'dvaia-backend-ready'), false);
-  await waitFor(() => messages.some(message => message.type === 'dvaia-backend-ready'));
-  const ready = messages.find(message => message.type === 'dvaia-backend-ready');
+  assert.equal(messages.some(message => message.type === 'owasp-ai-goat-backend-ready'), false);
+  await waitFor(() => messages.some(message => message.type === 'owasp-ai-goat-backend-ready'));
+  const ready = messages.find(message => message.type === 'owasp-ai-goat-backend-ready');
   assert.deepEqual(ready, {
-    type: 'dvaia-backend-ready', token: TOKEN, pid: child.pid, port: selectedPort,
+    type: 'owasp-ai-goat-backend-ready', token: TOKEN, pid: child.pid, port: selectedPort,
   });
   assert.equal(await (await fetch(`http://127.0.0.1:${selectedPort}`)).text(), 'ready');
   await stopOwnedChild({ child }, { graceMs: 1000, pollMs: 10 });
@@ -161,11 +161,11 @@ test('real preload reports readiness only after its exact loopback server listen
 });
 
 test('owned guardian keeps a live tree root after forwarding workload readiness and exit', async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-guardian-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-guardian-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const workload = path.join(directory, 'workload.js');
   fs.writeFileSync(workload, `
-    process.send({ type: 'dvaia-backend-ready', token: process.env.DVAIA_LAUNCH_READINESS_TOKEN,
+    process.send({ type: 'owasp-ai-goat-backend-ready', token: process.env.OWASP_AI_GOAT_LAUNCH_READINESS_TOKEN,
       pid: process.pid, port: 8081 });
     setTimeout(() => process.exit(0), 20);
   `);
@@ -173,7 +173,7 @@ test('owned guardian keeps a live tree root after forwarding workload readiness 
     path.resolve(__dirname, '../scripts/owned-child-guardian.js'),
     process.execPath, JSON.stringify([workload]), 'ipc', 'direct',
   ], {
-    env: { ...process.env, DVAIA_LAUNCH_READINESS_TOKEN: TOKEN },
+    env: { ...process.env, OWASP_AI_GOAT_LAUNCH_READINESS_TOKEN: TOKEN },
     stdio: ['ignore', 'ignore', 'pipe', 'ipc'],
     detached: process.platform !== 'win32',
   });
@@ -182,12 +182,12 @@ test('owned guardian keeps a live tree root after forwarding workload readiness 
   t.after(async () => {
     await stopOwnedChild({ child: guardian }, { graceMs: 1000, pollMs: 10 }).catch(() => {});
   });
-  await waitFor(() => messages.some(message => message.type === 'dvaia-owned-child-outcome'));
-  assert.deepEqual(messages.find(message => message.type === 'dvaia-backend-ready'), {
-    type: 'dvaia-backend-ready', token: TOKEN, pid: guardian.pid, port: 8081,
+  await waitFor(() => messages.some(message => message.type === 'owasp-ai-goat-owned-child-outcome'));
+  assert.deepEqual(messages.find(message => message.type === 'owasp-ai-goat-backend-ready'), {
+    type: 'owasp-ai-goat-backend-ready', token: TOKEN, pid: guardian.pid, port: 8081,
   });
-  assert.deepEqual(messages.find(message => message.type === 'dvaia-owned-child-outcome'), {
-    type: 'dvaia-owned-child-outcome', outcome: { type: 'exit', code: 0, signal: null },
+  assert.deepEqual(messages.find(message => message.type === 'owasp-ai-goat-owned-child-outcome'), {
+    type: 'owasp-ai-goat-owned-child-outcome', outcome: { type: 'exit', code: 0, signal: null },
   });
   assert.equal(alive(guardian.pid), true);
   await stopOwnedChild({ child: guardian }, { graceMs: 1000, pollMs: 10 });
@@ -207,7 +207,7 @@ test('Vite readiness accepts only one complete bounded line for the configured p
 });
 
 test('fatal backend startup cleans its surviving owned descendant and never starts frontend', async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-start-fatal-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-start-fatal-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const { supervisor, paths } = supervisorFor(directory, 'backend-fatal');
   await assert.rejects(supervisor.start(), { code: 'APPLICATION_BACKEND_EXITED' });
@@ -218,7 +218,7 @@ test('fatal backend startup cleans its surviving owned descendant and never star
 });
 
 test('frontend spawn failure cleans a ready backend', async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-start-spawn-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-start-spawn-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const { supervisor, paths } = supervisorFor(directory, 'backend-ready', 'frontend-ready', {
     frontendCommand: path.join(directory, 'missing-command'),
@@ -231,7 +231,7 @@ test('frontend spawn failure cleans a ready backend', async t => {
 });
 
 test('one startup deadline stops a backend that never reports readiness', async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-start-timeout-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-start-timeout-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const { supervisor, paths } = supervisorFor(directory, 'backend-hang', 'frontend-ready', { startupTimeoutMs: 100 });
   await assert.rejects(supervisor.start(), { code: 'APPLICATION_START_TIMEOUT' });
@@ -249,7 +249,7 @@ test('one startup deadline stops a backend that never reports readiness', async 
 });
 
 test('intentional stop before backend readiness is clean and does not wait for startup timeout', async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-start-early-stop-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-start-early-stop-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const stateFile = path.join(directory, 'launcher.json');
   const { supervisor, paths } = supervisorFor(directory, 'backend-hang', 'frontend-ready', { startupTimeoutMs: 5000 });
@@ -352,7 +352,7 @@ test('Windows helper failure after readiness propagates and invokes owned cleanu
       const child = controlledGuardian(++nextPid);
       child.stdout = new EventEmitter();
       if (nextPid === 32011) setImmediate(() => child.emit('message', {
-        type: 'dvaia-backend-ready', token: options.env.DVAIA_LAUNCH_READINESS_TOKEN,
+        type: 'owasp-ai-goat-backend-ready', token: options.env.OWASP_AI_GOAT_LAUNCH_READINESS_TOKEN,
         pid: child.pid, port: 8081,
       }));
       else setImmediate(() => child.stdout.emit('data', Buffer.from('➜  Local: http://localhost:3000/\n')));
@@ -389,7 +389,7 @@ test('Unix cleanup fails when an owned group remains after SIGKILL', async () =>
 });
 
 test('unexpected clean backend exit after full readiness fails and cleans frontend', async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-start-postready-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-start-postready-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const { supervisor, paths } = supervisorFor(directory, 'backend-dies');
   await supervisor.start();
@@ -400,7 +400,7 @@ test('unexpected clean backend exit after full readiness fails and cleans fronte
 });
 
 test('Windows guardian forwards a post-ready frontend exit through its IPC channel', async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-win-frontend-exit-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-win-frontend-exit-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const script = fixture(directory);
   const stopChild = observed => new Promise((resolve, reject) => {
@@ -411,7 +411,7 @@ test('Windows guardian forwards a post-ready frontend exit through its IPC chann
   });
   const supervisor = createApplicationSupervisor({
     workspace: path.resolve(__dirname, '..'),
-    environment: { ...process.env, PORT: '8081', DVAIA_CLIENT_PORT: '3000' },
+    environment: { ...process.env, PORT: '8081', OWASP_AI_GOAT_CLIENT_PORT: '3000' },
     startupTimeoutMs: 2000,
     platform: 'win32',
     backendCommand: process.execPath,
@@ -429,7 +429,7 @@ test('Windows guardian forwards a post-ready frontend exit through its IPC chann
 });
 
 test('authenticated intentional stop returns 200, cleans both groups, and removes controller state', async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-start-stop-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-start-stop-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const stateFile = path.join(directory, 'launcher.json');
   const { supervisor, paths } = supervisorFor(directory, 'backend-ready');

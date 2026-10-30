@@ -37,7 +37,7 @@ function urls() {
     assert.equal(value.protocol, 'postgresql:'); assert.equal(value.hostname, '127.0.0.1');
     assert.equal(value.username, `dvaia_${name}_${role.toLowerCase()}`);
     assert.equal(value.password, ''); assert.equal(value.search, ''); assert.equal(value.hash, '');
-    const match = /^\/dvaia_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(value.pathname);
+    const match = /^\/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(value.pathname);
     assert.ok(match && match[2] === name); nonce ??= match[1]; port ??= value.port;
     assert.equal(match[1], nonce); assert.equal(value.port, port);
     result[`${key}_${role}`] = value.href;
@@ -58,15 +58,15 @@ const waitResponse = (page, method, pathname, timeout = 90000) => page.waitForRe
 function headersFrom(request) {
   const headers = request.headers();
   assert.match(headers.authorization || '', /^Bearer [A-Za-z0-9_.-]+$/);
-  assert.match(headers['x-dvaia-secureshop-launch'] || '', /^[A-Za-z0-9_-]{43}$/);
+  assert.match(headers['x-owasp-ai-goat-secureshop-launch'] || '', /^[A-Za-z0-9_-]{43}$/);
   return { authorization: headers.authorization,
-    'x-dvaia-secureshop-launch': headers['x-dvaia-secureshop-launch'] };
+    'x-owasp-ai-goat-secureshop-launch': headers['x-owasp-ai-goat-secureshop-launch'] };
 }
 
 test('genuine two-search turn executes only the dedicated vulnerable echo and earns one retained V60 award',
   { skip: !ENABLED, timeout: 300000 }, async t => {
     assert.equal(process.cwd(), ROOT);
-    assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
+    assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
     const evidencePath = process.env.SECURESHOP_SEARCH_ECHO_EVIDENCE_PATH || '';
     const build = path.resolve(process.env.SECURESHOP_SEARCH_ECHO_BROWSER_BUILD || '/');
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '';
@@ -283,7 +283,7 @@ test('genuine two-search turn executes only the dedicated vulnerable echo and ea
       }));
       app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
 
-      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-search-echo-browser-'));
+      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-search-echo-browser-'));
       browser = await require('puppeteer').launch({ headless: true, userDataDir: profile, executablePath });
       browserClosed = false;
       page = await browser.newPage(); await page.setViewport({ width: 1280, height: 900 });
@@ -576,12 +576,12 @@ test('genuine two-search turn executes only the dedicated vulnerable echo and ea
       const callsBeforeForeign = transport.calls.length;
       const foreign = await fetch(`${origin}${savedPath}`, { headers: {
         authorization: `Bearer ${siblingBoot.persona.token}`,
-        'x-dvaia-secureshop-launch': siblingBoot.bearer }, signal: AbortSignal.timeout(10000) });
+        'x-owasp-ai-goat-secureshop-launch': siblingBoot.bearer }, signal: AbortSignal.timeout(10000) });
       assert.equal(foreign.status, 401);
       assert.deepEqual(await foreign.json(), { error: 'Shop session unavailable' });
       assert.equal(transport.calls.length, callsBeforeForeign);
       const customerCookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(cookie => cookie.name === 'dvaia_shop_session');
+        .find(cookie => cookie.name === 'owasp_ai_goat_shop_session');
       const customerBase = await auth.authenticate(customerCookie.value);
       const awardedProgress = await standalone.assessmentProgress.readSelf(customerBase);
       assert.equal(awardedProgress.completedObjectives, 1);

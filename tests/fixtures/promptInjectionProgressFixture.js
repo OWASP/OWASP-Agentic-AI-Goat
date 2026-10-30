@@ -28,7 +28,7 @@ const close = (db) => new Promise((resolve, reject) => {
 });
 
 async function createPromptInjectionProgressFixture({ enabledIds } = {}) {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-dpi-progress-'));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-dpi-progress-'));
   const filename = path.join(tempDir, 'progress.db');
   const db = await open(filename);
   await exec(db, `

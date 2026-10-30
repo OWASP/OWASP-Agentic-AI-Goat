@@ -6,7 +6,7 @@ const {createSqlWorkshopDb}=require('../../server/database/postgres/sqlWorkshopD
 const {createNosqlWorkshopDb}=require('../../server/database/postgres/nosqlWorkshopDb');
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&Boolean(process.env.PG_ARIA_TEST_MIGRATION_URL)&&Boolean(process.env.PG_NOVA_TEST_MIGRATION_URL);
 function pool(key) {
-  assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return createPool(process.env,key);
 }
 
@@ -26,7 +26,7 @@ test('real PG18 ARIA/NOVA: exact tool contracts, curriculum proofs, owner isolat
     for(const item of qualificationCases) assert.equal(hasObjectiveObservation({...item,userId:7,
       history:item.history.map(r=>({evidence:{invocation:r.toolInvocation,result:r.toolResult}}))}),item.positive,`${item.objectiveId} observation prerequisite`);
 
-    require('node:fs').writeFileSync('/tmp/dvaia-sql-nosql-judge-cases.json',JSON.stringify(qualificationCases,null,2));
+    require('node:fs').writeFileSync('/tmp/owasp-ai-goat-sql-nosql-judge-cases.json',JSON.stringify(qualificationCases,null,2));
     const leaked=await nova.searchPapers('{"access_level":{"$ne":"public"}}',null,null,'vuln');
     assert.equal(leaked.filter(p=>p.access_level==='restricted').length,2);
     for(const record of leaked.filter(p=>p.access_level==='restricted')) {

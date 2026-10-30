@@ -9,7 +9,7 @@ const path = require('node:path');
 const { repositories, requiredStoreManifest } = require('../db/postgres/initialize-application');
 
 const ROOT = path.resolve(__dirname, '..');
-const PRIVATE_CONFIG_DIGEST_VARIABLE = 'DVAIA_EXPECTED_PRIVATE_CONFIG_SHA256';
+const PRIVATE_CONFIG_DIGEST_VARIABLE = 'OWASP_AI_GOAT_EXPECTED_PRIVATE_CONFIG_SHA256';
 const EXPECTED_HEADS = Object.freeze({
   identity: Object.freeze({ name: '0050_mcp_conversation_history.sql',
     checksum: 'fde6cc519c887b481668d02d44bacad7976bbc8b604cf2a65e3fd5ac7dbd0d1f' }),

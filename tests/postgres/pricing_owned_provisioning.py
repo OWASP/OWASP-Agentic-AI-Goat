@@ -160,15 +160,15 @@ class PricingSpec:
     @property
     def guest_mount(self):
         # Existing repository-owned VM's capped filesystem, not a host /tmp copy.
-        return '/var/tmp/dvaia-v23-build-' + self.run_id + '/fs'
+        return '/var/tmp/owasp-ai-goat-v23-build-' + self.run_id + '/fs'
 
     @property
     def profile(self):
-        return 'dvaia-owned-pricing-http-' + self.qualification_nonce
+        return 'owasp-ai-goat-owned-pricing-http-' + self.qualification_nonce
 
     @property
     def name(self):
-        return 'dvaia-pricing-' + self.qualification_nonce
+        return 'owasp-ai-goat-pricing-' + self.qualification_nonce
 
 
 def plan(spec):
@@ -403,7 +403,7 @@ def guard():
  need(info['ID']==h['daemonId'] and info['DockerRootDir']==str(root/'data'))
  images=json.loads(docker('image','inspect',h['imageId']));need(len(images)==1)
  image=images[0];need(image['Id']==h['imageId'] and image['Architecture']=='arm64' and image['Os']=='linux')
- need(image['Config']['Labels'].get('dvaia.pricing.package')==B['packageSha256'])
+ need(image['Config']['Labels'].get('owasp-ai-goat.pricing.package')==B['packageSha256'])
  return h
 def channels_absent():
  expected={'pricing-channel-'+value+'.jsonl' for value in B['channels']}
@@ -427,7 +427,7 @@ def inspect(h,cid):
  rows=json.loads(docker('inspect',cid));need(len(rows)==1);row=rows[0]
  need(row['Id']==cid and row['Image']==h['imageId'] and row['Name']=='/'+B['name'])
  labels=row['Config']['Labels'];need(all(labels.get(k)==v for k,v in {
- 'dvaia.pricing.owner':B['ownerId'],'dvaia.pricing.workspace':B['workspaceId'],'dvaia.pricing.package':B['packageSha256']}.items()))
+ 'owasp-ai-goat.pricing.owner':B['ownerId'],'owasp-ai-goat.pricing.workspace':B['workspaceId'],'owasp-ai-goat.pricing.package':B['packageSha256']}.items()))
  cfg=row['HostConfig'];need(cfg['NetworkMode']=='host' and not cfg.get('PortBindings') and not cfg.get('Binds'))
  need(cfg['ReadonlyRootfs'] is True and cfg['Privileged'] is False and cfg['CapDrop']==['ALL'] and not cfg.get('CapAdd'))
  need(cfg['Memory']==536870912 and cfg['NanoCpus']==1000000000 and cfg['PidsLimit']==128)
@@ -500,7 +500,7 @@ def run():
    '--user','10001:10001','--network','host','--cap-drop','ALL','--security-opt','seccomp=unconfined',
    '--security-opt','apparmor='+B['profile'],'--tmpfs','/tmp:rw,nosuid,nodev,size=134217728','--log-driver','local',
    '--log-opt','max-size=64k','--log-opt','max-file=1','--log-opt','compress=false']
-  for k,v in {'dvaia.pricing.owner':B['ownerId'],'dvaia.pricing.workspace':B['workspaceId'],'dvaia.pricing.package':B['packageSha256']}.items():args+=['--label',k+'='+v]
+  for k,v in {'owasp-ai-goat.pricing.owner':B['ownerId'],'owasp-ai-goat.pricing.workspace':B['workspaceId'],'owasp-ai-goat.pricing.package':B['packageSha256']}.items():args+=['--label',k+'='+v]
   for k,v in {'SECURESHOP_PRICING_ENABLED':'true','SECURESHOP_PRICING_PROFILE':B['profile'],
    'SECURESHOP_PRICING_HOST':'127.0.0.1','SECURESHOP_PRICING_PORT':'8093','SECURESHOP_PRICING_DIAGNOSTICS':'startup-v1'}.items():args+=['--env',k+'='+v]
   args+=['--env','SECURESHOP_PRICING_TOKEN']

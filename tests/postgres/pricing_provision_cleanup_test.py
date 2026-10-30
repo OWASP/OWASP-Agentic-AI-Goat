@@ -17,7 +17,7 @@ class CleanupTests(unittest.TestCase):
         for failure in (None, subprocess.TimeoutExpired('controlled', 30), subprocess.CalledProcessError(1, 'controlled')):
             with self.subTest(failure=type(failure).__name__):
                 calls = []
-                labels = {'dvaia.pricing.owner':'owner', 'dvaia.pricing.workspace':'workspace', 'dvaia.pricing.package':'package'}
+                labels = {'owasp-ai-goat.pricing.owner':'owner', 'owasp-ai-goat.pricing.workspace':'workspace', 'owasp-ai-goat.pricing.package':'package'}
                 staged = {'ownerId':'owner', 'packageSha256':'package'}
                 class File:
                     def exists(self): return True

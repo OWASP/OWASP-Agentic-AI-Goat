@@ -432,7 +432,7 @@ test('credential bridge is installed before rendering and the supported applicat
   n.arguments[0].properties.some(p=>p.key?.name==='compileOperation')));
  const execute=functionDeclaration(tree(bridge.transport),'execute');
  assert.ok(calls(execute,'compileOperation').length);
- assert.ok(calls(execute,'headers.set').some(n=>n.arguments[0]?.value==='X-DVAIA-SecureShop-Launch'));
+ assert.ok(calls(execute,'headers.set').some(n=>n.arguments[0]?.value==='X-OWASP-AI-GOAT-SecureShop-Launch'));
  assert.ok(calls(execute,'fetchImpl').some(n=>n.arguments[1].properties.some(p=>p.key?.name==='credentials'&&p.value?.value==='omit')));
  const app=tree(bridge.applicationMount);
  assert.ok(calls(app,'app.use').some(n=>n.arguments[0]?.value==='/api/secureshop'

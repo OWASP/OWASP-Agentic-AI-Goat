@@ -23,8 +23,8 @@ from urllib.parse import quote
 
 POSTGRES_IMAGE_ID = "sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280"
 MAX_LOG_BYTES = 16 * 1024 * 1024
-CONTAINER_OWNER_LABEL = "org.dvaia.ctf-stages-runner"
-CONTAINER_NONCE_LABEL = "org.dvaia.ctf-stages-nonce"
+CONTAINER_OWNER_LABEL = "org.owasp-ai-goat.ctf-stages-runner"
+CONTAINER_NONCE_LABEL = "org.owasp-ai-goat.ctf-stages-nonce"
 SOURCE_DIRECTORIES = ("server", "db", "tests", "docs")
 SOURCE_FILES = ("package.json", "package-lock.json")
 CURRENT_PUBLICATION_SOURCE_PINS = {
@@ -172,14 +172,14 @@ def qualification_selection(args, nonce):
     if args.application_maintenance_lease:
         return {"mode": "application_maintenance_lease", "stageEnd": None,
             "test": "tests/postgres/applicationMaintenanceLease.integration.test.js",
-            "databases": tuple(f"dvaia_test_lease_{index}_{nonce}" for index in (1, 2)),
+            "databases": tuple(f"owasp_ai_goat_test_lease_{index}_{nonce}" for index in (1, 2)),
             "childSeconds": 180, "workSeconds": 300, "cleanupSeconds": 120,
             "tmpfsBytes": 268435456,
             "environment": {"APPLICATION_MAINTENANCE_LEASE_ISOLATED": "1", "AWS_EC2_METADATA_DISABLED": "true"}}
     if args.ctf_authority_bootstrap:
         return {"mode": "ctf_authority_bootstrap_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityBootstrap.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_bootstrap_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_bootstrap_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -187,7 +187,7 @@ def qualification_selection(args, nonce):
     if args.ctf_blocked_publication:
         return {"mode": "ctf_blocked_publication_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfBlockedPublication.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_blockpub_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_blockpub_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -195,7 +195,7 @@ def qualification_selection(args, nonce):
     if args.ctf_recovery_rendered:
         return {"mode": "ctf_recovery_rendered_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityApplication.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_app_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_app_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 480, "workSeconds": 660, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -203,7 +203,7 @@ def qualification_selection(args, nonce):
     if args.ctf_ten_content:
         return {"mode": "ctf_ten_content_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityApplication.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_app_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_app_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 480, "workSeconds": 660, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -212,7 +212,7 @@ def qualification_selection(args, nonce):
     if args.ctf_config_rendered:
         return {"mode": "ctf_config_rendered_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityApplication.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_config_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_config_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 480, "workSeconds": 360, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -221,7 +221,7 @@ def qualification_selection(args, nonce):
     if args.ctf_preview_rendered:
         return {"mode": "ctf_preview_rendered_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityApplication.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_preview_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_preview_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 480, "workSeconds": 360, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -230,7 +230,7 @@ def qualification_selection(args, nonce):
     if args.ctf_learner_entry_hint_rendered:
         return {"mode": "ctf_learner_entry_hint_rendered_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityApplication.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_learner_entry_hint_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_learner_entry_hint_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 480, "workSeconds": 180, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -239,7 +239,7 @@ def qualification_selection(args, nonce):
     if args.ctf_learner_attempt_gate_rendered:
         return {"mode": "ctf_learner_attempt_gate_rendered_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityApplication.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_learner_attempt_gate_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_learner_attempt_gate_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 480, "workSeconds": 360, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -248,7 +248,7 @@ def qualification_selection(args, nonce):
     if args.ctf_fixed_practice_rendered:
         return {"mode": "ctf_fixed_practice_rendered_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityApplication.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_fixed_practice_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_fixed_practice_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 480, "workSeconds": 120, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -257,8 +257,8 @@ def qualification_selection(args, nonce):
     if args.ctf_full_reset_rendered:
         return {"mode": "ctf_full_reset_rendered_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfFullResetRendered.integration.test.js",
-            "databases": (f"dvaia_test_ctf_full_reset_identity_{nonce}",
-                f"dvaia_test_ctf_full_reset_store_{nonce}"),
+            "databases": (f"owasp_ai_goat_test_ctf_full_reset_identity_{nonce}",
+                f"owasp_ai_goat_test_ctf_full_reset_store_{nonce}"),
             "childSeconds": 480, "workSeconds": 660, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
             "environment": {"CTF_FULL_RESET_RENDERED_ISOLATED": "1",
@@ -266,7 +266,7 @@ def qualification_selection(args, nonce):
     if args.ctf_stage6_current_main:
         return {"mode": "ctf_stage6_current_main_actual", "stageEnd": 6,
             "test": "tests/postgres/ctfStagesRoute.integration.test.js",
-            "databases": ("dvaia_test_ctf_stages_identity", "dvaia_test_ctf_stages_store"),
+            "databases": ("owasp_ai_goat_test_ctf_stages_identity", "owasp_ai_goat_test_ctf_stages_store"),
             "childSeconds": 1500, "workSeconds": 1680, "cleanupSeconds": 120,
             "environment": {"CTF_STAGES_ROUTE_ISOLATED": "1", "RUN_LIVE_CTF_WORKFLOW": "1",
                 "CTF_STAGE_END": "6", "CTF_TARGET_STAGE": "6", "CTF_CANDIDATE_SET": "stage6-fixed-v1",
@@ -278,7 +278,7 @@ def qualification_selection(args, nonce):
     if args.ctf_predefense_recovery:
         return {"mode": "ctf_predefense_recovery_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityApplication.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_app_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_app_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -286,7 +286,7 @@ def qualification_selection(args, nonce):
     if args.ctf_stage6_adoption:
         return {"mode": "ctf_stage6_adoption_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityApplication.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_app_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_app_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -295,7 +295,7 @@ def qualification_selection(args, nonce):
     if args.ctf_teaching_content:
         return {"mode": "ctf_teaching_content_main", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityApplication.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_app_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_app_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -303,7 +303,7 @@ def qualification_selection(args, nonce):
     if args.ctf_authority_application:
         return {"mode": "ctf_authority_application_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityApplication.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_app_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_app_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -311,7 +311,7 @@ def qualification_selection(args, nonce):
     if args.ctf_production_runtime:
         return {"mode": "ctf_production_runtime_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfProductionRuntime.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_prod_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_prod_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -319,7 +319,7 @@ def qualification_selection(args, nonce):
     if args.ctf_publication_current:
         return {"mode": "ctf_publication_current_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthenticatedPublicationCurrent.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_publication_current_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_publication_current_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 300, "workSeconds": 480, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -327,7 +327,7 @@ def qualification_selection(args, nonce):
     if args.ctf_authority_runtime:
         return {"mode": "ctf_authority_runtime_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityRuntime.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_runtime_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_runtime_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -335,7 +335,7 @@ def qualification_selection(args, nonce):
     if args.ctf_telemetry:
         return {"mode": "ctf_telemetry_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfTelemetry.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_telemetry_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_telemetry_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -351,7 +351,7 @@ def qualification_selection(args, nonce):
     if args.ctf_delivery_activation:
         return {"mode": "ctf_delivery_activation_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfDeliveryActivation.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_activation_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_activation_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -359,7 +359,7 @@ def qualification_selection(args, nonce):
     if args.ctf_registration_locator:
         return {"mode": "ctf_registration_locator_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfRegistrationLocator.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_locator_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_locator_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -367,7 +367,7 @@ def qualification_selection(args, nonce):
     if args.ctf_response_diagnostics:
         return {"mode": "ctf_response_diagnostics_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfResponseDiagnostics.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_diagnostics_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_diagnostics_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -375,7 +375,7 @@ def qualification_selection(args, nonce):
     if args.ctf_admin_read:
         return {"mode": "ctf_admin_read_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAdminRead.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_adminread_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_adminread_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -383,7 +383,7 @@ def qualification_selection(args, nonce):
     if args.ctf_blocked_predefense:
         return {"mode": "ctf_blocked_predefense_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfBlockedPredefense.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_blockpre_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_blockpre_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -391,7 +391,7 @@ def qualification_selection(args, nonce):
     if args.ctf_worker_lifecycle:
         return {"mode": "ctf_worker_lifecycle_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfProjectionWorkerLifecycle.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_worklife_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_worklife_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -399,7 +399,7 @@ def qualification_selection(args, nonce):
     if args.ctf_predefense:
         return {"mode": "ctf_predefense_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfPredefense.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_predef_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_predef_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -407,7 +407,7 @@ def qualification_selection(args, nonce):
     if args.ctf_student_deletion:
         return {"mode": "ctf_student_deletion_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfStudentDeletion.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_delete_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_delete_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -415,7 +415,7 @@ def qualification_selection(args, nonce):
     if args.ctf_admin_response:
         return {"mode": "ctf_admin_response_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAdminResponse.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_opread_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_opread_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -423,7 +423,7 @@ def qualification_selection(args, nonce):
     if args.ctf_current_read:
         return {"mode": "ctf_current_read_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfCurrentRead.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_read_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_read_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -431,7 +431,7 @@ def qualification_selection(args, nonce):
     if args.ctf_current_response:
         return {"mode": "ctf_current_response_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfCurrentResponse.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_opread_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_opread_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -439,7 +439,7 @@ def qualification_selection(args, nonce):
     if args.ctf_current_publication:
         return {"mode": "ctf_current_publication_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfCurrentPublication.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_publication_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_publication_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -447,7 +447,7 @@ def qualification_selection(args, nonce):
     if args.ctf_decision_recovery:
         return {"mode": "ctf_decision_recovery_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfDecisionRecovery.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_decision_recovery_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_decision_recovery_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -455,7 +455,7 @@ def qualification_selection(args, nonce):
     if args.ctf_operation_recovery:
         return {"mode": "ctf_operation_recovery_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfOperationRecovery.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_opread_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_opread_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -463,7 +463,7 @@ def qualification_selection(args, nonce):
     if args.ctf_decision_projection:
         return {"mode": "ctf_decision_projection_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfDecisionProjection.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_decision_projection_{state[0]}_{kind[0]}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_decision_projection_{state[0]}_{kind[0]}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -471,7 +471,7 @@ def qualification_selection(args, nonce):
     if args.ctf_decision_schema:
         return {"mode": "ctf_decision_schema_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthoritativeDecision.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_decision_{state}_{kind}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_decision_{state}_{kind}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -479,7 +479,7 @@ def qualification_selection(args, nonce):
     if args.ctf_projection_worker:
         return {"mode": "ctf_projection_worker_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfProjectionWorker.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_worker_{state}_{kind}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_worker_{state}_{kind}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -487,7 +487,7 @@ def qualification_selection(args, nonce):
     if args.ctf_lifecycle_schema:
         return {"mode": "ctf_lifecycle_schema_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfLifecycleProjection.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_lifecycle_{state}_{kind}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_lifecycle_{state}_{kind}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -495,7 +495,7 @@ def qualification_selection(args, nonce):
     if args.authority_schema_only:
         return {"mode": "authority_schema_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAuthorityReadModel.integration.test.js",
-            "databases": tuple(f"dvaia_test_ctf_authority_{state}_{kind}_{nonce}"
+            "databases": tuple(f"owasp_ai_goat_test_ctf_authority_{state}_{kind}_{nonce}"
                 for state in ("fresh", "populated") for kind in ("identity", "ctf")),
             "childSeconds": 240, "workSeconds": 420, "cleanupSeconds": 120,
             "tmpfsBytes": 536870912,
@@ -504,15 +504,15 @@ def qualification_selection(args, nonce):
     if args.session_fence_only:
         return {"mode": "session_fence_controlled", "stageEnd": None,
             "test": "tests/postgres/ctfAdmittedSessionFence.integration.test.js",
-            "databases": (f"dvaia_test_ctf_session_identity_{nonce}",
-                          f"dvaia_test_ctf_session_store_{nonce}"),
+            "databases": (f"owasp_ai_goat_test_ctf_session_identity_{nonce}",
+                          f"owasp_ai_goat_test_ctf_session_store_{nonce}"),
             "childSeconds": 180, "workSeconds": 300, "cleanupSeconds": 120,
             "environment": {"CTF_SESSION_FENCE_ISOLATED": "1", "AI_PROVIDER": "mock",
                 "JUDGE_PROVIDER": "mock", "AWS_EC2_METADATA_DISABLED": "true"}}
     stage_end = args.stage_end or args.target_stage or 4
     return {"mode": "independent_target" if args.target_stage else "sequential_prefix",
         "stageEnd": stage_end, "test": "tests/postgres/ctfStagesRoute.integration.test.js",
-        "databases": ("dvaia_test_ctf_stages_identity", "dvaia_test_ctf_stages_store"),
+        "databases": ("owasp_ai_goat_test_ctf_stages_identity", "owasp_ai_goat_test_ctf_stages_store"),
         "childSeconds": 700 if stage_end <= 4 else 1900,
         "workSeconds": None, "cleanupSeconds": None,
         "environment": {"CTF_STAGES_ROUTE_ISOLATED": "1", "RUN_LIVE_CTF_WORKFLOW": "1",
@@ -934,7 +934,7 @@ def validate_frontend_build_report(source, report_path, report_sha256, input_sha
     recorder = Path(source) / "tests/release-inputs/record-current-frontend-build.py"
     if recorder.is_symlink() or not recorder.is_file() or sha256(recorder) != recorder_sha256:
         raise RuntimeError("Frontend build recorder pin mismatch")
-    spec = importlib.util.spec_from_file_location("dvaia_frontend_build_receipt", recorder)
+    spec = importlib.util.spec_from_file_location("owasp_ai_goat_frontend_build_receipt", recorder)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     if private_external:
@@ -2863,7 +2863,7 @@ def run_qualification(args):
     docker_cli = validate_executable(args.docker_cli, args.docker_cli_sha256, "Docker CLI")
     image_id = args.image_id if repository_private else POSTGRES_IMAGE_ID
     run_parent = ten_content_run_parent(source) if repository_private else None
-    root = Path(tempfile.mkdtemp(prefix="dvaia-ctf-stages-route-",
+    root = Path(tempfile.mkdtemp(prefix="owasp-ai-goat-ctf-stages-route-",
         dir=run_parent)).resolve()
     os.chmod(root, 0o700)
     browser_tmp = None
@@ -2887,7 +2887,7 @@ def run_qualification(args):
         base_env.update({key: os.environ[key] for key in ("HOME", "TMPDIR") if key in os.environ})
     docker = [str(docker_cli), "--host", args.docker_host]
     nonce = uuid.uuid4().hex[:12]
-    container = f"dvaia-ctf-stages-{nonce}"
+    container = f"owasp-ai-goat-ctf-stages-{nonce}"
     container_intents = [{"name": container, "nonce": nonce, "owner": CONTAINER_OWNER_LABEL,
         "image": image_id,
         "creationAttempted": False}]
@@ -3058,9 +3058,9 @@ def run_qualification(args):
             PLATFORM_DATABASE_ENGINE="postgres",
             WORKSHOP_DATABASE_ENGINE="postgres",
             JWT_SECRET=uuid.uuid4().hex + uuid.uuid4().hex,
-            LOGS_DIR=str(app_logs), DVAIA_ISOLATED_TEST_WORKSPACE=str(root if repository_private else test_workspace))
+            LOGS_DIR=str(app_logs), OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(root if repository_private else test_workspace))
         if args.ctf_publication_current:
-            env["DVAIA_CURRENT_MAIN_WORKSPACE"] = str(source)
+            env["OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE"] = str(source)
         if provision_case(selection):
             env["PG_ADMIN_DATABASE_URL"] = f"postgresql://ctf_stages_admin:{admin_password}@127.0.0.1:{port}/postgres"
         else:
@@ -3074,7 +3074,7 @@ def run_qualification(args):
         if args.ctf_stage6_current_main:
             env.update(CTF_STAGE6_EVIDENCE_ROOT=str(root),
                 CTF_STAGE6_BUILD_DIRECTORY=str(Path(state["buildReport"]["outputRoot"]).resolve()),
-                DVAIA_CONTENT_DENY_DOTENV="1")
+                OWASP_AI_GOAT_CONTENT_DENY_DOTENV="1")
         if rendered_private:
             if args.ctf_full_reset_rendered:
                 full_reset_receipt_path = runtime / "ctf-full-reset-q05-result.json"
@@ -3117,7 +3117,7 @@ def run_qualification(args):
                        CTF_CONTENT_CLIENT_DEPENDENCY_SHA256=args.client_dependency_sha256,
                        SECURESHOP_BOUND_BROWSER_BIRTH_SCRIPT=str(source / "tests/postgres/secureshop_darwin_browser_birth.py"),
                        SECURESHOP_BOUND_BROWSER_BIRTH_PYTHON=str(Path(sys.executable).resolve()),
-                       DVAIA_CONTENT_DENY_DOTENV="1")
+                       OWASP_AI_GOAT_CONTENT_DENY_DOTENV="1")
             if args.ctf_full_reset_rendered:
                 env.update(CTF_FULL_RESET_SOURCE_ROOT=str(source),
                            CTF_FULL_RESET_RUNTIME_DIRECTORY=str(runtime),

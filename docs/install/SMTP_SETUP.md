@@ -1,6 +1,6 @@
 # Gmail SMTP Setup
 
-DVAIA supports optional Gmail SMTP for these workshop features:
+OWASP Agentic AI GOAT supports optional Gmail SMTP for these workshop features:
 
 - **Email Agent challenge** — Indirect Prompt Injection via email
   (`/api/email-agent`, backed by `server/services/gmailEmailAgentService.js`)
@@ -26,7 +26,7 @@ below.
 ### 1. Pick a Gmail account
 
 We strongly recommend a **dedicated Gmail account** (something like
-`dvaia-lab@gmail.com`) rather than your personal one. During the workshop
+`owasp-ai-goat-lab@gmail.com`) rather than your personal one. During the workshop
 this account will:
 
 - Send test emails to attackers
@@ -51,7 +51,7 @@ App Passwords are 16-character tokens Gmail issues per app. Regular Gmail
 passwords will not work for SMTP.
 
 1. Visit <https://myaccount.google.com/apppasswords>.
-2. Under **App name**, type `DVAIA` (or pick "Mail" from the dropdown if
+2. Under **App name**, type `OWASP Agentic AI GOAT` (or pick "Mail" from the dropdown if
    your account UI still shows the legacy picker).
 3. Click **Create**.
 4. Google shows a 16-character password like `abcd efgh ijkl mnop`. Copy
@@ -60,10 +60,10 @@ passwords will not work for SMTP.
 
 ### 4. Add the credentials to `.env`
 
-Open the DVAIA repo root, edit `.env`, and set:
+Open the OWASP Agentic AI GOAT repo root, edit `.env`, and set:
 
 ```env
-GMAIL_USER=dvaia-lab@gmail.com
+GMAIL_USER=owasp-ai-goat-lab@gmail.com
 GMAIL_APP_PASSWORD=abcdefghijklmnop
 # Enable Gmail only for the exercise(s) you want to send external mail:
 IPI_EMAIL_PROVIDER=gmail
@@ -132,9 +132,9 @@ XSS_MAIL_PROVIDER=mailpit
 Open <http://localhost:8025> to inspect captured messages. Mailpit accepts SMTP
 on `127.0.0.1:1025`; it does not send mail to external inboxes.
 
-## SecureShop external test email
+## OWASP AI SecureShop external test email
 
-SecureShop's merchant Inbox has a separate, opt-in external delivery test.
+OWASP AI SecureShop's merchant Inbox has a separate, opt-in external delivery test.
 It does not forward lesson mail or give agents permission to send through Gmail.
 The existing isolated Inbox, auto-reply lessons and their intentionally vulnerable
 behavior remain separate.
@@ -184,7 +184,7 @@ If you select Gmail without setting `GMAIL_USER` and `GMAIL_APP_PASSWORD`:
   student tries to send unless `IPI_EMAIL_PROVIDER=mailpit` is configured with a private HMAC secret.
 - The XSS Workshop's **email** tab returns the same error; the other
   three tabs (reflected, stored, LLM-generated) work normally.
-- The rest of the platform — CTF, DPI, IPI/RAG, SecureShop v2, SQLi,
+- The rest of the platform — CTF, DPI, IPI/RAG, OWASP AI SecureShop v2, SQLi,
   XSS reflected/stored, sensitive-info, excessive agency, supply chain,
   ARIA/NOVA agents — is fully functional with no SMTP.
 

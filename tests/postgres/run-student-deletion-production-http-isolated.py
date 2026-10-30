@@ -13,8 +13,8 @@ def executable(value,digest):
  if not path.is_file() or not os.access(path,os.X_OK) or hashlib.sha256(path.read_bytes()).hexdigest()!=digest:raise RuntimeError('Executable identity mismatch')
  return str(path)
 node=executable(args.node,args.node_sha256);docker_cli=executable(args.docker_cli,args.docker_cli_sha256)
-source=Path(__file__).resolve().parents[2];root=Path(tempfile.mkdtemp(prefix='dvaia-student-deletion-production-http-'));os.chmod(root,0o700);workspace=root/'source';base={k:os.environ[k] for k in ['PATH','HOME','TMPDIR'] if k in os.environ};base['PATH']=f'{Path(node).parent}:{base.get("PATH","")}'
-docker=[docker_cli,'--host',args.docker_host];tag=uuid.uuid4().hex[:10];container=f'dvaia-student-deletion-http-{tag}';child=None;children=[];started=False;container_id=None
+source=Path(__file__).resolve().parents[2];root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-student-deletion-production-http-'));os.chmod(root,0o700);workspace=root/'source';base={k:os.environ[k] for k in ['PATH','HOME','TMPDIR'] if k in os.environ};base['PATH']=f'{Path(node).parent}:{base.get("PATH","")}'
+docker=[docker_cli,'--host',args.docker_host];tag=uuid.uuid4().hex[:10];container=f'owasp-ai-goat-student-deletion-http-{tag}';child=None;children=[];started=False;container_id=None
 image='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 def receipt(name,value):
  path=root/name;path.write_text(json.dumps(value,sort_keys=True)+'\n');os.chmod(path,0o600)
@@ -66,16 +66,16 @@ try:
  else:raise RuntimeError('Owned PostgreSQL container did not become TCP ready')
  port=int(run(docker+['port',container,'5432'],capture_output=True,text=True).stdout.strip().rsplit(':',1)[1]);psql=['psql','-h','127.0.0.1','-p',str(port),'-U','deletion_test_admin','-d','postgres','-v','ON_ERROR_STOP=1']
  stores=[('IDENTITY','identity'),('SQL_WORKSHOP','aria'),('NOSQL_WORKSHOP','nova'),('XSS_WORKSHOP','xss'),('MCP_WORKSHOP','mcp'),('CSRF_WORKSHOP','csrf'),('SUPPLY_CHAIN_WORKSHOP','supply_chain'),('FINFLOW_WORKSHOP','finflow'),('EXCESSIVE_AGENCY','excessive_agency'),('CTF','ctf'),('LEGACY_CHALLENGE','legacy_challenge'),('SENSITIVE_LOOKUP','sensitive_lookup'),('SECURESHOP','secureshop'),('SECURESHOP_AGENTS','secureshop_agents'),('SESSION_DISCLOSURE','session_disclosure'),('SECURESHOP_REVIEW','secureshop_review')]
- env=dict(base,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',AWS_EC2_METADATA_DISABLED='true',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',JWT_SECRET='owned-student-deletion-http-secret',MCP_SIDECARS_AUTOSTART='false')
+ env=dict(base,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',AWS_EC2_METADATA_DISABLED='true',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',JWT_SECRET='owned-student-deletion-http-secret',MCP_SIDECARS_AUTOSTART='false')
  app_data=root/'app-data';app_data.mkdir(mode=0o700)
  for directory in ['finflow-traversal-targets','logs']:(app_data/directory).mkdir(mode=0o700)
- env.update(DVAIA_APP_DATA_ROOT=str(app_data),LOGS_DIR=str(app_data/'logs'),FINFLOW_BACKUP_ROOT=str(app_data/'finflow-backups'),FINFLOW_TRAVERSAL_TARGET_ROOT=str(app_data/'finflow-traversal-targets'))
+ env.update(OWASP_AI_GOAT_APP_DATA_ROOT=str(app_data),LOGS_DIR=str(app_data/'logs'),FINFLOW_BACKUP_ROOT=str(app_data/'finflow-backups'),FINFLOW_TRAVERSAL_TARGET_ROOT=str(app_data/'finflow-traversal-targets'))
  env.pop('LEGACY_PLATFORM_LIFECYCLE_ENABLED',None)
  if 'LEGACY_PLATFORM_LIFECYCLE_ENABLED' in env:raise RuntimeError('Default-on qualification inherited a lifecycle flag')
  for prefix,schema in stores:
   migration=f'dvaia_{schema}_migration';runtime=f'dvaia_{schema}_runtime'
   for role in [migration,runtime]:run(psql+['-c',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
-  database=f'dvaia_test_delete_http_{schema}_{tag}';run(psql+['-c',f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL);run(psql+['-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}'],stdout=subprocess.DEVNULL)
+  database=f'owasp_ai_goat_test_delete_http_{schema}_{tag}';run(psql+['-c',f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL);run(psql+['-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}'],stdout=subprocess.DEVNULL)
   env[f'{prefix}_MIGRATION_DATABASE_URL']=f'postgresql://{quote(migration)}@127.0.0.1:{port}/{database}';env[f'{prefix}_DATABASE_URL']=f'postgresql://{quote(runtime)}@127.0.0.1:{port}/{database}'
  init_log=root/'initialize.log'
  with init_log.open('w') as log:

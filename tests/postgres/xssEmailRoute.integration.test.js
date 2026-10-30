@@ -8,20 +8,20 @@ const fs = require('node:fs');
 const KEYS = ['PG_XSS_EMAIL_ROUTE_IDENTITY_RUNTIME_URL', 'PG_XSS_EMAIL_ROUTE_IDENTITY_MIGRATION_URL',
   'PG_XSS_EMAIL_ROUTE_XSS_RUNTIME_URL', 'PG_XSS_EMAIL_ROUTE_XSS_MIGRATION_URL'];
 const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && process.env.XSS_EMAIL_ROUTE_ISOLATED === 'yes'
-  && KEYS.every(key => process.env[key]) && process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
+  && KEYS.every(key => process.env[key]) && process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
 
 function verifyInputs() {
   const current = require('./xssCurrentCheckoutAdmission').verifyCurrentCheckout({ keys: KEYS, cohort: 'route' });
   if (current) return current;
-  const workspace = fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  const workspace = fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   assert.equal(fs.realpathSync(process.cwd()), workspace);
   assert.equal(path.basename(workspace), 'source');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-xss-email-route-/);
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-xss-email-route-/);
   const parsed = new Map();
   for (const key of KEYS) {
     const url = new URL(process.env[key]);
     assert.equal(url.hostname, '127.0.0.1');
-    assert.match(url.pathname, /^\/dvaia_test_xss_email_route_(?:identity|xss)$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_xss_email_route_(?:identity|xss)$/);
     assert.equal(url.password, '');
     parsed.set(key, url);
   }
@@ -172,10 +172,10 @@ test('mounted XSS email route authenticates and proves local SMTP list, send, re
     const unauthorized = await request(base, '/api/workshop/xss/emails/sharklaser-email');
     assert.equal(unauthorized.response.status, 401);
     const context = await request(base, '/api/workshop/xss/emails/sharklaser-email', { token });
-    assert.deepEqual(context.body, { email: `xss-${user.id}@dvaia.invalid`, mode: 'local', provider: 'mailpit',
-      editable: false, sender: 'attacker@dvaia.invalid' });
+    assert.deepEqual(context.body, { email: `xss-${user.id}@owasp-ai-goat.invalid`, mode: 'local', provider: 'mailpit',
+      editable: false, sender: 'attacker@owasp-ai-goat.invalid' });
     const siblingContext = await request(base, '/api/workshop/xss/emails/sharklaser-email', { token: siblingToken });
-    assert.equal(siblingContext.body.email, `xss-${sibling.id}@dvaia.invalid`);
+    assert.equal(siblingContext.body.email, `xss-${sibling.id}@owasp-ai-goat.invalid`);
     assert.notEqual(siblingContext.body.email, context.body.email);
     const crossOwner = await request(base, '/api/workshop/xss/emails/send-attack', { method: 'POST', token: siblingToken,
       body: { fromEmail: context.body.email, payload: '<img src=x onerror="alert(999)">' } });

@@ -2,8 +2,8 @@
 const {exact,fail}=require('./contract');
 function createClusterVerifier(controlPool, identity) {
  exact(identity,['systemIdentifier','controlDatabase','clusterName']);
- if(!/^[0-9]{10,24}$/.test(identity.systemIdentifier)||!/^dvaia_analytics_control_[a-f0-9]{12}$/.test(identity.controlDatabase)
-  ||identity.clusterName!==`dvaia-owned-analytics-${identity.controlDatabase.slice(-12)}`)throw TypeError('Bootstrap-pinned dedicated cluster identity required');
+ if(!/^[0-9]{10,24}$/.test(identity.systemIdentifier)||!/^owasp_ai_goat_analytics_control_[a-f0-9]{12}$/.test(identity.controlDatabase)
+  ||identity.clusterName!==`owasp-ai-goat-owned-analytics-${identity.controlDatabase.slice(-12)}`)throw TypeError('Bootstrap-pinned dedicated cluster identity required');
  const expected=Object.freeze({...identity});
  return Object.freeze({identity:expected,async verify(){
   const row=(await controlPool.query("SELECT current_database() AS database,current_setting('cluster_name') AS cluster,(SELECT system_identifier::text FROM pg_control_system()) AS system_identifier")).rows[0];

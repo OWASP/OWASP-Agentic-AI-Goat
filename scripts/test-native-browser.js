@@ -49,7 +49,7 @@ const executable=fs.realpathSync(resolvedExecutable);
 const binary=fs.lstatSync(executable);if(!binary.isFile()||binary.isSymbolicLink())throw Error('Invalid installed browser executable');fs.accessSync(executable,fs.constants.X_OK);
 const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 const sourcePins=Object.fromEntries([...suites.map(row=>row.file),'scripts/test-native-browser.js','scripts/lib/native-browser-suites.js',...(secureshopE2e?['tests/secureshop/fixtures/e2eServer.js','tests/secureshop/vuln/_fixture.js','client/vite.config.mjs','scripts/lib/isolated-test-boundary.js','scripts/lib/secureshop-e2e-postgres-admission.js']:[])].map(file=>[file,sha(path.join(source,file))]));
-const directory=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-native-browser-')));fs.chmodSync(directory,0o700);
+const directory=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-native-browser-')));fs.chmodSync(directory,0o700);
 const owned={};for(const key of ['home','tmp','logs','cache','config','data']){owned[key]=path.join(directory,key);fs.mkdirSync(owned[key],{mode:0o700});}
 const env={PATH:path.dirname(process.execPath),HOME:owned.home,TMPDIR:owned.tmp,TMP:owned.tmp,TEMP:owned.tmp,LOGS_DIR:owned.logs,
  XDG_CACHE_HOME:owned.cache,XDG_CONFIG_HOME:owned.config,XDG_DATA_HOME:owned.data,NODE_ENV:'test',AI_PROVIDER:'mock',AWS_EC2_METADATA_DISABLED:'true',PUPPETEER_EXECUTABLE_PATH:executable,

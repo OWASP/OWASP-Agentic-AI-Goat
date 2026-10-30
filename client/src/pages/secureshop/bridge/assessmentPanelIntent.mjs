@@ -1,4 +1,4 @@
-export const ASSESSMENT_PANEL_CHANNEL = 'dvaia-secureshop-assessment-panel-v1';
+export const ASSESSMENT_PANEL_CHANNEL = 'owasp-ai-goat-secureshop-assessment-panel-v1';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function isStandaloneShopFrame(frameWindow = globalThis.window) {

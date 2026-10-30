@@ -100,7 +100,7 @@ class TemplateResources:
         self.spec = self.q.plan(source, nonce)
         self.nonce = nonce
         self.state = {key: self.spec[key] for key in ('container', 'network', 'image')}
-        self.state.update(labels={**self.spec['labels'], 'dvaia.qualification.owner': str(uuid.uuid4())}, attempted=[])
+        self.state.update(labels={**self.spec['labels'], 'owasp-ai-goat.qualification.owner': str(uuid.uuid4())}, attempted=[])
         self.env = self.q.build_environment(self.evidence, args.docker, args.node, admitted['value']['provenance']['buildx'])
         self.persist()
 

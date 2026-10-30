@@ -29,8 +29,8 @@ grant_lock=grant_path.with_suffix(grant_path.suffix+'.consume-lock')
 # Keep retained evidence outside the repository. Test input reaches the owned
 # container through `docker cp`, so qualification does not depend on any host
 # directory being mounted into the Colima VM.
-evidence_parent=Path.home()/'.dvaia'/'native-verification';evidence_parent.mkdir(parents=True,exist_ok=True);os.chmod(evidence_parent,0o700)
-root=Path(tempfile.mkdtemp(prefix='dvaia-mcp-targets-linux-',dir=evidence_parent));os.chmod(root,0o700)
+evidence_parent=Path.home()/'.owasp-ai-goat'/'native-verification';evidence_parent.mkdir(parents=True,exist_ok=True);os.chmod(evidence_parent,0o700)
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-targets-linux-',dir=evidence_parent));os.chmod(root,0o700)
 workspace=root/'source';workspace.mkdir();sidecar=workspace/'sidecars/sandbox-runner';sidecar.mkdir(parents=True)
 for name in ['Dockerfile','package.json','index.js','entrypoint.sh','mcpTargets.js','mcpSeccompFilter.c','mcpSeccompProbe.c']:
     shutil.copy2(source/'sidecars/sandbox-runner'/name,sidecar/name)
@@ -39,30 +39,30 @@ for name in ['rogue-mcp','ssrf-target']: shutil.copytree(source/'sidecars'/name,
 tests=workspace/'tests';tests.mkdir();shutil.copy2(source/'tests/mcpTargetsLinux.integration.test.js',tests/'mcpTargetsLinux.integration.test.js')
 fixtures=tests/'fixtures';fixtures.mkdir();shutil.copy2(source/'tests/fixtures/mcpTargetStopProbe.js',fixtures/'mcpTargetStopProbe.js')
 base_env={k:os.environ[k] for k in ['PATH','HOME','TMPDIR'] if k in os.environ}
-managed=Path(base_env.get('HOME','/none'))/'.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin';base_env['PATH']=str(managed)+os.pathsep+base_env.get('PATH','')
+managed=Path(base_env.get('HOME','/none'))/'.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin';base_env['PATH']=str(managed)+os.pathsep+base_env.get('PATH','')
 docker=['docker','--host',args.docker_host];suffix=uuid.uuid4().hex[:12]
-profile_name='dvaia-mcp-sandbox-'+suffix
-profile_template=source/'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'
+profile_name='owasp-ai-goat-mcp-sandbox-'+suffix
+profile_template=source/'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'
 profile_path=root/f'{profile_name}.apparmor'
 renderer=source/'scripts/render-mcp-sandbox-apparmor.js'
 subprocess.run([str(managed/'node'),str(renderer),str(profile_template.resolve()),str(profile_path.resolve()),profile_name],check=True,env=base_env)
-ssh_config=Path.home()/'.colima/_lima/colima-dvaia-pg-verify/ssh.config'
-ssh_host='lima-colima-dvaia-pg-verify';remote_dir=f'/tmp/{profile_name}';remote_profile=f'{remote_dir}/policy.apparmor';remote_marker=f'{remote_dir}/owner'
+ssh_config=Path.home()/'.colima/_lima/colima-owasp-ai-goat-pg-verify/ssh.config'
+ssh_host='lima-colima-owasp-ai-goat-pg-verify';remote_dir=f'/tmp/{profile_name}';remote_profile=f'{remote_dir}/policy.apparmor';remote_marker=f'{remote_dir}/owner'
 remote_owner=uuid.uuid4().hex+uuid.uuid4().hex
 local_marker=root/'remote-owner';local_marker.write_text(remote_owner);os.chmod(local_marker,0o600)
 ssh=['ssh','-F',str(ssh_config),ssh_host,'--'];scp=['scp','-F',str(ssh_config)]
 containers={
- 'sandbox-runner':'dvaia-mcp-targets-linux-'+suffix,
- 'sandbox-stop':'dvaia-mcp-targets-stop-'+suffix,
- 'rogue-mcp':'dvaia-mcp-rogue-smoke-'+suffix,
- 'ssrf-target':'dvaia-mcp-ssrf-smoke-'+suffix,
+ 'sandbox-runner':'owasp-ai-goat-mcp-targets-linux-'+suffix,
+ 'sandbox-stop':'owasp-ai-goat-mcp-targets-stop-'+suffix,
+ 'rogue-mcp':'owasp-ai-goat-mcp-rogue-smoke-'+suffix,
+ 'ssrf-target':'owasp-ai-goat-mcp-ssrf-smoke-'+suffix,
 }
 container=containers['sandbox-runner']
-images={name:f'dvaia-mcp-{name}-node26:{suffix}' for name in ['sandbox-runner','rogue-mcp','ssrf-target']};image=images['sandbox-runner']
+images={name:f'owasp-ai-goat-mcp-{name}-node26:{suffix}' for name in ['sandbox-runner','rogue-mcp','ssrf-target']};image=images['sandbox-runner']
 ownership_path=root/'ownership.json'
 tracked=['sidecars/sandbox-runner/Dockerfile','sidecars/rogue-mcp/Dockerfile','sidecars/ssrf-target/Dockerfile',
  'sidecars/sandbox-runner/mcpTargets.js','sidecars/sandbox-runner/mcpSeccompFilter.c','sidecars/sandbox-runner/mcpSeccompProbe.c',
- 'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in',
+ 'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in',
  'scripts/render-mcp-sandbox-apparmor.js','tests/mcpTargetsLinux.integration.test.js','tests/fixtures/mcpTargetStopProbe.js',
  'tests/postgres/run-mcp-targets-linux-isolated.py']
 digest=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
@@ -95,7 +95,7 @@ def run(command,**kwargs): kwargs.setdefault('timeout',180);return subprocess.ru
 started_containers=[];built_images=[];remote_creation_attempted=False;remote_dir_owned=False;profile_copied=False;profile_load_attempted=False;profile_loaded=False
 try:
  daemon=json.loads(run(docker+['info','--format','{{json .}}'],capture_output=True,text=True,timeout=30).stdout)
- if daemon.get('Name')!='colima-dvaia-pg-verify' or daemon.get('Architecture')!='aarch64':
+ if daemon.get('Name')!='colima-owasp-ai-goat-pg-verify' or daemon.get('Architecture')!='aarch64':
   raise RuntimeError('Exact Colima verification daemon identity is required')
  if not ssh_config.is_file(): raise RuntimeError('Exact Colima verification SSH config is required')
  prior_profile=subprocess.run(ssh+['sudo','grep','-F',profile_name,'/sys/kernel/security/apparmor/profiles'],env=base_env,capture_output=True,text=True,timeout=20)

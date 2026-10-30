@@ -164,7 +164,7 @@ function admitStoreEnvironment(env = process.env) {
     assert.equal(value.protocol, 'postgresql:'); assert.equal(value.hostname, '127.0.0.1');
     assert.equal(value.username, `dvaia_${name}_${role.toLowerCase()}`);
     assert.equal(value.password, ''); assert.equal(value.search, ''); assert.equal(value.hash, '');
-    const match = /^\/dvaia_test_agent_host_([a-f0-9]{12})_([a-z_]+)$/.exec(value.pathname);
+    const match = /^\/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_([a-z_]+)$/.exec(value.pathname);
     assert(match); assert.equal(match[2], name); assert(Buffer.byteLength(value.pathname.slice(1)) <= 63);
     assert.match(value.port, /^[1-9]\d{0,4}$/); assert(Number(value.port) <= 65535);
     nonce ??= match[1]; port ??= value.port;
@@ -295,7 +295,7 @@ async function prepareCanonicalCustomers({ application, stores, signal, checkpoi
       scope, persona: authority.persona, targetId: target.targetId, productId: product.id });
     return { context: value.active.context, authority, execution, service, target,
       productId: product.id, product: structuredClone(product),
-      headers: { authorization: 'Bearer ' + boot.persona.token, 'x-dvaia-secureshop-launch': boot.bearer } };
+      headers: { authorization: 'Bearer ' + boot.persona.token, 'x-owasp-ai-goat-secureshop-launch': boot.bearer } };
   };
   const actor = await bind(owner, standalone.bootstrap, standalone.service);
   const peer = await bind(sibling, peerBootstrap, peerService);
@@ -404,7 +404,7 @@ function validatePricingDescriptor(value, expected) {
   assert.match(value.qualificationNonce, /^[a-f0-9]{12}$/);
   assert.match(value.containerId, /^[a-f0-9]{64}$/); assert.match(value.imageId, /^sha256:[a-f0-9]{64}$/);
   assert.match(value.packageSha256, /^[a-f0-9]{64}$/);
-  assert.equal(value.profile, 'dvaia-owned-pricing-http-' + value.qualificationNonce);
+  assert.equal(value.profile, 'owasp-ai-goat-owned-pricing-http-' + value.qualificationNonce);
   const url = new URL(value.origin);
   assert.equal(url.protocol, 'http:'); assert.equal(url.hostname, '127.0.0.1');
   assert.equal(url.origin, value.origin); assert.equal(url.pathname, '/');
@@ -772,7 +772,7 @@ async function openCanonicalHttp(application, { drainMs = 5000 } = {}) {
     port = address.port;
     const origin = 'http://127.0.0.1:' + port;
     const agent = headers => {
-      assert.deepEqual(Object.keys(headers).sort(), ['authorization', 'x-dvaia-secureshop-launch']);
+      assert.deepEqual(Object.keys(headers).sort(), ['authorization', 'x-owasp-ai-goat-secureshop-launch']);
       assert(Object.values(headers).every(value => typeof value === 'string' && value.length > 0 && value.length <= 8192));
       const selected = { ...headers };
       const request = (method, path) => {
@@ -947,9 +947,9 @@ async function verifyCanonicalLifecycle({ application, stores, actorContext, pee
   const composition = application.composition, standalone = composition.standaloneAuth;
   const authority = async headers => {
     signal.throwIfAborted();
-    assert.deepEqual(Object.keys(headers).sort(), ['authorization', 'x-dvaia-secureshop-launch']);
+    assert.deepEqual(Object.keys(headers).sort(), ['authorization', 'x-owasp-ai-goat-secureshop-launch']);
     assert(headers.authorization.startsWith('Bearer '));
-    const scope = await composition.launches.resolveCapability(headers['x-dvaia-secureshop-launch']);
+    const scope = await composition.launches.resolveCapability(headers['x-owasp-ai-goat-secureshop-launch']);
     const actor = await composition.personaAuth.authenticateBoundToken({ scope, token: headers.authorization.slice(7) });
     assert.equal(actor.user.role, 'customer');
     return { scope, persona: { id: actor.user.id, role: actor.user.role },
@@ -996,7 +996,7 @@ async function verifyCanonicalLifecycle({ application, stores, actorContext, pee
   assert.equal(revoked.status, 401);
   const renewed = await standalone.bootstrap(actorContext);
   const renewedHeaders = { authorization: 'Bearer ' + renewed.persona.token,
-    'x-dvaia-secureshop-launch': renewed.bearer };
+    'x-owasp-ai-goat-secureshop-launch': renewed.bearer };
   const current = await authority(renewedHeaders);
   assert.equal(current.scope.launchId, owner.scope.launchId);
   assert.notEqual(current.personaSession.sessionId, owner.personaSession.sessionId);

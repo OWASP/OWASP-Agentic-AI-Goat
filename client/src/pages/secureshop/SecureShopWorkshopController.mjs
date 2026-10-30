@@ -5,7 +5,7 @@ import { createScopedShopStateStore } from './bridge/stateStore.mjs';
 const BASE = '/api/auth/secureshop-launch';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const BEARER = /^[A-Za-z0-9_-]{43}$/;
-const abortError = () => new DOMException('SecureShop workshop closed', 'AbortError');
+const abortError = () => new DOMException('OWASP AI SecureShop workshop closed', 'AbortError');
 
 function validLaunch(value) {
   return value && typeof value === 'object' && UUID.test(value.launchId)
@@ -15,14 +15,14 @@ function validLaunch(value) {
 }
 function validateCredential(value) {
   if (!value || !validLaunch(value.launch) || typeof value.bearer !== 'string'
-    || !BEARER.test(value.bearer)) throw new Error('Invalid SecureShop launch response');
+    || !BEARER.test(value.bearer)) throw new Error('Invalid OWASP AI SecureShop launch response');
   return Object.freeze({ launch: Object.freeze({ ...value.launch }), bearer: value.bearer });
 }
 function validateReset(value, expected) {
   if (!value || value.cleanupComplete !== true || !UUID.test(value.resetId)
     || !validLaunch(value.launch) || value.launch.launchId.toLowerCase() !== expected.launchId.toLowerCase()
     || value.launch.generation !== expected.generation + 1) {
-    throw new Error('SecureShop cleanup did not complete');
+    throw new Error('OWASP AI SecureShop cleanup did not complete');
   }
   return Object.freeze({ resetId: value.resetId.toLowerCase(), launch: Object.freeze({ ...value.launch }) });
 }
@@ -49,10 +49,10 @@ export function createSecureShopWorkshopController({
     || typeof compileOperation !== 'function' || typeof createStateStore !== 'function'
     || typeof randomUUID !== 'function' || typeof onState !== 'function'
     || typeof now !== 'function' || typeof setTimer !== 'function' || typeof clearTimer !== 'function') {
-    throw new TypeError('SecureShop workshop controller dependencies required');
+    throw new TypeError('OWASP AI SecureShop workshop controller dependencies required');
   }
   if (typeof initialRoute !== 'string' || !initialRoute.startsWith('/secureshop')) {
-    throw new TypeError('Valid SecureShop entry route required');
+    throw new TypeError('Valid OWASP AI SecureShop entry route required');
   }
   const parsedOrigin = new URL(origin);
   if (!['http:', 'https:'].includes(parsedOrigin.protocol) || parsedOrigin.origin !== origin) {
@@ -90,7 +90,7 @@ export function createSecureShopWorkshopController({
         const request=Promise.race([api('/heartbeat',{method:'POST',body:{bearer:credential.bearer,expectedGeneration:credential.launch.generation},signal:controller.signal},token),aborted]);
         heartbeatPending=request;
         try{await request;}
-        catch(error){if(currentCycle()&&heartbeatRequest===controller&&state.credential===credential&&!controller.signal.aborted&&[401,403,409].includes(error.status)){detachFrame(state);publish({status:'error',message:'SecureShop connection needs to be renewed. Reconnect to continue.'});return;}}
+        catch(error){if(currentCycle()&&heartbeatRequest===controller&&state.credential===credential&&!controller.signal.aborted&&[401,403,409].includes(error.status)){detachFrame(state);publish({status:'error',message:'OWASP AI SecureShop connection needs to be renewed. Reconnect to continue.'});return;}}
         finally{clearTimer(deadline);if(heartbeatRequest===controller)heartbeatRequest=null;if(heartbeatPending===request)heartbeatPending=null;}
       }
       if(currentCycle())heartbeatTimer=setTimer(tick,30000);
@@ -111,7 +111,7 @@ export function createSecureShopWorkshopController({
       renewalTimer = null;
       if (state.noFurtherRenewal && active && capturedEpoch === epoch && current === state) {
         detachFrame(state);
-        publish({ status: 'error', message: 'SecureShop session expired. Sign in again to continue.' });
+        publish({ status: 'error', message: 'OWASP AI SecureShop session expired. Sign in again to continue.' });
         return;
       }
       void renewCurrent(state, capturedEpoch, token).catch(() => {});
@@ -137,7 +137,7 @@ export function createSecureShopWorkshopController({
           || credential.launch.generation !== expected.launch.generation
           || credential.launch.credentialVersion <= expected.launch.credentialVersion
           || Date.parse(credential.launch.expiresAt) <= now()) {
-          throw new Error('SecureShop renewal did not match the active launch');
+          throw new Error('OWASP AI SecureShop renewal did not match the active launch');
         }
         state.noFurtherRenewal = Date.parse(credential.launch.expiresAt) <= Date.parse(expected.launch.expiresAt);
         state.credential = credential;
@@ -150,7 +150,7 @@ export function createSecureShopWorkshopController({
           // A lost response may already have rotated the handle. Stop using it;
           // reconnect recovers current server metadata instead of guessing.
           detachFrame(state);
-          publish({ status: 'error', message: 'SecureShop connection needs to be renewed. Reconnect to continue.' });
+          publish({ status: 'error', message: 'OWASP AI SecureShop connection needs to be renewed. Reconnect to continue.' });
         }
         throw error;
       } finally {
@@ -173,7 +173,7 @@ export function createSecureShopWorkshopController({
       currentToken(token);
       if (signal?.aborted) throw signal.reason || abortError();
       if (budget && now() >= budget.deadline) {
-        const error = new Error('SecureShop request timed out. Reconnect or retry the existing reset.');
+        const error = new Error('OWASP AI SecureShop request timed out. Reconnect or retry the existing reset.');
         error.name = 'TimeoutError'; budget.controller.abort(error); throw error;
       }
     };
@@ -182,7 +182,7 @@ export function createSecureShopWorkshopController({
       abort = () => reject(signal.reason || abortError());
       signal?.addEventListener('abort', abort, { once: true });
       if (budget) timer = setTimer(() => {
-        const error = new Error('SecureShop request timed out. Reconnect or retry the existing reset.');
+        const error = new Error('OWASP AI SecureShop request timed out. Reconnect or retry the existing reset.');
         error.name = 'TimeoutError'; budget.controller.abort(error);
       }, Math.max(0, budget.deadline - now()));
     });
@@ -196,7 +196,7 @@ export function createSecureShopWorkshopController({
         const data = await response.json().catch(() => ({}));
         check();
         if (!response.ok) {
-          const error = new Error(data.error || 'SecureShop launch request failed');
+          const error = new Error(data.error || 'OWASP AI SecureShop launch request failed');
           error.status = response.status;
           if (data.code === 'LAUNCH_SESSION_TERMINAL' || data.code === 'LAUNCH_CAPACITY') error.code = data.code;
           throw error;
@@ -224,8 +224,8 @@ export function createSecureShopWorkshopController({
     const platformToken = getPlatformToken();
     currentToken(platformToken);
     const frame = documentRef.createElement('iframe');
-    frame.title = 'SecureShop';
-    frame.setAttribute('aria-label', 'SecureShop storefront');
+    frame.title = 'OWASP AI SecureShop';
+    frame.setAttribute('aria-label', 'OWASP AI SecureShop storefront');
     Object.assign(frame.style, { width: '100%', height: '100%', border: '0', display: 'block' });
     let retirementConfirmed = false;
     let state = null;
@@ -244,7 +244,7 @@ export function createSecureShopWorkshopController({
         || capturedBearer !== state.credential.bearer) return;
       detachFrame(state);
       publish({ status: 'error',
-        message: 'SecureShop connection needs to be renewed. Reconnect to continue.' });
+        message: 'OWASP AI SecureShop connection needs to be renewed. Reconnect to continue.' });
     };
     const entryUrl = new URL(frameUrl, origin);
     entryUrl.searchParams.set('entry', initialRoute);
@@ -287,7 +287,7 @@ export function createSecureShopWorkshopController({
         } }, token));
       }
     }
-    if (!validLaunch(metadata.launch)) throw new Error('Invalid SecureShop launch metadata');
+    if (!validLaunch(metadata.launch)) throw new Error('Invalid OWASP AI SecureShop launch metadata');
     return validateCredential(await api('/recover', { method: 'POST', signal, body: {
       launchId: metadata.launch.launchId,
       expectedCredentialVersion: metadata.launch.credentialVersion,
@@ -295,7 +295,7 @@ export function createSecureShopWorkshopController({
   }
   async function start(target) {
     if (!active || container || !target || typeof target.replaceChildren !== 'function') {
-      throw new TypeError('Fresh SecureShop workshop container required');
+      throw new TypeError('Fresh OWASP AI SecureShop workshop container required');
     }
     container = target;
     const capturedEpoch = ++epoch;
@@ -312,7 +312,7 @@ export function createSecureShopWorkshopController({
     } catch (error) {
       if (active && capturedEpoch === epoch) publish(error.code === 'LAUNCH_SESSION_TERMINAL'
         ? { status: 'error', terminalLaunch: true,
-          message: 'This platform session’s SecureShop launch has ended. Sign out and sign in again to start a new session.' }
+          message: 'This platform session’s OWASP AI SecureShop launch has ended. Sign out and sign in again to start a new session.' }
         : error.code === 'LAUNCH_CAPACITY'
           ? { status: 'error', capacity: true, message: error.message }
           : { status: 'error', message: error.message });
@@ -361,7 +361,7 @@ export function createSecureShopWorkshopController({
             expectedCredentialVersion: receipt.launch.credentialVersion } }, token));
         if (credential.launch.launchId !== receipt.launch.launchId
           || credential.launch.generation !== receipt.launch.generation) {
-          throw new Error('SecureShop recovery did not match reset');
+          throw new Error('OWASP AI SecureShop recovery did not match reset');
         }
         current = null;
         await mountCurrent(credential, capturedEpoch);

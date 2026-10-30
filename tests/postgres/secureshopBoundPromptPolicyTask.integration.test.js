@@ -15,12 +15,12 @@ test('owned prompt-policy v2 task targets use real persona sessions and controll
   timeout: 240000
 }, async t => {
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+  assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
   const pools = [];
   const pool = (store, role) => {
     const url = new URL(process.env[`PERSONA_${store}_${role}_URL`]);
     assert.equal(url.hostname, '127.0.0.1');
-    assert.match(url.pathname, /^\/dvaia_test_persona_[a-f0-9]+_(identity|fresh|commerce)$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_persona_[a-f0-9]+_(identity|fresh|commerce)$/);
     const value = new Pool({ connectionString: url.href, max: 2, statement_timeout: 8000 });
     pools.push(value); return value;
   };

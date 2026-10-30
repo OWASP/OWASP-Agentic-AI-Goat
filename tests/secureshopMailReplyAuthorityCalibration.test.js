@@ -1,9 +1,9 @@
 'use strict';
-if(process.env.DVAIA_RETAINED_EVIDENCE_TESTS!=='1')throw Error('Retained-evidence qualification requires DVAIA_RETAINED_EVIDENCE_TESTS=1 and its original local artifacts; this is not a portable unit suite.');
+if(process.env.OWASP_AI_GOAT_RETAINED_EVIDENCE_TESTS!=='1')throw Error('Retained-evidence qualification requires OWASP_AI_GOAT_RETAINED_EVIDENCE_TESTS=1 and its original local artifacts; this is not a portable unit suite.');
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto');
 const {casesFor,MAX_HTTP}=require('./postgres/secureshopMailReplyAuthorityCalibration');
 const hash=b=>createHash('sha256').update(b).digest('hex');
-const reportPath=process.env.DVAIA_RETAINED_MAIL_REPLY_REPORT,candidatePath=process.env.DVAIA_RETAINED_MAIL_REPLY_CANDIDATE;
+const reportPath=process.env.OWASP_AI_GOAT_RETAINED_MAIL_REPLY_REPORT,candidatePath=process.env.OWASP_AI_GOAT_RETAINED_MAIL_REPLY_CANDIDATE;
 if(!reportPath||!candidatePath||!path.isAbsolute(reportPath)||!path.isAbsolute(candidatePath))throw Error('Absolute retained mail reply report and candidate paths are required');
 const reportBytes=fs.readFileSync(reportPath);
 assert.equal(hash(reportBytes),'b85cb9eeb1039ac432b2608f82018b79f73932293b0866c91ea3860712d5064a');

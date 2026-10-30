@@ -10,7 +10,7 @@ const {Pool}=require('pg');
 const enabled=process.env.RUN_FINFLOW_LOG_OVERLAY_NATIVE==='1';
 const runtimeUrl=process.env.FINFLOW_RUNTIME_DATABASE_URL;
 const migrationUrl=process.env.FINFLOW_MIGRATION_DATABASE_URL;
-const appDataRoot=process.env.DVAIA_APP_DATA_ROOT;
+const appDataRoot=process.env.OWASP_AI_GOAT_APP_DATA_ROOT;
 const integration=enabled&&runtimeUrl&&migrationUrl&&appDataRoot?test:test.skip;
 const run=(suffix)=>`60000000-0000-4000-8000-${String(suffix).padStart(12,'0')}`;
 const execution=(ownerId,generation,runId)=>({ownerId:String(ownerId),

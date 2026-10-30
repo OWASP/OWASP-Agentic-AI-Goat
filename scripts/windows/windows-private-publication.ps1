@@ -19,7 +19,7 @@ try {
     if ((@($request.PSObject.Properties.Name | Sort-Object) -join ',') -ne $expected -or $request.version -ne 1 -or $request.operation -isnot [string] -or $request.targetPath -isnot [string] -or $request.intentPath -isnot [string] -or $request.operationId -isnot [string]) { throw 'Denied' }
     if ($request.operation -eq 'preparePrivatePublication' -and ($request.resultBytesBase64 -isnot [string] -or ($null -ne $request.originalBytesBase64 -and $request.originalBytesBase64 -isnot [string]))) { throw 'Denied' }
     Add-Type -Path (Join-Path $PSScriptRoot 'windows-private-publication.cs') -ReferencedAssemblies 'System.dll', 'System.Core.dll', 'System.Web.Extensions.dll' -ErrorAction Stop
-    $response = [Dvaia.WindowsPrivatePublication]::Invoke($request.operation, $request.targetPath, $request.intentPath, $request.operationId, $request.originalBytesBase64, $request.resultBytesBase64)
+    $response = [OwaspAiGoat.WindowsPrivatePublication]::Invoke($request.operation, $request.targetPath, $request.intentPath, $request.operationId, $request.originalBytesBase64, $request.resultBytesBase64)
     $json = ConvertTo-Json -InputObject $response -Depth 4 -Compress
     if ([System.Text.Encoding]::UTF8.GetByteCount($json) -gt 4096) { throw 'Denied' }
     [Console]::Out.Write($json)

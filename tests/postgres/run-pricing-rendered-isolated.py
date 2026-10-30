@@ -11,7 +11,7 @@ from sensitive_info_recovery_safety import SignalGate
 SOURCE=Path(__file__).resolve().parents[2]
 
 DOCKER='/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker'
-HOST='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+HOST='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 IMAGE='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 legacy=False
 parser=argparse.ArgumentParser()
@@ -28,12 +28,12 @@ cleanup_budget=None
 def remaining(seconds):return min(seconds,cleanup_budget.remaining()) if cleanup_budget else seconds
 browser_path=Path(args.browser)
 if not browser_path.is_absolute() or browser_path.is_symlink() or browser_path.resolve()!=browser_path or not browser_path.is_file() or not os.access(browser_path,os.X_OK) or hashlib.sha256(browser_path.read_bytes()).hexdigest()!=args.browser_sha256:raise ValueError('Explicit browser pin mismatch')
-root=Path(tempfile.mkdtemp(prefix='dvaia-pricing-rendered-')).resolve();os.chmod(root,0o700)
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-pricing-rendered-')).resolve();os.chmod(root,0o700)
 workspace=root/'source';home=root/'home';home.mkdir(mode=0o700)
 workspace_id=hashlib.sha256(str(workspace).encode()).hexdigest()[:12]
-name='dvaia-pricing-'+workspace_id;network=name+'-network';tag='dvaia-owned-pricing-'+workspace_id+':local';profile='dvaia-owned-pricing-http-'+workspace_id
+name='owasp-ai-goat-pricing-'+workspace_id;network=name+'-network';tag='owasp-ai-goat-owned-pricing-'+workspace_id+':local';profile='owasp-ai-goat-owned-pricing-http-'+workspace_id
 state_name=name+'-setup-state';state_owner=uuid.uuid4().hex
-env={'PATH':str(NODE.parent)+':'+str(Path(DOCKER).parent)+':/usr/bin:/bin','HOME':str(home),'DOCKER_HOST':HOST,'TMPDIR':str(root),'PG_TEST_DISPOSABLE':'yes','DVAIA_ISOLATED_TEST_WORKSPACE':str(workspace),'PRICING_INSTALL_TEST_HOME':str(home),'PRICING_INSTALL_TEST_RESULT':str(root/'result.json')}
+env={'PATH':str(NODE.parent)+':'+str(Path(DOCKER).parent)+':/usr/bin:/bin','HOME':str(home),'DOCKER_HOST':HOST,'TMPDIR':str(root),'PG_TEST_DISPOSABLE':'yes','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE':str(workspace),'PRICING_INSTALL_TEST_HOME':str(home),'PRICING_INSTALL_TEST_RESULT':str(root/'result.json')}
 ssh=SSH
 def remote(args):return subprocess.run(ssh+[shlex.join(args)],env=env,check=True,capture_output=True,text=True,timeout=remaining(25))
 def deadline(*_):raise TimeoutError('Pricing full-index parent deadline')
@@ -77,7 +77,7 @@ def stop():
 persist()
 try:
  assert run([str(NODE),'--version'],stdout=subprocess.PIPE,text=True).stdout.strip()==args.node_version
- assert run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()=='colima-dvaia-pg-verify'
+ assert run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()=='colima-owasp-ai-goat-pg-verify'
  env['ANALYTICS_BROWSER_EXECUTABLE']=str(browser_path);env['ANALYTICS_BROWSER_SHA256']=digest(browser_path);state['browserExecutableSha256']=env['ANALYTICS_BROWSER_SHA256'];persist()
  if run(docker+['info','--format','{{.ID}}'],stdout=subprocess.PIPE,text=True).stdout.strip()!=args.docker_daemon_id:raise RuntimeError('Docker daemon identity mismatch')
  assert inspect('image','postgres:18')['Id']==IMAGE
@@ -92,7 +92,7 @@ try:
  for dependency in (DEPENDENCIES/'client/node_modules').iterdir():
   if dependency.name in ['.vite','.vite-temp','.cache']:continue
   (workspace/'client/node_modules'/dependency.name).symlink_to(dependency,target_is_directory=dependency.is_dir())
- directory=home/'.dvaia'/workspace_id;directory.mkdir(parents=True,mode=0o700);directory_identity=(directory.stat().st_dev,directory.stat().st_ino)
+ directory=home/'.owasp-ai-goat'/workspace_id;directory.mkdir(parents=True,mode=0o700);directory_identity=(directory.stat().st_dev,directory.stat().st_ino)
  authority={'version':1,'workspaceId':workspace_id,'host':HOST,'daemonId':json.loads(run(docker+['info','--format','{{json .ID}}'],stdout=subprocess.PIPE,text=True).stdout),'source':'environment-host'}
  auth=directory/'local-docker.json';auth.write_text(json.dumps(authority));auth.chmod(0o600)
  with socket.socket() as reservation:reservation.bind(('127.0.0.1',0));env['PRICING_LISTENER_PORT']=str(reservation.getsockname()[1])
@@ -102,7 +102,7 @@ try:
  inventory.extend(workspace/file for file in ['tests/postgres/pricing_runtime_pins.py','scripts/local-docker-authority.js','scripts/lib/isolated-source-copy.js','tests/postgres/secureshopPricingRendered.native.js','tests/postgres/run-pricing-rendered-isolated.py','package.json','package-lock.json'])
  state['sourceSha256']={str(file.relative_to(workspace)):digest(file) for file in sorted(set(inventory))};state['status']='running';persist()
  state['setupStateCreationAttempted']=True;persist()
- run(docker+['run','--detach','--pull','never','--name',state_name,'--label','dvaia.test.owner='+state_owner,'--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=1073741824','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=100','-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
+ run(docker+['run','--detach','--pull','never','--name',state_name,'--label','owasp-ai-goat.test.owner='+state_owner,'--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=1073741824','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=100','-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
  state_container=inspect('container',state_name);state['setupStateContainerId']=state_container['Id'];persist()
  for attempt in range(80):
   ready=subprocess.run(docker+['exec',state_name,'pg_isready','-h','127.0.0.1','-U','postgres'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=remaining(2))
@@ -113,7 +113,7 @@ try:
  manifest=json.loads(run([str(NODE),'-e',"console.log(JSON.stringify(require('./db/postgres/initialize-application').requiredStoreManifest))"],cwd=workspace,stdout=subprocess.PIPE,text=True).stdout)
  assert len(manifest)==16
  for row in manifest:
-  family=row['schema'];migration='dvaia_'+family+'_migration';runtime=row['runtimeRole'];database='dvaia_test_full_backend_'+family
+  family=row['schema'];migration='dvaia_'+family+'_migration';runtime=row['runtimeRole'];database='owasp_ai_goat_test_full_backend_'+family
   psql=docker+['exec',state_name,'psql','-U','postgres','-v','ON_ERROR_STOP=1','-c']
   run(psql+[f'CREATE ROLE {migration} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE {runtime} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
   run(psql+[f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL)
@@ -150,22 +150,22 @@ finally:
  try:
   item=inspect('container',state_name)
   if item:
-   assert state.get('setupStateCreationAttempted') and item['Config']['Labels'].get('dvaia.test.owner')==state_owner and item['Image']==IMAGE
+   assert state.get('setupStateCreationAttempted') and item['Config']['Labels'].get('owasp-ai-goat.test.owner')==state_owner and item['Image']==IMAGE
    if state.get('setupStateContainerId'):assert item['Id']==state['setupStateContainerId']
    run(docker+['rm','-f',item['Id']],stdout=subprocess.DEVNULL)
   assert inspect('container',state_name) is None
  except Exception as error:errors.append('setup-state:'+type(error).__name__)
  try:
-  directory=home/'.dvaia'/workspace_id;stage_file=directory/'pricing-provisioning.json';staged=json.loads(stage_file.read_text()) if stage_file.exists() else None
+  directory=home/'.owasp-ai-goat'/workspace_id;stage_file=directory/'pricing-provisioning.json';staged=json.loads(stage_file.read_text()) if stage_file.exists() else None
   for kind,identifier in [('container',name),('network',network)]:
    item=inspect(kind,identifier)
    if item:
-    labels=item['Config']['Labels'] if kind=='container' else item['Labels'];assert staged and labels.get('dvaia.pricing.owner')==staged['ownerId'] and labels.get('dvaia.pricing.workspace')==workspace_id and labels.get('dvaia.pricing.package')==staged['packageSha256']
+    labels=item['Config']['Labels'] if kind=='container' else item['Labels'];assert staged and labels.get('owasp-ai-goat.pricing.owner')==staged['ownerId'] and labels.get('owasp-ai-goat.pricing.workspace')==workspace_id and labels.get('owasp-ai-goat.pricing.package')==staged['packageSha256']
     run(docker+(['rm','-f',item['Id']] if kind=='container' else ['network','rm',item['Id']]),stdout=subprocess.DEVNULL)
    assert inspect(kind,identifier) is None
   image=inspect('image',tag)
   if image:
-   package=json.loads((workspace/'sidecars/sandbox-runner/owned-pricing-http/local-package-manifest.json').read_text());assert image['Config']['Labels']['dvaia.pricing.package']==package['sha256'] and image['RepoTags']==[tag];run(docker+['image','rm',tag],stdout=subprocess.DEVNULL);assert inspect('image',image['Id']) is None
+   package=json.loads((workspace/'sidecars/sandbox-runner/owned-pricing-http/local-package-manifest.json').read_text());assert image['Config']['Labels']['owasp-ai-goat.pricing.package']==package['sha256'] and image['RepoTags']==[tag];run(docker+['image','rm',tag],stdout=subprocess.DEVNULL);assert inspect('image',image['Id']) is None
   if subprocess.run(ssh+[shlex.join(['sudo','test','-e','/etc/apparmor.d/'+profile])],env=env,capture_output=True,timeout=remaining(15)).returncode==0:
    expected=(workspace/'sidecars/sandbox-runner/owned-pricing-http/http-profile.apparmor.in').read_text().replace('@@SUPERVISOR_PROFILE@@',profile);assert remote(['sudo','cat','/etc/apparmor.d/'+profile]).stdout==expected;remote(['sudo','apparmor_parser','-R','/etc/apparmor.d/'+profile]);remote(['sudo','rm','--','/etc/apparmor.d/'+profile])
   assert not any(line.startswith(profile+' ') or line.startswith(profile+'//') for line in remote(['sudo','cat','/sys/kernel/security/apparmor/profiles']).stdout.splitlines())

@@ -26,7 +26,7 @@ jest.mock('./pages/secureshop/SecureShopWorkshop', () => ({ __esModule: true,
 jest.mock('./pages/secureshop/SecureShopStandalone', () => ({ __esModule: true,
   default: () => {
     if (mockSuspendStandalone) throw mockPendingStandalone;
-    return <div data-testid="standalone-shop">SecureShop</div>;
+    return <div data-testid="standalone-shop">OWASP AI SecureShop</div>;
   } }));
 
 jest.mock('./context/AuthContext', () => ({
@@ -52,7 +52,7 @@ async function navigate(path) {
   });
 }
 
-test('SecureShop routes stay outside platform auth and historical workshop links redirect to the app', async () => {
+test('OWASP AI SecureShop routes stay outside platform auth and historical workshop links redirect to the app', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   mockLifecycle.mounts = 0;
   mockLifecycle.unmounts = 0;
@@ -99,7 +99,7 @@ test('real App CTF navigation does not remount and resubmit a pending challenge 
 });
 
 
-test.each(['/secureshop/catalog', '/secureshop/product/1'])('%s enters standalone SecureShop without workshop identity', async (path) => {
+test.each(['/secureshop/catalog', '/secureshop/product/1'])('%s enters standalone OWASP AI SecureShop without workshop identity', async (path) => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   mockUser = null;
   window.history.replaceState({}, '', path);
@@ -113,7 +113,7 @@ test.each(['/secureshop/catalog', '/secureshop/product/1'])('%s enters standalon
   } finally { await act(async () => root.unmount()); }
 });
 
-test('SecureShop lazy loading shows the shop spinner with accessible status', async () => {
+test('OWASP AI SecureShop lazy loading shows the shop spinner with accessible status', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   mockSuspendStandalone = true;
   window.history.replaceState({}, '', '/secureshop/catalog');
@@ -125,7 +125,7 @@ test('SecureShop lazy loading shows the shop spinner with accessible status', as
     expect(spinner).not.toBeNull();
     expect(spinner.getAttribute('aria-hidden')).toBe('true');
     expect(spinner.style.animation).toBe('spin 800ms linear infinite');
-    expect(host.querySelector('p[role="status"]').textContent).toContain('Opening SecureShop');
+    expect(host.querySelector('p[role="status"]').textContent).toContain('Opening OWASP AI SecureShop');
     expect(host.textContent).not.toContain('Loading Workshop');
   } finally {
     await act(async () => root.unmount());
@@ -133,7 +133,7 @@ test('SecureShop lazy loading shows the shop spinner with accessible status', as
   }
 });
 
-test('SecureShop sign-in does not use the workshop account even if one exists', async () => {
+test('OWASP AI SecureShop sign-in does not use the workshop account even if one exists', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   mockUser = { id: 7, username: 'Learner' };
   window.history.replaceState({}, '', '/secureshop/login');

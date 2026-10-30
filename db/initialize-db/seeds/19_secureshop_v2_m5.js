@@ -27,7 +27,7 @@ function _renderHtml(md) {
 
 function seedEmails(db) {
   // Ensure at least one recipient user exists so read_inbox has a target.
-  // 17_secureshop_v2.js seeds student_c@dvaia.local; also fall back to sasan.
+  // 17_secureshop_v2.js seeds student_c@owasp-ai-goat.local; also fall back to sasan.
   const student = db.prepare(`SELECT id, email FROM shop_users WHERE username = 'student_c'`).get()
     || db.prepare(`SELECT id, email FROM shop_users WHERE role='customer' LIMIT 1`).get();
   if (!student) {

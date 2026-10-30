@@ -3,8 +3,8 @@ import { flushShopStorage, shopStorage, SHOP_ACCOUNT_AVATAR_PENDING_KEY } from '
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const SHA = /^[a-f0-9]{64}$/;
 const TOKEN_PART = /^[A-Za-z0-9_-]+$/;
-const ISSUER = 'dvaia-secureshop-bound';
-const AUDIENCE = 'dvaia-secureshop-bound-persona';
+const ISSUER = 'owasp-ai-goat-secureshop-bound';
+const AUDIENCE = 'owasp-ai-goat-secureshop-bound-persona';
 const positiveId = value => typeof value === 'string' && /^[1-9][0-9]*$/.test(value)
   && Number.isSafeInteger(Number(value)) && Number(value) <= 2147483647;
 const exact = (value, keys) => value && Object.getPrototypeOf(value) === Object.prototype

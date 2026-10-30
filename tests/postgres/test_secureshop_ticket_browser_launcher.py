@@ -116,7 +116,7 @@ class TicketBrowserLauncherContract(unittest.TestCase):
         with patch.object(LAUNCHER.subprocess, 'run', return_value=SimpleNamespace(stdout='')):
             runtime = Path(folder) / 'runtime'; (runtime / 'tmp').mkdir(parents=True)
             self.assertTrue(all(LAUNCHER.standalone_browser_cleanup_state(runtime).values()))
-            (runtime / 'tmp' / 'dvaia-customer-ticket-browser-owned').mkdir()
+            (runtime / 'tmp' / 'owasp-ai-goat-customer-ticket-browser-owned').mkdir()
             self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
     def test_exact_unskipped_tap_and_source_closure(self):

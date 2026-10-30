@@ -7,7 +7,7 @@ import { createSecureShopWorkshopController } from './SecureShopWorkshopControll
 import { safeShopRoute } from './bridge/guestRouting.mjs';
 
 const MODE_ENDPOINT = '/api/auth/secureshop-launch/mode';
-const BOUND_ROUTE_CHANNEL = 'dvaia-secureshop-bound-route-v1';
+const BOUND_ROUTE_CHANNEL = 'owasp-ai-goat-secureshop-bound-route-v1';
 const MODE_LABELS = { analytics: 'Analytics', coupons: 'Coupons', mail: 'Mail', pricing: 'Pricing',
   audit: 'Audit', listings: 'Listings', registered_mcp: 'Registered MCP', inventory: 'Inventory',
   product_assist: 'Product questions', audit_summary: 'Audit summary', refund: 'Refund agent',
@@ -177,14 +177,14 @@ export default function SecureShopWorkshop({ createController = createSecureShop
   const retry = () => setAttempt(value => value + 1);
   const busy = resetPending || ['connecting', 'resetting'].includes(state.status);
 
-  return <main aria-label="SecureShop" style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#fff' }}>
+  return <main aria-label="OWASP AI SecureShop" style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#fff' }}>
     <div ref={frameHost} data-testid="secureshop-frame-host" aria-busy={busy}
       style={{ width: '100%', height: '100dvh' }} />
     {busy && <div role="status" style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: '#fff' }}>
-      Opening SecureShop…
+      Opening OWASP AI SecureShop…
     </div>}
     {state.status === 'error' && <div role="alert" style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: '#fff' }}>
-      <div style={{ textAlign: 'center' }}><p>{state.message || 'SecureShop connection unavailable.'}</p>
+      <div style={{ textAlign: 'center' }}><p>{state.message || 'OWASP AI SecureShop connection unavailable.'}</p>
         <button type="button" style={settingButton} onClick={state.terminalLaunch ? logout : state.retryReset ? reset : retry}>
           {state.terminalLaunch ? 'Sign out' : state.retryReset ? 'Retry reset' : state.capacity ? 'Retry availability' : 'Reconnect'}
         </button></div>

@@ -78,7 +78,7 @@ class MerchantListingCreateLauncherContract(unittest.TestCase):
             runtime = Path(directory)
             temporary = runtime / 'tmp'
             temporary.mkdir()
-            (temporary / 'dvaia-role-listing-create-unit').mkdir()
+            (temporary / 'owasp-ai-goat-role-listing-create-unit').mkdir()
             self.assertFalse(LAUNCHER.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 

@@ -28,7 +28,7 @@ class Admission(unittest.TestCase):
   scope=functions(base,{'database_plan'},{'re':re,'STORES':stores})
   functions(OUTPUT['tests/postgres/acl_permission_execution.py'],{'store_urls'},scope)
   urls=scope['store_urls']('a'*12,54321);self.assertEqual(len(urls),33)
-  self.assertTrue(all('@127.0.0.1:54321/dvaia_test_student_deletion_aaaaaaaaaaaa_' in u for u in urls.values()))
+  self.assertTrue(all('@127.0.0.1:54321/owasp_ai_goat_test_student_deletion_aaaaaaaaaaaa_' in u for u in urls.values()))
   for nonce,port in [('foreign',54321),('a'*12,0),('a'*12,True)]:
    with self.assertRaises(RuntimeError):scope['store_urls'](nonce,port)
  def test_original_bounds_and_confinement(self):
@@ -41,20 +41,20 @@ class Admission(unittest.TestCase):
   self.assertIn("if (!currentHost) assert.equal(fs.statSync(source).mode & 0o222, 0",fixture)
   self.assertIn("flags != {'--run', '--acl-permission-recovery'}",inspector)
   self.assertIn('(deny file-write*)',inspector);self.assertIn("writable = ('tasks/qualification', 'tasks/tmp')",inspector)
-  self.assertIn('snapshot_after()',execution);self.assertIn("row['Config']['Labels'].get('dvaia.test.owner') != owner_token",execution)
+  self.assertIn('snapshot_after()',execution);self.assertIn("row['Config']['Labels'].get('owasp-ai-goat.test.owner') != owner_token",execution)
  def test_actual_js_grant_and_foreign_stores(self):
   program=r'''
 const fs=require('fs'),Module=require('module'),path=require('path'),assert=require('assert/strict');
 const texts=JSON.parse(fs.readFileSync(0,'utf8'));for(const [n,s]of Object.entries(texts))if(n.endsWith('.js'))new(require('vm').Script)(s);
 const filename=path.resolve('tests/postgres/aclPermissionCurrentHostAdmission.js'),mod=new Module(filename,module);mod.filename=filename;mod.paths=Module._nodeModulePaths(path.dirname(filename));mod._compile(texts['tests/postgres/aclPermissionCurrentHostAdmission.js'],filename);
 const {validateGrant,validateStores}=mod.exports,repo=process.cwd(),nonce='a'.repeat(12),sha='b'.repeat(64),temp=repo+'/tasks/qualification/run-admin-acl-permission-'+nonce+'/runtime/tmp';
-const env={ADMIN_ACL_PERMISSION_BUILD_SHA256:sha,ADMIN_ACL_PERMISSION_SNAPSHOT_SHA256:sha,ADMIN_ACL_PERMISSION_STORE_PLAN_SHA256:sha,DVAIA_CHROMIUM_ACTUAL_EXECUTABLE:'/physical/chrome'};
-const grant={version:1,cohort:'admin-acl-permission-current-host',launcherPid:11,workerPid:12,nonce,workspace:repo,buildSha256:sha,snapshotSha256:sha,storePlanSha256:sha,outerSandbox:'repository-only',chromium:'/physical/chrome',profile:temp+'/dvaia-acl-permission-browser-'+nonce};
+const env={ADMIN_ACL_PERMISSION_BUILD_SHA256:sha,ADMIN_ACL_PERMISSION_SNAPSHOT_SHA256:sha,ADMIN_ACL_PERMISSION_STORE_PLAN_SHA256:sha,OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE:'/physical/chrome'};
+const grant={version:1,cohort:'admin-acl-permission-current-host',launcherPid:11,workerPid:12,nonce,workspace:repo,buildSha256:sha,snapshotSha256:sha,storePlanSha256:sha,outerSandbox:'repository-only',chromium:'/physical/chrome',profile:temp+'/owasp-ai-goat-acl-permission-browser-'+nonce};
 const context={env,paths:{temp},repo,launcherPid:11,workerPid:12};assert.equal(validateGrant(grant,context).admitted,true);
 for(const delta of [{workerPid:99},{launcherPid:99},{workspace:'/foreign'},{cohort:'admin-student-deletion-current-host'},{snapshotSha256:'c'.repeat(64)},{outerSandbox:'none'}])assert.throws(()=>validateGrant({...grant,...delta},context));
 const stores=require('./db/postgres/initialize-application').requiredStoreManifest;
 const e={PG_TEST_DISPOSABLE:'yes',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',PG_POOL_BUDGET:'78'};
-for(const row of stores)for(const [key,role]of [[row.runtimeVariable,'runtime'],[row.migrationVariable,'migration']])e[key]=`postgresql://dvaia_${row.schema}_${role}@127.0.0.1:54321/dvaia_test_student_deletion_${nonce}_${row.schema}`;
+for(const row of stores)for(const [key,role]of [[row.runtimeVariable,'runtime'],[row.migrationVariable,'migration']])e[key]=`postgresql://dvaia_${row.schema}_${role}@127.0.0.1:54321/owasp_ai_goat_test_student_deletion_${nonce}_${row.schema}`;
 assert.equal(validateStores(e).length,16);const key=stores[0].runtimeVariable;
 for(const replacement of [e[key].replace('127.0.0.1','remote.invalid'),e[key].replace(nonce,'d'.repeat(12)),e[key].replace('_runtime@','_migration@'),e[key]+'?x=1'])assert.throws(()=>validateStores({...e,[key]:replacement}));
 console.log('actual grant and all sixteen nonce URL negatives pass');

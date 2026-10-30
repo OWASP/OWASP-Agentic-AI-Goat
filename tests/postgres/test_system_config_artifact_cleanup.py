@@ -33,7 +33,7 @@ class ArtifactCleanup(unittest.TestCase):
                         raise OSError('retention chmod denied')
                 def docker(args, **kwargs):
                     calls.append(args[0])
-                    return json.dumps([{'Config': {'Labels': {'dvaia.test.owner': 'foreign' if phase == 'foreign' else 'owned'}}}])
+                    return json.dumps([{'Config': {'Labels': {'owasp-ai-goat.test.owner': 'foreign' if phase == 'foreign' else 'owned'}}}])
                 def logs(*args, **kwargs):
                     if phase == 'pg-capture': raise OSError('postgres capture denied')
                     return SimpleNamespace(stdout='', stderr='')

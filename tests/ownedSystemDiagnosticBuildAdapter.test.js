@@ -25,8 +25,8 @@ test('actual fixed plan has distinct metadata/build identity and no execution au
  assert.equal(p.executionApproved,false);assert.equal(p.runtimeAvailable,false);
  assert.equal(p.boundedDerivation.runtimeAdmitted,false);
  assert.match(p.commands.build,/stop_private_relay/);
- assert.match(p.commands.build,/dvaia\.diagnostic\.inputs=/);
- assert.match(p.commands.build,/dvaia-diagnostic-build:/);
+ assert.match(p.commands.build,/owasp-ai-goat\.diagnostic\.inputs=/);
+ assert.match(p.commands.build,/owasp-ai-goat-diagnostic-build:/);
  assert.match(p.commands.build,/docker --host "unix:\/\/\$root\/fs\/docker.sock" build/);
  assert.match(p.commands.handoff,/'target':'original-v03-diagnostic'/);
  assert.equal(await adapter.verifyDiagnosticBuildPlan(p),true);
@@ -115,7 +115,7 @@ test('real metadata validators bind diagnostic run, base, source policy and reta
 
 async function emittedGuest(fault){
  const p=await plan(),events=[],files=new Map(),proc=new EventEmitter();
- proc.env={DVAIA_ARTIFACT_DEADLINE_SECONDS:String(Number(process.hrtime.bigint())/1e9+30),DVAIA_ARTIFACT_PROXY_PORT:'1234'};
+ proc.env={OWASP_AI_GOAT_ARTIFACT_DEADLINE_SECONDS:String(Number(process.hrtime.bigint())/1e9+30),OWASP_AI_GOAT_ARTIFACT_PROXY_PORT:'1234'};
  proc.hrtime=process.hrtime;
  const fakeFs={async readFile(){return Buffer.from('{}');},async open(name){return{
   async writeFile(bytes){files.set(name,Buffer.from(bytes));},async sync(){if(fault==='publication'&&name.endsWith('closure.json.partial'))throw Error('write failure');},async close(){},

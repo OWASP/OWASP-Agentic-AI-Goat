@@ -13,7 +13,7 @@ test('real workshop controller scopes parent state to launch identity, never ret
   mountFrame:({stateStore})=>{stateStore.replace({secureshop_v2_token:'persona-token',ss_guest_cart:null});return{ready:Promise.resolve(),close(){}};},
   compileOperation(){},setTimer:()=>({unref(){}}),clearTimer(){}});
  const launch=await controller.start(container);assert.equal(launch.launchId,launchId);assert.equal(launch.generation,generation);
- const launchKey=`dvaia:secureshop:${launchId}:${generation}`,targetKey=`dvaia:secureshop:${targetScenarioId}:${generation}`;
+ const launchKey=`owasp-ai-goat:secureshop:${launchId}:${generation}`,targetKey=`owasp-ai-goat:secureshop:${targetScenarioId}:${generation}`;
  assert.equal(JSON.parse(values.get(launchKey)).secureshop_v2_token,'persona-token');assert.equal(values.has(targetKey),false);
  controller.close();
 });
@@ -22,7 +22,7 @@ test('System rebuild recovery crosses the real scoped parent state channel',asyn
  const {MessageChannel}=require('node:worker_threads');
  const {createScopedShopStateStore}=await import('../client/src/pages/secureshop/bridge/stateStore.mjs');
  const {createHostShopStateChannel,connectFrameShopState}=await import('../client/src/pages/secureshop/bridge/stateChannel.mjs');
- const scenarioId='11111111-1111-4111-8111-111111111111',generation=7,key=`dvaia:secureshop:${scenarioId}:${generation}`,values=new Map();
+ const scenarioId='11111111-1111-4111-8111-111111111111',generation=7,key=`owasp-ai-goat:secureshop:${scenarioId}:${generation}`,values=new Map();
  const storage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};
  const store=createScopedShopStateStore({storage,scenarioId,generation,isCurrent:()=>true});
  const ports=new MessageChannel(),host=createHostShopStateChannel({port:ports.port1,store}),frame=await connectFrameShopState({port:ports.port2,timeoutMs:1000});

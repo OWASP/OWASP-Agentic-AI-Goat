@@ -9,7 +9,7 @@ const {spawn}=require('node:child_process');
 const {createMcpTargetStore,_internals}=require('../sidecars/sandbox-runner/mcpTargets');
 
 async function fixture(t,options={}){
- const base=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-target-'));t.after(()=>fs.rm(base,{recursive:true,force:true}));
+ const base=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-target-'));t.after(()=>fs.rm(base,{recursive:true,force:true}));
  const source=path.join(base,'source'),root=path.join(base,'private');
  for(const [name,value] of [['var/secrets/master_key.txt','MASTER=A'],['opt/app/config/.env','DB_PASSWORD=A'],['opt/lab/bin/rotate_keys.sh','#!/bin/sh'],['home/mcp-admin/readme','home'],['etc/passwd','mcp:x:1000:1000']]){const file=path.join(source,name);await fs.mkdir(path.dirname(file),{recursive:true});await fs.writeFile(file,value);}
  await fs.cp(path.join(__dirname,'../sidecars/sandbox-runner/labfs/opt/lab/packages'),path.join(source,'opt/lab/packages'),{recursive:true});

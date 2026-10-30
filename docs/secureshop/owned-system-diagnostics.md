@@ -1,6 +1,6 @@
 # Owned System diagnostics
 
-The bound SecureShop System page runs diagnostic commands in a disposable Linux namespace. It preserves the intentional `cmd_template + args` shell-injection exercise. SecureShop authenticates the current launch binding and shop administrator session before admitting the operation; in standalone mode, both come from the independent shop account and do not require a platform login. The command never runs in the application host's shell.
+The bound OWASP AI SecureShop System page runs diagnostic commands in a disposable Linux namespace. It preserves the intentional `cmd_template + args` shell-injection exercise. OWASP AI SecureShop authenticates the current launch binding and shop administrator session before admitting the operation; in standalone mode, both come from the independent shop account and do not require a platform login. The command never runs in the application host's shell.
 
 ## Request and recovery
 
@@ -25,6 +25,6 @@ Canonical agents migration `0030_bound_system_diagnostics.sql` stores immutable 
 
 ## Configuration and verification status
 
-The optional application capability uses `SS_BOUND_SYSTEM_DIAGNOSTIC_ENABLED`, `SS_SYSTEM_DIAGNOSTIC_BASE_URL`, and `SS_SYSTEM_DIAGNOSTIC_TOKEN`. The example configuration leaves it disabled. Enabling requires PostgreSQL, bound SecureShop reviews, the canonical migration, and an authenticated owned listener. Setup packaging and installed activation are still under qualification; the application rejects unavailable requested capabilities at startup.
+The optional application capability uses `SS_BOUND_SYSTEM_DIAGNOSTIC_ENABLED`, `SS_SYSTEM_DIAGNOSTIC_BASE_URL`, and `SS_SYSTEM_DIAGNOSTIC_TOKEN`. The example configuration leaves it disabled. Enabling requires PostgreSQL, bound OWASP AI SecureShop reviews, the canonical migration, and an authenticated owned listener. Setup packaging and installed activation are still under qualification; the application rejects unavailable requested capabilities at startup.
 
 Native evidence separately covers executor isolation, private HTTP, canonical PostgreSQL lifecycle, and their assembled route/service path. Full-index/browser acceptance is tracked in `docs/modernization/current-work-queue.md`. ARM64 qualification does not establish native AMD64 installation support or AWS deployment compatibility. Existing AWS deployment assets remain unchanged.

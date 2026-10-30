@@ -15,14 +15,14 @@ class Controls(unittest.TestCase):
   for label in ['identity','aria','nova']:
    sql,urls=m.store_configuration(label,54321,'a'*12);self.assertEqual(len(urls),2);self.assertNotIn('SUPERUSER;',sql);self.assertIn('REVOKE CONNECT',sql)
    for key,value in urls.items():
-    u=urlparse(value);self.assertEqual(u.hostname,'127.0.0.1');self.assertEqual(u.port,54321);self.assertEqual(u.path,'/dvaia_test_aria_nova_'+'a'*12+'_'+label);self.assertEqual(u.username,'dvaia_'+label+('_migration'if '_MIGRATION_'in key else'_runtime'))
+    u=urlparse(value);self.assertEqual(u.hostname,'127.0.0.1');self.assertEqual(u.port,54321);self.assertEqual(u.path,'/owasp_ai_goat_test_aria_nova_'+'a'*12+'_'+label);self.assertEqual(u.username,'dvaia_'+label+('_migration'if '_MIGRATION_'in key else'_runtime'))
   for values in [('other',54321,'a'*12),('identity',0,'a'*12),('nova',54321,'not-owned')]:
    with self.assertRaises(ValueError):m.store_configuration(*values)
  def test_environment_no_inherited_secrets(self):
   args=type('Args',(),dict(main_workspace='/main',manifest='/manifest',manifest_sha256='a'*64,input='/frozen',input_sha256=m.ACTUAL_INPUT_SHA256,browser='/chrome',browser_sha256='b'*64))()
   with patch.dict(os.environ,{'OPENAI_API_KEY':'private','IDENTITY_DATABASE_URL':'installed','NODE_OPTIONS':'unsafe'}):env=m.child_environment({'PATH':'/pinned'},Path('/evidence'),Path('/evidence/runtime'),'owner',args)
-  for key in ['OPENAI_API_KEY','IDENTITY_DATABASE_URL','NODE_OPTIONS','DVAIA_ISOLATED_TEST_WORKSPACE']:self.assertNotIn(key,env)
-  self.assertEqual(env['DVAIA_APP_DATA_ROOT'],'/evidence/runtime/appdata');self.assertEqual(env['ARIA_NOVA_INPUTS_SHA256'],m.ACTUAL_INPUT_SHA256)
+  for key in ['OPENAI_API_KEY','IDENTITY_DATABASE_URL','NODE_OPTIONS','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE']:self.assertNotIn(key,env)
+  self.assertEqual(env['OWASP_AI_GOAT_APP_DATA_ROOT'],'/evidence/runtime/appdata');self.assertEqual(env['ARIA_NOVA_INPUTS_SHA256'],m.ACTUAL_INPUT_SHA256)
  def test_frozen_input_pin_and_log_aggregate(self):
   root=Path('/main');args=type('Args',(),{'input':str(root/m.ACTUAL_INPUT),'input_sha256':m.ACTUAL_INPUT_SHA256})()
   with patch.object(m.Path,'is_symlink',return_value=False),patch.object(m.Path,'resolve',return_value=root/m.ACTUAL_INPUT),patch.object(m,'digest',return_value=m.ACTUAL_INPUT_SHA256):

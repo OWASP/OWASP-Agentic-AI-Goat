@@ -49,7 +49,7 @@ async function setup(t) {
   await new Promise(resolve => server.once('listening', resolve));
   const base = `http://127.0.0.1:${server.address().port}/agents/customer/idor`;
   const headers = { 'content-type': 'application/json',
-    'x-dvaia-secureshop-launch': 'a'.repeat(43) };
+    'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43) };
   const post = (path, body, extra = '') => fetch(base + path + extra,
     { method: 'POST', headers, body: JSON.stringify(body) });
   const get = path => fetch(base + path, { headers });

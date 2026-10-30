@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { didReadOutsideRoot } = require('../server/services/legacyPathEvidence');
 test('legacy traversal evidence distinguishes actual boundary crossing from names and normalized paths', t => {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-path-evidence-'));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-path-evidence-'));
   t.after(() => fs.rmSync(tmp, {recursive:true, force:true}));
   const root = path.join(tmp, 'lab'); fs.mkdirSync(root); fs.mkdirSync(path.join(root,'nested'));
   const inside = path.join(root,'admin-secret-config.txt'); fs.writeFileSync(inside,'fictional training data');
@@ -21,7 +21,7 @@ test('legacy traversal evidence distinguishes actual boundary crossing from name
 
 test('mounted lookup routes report traversal only for a read outside the root and retain authenticated audit ownership', async t => {
   const express = require('express');
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-path-route-'));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-path-route-'));
   t.after(() => fs.rmSync(tmp, {recursive:true, force:true}));
   const root = path.join(tmp,'lab'); fs.mkdirSync(root);
   fs.writeFileSync(path.join(root,'secret-admin-config.txt'),'FLAG{inside_fixture}');

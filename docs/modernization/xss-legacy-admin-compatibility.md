@@ -38,7 +38,7 @@ The compatibility implementation now consists of:
 - All five routes and the atomic generic XSS master cascade in `server/routes/postgresAdmin.js`.
 - Injected HTTP contract coverage in `tests/xssLegacyAdminCompatibility.test.js` and native PostgreSQL coverage in `tests/postgres/adminHttp.integration.test.js`.
 
-The focused tests pass against a fresh disposable PostgreSQL 18 database: two tests passed, with no failures or skips. The native test proves the direct legacy toggle leaves canonical flags unchanged, restart seeding preserves an instructor edit, and an injected legacy-write failure rolls back the master gate and all canonical objective changes. The verification log is `/tmp/dvaia-xss-legacy-native.log`.
+The focused tests pass against a fresh disposable PostgreSQL 18 database: two tests passed, with no failures or skips. The native test proves the direct legacy toggle leaves canonical flags unchanged, restart seeding preserves an instructor edit, and an injected legacy-write failure rolls back the master gate and all canonical objective changes. The verification log is `/tmp/owasp-ai-goat-xss-legacy-native.log`.
 
 ## Authentication and audit contract
 

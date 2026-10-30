@@ -11,7 +11,7 @@ export async function runAdminBulkReset({api, actorId, token, workshopKey, confi
   storage = sessionStorage}) {
   if (!actorId || !token || !isCurrent()) throw new Error('Current administrator session required');
   const scope = workshopKey ? `workshop:${workshopKey}` : 'all';
-  const key = `dvaia:admin-reset:${actorId}:${scope}`;
+  const key = `owasp-ai-goat:admin-reset:${actorId}:${scope}`;
   if (active.has(String(actorId))) throw new Error('An administrative reset is already running');
   active.add(String(actorId));
   try {

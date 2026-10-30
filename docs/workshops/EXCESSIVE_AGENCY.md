@@ -76,8 +76,8 @@ The lab exposes both a vulnerable and a fixed implementation, toggled by the
 Prerequisites: Node.js 18+ and npm.
 
 ```bash
-git clone https://github.com/hackerabhinavverma/Damn-Vulnerable-AI-Application.git
-cd Damn-Vulnerable-AI-Application
+git clone https://github.com/OWASP/OWASP-Agentic-AI-Goat.git
+cd OWASP-Agentic-AI-Goat
 npm install
 export LAB_MODE=vuln   # or 'fixed'
 ./start_all.sh

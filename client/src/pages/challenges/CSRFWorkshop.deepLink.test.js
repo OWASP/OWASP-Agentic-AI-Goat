@@ -413,14 +413,14 @@ test('failed scoped reset survives remount, rejects competing full reset and ret
   const first = axios.post.mock.calls.find(([url]) => url.endsWith('/progress/reset-tab'));
   const operationId = first[2].headers['x-reset-operation-id'];
   expect(document.querySelector('[role="alertdialog"]')?.textContent).toContain('Retry this same scope.');
-  expect(JSON.parse(sessionStorage.getItem('dvaia:csrf-reset:7'))).toEqual({scope:'tab:post',operationId});
+  expect(JSON.parse(sessionStorage.getItem('owasp-ai-goat:csrf-reset:7'))).toEqual({scope:'tab:post',operationId});
   act(() => view.root.unmount()); view = renderWorkshop(); await flush();
   const calls = axios.post.mock.calls.length;
   await clickReset(view, 'Reset all');
   expect(axios.post.mock.calls).toHaveLength(calls);
   await clickReset(view, 'Reset tab');
   expect(axios.post.mock.calls.at(-1)[2].headers['x-reset-operation-id']).toBe(operationId);
-  expect(sessionStorage.getItem('dvaia:csrf-reset:7')).toBeNull();
+  expect(sessionStorage.getItem('owasp-ai-goat:csrf-reset:7')).toBeNull();
   act(() => view.root.unmount());
 });
 
@@ -432,12 +432,12 @@ test('successful mutation with failed refresh retains operation, completed repla
     return normalGet(url);
   });
   await clickReset(view, 'Reset tab');
-  const operationId = JSON.parse(sessionStorage.getItem('dvaia:csrf-reset:7')).operationId;
+  const operationId = JSON.parse(sessionStorage.getItem('owasp-ai-goat:csrf-reset:7')).operationId;
   axios.get.mockImplementation(url => url === '/api/workshop/csrf/progress'
     ? Promise.resolve({data:{objectives:{csrf_p1:{completed:true}}}}) : normalGet(url));
   await clickReset(view, 'Reset tab');
   expect(axios.post.mock.calls.at(-1)[2].headers['x-reset-operation-id']).toBe(operationId);
-  expect(sessionStorage.getItem('dvaia:csrf-reset:7')).toBeNull();
+  expect(sessionStorage.getItem('owasp-ai-goat:csrf-reset:7')).toBeNull();
   expect(view.node.textContent).toContain('1/3');
   act(() => view.root.unmount());
 });
@@ -447,14 +447,14 @@ test('poison reset clears busy after refresh and preserves pending poison scope 
   axios.post.mockRejectedValueOnce(new Error('lost reset response'));
   let view = renderWorkshop(url); await flush();
   await clickReset(view, 'Reset RAG (clean)');
-  const operationId = JSON.parse(sessionStorage.getItem('dvaia:csrf-reset:7')).operationId;
+  const operationId = JSON.parse(sessionStorage.getItem('owasp-ai-goat:csrf-reset:7')).operationId;
   expect([...view.node.querySelectorAll('button')].find(button => button.textContent.trim() === 'Reset RAG (clean)').disabled).toBe(false);
   act(() => view.root.unmount()); view = renderWorkshop(url); await flush();
   const count = axios.post.mock.calls.length; await clickReset(view, 'Reset tab');
   expect(axios.post.mock.calls).toHaveLength(count);
   await clickReset(view, 'Reset RAG (clean)');
   expect(axios.post.mock.calls.at(-1)[2].headers['x-reset-operation-id']).toBe(operationId);
-  expect(sessionStorage.getItem('dvaia:csrf-reset:7')).toBeNull();
+  expect(sessionStorage.getItem('owasp-ai-goat:csrf-reset:7')).toBeNull();
   expect([...view.node.querySelectorAll('button')].find(button => button.textContent.trim() === 'Reset RAG (clean)').disabled).toBe(false);
   act(() => view.root.unmount());
 });
@@ -520,5 +520,5 @@ test('canonical scenario buttons select all four objective groups without query 
 });
 
 test('canonical instructor labels refresh while blank and invalid labels retain familiar fallback',async()=>{labels.csrf_p1='Instructor POST objective';labels.csrf_p2=' ';labels.csrf_p3=42;const view=renderWorkshop();await flush();expect(view.node.querySelectorAll('.obj-name')[0].textContent).toBe('Instructor POST objective');expect(view.node.querySelectorAll('.obj-name')[1].textContent).toContain('Forge POST via fetch');expect(view.node.querySelectorAll('.obj-name')[2].textContent).toContain('Defense blocks');labels.csrf_p1='Revised instructor objective';revision=2;await view.scheduler.runNext();expect(view.node.querySelectorAll('.obj-name')[0].textContent).toBe('Revised instructor objective');act(()=>view.root.unmount());});
-test('cached foreign email never replaces authenticated assigned inbox and external editing stays available',async()=>{localStorage.setItem('dvaia_email_agent_temp_email','foreign@example.invalid');const normal=axios.get.getMockImplementation();axios.get.mockImplementation(url=>url==='/api/workshop/csrf/email/inbox-address'?Promise.resolve({data:{address:'csrf-7@dvaia.invalid'}}):normal(url));const view=renderWorkshop('/vulnerabilities/csrf?tab=xss&objective=csrf_x1');await flush();expect(axios.get).toHaveBeenCalledWith('/api/workshop/csrf/email/inbox-address');const input=view.node.querySelector('input[type="email"]');expect(input.value).toBe('csrf-7@dvaia.invalid');expect(input.readOnly).toBe(false);act(()=>view.root.unmount());});
-test.each(['failed','empty'])('canonical inbox %s never falls back to cached foreign address; manual editing remains usable',async outcome=>{localStorage.setItem('dvaia_email_agent_temp_email','foreign@example.invalid');const normal=axios.get.getMockImplementation();axios.get.mockImplementation(url=>url==='/api/workshop/csrf/email/inbox-address'?(outcome==='failed'?Promise.reject(Error('Unavailable')):Promise.resolve({data:{address:''}})):normal(url));const view=renderWorkshop('/vulnerabilities/csrf?tab=xss&objective=csrf_x1');await flush();const input=view.node.querySelector('input[type="email"]');expect(input.value).toBe('');act(()=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'instructor-allowed@example.invalid');input.dispatchEvent(new Event('input',{bubbles:true}));});expect(input.value).toBe('instructor-allowed@example.invalid');expect(localStorage.getItem('dvaia_email_agent_temp_email')).toBe('instructor-allowed@example.invalid');act(()=>view.root.unmount());});
+test('cached foreign email never replaces authenticated assigned inbox and external editing stays available',async()=>{localStorage.setItem('owasp_ai_goat_email_agent_temp_email','foreign@example.invalid');const normal=axios.get.getMockImplementation();axios.get.mockImplementation(url=>url==='/api/workshop/csrf/email/inbox-address'?Promise.resolve({data:{address:'csrf-7@owasp-ai-goat.invalid'}}):normal(url));const view=renderWorkshop('/vulnerabilities/csrf?tab=xss&objective=csrf_x1');await flush();expect(axios.get).toHaveBeenCalledWith('/api/workshop/csrf/email/inbox-address');const input=view.node.querySelector('input[type="email"]');expect(input.value).toBe('csrf-7@owasp-ai-goat.invalid');expect(input.readOnly).toBe(false);act(()=>view.root.unmount());});
+test.each(['failed','empty'])('canonical inbox %s never falls back to cached foreign address; manual editing remains usable',async outcome=>{localStorage.setItem('owasp_ai_goat_email_agent_temp_email','foreign@example.invalid');const normal=axios.get.getMockImplementation();axios.get.mockImplementation(url=>url==='/api/workshop/csrf/email/inbox-address'?(outcome==='failed'?Promise.reject(Error('Unavailable')):Promise.resolve({data:{address:''}})):normal(url));const view=renderWorkshop('/vulnerabilities/csrf?tab=xss&objective=csrf_x1');await flush();const input=view.node.querySelector('input[type="email"]');expect(input.value).toBe('');act(()=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'instructor-allowed@example.invalid');input.dispatchEvent(new Event('input',{bubbles:true}));});expect(input.value).toBe('instructor-allowed@example.invalid');expect(localStorage.getItem('owasp_ai_goat_email_agent_temp_email')).toBe('instructor-allowed@example.invalid');act(()=>view.root.unmount());});

@@ -358,7 +358,7 @@ def validate_provisional_receipt(receipt, journal, captured_browser, *,
                 for key in ('pid', 'profile', 'executable')):
         raise RuntimeError('Terminal browser journal does not match live birth')
     if browser['profile'] != str(run / 'runtime/tmp' /
-                                ('dvaia-student-deletion-browser-' + nonce)) or \
+                                ('owasp-ai-goat-student-deletion-browser-' + nonce)) or \
             browser['executable'] != str(chromium):
         raise RuntimeError('Exact admitted browser profile and executable required')
     server = exact(resources['server'], ('address', 'port'), 'server identity')

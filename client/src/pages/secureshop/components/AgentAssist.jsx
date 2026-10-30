@@ -54,7 +54,7 @@ function BoundProductAssist({ productId, prompt: initialPrompt = '',
 function LegacyAgentAssist({
   role = 'customer',
   prompt: initialPrompt = '',
-  placeholder = 'Ask the SecureShop agents…',
+  placeholder = 'Ask the OWASP AI SecureShop agents…',
   label = 'Ask agents',
   position = 'inline', // 'inline' | 'floating'
 }) {

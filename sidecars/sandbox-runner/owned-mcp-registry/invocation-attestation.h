@@ -1,12 +1,12 @@
-#ifndef DVAIA_INVOCATION_ATTESTATION_H
-#define DVAIA_INVOCATION_ATTESTATION_H
+#ifndef OWASP_AI_GOAT_INVOCATION_ATTESTATION_H
+#define OWASP_AI_GOAT_INVOCATION_ATTESTATION_H
 #include "invocation-attestation-protocol.h"
 #define LIMIT 8192
 /* Linux v6.8 include/net/scm.h SCM_MAX_FD; net/core/scm.c enforces
  * aggregate rights count <=253. Only SO_PASSCRED is enabled here:
  * no SO_PASSSEC or SO_PASSPIDFD, so reserve credentials + all rights. */
 #define ATTEST_LINUX_MAX_RIGHTS 253
-#define ATTEST_BINARY "/usr/local/libexec/dvaia-invocation-bootstrap"
+#define ATTEST_BINARY "/usr/local/libexec/owasp-ai-goat-invocation-bootstrap"
 static int bounded_read(const char *path,char *out,size_t capacity){int fd=open(path,O_RDONLY|O_CLOEXEC);if(fd<0)return -1;size_t n=0;int result=-1;while(n<capacity-1){ssize_t got=read(fd,out+n,capacity-1-n);if(got<0&&errno==EINTR)continue;if(got<0)goto done;if(!got){out[n]=0;result=(int)n;goto done;}n+=(size_t)got;}char extra;if(read(fd,&extra,1)==0){out[n]=0;result=(int)n;}done:close(fd);return result;}
 static int read_start(pid_t pid,unsigned long long *value){char path[80],text[LIMIT];snprintf(path,sizeof(path),"/proc/%ld/stat",(long)pid);if(bounded_read(path,text,sizeof(text))<0)return -1;char *end=strrchr(text,')');if(!end||end[1]!=' ')return -1;char *save=NULL,*token=strtok_r(end+2," ",&save);for(int field=3;field<22&&token;field++)token=strtok_r(NULL," ",&save);if(!token)return -1;char *tail;errno=0;*value=strtoull(token,&tail,10);return errno||*tail||!*value?-1:0;}
 static int parent_of(pid_t pid,pid_t *parent){char path[80],text[LIMIT];snprintf(path,sizeof(path),"/proc/%ld/stat",(long)pid);if(bounded_read(path,text,sizeof(text))<0)return -1;char *end=strrchr(text,')');long found;char state;if(!end||sscanf(end+2,"%c %ld",&state,&found)!=2||found<1)return -1;*parent=(pid_t)found;return 0;}

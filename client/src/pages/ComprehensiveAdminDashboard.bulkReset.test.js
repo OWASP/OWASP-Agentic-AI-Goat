@@ -59,7 +59,7 @@ afterEach(() => { jest.restoreAllMocks(); jest.clearAllMocks(); document.body.re
 async function click(view,label){const button=[...document.querySelectorAll('button')].find(el=>el.textContent.trim()===label);expect(button).toBeTruthy();await act(async()=>button.click());await flush();}
 function resetConfirmHandler(view){const button=[...view.node.querySelectorAll('button')].find(el=>el.textContent.trim()==='Reset Progress');expect(button).toBeTruthy();const props=button[Object.keys(button).find(key=>key.startsWith('__reactProps$'))];expect(typeof props?.onClick).toBe('function');return props.onClick;}
 async function confirm(view){await click(view,'Reset');await click(view,'Reset Progress');}
-const key='dvaia:admin-reset:1:workshop:csrf_workshop';
+const key='owasp-ai-goat:admin-reset:1:workshop:csrf_workshop';
 test('mounted workshop reset retains operation across lost success and remount, then confirms exact original operation',async()=>{
  axios.post.mockRejectedValueOnce(new Error('lost response'));
  let view=await mount('/admin/challenges');await confirm(view);
@@ -142,7 +142,7 @@ test('mounted password-confirmed all reset resumes server-discovered original op
  axios.get.mockImplementation(url=>url==='/api/admin/workshops/reset-operations'?Promise.resolve({data:{success:true,operations:[{operationId:id,requestKind:'all'}]}}):normal(url));
  jest.spyOn(window,'prompt').mockReturnValue('controlled-password');const view=await mount('/admin/settings');await click(view,'Reset Challenge Data');
  expect(axios.post).toHaveBeenCalledWith('/api/admin/database/reset',{resetType:'challenges',confirmPassword:'controlled-password'},{headers:{Authorization:'Bearer fixture','x-reset-operation-id':id}});
- expect(sessionStorage.getItem('dvaia:admin-reset:1:all')).toBeNull();act(()=>view.root.unmount());
+ expect(sessionStorage.getItem('owasp-ai-goat:admin-reset:1:all')).toBeNull();act(()=>view.root.unmount());
 });
 test('workshop reset requires progress permission and refreshes authoritative completion totals',async()=>{
  mockUser={...mockUser,permissions:['manage_challenges']};let view=await mount('/admin/challenges');expect([...view.node.querySelectorAll('button')].some(button=>button.textContent.trim()==='Reset')).toBe(false);act(()=>view.root.unmount());

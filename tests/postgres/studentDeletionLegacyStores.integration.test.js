@@ -7,9 +7,9 @@ const {createSensitiveLookupDb}=require('../../server/database/postgres/sensitiv
 const {createLegacyChallengeOwnerCleanup}=require('../../server/services/legacyChallengeOwnerCleanup');
 const PREFIX='PG_STUDENT_DELETION_LEGACY_';
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&['IDENTITY_MIGRATION_URL','IDENTITY_RUNTIME_URL','LEGACY_MIGRATION_URL','LEGACY_RUNTIME_URL','LOOKUP_MIGRATION_URL','LOOKUP_RUNTIME_URL'].every(key=>process.env[PREFIX+key]);
-function owned(key){const value=new URL(process.env[PREFIX+key]);assert.ok(['127.0.0.1','localhost'].includes(value.hostname));assert.match(value.pathname,/^\/dvaia_test_[a-z0-9_]+$/);return value.href;}
+function owned(key){const value=new URL(process.env[PREFIX+key]);assert.ok(['127.0.0.1','localhost'].includes(value.hostname));assert.match(value.pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);return value.href;}
 async function staged(pool,directory,draft,migrationName){
- const temporary=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-student-deletion-store-migrations-'));
+ const temporary=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-student-deletion-store-migrations-'));
  try{
   const source=path.resolve(__dirname,'../..',directory),rows=await readMigrations(source);
   for(const row of rows)await fs.copyFile(path.join(source,row.name),path.join(temporary,row.name));
@@ -35,7 +35,7 @@ test('legacy and sensitive lookup deletion removes exact owner rows and owned by
  const lm=new Pool({connectionString:owned('LEGACY_MIGRATION_URL')}),legacyPool=new Pool({connectionString:owned('LEGACY_RUNTIME_URL')});
  const sm=new Pool({connectionString:owned('LOOKUP_MIGRATION_URL')}),lookupPool=new Pool({connectionString:owned('LOOKUP_RUNTIME_URL')});
  const im=new Pool({connectionString:owned('IDENTITY_MIGRATION_URL')}),identityPool=new Pool({connectionString:owned('IDENTITY_RUNTIME_URL')});
- const uploadRoot=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-owned-legacy-uploads-'));
+ const uploadRoot=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-owned-legacy-uploads-'));
  try{
   const legacy=createLegacyChallengeDb(legacyPool),lookup=createSensitiveLookupDb(lookupPool);
   const {initializeIdentityRepository,createIdentityRepository}=require('../../server/database/postgres/identityRepository');
@@ -109,7 +109,7 @@ test('legacy and sensitive lookup deletion removes exact owner rows and owned by
   // application callback may still be alive. The pre-admission immutable
   // directory must be removable by cleanup, and the delayed callback must not
   // be able to recreate it or publish bytes afterward.
-  const lossPool=new Pool({connectionString:owned('IDENTITY_RUNTIME_URL'),application_name:'dvaia_owned_interrupted_upload'});let backendPid,discarded=false;
+  const lossPool=new Pool({connectionString:owned('IDENTITY_RUNTIME_URL'),application_name:'owasp_ai_goat_owned_interrupted_upload'});let backendPid,discarded=false;
   const lossLifecycle=createLegacyUploadLifecycle({identityPool:{async connect(){const raw=await lossPool.connect();backendPid=(await raw.query('SELECT pg_backend_pid() pid')).rows[0].pid;return{query:(...args)=>raw.query(...args),on:(...args)=>raw.on(...args),off:(...args)=>raw.off(...args),release(error){discarded=Boolean(error);raw.release(error);}};}},uploadRoot});
   const lossCleanup=createLegacyChallengeOwnerCleanup({store:legacy,uploadRoot,lifecycle:lossLifecycle});let lossLease,continueLostWrite;const lostGate=new Promise(resolve=>{continueLostWrite=resolve;});
   const lostUpload=lossLifecycle.runUpload({ownerId:interrupted.id,sessionId:interruptedSession.id},async lease=>{lossLease=lease;await lostGate;await fs.writeFile(path.join(lease.directory,'late.bin'),'late');});
@@ -117,7 +117,7 @@ test('legacy and sensitive lookup deletion removes exact owner rows and owned by
   assert.equal((await im.query('SELECT pg_terminate_backend($1) terminated',[backendPid])).rows[0].terminated,true);
   await lossCleanup.destroyOwner(interrupted.id);continueLostWrite();await assert.rejects(lostUpload,/ENOENT|terminat|connection/i);assert.equal(discarded,true,'a connection whose unlock failed is discarded from its pool');
   await assert.rejects(fs.stat(lossLease.directory),{code:'ENOENT'});await lossPool.end();
-  const fencedPool=new Pool({connectionString:owned('LEGACY_RUNTIME_URL'),application_name:'dvaia_owned_interrupted_mutation'});let fencedPid;
+  const fencedPool=new Pool({connectionString:owned('LEGACY_RUNTIME_URL'),application_name:'owasp_ai_goat_owned_interrupted_mutation'});let fencedPid;
   const fencedStore=createLegacyChallengeDb({async connect(){const raw=await fencedPool.connect();fencedPid=(await raw.query('SELECT pg_backend_pid() pid')).rows[0].pid;return raw;}});
   let fenceEntered,releaseFence;const fenceInside=new Promise(resolve=>{fenceEntered=resolve;}),fenceGate=new Promise(resolve=>{releaseFence=resolve;});
   const fencedMutation=fencedStore.withPlatformMutationAuthority({identityPool,ownerId:interrupted.id,sessionId:interruptedSession.id},async()=>{fenceEntered();await fenceGate;return fencedStore.addComment([interrupted.id,'must not survive',interrupted.id]);});

@@ -18,7 +18,7 @@ const {
   updateRecoveryJournal,
 } = require('./localSetupNativeFixture');
 
-const SOCKET = 'unix:///tmp/dvaia-native-fixture.sock';
+const SOCKET = 'unix:///tmp/owasp-ai-goat-native-fixture.sock';
 
 function missing(kind, name) {
   const label = kind === 'container' ? 'object' : 'volume';
@@ -104,14 +104,14 @@ test('image preflight requires an already-present immutable PostgreSQL digest', 
 
 test('cleanup refuses unowned resources before any removal', async () => {
   const id = randomBytes(6).toString('hex'), nonce = randomBytes(8).toString('hex');
-  const name = `dvaia-postgres-${id}`;
+  const name = `owasp-ai-goat-postgres-${id}`;
   const directory = await createOwnedDirectory({ id, nonce });
   const calls = [];
   const ownedDocker = async args => {
     calls.push(args);
     if (args[0] === 'inspect') return { stdout: JSON.stringify([{ Config: { Labels: {} } }]) };
     if (args[0] === 'volume' && args[1] === 'inspect') {
-      return { stdout: JSON.stringify([{ Labels: { 'org.dvaia.workspace': id } }]) };
+      return { stdout: JSON.stringify([{ Labels: { 'org.owasp-ai-goat.workspace': id } }]) };
     }
     assert.fail('Cleanup must not remove anything after an ownership mismatch');
   };
@@ -122,10 +122,10 @@ test('cleanup refuses unowned resources before any removal', async () => {
 
 test('cleanup removes only the exact owned container, volume and marked directory', async () => {
   const id = randomBytes(6).toString('hex'), nonce = randomBytes(8).toString('hex');
-  const name = `dvaia-postgres-${id}`;
+  const name = `owasp-ai-goat-postgres-${id}`;
   const directory = await createOwnedDirectory({ id, nonce });
-  let container = { Config: { Labels: { 'org.dvaia.workspace': id } } };
-  let volume = { Labels: { 'org.dvaia.workspace': id } };
+  let container = { Config: { Labels: { 'org.owasp-ai-goat.workspace': id } } };
+  let volume = { Labels: { 'org.owasp-ai-goat.workspace': id } };
   const calls = [];
   const ownedDocker = async args => {
     calls.push(args);
@@ -154,7 +154,7 @@ test('cleanup removes only the exact owned container, volume and marked director
 test('directory cleanup rejects directory and marker symlinks before resolving or reading them', async t => {
   const id = randomBytes(6).toString('hex'), nonce = randomBytes(8).toString('hex');
   const target = await createOwnedDirectory({ id, nonce });
-  const link = path.join(os.tmpdir(), `dvaia-local-pg-link-${randomBytes(4).toString('hex')}`);
+  const link = path.join(os.tmpdir(), `owasp-ai-goat-local-pg-link-${randomBytes(4).toString('hex')}`);
   await fs.symlink(target, link);
   t.after(() => fs.rm(link, { force: true }));
   await assert.rejects(removeOwnedDirectory({ directory: link, id, nonce }), /real directory before resolution/);
@@ -171,7 +171,7 @@ test('directory cleanup rejects directory and marker symlinks before resolving o
 });
 
 test('recovery journal is private, atomic, outside the workspace and excludes secrets', async t => {
-  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-native-evidence-'));
+  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-native-evidence-'));
   await fs.chmod(parent, 0o700);
   t.after(() => fs.rm(parent, { recursive: true, force: true }));
   const evidencePath = path.join(parent, 'recovery.json');
@@ -192,7 +192,7 @@ test('recovery journal is private, atomic, outside the workspace and excludes se
 
   await assert.rejects(createRecoveryJournal({ evidencePath: 'relative.json', workspace, state: initial }),
     /path must be absolute/);
-  const fakeWorkspace = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-native-workspace-'));
+  const fakeWorkspace = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-native-workspace-'));
   await fs.chmod(fakeWorkspace, 0o700);
   t.after(() => fs.rm(fakeWorkspace, { recursive: true, force: true }));
   await assert.rejects(createRecoveryJournal({
@@ -201,7 +201,7 @@ test('recovery journal is private, atomic, outside the workspace and excludes se
 });
 
 test('recovery journal rejects permissive parents and symlink files', async t => {
-  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-native-evidence-'));
+  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-native-evidence-'));
   t.after(() => fs.rm(parent, { recursive: true, force: true }));
   const workspace = path.resolve(__dirname, '../..');
   const evidencePath = path.join(parent, 'recovery.json');

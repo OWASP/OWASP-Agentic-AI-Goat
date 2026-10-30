@@ -22,7 +22,7 @@ class SceneCleanupLauncher(unittest.TestCase):
  def test_exact_environment_and_result_seams(self):
   source=(L.ROOT/L.SHARED).read_text();configured=L.configured_source(source)
   self.assertEqual(configured.count("SECURESHOP_SCENE_ASSESSMENT_NATIVE='1'"),1)
-  self.assertEqual(configured.count("DVAIA_CURRENT_MAIN_WORKSPACE=str(ROOT)"),1)
+  self.assertEqual(configured.count("OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(ROOT)"),1)
   self.assertEqual(configured.count("'qualificationScope':SCENE_ASSESSMENT_SCOPE"),1)
  def test_fixture_assertion_and_current_pins(self):
   self.assertTrue(all(L.installed().values()))

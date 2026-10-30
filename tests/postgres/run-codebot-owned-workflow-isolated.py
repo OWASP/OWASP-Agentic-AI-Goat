@@ -19,10 +19,10 @@ from pathlib import Path
 
 from sensitive_info_recovery_safety import SignalGate
 
-EXPECTED_DOCKER = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+EXPECTED_DOCKER = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 OWNER = '/root/startup_regression_repair'
 SOURCE = Path(__file__).resolve().parents[2]
-NODE_BIN = Path.home() / '.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin'
+NODE_BIN = Path.home() / '.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin'
 PREFIX = {}
 REVIEWED_HIDDEN_TEACHING_FIXTURES = (
     'sidecars/sandbox-runner/labfs/opt/app/config/.env',
@@ -111,20 +111,20 @@ grant_path = Path(args.grant_file).resolve()
 if grant_path != (SOURCE / 'tasks/native-verification-slot.json').resolve():
     raise SystemExit('the durable repository grant file is required')
 
-evidence_parent = Path.home() / '.dvaia' / 'native-verification'
+evidence_parent = Path.home() / '.owasp-ai-goat' / 'native-verification'
 evidence_parent.mkdir(parents=True, exist_ok=True);os.chmod(evidence_parent, 0o700)
-evidence = Path(tempfile.mkdtemp(prefix='dvaia-codebot-owned-', dir=evidence_parent));os.chmod(evidence, 0o700)
+evidence = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-codebot-owned-', dir=evidence_parent));os.chmod(evidence, 0o700)
 workspace = evidence / 'source'
 ownership_path = evidence / 'ownership.json'
 result_path = evidence / 'result.log';result_path.touch();os.chmod(result_path, 0o600)
 build_path = evidence / 'sandbox-build.log';build_path.touch();os.chmod(build_path, 0o600)
 suffix = uuid.uuid4().hex[:12]
-containers = {'postgres': f'dvaia-codebot-pg-{suffix}', 'sandbox': f'dvaia-codebot-sandbox-{suffix}'}
-image = f'dvaia-codebot-sandbox-node26:{suffix}'
-profile_name = f'dvaia-mcp-sandbox-{suffix}'
+containers = {'postgres': f'owasp-ai-goat-codebot-pg-{suffix}', 'sandbox': f'owasp-ai-goat-codebot-sandbox-{suffix}'}
+image = f'owasp-ai-goat-codebot-sandbox-node26:{suffix}'
+profile_name = f'owasp-ai-goat-mcp-sandbox-{suffix}'
 profile_path = evidence / f'{profile_name}.apparmor'
-ssh_config = Path.home() / '.colima/_lima/colima-dvaia-pg-verify/ssh.config'
-ssh_host = 'lima-colima-dvaia-pg-verify'
+ssh_config = Path.home() / '.colima/_lima/colima-owasp-ai-goat-pg-verify/ssh.config'
+ssh_host = 'lima-colima-owasp-ai-goat-pg-verify'
 remote_dir = f'/tmp/{profile_name}'
 remote_profile = f'{remote_dir}/policy.apparmor'
 remote_marker = f'{remote_dir}/owner'
@@ -311,7 +311,7 @@ try:
     expected = consume_grant();register_owner();prepare_source(expected)
     if not ssh_config.is_file(): raise RuntimeError('exact Colima verification SSH config is required')
     run([str(NODE_BIN / 'node'), str(workspace / 'scripts/render-mcp-sandbox-apparmor.js'),
-         str(workspace / 'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'),
+         str(workspace / 'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'),
          str(profile_path), profile_name], timeout=30)
     os.chmod(profile_path, 0o600)
     profile_query = subprocess.run(ssh + ['sudo', 'grep', '-F', profile_name,
@@ -337,7 +337,7 @@ try:
         raise RuntimeError('owned AppArmor profile did not load in enforce mode')
     state['apparmor'].update(loaded=True, loadVerified=True);persist()
     daemon = json.loads(run(docker + ['info', '--format', '{{json .}}'], capture_output=True, text=True, timeout=30).stdout)
-    if daemon.get('Name') != 'colima-dvaia-pg-verify' or daemon.get('Architecture') != 'aarch64':
+    if daemon.get('Name') != 'colima-owasp-ai-goat-pg-verify' or daemon.get('Architecture') != 'aarch64':
         raise RuntimeError('exact Colima verification daemon identity is required')
     if not all(exact_absence(name) for name in containers.values()) or not image_absence():
         raise RuntimeError('owned native resources unexpectedly exist before launch')
@@ -419,7 +419,7 @@ try:
         env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes', PLATFORM_DATABASE_ENGINE='postgres',
                    SANDBOX_RUNNER_URL=f'http://127.0.0.1:{sandbox_port}', CODEBOT_SANDBOX_RUNNER_URL=f'http://127.0.0.1:{sandbox_port}', CODEBOT_OWNED_EXECUTION_ENABLED='true', CODEBOT_LIVE_SCOPE=args.scope, AWS_EC2_METADATA_DISABLED='true',
                    PG_LIVE_ADMIN_URL=f'postgresql://codebot_admin@127.0.0.1:{pg_port}/postgres',
-                   LOGS_DIR=str(evidence / 'logs'), DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+                   LOGS_DIR=str(evidence / 'logs'), OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
                    **({'RUN_CODEBOT_HTTP_WIRING': '1', 'CODEBOT_HTTP_ISOLATED': '1',
                        'CODEBOT_WIRING_EVIDENCE_SCOPE': 'deterministic_http_only',
                        'CODEBOT_WIRING_ATTESTED_ISOLATION': 'bwrap-codebot-v1', 'AI_PROVIDER': 'mock'} if wiring else {

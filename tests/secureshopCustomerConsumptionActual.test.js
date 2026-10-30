@@ -309,14 +309,14 @@ test('four-store admission binds exact disposable database, port, role and host 
   const {STORES,disposableUrls}=require('./postgres/secureshopCustomerConsumptionActual.integration.test');
   const env={PG_TEST_DISPOSABLE:'yes'};
   for(const [key,name]of Object.entries(STORES))for(const role of ['RUNTIME','MIGRATION'])
-    env[`PG_SECURESHOP_CONSUMPTION_${key}_${role}_URL`]=`postgresql://dvaia_${name}_${role.toLowerCase()}@127.0.0.1:54321/dvaia_test_agent_host_0123456789ab_${name}`;
+    env[`PG_SECURESHOP_CONSUMPTION_${key}_${role}_URL`]=`postgresql://dvaia_${name}_${role.toLowerCase()}@127.0.0.1:54321/owasp_ai_goat_test_agent_host_0123456789ab_${name}`;
   env.SECURESHOP_DATABASE_URL=env.PG_SECURESHOP_CONSUMPTION_COMMERCE_RUNTIME_URL;
   env.SECURESHOP_AGENTS_DATABASE_URL=env.PG_SECURESHOP_CONSUMPTION_AGENTS_RUNTIME_URL;
   assert.equal(Object.keys(disposableUrls(env)).length,8);
   for(const change of [e=>{e.PG_TEST_DISPOSABLE='no';},e=>{e.SECURESHOP_DATABASE_URL=e.PG_SECURESHOP_CONSUMPTION_COMMERCE_MIGRATION_URL;},
     e=>{e.PG_SECURESHOP_CONSUMPTION_REVIEW_RUNTIME_URL=e.PG_SECURESHOP_CONSUMPTION_REVIEW_RUNTIME_URL.replace('0123456789ab','0123456789ac');},
     e=>{e.PG_SECURESHOP_CONSUMPTION_IDENTITY_RUNTIME_URL=e.PG_SECURESHOP_CONSUMPTION_IDENTITY_RUNTIME_URL.replace('127.0.0.1','localhost');},
-    e=>{e.PG_SECURESHOP_CONSUMPTION_IDENTITY_RUNTIME_URL=e.PG_SECURESHOP_CONSUMPTION_IDENTITY_RUNTIME_URL.replace('dvaia_test_agent_host_','dvaia_test_v37_');}]){
+    e=>{e.PG_SECURESHOP_CONSUMPTION_IDENTITY_RUNTIME_URL=e.PG_SECURESHOP_CONSUMPTION_IDENTITY_RUNTIME_URL.replace('owasp_ai_goat_test_agent_host_','owasp_ai_goat_test_v37_');}]){
     const wrong={...env};change(wrong);assert.throws(()=>disposableUrls(wrong));
   }
 });

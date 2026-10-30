@@ -8,7 +8,7 @@ const path = require('node:path');
 const { requiredStoreManifest } = require('../db/postgres/initialize-application');
 
 const ROOT = path.resolve(__dirname, '..');
-const PRIVATE_CONFIG_DIGEST_VARIABLE = 'DVAIA_EXPECTED_PRIVATE_CONFIG_SHA256';
+const PRIVATE_CONFIG_DIGEST_VARIABLE = 'OWASP_AI_GOAT_EXPECTED_PRIVATE_CONFIG_SHA256';
 const EXPECTED_HEADS = Object.freeze({
   identity: Object.freeze({ name: '0053_codebot_request_journal.sql',
     checksum: '25958c7c062ea915134000eef60202fc6ec7cb187e8f93064e900c0074cfa712' }),

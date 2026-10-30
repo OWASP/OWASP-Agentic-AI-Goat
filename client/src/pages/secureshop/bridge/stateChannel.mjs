@@ -2,7 +2,7 @@ import { SHOP_MCP_REGISTRY_KEY, SHOP_USER_ADMIN_KEY, SHOP_REVIEW_DECISION_KEY, S
 import { validateShopSnapshot } from './stateStore.mjs';
 import { SHOP_REVIEW_MODERATION_KEY } from '../utils/shopStorage.mjs';
 
-const channel = 'dvaia-shop-state-v1';
+const channel = 'owasp-ai-goat-shop-state-v1';
 const failed = () => new Error('Shop state was not saved');
 const cancelled = () => new DOMException('Shop state disconnected', 'AbortError');
 const validId = id => Number.isSafeInteger(id) && id > 0;

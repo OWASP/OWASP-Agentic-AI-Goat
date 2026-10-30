@@ -69,8 +69,8 @@ class Contracts(unittest.TestCase):
         self.manifest.chmod(0o600)
         self.grant = {'run': str(self.run), 'nodePath': str(node), 'nodeSha256': self.node_digest,
             'sourceManifestSha256': C.sha(self.manifest), 'pgNonce': '1' * 12, 'pgPort': 40101, 'hostPort': 40102,
-            'commerceUrl': 'postgresql://dvaia_secureshop_runtime@127.0.0.1:40101/dvaia_test_agent_host_' + '1' * 12 + '_secureshop',
-            'agentsUrl': 'postgresql://dvaia_secureshop_agents_runtime@127.0.0.1:40101/dvaia_test_agent_host_' + '1' * 12 + '_secureshop_agents',
+            'commerceUrl': 'postgresql://dvaia_secureshop_runtime@127.0.0.1:40101/owasp_ai_goat_test_agent_host_' + '1' * 12 + '_secureshop',
+            'agentsUrl': 'postgresql://dvaia_secureshop_agents_runtime@127.0.0.1:40101/owasp_ai_goat_test_agent_host_' + '1' * 12 + '_secureshop_agents',
             'containerId': '2' * 64, 'owner': '11111111-2222-4333-8444-555555555555'}
         self.nonce = 'a' * 64
         self.driver = FakeDriver()
@@ -542,8 +542,8 @@ class Contracts(unittest.TestCase):
 
     def test_boundary_probe_ready_requires_real_runtime_identity_and_denial_not_timeout(self):
         value = {'version': 1, 'pid': 701, 'phase': 'ready',
-                 'commerce': {'database': 'dvaia_test_agent_host_'+'1'*12+'_secureshop', 'role': 'dvaia_secureshop_runtime'},
-                 'agents': {'database': 'dvaia_test_agent_host_'+'1'*12+'_secureshop_agents', 'role': 'dvaia_secureshop_agents_runtime'},
+                 'commerce': {'database': 'owasp_ai_goat_test_agent_host_'+'1'*12+'_secureshop', 'role': 'dvaia_secureshop_runtime'},
+                 'agents': {'database': 'owasp_ai_goat_test_agent_host_'+'1'*12+'_secureshop_agents', 'role': 'dvaia_secureshop_agents_runtime'},
                  'model': 'EPERM', 'external': 'EACCES', 'outsideWriteOpenDenied': True, 'loopbackBound': True}
         PROBE.checked_ready(value, self.grant, 701)
         for mutation in ({'model': 'TIMEOUT'}, {'external': 'CONNECTED'}, {'outsideWriteOpenDenied': 1},
@@ -589,8 +589,8 @@ class Contracts(unittest.TestCase):
         try:
             (self.run / PROBE.WRITE_NAME).write_bytes(PROBE.WRITE_BYTES)
             ready = {'version': 1, 'pid': 701, 'phase': 'ready',
-                'commerce': {'database': 'dvaia_test_agent_host_'+'1'*12+'_secureshop', 'role': 'dvaia_secureshop_runtime'},
-                'agents': {'database': 'dvaia_test_agent_host_'+'1'*12+'_secureshop_agents', 'role': 'dvaia_secureshop_agents_runtime'},
+                'commerce': {'database': 'owasp_ai_goat_test_agent_host_'+'1'*12+'_secureshop', 'role': 'dvaia_secureshop_runtime'},
+                'agents': {'database': 'owasp_ai_goat_test_agent_host_'+'1'*12+'_secureshop_agents', 'role': 'dvaia_secureshop_agents_runtime'},
                 'model': 'EPERM', 'external': 'EACCES', 'outsideWriteOpenDenied': True, 'loopbackBound': True}
             inbound = {'version': 1, 'pid': 701, 'phase': 'inbound'}
             stopped = {'version': 1, 'pid': 701, 'phase': 'stopped', 'ready': True, 'inbound': True, 'exitCode': 0}

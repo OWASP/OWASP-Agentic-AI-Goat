@@ -138,10 +138,10 @@ class AuditCentralMainLauncher(unittest.TestCase):
 
     def test_activation_cleanup_validates_both_resources_before_deletion(self):
         import json
-        intent={'id':'a'*12,'name':'dvaia-audit-sql-'+'a'*12,
-                'volume':'dvaia-audit-sql-'+'a'*12+'-data','image':'sha256:'+'b'*64}
+        intent={'id':'a'*12,'name':'owasp-ai-goat-audit-sql-'+'a'*12,
+                'volume':'owasp-ai-goat-audit-sql-'+'a'*12+'-data','image':'sha256:'+'b'*64}
         cid='c'*64
-        labels={'dvaia.workspace':intent['id'],'dvaia.purpose':'owned-audit-sql'}
+        labels={'owasp-ai-goat.workspace':intent['id'],'owasp-ai-goat.purpose':'owned-audit-sql'}
         for fault in (None,'absent','foreign-container','foreign-volume','image','binding','daemon','inspect','remaining','invalid-intent'):
             with self.subTest(fault=fault):
                 calls=[]; deleted=set()
@@ -179,8 +179,8 @@ class AuditCentralMainLauncher(unittest.TestCase):
                 def run(argv,**kwargs):
                     calls.append(argv)
                     if argv[0]=='/owned/node':
-                        root,home,host=argv[-3:];wid=hashlib.sha256(root.encode()).hexdigest()[:12];name='dvaia-audit-sql-'+wid
-                        out=json.dumps(dict(root=root,id=wid,name=name,volume=name+'-data',database='dvaia_audit_control_'+wid,dockerHost=host,port=8095,file=str(pathlib.Path(home)/'.dvaia'/wid/'audit-sql-target.json')))
+                        root,home,host=argv[-3:];wid=hashlib.sha256(root.encode()).hexdigest()[:12];name='owasp-ai-goat-audit-sql-'+wid
+                        out=json.dumps(dict(root=root,id=wid,name=name,volume=name+'-data',database='owasp_ai_goat_audit_control_'+wid,dockerHost=host,port=8095,file=str(pathlib.Path(home)/'.owasp-ai-goat'/wid/'audit-sql-target.json')))
                     else:out='occupied' if occupied else ''
                     return subprocess.CompletedProcess(argv,0,stdout=out,stderr='')
                 if occupied:

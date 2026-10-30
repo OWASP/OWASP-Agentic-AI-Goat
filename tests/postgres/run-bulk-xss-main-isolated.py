@@ -4,11 +4,11 @@ import sys
 sys.dont_write_bytecode = True
 import argparse, hashlib, importlib.util, json, os, pathlib, re, signal, subprocess, tempfile, time, uuid
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-NODE = pathlib.Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+NODE = pathlib.Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 NODE_SHA = '56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 IMAGE = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 DAEMON = '2c9da9a7-1f8c-490b-af98-87bbf6bf83db'
-DOCKER = ['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker', '--host', 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock']
+DOCKER = ['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker', '--host', 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock']
 FIXTURE = 'tests/postgres/adminBulkXssReset.integration.test.js'
 def arguments(argv=None):
     parser=argparse.ArgumentParser()
@@ -20,7 +20,7 @@ def main():
     args=arguments()
     fixture=FIXTURE;stores=(('WORKSHOP_RAG','identity','workshop_rag'),('XSS_NATIVE','xss','xss'));count=1
     if not args.run:
-        print(json.dumps({'plan':True,'fixture':fixture,'databasePatterns':['dvaia_test_workshop_rag_<nonce>','dvaia_test_xss_<nonce>'],'expectedTests':1,'sourceCopies':False,'actualModel':False}))
+        print(json.dumps({'plan':True,'fixture':fixture,'databasePatterns':['owasp_ai_goat_test_workshop_rag_<nonce>','owasp_ai_goat_test_xss_<nonce>'],'expectedTests':1,'sourceCopies':False,'actualModel':False}))
         return 0
     inventory_source=ROOT/'tests/postgres/run-persona-transition-main-isolated.py'
     spec=importlib.util.spec_from_file_location('ipi_main_source_inventory',inventory_source)
@@ -36,7 +36,7 @@ def main():
     env = lifecycle.owned_environment(evidence, NODE)
     if not (ROOT/fixture).is_file():raise RuntimeError('Exact selected fixture missing')
     workspace=evidence/'runtime'/'workspace'; workspace.mkdir(mode=0o700)
-    env['DVAIA_ISOLATED_TEST_WORKSPACE']=str(workspace)
+    env['OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE']=str(workspace)
     logs=evidence/'logs'; logs.mkdir(mode=0o700); env['LOGS_DIR']=str(logs)
     env.update(NODE_ENV='test', PG_TEST_DISPOSABLE='yes', PLATFORM_DATABASE_ENGINE='postgres', WORKSHOP_DATABASE_ENGINE='postgres',
                AI_PROVIDER='mock', AWS_EC2_METADATA_DISABLED='true', HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1',
@@ -44,7 +44,7 @@ def main():
     def run(args, **kw): return subprocess.run(args, env=env, cwd=ROOT, check=True, capture_output=True, text=True, timeout=30, **kw)
     def daemon():
         if run(DOCKER+['info','--format','{{.ID}}']).stdout.strip() != DAEMON: raise RuntimeError('Docker daemon mismatch')
-    nonce=uuid.uuid4().hex; name='dvaia-bulk-xss-'+nonce[:12]; children=[]; attempted=False; container_id=None
+    nonce=uuid.uuid4().hex; name='owasp-ai-goat-bulk-xss-'+nonce[:12]; children=[]; attempted=False; container_id=None
     inventory_path=ROOT/'tests/postgres/run-mail-browser-main.py'
     spec=importlib.util.spec_from_file_location('persona_dependency_inventory',inventory_path)
     inventories=importlib.util.module_from_spec(spec);spec.loader.exec_module(inventories)
@@ -63,7 +63,7 @@ def main():
         if len(ids)!=1:raise RuntimeError('Ambiguous container')
         row=json.loads(run(DOCKER+['inspect',ids[0]]).stdout)[0]
         ports=row.get('HostConfig',{}).get('PortBindings',{}).get('5432/tcp',[])
-        if (row['Name']!='/'+name or row['Image']!=IMAGE or row['Config'].get('Labels',{}).get('dvaia.owner')!=nonce
+        if (row['Name']!='/'+name or row['Image']!=IMAGE or row['Config'].get('Labels',{}).get('owasp-ai-goat.owner')!=nonce
             or (container_id is not None and row['Id']!=container_id) or len(ports)!=1 or ports[0]['HostIp']!='127.0.0.1'
             or row.get('HostConfig',{}).get('Memory')!=536870912
             or row.get('HostConfig',{}).get('NanoCpus')!=2000000000
@@ -81,7 +81,7 @@ def main():
         if run(DOCKER+['image','inspect',IMAGE,'--format','{{.Id}}']).stdout.strip()!=IMAGE:raise RuntimeError('Postgres image mismatch')
         if run(DOCKER+['ps','-aq','--filter','name=^/'+name+'$']).stdout.strip():raise RuntimeError('Container namespace occupied')
         attempted=True
-        run(DOCKER+['run','-d','--pull','never','--name',name,'--label','dvaia.owner='+nonce,'--memory','512m','--cpus','2','--pids-limit','256','--tmpfs','/var/lib/postgresql:rw,size=536870912',
+        run(DOCKER+['run','-d','--pull','never','--name',name,'--label','owasp-ai-goat.owner='+nonce,'--memory','512m','--cpus','2','--pids-limit','256','--tmpfs','/var/lib/postgresql:rw,size=536870912',
                     '-e','POSTGRES_USER=merchant_admin','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1',
                     '-p','127.0.0.1::5432',IMAGE,'-c','max_connections=64','-c','shared_buffers=16MB','-c','max_wal_size=16MB','-c','min_wal_size=4MB'])
         container_id=inspect_owned(); result['containerId']=container_id; save()
@@ -96,7 +96,7 @@ def main():
             sql=' '.join(f'CREATE ROLE dvaia_{family}_{role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;' for role in ('migration','runtime'))
             run(DOCKER+['exec',container_id,'psql','-U','merchant_admin','-d','postgres','-v','ON_ERROR_STOP=1','-c',sql])
         for store,family,db_kind in stores:
-            database='dvaia_test_'+db_kind+'_'+nonce[:12]
+            database='owasp_ai_goat_test_'+db_kind+'_'+nonce[:12]
             run(DOCKER+['exec',container_id,'psql','-U','merchant_admin','-d','postgres','-v','ON_ERROR_STOP=1','-c',f'CREATE DATABASE {database} OWNER dvaia_{family}_migration'])
             run(DOCKER+['exec',container_id,'psql','-U','merchant_admin','-d','postgres','-v','ON_ERROR_STOP=1','-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO dvaia_{family}_migration,dvaia_{family}_runtime'])
             for role in ('migration','runtime'):env[store+'_'+role.upper()+'_URL']=f'postgresql://dvaia_{family}_{role}@127.0.0.1:{port}/{database}'

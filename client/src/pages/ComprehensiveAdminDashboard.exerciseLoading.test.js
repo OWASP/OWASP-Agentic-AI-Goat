@@ -323,10 +323,10 @@ test('noncooperative mutation deadline leaves controls stale and never replays o
  expect(control().getAttribute('aria-disabled')).toBe('false');expect(axios.post).toHaveBeenCalledTimes(1);
  });
 
-test('objective bulk controls use canonical readback and leave pending SecureShop objectives disabled',async()=>{
+test('objective bulk controls use canonical readback and leave pending OWASP AI SecureShop objectives disabled',async()=>{
  const key='secureshop_agent_security',ids=['ss_loop_observation','ss_pricing_false_grounding','ss_pricing_manual_injection'];
  const rows=ids.map(objective_id=>({objective_id,label:objective_id,is_enabled:false,hint_enabled:false,has_hint_content:false}));
- axios.get.mockImplementation(url=>Promise.resolve(url==='/api/admin/challenges'?{data:{success:true,challenges:[{id:key,key,workshopKey:key,name:'SecureShop',enabled:true}]}}:url.endsWith('/objectives')?{data:{objectives:rows}}:url.endsWith('/hints')?{data:{hints:{}}}:url==='/api/admin/solutions'?{data:{solutions:[]}}:{data:{}}));
+ axios.get.mockImplementation(url=>Promise.resolve(url==='/api/admin/challenges'?{data:{success:true,challenges:[{id:key,key,workshopKey:key,name:'OWASP AI SecureShop',enabled:true}]}}:url.endsWith('/objectives')?{data:{objectives:rows}}:url.endsWith('/hints')?{data:{hints:{}}}:url==='/api/admin/solutions'?{data:{solutions:[]}}:{data:{}}));
  let resolveWrite;
  axios.post.mockImplementation((url,body)=>new Promise(resolve=>{
    resolveWrite=()=>resolve({data:{success:true,exercise:{objectives:Object.fromEntries(

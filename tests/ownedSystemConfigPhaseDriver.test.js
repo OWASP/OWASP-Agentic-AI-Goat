@@ -53,7 +53,7 @@ test('paired transport selects exact target base/stdin phase without changing ac
  assert.throws(()=>I.optionsFor(plan,'metadataFetch',mux,Buffer.alloc(0),'p'));
 });
 test('fixed command derivation has no caller argv/env and keeps remote time/output caps',()=>{
- const plan={spec:{root:'/repo',guest:'/var/tmp/dvaia-v23-build-'+ 'a'.repeat(32)},runId:'a'.repeat(32),binding:{base:'sha256:'+'b'.repeat(64)},
+ const plan={spec:{root:'/repo',guest:'/var/tmp/owasp-ai-goat-v23-build-'+ 'a'.repeat(32)},runId:'a'.repeat(32),binding:{base:'sha256:'+'b'.repeat(64)},
  commands:Object.fromEntries([...I.NORMAL,...I.CLEANUP].map(n=>[n,'fixed-'+n]))};
  const conf=I.optionsFor(plan,'build',mux,Buffer.from('tar'),'/repo/private/input');
  assert.equal(conf.command,'fixed-build');assert.equal(conf.remoteSeconds,310);assert.equal(conf.inputSha256,sha('tar'));
@@ -247,7 +247,7 @@ async function virtualDriver(fault='',pair=false,diagnostic=false){
    };descriptors.set(handle.fd,p);return handle;
   }
  };
- const plan={spec:{root,guest:'/var/tmp/dvaia-v23-build-'+runId},runId,binding:{base:'sha256:'+'a'.repeat(64)},
+ const plan={spec:{root,guest:'/var/tmp/owasp-ai-goat-v23-build-'+runId},runId,binding:{base:'sha256:'+'a'.repeat(64)},
   captured:{recipe:{},inputSha256:'c'.repeat(64)},helperHashes:{'tests/postgres/owned_system_private_http_channel.py':'f'.repeat(64)},
   commands:Object.fromEntries([...I.NORMAL,...I.CLEANUP].map(n=>[n,'fixed:'+n])),
   metadataGuestSource:'fixed metadata',guestSource:'fixed artifact guest'};

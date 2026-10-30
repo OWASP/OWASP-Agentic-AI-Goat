@@ -6,7 +6,7 @@ const { createWindowsOwnedLab, describeOwnedLab } = require('../scripts/lib/wind
 const { createWindowsProvisioningJournal } = require('../scripts/lib/windows-provisioning-journal');
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 const options = { directory: 'C:\\Users\\Learner Space\\private', workspaceId: '0123456789ab', installationId: '11111111-1111-4111-8111-111111111111', operationId: '22222222-2222-4222-8222-222222222222',
-  instanceName: 'dvaia-lab-0123456789ab', multipassExecutable: 'C:\\Program Files\\Multipass\\bin\\multipass.exe', sshExecutable: 'C:\\Windows\\System32\\OpenSSH\\ssh.exe', image: '24.04' };
+  instanceName: 'owasp-ai-goat-lab-0123456789ab', multipassExecutable: 'C:\\Program Files\\Multipass\\bin\\multipass.exe', sshExecutable: 'C:\\Windows\\System32\\OpenSSH\\ssh.exe', image: '24.04' };
 const statePath = options.directory + '\\windows-owned-lab.json';
 const hostBlob = Buffer.concat([Buffer.from([0,0,0,11]),Buffer.from('ssh-ed25519'),Buffer.from([0,0,0,32]),Buffer.alloc(32,7)]);
 const hostKey = 'ssh-ed25519 ' + hostBlob.toString('base64');
@@ -55,12 +55,12 @@ function fixture() {
       if (command.includes("'docker' 'info'")) stdout = JSON.stringify(daemonId);
       else if (command.includes("'cat'") && command.includes('/owner.json')) stdout = owner;
       else if (command.includes("'sh' '-c'") && command.includes('printf ABSENT')) {
-        const target = command.match(/(?:\/var\/lib\/dvaia|\/etc\/apparmor\.d)[A-Za-z0-9_./-]+/)[0];
+        const target = command.match(/(?:\/var\/lib\/owasp-ai-goat|\/etc\/apparmor\.d)[A-Za-z0-9_./-]+/)[0];
         stdout = remote.has(target) ? hash(remote.get(target)) + '  ' + target : 'ABSENT';
       } else if (command.includes("'install'") && !command.includes("'-d'")) remote.set(words.at(-1), Buffer.from(remote.get(words.at(-2))));
       else if (command.includes("'sha256sum'")) stdout = hash(remote.get(words.at(-1))) + '  ' + words.at(-1) + '\n';
       else if (command.includes("'stat'")) stdout = command.includes('/bundles/') ? '0:0:644\n' : '0:0:600\n';
-      else if (command.includes('/sys/kernel/security/apparmor/profiles')) stdout = 'dvaia-mcp-sandbox (enforce)\n';
+      else if (command.includes('/sys/kernel/security/apparmor/profiles')) stdout = 'owasp-ai-goat-mcp-sandbox (enforce)\n';
       else if (command.includes("'docker'")) stdout = 'docker-result';
     }
     return { stdout };
@@ -84,7 +84,7 @@ test('real owned session composes with Docker authority for fresh provisioning v
   const { authority } = await authorityApi.resolveDockerAuthority({ directory: options.directory,
     workspaceId: options.workspaceId, platform: 'win32', ownedLabSession: session,
     storage: { async readLocalDockerAuthority() { return null; } } });
-  await authorityApi.executeBoundDocker({ authority, args: ['volume', 'create', '--label', `org.dvaia.workspace=${options.workspaceId}`, `dvaia-postgres-${options.workspaceId}`] });
+  await authorityApi.executeBoundDocker({ authority, args: ['volume', 'create', '--label', `org.owasp-ai-goat.workspace=${options.workspaceId}`, `owasp-ai-goat-postgres-${options.workspaceId}`] });
   assert.ok(f.calls.some(row => row[0] === 'ssh' && row.at(-1).includes("'docker' 'volume' 'create'")));
   await assert.rejects(session.executeDocker(['volume', 'create', 'not-admitted-in-inspect']));
 });
@@ -166,18 +166,18 @@ test('reviewed bundle and private env use exact file hashes and admitted guest p
 });
 test('profile installer verifies parse, exact existing bytes, root600 and loaded enforce profile', async () => {
   const f = fixture(), session = await f.prepare(), bytes = Buffer.from('profile controlled {}\n');
-  const result = await session.installAndVerifyProfile({name:'dvaia-mcp-sandbox',bytes,sha256:hash(bytes)});
-  assert.equal(result.destination,'/etc/apparmor.d/dvaia-mcp-sandbox');
+  const result = await session.installAndVerifyProfile({name:'owasp-ai-goat-mcp-sandbox',bytes,sha256:hash(bytes)});
+  assert.equal(result.destination,'/etc/apparmor.d/owasp-ai-goat-mcp-sandbox');
   assert(f.calls.some(call => call.at(-1).includes("'apparmor_parser' '--skip-kernel-load'")));
   f.remote.set(result.destination,Buffer.from('foreign'));
-  await assert.rejects(session.installAndVerifyProfile({name:'dvaia-mcp-sandbox',bytes,sha256:hash(bytes)}));
+  await assert.rejects(session.installAndVerifyProfile({name:'owasp-ai-goat-mcp-sandbox',bytes,sha256:hash(bytes)}));
   assert.equal(f.remote.get(result.destination).toString(),'foreign');
 });
 test('startup profile verification cannot install a missing retained profile', async () => {
   const f = fixture(), session = await f.prepare(), bytes = Buffer.from('profile reviewed {}\n');
-  const request = { name: 'dvaia-mcp-sandbox', bytes, sha256: hash(bytes) };
+  const request = { name: 'owasp-ai-goat-mcp-sandbox', bytes, sha256: hash(bytes) };
   await assert.rejects(session.installAndVerifyProfile({ ...request, existingOnly: true }));
-  assert.equal(f.remote.has('/etc/apparmor.d/dvaia-mcp-sandbox'), false);
+  assert.equal(f.remote.has('/etc/apparmor.d/owasp-ai-goat-mcp-sandbox'), false);
   await session.installAndVerifyProfile(request);
   const before = f.calls.filter(row => row[0] === 'ssh' && row.at(-1).includes("'install' '-o'")).length;
   await session.installAndVerifyProfile({ ...request, existingOnly: true });
@@ -190,14 +190,14 @@ test('Docker missing-resource exit1 is scrubbed while SSH255 remains transport d
   fault.exitCode = 255; await assert.rejects(session.executeDocker(['inspect','absent']),{code:'WINDOWS_OWNED_LAB_DENIED'});
 });
 test('bounded PostgreSQL start/readiness supports existing contract and rejects arbitrary container exec', async () => {
-  const f = fixture(), session = await f.prepare(); await session.bindDaemon(); const name = 'dvaia-postgres-' + options.workspaceId;
+  const f = fixture(), session = await f.prepare(); await session.bindDaemon(); const name = 'owasp-ai-goat-postgres-' + options.workspaceId;
   await session.executeDocker(['start',name],{scope:'provision'});
   await session.executeDocker(['exec',name,'pg_isready','-h','127.0.0.1','-U','postgres'],{scope:'provision'});
   await assert.rejects(session.executeDocker(['exec',name,'sh','-c','id'],{scope:'provision'}));
   await assert.rejects(session.executeDocker(['--host','ssh://foreign','info']));
   const image = 'ghcr.io/axllent/mailpit@sha256:' + 'a'.repeat(64);
   await session.executeDocker(['pull',image],{scope:'provision'});
-  await session.executeDocker(['start','dvaia-mailpit-' + options.workspaceId],{scope:'provision'});
+  await session.executeDocker(['start','owasp-ai-goat-mailpit-' + options.workspaceId],{scope:'provision'});
   await session.executeDocker(['rm','--force','b'.repeat(64)],{scope:'provision'});
   await assert.rejects(session.executeDocker(['pull','mailpit:latest'],{scope:'provision'}));
   await assert.rejects(session.executeDocker(['rm','--force','foreign-name'],{scope:'provision'}));

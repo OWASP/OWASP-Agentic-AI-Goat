@@ -4,8 +4,8 @@ const {activate}=require('../scripts/install/analytics-activate');
 const {setupOwnedAnalytics}=require('../scripts/install/analytics-setup');
 const {readManagedAnalyticsConfiguration}=require('../server/services/secureshopAnalyticsManagedConfiguration');
 async function fixture(work){
- const homeDirectory=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-analytics-activation-')),root=path.join(homeDirectory,'source'),workspaceId=createHash('sha256').update(root).digest('hex').slice(0,12),name='dvaia-analytics-'+workspaceId,directory=path.join(homeDirectory,'.dvaia',workspaceId),filename=path.join(directory,'analytics-managed.json');
- const value={version:1,enabled:false,workspaceId,dockerAuthoritySha256:'a'.repeat(64),containerName:name,containerId:'b'.repeat(64),volumeName:name+'-data',imageId:'sha256:'+'c'.repeat(64),port:18096,password:'d'.repeat(64),ownerId:randomUUID(),identity:{systemIdentifier:'1234567890123456789',controlDatabase:'dvaia_analytics_control_'+workspaceId,clusterName:'dvaia-owned-analytics-'+workspaceId},controlSchemaSha256:'e'.repeat(64)};
+ const homeDirectory=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-analytics-activation-')),root=path.join(homeDirectory,'source'),workspaceId=createHash('sha256').update(root).digest('hex').slice(0,12),name='owasp-ai-goat-analytics-'+workspaceId,directory=path.join(homeDirectory,'.owasp-ai-goat',workspaceId),filename=path.join(directory,'analytics-managed.json');
+ const value={version:1,enabled:false,workspaceId,dockerAuthoritySha256:'a'.repeat(64),containerName:name,containerId:'b'.repeat(64),volumeName:name+'-data',imageId:'sha256:'+'c'.repeat(64),port:18096,password:'d'.repeat(64),ownerId:randomUUID(),identity:{systemIdentifier:'1234567890123456789',controlDatabase:'owasp_ai_goat_analytics_control_'+workspaceId,clusterName:'owasp-ai-goat-owned-analytics-'+workspaceId},controlSchemaSha256:'e'.repeat(64)};
  await fs.mkdir(directory,{recursive:true,mode:0o700});await fs.writeFile(filename,JSON.stringify(value)+'\n',{mode:0o600});
  try{const record=await readManagedAnalyticsConfiguration({root,homeDirectory});await work({root,homeDirectory,filename,value,expectedSha256:record.sha256});}finally{await fs.rm(homeDirectory,{recursive:true,force:true});}
 }
@@ -43,9 +43,9 @@ test('setup request-schema failure leaves private feature disabled and closes re
  assert.equal(closed,2);assert.deepEqual(await fs.readFile(options.filename),bytes);
 }));
 test('supported setup reports required Analytics upgrade before any provisioning',()=>fixture(async options=>{
- await fs.mkdir(options.root,{recursive:true});const root=await fs.realpath(options.root),workspaceId=createHash('sha256').update(root).digest('hex').slice(0,12),name='dvaia-analytics-'+workspaceId;
- const directory=path.join(options.homeDirectory,'.dvaia',workspaceId),filename=path.join(directory,'analytics-managed.json');await fs.mkdir(directory,{recursive:true,mode:0o700});
- const value={...options.value,workspaceId,containerName:name,volumeName:name+'-data',identity:{...options.value.identity,controlDatabase:'dvaia_analytics_control_'+workspaceId,clusterName:'dvaia-owned-analytics-'+workspaceId}};await fs.writeFile(filename,JSON.stringify(value)+'\n',{mode:0o600});const before=await fs.readFile(filename);let effects=0;
+ await fs.mkdir(options.root,{recursive:true});const root=await fs.realpath(options.root),workspaceId=createHash('sha256').update(root).digest('hex').slice(0,12),name='owasp-ai-goat-analytics-'+workspaceId;
+ const directory=path.join(options.homeDirectory,'.owasp-ai-goat',workspaceId),filename=path.join(directory,'analytics-managed.json');await fs.mkdir(directory,{recursive:true,mode:0o700});
+ const value={...options.value,workspaceId,containerName:name,volumeName:name+'-data',identity:{...options.value.identity,controlDatabase:'owasp_ai_goat_analytics_control_'+workspaceId,clusterName:'owasp-ai-goat-owned-analytics-'+workspaceId}};await fs.writeFile(filename,JSON.stringify(value)+'\n',{mode:0o600});const before=await fs.readFile(filename);let effects=0;
  await assert.rejects(require('../scripts/setup-application').setup({root,homeDirectory:options.homeDirectory,upgrade:true,nodeVersion:'26.10.0',provision:async()=>{effects++;}}),error=>error.code==='ANALYTICS_UPGRADE_FLAG_REQUIRED'&&error.message.includes('--upgrade --owned-analytics'));
  assert.equal(effects,0);assert.deepEqual(await fs.readFile(filename),before);
 }));

@@ -48,11 +48,11 @@ for(const [name,flags,renderCalls]of [
 test('managed record has distinct bounded identity and port',()=>{
  const id=workspaceId(ROOT),base={version:1,workspaceId:id,ownerId:crypto.randomUUID(),architecture:'arm64',
   dockerAuthoritySha256:sha('authority'),sourceSha256:sha('source'),imageId:'sha256:'+sha('image'),
-  profile:'dvaia-owned-listing-template-'+id,profileSha256:sha('profile'),
-  container:'dvaia-listing-template-'+id,containerId:sha('container'),port:8109,enabled:false};
+  profile:'owasp-ai-goat-owned-listing-template-'+id,profileSha256:sha('profile'),
+  container:'owasp-ai-goat-listing-template-'+id,containerId:sha('container'),port:8109,enabled:false};
  assert.deepEqual(managed.validate(base,{root:ROOT}),base);
  for(const port of [8108,8119])assert.throws(()=>managed.validate({...base,port},{root:ROOT}),{code:'LISTING_TEMPLATE_MANAGED_INVALID'});
- assert.throws(()=>managed.validate({...base,container:'dvaia-policy-renderer-'+id},{root:ROOT}),{code:'LISTING_TEMPLATE_MANAGED_INVALID'});
+ assert.throws(()=>managed.validate({...base,container:'owasp-ai-goat-policy-renderer-'+id},{root:ROOT}),{code:'LISTING_TEMPLATE_MANAGED_INVALID'});
 });
 test('source manifest is closed to the distinct package and three borrowed qualified assets',()=>{
  const source=installer.sourceManifest(ROOT),names=Object.keys(source.files);
@@ -76,15 +76,15 @@ test('startup skips an absent optional package without contacting Docker',async 
 test('distinct staged record publishes once and detects same-byte inode replacement',t=>{
  const home=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'listing-template-private-'));
  t.after(()=>fs.rmSync(home,{recursive:true,force:true}));
- const id=workspaceId(ROOT),directory=path.join(home,'.dvaia',id);
+ const id=workspaceId(ROOT),directory=path.join(home,'.owasp-ai-goat',id);
  fs.mkdirSync(directory,{recursive:true,mode:0o700});
  const authority={version:1,workspaceId:id,host:'unix:///var/run/docker.sock',daemonId:'controlled-template-daemon',source:'environment-host'};
  fs.writeFileSync(path.join(directory,'local-docker.json'),JSON.stringify(authority),{mode:0o600});
  const {authorityDigest}=require('../scripts/local-docker-authority');
  const base={version:1,workspaceId:id,ownerId:crypto.randomUUID(),architecture:'arm64',
   dockerAuthoritySha256:authorityDigest(authority),sourceSha256:sha('source'),imageId:'sha256:'+sha('image'),
-  profile:'dvaia-owned-listing-template-'+id,profileSha256:sha('profile'),
-  container:'dvaia-listing-template-'+id,port:8109};
+  profile:'owasp-ai-goat-owned-listing-template-'+id,profileSha256:sha('profile'),
+  container:'owasp-ai-goat-listing-template-'+id,port:8109};
  const stage=managed.stage({root:ROOT,home,value:{...base,activateRequested:true}});
  const record=managed.publish({root:ROOT,home,expected:null,expectedStage:stage,
   value:{...base,containerId:sha('container'),enabled:true}});

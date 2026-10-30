@@ -192,7 +192,7 @@ test('actual browser observes one selected failed POST after the committed trunc
     const owner = await committedLossServer();
     const tempParent = path.resolve(__dirname, '../tasks/tmp');
     await fs.mkdir(tempParent, { recursive: true });
-    const profile = await fs.mkdtemp(path.join(tempParent, 'dvaia-avatar-ack-control-'));
+    const profile = await fs.mkdtemp(path.join(tempParent, 'owasp-ai-goat-avatar-ack-control-'));
     const browserTmp = path.join(profile, 'tmp');
     await fs.mkdir(browserTmp, { mode: 0o700 });
     await fs.mkdir(path.join(profile, 'cache'), { mode: 0o700 });
@@ -346,7 +346,7 @@ test('UI receipt rejects stale completed pre and only accepts the exact new requ
 
 test('role-aware physical-cookie admission accepts only the exact authenticated role and buyer', async () => {
   const page = { waitForFunction: async (_, options) => assert.equal(options.timeout, 20000),
-    cookies: async () => [{ name: 'dvaia_shop_session', value: 'private', httpOnly: true }] };
+    cookies: async () => [{ name: 'owasp_ai_goat_shop_session', value: 'private', httpOnly: true }] };
   const auth = { authenticate: async token => {
     assert.equal(token, 'private');
     return { shopUserId: 41, username: 'avatar_merchant', role: 'merchant' };
@@ -357,7 +357,7 @@ test('role-aware physical-cookie admission accepts only the exact authenticated 
   await assert.rejects(avatar.admitAvatarRoleLogin({ ...input, role: 'customer' }));
   await assert.rejects(avatar.admitAvatarRoleLogin({ ...input, expected: { user: { id: 42 } } }));
   await assert.rejects(avatar.admitAvatarRoleLogin({ ...input, page: { ...page,
-    cookies: async () => [{ name: 'dvaia_shop_session', value: 'private', httpOnly: false }] } }));
+    cookies: async () => [{ name: 'owasp_ai_goat_shop_session', value: 'private', httpOnly: false }] } }));
 });
 
 test('avatar receipt is closed on required observed flags and zero model/Judge/credit', () => {
@@ -413,8 +413,8 @@ test('saved-reference and UI probes disclose booleans and closed categories, nev
   const raw = JSON.stringify({ secureshop_v2_token: null,
     'secureshop.account-avatar.pending.v1': JSON.stringify({ requestId,
       ownerId: '17', sessionFingerprint: fingerprint }) });
-  const storage = { length: 2, key: index => index ? 'other' : 'dvaia:secureshop:test:1',
-    getItem: key => key === 'dvaia:secureshop:test:1' ? raw : 'private-other' };
+  const storage = { length: 2, key: index => index ? 'other' : 'owasp-ai-goat:secureshop:test:1',
+    getItem: key => key === 'owasp-ai-goat:secureshop:test:1' ? raw : 'private-other' };
   const status = { textContent: 'A saved avatar upload has an unresolved outcome.',
     querySelector: () => ({ disabled: false }) };
   const zone = { querySelectorAll: selector => selector === '[role="status"]' ? [status]

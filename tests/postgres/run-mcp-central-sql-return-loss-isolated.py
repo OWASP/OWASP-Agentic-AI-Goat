@@ -36,7 +36,7 @@ def validate(args):
 
 def database_environment(owner,port):
     if not re.fullmatch('[a-f0-9]{12}',owner) or not str(port).isdigit() or not 1<=int(port)<=65535: raise ValueError('Invalid owned database address')
-    return {key:f'postgresql://dvaia_{store}_{role}@127.0.0.1:{port}/dvaia_test_central_ack_{owner}_{store}' for key,store,role in [('PG_GRAPH_TEST_RUNTIME_URL','identity','runtime'),('PG_GRAPH_TEST_MIGRATION_URL','identity','migration'),('PG_MCP_RUNTIME_URL','mcp','runtime'),('PG_MCP_MIGRATION_URL','mcp','migration')]}
+    return {key:f'postgresql://dvaia_{store}_{role}@127.0.0.1:{port}/owasp_ai_goat_test_central_ack_{owner}_{store}' for key,store,role in [('PG_GRAPH_TEST_RUNTIME_URL','identity','runtime'),('PG_GRAPH_TEST_MIGRATION_URL','identity','migration'),('PG_MCP_RUNTIME_URL','mcp','runtime'),('PG_MCP_MIGRATION_URL','mcp','migration')]}
 
 def validate_layout(row):
     try:
@@ -79,8 +79,8 @@ def main(argv=None):
         version=subprocess.run([args.node_binary,'--version'],env=clean,capture_output=True,text=True,timeout=remaining(5))
         if version.returncode or version.stdout.strip()!='v26.10.0': raise RuntimeError('Node26.10.0 required')
         evidence=contract.prepare_evidence_root(args.evidence_root,[Path(args.source).parent,Path(__file__).resolve().parents[2]])
-        source=Path(args.source);workspace=evidence/'source';owner=uuid.uuid4().hex;name='dvaia-mcp-central-'+owner[:12]
-        labels={'dvaia.test.owner':owner,'dvaia.test.cohort':'mcp-central-sql-return-loss-v1'}
+        source=Path(args.source);workspace=evidence/'source';owner=uuid.uuid4().hex;name='owasp-ai-goat-mcp-central-'+owner[:12]
+        labels={'owasp-ai-goat.test.owner':owner,'owasp-ai-goat.test.cohort':'mcp-central-sql-return-loss-v1'}
         state={'version':1,'owner':owner,'containerName':name,'children':[],'nativeStarted':False,'creationAttempted':False,'semanticAcceptance':False,'bounds':{'workSeconds':WORK_SECONDS,'childSeconds':CHILD_SECONDS,'cleanupSeconds':CLEANUP_SECONDS,'integritySeconds':INTEGRITY_SECONDS,'actualModel':False,'providerHTTP':0}}
         def record():
             p=evidence/'ownership.json';p.write_text(json.dumps(state,indent=2)+'\n');p.chmod(0o600)
@@ -127,11 +127,11 @@ def main(argv=None):
         if sql('SHOW server_version_num')!='180006': raise RuntimeError('PostgreSQL18.6 required')
         for store in ('identity','mcp'):
             for role in ('runtime','migration'): sql('CREATE ROLE dvaia_'+store+'_'+role+' LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS')
-            database='dvaia_test_central_ack_'+owner[:12]+'_'+store
+            database='owasp_ai_goat_test_central_ack_'+owner[:12]+'_'+store
             sql('CREATE DATABASE '+database+' OWNER dvaia_'+store+'_migration')
             sql('REVOKE ALL ON DATABASE '+database+' FROM PUBLIC; GRANT CONNECT ON DATABASE '+database+' TO dvaia_'+store+'_runtime')
             sql('REVOKE ALL ON SCHEMA public FROM PUBLIC; GRANT USAGE ON SCHEMA public TO dvaia_'+store+'_runtime,dvaia_'+store+'_migration',database)
-        env={**clean,'PYTHONDONTWRITEBYTECODE':'1','MCP_FIXTURE_PYTHON':args.python_binary,'MCP_FIXTURE_PYTHON_SHA256':args.python_sha256,**database_environment(owner[:12],port),'HOME':str(evidence),'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes','PG_MCP_CENTRAL_ACK':'yes','PG_TLS':'disable','PLATFORM_DATABASE_ENGINE':'postgres','WORKSHOP_DATABASE_ENGINE':'postgres','DVAIA_ISOLATED_TEST_WORKSPACE':str(workspace)}
+        env={**clean,'PYTHONDONTWRITEBYTECODE':'1','MCP_FIXTURE_PYTHON':args.python_binary,'MCP_FIXTURE_PYTHON_SHA256':args.python_sha256,**database_environment(owner[:12],port),'HOME':str(evidence),'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes','PG_MCP_CENTRAL_ACK':'yes','PG_TLS':'disable','PLATFORM_DATABASE_ENGINE':'postgres','WORKSHOP_DATABASE_ENGINE':'postgres','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE':str(workspace)}
         # Canonical identity migrate() creates its ledger foundation itself. Never
         # prepend the separate bootstrap stream to this identity migration ledger.
         with (evidence/'result.tap').open('x') as log:

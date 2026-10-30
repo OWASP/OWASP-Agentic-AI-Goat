@@ -36,7 +36,7 @@ function storeUrls() {
       assert.equal(url.protocol, 'postgresql:'); assert.equal(url.hostname, '127.0.0.1');
       assert.equal(url.username, `dvaia_${name}_${role.toLowerCase()}`);
       assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-      const match = /^\/dvaia_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
+      const match = /^\/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
       assert.ok(match && match[2] === name); assert.ok(Number(url.port) > 0 && Number(url.port) <= 65535);
       nonce ??= match[1]; port ??= url.port;
       assert.equal(match[1], nonce); assert.equal(url.port, port);
@@ -111,9 +111,9 @@ async function physicalMode(page, label) {
 function headersFrom(request) {
   const headers = request.headers();
   assert.match(headers.authorization || '', /^Bearer [A-Za-z0-9_.-]+$/);
-  assert.match(headers['x-dvaia-secureshop-launch'] || '', /^[A-Za-z0-9_-]{43}$/);
+  assert.match(headers['x-owasp-ai-goat-secureshop-launch'] || '', /^[A-Za-z0-9_-]{43}$/);
   return { authorization: headers.authorization,
-    'x-dvaia-secureshop-launch': headers['x-dvaia-secureshop-launch'] };
+    'x-owasp-ai-goat-secureshop-launch': headers['x-owasp-ai-goat-secureshop-launch'] };
 }
 async function protectedGet(origin, pathname, headers, status = 200) {
   const response = await fetch(`${origin}${pathname}`, { headers,
@@ -129,7 +129,7 @@ async function assessmentRows(identity, principal) {
 
 test('one genuine customer ticket is fixed-inert then browser-executed in a distinct admin grant',
   { skip: !ENABLED, timeout: 300000 }, async () => {
-    assert.equal(process.cwd(), ROOT); assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
+    assert.equal(process.cwd(), ROOT); assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
     const evidencePath = process.env.SECURESHOP_CUSTOMER_TICKET_EVIDENCE_PATH || '';
     assert.ok(path.isAbsolute(evidencePath));
     assert.ok(!path.resolve(evidencePath).startsWith(`${ROOT}${path.sep}`));
@@ -386,7 +386,7 @@ test('one genuine customer ticket is fixed-inert then browser-executed in a dist
       app.use(express.static(build, { setHeaders: response =>
         response.set('Access-Control-Allow-Origin', '*') }));
       app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
-      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-customer-ticket-browser-'));
+      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-customer-ticket-browser-'));
       browser = await require('puppeteer').launch({ headless: true,
         userDataDir: profile, executablePath });
       page = await browser.newPage(); await page.setViewport({ width: 1280, height: 900 });
@@ -422,7 +422,7 @@ test('one genuine customer ticket is fixed-inert then browser-executed in a dist
       await selector.select('chat');
       await frame.waitForSelector('section[aria-label="Prepare support ticket"]');
       const customerCookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(cookie => cookie.name === 'dvaia_shop_session');
+        .find(cookie => cookie.name === 'owasp_ai_goat_shop_session');
       assert.equal(customerCookie?.httpOnly, true);
       const customerBase = await auth.authenticate(customerCookie.value);
       const customerPrincipal = await auth.establishTenantContext(customerBase);
@@ -601,7 +601,7 @@ test('one genuine customer ticket is fixed-inert then browser-executed in a dist
       assert.equal((await adminLoginResponse).status(), 200);
       assert.equal((await adminBootstrap).status(), 200);
       const adminCookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(cookie => cookie.name === 'dvaia_shop_session');
+        .find(cookie => cookie.name === 'owasp_ai_goat_shop_session');
       assert.equal(adminCookie?.httpOnly, true);
       const adminBase = await auth.authenticate(adminCookie.value);
       const adminPrincipal = await auth.establishTenantContext(adminBase);
@@ -835,7 +835,7 @@ test('one genuine customer ticket is fixed-inert then browser-executed in a dist
       assert.ok(siblingScene?.targetId);
       assert.notEqual(siblingScene.targetId, customerScene.targetId);
       const siblingHeaders = { authorization: `Bearer ${siblingReady.persona.token}`,
-        'x-dvaia-secureshop-launch': siblingReady.bearer };
+        'x-owasp-ai-goat-secureshop-launch': siblingReady.bearer };
       await protectedGet(origin, `/api/secureshop/admin/tickets/${ticket.ticket_id}`,
         siblingHeaders, 404);
       assert.equal((await assessmentRows(identity, peerPrincipal)).length, 0);

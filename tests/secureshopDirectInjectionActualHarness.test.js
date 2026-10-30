@@ -486,8 +486,8 @@ test('missing disposable admission fails before caller-supplied IO; malformed ch
     store: { getSession() { calls.push('session'); } }, readCartRows() { calls.push('cart'); } }),
   /Native fixture workspace binding missing|Disposable PostgreSQL admission required|Explicit V14 native gate required/);
   assert.deepEqual(calls, []);
-  assert.throws(() => h.admitDisposableEnvironment({ DVAIA_CURRENT_MAIN_WORKSPACE: '/wrong' }), /workspace binding missing/);
-  assert.throws(() => h.admitDisposableEnvironment({ DVAIA_CURRENT_MAIN_WORKSPACE: path.resolve(__dirname, '..'),
+  assert.throws(() => h.admitDisposableEnvironment({ OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: '/wrong' }), /workspace binding missing/);
+  assert.throws(() => h.admitDisposableEnvironment({ OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: path.resolve(__dirname, '..'),
     PG_TEST_DISPOSABLE: 'yes', SECURESHOP_DIRECT_NATIVE: '1', LIVE_OLLAMA_TEST: '1', AI_PROVIDER: 'mock' }),
   /ollama/);
   assert.throws(() => h.admitLoopbackEndpoint('http://192.0.2.1:11434/', 'Actor model endpoint'), /loopback/);

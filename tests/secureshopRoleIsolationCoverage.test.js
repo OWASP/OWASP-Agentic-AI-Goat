@@ -100,9 +100,9 @@ function invoke(router, role, method, action, { token, launch = BEARER_A } = {})
     && layer.route.methods[method])?.route;
   assert.ok(route, `production ${role} ${action} route required`);
   const request = new EventEmitter();
-  request.headers = { 'x-dvaia-secureshop-launch': launch,
+  request.headers = { 'x-owasp-ai-goat-secureshop-launch': launch,
     ...(token ? { authorization: `Bearer ${token}` } : {}) };
-  request.rawHeaders = ['x-dvaia-secureshop-launch', launch,
+  request.rawHeaders = ['x-owasp-ai-goat-secureshop-launch', launch,
     ...(token ? ['authorization', `Bearer ${token}`] : [])];
   request.query = {}; request.body = action === 'session' ? {} : undefined;
   request.params = action === 'saved' ? { sessionId: SESSION, requestId: REQUEST } : {};

@@ -43,7 +43,7 @@ class OwnedSidecars:
     def __init__(self,args,source,evidence,owner,docker,record):
         if not re.fullmatch(r'[a-f0-9]{32}',owner):raise RuntimeError('Invalid owner nonce')
         self.args=args;self.source=Path(source);self.evidence=Path(evidence);self.owner=owner;self.docker=docker;self.record=record
-        self.profile='dvaia-mcp-sandbox-'+owner[:12];self.remote='/tmp/dvaia-ctf-'+owner;self.labels={'dvaia.test.owner':owner,'dvaia.test.cohort':'ctf-setup-sidecars'}
+        self.profile='owasp-ai-goat-mcp-sandbox-'+owner[:12];self.remote='/tmp/owasp-ai-goat-ctf-'+owner;self.labels={'owasp-ai-goat.test.owner':owner,'owasp-ai-goat.test.cohort':'ctf-setup-sidecars'}
         self.rows=[];self.remote_owned=False;self.profile_attempted=False
         self.state={'containers':self.rows,'profile':self.profile,'profileLoaded':False,'cleanupComplete':False}
     def remote_command(self,argv,input=None):
@@ -59,7 +59,7 @@ class OwnedSidecars:
         if probe.returncode!=1:raise RuntimeError('Profile absent observation unavailable')
         self.checked(self.remote_command(['mkdir','-m','0700',self.remote]));self.remote_owned=True
         self.checked(self.remote_command(['tee',self.remote+'/owner'],input=self.owner+'\n'))
-        template=(self.source/'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in').read_text()
+        template=(self.source/'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in').read_text()
         rendered=template.replace('@@SUPERVISOR_PROFILE@@',self.profile)
         if '@@' in rendered:raise RuntimeError('Unknown profile substitution')
         local=self.evidence/'sandbox.apparmor';local.write_text(rendered);local.chmod(0o600)
@@ -78,7 +78,7 @@ class OwnedSidecars:
         for kind,image,extra,specs in [
           ('mail',MAILPIT,['--read-only','--tmpfs','/tmp:rw,noexec,nosuid,size=16777216'],['1025','8025']),
           ('sandbox',self.args.sandbox_image_id,['--security-opt','seccomp=unconfined','--security-opt','apparmor='+self.profile,'--tmpfs','/sandbox:rw,size=268435456,uid=10001,gid=10001,mode=0700','--env-file',str(envfile)],['8090'])]:
-            name='dvaia-ctf-'+kind+'-'+self.owner[:12]
+            name='owasp-ai-goat-ctf-'+kind+'-'+self.owner[:12]
             if inspect_owned(self.docker,name=name,labels=self.labels,image=image) is not None:raise RuntimeError('Sidecar name occupied')
             row={'name':name,'image':image,'id':None};self.rows.append(row);self.record(self.state)
             cmd=['run','--detach','--pull','never','--name',name,'--memory','512m','--cpus','1','--pids-limit','128',*sum((['--label',k+'='+v] for k,v in self.labels.items()),[]),*extra,*sum((['-p','127.0.0.1::'+p] for p in specs),[]),image]

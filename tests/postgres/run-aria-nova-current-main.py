@@ -157,7 +157,7 @@ def checked_command(response, code, state):
 def store_configuration(label,port,nonce):
     import re
     if label not in ('identity','aria','nova') or type(port) is not int or not 1<=port<=65535 or not re.fullmatch('[a-f0-9]{12}',nonce):raise ValueError('Closed store/port/nonce required')
-    migration='dvaia_'+label+'_migration';role='dvaia_'+label+'_runtime';database='dvaia_test_aria_nova_'+nonce+'_'+label
+    migration='dvaia_'+label+'_migration';role='dvaia_'+label+'_runtime';database='owasp_ai_goat_test_aria_nova_'+nonce+'_'+label
     sql=f'CREATE ROLE {migration} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE DATABASE {database} OWNER {migration}; REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{role};'
     prefix={'identity':'IDENTITY','aria':'SQL_WORKSHOP','nova':'NOSQL_WORKSHOP'}[label]
     return sql,{prefix+suffix:f'postgresql://{username}@127.0.0.1:{port}/{database}' for suffix,username in [('_MIGRATION_DATABASE_URL',migration),('_DATABASE_URL',role)]}
@@ -176,7 +176,7 @@ def child_environment(clean,evidence,runtime,owner,args):
       'ARIA_NOVA_EVIDENCE_ROOT':str(evidence),'ARIA_NOVA_OWNER':owner,'ARIA_NOVA_SOURCE_ROOT':args.main_workspace,
       'ARIA_NOVA_MANIFEST':str(Path(args.manifest).resolve()),'ARIA_NOVA_MANIFEST_SHA256':args.manifest_sha256,
       'ARIA_NOVA_PROFILE':profile_contract(args)['profile'],'ARIA_NOVA_INPUTS':args.input,'ARIA_NOVA_INPUTS_SHA256':args.input_sha256,
-      'DVAIA_APP_DATA_ROOT':str(runtime/'appdata'),'AWS_EC2_METADATA_DISABLED':'true',
+      'OWASP_AI_GOAT_APP_DATA_ROOT':str(runtime/'appdata'),'AWS_EC2_METADATA_DISABLED':'true',
       'LOGS_DIR':str(runtime/'logs'),'LEGACY_SENSITIVE_FILES_ROOT':str(runtime/'assets'),'PG_TLS':'disable'}
 
 def read_owned_json(evidence,name,maximum):
@@ -354,7 +354,7 @@ def main_current(argv):
     evidence=Path(tempfile.mkdtemp(prefix='run-',dir=parent));runtime=evidence/'runtime';runtime.mkdir(mode=0o700)
     for name in ['home','tmp','logs','assets','appdata']:(runtime/name).mkdir(mode=0o700)
     clean={'PATH':str(Path(args.node).parent)+':'+str(Path(args.docker).parent)+':/usr/bin:/bin','HOME':str(runtime/'home'),'TMPDIR':str(runtime/'tmp'),'LANG':'C','DOCKER_HOST':args.docker_host}
-    owner=str(uuid.uuid4());name='dvaia-aria-nova-'+uuid.uuid4().hex[:12];labels={'dvaia.owner':owner,'dvaia.cohort':contract['cohort']}
+    owner=str(uuid.uuid4());name='owasp-ai-goat-aria-nova-'+uuid.uuid4().hex[:12];labels={'owasp-ai-goat.owner':owner,'owasp-ai-goat.cohort':contract['cohort']}
     state={'cohort':contract['cohort'],'profile':contract['profile'],'sourceRoot':str(source),'parentPid':os.getpid(),'owner':owner,'children':[],'nativeStarted':False,'mode':'actual','manifestSha256':args.manifest_sha256,'containerName':name,'containerLabels':labels,'imageId':args.image_id,'dockerDaemon':args.docker_daemon,'creationAttempted':False,'scenario':'aria-nova-current','nonce':owner.replace('-','')[:12],'evidenceRoot':str(evidence)}
     def record():publish(evidence/'ownership.json',state)
     deadline=time.monotonic()+work_seconds

@@ -16,8 +16,8 @@ const MAX_CAPTURE_BYTES = 96 * 1024;
 const MAX_STDERR_BYTES = 16 * 1024;
 const DEFAULT_TIMEOUT_MS = 1500;
 const DEFAULT_DRAIN_GRACE_MS = 1000;
-const DEFAULT_SUPERVISOR = '/usr/local/libexec/dvaia-policy-render-supervisor';
-const DEFAULT_INIT = '/usr/local/libexec/dvaia-policy-render-init';
+const DEFAULT_SUPERVISOR = '/usr/local/libexec/owasp-ai-goat-policy-render-supervisor';
+const DEFAULT_INIT = '/usr/local/libexec/owasp-ai-goat-policy-render-init';
 const effectWitnesses = new WeakMap();
 
 const directory = __dirname;
@@ -62,7 +62,7 @@ function buildProbeArgv(runtimeMounts = availableRuntimeMounts()) {
     '--setenv', 'PATH', CLEAN_PATH, DEFAULT_INIT, '--probe'];
 }
 function namespaceName(operationId) { return `policy-${sha256(operationId).slice(0, 20)}`; }
-function buildRenderArgv(rawRequest, marker, runtimeMounts = availableRuntimeMounts(), effectRoot = '/tmp/dvaia-policy-render-effect') {
+function buildRenderArgv(rawRequest, marker, runtimeMounts = availableRuntimeMounts(), effectRoot = '/tmp/owasp-ai-goat-policy-render-effect') {
   const request = normalizeRenderRequest(rawRequest);
   const encoded = Buffer.from(JSON.stringify({ ...request, requestSha256: requestDigest(request) })).toString('base64');
   return [...BWRAP_NAMESPACE,
@@ -138,7 +138,7 @@ function createPolicyRenderExecutor({ spawnImpl = defaultSpawn, spawnSyncImpl = 
       assertStrict();
       const marker = `__POLICY_RENDER_${randomBytes(32).toString('hex')}__`;
       const effectCanary = randomBytes(32);
-      const effectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-policy-render-'));
+      const effectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-policy-render-'));
       fs.chmodSync(effectRoot, 0o700);
       const argv = buildRenderArgv(request, marker, runtimeMounts, effectRoot);
       return new Promise((resolve, reject) => {

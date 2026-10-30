@@ -4,10 +4,10 @@ import argparse,os,shutil,signal,subprocess,tempfile,time,uuid
 from pathlib import Path
 from urllib.parse import quote
 parser=argparse.ArgumentParser();parser.add_argument('--docker-host',required=True);args=parser.parse_args()
-source=Path(__file__).resolve().parents[2];root=Path(tempfile.mkdtemp(prefix='dvaia-student-deletion-legacy-stores-'));os.chmod(root,0o700)
+source=Path(__file__).resolve().parents[2];root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-student-deletion-legacy-stores-'));os.chmod(root,0o700)
 workspace=root/'source';workspace.mkdir();base={k:os.environ[k] for k in ['PATH','HOME','TMPDIR'] if k in os.environ}
-managed=Path('/Users/averma5/.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin');base['PATH']=f'{managed}:{base.get("PATH","")}'
-docker=['docker','--host',args.docker_host];tag=uuid.uuid4().hex[:12];container=f'dvaia-student-deletion-legacy-{tag}';child=None;started=False
+managed=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin');base['PATH']=f'{managed}:{base.get("PATH","")}'
+docker=['docker','--host',args.docker_host];tag=uuid.uuid4().hex[:12];container=f'owasp-ai-goat-student-deletion-legacy-{tag}';child=None;started=False
 (root/'owned-container.txt').write_text(container+'\n')
 def run(cmd,**kwargs):kwargs.setdefault('timeout',60);return subprocess.run(cmd,check=True,env=base,**kwargs)
 def stop_child():
@@ -33,11 +33,11 @@ try:
   time.sleep(.25)
  else:raise RuntimeError('Owned PostgreSQL container did not become TCP ready')
  port=int(run(docker+['port',container,'5432'],capture_output=True,text=True).stdout.strip().rsplit(':',1)[1]);psql=['psql','-h','127.0.0.1','-p',str(port),'-U','deletion_test_admin','-d','postgres','-v','ON_ERROR_STOP=1']
- env=dict(base,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',AWS_EC2_METADATA_DISABLED='true',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',LEGACY_PLATFORM_LIFECYCLE_ENABLED='true',JWT_SECRET='owned-legacy-lifecycle-secret')
+ env=dict(base,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',AWS_EC2_METADATA_DISABLED='true',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',LEGACY_PLATFORM_LIFECYCLE_ENABLED='true',JWT_SECRET='owned-legacy-lifecycle-secret')
  for key,migration_role,runtime_role in [('IDENTITY','dvaia_identity_migration','dvaia_identity_runtime'),('LEGACY','dvaia_legacy_challenge_migration','dvaia_legacy_challenge_runtime'),('LOOKUP','dvaia_sensitive_lookup_migration','dvaia_sensitive_lookup_runtime')]:
   for role in [migration_role,runtime_role]:run(psql+['-c',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
   if key in ('IDENTITY','LEGACY'):run(psql+['-c',f'GRANT pg_signal_backend TO {migration_role}'],stdout=subprocess.DEVNULL)
-  database=f'dvaia_test_deletion_{key.lower()}_{tag}';run(psql+['-c',f'CREATE DATABASE {database} OWNER {migration_role}'],stdout=subprocess.DEVNULL);run(psql+['-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration_role},{runtime_role}'],stdout=subprocess.DEVNULL)
+  database=f'owasp_ai_goat_test_deletion_{key.lower()}_{tag}';run(psql+['-c',f'CREATE DATABASE {database} OWNER {migration_role}'],stdout=subprocess.DEVNULL);run(psql+['-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration_role},{runtime_role}'],stdout=subprocess.DEVNULL)
   env[f'PG_STUDENT_DELETION_LEGACY_{key}_MIGRATION_URL']=f'postgresql://{quote(migration_role)}@127.0.0.1:{port}/{database}';env[f'PG_STUDENT_DELETION_LEGACY_{key}_RUNTIME_URL']=f'postgresql://{quote(runtime_role)}@127.0.0.1:{port}/{database}'
   prefix={'IDENTITY':'IDENTITY','LEGACY':'LEGACY_CHALLENGE','LOOKUP':'SENSITIVE_LOOKUP'}[key]
   env[f'{prefix}_MIGRATION_DATABASE_URL']=env[f'PG_STUDENT_DELETION_LEGACY_{key}_MIGRATION_URL'];env[f'{prefix}_DATABASE_URL']=env[f'PG_STUDENT_DELETION_LEGACY_{key}_RUNTIME_URL']

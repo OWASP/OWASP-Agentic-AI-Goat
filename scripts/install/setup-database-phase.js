@@ -15,10 +15,10 @@ function validateRequest(request) {
   if([c.ownedListings,c.enableOwnedListings].some(value=>value!==undefined&&typeof value!=='boolean')
     ||c.enableOwnedListings===true&&c.ownedListings!==true)throw fail('SETUP_PHASE_REQUEST_INVALID');
   if (typeof c.root !== 'string' || !path.isAbsolute(c.root) || typeof c.homeDirectory !== 'string' || !path.isAbsolute(c.homeDirectory)
-    || !/^[a-f0-9]{12}$/.test(c.id) || c.envPath !== path.join(c.root, '.env') || c.directory !== path.join(c.homeDirectory, '.dvaia', c.id)
+    || !/^[a-f0-9]{12}$/.test(c.id) || c.envPath !== path.join(c.root, '.env') || c.directory !== path.join(c.homeDirectory, '.owasp-ai-goat', c.id)
     || c.id !== require('node:crypto').createHash('sha256').update(path.resolve(c.root)).digest('hex').slice(0,12)) throw fail('SETUP_PHASE_REQUEST_INVALID');
   if (!c.processEnvironment || typeof c.processEnvironment !== 'object' || Object.values(c.processEnvironment).some(value => typeof value !== 'string')) throw fail('SETUP_PHASE_REQUEST_INVALID');
-  const environment = { ...c.processEnvironment, ...(request.kind === 'fresh' ? c.config : c.state?.parsed), DVAIA_APP_DATA_ROOT: c.appDataRoot };
+  const environment = { ...c.processEnvironment, ...(request.kind === 'fresh' ? c.config : c.state?.parsed), OWASP_AI_GOAT_APP_DATA_ROOT: c.appDataRoot };
   if (!environment.IDENTITY_DATABASE_URL || !environment.IDENTITY_MIGRATION_DATABASE_URL) throw fail('SETUP_PHASE_REQUEST_INVALID');
   return environment;
 }
@@ -56,7 +56,7 @@ async function runWindowsSetupDatabasePhase(request,{spawn,timeoutMs,killGraceMs
   child.once('close',code=>resolveClosed(code));
   child.once('error',()=>{error=fail('SETUP_PHASE_SPAWN_FAILED');if(!child.pid)resolveClosed(undefined);cancel();});
   child.on('message',message=>{
-   if(message?.type==='dvaia-setup-phase-publication-proof'){
+   if(message?.type==='owasp-ai-goat-setup-phase-publication-proof'){
     if(!requested||proofStarted||!exactMessage(message,['type','id','nonce'])||!proofToken(message.id)||!proofToken(message.nonce)){error=fail('SETUP_PHASE_PUBLICATION_INVALID');cancel();return;}
     proofStarted=true;
     void (async()=>{
@@ -64,7 +64,7 @@ async function runWindowsSetupDatabasePhase(request,{spawn,timeoutMs,killGraceMs
       await job.assertGuardianOnly();
       if(error||!child.connected)throw fail('SETUP_PHASE_PUBLICATION_INVALID');
       publicationApproved=true;
-      child.send({type:'dvaia-setup-phase-publication-approved',id:message.id,nonce:message.nonce},sendError=>{if(sendError){error=fail('SETUP_PHASE_PUBLICATION_INVALID');cancel();}});
+      child.send({type:'owasp-ai-goat-setup-phase-publication-approved',id:message.id,nonce:message.nonce},sendError=>{if(sendError){error=fail('SETUP_PHASE_PUBLICATION_INVALID');cancel();}});
      }catch{error=fail('SETUP_PHASE_PUBLICATION_INVALID');cancel();}
     })();
    }else if(message?.type==='result'){
@@ -209,17 +209,17 @@ function installPhaseActivation(runtime,{activate,stop}){
  return{
   get active(){return phase==='active';},get activating(){return phase==='activating';},
   handle(message){
-   if(message?.type==='dvaia-owned-guardian-stop'&&exactMessage(message,['type'])){stop();return true;}
-   if(phase==='waiting'&&message?.type==='dvaia-owned-guardian-hello'&&exactMessage(message,['type'])){
-    phase='ready';runtime.send({type:'dvaia-owned-guardian-ready',pid:runtime.pid,challenge});return true;
+   if(message?.type==='owasp-ai-goat-owned-guardian-stop'&&exactMessage(message,['type'])){stop();return true;}
+   if(phase==='waiting'&&message?.type==='owasp-ai-goat-owned-guardian-hello'&&exactMessage(message,['type'])){
+    phase='ready';runtime.send({type:'owasp-ai-goat-owned-guardian-ready',pid:runtime.pid,challenge});return true;
    }
-   if(phase==='ready'&&message?.type==='dvaia-owned-guardian-probe'&&exactMessage(message,['type','challenge','nonce'])&&message.challenge===challenge&&proofToken(message.nonce)){
-    phase='proved';nonce=message.nonce;runtime.send({type:'dvaia-owned-guardian-proof',pid:runtime.pid,challenge,nonce});return true;
+   if(phase==='ready'&&message?.type==='owasp-ai-goat-owned-guardian-probe'&&exactMessage(message,['type','challenge','nonce'])&&message.challenge===challenge&&proofToken(message.nonce)){
+    phase='proved';nonce=message.nonce;runtime.send({type:'owasp-ai-goat-owned-guardian-proof',pid:runtime.pid,challenge,nonce});return true;
    }
-   if(phase==='proved'&&message?.type==='dvaia-owned-guardian-activate'&&exactMessage(message,['type','challenge','nonce'])&&message.challenge===challenge&&message.nonce===nonce){
-    phase='activating';runtime.send({type:'dvaia-owned-guardian-active',pid:runtime.pid,challenge,nonce},error=>{if(error)stop();else{phase='active';activate();}});return true;
+   if(phase==='proved'&&message?.type==='owasp-ai-goat-owned-guardian-activate'&&exactMessage(message,['type','challenge','nonce'])&&message.challenge===challenge&&message.nonce===nonce){
+    phase='activating';runtime.send({type:'owasp-ai-goat-owned-guardian-active',pid:runtime.pid,challenge,nonce},error=>{if(error)stop();else{phase='active';activate();}});return true;
    }
-   if(typeof message?.type==='string'&&message.type.startsWith('dvaia-owned-guardian-')){stop();return true;}
+   if(typeof message?.type==='string'&&message.type.startsWith('owasp-ai-goat-owned-guardian-')){stop();return true;}
    return false;
   },
  };
@@ -229,11 +229,11 @@ function publicationProof(runtime,signal,timeoutMs=10000){
   const id=require('node:crypto').randomBytes(32).toString('hex'),nonce=require('node:crypto').randomBytes(32).toString('hex');let done=false;
   const finish=error=>{if(done)return;done=true;clearTimeout(timer);runtime.removeListener('message',onMessage);runtime.removeListener('disconnect',onDisconnect);signal?.removeEventListener('abort',onDisconnect);error?reject(error):resolve();};
   const onDisconnect=()=>finish(fail('SETUP_PHASE_PUBLICATION_INVALID'));
-  const onMessage=message=>{if(message?.type!=='dvaia-setup-phase-publication-approved')return;finish(exactMessage(message,['type','id','nonce'])&&message.id===id&&message.nonce===nonce?undefined:fail('SETUP_PHASE_PUBLICATION_INVALID'));};
+  const onMessage=message=>{if(message?.type!=='owasp-ai-goat-setup-phase-publication-approved')return;finish(exactMessage(message,['type','id','nonce'])&&message.id===id&&message.nonce===nonce?undefined:fail('SETUP_PHASE_PUBLICATION_INVALID'));};
   const timer=setTimeout(onDisconnect,timeoutMs);
   runtime.on('message',onMessage);runtime.once('disconnect',onDisconnect);signal?.addEventListener('abort',onDisconnect,{once:true});
   if(signal?.aborted||!runtime.connected){onDisconnect();return;}
-  try{runtime.send({type:'dvaia-setup-phase-publication-proof',id,nonce},error=>{if(error)onDisconnect();});}catch{onDisconnect();}
+  try{runtime.send({type:'owasp-ai-goat-setup-phase-publication-proof',id,nonce},error=>{if(error)onDisconnect();});}catch{onDisconnect();}
  });
 }
 function runOwnedPhase({runtime=process,platform=process.platform,executePhase=executeDatabasePhase,proofTimeoutMs=10000}={}){
@@ -264,7 +264,7 @@ function runOwnedPhase({runtime=process,platform=process.platform,executePhase=e
   if(platform==='win32')gate=installPhaseActivation(runtime,{activate:()=>{if(queued&&!controller.signal.aborted){const request=queued;queued=undefined;void handle(request);}},stop});
   runtime.on('SIGTERM',stop);runtime.on('SIGINT',stop);runtime.on('disconnect',stop);
   runtime.on('message',request=>{
-    if(request?.type==='dvaia-setup-phase-publication-approved')return; // Bound waiter owns its exact validation.
+    if(request?.type==='owasp-ai-goat-setup-phase-publication-approved')return; // Bound waiter owns its exact validation.
     if(request?.type==='cancel'){stop();return;}
     if(gate){
       try{if(gate.handle(request))return;}catch{stop();return;}

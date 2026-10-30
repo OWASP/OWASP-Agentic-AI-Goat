@@ -80,7 +80,7 @@ class ListingRawLauncher(unittest.TestCase):
             alias = path.with_name('alias.json'); alias.symlink_to(path)
             with self.assertRaises(RuntimeError): L.listing_raw_receipt(alias)
             runtime = Path(directory) / 'runtime'
-            (runtime / 'tmp' / 'dvaia-role-listing-raw-browser-unit').mkdir(parents=True)
+            (runtime / 'tmp' / 'owasp-ai-goat-role-listing-raw-browser-unit').mkdir(parents=True)
             self.assertFalse(L.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
     def test_original_capture_bodies_model_counts_and_cleanup(self):

@@ -48,7 +48,7 @@ class MetadataOverlay(unittest.TestCase):
 
     def test_actual_readonly_copy_links_and_runtime_directory_creation(self):
         import subprocess
-        node = '/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node'
+        node = '/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node'
         copier = pathlib.Path(__file__).resolve().parents[2] / 'scripts/lib/isolated-source-copy.js'
         with tempfile.TemporaryDirectory() as temp:
             parent = pathlib.Path(temp).resolve(); frozen = parent / 'frozen'; frozen.mkdir()

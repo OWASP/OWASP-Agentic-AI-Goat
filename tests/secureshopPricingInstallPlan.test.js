@@ -17,7 +17,7 @@ test('owned authority plan is repeatable and nonmutating; package drift rejects 
  for(const relative of files){const target=path.join(root,relative);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,`synthetic package fixture: ${relative}\n`);}
  // Synthetic package exercises integrity/planning; the first test separately checks actual qualified source.
  fs.writeFileSync(path.join(root,'sidecars/sandbox-runner/owned-pricing-http/local-package-manifest.json'),JSON.stringify({...capturePricingPackage(root),qualification:'tasks/sidecar-pricing-package-qualified-2026-09-26.json'}));
- const id=require('../scripts/application-data-root').workspaceId(root),directory=path.join(home,'.dvaia',id);fs.mkdirSync(directory,{recursive:true,mode:0o700});
+ const id=require('../scripts/application-data-root').workspaceId(root),directory=path.join(home,'.owasp-ai-goat',id);fs.mkdirSync(directory,{recursive:true,mode:0o700});
  const file=path.join(directory,'local-docker.json');fs.writeFileSync(file,JSON.stringify({version:1,workspaceId:id,host:'unix:///tmp/pricing-owned.sock',daemonId:'test-owned-daemon',source:'environment-host'}),{mode:0o600});
  const before=fs.readFileSync(file);let probes=0;
  const options={root,home,architecture:'arm64',port:28093,execute:async(_file,args)=>{probes++;assert.deepEqual(args.slice(-3),['info','--format','{{json .ID}}']);return{stdout:'"test-owned-daemon"'};}};

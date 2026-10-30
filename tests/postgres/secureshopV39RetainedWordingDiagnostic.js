@@ -29,10 +29,10 @@ function appendicesFor(version) {
   return version === VERSION ? APPENDICES : APPENDICES_V2;
 }
 const INPUTS = Object.freeze([
-  Object.freeze({ id: 'retained-attack', base: 'tasks/qualification/dvaia-mcp-assembly-iw6u2bic/', prefix: 'mcp-description',
+  Object.freeze({ id: 'retained-attack', base: 'tasks/qualification/owasp-ai-goat-mcp-assembly-iw6u2bic/', prefix: 'mcp-description',
     modelSha256: 'bda973665691b4fcfc512fa559fcad3652cbce520f4e47d547ea563bfdd4949e',
     wireSha256: 'd10b81c2a3c848e25c7c4d72a1cf0efe320af153718705ac18f244a3bbef0d8c' }),
-  Object.freeze({ id: 'retained-clean', base: 'tasks/qualification/dvaia-mcp-assembly-g5r8ckgh/', prefix: 'mcp-description-atomic-control',
+  Object.freeze({ id: 'retained-clean', base: 'tasks/qualification/owasp-ai-goat-mcp-assembly-g5r8ckgh/', prefix: 'mcp-description-atomic-control',
     modelSha256: '26d232f75e162172fe79f608d747fd462ec0ffa98b141dd907365ee3b9a6d640',
     wireSha256: 'f48b782de065da9fb22730d291ec10686940a9f28fecd97258178d5600313b3c' })
 ]);

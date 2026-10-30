@@ -118,7 +118,7 @@ def lifecycle():
     watcher.KIND = 'v19_file_summary_browser'
     watcher.owned_environment = owned_environment
     ownership = load(OWNERSHIP, 'v19_owned_browser_capture')
-    ownership.PROFILE_PREFIX = 'dvaia-v19-browser-'
+    ownership.PROFILE_PREFIX = 'owasp-ai-goat-v19-browser-'
     return watcher, ownership
 
 

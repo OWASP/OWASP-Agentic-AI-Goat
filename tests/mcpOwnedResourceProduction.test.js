@@ -44,7 +44,7 @@ function fixture(overrides = {}) {
     identityAdapter: { pool: identityPool(), validateSession: async () => null },
     resourcePool: resourcePool(), ownedShadow: null,
     targets: { readiness: async () => ({ ready: true, runnerReady: true, version: 'mcp-owned-target-http.v1',
-      isolation: 'bwrap-seccomp-v1', supervisorProfile: 'dvaia-mcp-sandbox (enforce)',
+      isolation: 'bwrap-seccomp-v1', supervisorProfile: 'owasp-ai-goat-mcp-sandbox (enforce)',
       endpoint: 'http://127.0.0.1:48123/' }) },
     mailReadiness: async () => ({ ready: true }),
     compositionFactory(options) { application = { enabled: true, qualification: options.qualification,
@@ -117,7 +117,7 @@ test('a runner outage after startup is rechecked and blocks before target alloca
   const f = fixture({
     targets: { async readiness() { return runnerReady
       ? { ready: true, runnerReady: true, version: 'mcp-owned-target-http.v1', isolation: 'bwrap-seccomp-v1',
-        supervisorProfile: 'dvaia-mcp-sandbox (enforce)', endpoint: 'http://127.0.0.1:48123/' }
+        supervisorProfile: 'owasp-ai-goat-mcp-sandbox (enforce)', endpoint: 'http://127.0.0.1:48123/' }
         : { ready: false, runnerReady: false }; } },
     compositionFactory(options) {
       liveReadiness = options.readiness;
@@ -152,7 +152,7 @@ test('exact protected-state capability expands only the three qualified tools an
   let composition;
   const f = fixture({
     targets: { readiness: async () => ({ ready: true, runnerReady: true, version: 'mcp-owned-target-http.v1',
-      isolation: 'bwrap-seccomp-v1', supervisorProfile: 'dvaia-mcp-sandbox (enforce)',
+      isolation: 'bwrap-seccomp-v1', supervisorProfile: 'owasp-ai-goat-mcp-sandbox (enforce)',
       protectedStateCapability: PROTECTED_STATE_CAPABILITY, endpoint: 'http://127.0.0.1:48123/' }) },
     compositionFactory(options) {
       composition = options;
@@ -176,7 +176,7 @@ test('capable rebuilt runner retains the protected profile plus promoted recon u
   let composition;
   const f = fixture({
     targets: { readiness: async () => ({ ready: true, runnerReady: true, version: 'mcp-owned-target-http.v1',
-      isolation: 'bwrap-seccomp-v1', supervisorProfile: 'dvaia-mcp-sandbox (enforce)',
+      isolation: 'bwrap-seccomp-v1', supervisorProfile: 'owasp-ai-goat-mcp-sandbox (enforce)',
       protectedStateCapability: PROTECTED_STATE_CAPABILITY, observedActionCapability: OBSERVED_ACTION_CAPABILITY,
       endpoint: 'http://127.0.0.1:48123/' }) },
     compositionFactory(options) { composition = options; return { enabled: true, qualification: options.qualification,
@@ -199,7 +199,7 @@ test('explicit production release selects six only with both exact runner capabi
     env: { MCP_OWNED_RESOURCES_ENABLED: 'true', MCP_OWNED_HTTP_ENABLED: 'false', MCP_OBSERVED_ACTION_ENABLED: 'true',
       PLATFORM_DATABASE_ENGINE: 'postgres', WORKSHOP_DATABASE_ENGINE: 'postgres' },
     targets: { readiness: async () => ({ ready: true, runnerReady: true, version: 'mcp-owned-target-http.v1',
-      isolation: 'bwrap-seccomp-v1', supervisorProfile: 'dvaia-mcp-sandbox (enforce)',
+      isolation: 'bwrap-seccomp-v1', supervisorProfile: 'owasp-ai-goat-mcp-sandbox (enforce)',
       protectedStateCapability: PROTECTED_STATE_CAPABILITY, observedActionCapability: OBSERVED_ACTION_CAPABILITY,
       endpoint: 'http://127.0.0.1:48123/' }) },
     compositionFactory(options) { composition = options; return { enabled: true, qualification: options.qualification,

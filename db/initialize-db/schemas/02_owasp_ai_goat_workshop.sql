@@ -1,4 +1,4 @@
--- dvaia.db: vulnerable workshop + admin tables (demo data only)
+-- owasp-ai-goat.db: vulnerable workshop + admin tables (demo data only)
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL,
@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS ai_conversations (
   FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
--- Admin extension tables (same dvaia.db)
+-- Admin extension tables (same owasp-ai-goat.db)
 CREATE TABLE IF NOT EXISTS admin_permissions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   admin_id INTEGER NOT NULL,

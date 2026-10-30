@@ -6,7 +6,7 @@ const crypto = require('node:crypto');
 const { Worker, getEnvironmentData } = require('node:worker_threads');
 
 const SHA256 = /^[0-9a-f]{64}$/;
-const QUALIFICATION_PRELOAD_KEY = 'dvaia.secureshop.product-description-renderer-worker-token';
+const QUALIFICATION_PRELOAD_KEY = 'owasp-ai-goat.secureshop.product-description-renderer-worker-token';
 const ARTIFACT_ROOT = path.resolve(__dirname, '../../client/build/secureshop-product-description-renderer');
 const RENDERER_ROOT_ENV = 'SECURESHOP_PRODUCT_DESCRIPTION_RENDERER_ROOT';
 function unavailable() {

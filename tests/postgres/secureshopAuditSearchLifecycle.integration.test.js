@@ -3,7 +3,7 @@ const test=require('node:test');const assert=require('node:assert/strict');const
 const {createJournal}=require('../../sidecars/audit-sql-target/journal');const {createService}=require('../../sidecars/audit-sql-target/service');
 const {createOwnedAuditSearchSnapshotBuilder}=require('../../server/services/secureshopOwnedAuditSearchSnapshot');const {createOwnedAuditSearchLifecycle}=require('../../server/services/secureshopOwnedAuditSearchLifecycle');
 test('actual owned database lifecycle persists receipts and contains raw SQL', {skip:process.env.PG_AUDIT_SEARCH_DESIGN!=='yes'},async()=>{
- const url=new URL(process.env.PG_AUDIT_SEARCH_URL);assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/dvaia_test_audit_search_[a-f0-9]+$/);
+ const url=new URL(process.env.PG_AUDIT_SEARCH_URL);assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/owasp_ai_goat_test_audit_search_[a-f0-9]+$/);
  const config={host:url.hostname,port:Number(url.port),user:'http_test_admin',database:url.pathname.slice(1)};const pool=new Pool({...config,max:6});
  let service=createService({controlPool:pool,clusterConfig:config});
  const scope={launchId:'11111111-1111-4111-8111-111111111111',scenarioId:'22222222-2222-4222-8222-222222222222',generation:1,platformOwnerId:1,platformSessionId:2};

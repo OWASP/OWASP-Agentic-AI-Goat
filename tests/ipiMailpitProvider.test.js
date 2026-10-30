@@ -44,7 +44,7 @@ test('derives opaque generation-owned inbox and verifies SMTP acceptance', async
   const {provider,sent} = makeProvider();
   const context = {ownerId:7,generation:3};
   const address = provider.addressFor(context);
-  assert.match(address,/^ipi-[A-Za-z0-9_-]{32}@dvaia\.invalid$/);
+  assert.match(address,/^ipi-[A-Za-z0-9_-]{32}@owasp-ai-goat\.invalid$/);
   assert.notEqual(address, provider.addressFor({ownerId:8,generation:3}));
   const result = await provider.sendEmail(address,'Subject','Body','7',context);
   assert.equal(result.smtpAccepted,true);
@@ -62,8 +62,8 @@ test('reads exact Mailpit body and provider identity for current owner', async (
   let address;
   const fetcher = async url => {
     const u = new URL(url);
-    if (u.pathname.endsWith('/search')) return response({messages:[{ID:'m1',MessageID:'<smtp-1@example.invalid>',To:[{Address:address}],From:{Address:'indirectpromptinjection@dvaia.invalid'},Subject:'S',Created:'now'}]});
-    return response({ID:'m1',MessageID:'<smtp-1@example.invalid>',To:[{Address:address}],From:{Address:'indirectpromptinjection@dvaia.invalid'},Subject:'S',Created:'now',Text:'poisoned body',HTML:'<p>poisoned body</p>'});
+    if (u.pathname.endsWith('/search')) return response({messages:[{ID:'m1',MessageID:'<smtp-1@example.invalid>',To:[{Address:address}],From:{Address:'indirectpromptinjection@owasp-ai-goat.invalid'},Subject:'S',Created:'now'}]});
+    return response({ID:'m1',MessageID:'<smtp-1@example.invalid>',To:[{Address:address}],From:{Address:'indirectpromptinjection@owasp-ai-goat.invalid'},Subject:'S',Created:'now',Text:'poisoned body',HTML:'<p>poisoned body</p>'});
   };
   const p = createIpiMailpitProvider({hmacSecret:'b'.repeat(48),fetcher,mailer:{createTransport(){return {verify:async()=>{},sendMail:async()=>({}),close:async()=>{}};}}});
   const current = {ownerId:7,generation:3};

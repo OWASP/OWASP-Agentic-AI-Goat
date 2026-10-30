@@ -1,6 +1,6 @@
 'use strict';
-const HEADER = 'x-dvaia-secureshop-launch';
-const LAUNCH_STATE_HEADER = 'X-DVAIA-SecureShop-Launch-State';
+const HEADER = 'x-owasp-ai-goat-secureshop-launch';
+const LAUNCH_STATE_HEADER = 'X-OWASP-AI-GOAT-SecureShop-Launch-State';
 const LAUNCH_UNAVAILABLE = 'unavailable';
 const BEARER = /^[A-Za-z0-9_-]{43}$/;
 const { createLaunchScope } = require('../services/secureshopConversationBinding');

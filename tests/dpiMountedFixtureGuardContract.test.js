@@ -18,7 +18,7 @@ function exactlyOnce(needle) {
 test('mounted DPI fixture registers its exact listening origin before the first local request', () => {
   const listen = exactlyOnce("app.listen(0,'127.0.0.1'");
   const base = exactlyOnce("const base=`http://127.0.0.1:${server.address().port}`");
-  const register = exactlyOnce('globalThis.__DVAIA_DPI_REGISTER_OWNED_ORIGIN?.(base)');
+  const register = exactlyOnce('globalThis.__OWASP_AI_GOAT_DPI_REGISTER_OWNED_ORIGIN?.(base)');
   const firstRequest = fixture.indexOf('fetch(base+');
 
   assert.notEqual(firstRequest, -1, 'fixture must issue a local mounted request');

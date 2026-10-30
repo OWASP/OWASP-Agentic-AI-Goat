@@ -36,7 +36,7 @@ function createWindowsOwnedLab({ filesystemPlatform = process.platform, privateS
       if (filesystemPlatform !== 'win32' || !(exact(options, optionKeys) || exact(options, [...optionKeys, 'existingOnly']))
         || (Object.hasOwn(options, 'existingOnly') && typeof options.existingOnly !== 'boolean')
         || typeof options.workspaceId !== 'string' || ![12, 64].includes(options.workspaceId.length) || !/^(?:[a-f0-9]{12}|[a-f0-9]{64})$/.test(options.workspaceId) || !uuid(options.installationId) || !uuid(options.operationId)
-        || typeof options.instanceName !== 'string' || /[\r\n]/.test(options.instanceName) || !/^dvaia-lab-[a-z0-9](?:[a-z0-9-]{0,45}[a-z0-9])?$/.test(options.instanceName) || options.image !== '24.04') throw denied();
+        || typeof options.instanceName !== 'string' || /[\r\n]/.test(options.instanceName) || !/^owasp-ai-goat-lab-[a-z0-9](?:[a-z0-9-]{0,45}[a-z0-9])?$/.test(options.instanceName) || options.image !== '24.04') throw denied();
       options = Object.freeze({ ...options });
       const directory = privateDefaults.normalizePrivatePath(options.directory);
       const multipass = privateDefaults.normalizePrivatePath(options.multipassExecutable);
@@ -98,7 +98,7 @@ function createWindowsOwnedLab({ filesystemPlatform = process.platform, privateS
         return { imageHash: value.image_hash, ip: addresses[0] };
       };
       const guestMetadata = async id => {
-        const base = '/var/lib/dvaia/' + id;
+        const base = '/var/lib/owasp-ai-goat/' + id;
         const marker = await mp(['exec', options.instanceName, '--', 'sudo', '-n', 'cat', base + '/owner.json']);
         if (marker !== encode(markerFor(id)).toString()) throw denied();
         const machineId = (await mp(['exec', options.instanceName, '--', 'cat', '/etc/machine-id'])).trim();
@@ -140,10 +140,10 @@ function createWindowsOwnedLab({ filesystemPlatform = process.platform, privateS
         journal.createJournal({ filePath: statePath, bytes: original });
         if (!read(statePath).equals(original)) throw denied();
         const cloudInitPath = privateDefaults.normalizePrivatePath(path.win32.join(directory, 'windows-owned-lab.cloud-init.json'));
-        const cloudInit = Buffer.concat([Buffer.from('#cloud-config\n'), encode({ users: ['default', { name: 'dvaia', groups: ['sudo'], shell: '/bin/bash', sudo: 'ALL=(ALL) NOPASSWD:ALL', ssh_authorized_keys: [pair.publicKey], lock_passwd: true }],
+        const cloudInit = Buffer.concat([Buffer.from('#cloud-config\n'), encode({ users: ['default', { name: 'owasp-ai-goat', groups: ['sudo'], shell: '/bin/bash', sudo: 'ALL=(ALL) NOPASSWD:ALL', ssh_authorized_keys: [pair.publicKey], lock_passwd: true }],
           packages: ['docker.io', 'docker-compose-v2', 'apparmor', 'openssh-server'],
-          write_files: [{ path: '/var/lib/dvaia/' + ownedInstanceUUID + '/owner.json', owner: 'root:root', permissions: '0600', content: encode(markerFor(ownedInstanceUUID)).toString() }],
-          runcmd: [['chmod', '0700', '/var/lib/dvaia/' + ownedInstanceUUID],
+          write_files: [{ path: '/var/lib/owasp-ai-goat/' + ownedInstanceUUID + '/owner.json', owner: 'root:root', permissions: '0600', content: encode(markerFor(ownedInstanceUUID)).toString() }],
+          runcmd: [['chmod', '0700', '/var/lib/owasp-ai-goat/' + ownedInstanceUUID],
             ['systemctl', 'enable', '--now', 'docker.service', 'ssh.service', 'apparmor.service']] })]);
         privateState.createPrivateFile(cloudInitPath, cloudInit);
         if (!read(cloudInitPath).equals(cloudInit)) throw denied();
@@ -152,23 +152,23 @@ function createWindowsOwnedLab({ filesystemPlatform = process.platform, privateS
         const vm = await observe(); if (vm.state !== 'Running') throw denied();
         const observed = await info(), metadata = await guestMetadata(ownedInstanceUUID);
         state = { ...state, imageHash: observed.imageHash, ...metadata, vmId: vm.vmId };
-        privateState.createPrivateFile(knownHostsPath, Buffer.from('dvaia-' + ownedInstanceUUID + ' ' + state.hostKey + '\n'));
+        privateState.createPrivateFile(knownHostsPath, Buffer.from('owasp-ai-goat-' + ownedInstanceUUID + ' ' + state.hostKey + '\n'));
       }
       const sshArgs = () => ['-F', 'NUL', '-i', keyPath, '-o', 'BatchMode=yes', '-o', 'IdentitiesOnly=yes', '-o', 'StrictHostKeyChecking=yes',
         // -o values use ssh_config parsing as well as process argv parsing.
         // Quote the canonical path so a Windows user directory may contain spaces.
-        '-o', 'UserKnownHostsFile="' + knownHostsPath.replace(/\\/g, '/') + '"', '-o', 'GlobalKnownHostsFile=NUL', '-o', 'HostKeyAlias=dvaia-' + state.ownedInstanceUUID,
+        '-o', 'UserKnownHostsFile="' + knownHostsPath.replace(/\\/g, '/') + '"', '-o', 'GlobalKnownHostsFile=NUL', '-o', 'HostKeyAlias=owasp-ai-goat-' + state.ownedInstanceUUID,
         '-o', 'ConnectTimeout=10', '-o', 'ServerAliveInterval=15', '-o', 'ServerAliveCountMax=2', '-o', 'ForwardAgent=no',
         '-o', 'PermitLocalCommand=no', '-o', 'ProxyCommand=none', '-o', 'ProxyJump=none', '-o', 'ControlMaster=no', '-o', 'RequestTTY=no'];
       const identityFiles = () => {
-        if (digest(read(keyPath)) !== state.keySha256 || !read(knownHostsPath).equals(Buffer.from('dvaia-' + state.ownedInstanceUUID + ' ' + state.hostKey + '\n'))) throw denied();
+        if (digest(read(keyPath)) !== state.keySha256 || !read(knownHostsPath).equals(Buffer.from('owasp-ai-goat-' + state.ownedInstanceUUID + ' ' + state.hostKey + '\n'))) throw denied();
       };
-      const guest = async (ip, argv, timeout) => run(ssh, [...sshArgs(), 'dvaia@' + ip, argv.map(quote).join(' ')], timeout);
+      const guest = async (ip, argv, timeout) => run(ssh, [...sshArgs(), 'owasp-ai-goat@' + ip, argv.map(quote).join(' ')], timeout);
       const verifyGuest = async () => {
         const before = await observe(); if (before.vmId !== state.vmId || before.state !== 'Running') throw denied();
         identityFiles(); const observed = await info(), metadata = await guestMetadata(state.ownedInstanceUUID);
         if (observed.imageHash !== state.imageHash || metadata.machineId !== state.machineId || metadata.hostKey !== state.hostKey) throw denied();
-        if (await guest(observed.ip, ['sudo', '-n', 'cat', '/var/lib/dvaia/' + state.ownedInstanceUUID + '/owner.json']) !== encode(markerFor(state.ownedInstanceUUID)).toString()) throw denied();
+        if (await guest(observed.ip, ['sudo', '-n', 'cat', '/var/lib/owasp-ai-goat/' + state.ownedInstanceUUID + '/owner.json']) !== encode(markerFor(state.ownedInstanceUUID)).toString()) throw denied();
         const after = await observe(); if (after.vmId !== before.vmId || after.state !== 'Running') throw denied();
         return observed;
       };
@@ -201,8 +201,8 @@ function createWindowsOwnedLab({ filesystemPlatform = process.platform, privateS
           || (bundlePath !== undefined && !bundles.has(bundlePath)) || args.some(arg => /^[a-z]:[\\/]/i.test(arg) || /(?:^|,)type=bind(?:,|$)/.test(arg))
           || args.some((arg, index) => arg === '--env-file' && !environments.has(args[index + 1]))
           || args.some(arg => arg.startsWith('--env-file=') && !environments.has(arg.slice(11)))
-          || (args[0] === 'start' && (args.length !== 2 || !(args[1] === 'dvaia-postgres-' + options.workspaceId.slice(0, 12) || args[1] === 'dvaia-mailpit-' + options.workspaceId.slice(0, 12) || /^[a-f0-9]{64}$/.test(args[1]))))
-          || (args[0] === 'exec' && (args.length !== 7 || args[1] !== 'dvaia-postgres-' + options.workspaceId.slice(0, 12) || args.slice(2).join('\0') !== ['pg_isready', '-h', '127.0.0.1', '-U', 'postgres'].join('\0')))
+          || (args[0] === 'start' && (args.length !== 2 || !(args[1] === 'owasp-ai-goat-postgres-' + options.workspaceId.slice(0, 12) || args[1] === 'owasp-ai-goat-mailpit-' + options.workspaceId.slice(0, 12) || /^[a-f0-9]{64}$/.test(args[1]))))
+          || (args[0] === 'exec' && (args.length !== 7 || args[1] !== 'owasp-ai-goat-postgres-' + options.workspaceId.slice(0, 12) || args.slice(2).join('\0') !== ['pg_isready', '-h', '127.0.0.1', '-U', 'postgres'].join('\0')))
           || args.some((arg, index) => arg === '--secret' && !secrets.has(args[index + 1]))
           || args.some(arg => arg.startsWith('--secret=') && !secrets.has(arg.slice(9)))
           // Fresh AuditSQL uses the same reviewed major as fresh local PG,
@@ -218,7 +218,7 @@ function createWindowsOwnedLab({ filesystemPlatform = process.platform, privateS
         }
         const command = (bundlePath ? ['sudo', '-n', 'sh', '-c', 'cd "$1" && shift && exec "$@"', 'sh', bundlePath, 'docker', ...args]
           : ['sudo', '-n', 'docker', ...args]).map(quote).join(' ');
-        return run(ssh, [...sshArgs(), 'dvaia@' + current.ip, command], timeoutMs, true);
+        return run(ssh, [...sshArgs(), 'owasp-ai-goat@' + current.ip, command], timeoutMs, true);
       };
       const bindDaemon = async () => {
         const id = JSON.parse((await docker(['info', '--format', '{{json .ID}}'])).trim());
@@ -246,8 +246,8 @@ function createWindowsOwnedLab({ filesystemPlatform = process.platform, privateS
         }
         if (total > 16 * 1024 * 1024) throw denied();
         const bundleHash = digest(encode(files.map(file => ({ path: file.path, sha256: file.sha256 }))));
-        const upload = '/home/ubuntu/dvaia-' + state.ownedInstanceUUID + '-' + bundleHash;
-        const destination = '/var/lib/dvaia/' + state.ownedInstanceUUID + '/' + (['environment', 'secret'].includes(kind) ? 'private' : kind === 'profile' ? 'profiles' : 'bundles/' + bundleHash);
+        const upload = '/home/ubuntu/owasp-ai-goat-' + state.ownedInstanceUUID + '-' + bundleHash;
+        const destination = '/var/lib/owasp-ai-goat/' + state.ownedInstanceUUID + '/' + (['environment', 'secret'].includes(kind) ? 'private' : kind === 'profile' ? 'profiles' : 'bundles/' + bundleHash);
         await mp(['exec', options.instanceName, '--', 'install', '-d', '-m', '0700', upload]);
         await guest(current.ip, ['sudo', '-n', 'install', '-d', '-m', '0700', destination]);
         for (let index = 0; index < files.length; index++) {
@@ -297,7 +297,7 @@ function createWindowsOwnedLab({ filesystemPlatform = process.platform, privateS
         },
         installAndVerifyProfile: async ({ name, bytes, sha256, existingOnly = false }) => {
           if (typeof existingOnly !== 'boolean') throw denied();
-          if (!(name === 'dvaia-mcp-sandbox' || name === 'dvaia-owned-http-' + options.workspaceId.slice(0, 12) || name === 'dvaia-owned-shadow-' + options.workspaceId.slice(0, 12))) throw denied();
+          if (!(name === 'owasp-ai-goat-mcp-sandbox' || name === 'owasp-ai-goat-owned-http-' + options.workspaceId.slice(0, 12) || name === 'owasp-ai-goat-owned-shadow-' + options.workspaceId.slice(0, 12))) throw denied();
           const staged = (await stageFiles([{ path: 'profile-' + sha256, bytes, sha256 }], 'profile')) + '/profile-' + sha256;
           const current = await assertCurrent(), destination = '/etc/apparmor.d/' + name;
           await guest(current.ip, ['sudo', '-n', 'apparmor_parser', '--skip-kernel-load', staged]);
@@ -326,7 +326,7 @@ function createWindowsOwnedLab({ filesystemPlatform = process.platform, privateS
           // It must resolve only after SSH forwarding readiness, and expose a
           // stopAndJoin that waits for job drain. No raw PID is adopted here.
           if (newPorts.length) {
-            const args = [...sshArgs(), '-o', 'ExitOnForwardFailure=yes', '-N', ...newPorts.flatMap(item => ['-L', `127.0.0.1:${item.local}:127.0.0.1:${item.guest}`]), 'dvaia@' + current.ip];
+            const args = [...sshArgs(), '-o', 'ExitOnForwardFailure=yes', '-N', ...newPorts.flatMap(item => ['-L', `127.0.0.1:${item.local}:127.0.0.1:${item.guest}`]), 'owasp-ai-goat@' + current.ip];
             const group = {};
             forwardGroups.add(group);
             for (const port of newPorts) portBindings.set(port.local, { guest: port.guest, group });

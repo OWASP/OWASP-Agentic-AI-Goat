@@ -1,7 +1,7 @@
-# SecureShop action manifest: reviewed partitions
+# OWASP AI SecureShop action manifest: reviewed partitions
 
 `supported-action-manifest.json` freezes the current 335 bridge registrations,
-including five separately compiled multipart operations, and all 64 SecureShop
+including five separately compiled multipart operations, and all 64 OWASP AI SecureShop
 curriculum objective IDs. Each operation keeps its exact identity, HTTP method,
 and path. Contract tests compare that closed list with `describeOperations()`;
 new, removed, or changed operations require an explicit manifest review.
@@ -10,7 +10,7 @@ This is a bridge-registry denominator, **not a complete supported-action
 denominator**. A registered operation might be unavailable or legacy-only.
 Direct fetches, physical UI labels, agent tools, conditional runtime composition,
 non-SecureShop workshops, and CTF actions still require reconciliation. Neither
-SecureShop nor global Q05/Q08 completion is claimed.
+OWASP AI SecureShop nor global Q05/Q08 completion is claimed.
 
 The earlier 324-registration inventory remains a historical baseline. The
 current registry has eleven additional registrations: seven
@@ -755,7 +755,7 @@ Judge acceptance or canonical progress.
    owned effect/readback, Judge and canonical completion receipts using the
    existing family adapters. Report manual/read-only/ungraded applicability
    explicitly where established. No new scorer is introduced by this manifest.
-4. Reconcile remaining SecureShop direct fetches/tools and non-SecureShop/CTF
+4. Reconcile remaining OWASP AI SecureShop direct fetches/tools and non-SecureShop/CTF
    actions before declaring any supported global denominator complete.
 
 Run the controlled structural contract with

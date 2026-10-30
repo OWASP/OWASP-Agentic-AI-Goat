@@ -8,47 +8,47 @@ COPY sidecars/sandbox-runner/owned-mcp-registry /source/sidecars/sandbox-runner/
 COPY server/services /source/server/services
 COPY sidecars/sandbox-runner/mcpSeccompFilter.c /build/
 RUN mkdir /out \
- && gcc -O2 -Wall -Wextra -Werror /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-supervisor.c -o /out/dvaia-invocation-supervisor \
- && gcc -O2 -Wall -Wextra -Werror /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-bootstrap.c -o /out/dvaia-invocation-bootstrap \
- && gcc -O2 -Wall -Wextra -Werror -shared -fPIC -DNODE_GYP_MODULE_NAME=dvaia_invocation_peer -I/usr/local/include/node /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-peer.c -o /out/dvaia-invocation-peer.node \
+ && gcc -O2 -Wall -Wextra -Werror /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-supervisor.c -o /out/owasp-ai-goat-invocation-supervisor \
+ && gcc -O2 -Wall -Wextra -Werror /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-bootstrap.c -o /out/owasp-ai-goat-invocation-bootstrap \
+ && gcc -O2 -Wall -Wextra -Werror -shared -fPIC -DNODE_GYP_MODULE_NAME=owasp_ai_goat_invocation_peer -I/usr/local/include/node /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-peer.c -o /out/owasp-ai-goat-invocation-peer.node \
  && gcc -O2 -Wall -Wextra -Werror mcpSeccompFilter.c -lseccomp -o /tmp/filter && /tmp/filter /out/invocation-target.seccomp.bpf \
- && NODE_PATH=/build/node_modules ./node_modules/.bin/esbuild /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-worker.js --bundle --platform=node --format=cjs --outfile=/out/dvaia-invocation-worker.js \
- && NODE_PATH=/build/node_modules ./node_modules/.bin/esbuild /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-listener.js --bundle --platform=node --format=cjs --external:/usr/local/libexec/dvaia-invocation-peer.node --outfile=/out/invocation-listener.js
+ && NODE_PATH=/build/node_modules ./node_modules/.bin/esbuild /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-worker.js --bundle --platform=node --format=cjs --outfile=/out/owasp-ai-goat-invocation-worker.js \
+ && NODE_PATH=/build/node_modules ./node_modules/.bin/esbuild /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-listener.js --bundle --platform=node --format=cjs --external:/usr/local/libexec/owasp-ai-goat-invocation-peer.node --outfile=/out/invocation-listener.js
 FROM node:26.10.0-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1 AS runtime
-RUN test "$(dpkg --print-architecture)" = arm64 && apt-get update && apt-get install -y --no-install-recommends bubblewrap libseccomp2 && rm -rf /var/lib/apt/lists/* && mkdir -p /usr/share/dvaia /usr/local/libexec /app/sidecars/sandbox-runner/owned-mcp-registry
-COPY --from=build /out/dvaia-invocation-supervisor /out/dvaia-invocation-bootstrap /out/dvaia-invocation-peer.node /out/dvaia-invocation-worker.js /usr/local/libexec/
+RUN test "$(dpkg --print-architecture)" = arm64 && apt-get update && apt-get install -y --no-install-recommends bubblewrap libseccomp2 && rm -rf /var/lib/apt/lists/* && mkdir -p /usr/share/owasp-ai-goat /usr/local/libexec /app/sidecars/sandbox-runner/owned-mcp-registry
+COPY --from=build /out/owasp-ai-goat-invocation-supervisor /out/owasp-ai-goat-invocation-bootstrap /out/owasp-ai-goat-invocation-peer.node /out/owasp-ai-goat-invocation-worker.js /usr/local/libexec/
 COPY --from=build /out/invocation-listener.js /app/sidecars/sandbox-runner/owned-mcp-registry/invocation-listener.js
-COPY --from=build /out/invocation-target.seccomp.bpf /usr/share/dvaia/invocation-target.seccomp.bpf
+COPY --from=build /out/invocation-target.seccomp.bpf /usr/share/owasp-ai-goat/invocation-target.seccomp.bpf
 COPY --chmod=0444 sidecars/sandbox-runner/owned-mcp-registry/invocation-build-assets.js /app/invocation-build-assets.js
 RUN node /app/invocation-build-assets.js && chmod 0555 /app /app/sidecars /app/sidecars/sandbox-runner /app/sidecars/sandbox-runner/owned-mcp-registry
 USER 10001:10001
-RUN node -e "const fs=require('node:fs');const a=require('/app/invocation-build-assets');a.verify();for(const p of a.ASSETS)fs.accessSync(p,fs.constants.R_OK);fs.accessSync('/usr/local/libexec/dvaia-invocation-supervisor',fs.constants.X_OK)"
+RUN node -e "const fs=require('node:fs');const a=require('/app/invocation-build-assets');a.verify();for(const p of a.ASSETS)fs.accessSync(p,fs.constants.R_OK);fs.accessSync('/usr/local/libexec/owasp-ai-goat-invocation-supervisor',fs.constants.X_OK)"
 EXPOSE 8095
 # Three nonsecret expected identity arguments are mandatory. Mount only reviewed
-# private state/secrets and an owned0700 /run/dvaia-invocation tmpfs. Native plan
+# private state/secrets and an owned0700 /run/owasp-ai-goat-invocation tmpfs. Native plan
 # must retain readonly root, profile, capabilities and isolated network policy.
-ENTRYPOINT ["/usr/local/libexec/dvaia-invocation-supervisor"]
+ENTRYPOINT ["/usr/local/libexec/owasp-ai-goat-invocation-supervisor"]
 
 # Explicit qualification target only; absent from the runtime asset registry.
 FROM build AS attestation-controls-build
-RUN gcc -O2 -Wall -Wextra -Werror /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-attestation-controls.c -o /out/dvaia-invocation-attestation-controls
+RUN gcc -O2 -Wall -Wextra -Werror /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-attestation-controls.c -o /out/owasp-ai-goat-invocation-attestation-controls
 FROM runtime AS attestation-qualification
 USER root
-COPY --from=attestation-controls-build /out/dvaia-invocation-attestation-controls /usr/local/libexec/dvaia-invocation-attestation-controls
-RUN chmod 0555 /usr/local/libexec/dvaia-invocation-attestation-controls && sha256sum /usr/local/libexec/dvaia-invocation-attestation-controls > /usr/share/dvaia/invocation-attestation-controls.sha256 && chmod 0444 /usr/share/dvaia/invocation-attestation-controls.sha256
+COPY --from=attestation-controls-build /out/owasp-ai-goat-invocation-attestation-controls /usr/local/libexec/owasp-ai-goat-invocation-attestation-controls
+RUN chmod 0555 /usr/local/libexec/owasp-ai-goat-invocation-attestation-controls && sha256sum /usr/local/libexec/owasp-ai-goat-invocation-attestation-controls > /usr/share/owasp-ai-goat/invocation-attestation-controls.sha256 && chmod 0444 /usr/share/owasp-ai-goat/invocation-attestation-controls.sha256
 USER 10001:10001
 # Fixed scheduling variants; no public or environment selector in the runtime.
 FROM build AS cancellation-controls-build
-RUN gcc -O2 -Wall -Wextra -Werror -DDVAIA_ATTESTATION_HOLD_PHASE=2 /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-supervisor.c -o /out/dvaia-invocation-supervisor-pre \
- && gcc -O2 -Wall -Wextra -Werror -DDVAIA_ATTESTATION_HOLD_PHASE=3 /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-supervisor.c -o /out/dvaia-invocation-supervisor-post
+RUN gcc -O2 -Wall -Wextra -Werror -DOWASP_AI_GOAT_ATTESTATION_HOLD_PHASE=2 /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-supervisor.c -o /out/owasp-ai-goat-invocation-supervisor-pre \
+ && gcc -O2 -Wall -Wextra -Werror -DOWASP_AI_GOAT_ATTESTATION_HOLD_PHASE=3 /source/sidecars/sandbox-runner/owned-mcp-registry/invocation-supervisor.c -o /out/owasp-ai-goat-invocation-supervisor-post
 FROM runtime AS cancellation-pre
 USER root
-COPY --from=cancellation-controls-build /out/dvaia-invocation-supervisor-pre /usr/local/libexec/dvaia-invocation-supervisor
+COPY --from=cancellation-controls-build /out/owasp-ai-goat-invocation-supervisor-pre /usr/local/libexec/owasp-ai-goat-invocation-supervisor
 RUN node /app/invocation-build-assets.js
 USER 10001:10001
 FROM runtime AS cancellation-post
 USER root
-COPY --from=cancellation-controls-build /out/dvaia-invocation-supervisor-post /usr/local/libexec/dvaia-invocation-supervisor
+COPY --from=cancellation-controls-build /out/owasp-ai-goat-invocation-supervisor-post /usr/local/libexec/owasp-ai-goat-invocation-supervisor
 RUN node /app/invocation-build-assets.js
 USER 10001:10001
 # A default docker build still produces the ordinary runtime, never test tools.

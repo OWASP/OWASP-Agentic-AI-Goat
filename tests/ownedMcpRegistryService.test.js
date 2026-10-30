@@ -27,10 +27,10 @@ test('Q05 private profile admits owned invoke while ordinary registration and V3
 });
 async function fixture(t,fault={}){
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'registry-service-control-'));await fs.mkdir(path.join(root,'tasks/tmp'),{recursive:true});t.after(()=>fs.rm(root,{recursive:true,force:true}));
-  const nonce=crypto.randomBytes(6).toString('hex'),name='dvaia-owned-mcp-registry-'+nonce,directory=path.join(root,'tasks/tmp/v23-service-'+nonce),id='c'.repeat(64),calls=[];
+  const nonce=crypto.randomBytes(6).toString('hex'),name='owasp-ai-goat-owned-mcp-registry-'+nonce,directory=path.join(root,'tasks/tmp/v23-service-'+nonce),id='c'.repeat(64),calls=[];
   let exists=false,running=false,profile=false,token,dispatch,closed=false,bodySeen=[];
   const read=async name=>JSON.parse(await fs.readFile(path.join(directory,name+'.json')));
-  const row=()=>({Id:id,Name:'/'+name,Image:RUNTIME_IMAGE,Config:{User:'10001:10001',Entrypoint:['node','sidecars/sandbox-runner/owned-mcp-registry/http-listener.js'],Labels:{'dvaia.runtime':nonce},Env:['SECURESHOP_MCP_REGISTRY_ENABLED=true','SECURESHOP_MCP_REGISTRY_TOKEN='+token,'SECURESHOP_MCP_REGISTRY_PROFILE='+name,'SECURESHOP_MCP_REGISTRY_HOST=127.0.0.1','SECURESHOP_MCP_REGISTRY_PORT=8094']},HostConfig:{NetworkMode:'none',ReadonlyRootfs:true,Privileged:false,CapDrop:['ALL'],Memory:536870912,NanoCpus:1000000000,PidsLimit:128,LogConfig:{Type:'none'},RestartPolicy:{Name:'no'},SecurityOpt:['apparmor='+name,'seccomp=unconfined'],Tmpfs:{'/tmp':'rw,nosuid,nodev,noexec,size=16m'}},Mounts:[],State:{Running:running}});
+  const row=()=>({Id:id,Name:'/'+name,Image:RUNTIME_IMAGE,Config:{User:'10001:10001',Entrypoint:['node','sidecars/sandbox-runner/owned-mcp-registry/http-listener.js'],Labels:{'owasp-ai-goat.runtime':nonce},Env:['SECURESHOP_MCP_REGISTRY_ENABLED=true','SECURESHOP_MCP_REGISTRY_TOKEN='+token,'SECURESHOP_MCP_REGISTRY_PROFILE='+name,'SECURESHOP_MCP_REGISTRY_HOST=127.0.0.1','SECURESHOP_MCP_REGISTRY_PORT=8094']},HostConfig:{NetworkMode:'none',ReadonlyRootfs:true,Privileged:false,CapDrop:['ALL'],Memory:536870912,NanoCpus:1000000000,PidsLimit:128,LogConfig:{Type:'none'},RestartPolicy:{Name:'no'},SecurityOpt:['apparmor='+name,'seccomp=unconfined'],Tmpfs:{'/tmp':'rw,nosuid,nodev,noexec,size=16m'}},Mounts:[],State:{Running:running}});
   const docker=async(spec,args,options={})=>{
     calls.push(args);assert.equal(spec.root,root);assert.equal(options.timeoutMs,40000,'every Docker phase is bounded');
     if(args[0]==='info')return JSON.stringify(fault.daemon||PINS.daemon);
@@ -46,7 +46,7 @@ async function fixture(t,fault={}){
     }
     if(args[0]==='container'){
       await fault.inspect?.();
-      const r=row();if(fault.foreign)r.Config.Labels['dvaia.runtime']='foreign';if(fault.publish)r.HostConfig.PortBindings={'8094/tcp':[{}]};if(fault.mount)r.Mounts=[{Type:'bind',Destination:'/app'}];return JSON.stringify([r]);
+      const r=row();if(fault.foreign)r.Config.Labels['owasp-ai-goat.runtime']='foreign';if(fault.publish)r.HostConfig.PortBindings={'8094/tcp':[{}]};if(fault.mount)r.Mounts=[{Type:'bind',Destination:'/app'}];return JSON.stringify([r]);
     }
     if(args[0]==='start'){assert.equal((await read('created')).id,id);running=true;return id;}
     if(args[0]==='exec'){

@@ -87,7 +87,7 @@ test('close is terminal, aborts active work and waits for an admitted callback t
   let releaseCallback;
   const entered = new Promise(resolve => { callbackEntered = resolve; });
   const callbackGate = new Promise(resolve => { releaseCallback = resolve; });
-  const mainFrame = { url: () => `${ATTACKER}/__dvaia_csrf_browser_attempt__` };
+  const mainFrame = { url: () => `${ATTACKER}/__owasp_ai_goat_csrf_browser_attempt__` };
   const page = {
     setBypassServiceWorker: async () => {},
     setRequestInterception: async () => {},

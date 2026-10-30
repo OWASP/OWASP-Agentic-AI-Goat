@@ -8,7 +8,7 @@ const { spawnSync } = require('node:child_process');
 
 for (const script of ['sync-pi-solutions-to-db.js', 'verify-pr6-indirect-prompt-visibility.js']) {
   test(`${script} explains retirement without database dependencies or mutation`, () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-retired-maintenance-'));
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-retired-maintenance-'));
     try {
       fs.mkdirSync(path.join(root, 'scripts'));
       fs.mkdirSync(path.join(root, 'server/database'), { recursive: true });

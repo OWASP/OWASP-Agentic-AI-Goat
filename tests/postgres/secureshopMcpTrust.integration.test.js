@@ -18,13 +18,13 @@ const {validateSecureShopMcpTrustQualifierSchema}=require('./secureshopMcpTrustQ
 const PREFIX='PG_SECURESHOP_MCP_TRUST_';const KEYS=['IDENTITY_MIGRATION_URL','IDENTITY_RUNTIME_URL','AGENTS_MIGRATION_URL','AGENTS_RUNTIME_URL'];
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&KEYS.every(key=>process.env[PREFIX+key]);const uuid=crypto.randomUUID;
 async function assertLedger(pool,directory){const expected=await readMigrations(directory),actual=(await pool.query('SELECT name,checksum FROM dvaia_migrations.ledger ORDER BY name')).rows;assert.deepEqual(actual,expected.map(row=>({name:row.name,checksum:row.checksum})));}
-function checked(key){const value=new URL(process.env[PREFIX+key]);assert.ok(['127.0.0.1','localhost'].includes(value.hostname));assert.match(value.pathname,/^\/dvaia_test_[a-z0-9_]+$/);return value.href;}
+function checked(key){const value=new URL(process.env[PREFIX+key]);assert.ok(['127.0.0.1','localhost'].includes(value.hostname));assert.match(value.pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);return value.href;}
 test('launch-owned MCP targets preserve distinct trust lessons, runtime effects, reset replay and sibling isolation',{skip:!enabled,timeout:120000},async t=>{
-  const workspaceInput=process.env.DVAIA_ISOLATED_TEST_WORKSPACE;assert.ok(workspaceInput,'DVAIA_ISOLATED_TEST_WORKSPACE is required');
+  const workspaceInput=process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;assert.ok(workspaceInput,'OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE is required');
   const workspace=await fs.realpath(workspaceInput);assert.equal(workspace,await fs.realpath(process.cwd()));assert.equal((await fs.stat(workspace)).isDirectory(),true);
   const identityMigration=new Pool({connectionString:checked('IDENTITY_MIGRATION_URL'),max:2});const identity=new Pool({connectionString:checked('IDENTITY_RUNTIME_URL'),max:8});
   const agentsMigration=new Pool({connectionString:checked('AGENTS_MIGRATION_URL'),max:2});const agents=new Pool({connectionString:checked('AGENTS_RUNTIME_URL'),max:8});
-  const fixtureRoot=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-native-fixture-'));t.after(()=>fs.rm(fixtureRoot,{recursive:true,force:true}));
+  const fixtureRoot=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-native-fixture-'));t.after(()=>fs.rm(fixtureRoot,{recursive:true,force:true}));
   try{await initializeIdentityRepository(identity,identityMigration);await seedWorkshopPlatform(identityMigration);
     await initializeSecureShopAgentsDb({runtimePool:agents,migrationPool:agentsMigration});
     const ledger={identity:Number((await identityMigration.query('SELECT count(*)::int AS n FROM dvaia_migrations.ledger')).rows[0].n),

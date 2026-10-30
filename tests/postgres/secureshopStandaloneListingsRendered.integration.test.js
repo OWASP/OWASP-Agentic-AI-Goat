@@ -59,7 +59,7 @@ function disposableUrls() {
       assert.equal(url.protocol, 'postgresql:'); assert.equal(url.hostname, '127.0.0.1');
       assert.match(url.port, /^[1-9][0-9]{0,4}$/); assert.ok(Number(url.port) <= 65535);
       assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-      const match = new RegExp(`^/dvaia_test_agent_host_([0-9a-f]{12})_${basename}$`).exec(url.pathname);
+      const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([0-9a-f]{12})_${basename}$`).exec(url.pathname);
       assert.ok(match, `closed disposable database required for ${key}`);
       assert.equal(url.username, `dvaia_${basename}_${role.toLowerCase()}`);
       nonce ??= match[1]; port ??= url.port;
@@ -271,13 +271,13 @@ function managerConfiguration(root) {
   assert.match(token, /^[A-Za-z0-9_-]{43,128}$/);
   // The validated application record is in memory and never published to the
   // installed managed-config path. The launcher owns the nonce Docker objects.
-  const profileName = `dvaia-owned-listings-${workspaceId}`;
+  const profileName = `owasp-ai-goat-owned-listings-${workspaceId}`;
   const profileSource = require('node:fs').readFileSync(path.join(root,
     'sidecars/sandbox-runner/owned-listings/profile.apparmor.in'), 'utf8');
   const privateRun = env.SECURESHOP_LISTINGS_PRIVATE_MANAGER_RUN_ID;
   if (privateRun !== undefined) {
     assert.match(privateRun, /^[a-f0-9]{32}$/);
-    assert.equal(dockerHost, `unix:///var/tmp/dvaia-v23-build-${privateRun}/fs/docker.sock`);
+    assert.equal(dockerHost, `unix:///var/tmp/owasp-ai-goat-v23-build-${privateRun}/fs/docker.sock`);
     assert.equal(env.SECURESHOP_LISTINGS_PRIVATE_MANAGER_PROFILE, profileName);
     assert.equal(env.SECURESHOP_LISTINGS_PRIVATE_MANAGER_CONTAINER, profileName);
     assert.equal(env.SECURESHOP_LISTINGS_PRIVATE_MANAGER_PROFILE_SHA256,
@@ -479,7 +479,7 @@ async function launchStandaloneBrowser({ root, receiptPath, origin, profile, exe
   if (!receiptPath) return require('puppeteer').launch(ordinary);
   const directory = await assertStandaloneReceiptPath(root, receiptPath, receiptName);
   assert.equal(root, process.cwd());
-  assert.equal(root, process.env.DVAIA_CURRENT_MAIN_WORKSPACE);
+  assert.equal(root, process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE);
   const runtime = path.join(directory, 'runtime'), tmp = path.join(runtime, 'tmp');
   const home = path.join(runtime, 'home');
   async function ownedDirectory(value) {
@@ -490,7 +490,7 @@ async function launchStandaloneBrowser({ root, receiptPath, origin, profile, exe
   }
   for (const value of [runtime, tmp, home, profile]) await ownedDirectory(value);
   assert.equal(path.dirname(profile), tmp);
-  assert.match(path.basename(profile), /^dvaia-listings-browser-[A-Za-z0-9_-]+$/);
+  assert.match(path.basename(profile), /^owasp-ai-goat-listings-browser-[A-Za-z0-9_-]+$/);
   assert.equal(process.env.TMPDIR, tmp); assert.equal(process.env.MAC_CHROMIUM_TMPDIR, tmp);
   for (const [key, name] of [['XDG_CACHE_HOME', '.cache'], ['XDG_CONFIG_HOME', '.config']]) {
     const value = path.join(home, name); assert.equal(process.env[key], value);
@@ -542,7 +542,7 @@ async function runStandaloneListingsQualification(options = {}) {
         || process.env.SECURESHOP_STANDALONE_LISTINGS_NATIVE === '1', false,
       'Generated fixed contrast has its own opt-in selector');
     }
-    const root = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
+    const root = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/');
     assert.equal(root, process.cwd(), 'current-main source only');
     const receiptPath = exerciseReceiptPath || (RECOVERY_ENABLED ? process.env.SECURESHOP_PRODUCT_MANUAL_RECOVERY_EVIDENCE_PATH : CHAT_LISTINGS_ENABLED ? process.env.SECURESHOP_MERCHANT_LISTINGS_CHAT_BROWSER_EVIDENCE_PATH : SEARCH_ENABLED
       ? process.env.SECURESHOP_MERCHANT_MANUAL_SEARCH_EVIDENCE_PATH
@@ -845,7 +845,7 @@ async function runStandaloneListingsQualification(options = {}) {
           includeRunArtifacts: true });
       const manualFileRoot = MANUAL_ENABLED
         ? await fs.mkdtemp(path.join(RECOVERY_ENABLED ? path.dirname(receiptPath) : os.tmpdir(),
-          'dvaia-manual-ingest-files-')) : null;
+          'owasp-ai-goat-manual-ingest-files-')) : null;
       if (manualFileRoot) profiles.push(manualFileRoot);
       const manualFiles = manualFileRoot
         ? require('../../sidecars/sandbox-runner/secureshopFiles').createSecureShopFiles({
@@ -1133,7 +1133,7 @@ async function runStandaloneListingsQualification(options = {}) {
         assert.equal(tmpInfo.uid, process.getuid());
         assert.equal(tmpInfo.mode & 0o777, 0o700);
         assert.equal(await fs.realpath(assessmentTmp), assessmentTmp);
-        const assessmentProfile = await fs.mkdtemp(path.join(assessmentTmp, 'dvaia-listings-browser-'));
+        const assessmentProfile = await fs.mkdtemp(path.join(assessmentTmp, 'owasp-ai-goat-listings-browser-'));
         profiles.push(assessmentProfile);
         assessmentQualification = require('../../server/services/xssBrowserQualification')
           .createXssBrowserQualification({ puppeteer: { launch: launchOptions =>
@@ -1387,7 +1387,7 @@ async function runStandaloneListingsQualification(options = {}) {
         require('../../server/services/secureshopStandaloneMode').createSecureShopStandaloneMode({
           authService: importSibling.service, repository: modeRepository }), siblingBootstrap) : null;
       async function importFromRendered(app, allowedStatuses = [200, 202]) {
-        const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-listings-browser-'));
+        const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-listings-browser-'));
         profiles.push(profile);
         const browser = await launchStandaloneBrowser({ root,
           receiptPath: standalonePrivateReceipt ? receiptPath : null,
@@ -1451,7 +1451,7 @@ async function runStandaloneListingsQualification(options = {}) {
           'rendered Listings response', 90000);
         assert.ok(allowedStatuses.includes(responseStatus), `Listings response ${responseStatus}`);
         const cookie = (await page.cookies(`${app.origin}/api/secureshop/auth/session`))
-          .find(value => value.name === 'dvaia_shop_session');
+          .find(value => value.name === 'owasp_ai_goat_shop_session');
         assert.equal(cookie?.httpOnly, true);
         return { operationId: app.requests[0].operationId, cookie: cookie.value, frame,
           page, browser, responseStatus };
@@ -1470,7 +1470,7 @@ async function runStandaloneListingsQualification(options = {}) {
         assert.equal(Object.hasOwn(result, 'fixtureCleaned'), false, 'Only assembly cleanup may set this flag');
         Object.assign(status, result);
       } else if (CHAT_LISTINGS_ENABLED) {
-        const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-listings-browser-'));
+        const profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-listings-browser-'));
         profiles.push(profile);
         const browser = await launchStandaloneBrowser({ root,
           receiptPath: merchantPrivateReceipt ? receiptPath : null,
@@ -1488,12 +1488,12 @@ async function runStandaloneListingsQualification(options = {}) {
         const composer='textarea[id^="lane-merchant-assistant-"]';
         await frame.waitForSelector(composer,{visible:true});
         const cookie=(await page.cookies(`${vulnerableApp.origin}/api/secureshop/auth/session`))
-          .find(value=>value.name==='dvaia_shop_session');assert.equal(cookie?.httpOnly,true);
+          .find(value=>value.name==='owasp_ai_goat_shop_session');assert.equal(cookie?.httpOnly,true);
         const base=await auth.authenticate(cookie.value),ready=await defaultBootstrap(base);
         const scope=await composition.launches.resolveCapability(ready.bearer);
         const actor=await composition.personaAuth.authenticateBoundToken({scope,token:ready.persona.token});
         const personaSession={sessionId:actor.sessionId,authorityVersion:actor.authorityVersion};
-        const headers={authorization:`Bearer ${ready.persona.token}`,'x-dvaia-secureshop-launch':ready.bearer};
+        const headers={authorization:`Bearer ${ready.persona.token}`,'x-owasp-ai-goat-secureshop-launch':ready.bearer};
         const target=await composition.catalog.prepareTarget({scope,persona:actor.user,personaSession});
         assert.equal(target.targetId,vulnBirth.target.targetId);
         const counters=()=>({actorCalls:actorTransportCalls,judgeCalls,chatPosts:vulnerableApp.merchantTransport.posts.length,
@@ -1662,7 +1662,7 @@ async function runStandaloneListingsQualification(options = {}) {
         await page.screenshot({path:screenshot});await fs.chmod(screenshot,0o600);
         await fs.writeFile(path.join(path.dirname(receiptPath),'merchant-listings-chat-effects.json'),JSON.stringify({import:{setup:importSetup,result:imported.body,admission:importRows[0],events:importEvents},rewrite:{setup:rewriteSetup,result:rewritten.body,save:captured,saveRow,generated}},null,2),{mode:0o600});
         const siblingReady=await defaultBootstrap(await auth.authenticate(sibling.token));
-        const siblingHeaders={authorization:`Bearer ${siblingReady.persona.token}`,'x-dvaia-secureshop-launch':siblingReady.bearer};
+        const siblingHeaders={authorization:`Bearer ${siblingReady.persona.token}`,'x-owasp-ai-goat-secureshop-launch':siblingReady.bearer};
         const siblingSessionResponse=await fetch(`${vulnerableApp.origin}/api/secureshop/agents/merchant/assistant/session`,
           {method:'POST',headers:{...siblingHeaders,'content-type':'application/json'},body:'{}',signal:AbortSignal.timeout(30000)});
         assert.equal(siblingSessionResponse.status,200);
@@ -1769,7 +1769,7 @@ async function runStandaloneListingsQualification(options = {}) {
         // remain authenticated when committing its own launch reset.
         const logoutLogin=await auth.login({username,password});
         const logoutReady=await defaultBootstrap(await auth.authenticate(logoutLogin.token));
-        const logoutHeaders={authorization:`Bearer ${logoutReady.persona.token}`,'x-dvaia-secureshop-launch':logoutReady.bearer};
+        const logoutHeaders={authorization:`Bearer ${logoutReady.persona.token}`,'x-owasp-ai-goat-secureshop-launch':logoutReady.bearer};
         const logoutSessionResponse=await fetch(`${vulnerableApp.origin}/api/secureshop/agents/merchant/assistant/session`,
           {method:'POST',headers:{...logoutHeaders,'content-type':'application/json'},body:'{}',signal:AbortSignal.timeout(30000)});
         assert.equal(logoutSessionResponse.status,200);
@@ -1788,7 +1788,7 @@ async function runStandaloneListingsQualification(options = {}) {
         assert.equal(typeof composition.productManualIngestion?.upload, 'function');
         assert.ok(manualFiles, 'owned manual file primitive required');
         const profile = await fs.mkdtemp(path.join(RECOVERY_ENABLED ? path.dirname(receiptPath) : os.tmpdir(),
-          'dvaia-manual-browser-'));
+          'owasp-ai-goat-manual-browser-'));
         profiles.push(profile);
         const browser = await require('puppeteer').launch({ headless: true,
           userDataDir: profile, executablePath }); browsers.push(browser);
@@ -1843,7 +1843,7 @@ async function runStandaloneListingsQualification(options = {}) {
           await fs.chmod(screenshot, 0o600);
         };
         const cookie = (await page.cookies(`${vulnerableApp.origin}/api/secureshop/auth/session`))
-          .find(value => value.name === 'dvaia_shop_session');
+          .find(value => value.name === 'owasp_ai_goat_shop_session');
         assert.equal(cookie?.httpOnly, true);
         const ownerBase = await auth.authenticate(cookie.value);
         const ownerReady = await defaultBootstrap(ownerBase);
@@ -2087,7 +2087,7 @@ async function runStandaloneListingsQualification(options = {}) {
           const operationPath = request => `/api/secureshop/agents/merchant/assistant/operations/${request.sessionId}/${request.requestId}`;
           const privateRead = async (ready, request) => {
             const response = await fetch(vulnerableApp.origin + operationPath(request), {
-              headers: { 'x-dvaia-secureshop-launch': ready.bearer,
+              headers: { 'x-owasp-ai-goat-secureshop-launch': ready.bearer,
                 authorization: `Bearer ${ready.persona.token}` }, signal: AbortSignal.timeout(30000) });
             return { status: response.status, body: await response.json() };
           };
@@ -2257,7 +2257,7 @@ async function runStandaloneListingsQualification(options = {}) {
               && section.textContent.includes('No manual sources found.') && !section.querySelector('pre')),
           { timeout: 30000 }, emptyName);
           status.emptyOwnedProductManual = true;
-          const siblingProfile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-manual-browser-sibling-'));
+          const siblingProfile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-manual-browser-sibling-'));
           profiles.push(siblingProfile);
           const siblingBrowser = await require('puppeteer').launch({ headless: true,
             userDataDir: siblingProfile, executablePath }); browsers.push(siblingBrowser);
@@ -2280,7 +2280,7 @@ async function runStandaloneListingsQualification(options = {}) {
           await siblingFrame.waitForFunction(name => document.querySelector('[aria-label="Account menu"]')?.title === name,
             { timeout: 30000 }, siblingUsername);
           const siblingCookie = (await siblingPage.cookies(`${vulnerableApp.origin}/api/secureshop/auth/session`))
-            .find(value => value.name === 'dvaia_shop_session');
+            .find(value => value.name === 'owasp_ai_goat_shop_session');
           const siblingBase = await auth.authenticate(siblingCookie.value);
           const siblingReady = await defaultBootstrap(siblingBase);
           const siblingScope = await composition.launches.resolveCapability(siblingReady.bearer);
@@ -2529,7 +2529,7 @@ async function runStandaloneListingsQualification(options = {}) {
           document.querySelector('button[aria-label="Account menu"]')?.title === name,
         { timeout: 30000 }, siblingUsername);
         const siblingCookie = (await page.cookies(`${vulnerableApp.origin}/api/secureshop/auth/session`))
-          .find(value => value.name === 'dvaia_shop_session');
+          .find(value => value.name === 'owasp_ai_goat_shop_session');
         assert.equal(siblingCookie?.httpOnly, true);
         const siblingBase = await auth.authenticate(siblingCookie.value);
         const siblingReady = await defaultBootstrap(siblingBase);
@@ -2726,7 +2726,7 @@ async function runStandaloneListingsQualification(options = {}) {
       }
       const actorCount = modelDecisions.length, priorJudgeCalls = judgeCalls;
       const priorActorDispatches = actorDispatches, priorActualInvocations = actualActorInvocations;
-      const recoveryHeaders = { 'x-dvaia-secureshop-launch': defaultReady.bearer,
+      const recoveryHeaders = { 'x-owasp-ai-goat-secureshop-launch': defaultReady.bearer,
         authorization: `Bearer ${defaultReady.persona.token}` };
       const get = await fetch(`${vulnerableApp.origin}/api/secureshop/merchant/listings/operations/${vulnerable.operationId}`,
         { headers: recoveryHeaders, redirect: 'error' });
@@ -3122,7 +3122,7 @@ async function runStandaloneListingsQualification(options = {}) {
       // A separate real customer signs in to the same owned practice. The
       // terminal SSE frames are lost after the server has completed the turn;
       // only its exact protected GET may restore the visible answer.
-      const customerProfile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-listings-browser-'));
+      const customerProfile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-listings-browser-'));
       profiles.push(customerProfile);
       const customerBrowser = await launchStandaloneBrowser({ root,
         receiptPath: standalonePrivateReceipt ? receiptPath : null,
@@ -3156,7 +3156,7 @@ async function runStandaloneListingsQualification(options = {}) {
             assert.match(sent.sessionId, UUID);
             assert.match(sent.requestId, UUID);
             const matchCount = await customerPage.evaluate(({ sessionId, requestId, shopUserId }) => {
-              const keyPattern = /^dvaia:secureshop:[a-f0-9-]{36}:[1-9]\d*(?::scene:[a-f0-9-]{36})?$/i;
+              const keyPattern = /^owasp-ai-goat:secureshop:[a-f0-9-]{36}:[1-9]\d*(?::scene:[a-f0-9-]{36})?$/i;
               let matches = 0;
               for (let index = 0; index < localStorage.length; index++) {
                 const key = localStorage.key(index);
@@ -3183,7 +3183,7 @@ async function runStandaloneListingsQualification(options = {}) {
             assert.deepEqual(Object.keys(sent), ['proposalId']);
             assert.equal(sent.proposalId, expectedCartConfirm?.operationId);
             const saved = await customerPage.evaluate(() => {
-              const keyPattern = /^dvaia:secureshop:[a-f0-9-]{36}:[1-9]\d*(?::scene:[a-f0-9-]{36})?$/i;
+              const keyPattern = /^owasp-ai-goat:secureshop:[a-f0-9-]{36}:[1-9]\d*(?::scene:[a-f0-9-]{36})?$/i;
               const matches = [];
               for (let index = 0; index < localStorage.length; index++) {
                 const key = localStorage.key(index);
@@ -4176,7 +4176,7 @@ async function runStandaloneListingsQualification(options = {}) {
         status.fixedGeneratedActualModel = true;
         status.fixedGeneratedPhysicalRender = true;
         status.fixedGeneratedNoExecutionCredit = true;
-        const fixedHeaders = { 'x-dvaia-secureshop-launch': fixedReady.bearer,
+        const fixedHeaders = { 'x-owasp-ai-goat-secureshop-launch': fixedReady.bearer,
           authorization: `Bearer ${fixedReady.persona.token}` };
         const savedPath = `${fixedApp.origin}/api/secureshop/merchant/listings/rewrite-saves/${save.saveOperationId}?rewriteOperationId=${rewrite.operationId}`;
         const noReplay = { actorDispatches, actualActorInvocations, judgeCalls,
@@ -4208,7 +4208,7 @@ async function runStandaloneListingsQualification(options = {}) {
         [fixedTenant.tenantId, fixedTenant.principalId, BROWSER_OBJECTIVE]), 0);
       const siblingReady = await defaultBootstrap(sibling.context);
       const siblingRead = await fetch(`${vulnerableApp.origin}/api/secureshop/merchant/listings/operations/${vulnerable.operationId}`,
-        { headers: { 'x-dvaia-secureshop-launch': siblingReady.bearer,
+        { headers: { 'x-owasp-ai-goat-secureshop-launch': siblingReady.bearer,
           authorization: `Bearer ${siblingReady.persona.token}` }, redirect: 'error' });
       assert.equal(siblingRead.status, 404, 'sibling cannot read the owner’s saved import');
       if (GENERATED_FIXED_ENABLED) {
@@ -4218,7 +4218,7 @@ async function runStandaloneListingsQualification(options = {}) {
           savedRows: await count(review, 'secureshop_review.owned_listing_rewrite_saves',
             'save_operation_id=$1', [savedBody.saveOperationId]) };
         const siblingSaved = await fetch(siblingSavedPath,
-          { headers: { 'x-dvaia-secureshop-launch': siblingReady.bearer,
+          { headers: { 'x-owasp-ai-goat-secureshop-launch': siblingReady.bearer,
             authorization: `Bearer ${siblingReady.persona.token}` }, redirect: 'error' });
         assert.equal(siblingSaved.status, 404,
           'independent sibling cannot recover the owner’s generated listing save');
@@ -4250,7 +4250,7 @@ async function runStandaloneListingsQualification(options = {}) {
       }
       if (listingTemplateClient) {
         const siblingTemplate = await fetch(`${vulnerableApp.origin}/api/secureshop/merchant/listings/template-operations/${templateOperationId}`,
-          { headers: { 'x-dvaia-secureshop-launch': siblingReady.bearer,
+          { headers: { 'x-owasp-ai-goat-secureshop-launch': siblingReady.bearer,
             authorization: `Bearer ${siblingReady.persona.token}` }, redirect: 'error' });
         assert.equal(siblingTemplate.status, 404);
         assert.equal(await count(identity, 'secureshop_auth.assessment_completions',

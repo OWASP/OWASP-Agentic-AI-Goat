@@ -63,7 +63,7 @@ async function protocol(t) {
 }
 
 test('real summarizer MCP tool crosses the owned public/private HTTP boundary and seals an exact invocation', async t => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-ssrf-owned-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ssrf-owned-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
   const targetPool = createSecureShopSsrfTargetPool({ root }); t.after(() => targetPool.retire(scope)); const upstreamPool = await protocol(t);
   const publicRequestId = uuid(); const publicRequest = await targetPool.issue(scope, { requestId: publicRequestId, resourceKind: 'public-policy' });
   const publicResult = await upstreamPool.callTool('summarizer', 'explain_return_policy', { policy_url: publicRequest.url }, {});
@@ -192,7 +192,7 @@ test('stale target authority and upstream failures cannot borrow the private pre
 });
 
 test('owned target cleanup drains concurrent reads, shares cleanup, and retries partial filesystem failure without reopening', async t => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-ssrf-cleanup-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ssrf-cleanup-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
   let releaseRead, startedRead; const started = new Promise(resolve => { startedRead = resolve; });
   const realRead = fs.readFile.bind(fs), realRm = fs.rm.bind(fs); let hold = true, rmCalls = 0, failAfterRemoval = true;
   const fsImpl = { ...fs,
@@ -210,7 +210,7 @@ test('owned target cleanup drains concurrent reads, shares cleanup, and retries 
 });
 
 test('cancellation after the real HTTP effect retains reconciliation debt and cannot create canonical evidence', async t => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-ssrf-cancel-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ssrf-cancel-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
   const targetPool = createSecureShopSsrfTargetPool({ root }), actual = await protocol(t), controller = new AbortController();
   const requestId = uuid(), sessionId = `session:${uuid()}`;
   const issued = Object.freeze({ ...scope, ...await targetPool.issue(scope, { requestId, resourceKind: 'private-policy' }),
@@ -254,7 +254,7 @@ test('target pool and reset adapter preserve sibling scope and retire durable st
 });
 
 test('authorized reset recovers a durable target after process restart without recreating a listener or touching a sibling', async t => {
-  const root=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-ssrf-recovery-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
+  const root=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-ssrf-recovery-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));
   const targetDirectory=path.join(root,scope.targetId),siblingDirectory=path.join(root,sibling.targetId);
   await Promise.all([fs.mkdir(targetDirectory,{mode:0o700}),fs.mkdir(siblingDirectory,{mode:0o700})]);
   await Promise.all([fs.writeFile(path.join(targetDirectory,'private-policy.json'),'owned',{mode:0o600}),
@@ -303,7 +303,7 @@ test('target retirement validates pending scope before fencing and closes issue/
 });
 
 test('application sends public and selected-private observations through the same real MCP tool and fails closed on restart debt', async t => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-ssrf-application-')); t.after(() => fs.rm(root, { recursive:true, force:true }));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ssrf-application-')); t.after(() => fs.rm(root, { recursive:true, force:true }));
   const actual = await protocol(t), requests = new Map(); let targetLifecycle = 'active', toolCalls = 0;
   const repository = {
     async provision() { if (targetLifecycle !== 'active') throw Object.assign(new Error('retired'), { code:'BOUND_SSRF_UNAVAILABLE' }); },
@@ -525,7 +525,7 @@ test('registered durable schema preserves reviewed audit receipts and scope-safe
 });
 
 test('candidate persona revocation after real HTTP leaves receipt debt without evidence or retry send', async t => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-ssrf-persona-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ssrf-persona-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
   const targetPool=createSecureShopSsrfTargetPool({root}),actual=await protocol(t);t.after(()=>targetPool.retire(scope));
   const requestId=uuid(),sessionId=`session:${uuid()}`,issued=Object.freeze({...scope,...await targetPool.issue(scope,{requestId,resourceKind:'private-policy'}),egressPolicySha256:SSRF_EGRESS_POLICY_SHA256,policyDecision:'denied'});
   let revoked=false,records=0;const fence=Object.freeze({async assertRemoteAdmission(){if(revoked)throw Object.assign(Error('revoked'),{code:'SHOP_AUTH_INVALID',executionBoundary:true});}});

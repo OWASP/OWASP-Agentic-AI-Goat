@@ -17,9 +17,9 @@ test('mounted IPI actual-model upload/query retains owner, progress and reset bo
   skip: process.env.IPI_HTTP_ACTUAL8B !== '1', timeout: 2400000,
 }, async () => {
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
+  assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
   const url = role => { const u = new URL(process.env['WORKSHOP_RAG_' + role.toUpperCase() + '_URL']);
-    assert.equal(u.hostname, '127.0.0.1'); assert.match(u.pathname, /^\/dvaia_test_workshop_rag_[a-f0-9]+$/);
+    assert.equal(u.hostname, '127.0.0.1'); assert.match(u.pathname, /^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/);
     assert.equal(u.username, 'dvaia_identity_' + role); return u.href; };
   process.env.IDENTITY_DATABASE_URL = url('runtime');
   process.env.IDENTITY_MIGRATION_DATABASE_URL = url('migration');

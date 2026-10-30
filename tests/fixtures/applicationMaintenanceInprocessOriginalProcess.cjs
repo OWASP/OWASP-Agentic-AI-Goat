@@ -6,7 +6,7 @@ function installCommitBoundary(Client,scenario,notify){
  const original=Client.prototype.query;let injected=false;const stages=new WeakMap();
  Client.prototype.query=function(...args){
   const sql=typeof args[0]==='string'?args[0]:args[0]?.text;
-  if(this.connectionParameters?.application_name!=='dvaia-maintenance-lease'||typeof sql!=='string')return original.apply(this,args);
+  if(this.connectionParameters?.application_name!=='owasp-ai-goat-maintenance-lease'||typeof sql!=='string')return original.apply(this,args);
   if(sql==='BEGIN')stages.delete(this);
   if(sql.startsWith('INSERT INTO dvaia_maintenance.epoch_replay_profiles'))stages.set(this,'begin');
   if(sql.startsWith('INSERT INTO dvaia_maintenance.epoch_finish_receipts'))stages.set(this,'finish');
@@ -46,7 +46,7 @@ async function main(){
    await require('../../scripts/lib/application-maintenance-scope').withApplicationMaintenanceScope({environment:process.env},async scope=>{
     await require('../../db/postgres/initialize-application').initializeApplication({maintenanceScope:scope});
     const pg=require('../../server/database/postgres'),pool=pg.createPool(process.env,'IDENTITY_MIGRATION_DATABASE_URL');
-    try{const directory=path.join(home,'.dvaia',require('node:crypto').createHash('sha256').update(root).digest('hex').slice(0,12));const admin=require('../../scripts/lib/setup-administrator-journal').ensureAdministratorJournal({directory});await require('../../db/postgres/bootstrap-admin').bootstrapAdmin({pool,...admin,initialTrainingProfile:true});}finally{await pool.end();}
+    try{const directory=path.join(home,'.owasp-ai-goat',require('node:crypto').createHash('sha256').update(root).digest('hex').slice(0,12));const admin=require('../../scripts/lib/setup-administrator-journal').ensureAdministratorJournal({directory});await require('../../db/postgres/bootstrap-admin').bootstrapAdmin({pool,...admin,initialTrainingProfile:true});}finally{await pool.end();}
    });await send({type:'result',completed:true});return;
   }
   const scenario=process.env.ORIGINAL_WRITER_CASE;if(!CASES.includes(scenario))throw Error('Closed case required');

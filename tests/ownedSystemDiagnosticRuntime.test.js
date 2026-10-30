@@ -5,7 +5,7 @@ const runtime=require('./postgres/ownedSystemDiagnosticRuntime');
 const consumer=require('./postgres/ownedSystemPrivateHttpConsumer')._internals;
 const runId='a'.repeat(32),inputSha256='c'.repeat(64);
 const binding=()=>({version:1,target:'original-v03-diagnostic',runId,imageId:'sha256:'+'b'.repeat(64),
- inputSha256,daemonId:'d'.repeat(36),physical:{privateDockerHost:'unix:///var/tmp/dvaia-v23-build-'+runId+'/fs/docker.sock',
+ inputSha256,daemonId:'d'.repeat(36),physical:{privateDockerHost:'unix:///var/tmp/owasp-ai-goat-v23-build-'+runId+'/fs/docker.sock',
  namespaceInode:'net:[12345]',filesystemIdentity:{device:1,inode:2},
  daemonProcess:{pid:101,startTicks:'100',exe:'/usr/bin/dockerd'},namespaceHolder:{pid:102,startTicks:'101',exe:'/usr/bin/sleep'}}});
 const helper='tests/postgres/owned_system_private_http_channel.py';

@@ -11,7 +11,7 @@ const { spawnSync } = require('node:child_process');
 // with a controlled inventory failure before the native fixture imports models.
 // It must never contact Ollama, and cannot qualify any actual actor or Judge.
 test('Legacy Sensitive manual actual8B fixture retains sanitized provenance failure evidence without invoking a model', t => {
-  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-model-provenance-fixture-'));
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-model-provenance-fixture-'));
   t.after(() => fs.rmSync(temporary, { recursive: true, force: true }));
   const fixture = path.join(__dirname, 'postgres/legacySensitiveManualActual8b.integration.test.js');
   for (const failure of ['wrong-digest', 'inventory-error']) {
@@ -35,7 +35,7 @@ test('Legacy Sensitive manual actual8B fixture retains sanitized provenance fail
       cwd: path.dirname(__dirname), encoding: 'utf8', timeout: 10000,
       env: { PATH: process.env.PATH, HOME: directory, TMPDIR: directory, NODE_ENV: 'test',
         LEGACY_SENSITIVE_MANUAL_ACTUAL8B_ISOLATED: '1', PG_TEST_DISPOSABLE: 'yes',
-        PG_LEGACY_SENSITIVE_MANUAL_RUNTIME_URL: 'postgresql://dvaia_identity_runtime:unused@127.0.0.1:1/dvaia_test_offline',
+        PG_LEGACY_SENSITIVE_MANUAL_RUNTIME_URL: 'postgresql://dvaia_identity_runtime:unused@127.0.0.1:1/owasp_ai_goat_test_offline',
         LEGACY_SENSITIVE_MANUAL_FIXTURE_ROOT: teachingRoot,
         OLLAMA_BASE_URL: 'http://127.0.0.1:11434', OLLAMA_MODEL: 'llama3.1:8b', JUDGE_MODEL: 'llama3.1:8b',
         LEGACY_SENSITIVE_MANUAL_MODEL_DIGEST: '46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e',

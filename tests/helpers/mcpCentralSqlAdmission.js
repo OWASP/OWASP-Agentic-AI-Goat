@@ -7,7 +7,7 @@ function validateCentralSqlEnvironment(env) {
   const value=env?.[KEYS[i]];
   if(typeof value!=='string'||!value||value.trim()!==value)throw Error('Invalid isolated SQL configuration');
   let u;try{u=new URL(value);}catch{throw Error('Invalid isolated SQL configuration');}
-  const match=/^\/dvaia_test_central_ack_([a-f0-9]{12})_(identity|mcp)$/.exec(u.pathname);
+  const match=/^\/owasp_ai_goat_test_central_ack_([a-f0-9]{12})_(identity|mcp)$/.exec(u.pathname);
   if(!['postgres:','postgresql:'].includes(u.protocol)||u.hostname!=='127.0.0.1'||!/^\d+$/.test(u.port)||Number(u.port)<1||Number(u.port)>65535||u.search||u.hash||value.includes('?')||value.includes('#')||u.username!==ROLES[i]||!match||match[2]!== (i<2?'identity':'mcp'))throw Error('Invalid isolated SQL configuration');
   if(i&&(nonce!==match[1]||port!==u.port))throw Error('Inconsistent isolated SQL configuration');
   nonce=match[1];port=u.port;result[KEYS[i]]=value;

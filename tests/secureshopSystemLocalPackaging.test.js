@@ -61,10 +61,10 @@ test('local image pins reviewed architecture/base and fixed helper paths without
   assert.match(source, /^FROM node@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1$/m);
   assert.match(source, /test "\$\(dpkg --print-architecture\)" = arm64/);
   for (const name of ['config-init', 'config-supervisor', 'diagnostic-init', 'diagnostic-supervisor', 'restart-init', 'restart-supervisor']) {
-    assert.match(source, new RegExp('gcc -static -O2 -Wall -Wextra -Werror [^\\n]+ -o /usr/local/libexec/dvaia-system-' + name));
+    assert.match(source, new RegExp('gcc -static -O2 -Wall -Wextra -Werror [^\\n]+ -o /usr/local/libexec/owasp-ai-goat-system-' + name));
   }
   assert.match(source, /sha256sum "\$file"/); assert.match(source, /USER 10001:10001/);
-  assert.match(source, /restart-systemctl/); assert.match(source, /\/var\/lib\/dvaia-owned-restart/);
-  assert.match(source, /find \/opt\/dvaia-owned-system -type f -exec chmod 0444 \{\} \+/);
+  assert.match(source, /restart-systemctl/); assert.match(source, /\/var\/lib\/owasp-ai-goat-owned-restart/);
+  assert.match(source, /find \/opt\/owasp-ai-goat-owned-system -type f -exec chmod 0444 \{\} \+/);
   assert.doesNotMatch(source, /^(?:ENV|VOLUME|EXPOSE|CMD|ADD)\s/m);
 });

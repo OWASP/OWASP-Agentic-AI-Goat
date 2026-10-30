@@ -52,7 +52,7 @@ function validateDisposableUrls(env) {
       assert.equal(value.username, `dvaia_${store}_${index ? 'migration' : 'runtime'}`);
       assert.equal(value.password + value.search + value.hash, '');
       assert.match(value.pathname,
-        new RegExp(`^/dvaia_test_agent_host_[a-f0-9]{12}_${store}$`));
+        new RegExp(`^/owasp_ai_goat_test_agent_host_[a-f0-9]{12}_${store}$`));
     }
     assert.equal(values[0].host, values[1].host);
     assert.equal(values[0].pathname, values[1].pathname);
@@ -194,7 +194,7 @@ test('real PostgreSQL agent host serves all 17 MCP paths and isolates concurrent
   assert.equal((await second.listTools()).tools.length, 3);
 
   if (diagnosticCase) {
-    assert.equal(process.env.DVAIA_ISOLATED_TEST_WORKSPACE, ROOT);
+    assert.equal(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE, ROOT);
     assert.equal(process.env.AI_PROVIDER, 'ollama');
     assert.equal(process.env.OLLAMA_BASE_URL, 'http://127.0.0.1:11434');
     assert.equal(process.env.OLLAMA_MODEL, 'llama3.1:8b');

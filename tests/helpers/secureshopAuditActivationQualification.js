@@ -8,7 +8,7 @@ async function qualifyAuditActivation({identity,migration}){
  const scratch=path.join(path.dirname(intentFile),'runtime','activation'),root=intent.root,homeDirectory=intent.home;
  assert.equal(root,path.join(scratch,'workspace'));assert.equal(homeDirectory,path.join(scratch,'home'));
  for(const directory of [scratch,root,homeDirectory])await privatePath(directory,true);
- const docker='/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker',host='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock';assert.equal(intent.dockerHost,host);assert.match(intent.image,/^sha256:[a-f0-9]{64}$/);
+ const docker='/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker',host='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock';assert.equal(intent.dockerHost,host);assert.match(intent.image,/^sha256:[a-f0-9]{64}$/);
  const command=args=>exec(docker,['--host',host,...args],{timeout:120000,maxBuffer:1024*1024});
  const canonicalSourceRoot=path.resolve(__dirname,'../..');
  const checkPrerequisites=options=>activation.assertApplicationPrerequisites({...options,root:canonicalSourceRoot});

@@ -5,7 +5,7 @@ const { createHash } = require('node:crypto');
 const { verifyAuditWorkerArtifacts: verify } = require('../server/services/secureshopAuditArtifactVerification');
 const hash = value => createHash('sha256').update(value).digest('hex');
 async function fixture(t) {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-artifact-verify-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-artifact-verify-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   const artifacts = {};
   for (const name of ['messages', 'traces', 'effects']) {

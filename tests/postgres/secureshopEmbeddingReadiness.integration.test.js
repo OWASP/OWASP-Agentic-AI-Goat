@@ -13,7 +13,7 @@ test('embedding readiness validates actual function signatures and rejects rever
     const open = role => {
       const url = new URL(process.env[`EMBEDDING_FRESH_${role.toUpperCase()}_URL`]);
       assert.equal(url.hostname, '127.0.0.1');
-      assert.match(url.pathname, /^\/dvaia_test_embedding_fresh_[a-f0-9]+$/);
+      assert.match(url.pathname, /^\/owasp_ai_goat_test_embedding_fresh_[a-f0-9]+$/);
       assert.equal(url.username, `dvaia_secureshop_review_${role}`);
       const pool = new Pool({ connectionString: url.href, max: 2, statement_timeout: 10000 });
       pools.push(pool); return pool;

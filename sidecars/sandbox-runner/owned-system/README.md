@@ -23,7 +23,7 @@ The operation UUID identifies this invocation; it is not an idempotency journal.
 
 ## Native review gate — not run
 
-Use the explicitly owned Colima `dvaia-pg-verify` Docker daemon only, a unique
+Use the explicitly owned Colima `owasp-ai-goat-pg-verify` Docker daemon only, a unique
 image/tag/container, and the reviewed ARM64 Node26.10 immutable base. Build a
 focused temporary Dockerfile that installs the existing reviewed bwrap runtime
 and compiles these new fixed C helpers at the executor's exact libexec paths.

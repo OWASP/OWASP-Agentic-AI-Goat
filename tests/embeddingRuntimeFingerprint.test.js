@@ -7,7 +7,7 @@ const path = require('node:path');
 const { createEmbeddingRuntimeFingerprinter } = require('../server/services/embeddingRuntimeFingerprint');
 
 async function fixture(t) {
-  const cacheDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-embedding-fingerprint-'));
+  const cacheDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-embedding-fingerprint-'));
   t.after(() => fs.rm(cacheDirectory, { recursive: true, force: true }));
   const model = path.join(cacheDirectory, 'Xenova/all-MiniLM-L6-v2');
   await fs.mkdir(path.join(model, 'onnx'), { recursive: true });

@@ -17,7 +17,7 @@
 
 const crypto = require('crypto');
 
-const COOKIE_NAME = 'dvaia_event_auth';
+const COOKIE_NAME = 'owasp_ai_goat_event_auth';
 const COOKIE_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6 h — outlasts any 2-h event
 const COOKIE_MAX_AGE_SECONDS = COOKIE_MAX_AGE_MS / 1000;
 const HISTORICAL_SAMPLE_PASSWORD = 'DefconHack2026!';
@@ -110,7 +110,7 @@ function safeLocalRedirect(value) {
 }
 
 // Self-contained login page — no external assets, works before React loads.
-// Styled to match the DVAIA platform brand (indigo→purple gradient, frosted
+// Styled to match the OWASP Agentic AI GOAT platform brand (indigo→purple gradient, frosted
 // white card, gradient shield mark) used across the app's login screens.
 function loginPage({ error } = {}) {
   const errorHtml = error
@@ -169,7 +169,7 @@ function loginPage({ error } = {}) {
     <div class="icon" aria-hidden="true">
       <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     </div>
-    <div class="brand">DVAIA · Secure Access</div>
+    <div class="brand">OWASP Agentic AI GOAT · Secure Access</div>
     <h1>DEF CON Workshop 2026</h1>
     <p class="sub">Enter the event password to continue</p>
     <form method="POST" action="/event-gate/login">
@@ -179,7 +179,7 @@ function loginPage({ error } = {}) {
       <button type="submit">Enter Workshop</button>
     </form>
     ${errorHtml}
-    <div class="foot">Damn Vulnerable AI Application · Authorized attendees only</div>
+    <div class="foot">OWASP Agentic AI GOAT · Authorized attendees only</div>
   </div>
 </body>
 </html>`;

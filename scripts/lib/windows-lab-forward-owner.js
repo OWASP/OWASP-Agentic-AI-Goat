@@ -33,7 +33,7 @@ function parseForwardRequest(request) {
   if (path.win32.basename(hosts) !== 'windows-owned-lab.hosts' || path.win32.dirname(hosts) !== path.win32.dirname(key)) throw denied();
   option('GlobalKnownHostsFile=NUL');
   take('-o'); const alias = args[cursor++];
-  if (typeof alias !== 'string' || !/^HostKeyAlias=dvaia-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(alias)
+  if (typeof alias !== 'string' || !/^HostKeyAlias=owasp-ai-goat-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(alias)
     || alias.endsWith('00000000-0000-0000-0000-000000000000')) throw denied();
   for (const value of ['ConnectTimeout=10','ServerAliveInterval=15','ServerAliveCountMax=2','ForwardAgent=no',
     'PermitLocalCommand=no','ProxyCommand=none','ProxyJump=none','ControlMaster=no','RequestTTY=no','ExitOnForwardFailure=yes']) option(value);
@@ -43,8 +43,8 @@ function parseForwardRequest(request) {
     if (!match || match.slice(1).some(value => Number(value) < 1024 || Number(value) > 65535)) throw denied();
     ports.push(Number(match[1]));
   }
-  const destination = args[cursor++], address = destination?.slice('dvaia@'.length);
-  if (!destination?.startsWith('dvaia@') || net.isIP(address) !== 4 || /^(?:0|127)\./.test(address)
+  const destination = args[cursor++], address = destination?.slice('owasp-ai-goat@'.length);
+  if (!destination?.startsWith('owasp-ai-goat@') || net.isIP(address) !== 4 || /^(?:0|127)\./.test(address)
     || Number(address.split('.')[0]) >= 224 || cursor !== args.length || !ports.length || ports.length > 32 || new Set(ports).size !== ports.length) throw denied();
   // These fixed options are launcher-owned, never caller-configurable.
   return { executable, args: ['-v', ...args], ports };
@@ -115,7 +115,7 @@ function createWindowsLabForwardOwner({ platform = process.platform, environment
       });
       child.once('close',() => { ended=true;resolveClosed();fail(); });
       child.once('exit',() => { ended=true;fail(); }); child.once('error',fail); child.once('disconnect',fail);
-      child.on('message',value => { if(value?.type==='dvaia-owned-child-outcome'){ended=true;fail();} });
+      child.on('message',value => { if(value?.type==='owasp-ai-goat-owned-child-outcome'){ended=true;fail();} });
       if (!child.stderr || typeof child.stderr.on !== 'function') throw denied();
       let bytes = 0; const seen = new Set();
       const readLine = boundedLineReader(line => {

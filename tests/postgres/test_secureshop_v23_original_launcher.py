@@ -193,7 +193,7 @@ class V23OriginalLauncherTests(unittest.TestCase):
         self.assertEqual(len(env), 21)
         self.assertEqual(env['V23_BOUNDARY_CONTRACT'], 'hard-fail-v1')
         self.assertEqual(env['V23_REQUEST_VARIANT'], 'original-v1')
-        self.assertEqual(env['DVAIA_CURRENT_MAIN_WORKSPACE'], str(ROOT))
+        self.assertEqual(env['OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE'], str(ROOT))
         self.assertEqual(env['AI_PROVIDER'], 'ollama')
         self.assertEqual(env['JUDGE_PROVIDER'], 'ollama')
         self.assertEqual(env['JUDGE_MODEL'], main.OLLAMA_MODEL)

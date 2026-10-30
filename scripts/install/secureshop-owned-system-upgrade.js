@@ -18,11 +18,11 @@ const fail=code=>Object.assign(new Error('Owned System package upgrade requires 
 const sha=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
 const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const identity=(a,b)=>a&&b&&a.dev===b.dev&&a.ino===b.ino&&a.sha256===b.sha256;
-const labels=value=>({'dvaia.system.workspace':value.workspaceId,'dvaia.system.authority':value.dockerAuthoritySha256,'dvaia.system.source':value.sourceManifestSha256});
+const labels=value=>({'owasp-ai-goat.system.workspace':value.workspaceId,'owasp-ai-goat.system.authority':value.dockerAuthoritySha256,'owasp-ai-goat.system.source':value.sourceManifestSha256});
 const imageCheck=(image,value)=>{
  if(!image||image.Id!==value.imageId||image.Architecture!=='arm64'||image.Os!=='linux'
   ||Object.entries(labels(value)).some(([k,v])=>image.Config?.Labels?.[k]!==v)||image.Config?.User!=='10001:10001'
-  ||!equal(image.Config.Entrypoint,['/usr/local/bin/node','/opt/dvaia-owned-system/local-listener-entry.js'])
+  ||!equal(image.Config.Entrypoint,['/usr/local/bin/node','/opt/owasp-ai-goat-owned-system/local-listener-entry.js'])
   ||image.Config.Cmd?.length||Object.keys(image.Config.Volumes||{}).length)throw fail('SYSTEM_UPGRADE_IMAGE_CONFLICT');
 };
 function syncDirectory(directory){const fd=fs.openSync(directory,fs.constants.O_RDONLY);try{fs.fsyncSync(fd);}finally{fs.closeSync(fd);}}
@@ -114,19 +114,19 @@ async function upgrade(options={}){
   let addedPreview;
   if(options.uploadPreviewPort!==undefined){
    if(options.recover===true||value.uploadPreview||!Number.isInteger(options.uploadPreviewPort)||options.uploadPreviewPort<1024||options.uploadPreviewPort>65535||OLD_MODES.some(mode=>Number(new URL(value[mode].url).port)===options.uploadPreviewPort))throw fail('SYSTEM_UPGRADE_PREVIEW_ADMISSION_INVALID');
-   addedPreview={container:`dvaia-owned-system-${value.workspaceId}-upload-preview`,url:`http://127.0.0.1:${options.uploadPreviewPort}`,token:crypto.randomBytes(48).toString('base64url')};journal.addUploadPreview=true;
+   addedPreview={container:`owasp-ai-goat-owned-system-${value.workspaceId}-upload-preview`,url:`http://127.0.0.1:${options.uploadPreviewPort}`,token:crypto.randomBytes(48).toString('base64url')};journal.addUploadPreview=true;
   }
   if(value.workspaceId!==workspaceId(root)||authorityDigest(authority)!==value.dockerAuthoritySha256)throw fail('SYSTEM_UPGRADE_AUTHORITY_CHANGED');
   const p={workspaceId:value.workspaceId,profile:value.profile};
-  const profileBytes=renderMcpSandboxAppArmor(fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'),'utf8'),'dvaia-mcp-sandbox');
+  const profileBytes=renderMcpSandboxAppArmor(fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'),'utf8'),'owasp-ai-goat-mcp-sandbox');
   if(sha(profileBytes)!==value.profile.sha256)throw fail('SYSTEM_UPGRADE_PROFILE_CHANGED');
   await (options.verifyProfile||verifyProfile)({p,authority,root,home,platform,run});
-  const network=`dvaia-owned-system-${value.workspaceId}-bridge`,restartVolume=`dvaia-owned-system-${value.workspaceId}-restart-state`;
-  const resourceLabels={...labels(value),'dvaia.system.source':value.resourceSourceManifestSha256||value.sourceManifestSha256};
+  const network=`owasp-ai-goat-owned-system-${value.workspaceId}-bridge`,restartVolume=`owasp-ai-goat-owned-system-${value.workspaceId}-restart-state`;
+  const resourceLabels={...labels(value),'owasp-ai-goat.system.source':value.resourceSourceManifestSha256||value.sourceManifestSha256};
   const resources=async()=>{
    const net=await inspect('network',network),volume=await inspect('volume',restartVolume);
    if(!/^[a-f0-9]{64}$/.test(net.Id)||net.Name!==network||net.Driver!=='bridge'||net.Internal!==false||Object.entries(resourceLabels).some(([k,v])=>net.Labels?.[k]!==v)
-    ||volume.Name!==restartVolume||volume.Driver!=='local'||Object.keys(volume.Options||{}).length||volume.Labels?.['dvaia.system.mode']!=='restart-state'||Object.entries(resourceLabels).some(([k,v])=>volume.Labels?.[k]!==v))throw fail('SYSTEM_UPGRADE_RESOURCES_CHANGED');
+    ||volume.Name!==restartVolume||volume.Driver!=='local'||Object.keys(volume.Options||{}).length||volume.Labels?.['owasp-ai-goat.system.mode']!=='restart-state'||Object.entries(resourceLabels).some(([k,v])=>volume.Labels?.[k]!==v))throw fail('SYSTEM_UPGRADE_RESOURCES_CHANGED');
    return {network:{id:net.Id,sha256:sha(JSON.stringify({Id:net.Id,Name:net.Name,Driver:net.Driver,Internal:net.Internal,Labels:net.Labels,Options:net.Options,IPAM:net.IPAM}))},volume:{name:volume.Name,sha256:sha(JSON.stringify(volume))}};
   };
   const assertState=()=>{
@@ -190,12 +190,12 @@ async function upgrade(options={}){
   for(const mode of OLD_MODES){const found=await inspect('container',value[mode].container);journal.old[mode]={id:found?.Id,running:found?.State?.Running};checkContainer(found,mode);if(await inspect('container',backup(mode),true))throw fail('SYSTEM_UPGRADE_BACKUP_CONFLICT');}
   if(new Set(OLD_MODES.map(mode=>journal.old[mode].id)).size!==OLD_MODES.length)throw fail('SYSTEM_UPGRADE_CONTAINER_CHANGED');
   await fence();
-  temp=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-system-upgrade-'));fs.chmodSync(temp,0o700);
+  temp=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-system-upgrade-'));fs.chmodSync(temp,0o700);
   const source=sourceManifest(root),base=await inspect('image',source.baseImage);if(base?.Id!==source.baseImage||base.Architecture!=='arm64')throw fail('SYSTEM_INSTALL_BASE_UNQUALIFIED');
   const context=path.join(temp,'build');fs.mkdirSync(context,{mode:0o700});
   for(const [name,digest]of Object.entries(source.files)){const bytes=fs.readFileSync(path.join(root,'sidecars/sandbox-runner/owned-system',name));if(sha(bytes)!==digest)throw fail('SYSTEM_UPGRADE_SOURCE_CHANGED');fs.mkdirSync(path.dirname(path.join(context,name)),{recursive:true,mode:0o700});fs.writeFileSync(path.join(context,name),bytes,{mode:0o400,flag:'wx'});}
   if(sourceManifest(root).sha256!==source.sha256)throw fail('SYSTEM_UPGRADE_SOURCE_CHANGED');
-  const tag=`dvaia-owned-system-${value.workspaceId}:upgrade-${journal.transaction}`,nextLabels={...labels(value),'dvaia.system.source':source.sha256},labelArgs=Object.entries(nextLabels).flatMap(([k,v])=>['--label',`${k}=${v}`]);
+  const tag=`owasp-ai-goat-owned-system-${value.workspaceId}:upgrade-${journal.transaction}`,nextLabels={...labels(value),'owasp-ai-goat.system.source':source.sha256},labelArgs=Object.entries(nextLabels).flatMap(([k,v])=>['--label',`${k}=${v}`]);
   const buildSecrets=await buildCaSecret({environment:options.environment||process.env,temp});
   await fence();await docker(['build','--pull=false','--network=default',...buildSecrets,...labelArgs,'-f',path.join(context,'Dockerfile.local'),'-t',tag,context],{timeoutMs:300000});
   nextImage=await inspect('image',tag);
@@ -215,9 +215,9 @@ async function upgrade(options={}){
     const record=journal.next;
     const envFile=path.join(temp,mode+'.env'),prefix=mode==='uploadPreview'?'SECURESHOP_UPLOAD_PREVIEW':'SECURESHOP_SYSTEM_'+mode.toUpperCase();
     fs.writeFileSync(envFile,`${prefix}_HTTP_ENABLED=true\n${prefix}_TOKEN=${record[mode].token}\n${prefix}_HOST=0.0.0.0\n${prefix}_PORT=8090\n`,{mode:0o600,flag:'wx'});
-    const extra=mode==='uploadPreview'?['--tmpfs','/var/lib/dvaia-owned-upload-preview:rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001']:mode==='restart'?['--tmpfs','/owned-restart:rw,nosuid,nodev,size=8m,mode=0700,uid=10001,gid=10001','--mount',`type=volume,source=${restartVolume},target=/var/lib/dvaia-owned-restart`]:[];
+    const extra=mode==='uploadPreview'?['--tmpfs','/var/lib/owasp-ai-goat-owned-upload-preview:rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001']:mode==='restart'?['--tmpfs','/owned-restart:rw,nosuid,nodev,size=8m,mode=0700,uid=10001,gid=10001','--mount',`type=volume,source=${restartVolume},target=/var/lib/owasp-ai-goat-owned-restart`]:[];
     // Lost acknowledgements are recovered from the exact owned name and image.
-    try{await mutate(['create','--name',record[mode].container,...labelArgs,'--label','dvaia.system.mode='+mode,'--network',network,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m',...extra,'--security-opt','seccomp=unconfined','--security-opt','apparmor='+p.profile.name,'--publish',`127.0.0.1:${new URL(record[mode].url).port}:8090`,'--env-file',envFile,nextImage.Id,mode==='uploadPreview'?'upload-preview':mode]);}catch(error){if(!['SYSTEM_UPGRADE_COMMAND_FAILED','SYSTEM_UPGRADE_COMMAND_UNCERTAIN'].includes(error.code))throw error;}
+    try{await mutate(['create','--name',record[mode].container,...labelArgs,'--label','owasp-ai-goat.system.mode='+mode,'--network',network,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m',...extra,'--security-opt','seccomp=unconfined','--security-opt','apparmor='+p.profile.name,'--publish',`127.0.0.1:${new URL(record[mode].url).port}:8090`,'--env-file',envFile,nextImage.Id,mode==='uploadPreview'?'upload-preview':mode]);}catch(error){if(!['SYSTEM_UPGRADE_COMMAND_FAILED','SYSTEM_UPGRADE_COMMAND_UNCERTAIN'].includes(error.code))throw error;}
     let c=await inspect('container',record[mode].container);checkContainer(c,mode,true);journal.created[mode]=c.Id;save();
     try{await mutate(['start',c.Id]);}catch(error){if(!['SYSTEM_UPGRADE_COMMAND_FAILED','SYSTEM_UPGRADE_COMMAND_UNCERTAIN'].includes(error.code))throw error;}
     c=await inspect('container',c.Id);checkContainer(c,mode,true);if(!c.State.Running)throw fail('SYSTEM_UPGRADE_START_FAILED');
@@ -242,6 +242,6 @@ async function upgrade(options={}){
 if(require.main===module){
  const args=process.argv.slice(2);
  if(!((args.length===1&&['--upgrade','--recover'].includes(args[0]))||(args.length===2&&args[0]==='--upgrade'&&args[1]==='--upload-preview'))){process.stderr.write('Usage: node scripts/install/secureshop-owned-system-upgrade.js --upgrade [--upload-preview]|--recover (stop the application first)\n');process.exitCode=2;}
- else upgrade({recover:args[0]==='--recover',...(args[1]==='--upload-preview'?{uploadPreviewPort:process.env.DVAIA_UPLOAD_PREVIEW_PORT===undefined?8093:Number(process.env.DVAIA_UPLOAD_PREVIEW_PORT)}:{})}).then(result=>process.stdout.write(JSON.stringify(result)+'\n'),error=>{process.stderr.write((/^SYSTEM_|^LOCAL_DOCKER_/.test(error.code||'')?error.code:'SYSTEM_UPGRADE_FAILED')+'\n');process.exitCode=1;});
+ else upgrade({recover:args[0]==='--recover',...(args[1]==='--upload-preview'?{uploadPreviewPort:process.env.OWASP_AI_GOAT_UPLOAD_PREVIEW_PORT===undefined?8093:Number(process.env.OWASP_AI_GOAT_UPLOAD_PREVIEW_PORT)}:{})}).then(result=>process.stdout.write(JSON.stringify(result)+'\n'),error=>{process.stderr.write((/^SYSTEM_|^LOCAL_DOCKER_/.test(error.code||'')?error.code:'SYSTEM_UPGRADE_FAILED')+'\n');process.exitCode=1;});
 }
 module.exports={upgrade,_internals:{assertApplicationStopped}};

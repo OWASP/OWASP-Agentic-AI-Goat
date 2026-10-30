@@ -30,7 +30,7 @@ The SQLite exporter allowlists the 19 source filenames in [`db/postgres/export-l
 | `supply_chain_workshop.db`, `sensitive_info_workshop.db` | FinFlow/CodeBot progress/tool-log libraries; solution tables are platform solution inputs; other source tables require review. |
 | `ctf.db` | Archive-connected through the workshop operator CLI; older direct-source helper remains separate. |
 | `platform_secure.db`, `sqli_challenge.db`, `ctf_ai_challenge.db` | No verified-archive importer. Reachability and required disposition are documented in the companion. |
-| `dvaia.db` | Active-store CLI maps ten native generic demo table families; unsupported tables and unresolved file references retain explicit dispositions. |
+| `owasp-ai-goat.db` | Active-store CLI maps ten native generic demo table families; unsupported tables and unresolved file references retain explicit dispositions. |
 | `excessive_agency.db` | SQLite schema exists, but the active lab authority is process memory or PostgreSQL attendee state; a file-only import would not be lossless. |
 | `secureshop.db`, `secureshop_agents.db` | Active-store verified archive import and explicit asset staging/cutover verification exist; imported vectors require verified compatibility or re-embedding. |
 | `sensitive_info.db` | Main routes consume documents/access logs through the PostgreSQL `legacy_sensitive` adapter, with an active-store mapper/importer for documents and access logs; residual tables remain archive-only. |

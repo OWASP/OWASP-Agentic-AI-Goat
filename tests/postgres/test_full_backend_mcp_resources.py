@@ -11,7 +11,7 @@ SOURCE = Path(__file__).resolve().parents[2]
 
 class FakeRunner:
  def __init__(self, **_kwargs):
-  self.profile = 'dvaia-mcp-sandbox-' + '1' * 12; self.directory = '/tmp/' + self.profile
+  self.profile = 'owasp-ai-goat-mcp-sandbox-' + '1' * 12; self.directory = '/tmp/' + self.profile
   self.captured = 'b' * 64; self.prepared = False; self.cleaned = False
  def prepare_policy(self): self.prepared = True
  def launch(self, _token): return 38091
@@ -21,7 +21,7 @@ class FakeHttp:
  def __init__(self, *_args, **_kwargs): pass
  def request(self, *_args, **_kwargs): pass
  def getresponse(self):
-  return SimpleNamespace(status=200, read=lambda: b'{"ready":true,"version":"mcp-owned-target-http.v1","isolation":"bwrap-seccomp-v1","supervisorProfile":"dvaia-mcp-sandbox-111111111111 (enforce)","protectedStateCapability":"mcp-owned-protected-state-transition.v2","observedActionCapability":"mcp-owned-observed-action.v1","packageInstallCapability":"mcp-owned-package-install.v1","ticketReadCapability":"mcp-owned-ticket-read.v2"}')
+  return SimpleNamespace(status=200, read=lambda: b'{"ready":true,"version":"mcp-owned-target-http.v1","isolation":"bwrap-seccomp-v1","supervisorProfile":"owasp-ai-goat-mcp-sandbox-111111111111 (enforce)","protectedStateCapability":"mcp-owned-protected-state-transition.v2","observedActionCapability":"mcp-owned-observed-action.v1","packageInstallCapability":"mcp-owned-package-install.v1","ticketReadCapability":"mcp-owned-ticket-read.v2"}')
  def close(self): pass
 
 class ResourceLifecycle(unittest.TestCase):

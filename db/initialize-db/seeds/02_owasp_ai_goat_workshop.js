@@ -25,14 +25,14 @@ function runSeed(dbPath) {
     const testHash = bcrypt.hashSync('test123', 10);
     const adminHash = bcrypt.hashSync('admin123!@#', 12);
     const admin2Hash = bcrypt.hashSync('admin2024$', 12);
-    db.run(`INSERT OR IGNORE INTO users (username, email, password, role) VALUES (?,?,?,?)`, ['student', 'student@dvaia.local', studentHash, 'student']);
-    db.run(`INSERT OR IGNORE INTO users (username, email, password, role) VALUES (?,?,?,?)`, ['student123', 'student123@dvaia.local', studentHash, 'student']);
-    db.run(`INSERT OR IGNORE INTO users (username, email, password, role) VALUES (?,?,?,?)`, ['user', 'user@dvaia.local', userHash, 'student']);
-    db.run(`INSERT OR IGNORE INTO users (username, email, password, role) VALUES (?,?,?,?)`, ['Test User', 'test@dvaia.local', testHash, 'student']);
+    db.run(`INSERT OR IGNORE INTO users (username, email, password, role) VALUES (?,?,?,?)`, ['student', 'student@owasp-ai-goat.local', studentHash, 'student']);
+    db.run(`INSERT OR IGNORE INTO users (username, email, password, role) VALUES (?,?,?,?)`, ['student123', 'student123@owasp-ai-goat.local', studentHash, 'student']);
+    db.run(`INSERT OR IGNORE INTO users (username, email, password, role) VALUES (?,?,?,?)`, ['user', 'user@owasp-ai-goat.local', userHash, 'student']);
+    db.run(`INSERT OR IGNORE INTO users (username, email, password, role) VALUES (?,?,?,?)`, ['Test User', 'test@owasp-ai-goat.local', testHash, 'student']);
     db.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level, full_name, email_verified, is_active) VALUES (?,?,?,?,?,?,?,?)`,
-      ['admin', 'admin@dvaia.local', adminHash, 'admin', 2, 'System Administrator', 1, 1]);
+      ['admin', 'admin@owasp-ai-goat.local', adminHash, 'admin', 2, 'System Administrator', 1, 1]);
     db.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level, full_name, email_verified, is_active) VALUES (?,?,?,?,?,?,?,?)`,
-      ['administrator', 'administrator@dvaia.local', admin2Hash, 'admin', 1, 'Workshop Administrator', 1, 1]);
+      ['administrator', 'administrator@owasp-ai-goat.local', admin2Hash, 'admin', 1, 'Workshop Administrator', 1, 1]);
     challengeVisibility.forEach(c => {
       db.run(`INSERT OR IGNORE INTO challenge_visibility (challenge_key, challenge_name, challenge_description, category, difficulty, is_visible, route, show_solutions) VALUES (?,?,?,?,?,?,?,0)`,
         [c.key, c.name, c.desc, c.cat, c.diff, c.v, c.route]);

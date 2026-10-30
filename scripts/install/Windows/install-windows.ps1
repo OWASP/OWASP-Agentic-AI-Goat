@@ -7,7 +7,7 @@ param([switch]$Plan, [switch]$NoInstall, [switch]$Upgrade, [switch]$Repair)
 if ($MyInvocation.InvocationName -ne '.') {
     $ErrorActionPreference = 'Stop'
     . (Join-Path $PSScriptRoot 'wrapper-handoff.ps1')
-    $handoff = Invoke-DvaiaWindowsWrapperHandoff -Kind setup -PlanMode ([bool]$Plan) -NoInstall ([bool]$NoInstall) -Upgrade ([bool]$Upgrade) -Repair ([bool]$Repair) -CompositionReady $true
+    $handoff = Invoke-OwaspAiGoatWindowsWrapperHandoff -Kind setup -PlanMode ([bool]$Plan) -NoInstall ([bool]$NoInstall) -Upgrade ([bool]$Upgrade) -Repair ([bool]$Repair) -CompositionReady $true
     $handoff | ConvertTo-Json -Depth 6
     if ($Plan) {
         Write-Output 'Plan performed no package, service, configuration, or database changes and did not require Node.js.'

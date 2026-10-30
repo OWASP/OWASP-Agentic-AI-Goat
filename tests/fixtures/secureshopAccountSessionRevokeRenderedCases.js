@@ -118,7 +118,7 @@ async function admitAccountAfterPhysicalLogin({ page, origin, buyerName, buyerId
     throw Error(`Completed account navigation unavailable: ${route}`);
   }
   const cookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-    .find(value => value.name === 'dvaia_shop_session');
+    .find(value => value.name === 'owasp_ai_goat_shop_session');
   assert.equal(cookie?.httpOnly, true, 'completed shop login cookie required');
   const buyer = await authenticate(cookie.value);
   assert.equal(buyer?.shopUserId, buyerId, 'authenticated exact buyer required');

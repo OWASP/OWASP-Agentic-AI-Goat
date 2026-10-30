@@ -1,6 +1,6 @@
-# DVAIA Architecture
+# OWASP Agentic AI GOAT Architecture
 
-DVAIA runs a single Express application that hosts two logically separate
+OWASP Agentic AI GOAT runs a single Express application that hosts two logically separate
 worlds side by side:
 
 1. **Platform layer** — production-grade secure code (auth, sessions, audit
@@ -12,7 +12,7 @@ Fresh setup provisions PostgreSQL 18 with 16 isolated application databases
 and separate runtime/migration roles. `server/index.js` rejects startup unless
 both application database engines are `postgres`, acquires the application
 maintenance lease, and then constructs the server. The supported application
-and all 17 SecureShop agents do not load SQLite or MySQL drivers.
+and all 17 OWASP AI SecureShop agents do not load SQLite or MySQL drivers.
 
 `server/secureServer.js` is retained only as an explicit retirement guard; it
 throws before importing its historical database managers. Use `npm run server`
@@ -47,7 +47,7 @@ Express (port 8081) ─► PostgreSQL identity/configuration/progress
   provider messages and typed model/tool calls; LangGraph owns observable
   branches, validation, bounded repair, tools, persistence and objective
   judging for migrated families. Neither framework requires an API key.
-- **SecureShop Agent Host** — 17 MCP servers on `8082` (see the SecureShop
+- **OWASP AI SecureShop Agent Host** — 17 MCP servers on `8082` (see the OWASP AI SecureShop
   docs).
 
 ---
@@ -63,7 +63,7 @@ Express (port 8081) ─► PostgreSQL identity/configuration/progress
 | Rate limits | Platform configuration and bounded model queue | Workshop controls preserve deliberate teaching behavior |
 | Admin | `middleware/adminAuth.js` + admin routes | N/A |
 
-**Do not "fix" intentional vulnerabilities** in challenge routes. SecureShop teaching sinks use `@intentional-vulnerability <id>` annotations and coverage checks. Other workshop behavior is protected by its mode, exploit and workflow tests.
+**Do not "fix" intentional vulnerabilities** in challenge routes. OWASP AI SecureShop teaching sinks use `@intentional-vulnerability <id>` annotations and coverage checks. Other workshop behavior is protected by its mode, exploit and workflow tests.
 
 ---
 
@@ -136,9 +136,9 @@ Located in `server/services/`:
 
 ---
 
-## SecureShop v2
+## OWASP AI SecureShop v2
 
-SecureShop v2 is the flagship end-to-end LLM-driven target. It stands up its
+OWASP AI SecureShop v2 is the flagship end-to-end LLM-driven target. It stands up its
 own subsystem alongside the main app:
 
 - **Backend routes** — `server/routes/secureshop/*` (thin proxies to the
@@ -185,7 +185,7 @@ When `true`, enables features that would otherwise be disabled in a
 ## What lives where
 
 ```
-Damn-Vulnerable-AI-Application/
+OWASP Agentic AI GOAT/
 ├── server/
 │   ├── index.js                 # App entry
 │   ├── routes/                  # One file per feature/challenge

@@ -11,7 +11,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Win32.SafeHandles;
 
-namespace Dvaia {
+namespace OwaspAiGoat {
  public static class WindowsPrivateState {
   const int MaxBytes = 1024 * 1024;
   const int MaxDeleteBytes = 4096;

@@ -33,14 +33,14 @@ function controlled({ transform, proof, active, retained = false, ready = true, 
   child.disconnect = () => { child.connected = false; events.push('guardian-disconnect'); child.emit('disconnect'); };
   child.send = (message, callback) => {
     events.push(message.type);
-    if (message.type === 'dvaia-owned-guardian-hello') setImmediate(() => child.emit('message', { type: 'dvaia-owned-guardian-ready', pid: 123, challenge }));
-    if (message.type === 'dvaia-owned-guardian-probe') {
+    if (message.type === 'owasp-ai-goat-owned-guardian-hello') setImmediate(() => child.emit('message', { type: 'owasp-ai-goat-owned-guardian-ready', pid: 123, challenge }));
+    if (message.type === 'owasp-ai-goat-owned-guardian-probe') {
       assert.equal(pins, 1, 'native handle opens before IPC proof');
-      setImmediate(() => proof ? proof(child, message) : child.emit('message', { type: 'dvaia-owned-guardian-proof', pid: 123, challenge, nonce: message.nonce }));
+      setImmediate(() => proof ? proof(child, message) : child.emit('message', { type: 'owasp-ai-goat-owned-guardian-proof', pid: 123, challenge, nonce: message.nonce }));
     }
-    if (message.type === 'dvaia-owned-guardian-activate') {
+    if (message.type === 'owasp-ai-goat-owned-guardian-activate') {
       assert(assigned, 'job assignment must precede activation');
-      setImmediate(() => active ? active(child, message) : child.emit('message', { type: 'dvaia-owned-guardian-active', pid: 123, challenge, nonce: message.nonce }));
+      setImmediate(() => active ? active(child, message) : child.emit('message', { type: 'owasp-ai-goat-owned-guardian-active', pid: 123, challenge, nonce: message.nonce }));
     }
     callback?.();
   };
@@ -61,7 +61,7 @@ function controlled({ transform, proof, active, retained = false, ready = true, 
 test('held-handle challenge and activation order, exact identity, safe helper executable', async () => {
   const c = controlled(), adapter = await c.create();
   assert.deepEqual(await c.admit(adapter), { pid: 123, creationFileTime: birth });
-  assert.deepEqual(c.events, ['dvaia-owned-guardian-hello', 'pin', 'dvaia-owned-guardian-probe', 'assign', 'members', 'dvaia-owned-guardian-activate']);
+  assert.deepEqual(c.events, ['owasp-ai-goat-owned-guardian-hello', 'pin', 'owasp-ai-goat-owned-guardian-probe', 'assign', 'members', 'owasp-ai-goat-owned-guardian-activate']);
   assert.equal(c.launch.executable, 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe');
   assert.deepEqual(c.launch.options.stdio, ['pipe', 'pipe', 'ignore']);
   assert.equal(c.launch.options.shell, false); assert.equal(c.launch.options.windowsHide, true);
@@ -72,8 +72,8 @@ test('held-handle challenge and activation order, exact identity, safe helper ex
 });
 
 test('PID reuse/preactivation exit cannot assign after proof failure', async () => {
-  for (const proof of [(child) => child.emit('exit', 0), (child, message) => child.emit('message', { type: 'dvaia-owned-guardian-proof', pid: 456, challenge, nonce: message.nonce }),
-    (child, message) => child.emit('message', { type: 'dvaia-owned-guardian-proof', pid: 123, challenge, nonce: 'b'.repeat(64) })]) {
+  for (const proof of [(child) => child.emit('exit', 0), (child, message) => child.emit('message', { type: 'owasp-ai-goat-owned-guardian-proof', pid: 456, challenge, nonce: message.nonce }),
+    (child, message) => child.emit('message', { type: 'owasp-ai-goat-owned-guardian-proof', pid: 123, challenge, nonce: 'b'.repeat(64) })]) {
     const c = controlled({ proof }), adapter = await c.create();
     await assert.rejects(c.admit(adapter), denial);
     assert(!c.requests.some(value => value.operation === 'assign'));
@@ -85,7 +85,7 @@ test('native assignment denial/nested-job conflict rejects and never activates',
   const c = controlled({ transform(response, request) { if (request.operation === 'assign') return { ...response, ok: false, data: { nativeDiagnostic: 'synthetic private error' } }; } });
   const adapter = await c.create();
   await assert.rejects(c.admit(adapter), error => error.code === denial.code && !JSON.stringify(error).includes('synthetic'));
-  assert(!c.events.includes('dvaia-owned-guardian-activate'));
+  assert(!c.events.includes('owasp-ai-goat-owned-guardian-activate'));
   await assert.rejects(adapter.members(), denial);
 });
 

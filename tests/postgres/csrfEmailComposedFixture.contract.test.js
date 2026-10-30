@@ -15,8 +15,8 @@ test('composed qualification contract rejects missing x1/x2/x3, Judge identity, 
 });
 
 test('reset contract requires stable local inbox identity and authenticated API headers', () => {
-  assertStableResetAddress('xss-7@dvaia.invalid', 'xss-7@dvaia.invalid');
-  assert.throws(() => assertStableResetAddress('xss-7@dvaia.invalid', 'xss-8@dvaia.invalid'), /stable/);
+  assertStableResetAddress('xss-7@owasp-ai-goat.invalid', 'xss-7@owasp-ai-goat.invalid');
+  assert.throws(() => assertStableResetAddress('xss-7@owasp-ai-goat.invalid', 'xss-8@owasp-ai-goat.invalid'), /stable/);
   assert.deepEqual(authHeaders('token', true), { 'content-type': 'application/json', authorization: 'Bearer token' });
   assert.deepEqual(authHeaders('', false), {});
 });

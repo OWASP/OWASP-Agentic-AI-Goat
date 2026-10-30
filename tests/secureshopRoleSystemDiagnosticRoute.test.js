@@ -9,7 +9,7 @@ const launch = { launchId: '10000000-0000-4000-8000-000000000001',
 const personaSession = { sessionId: '30000000-0000-4000-8000-000000000001', authorityVersion: '2' };
 const ids = { sessionId: '40000000-0000-4000-8000-000000000001',
   requestId: '50000000-0000-4000-8000-000000000001', proposalId: '60000000-0000-4000-8000-000000000001' };
-const headers = { 'content-type': 'application/json', 'x-dvaia-secureshop-launch': 'a'.repeat(43),
+const headers = { 'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43),
   authorization: 'Bearer private-token' };
 async function setup(t, overrides = {}, userRole = 'admin') {
   const calls = [];

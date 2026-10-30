@@ -21,7 +21,7 @@ function optionalRead(file){
 }
 function loadMaintenancePlanConfiguration({root=path.resolve(__dirname,'../..'),homeDirectory=os.homedir(),adminUrl}={}){
  try{
- root=fs.realpathSync(root);const id=createHash('sha256').update(root).digest('hex').slice(0,12),directory=path.join(homeDirectory,'.dvaia',id);
+ root=fs.realpathSync(root);const id=createHash('sha256').update(root).digest('hex').slice(0,12),directory=path.join(homeDirectory,'.owasp-ai-goat',id);
  if(process.platform==='win32'){require('./windows-private-state').inspectPrivateDirectory(directory);if(fs.realpathSync(directory)!==directory)throw fail();}
  else{const d=fs.lstatSync(directory);if(fs.realpathSync(directory)!==directory||!d.isDirectory()||d.uid!==process.getuid()||(d.mode&0o777)!==0o700)throw fail();}
  const manifestPath=path.join(directory,'provisioning.json');JSON.parse(read(manifestPath));
@@ -30,7 +30,7 @@ function loadMaintenancePlanConfiguration({root=path.resolve(__dirname,'../..'),
  const parsed=require('dotenv').parse(text),environment={};for(const k of keys)if(parsed[k]!==undefined)environment[k]=parsed[k];
  for(const row of plan)for(const k of [row.runtimeVariable,row.migrationVariable])if(!environment[k])throw fail();
  const local=path.join(directory,'local-postgres.json');let state;
- const localBytes=optionalRead(local);if(localBytes!==undefined){state=JSON.parse(localBytes);require('./setup-local-postgres-state').validateLocalPostgresState(state,{id,name:`dvaia-postgres-${id}`});}
+ const localBytes=optionalRead(local);if(localBytes!==undefined){state=JSON.parse(localBytes);require('./setup-local-postgres-state').validateLocalPostgresState(state,{id,name:`owasp-ai-goat-postgres-${id}`});}
  environment.PG_ADMIN_DATABASE_URL=adminUrl||(state&&`postgresql://postgres:${state.password}@127.0.0.1:${state.port}/postgres`);if(!environment.PG_ADMIN_DATABASE_URL)throw fail();
  const delivery=path.join(directory,'ctf-delivery.json');let deliveryManifestPath;const deliveryBytes=optionalRead(delivery);if(deliveryBytes!==undefined){JSON.parse(deliveryBytes);deliveryManifestPath=delivery;}
  if(Boolean(environment.CTF_DELIVERY_DATABASE_URL)!==Boolean(deliveryManifestPath))throw fail();

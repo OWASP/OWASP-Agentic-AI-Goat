@@ -6,20 +6,20 @@ from pathlib import Path
 from sensitive_info_recovery_safety import SignalGate
 
 EXPECTED_DAEMON='2c9da9a7-1f8c-490b-af98-87bbf6bf83db'
-EXPECTED_DOCKER='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+EXPECTED_DOCKER='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 DOCKER=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 IMAGE='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 SOURCE=Path(__file__).resolve().parents[2]
 COHORT='ea-nine-content-main'
 def profile_contract(profile):
- if profile=='nine-content':return {'cohort':COHORT,'workSeconds':780,'databasePrefix':'dvaia_test_ea_parity','child':'tests/postgres/excessiveAgencyFullAppParity.integration.test.js'}
- if profile=='route-session-controlled':return {'cohort':'ea-route-session-controlled-main','workSeconds':180,'databasePrefix':'dvaia_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'}
- if profile=='route-actual-remaining-four':return {'cohort':'ea-route-actual-remaining-four-main','workSeconds':960,'databasePrefix':'dvaia_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'}
- if profile=='route-actual-objective-four':return {'cohort':'ea-route-actual-objective-four-main','workSeconds':960,'databasePrefix':'dvaia_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'}
- if profile=='route-actual-objective-seven-8b':return {'cohort':'ea-route-actual-objective-seven-8b-main','workSeconds':960,'databasePrefix':'dvaia_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'}
- if profile=='route-actual-objective-seven-70b':return {'cohort':'ea-route-actual-objective-seven-70b-main','workSeconds':960,'databasePrefix':'dvaia_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'}
- if profile=='route-actual-eight':return {'cohort':'ea-route-actual-eight-main','workSeconds':960,'databasePrefix':'dvaia_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'}
+ if profile=='nine-content':return {'cohort':COHORT,'workSeconds':780,'databasePrefix':'owasp_ai_goat_test_ea_parity','child':'tests/postgres/excessiveAgencyFullAppParity.integration.test.js'}
+ if profile=='route-session-controlled':return {'cohort':'ea-route-session-controlled-main','workSeconds':180,'databasePrefix':'owasp_ai_goat_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'}
+ if profile=='route-actual-remaining-four':return {'cohort':'ea-route-actual-remaining-four-main','workSeconds':960,'databasePrefix':'owasp_ai_goat_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'}
+ if profile=='route-actual-objective-four':return {'cohort':'ea-route-actual-objective-four-main','workSeconds':960,'databasePrefix':'owasp_ai_goat_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'}
+ if profile=='route-actual-objective-seven-8b':return {'cohort':'ea-route-actual-objective-seven-8b-main','workSeconds':960,'databasePrefix':'owasp_ai_goat_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'}
+ if profile=='route-actual-objective-seven-70b':return {'cohort':'ea-route-actual-objective-seven-70b-main','workSeconds':960,'databasePrefix':'owasp_ai_goat_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'}
+ if profile=='route-actual-eight':return {'cohort':'ea-route-actual-eight-main','workSeconds':960,'databasePrefix':'owasp_ai_goat_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'}
  raise RuntimeError('Closed EA profile required')
 def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def browser_admission():
@@ -202,8 +202,8 @@ def main(argv=None):
  if manifest:
   evidence_parent.mkdir(parents=True,exist_ok=True,mode=0o700)
   if evidence_parent.resolve()!=evidence_parent:raise RuntimeError('Canonical evidence parent required')
- root=Path(tempfile.mkdtemp(prefix='run-' if manifest else 'dvaia-ea-parity-',dir=evidence_parent if manifest else None));os.chmod(root,0o700);workspace=SOURCE if manifest else root/'source'
- container='dvaia-ea-parity-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
+ root=Path(tempfile.mkdtemp(prefix='run-' if manifest else 'owasp-ai-goat-ea-parity-',dir=evidence_parent if manifest else None));os.chmod(root,0o700);workspace=SOURCE if manifest else root/'source'
+ container='owasp-ai-goat-ea-parity-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
  docker=[str(docker_binary),'--host',args.docker_host]
  env={'PATH':str(node.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(root)}
  state={'container':container,'owner':owner,'image':IMAGE,'evidence':str(root),'launcherPid':os.getpid(),
@@ -269,14 +269,14 @@ def main(argv=None):
    'server/routes/postgresWorkshop.js','server/routes/adminExercises.js','server/routes/solutions.js','server/routes/hints.js']
   state['sourceSha256']=manifest['sourcePins'] if manifest else {name:digest(workspace/name) for name in inventory};persist()
   creation_attempted=True;state['containerCreationAttempted']=True;persist()
-  run(docker+['run','--detach','--pull','never','--name',container,'--label','dvaia.test.owner='+owner,
+  run(docker+['run','--detach','--pull','never','--name',container,'--label','owasp-ai-goat.test.owner='+owner,
    '--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_HOST_AUTH_METHOD=trust',
    '-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=40',
    '-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
   details=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
-  if manifest:details=owned_docker.inspect_owned(docker_command,name=container,labels={'dvaia.test.owner':owner},image=IMAGE)
+  if manifest:details=owned_docker.inspect_owned(docker_command,name=container,labels={'owasp-ai-goat.test.owner':owner},image=IMAGE)
   state['containerId']=details['Id'];persist()
-  if details.get('Mounts') or details['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
+  if details.get('Mounts') or details['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
   if details.get('HostConfig',{}).get('Tmpfs')!={'/var/lib/postgresql':'rw,size=268435456'}:raise RuntimeError('Owned PostgreSQL tmpfs isolation check failed')
   for _ in range(100):
    ready=subprocess.run(docker+['exec',container,'pg_isready','-h','127.0.0.1','-U','postgres'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=2)
@@ -294,7 +294,7 @@ def main(argv=None):
    prefix='IDENTITY' if family=='identity' else 'EXCESSIVE_AGENCY'
    env[f'{prefix}_MIGRATION_DATABASE_URL']=f'postgresql://{migration}@127.0.0.1:{port}/{database}'
    env[f'{prefix}_DATABASE_URL']=f'postgresql://{runtime}@127.0.0.1:{port}/{database}'
-  env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',EA_FULL_APP_PARITY='1',EA_ROUTE_LIVE='0',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+  env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',EA_FULL_APP_PARITY='1',EA_ROUTE_LIVE='0',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
    EA_PARITY_EVIDENCE_PATH=str(root/'service-evidence.json'),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',
    AI_PROVIDER='mock',JUDGE_PROVIDER='mock',JWT_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,SESSION_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,
    AWS_EC2_METADATA_DISABLED='true',MCP_WORKSHOP_AUTOSTART='false',MCP_SIDECARS_AUTOSTART='false',SS_ENABLE='false',HF_HUB_OFFLINE='1',
@@ -331,7 +331,7 @@ def main(argv=None):
   if creation_attempted:
    try:
     if manifest:
-     state['containerCleanup']=owned_docker.cleanup_owned(docker_command,daemon_id=args.docker_daemon,name=container,labels={'dvaia.test.owner':owner},image=IMAGE,captured_id=state.get('containerId'));remove_code=0
+     state['containerCleanup']=owned_docker.cleanup_owned(docker_command,daemon_id=args.docker_daemon,name=container,labels={'owasp-ai-goat.test.owner':owner},image=IMAGE,captured_id=state.get('containerId'));remove_code=0
      identifier=state.get('containerId')
      if identifier:
       check=docker_command(['inspect','--type','container',identifier])

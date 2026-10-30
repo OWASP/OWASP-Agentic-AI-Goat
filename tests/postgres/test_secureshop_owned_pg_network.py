@@ -74,8 +74,8 @@ class OwnedNetworkTests(unittest.TestCase):
             self.assertIsNone(self.docker.pg)
             return 'strict-shared-baseline'
         network = main.OwnedPostgresNetwork(cohort, self.docker, 'exact-daemon',
-            'dvaia-' + cohort + '-abcdef123456-pg-network',
-            {'dvaia.owner': 'controlled-owner', 'dvaia.cohort': cohort}, self.path, snapshot,
+            'owasp-ai-goat-' + cohort + '-abcdef123456-pg-network',
+            {'owasp-ai-goat.owner': 'controlled-owner', 'owasp-ai-goat.cohort': cohort}, self.path, snapshot,
             private_listings=private_listings)
         self.docker.network = network
         return network
@@ -254,7 +254,7 @@ cp.spawn=(file,args,options)=>{
             for debt in (False, True):
                 with self.subTest(cohort=cohort, debt=debt):
                     self.docker = Docker(); network = self.network(cohort,private_listings=private_listings) if main.owned_pg_network_selected(cohort,private_listings=private_listings) else None
-                    name = 'dvaia-' + cohort + '-abcdef123456'
+                    name = 'owasp-ai-goat-' + cohort + '-abcdef123456'
                     args = SimpleNamespace(cohort=cohort, image_id='sha256:' + 'e' * 64,
                         docker_daemon='exact-daemon', pricing_v34_transition_preflight=False)
                     def raw(_args, _clean, parts, timeout):
@@ -277,7 +277,7 @@ cp.spawn=(file,args,options)=>{
                         if network: self.docker.rows[ID]['Containers'].clear()
                         return {'status': 'controlled-absence'}
                     state = dict(vars(main), args=args, clean={}, ownership_command=self.docker, container=name,
-                        expected_labels={'dvaia.owner': 'controlled-owner', 'dvaia.cohort': cohort},
+                        expected_labels={'owasp-ai-goat.owner': 'controlled-owner', 'owasp-ai-goat.cohort': cohort},
                         labels=[], pg_network=network, creation_attempted=False, captured_id=None,
                         raw_docker_command=raw, inspect_owned=inspected, validate_container_layout=lambda row: 23456,
                         cleanup_owned=remove, docker_absent=lambda *_args: self.docker.pg is None,
@@ -336,8 +336,8 @@ cp.spawn=(file,args,options)=>{
             ns=dict(vars(main),args=SimpleNamespace(cohort='standalone-listings-browser',
                     docker_daemon='exact-daemon',pricing_v34_transition_preflight=False),
                     listings_private_admitted=packet,ownership_command=self.docker,
-                    container='dvaia-standalone-listings-browser-abcdef123456',
-                    expected_labels={'dvaia.owner':'controlled-owner','dvaia.cohort':'standalone-listings-browser'},
+                    container='owasp-ai-goat-standalone-listings-browser-abcdef123456',
+                    expected_labels={'owasp-ai-goat.owner':'controlled-owner','owasp-ai-goat.cohort':'standalone-listings-browser'},
                     evidence=self.path,source=ROOT,nonce='abcdef123456')
             exec(compile(ast.Module(body=[assignment],type_ignores=[]),'<actual MAIN construction>','exec'),ns)
             if packet is None:self.assertIsNone(ns['pg_network'])

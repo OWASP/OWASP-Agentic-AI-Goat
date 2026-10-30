@@ -172,7 +172,7 @@ const {canonicalCtfJson}=require('../../server/services/ctfLifecycleCommands');
       .assertDatabaseName(u.pathname,state,kind,attemptGateCohortNonce);
     else if(fixedPracticeOnly)fixedPracticeCohortNonce=require('./support/ctfFixedPracticeRenderedIntegration')
       .assertDatabaseName(u.pathname,state,kind,fixedPracticeCohortNonce);
-    else assert.match(u.pathname,/^\/dvaia_test_ctf_app_/);
+    else assert.match(u.pathname,/^\/owasp_ai_goat_test_ctf_app_/);
    }
    assert.equal(urls[0].pathname,urls[1].pathname);assert.equal(urls[0].port,urls[1].port);assert.notEqual(urls[0].username,urls[1].username);assert(!dbs.has(urls[0].pathname));dbs.add(urls[0].pathname);
    const [runtime,migration]=keys.map(k=>createPool({...process.env,PG_POOL_MAX_WORKSHOP:'1'},k));pools.push(runtime,migration);stores[kind]={runtime,migration};

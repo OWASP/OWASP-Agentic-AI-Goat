@@ -28,7 +28,7 @@ function childThatExits(delay, code = 0) {
 const LOCAL_AUTHORITY = Object.freeze({
   version: 1,
   workspaceId: 'fixture-workspace',
-  host: 'unix:///tmp/dvaia-docker.sock',
+  host: 'unix:///tmp/owasp-ai-goat-docker.sock',
   daemonId: 'daemon-fixture',
   source: 'active-context',
 });

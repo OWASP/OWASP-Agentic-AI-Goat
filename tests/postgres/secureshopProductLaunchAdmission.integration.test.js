@@ -19,7 +19,7 @@ test('native product launch admission preserves retained bindings, caps debt, an
     for (const suffix of ['MIGRATION', 'RUNTIME']) {
       const url = new URL(process.env[`PG_SECURESHOP_PRODUCT_ADMISSION_TEST_${suffix}_URL`]);
       assert.equal(url.protocol, 'postgresql:');
-      assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+      assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
       assert.equal(url.hostname, '127.0.0.1');
       assert.equal(url.username, `dvaia_identity_${suffix.toLowerCase()}`);
       assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');

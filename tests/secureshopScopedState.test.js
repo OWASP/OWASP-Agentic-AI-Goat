@@ -33,7 +33,7 @@ test('state writes fail visibly on quota, revoked generation, expanded keys and 
 
 test('corrupted persisted state is rejected without erasing it; revocation during write prevents acknowledgement',async()=>{
   const {createScopedShopStateStore,storage,values}=await setup();
-  const key=`dvaia:secureshop:${scenarioId}:1`;values.set(key,'{"platform_token":"bad"}');
+  const key=`owasp-ai-goat:secureshop:${scenarioId}:1`;values.set(key,'{"platform_token":"bad"}');
   const store=createScopedShopStateStore({storage,scenarioId,generation:1,isCurrent:()=>true});
   assert.throws(()=>store.read());assert.equal(values.get(key),'{"platform_token":"bad"}');
   let current=true;const revoked=createScopedShopStateStore({storage:{...storage,setItem(k,v){values.set(k,v);current=false;}},scenarioId,generation:1,isCurrent:()=>current});
@@ -42,7 +42,7 @@ test('corrupted persisted state is rejected without erasing it; revocation durin
 
 test('trusted retirement removes only the confirmed old generation and is unavailable before cleanup',async()=>{
  const {createScopedShopStateStore,storage,values}=await setup();let confirmed=false;
- const oldKey=`dvaia:secureshop:${scenarioId}:1`;const newKey=`dvaia:secureshop:${scenarioId}:2`;
+ const oldKey=`owasp-ai-goat:secureshop:${scenarioId}:1`;const newKey=`owasp-ai-goat:secureshop:${scenarioId}:2`;
  values.set(oldKey,JSON.stringify(state));values.set(newKey,JSON.stringify(state));
  const store=createScopedShopStateStore({storage:{...storage,removeItem:key=>values.delete(key)},scenarioId,generation:1,isCurrent:()=>false,canRetire:()=>confirmed});
  assert.throws(()=>store.retire(),/not confirmed/);assert.ok(values.has(oldKey));

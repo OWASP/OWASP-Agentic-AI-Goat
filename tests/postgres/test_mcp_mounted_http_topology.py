@@ -30,8 +30,8 @@ class TopologyTests(unittest.TestCase):
         cli=(root/'sidecars/sandbox-runner/ownedTargetApi.js').read_text()
         http=(root/'sidecars/sandbox-runner/owned-http/executor.js').read_text()
         # Read the exact anchored regex consumed by each current production constructor.
-        cli_pattern=re.search(r'!/(\^dvaia-mcp-sandbox[^/]+)/\.test',cli).group(1)
-        http_pattern=re.search(r'!/(\^dvaia-owned-http-[^/]+)/\.test',http).group(1)
+        cli_pattern=re.search(r'!/(\^owasp-ai-goat-mcp-sandbox[^/]+)/\.test',cli).group(1)
+        http_pattern=re.search(r'!/(\^owasp-ai-goat-owned-http-[^/]+)/\.test',http).group(1)
         value=plan()
         for kind,pattern in [('cli',cli_pattern),('http',http_pattern)]:
             spec=value['resources'][kind]

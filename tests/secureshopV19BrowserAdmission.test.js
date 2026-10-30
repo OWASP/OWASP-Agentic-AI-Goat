@@ -18,10 +18,10 @@ test('V19 browser admission is full-only, owned-private and loopback; default un
   } });
   const run = path.join(ROOT, 'tasks/qualification/run-controlled'), tmp = path.join(run, 'runtime/tmp');
   const options = { workspace: ROOT, evidencePath: path.join(run, 'customer-file-summary-v19-browser.json'),
-    profile: path.join(tmp, 'dvaia-v19-browser-controlled'), origin: 'http://127.0.0.1:12345' };
+    profile: path.join(tmp, 'owasp-ai-goat-v19-browser-controlled'), origin: 'http://127.0.0.1:12345' };
   const env = { SECURESHOP_V19_TEST_NO_SANDBOX: '1', SECURESHOP_V19_FILE_SUMMARY_BROWSER_NATIVE: '1',
     PG_TEST_DISPOSABLE: 'yes', LIVE_OLLAMA_TEST: '1', NODE_ENV: 'test',
-    DVAIA_CURRENT_MAIN_WORKSPACE: ROOT, TMPDIR: tmp,
+    OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: ROOT, TMPDIR: tmp,
     SECURESHOP_V19_BROWSER_RECORD_PATH: path.join(run, 'v19-browser.json'),
     SECURESHOP_V19_BROWSER_ACK_PATH: path.join(run, 'v19-browser-ack.json'),
     SECURESHOP_V19_BROWSER_SHA256: 'a'.repeat(64),
@@ -35,12 +35,12 @@ test('V19 browser admission is full-only, owned-private and loopback; default un
   for (const patch of [{ SECURESHOP_V19_TEST_NO_SANDBOX: 'true' },
     { SECURESHOP_V19_FILE_SUMMARY_BROWSER_NATIVE: '0' }, { SECURESHOP_V19_FILE_SUMMARY_DIAGNOSTIC_NATIVE: '1' },
     { PG_TEST_DISPOSABLE: 'no' }, { LIVE_OLLAMA_TEST: '0' }, { NODE_ENV: 'production' },
-    { DVAIA_CURRENT_MAIN_WORKSPACE: '/foreign' }, { TMPDIR: '/foreign' },
+    { OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: '/foreign' }, { TMPDIR: '/foreign' },
     { SECURESHOP_V19_BROWSER_RECORD_PATH: '/foreign' }, { SECURESHOP_V19_BROWSER_ACK_PATH: '/foreign' },
     { SECURESHOP_V19_BROWSER_SHA256: 'bad' }]) assert.throws(() => f.v19BrowserArgs({ ...env, ...patch }, options));
   for (const origin of ['http://example.com:12345', 'https://127.0.0.1:12345', 'http://127.0.0.1:12345/path'])
     assert.throws(() => f.v19BrowserArgs(env, { ...options, origin }));
-  assert.throws(() => f.v19BrowserArgs(env, { ...options, profile: path.join(tmp, 'dvaia-customer-idor-browser-other') }));
+  assert.throws(() => f.v19BrowserArgs(env, { ...options, profile: path.join(tmp, 'owasp-ai-goat-customer-idor-browser-other') }));
   mode = 0o755; assert.throws(() => f.v19BrowserArgs(env, options));
   mode = 0o700; uid++; assert.throws(() => f.v19BrowserArgs(env, options));
   uid = process.getuid(); link = true; assert.throws(() => f.v19BrowserArgs(env, options));

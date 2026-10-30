@@ -8,7 +8,7 @@ function resolveMaintenanceInstallation(installationRoot){
  const sourceRoot=sourceDirectory;
  if(installationRoot===undefined)installationRoot=sourceRoot;
  if(typeof installationRoot!=='string'||!path.isAbsolute(installationRoot)||path.resolve(installationRoot)!==installationRoot||fs.realpathSync(installationRoot)!==installationRoot||fs.realpathSync(sourceRoot)!==sourceRoot)throw fail();
- const separate=installationRoot!==sourceRoot,homeDirectory=separate?installationRoot:fs.realpathSync(home===undefined?os.homedir():home),id=createHash('sha256').update(installationRoot).digest('hex').slice(0,12),privateParent=path.join(homeDirectory,'.dvaia'),directory=path.join(privateParent,id);
+ const separate=installationRoot!==sourceRoot,homeDirectory=separate?installationRoot:fs.realpathSync(home===undefined?os.homedir():home),id=createHash('sha256').update(installationRoot).digest('hex').slice(0,12),privateParent=path.join(homeDirectory,'.owasp-ai-goat'),directory=path.join(privateParent,id);
  const paths=[sourceRoot,installationRoot,privateParent,directory],capture=(p,i)=>{
   if(platform==='win32'){
    try{

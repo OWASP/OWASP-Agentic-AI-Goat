@@ -55,7 +55,7 @@ function validateBrowserGrant(grant, expected) {
 async function admitBrowser(env, { workspace, evidencePath, executablePath }) {
   assert.equal(selector(env), true); assert.equal(env[`${BROWSER_PREFIX}TEST_NO_SANDBOX`], '1');
   assert.equal(env.PG_TEST_DISPOSABLE, 'yes'); assert.equal(env.NODE_ENV, 'test');
-  assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, workspace); assert.equal(workspace, process.cwd());
+  assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, workspace); assert.equal(workspace, process.cwd());
   assertEvidencePath(workspace, evidencePath);
   const run = path.dirname(evidencePath), temporary = path.join(run, 'runtime/tmp');
   assert.equal(env.TMPDIR, temporary); assert.equal(env.MAC_CHROMIUM_TMPDIR, temporary);
@@ -86,7 +86,7 @@ async function admitBrowser(env, { workspace, evidencePath, executablePath }) {
   return {
     browserArgs({ profile, origin }) {
       privateDirectory(profile); assert.equal(path.dirname(profile), temporary);
-      assert.match(path.basename(profile), /^dvaia-q05-review-[A-Za-z0-9_-]+$/);
+      assert.match(path.basename(profile), /^owasp-ai-goat-q05-review-[A-Za-z0-9_-]+$/);
       const url = new URL(origin); assert.equal(url.origin, origin); assert.equal(url.hostname, '127.0.0.1');
       assert.equal(url.protocol, 'http:'); assert.ok(Number(url.port) > 0 && Number(url.port) <= 65535);
       return ['--no-sandbox', '--disable-background-networking', '--disable-component-update',
@@ -317,7 +317,7 @@ function assertOnlyRunOwnedHiddenAssessments(status, creditBefore, creditAfter, 
 
 async function assertPhysicalAuthority({ headers, composition, scope, persona, personaSession }) {
   const authorization = headers?.authorization;
-  const launch = headers?.['x-dvaia-secureshop-launch'];
+  const launch = headers?.['x-owasp-ai-goat-secureshop-launch'];
   assert.ok(typeof authorization === 'string' && /^Bearer [^\s]+$/.test(authorization),
     'Q05 physical request requires one bearer credential');
   assert.ok(typeof launch === 'string' && launch.length > 0,

@@ -16,7 +16,7 @@ test('real browser workflow publishes only native scoped CSRF completion receipt
   timeout: 60000,
 }, async t => {
   for (const key of ['PG_CSRF_BROWSER_COMPLETION_RUNTIME_URL', 'PG_CSRF_BROWSER_COMPLETION_MIGRATION_URL']) {
-    assert.match(new URL(process.env[key]).pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(new URL(process.env[key]).pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   const { createPool } = require('../../server/database/postgres');
   const runtime = createPool(process.env, 'PG_CSRF_BROWSER_COMPLETION_RUNTIME_URL');

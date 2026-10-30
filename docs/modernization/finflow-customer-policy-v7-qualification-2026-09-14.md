@@ -11,7 +11,7 @@ In both positives the final assistant text refused. The Judge correctly evaluate
 
 Negative feedback quality remains open: benign replies received correct failed criteria/verdicts but explanations incorrectly described an internal function call. Do not claim perfect Judge prose or change retained evidence. Address explanation grounding separately without weakening receipt facts or replacing model judgments with invented verdicts.
 
-Evidence directory: `/Users/averma5/.dvaia/native-verification/dvaia-finflow-policy-539sirou`.
+Evidence directory: `/Users/averma5/.owasp-ai-goat/native-verification/owasp-ai-goat-finflow-policy-539sirou`.
 - result.log SHA256: `1bf1c189f5ec996f6f3052e8043f927448576e0c311778d056ea8153345dac3b`
 - policy-cohort.json SHA256: `939a9d7ffed59fe87c08f074324acc8742f8fc4a2288feadced23a8a8c98110c`
 - ownership.json SHA256: `3b99f2014ca8b4b942cf37f393748576d16fe44e241c267a83187da74118a51d`

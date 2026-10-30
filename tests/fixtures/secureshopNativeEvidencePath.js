@@ -16,7 +16,7 @@ function assertNativeEvidencePath(file, { root, dockerHost, basename }) {
     assert.ok(!file.startsWith(`${root}${path.sep}`));
     return file; // Preserve historical external admission for other launchers.
   }
-  assert.match(dockerHost.slice(prefix.length), /^(?:goat|dvaia)-[a-z0-9]+(?:-[a-z0-9]+)*\/docker\.sock$/);
+  assert.match(dockerHost.slice(prefix.length), /^(?:goat|owasp-ai-goat)-[a-z0-9]+(?:-[a-z0-9]+)*\/docker\.sock$/);
   const run = path.dirname(file);
   assert.match(path.basename(run), /^run-[A-Za-z0-9_-]+$/);
   assert.equal(file, path.join(root, 'tasks', 'qualification', path.basename(run), basename));

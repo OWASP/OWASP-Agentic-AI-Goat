@@ -4,7 +4,7 @@ import argparse,hashlib,json,os,signal,stat,subprocess,tempfile,time
 from pathlib import Path
 
 SOURCE=Path(__file__).resolve().parents[2]
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 EXPECTED_NODE='56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 ENTRY='tests/fixtures/dpiVirtualizationContextCalibration.js'
 TEST='tests/dpiVirtualizationContextCalibration.test.js'

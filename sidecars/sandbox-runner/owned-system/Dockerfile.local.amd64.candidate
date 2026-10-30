@@ -8,37 +8,37 @@ RUN test "$(dpkg --print-architecture)" = amd64 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --chown=0:0 system-init.c process-supervisor.c diagnostic-init.c diagnostic-supervisor.c restart-init.c restart-supervisor.c restart-service-child.c upload-preview-init.c /build/owned-system/
-COPY --chown=0:0 restart-systemctl /opt/dvaia-owned-system/restart-systemctl
-RUN mkdir -p /usr/local/libexec /opt/dvaia-owned-system \
-    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/system-init.c -o /usr/local/libexec/dvaia-system-config-init \
-    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/process-supervisor.c -o /usr/local/libexec/dvaia-system-config-supervisor \
-    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/diagnostic-init.c -o /usr/local/libexec/dvaia-system-diagnostic-init \
-    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/diagnostic-supervisor.c -o /usr/local/libexec/dvaia-system-diagnostic-supervisor \
-    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/restart-init.c -o /usr/local/libexec/dvaia-system-restart-init \
-    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/restart-supervisor.c -o /usr/local/libexec/dvaia-system-restart-supervisor \
-    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/restart-service-child.c -o /usr/local/libexec/dvaia-system-restart-child \
-    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/upload-preview-init.c -o /usr/local/libexec/dvaia-upload-preview-init \
-    && chmod 0555 /usr/local/libexec/dvaia-upload-preview-init /usr/local/libexec/dvaia-system-* /usr/bin/bwrap \
-    && chmod 0555 /opt/dvaia-owned-system/restart-systemctl \
-    && for file in /usr/local/libexec/dvaia-upload-preview-init /usr/local/libexec/dvaia-system-config-init /usr/local/libexec/dvaia-system-config-supervisor /usr/local/libexec/dvaia-system-diagnostic-init /usr/local/libexec/dvaia-system-diagnostic-supervisor /usr/local/libexec/dvaia-system-restart-init /usr/local/libexec/dvaia-system-restart-supervisor /usr/local/libexec/dvaia-system-restart-child /opt/dvaia-owned-system/restart-systemctl; do sha256sum "$file" | cut -d' ' -f1 > "$file.sha256"; chmod 0444 "$file.sha256"; done \
+COPY --chown=0:0 restart-systemctl /opt/owasp-ai-goat-owned-system/restart-systemctl
+RUN mkdir -p /usr/local/libexec /opt/owasp-ai-goat-owned-system \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/system-init.c -o /usr/local/libexec/owasp-ai-goat-system-config-init \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/process-supervisor.c -o /usr/local/libexec/owasp-ai-goat-system-config-supervisor \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/diagnostic-init.c -o /usr/local/libexec/owasp-ai-goat-system-diagnostic-init \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/diagnostic-supervisor.c -o /usr/local/libexec/owasp-ai-goat-system-diagnostic-supervisor \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/restart-init.c -o /usr/local/libexec/owasp-ai-goat-system-restart-init \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/restart-supervisor.c -o /usr/local/libexec/owasp-ai-goat-system-restart-supervisor \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/restart-service-child.c -o /usr/local/libexec/owasp-ai-goat-system-restart-child \
+    && gcc -static -O2 -Wall -Wextra -Werror /build/owned-system/upload-preview-init.c -o /usr/local/libexec/owasp-ai-goat-upload-preview-init \
+    && chmod 0555 /usr/local/libexec/owasp-ai-goat-upload-preview-init /usr/local/libexec/owasp-ai-goat-system-* /usr/bin/bwrap \
+    && chmod 0555 /opt/owasp-ai-goat-owned-system/restart-systemctl \
+    && for file in /usr/local/libexec/owasp-ai-goat-upload-preview-init /usr/local/libexec/owasp-ai-goat-system-config-init /usr/local/libexec/owasp-ai-goat-system-config-supervisor /usr/local/libexec/owasp-ai-goat-system-diagnostic-init /usr/local/libexec/owasp-ai-goat-system-diagnostic-supervisor /usr/local/libexec/owasp-ai-goat-system-restart-init /usr/local/libexec/owasp-ai-goat-system-restart-supervisor /usr/local/libexec/owasp-ai-goat-system-restart-child /opt/owasp-ai-goat-owned-system/restart-systemctl; do sha256sum "$file" | cut -d' ' -f1 > "$file.sha256"; chmod 0444 "$file.sha256"; done \
     && printf 'owned-system:x:10001:10001:Owned System:/nonexistent:/usr/sbin/nologin\n' >> /etc/passwd \
-    && install -d -o 10001 -g 10001 -m 0700 /var/lib/dvaia-owned-restart /var/lib/dvaia-owned-restart/effects /var/lib/dvaia-owned-restart/targets /owned-restart /owned-restart/targets /var/lib/dvaia-owned-upload-preview \
-    && dpkg-query -W > /opt/dvaia-owned-system/packages.txt \
+    && install -d -o 10001 -g 10001 -m 0700 /var/lib/owasp-ai-goat-owned-restart /var/lib/owasp-ai-goat-owned-restart/effects /var/lib/owasp-ai-goat-owned-restart/targets /owned-restart /owned-restart/targets /var/lib/owasp-ai-goat-owned-upload-preview \
+    && dpkg-query -W > /opt/owasp-ai-goat-owned-system/packages.txt \
     && rm -rf /build/owned-system
 
-COPY --chown=0:0 upload-preview-runtime/package.json upload-preview-runtime/package-lock.json /opt/dvaia-owned-system/upload-preview-runtime/
-RUN --mount=type=secret,id=npm_ca cd /opt/dvaia-owned-system/upload-preview-runtime \
+COPY --chown=0:0 upload-preview-runtime/package.json upload-preview-runtime/package-lock.json /opt/owasp-ai-goat-owned-system/upload-preview-runtime/
+RUN --mount=type=secret,id=npm_ca cd /opt/owasp-ai-goat-owned-system/upload-preview-runtime \
     && if [ -f /run/secrets/npm_ca ]; then NODE_EXTRA_CA_CERTS=/run/secrets/npm_ca npm ci --omit=dev --ignore-scripts --include=optional --bin-links=false; else npm ci --omit=dev --ignore-scripts --include=optional --bin-links=false; fi
 
-COPY --chown=0:0 local-listener-entry.js http-listener.js http-handler.js health-metrics.js health-contract.js executor.js receipt.js worker.js config-reader.js contract.js diagnostic-http-listener.js diagnostic-http-handler.js diagnostic-executor.js diagnostic-wire.js diagnostic-result.js diagnostic-contract.js diagnostic-receipt.js restart-command-executor.js restart-target.js restart-manager.js restart-contract.js restart-wire.js restart-http-handler.js restart-http-listener.js upload-preview-contract.js upload-preview-worker.js upload-preview-executor.js upload-preview-dependencies.js upload-preview-http-handler.js upload-preview-http-listener.js /opt/dvaia-owned-system/
-RUN find /opt/dvaia-owned-system -type f -exec chmod 0444 {} + \
-    && find /opt/dvaia-owned-system -type d -exec chmod 0555 {} + \
-    && chmod 0555 /opt/dvaia-owned-system/restart-systemctl \
-    && chmod 0555 /opt/dvaia-owned-system \
-    && node /opt/dvaia-owned-system/upload-preview-dependencies.js --build-manifest \
-    && node -e "require('/opt/dvaia-owned-system/executor').loadAssets()"
+COPY --chown=0:0 local-listener-entry.js http-listener.js http-handler.js health-metrics.js health-contract.js executor.js receipt.js worker.js config-reader.js contract.js diagnostic-http-listener.js diagnostic-http-handler.js diagnostic-executor.js diagnostic-wire.js diagnostic-result.js diagnostic-contract.js diagnostic-receipt.js restart-command-executor.js restart-target.js restart-manager.js restart-contract.js restart-wire.js restart-http-handler.js restart-http-listener.js upload-preview-contract.js upload-preview-worker.js upload-preview-executor.js upload-preview-dependencies.js upload-preview-http-handler.js upload-preview-http-listener.js /opt/owasp-ai-goat-owned-system/
+RUN find /opt/owasp-ai-goat-owned-system -type f -exec chmod 0444 {} + \
+    && find /opt/owasp-ai-goat-owned-system -type d -exec chmod 0555 {} + \
+    && chmod 0555 /opt/owasp-ai-goat-owned-system/restart-systemctl \
+    && chmod 0555 /opt/owasp-ai-goat-owned-system \
+    && node /opt/owasp-ai-goat-owned-system/upload-preview-dependencies.js --build-manifest \
+    && node -e "require('/opt/owasp-ai-goat-owned-system/executor').loadAssets()"
 
 USER 10001:10001
-WORKDIR /opt/dvaia-owned-system
-ENTRYPOINT ["/usr/local/bin/node", "/opt/dvaia-owned-system/local-listener-entry.js"]
+WORKDIR /opt/owasp-ai-goat-owned-system
+ENTRYPOINT ["/usr/local/bin/node", "/opt/owasp-ai-goat-owned-system/local-listener-entry.js"]
 # Required argument: config, diagnostic, restart, or upload-preview. No default mode or auto-enable.

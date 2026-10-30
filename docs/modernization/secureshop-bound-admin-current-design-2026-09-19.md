@@ -14,7 +14,7 @@ Status: implementation in progress, based on current source inspection on 2026-0
 
 ## Required authority boundary
 
-A SecureShop admin persona administers only its learner's isolated shop launch. It is not a DVAIA platform administrator. Every operation resolves server-owned launch, owner, scenario, generation and authenticated persona; the request cannot select another owner or trust its own role. Require the admin persona before reading admin projections or executing admin operations. Revalidate generation at effects and grading boundaries.
+A SecureShop admin persona administers only its learner's isolated shop launch. It is not a OWASP Agentic AI GOAT platform administrator. Every operation resolves server-owned launch, owner, scenario, generation and authenticated persona; the request cannot select another owner or trust its own role. Require the admin persona before reading admin projections or executing admin operations. Revalidate generation at effects and grading boundaries.
 
 Normal operational administration consists of catalog/persona counts, owned commerce totals, owned audit and run records, policy management and launch-local permissions. Teaching sinks include unsafe policy rendering, MCP trust/import behavior, diagnostic/config operations and deliberately vulnerable tool authorization. Preserve their documented exploit semantics inside owned targets. Consult `docs/secureshop/VULNERABILITIES.md` before implementing each sink; do not make a secure CRUD replacement and call the exercise complete.
 

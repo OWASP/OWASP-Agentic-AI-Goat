@@ -23,7 +23,7 @@ client_spec.loader.exec_module(client)
 
 def plan():
     return {'version': 1, 'kind': 'private-relay-lifecycle-only', 'runId': 'b'*32,
-        'guest': '/var/tmp/dvaia-v23-build-'+'b'*32, 'storageCapBytes': 16777216,
+        'guest': '/var/tmp/owasp-ai-goat-v23-build-'+'b'*32, 'storageCapBytes': 16777216,
         'acquisitionApproved': False, 'executionApproved': False,
         'admission': {'account': 'lima', 'uid': 501, 'gid': 1000},
         'relaySourceSha256': 'a'*64, 'lifecycleSourceSha256': 'b'*64,
@@ -450,7 +450,7 @@ class LifecycleTests(unittest.TestCase):
                 patch.object(client.os,'getegid',return_value=1000),patch.object(client.os,'getgroups',return_value=[]), \
                 patch.object(client.socket,'socket',return_value=raw) as allocation, \
                 patch.object(client.ssl,'create_default_context',return_value=context) as tls:
-            value=client.execute('auth',12345,'/var/tmp/dvaia-v23-relay-'+'b'*32,'net:[2]',time.monotonic()+30)
+            value=client.execute('auth',12345,'/var/tmp/owasp-ai-goat-v23-relay-'+'b'*32,'net:[2]',time.monotonic()+30)
         allocation.assert_called_once_with(client.socket.AF_INET,client.socket.SOCK_STREAM)
         raw.connect.assert_called_once_with(('127.0.0.1',12345))
         context.wrap_socket.assert_called_once_with(raw,server_hostname='auth.docker.io')
@@ -463,8 +463,8 @@ class LifecycleTests(unittest.TestCase):
         raw=MagicMock();raw.recv.return_value=b''
         with patch.object(client.os,'readlink',return_value='net:[2]'),patch.object(client.os,'geteuid',return_value=0), \
                 patch.object(client.socket,'socket',return_value=raw),patch.object(client.os,'chmod') as chmod:
-            value=client.execute('deny-peer',12345,'/var/tmp/dvaia-v23-relay-'+'b'*32,'net:[2]',time.monotonic()+30)
-        raw.connect.assert_called_once_with('/var/tmp/dvaia-v23-relay-'+'b'*32+'/connector.sock')
+            value=client.execute('deny-peer',12345,'/var/tmp/owasp-ai-goat-v23-relay-'+'b'*32,'net:[2]',time.monotonic()+30)
+        raw.connect.assert_called_once_with('/var/tmp/owasp-ai-goat-v23-relay-'+'b'*32+'/connector.sock')
         raw.sendall.assert_not_called();chmod.assert_not_called()
         self.assertTrue(value['denied'])
 

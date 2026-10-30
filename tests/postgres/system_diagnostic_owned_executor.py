@@ -50,7 +50,7 @@ def require_private_runtime_admission():
 class OwnedDiagnosticExecutor:
  def __init__(self, root, workspace, docker, env, owner, persist):
   self.root,self.workspace,self.docker,self.env,self.owner,self.persist=root,workspace,docker,env,owner,persist
-  self.name='dvaia-diagnostic-http-'+owner[:12];self.tag=self.name+':owned';self.network=self.name+'-bridge'
+  self.name='owasp-ai-goat-diagnostic-http-'+owner[:12];self.tag=self.name+':owned';self.network=self.name+'-bridge'
   self.build=None;self.token=secrets.token_urlsafe(32);self.secret_file=root/'diagnostic-executor-private.env'
   self.state={'container':self.name,'imageTag':self.tag,'network':self.network,'base':BASE,'creationAttempted':False,'networkAttempted':False,'imageBuildAttempted':False,'cleanup':None}
  def run(self,args,timeout=30,check=True):
@@ -123,27 +123,27 @@ class OwnedDiagnosticExecutor:
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev bubblewrap && rm -rf /var/lib/apt/lists/*
 COPY owned-system /qualification/owned-system
 COPY diagnostic-listener-entry.js /qualification/diagnostic-listener-entry.js
-RUN mkdir -p /usr/local/libexec && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-init.c -o /usr/local/libexec/dvaia-system-diagnostic-init && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-supervisor.c -o /usr/local/libexec/dvaia-system-diagnostic-supervisor && chmod 0555 /usr/local/libexec/dvaia-system-diagnostic-* /usr/bin/bwrap && for f in /usr/local/libexec/dvaia-system-diagnostic-init /usr/local/libexec/dvaia-system-diagnostic-supervisor; do sha256sum "$f" | cut -d' ' -f1 > "$f.sha256"; chmod 0444 "$f.sha256"; done && dpkg-query -W > /qualification/packages.txt
+RUN mkdir -p /usr/local/libexec && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-init.c -o /usr/local/libexec/owasp-ai-goat-system-diagnostic-init && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-supervisor.c -o /usr/local/libexec/owasp-ai-goat-system-diagnostic-supervisor && chmod 0555 /usr/local/libexec/owasp-ai-goat-system-diagnostic-* /usr/bin/bwrap && for f in /usr/local/libexec/owasp-ai-goat-system-diagnostic-init /usr/local/libexec/owasp-ai-goat-system-diagnostic-supervisor; do sha256sum "$f" | cut -d' ' -f1 > "$f.sha256"; chmod 0444 "$f.sha256"; done && dpkg-query -W > /qualification/packages.txt
 USER 10001:10001
 ENTRYPOINT ["/usr/local/bin/node","/qualification/diagnostic-listener-entry.js"]
 '''
   (context/'Dockerfile').write_text(dockerfile);self.state['dockerfileSha256']=hashlib.sha256(dockerfile.encode()).hexdigest()
   self.state['imageBuildAttempted']=True;self.persist()
   with (self.root/'executor-build.log').open('w') as log:
-   self.build=subprocess.Popen(self.docker+['build','--pull=false','--network=default','--label','dvaia.test.owner='+self.owner,'-t',self.tag,str(context)],env=self.env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+   self.build=subprocess.Popen(self.docker+['build','--pull=false','--network=default','--label','owasp-ai-goat.test.owner='+self.owner,'-t',self.tag,str(context)],env=self.env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
    self.state['buildPgid']=self.build.pid;self.persist()
    code=self.wait_for_build()
    if code:raise RuntimeError('Owned executor image build failed')
   image=self.inspect('image',self.tag)
-  if image['Config']['Labels'].get('dvaia.test.owner')!=self.owner:raise RuntimeError('Executor image owner mismatch')
+  if image['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Executor image owner mismatch')
   self.state['imageId']=image['Id'];self.state['networkAttempted']=True;self.persist()
-  self.run(['network','create','--label','dvaia.test.owner='+self.owner,self.network])
+  self.run(['network','create','--label','owasp-ai-goat.test.owner='+self.owner,self.network])
   network=self.inspect('network',self.network)
-  if network.get('Internal') is not False or network.get('Labels',{}).get('dvaia.test.owner')!=self.owner:raise RuntimeError('Owned bridge network unavailable')
+  if network.get('Internal') is not False or network.get('Labels',{}).get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Owned bridge network unavailable')
   self.state['networkInternal']=False;self.state['outerEgressIsolationEstablished']=False
   self.secret_file.write_text('SECURESHOP_SYSTEM_DIAGNOSTIC_HTTP_ENABLED=true\nSECURESHOP_SYSTEM_DIAGNOSTIC_TOKEN='+self.token+'\nSECURESHOP_SYSTEM_DIAGNOSTIC_HOST=0.0.0.0\nSECURESHOP_SYSTEM_DIAGNOSTIC_PORT=8090\n');os.chmod(self.secret_file,0o600)
   self.state['creationAttempted']=True;self.persist()
-  self.run(['run','--detach','--pull','never','--name',self.name,'--label','dvaia.test.owner='+self.owner,'--network',self.network,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--security-opt','seccomp=unconfined','--security-opt','apparmor=dvaia-mcp-sandbox','-p','127.0.0.1::8090','--env-file',str(self.secret_file),image['Id']])
+  self.run(['run','--detach','--pull','never','--name',self.name,'--label','owasp-ai-goat.test.owner='+self.owner,'--network',self.network,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--security-opt','seccomp=unconfined','--security-opt','apparmor=owasp-ai-goat-mcp-sandbox','-p','127.0.0.1::8090','--env-file',str(self.secret_file),image['Id']])
   self.secret_file.unlink()
   deadline=time.monotonic()+5
   while True:
@@ -153,7 +153,7 @@ ENTRYPOINT ["/usr/local/bin/node","/qualification/diagnostic-listener-entry.js"]
    time.sleep(.1)
   host_bindings=actual['HostConfig']['PortBindings']
   if set(host_bindings)!={'8090/tcp'} or len(host_bindings['8090/tcp'])!=1 or host_bindings['8090/tcp'][0]['HostIp']!='127.0.0.1':raise RuntimeError('Executor host publish binding mismatch')
-  if actual.get('Mounts') or actual['Config']['Labels'].get('dvaia.test.owner')!=self.owner or set(actual['NetworkSettings']['Networks'])!={self.network} or set(ports)!={'8090/tcp'} or len(bindings)!=1 or bindings[0]['HostIp']!='127.0.0.1':raise RuntimeError('Executor mount/network/port isolation mismatch')
+  if actual.get('Mounts') or actual['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner or set(actual['NetworkSettings']['Networks'])!={self.network} or set(ports)!={'8090/tcp'} or len(bindings)!=1 or bindings[0]['HostIp']!='127.0.0.1':raise RuntimeError('Executor mount/network/port isolation mismatch')
   if actual['Config']['User']!='10001:10001' or actual['HostConfig']['ReadonlyRootfs'] is not True or actual['HostConfig']['Memory']!=536870912 or actual['HostConfig']['NanoCpus']!=1000000000 or actual['HostConfig']['PidsLimit']!=128:raise RuntimeError('Executor runtime resource mismatch')
   self.state['runtime']={'user':actual['Config']['User'],'readOnlyRoot':actual['HostConfig']['ReadonlyRootfs'],'memory':actual['HostConfig']['Memory'],'nanoCpus':actual['HostConfig']['NanoCpus'],'pidsLimit':actual['HostConfig']['PidsLimit'],'tmpfs':actual['HostConfig']['Tmpfs'],'ports':ports,'mounts':actual['Mounts'],'securityOpt':actual['HostConfig']['SecurityOpt']}
   self.url='http://127.0.0.1:'+bindings[0]['HostPort'];self.persist()
@@ -177,7 +177,7 @@ ENTRYPOINT ["/usr/local/bin/node","/qualification/diagnostic-listener-entry.js"]
    try:
     if not self.absent('container',self.name):
      actual=self.inspect('container',self.name)
-     if actual['Config']['Labels'].get('dvaia.test.owner')!=self.owner:raise RuntimeError('Foreign executor container')
+     if actual['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Foreign executor container')
      self.run(['stop','--time','25',self.name],timeout=35)
      exit_code=self.inspect('container',self.name)['State']['ExitCode']
      logs=self.run(['logs','--tail','100',self.name],check=False);safe=(logs.stdout+logs.stderr).replace(self.token,'[REDACTED]');(self.root/'executor.log').write_text(safe)
@@ -186,21 +186,21 @@ ENTRYPOINT ["/usr/local/bin/node","/qualification/diagnostic-listener-entry.js"]
    finally:
     try:
      if not self.absent('container',self.name):
-      if self.inspect('container',self.name)['Config']['Labels'].get('dvaia.test.owner')!=self.owner:raise RuntimeError('Foreign container cleanup refused')
+      if self.inspect('container',self.name)['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Foreign container cleanup refused')
       self.run(['rm','-f','-v',self.name])
     except BaseException as e:errors.append('container-final:'+type(e).__name__)
   if self.state['imageBuildAttempted']:
    try:
     if not self.absent('image',self.tag):
      image=self.inspect('image',self.tag)
-     if image['Config']['Labels'].get('dvaia.test.owner')!=self.owner:raise RuntimeError('Foreign executor image')
+     if image['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Foreign executor image')
      self.run(['image','rm',self.tag])
    except BaseException as e:errors.append('image:'+type(e).__name__)
   if self.state['networkAttempted']:
    try:
     if not self.absent('network',self.network):
      network=self.inspect('network',self.network)
-     if network.get('Labels',{}).get('dvaia.test.owner')!=self.owner or network.get('Containers'):raise RuntimeError('Foreign or occupied executor network')
+     if network.get('Labels',{}).get('owasp-ai-goat.test.owner')!=self.owner or network.get('Containers'):raise RuntimeError('Foreign or occupied executor network')
      self.run(['network','rm',self.network])
    except BaseException as e:errors.append('network:'+type(e).__name__)
   self.secret_file.unlink(missing_ok=True)

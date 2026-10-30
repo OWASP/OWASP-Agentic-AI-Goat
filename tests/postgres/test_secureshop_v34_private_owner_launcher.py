@@ -262,7 +262,7 @@ class V34Main(unittest.TestCase):
                     return {'status':'controlled-absence'}
                 current=state();current.update(attempted=True,retirementVerified=verified)
                 namespace=dict(M.__dict__,args=args,clean={},ownership_command=docker,
-                    container='dvaia-v34-abcdef123456',expected_labels=network.labels,labels=[],
+                    container='owasp-ai-goat-v34-abcdef123456',expected_labels=network.labels,labels=[],
                     pg_network=network,creation_attempted=False,captured_id=None,
                     raw_docker_command=raw,inspect_owned=inspected,validate_container_layout=lambda row:23456,
                     cleanup_owned=remove,docker_absent=lambda *_:docker.pg is None,cleanup_errors=[],

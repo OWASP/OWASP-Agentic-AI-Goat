@@ -79,7 +79,7 @@ function LegacyAgentLane({ role = 'customer', prefillMessage }) {
       </div>
       <form className="ss-lane__composer" onSubmit={submit}>
         <input className="ss-lane__input" value={input} onChange={(e) => setInput(e.target.value)}
-               placeholder="Ask the SecureShop agents…" aria-label={roleCopy.label} />
+               placeholder="Ask the OWASP AI SecureShop agents…" aria-label={roleCopy.label} />
         <button className="ss-btn" type="submit" disabled={!input.trim() || status === 'thinking'}>Send</button>
       </form>
       <HopDetailSheet hop={selectedHop} onClose={() => setSelectedHop(null)} />

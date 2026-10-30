@@ -21,9 +21,9 @@ async function plan({root=path.resolve(__dirname,'../..'),home=os.homedir(),plat
  const filePath=managed.managedPath({root,home}),existing=managed.load({filePath});
  const source=existingQualification===undefined?sourceManifest(root):require('./secureshop-owned-listings-qualified-candidate').installedSourceFor(existingQualification,existing);
  if(source.sha256!==qualifiedSourceSha256)throw fail('LISTINGS_INSTALL_SOURCE_UNQUALIFIED');
- const id=workspaceId(root),directory=path.join(home,'.dvaia',id),authority=await readLocalDockerAuthority({directory,workspaceId:id,platform});
+ const id=workspaceId(root),directory=path.join(home,'.owasp-ai-goat',id),authority=await readLocalDockerAuthority({directory,workspaceId:id,platform});
  if(!authority)throw fail('LISTINGS_INSTALL_AUTHORITY_REQUIRED');await verifyDockerAuthority({authority,execute,environment});
- const profileName='dvaia-owned-listings-'+id;
+ const profileName='owasp-ai-goat-owned-listings-'+id;
  const profileBytes=fs.readFileSync(path.join(root,'sidecars/sandbox-runner/owned-listings/profile.apparmor.in'),'utf8').replaceAll('@@SUPERVISOR_PROFILE@@',profileName);
  const profile=Object.freeze({name:profileName,sha256:sha(profileBytes)});
  // Existing installations retain their selected port. Fresh installations use

@@ -10,7 +10,7 @@ async function main() {
   assert.equal(process.platform, 'linux');
   assert.equal(process.getuid(), 10001);
   const label = (await fs.readFile('/proc/self/attr/current', 'utf8')).trim();
-  assert.equal(label, 'dvaia-mcp-sandbox (enforce)');
+  assert.equal(label, 'owasp-ai-goat-mcp-sandbox (enforce)');
   const status = await fs.readFile('/proc/self/status', 'utf8');
   for (const field of ['CapEff', 'CapPrm', 'CapInh', 'CapAmb']) {
     assert.match(status, new RegExp(`^${field}:\\s+0+$`, 'm'));
@@ -36,7 +36,7 @@ async function main() {
     const readiness = await store.checkReadiness();
     provisioned = await store.provisionTarget(binding, { authorize: allow });
     const probe = await store.executeTarget(provisioned.capability, allow,
-      '/usr/local/libexec/dvaia-mcp-seccomp-probe');
+      '/usr/local/libexec/owasp-ai-goat-mcp-seccomp-probe');
     assert.equal(probe.code, 0, JSON.stringify({stdout:probe.stdout,stderr:probe.stderr}));
     const seccomp = JSON.parse(probe.stdout);
     assert.equal(seccomp.unshareEperm, true);

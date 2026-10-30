@@ -95,7 +95,7 @@ test('actual login route preserves template branch; cookie reauth failure never 
  const request=cookie=>({headers:{cookie},query:{},body:{username:'template',password:'password'},ssLaunch:{},get:()=>null});
  const response={statusCode:200,status(n){this.statusCode=n;return this;},json(x){return x;}};
  await handler(request(''),response);assert.equal(templateCalls,1);
- for(const token of ['a'.repeat(43),'b'.repeat(43)])await assert.rejects(handler(request('dvaia_shop_session='+token),response),{code:'SHOP_AUTH_INVALID'});
+ for(const token of ['a'.repeat(43),'b'.repeat(43)])await assert.rejects(handler(request('owasp_ai_goat_shop_session='+token),response),{code:'SHOP_AUTH_INVALID'});
  assert.equal(reauthCalls,2);assert.equal(templateCalls,1);assert.equal(additionalCalls,0);
  const bad=request('');bad.body.ownerId=123;await handler(bad,response);assert.equal(response.statusCode,400);assert.equal(templateCalls,1);
 });

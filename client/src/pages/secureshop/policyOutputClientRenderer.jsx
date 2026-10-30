@@ -8,7 +8,7 @@ const exact = (value, keys) => value && Object.getPrototypeOf(value) === Object.
   && Object.keys(value).sort().join(',') === [...keys].sort().join(',');
 let root;
 
-Object.defineProperty(globalThis, '__DVAIA_POLICY_OUTPUT_MOUNT__', { value: input => {
+Object.defineProperty(globalThis, '__OWASP_AI_GOAT_POLICY_OUTPUT_MOUNT__', { value: input => {
   const mode = input?.modeCapability;
   if (!exact(input, ['html', 'modeCapability']) || root
       || typeof input.html !== 'string' || !input.html.length || !input.html.isWellFormed()

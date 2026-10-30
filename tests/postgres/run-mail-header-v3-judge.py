@@ -3,12 +3,12 @@
 import argparse,hashlib,json,os,signal,subprocess,tempfile,time
 from pathlib import Path
 SOURCE=Path(__file__).resolve().parents[2]
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 NODE_SHA='56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 p=argparse.ArgumentParser();p.add_argument('--prepared-root');args=p.parse_args()
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 assert sha(NODE)==NODE_SHA
-root=Path(args.prepared_root).resolve() if args.prepared_root else Path(tempfile.mkdtemp(prefix='dvaia-header-judge-'))
+root=Path(args.prepared_root).resolve() if args.prepared_root else Path(tempfile.mkdtemp(prefix='owasp-ai-goat-header-judge-'))
 child=None;state={}
 def persist(): (root/'ownership.json').write_text(json.dumps(state,indent=2)+'\n')
 def interrupted(*_):raise TimeoutError('Header Judge parent interrupted/deadline')
@@ -22,7 +22,7 @@ try:
    dest=root/f;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_bytes((SOURCE/f).read_bytes())
   (root/'node_modules').symlink_to(SOURCE/'node_modules',target_is_directory=True)
   report=json.loads((SOURCE/'tasks/secureshop-mail-header-native-2026-09-26.json').read_text());original=Path(report['evidenceDirectory'])/'candidate-result.json';assert sha(original)==report['runtimeResultSha256'];(root/'retained-input.json').write_bytes(original.read_bytes())
-  prior=Path('/private/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-header-judge-5uztbsos/result.json');(root/'prior-v2.json').write_bytes(prior.read_bytes())
+  prior=Path('/private/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-header-judge-5uztbsos/result.json');(root/'prior-v2.json').write_bytes(prior.read_bytes())
   state={'priorSha256':sha(root/'prior-v2.json'),'status':'preparing','launcherPid':os.getpid(),'nodeSha256':NODE_SHA,'inputSha256':sha(root/'retained-input.json'),'bounds':{'parentSeconds':360,'childSeconds':300,'httpSeconds':60,'judgeSeconds':90,'maximumHttp':4},'noActorDatabaseBrowserSmtpCredit':True,'sourceSha256':{str(f.relative_to(root)):sha(f) for f in root.rglob('*') if f.is_file()}}
  else:
   state=json.loads((root/'ownership.json').read_text());assert state['status']=='prepared';assert state['bounds']=={'parentSeconds':360,'childSeconds':300,'httpSeconds':60,'judgeSeconds':90,'maximumHttp':4};assert all(sha(root/f)==h for f,h in state['sourceSha256'].items());assert sha(root/'preflight.json')==state['preflightSha256'];state['launcherPid']=os.getpid()

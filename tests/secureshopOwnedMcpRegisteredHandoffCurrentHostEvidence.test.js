@@ -12,7 +12,7 @@ const { admitQ05CurrentHostEvidence, createQ05PrivateWriter,
 
 function ownedRun(callback) {
   const run = path.join(root, 'tasks/qualification',
-    `dvaia-mcp-assembly-${crypto.randomBytes(4).toString('hex')}`);
+    `owasp-ai-goat-mcp-assembly-${crypto.randomBytes(4).toString('hex')}`);
   fs.mkdirSync(run, { mode: 0o700 });
   fs.mkdirSync(path.join(run, 'tmp'), { mode: 0o700 });
   const evidencePath = path.join(run, 'candidate-result.json');
@@ -44,7 +44,7 @@ test('Q05 admits only its fresh canonical owned in-repository result and exact t
     assert.throws(() => admitQ05CurrentHostEvidence({ env, source: root, evidencePath, enabled: true }), /fresh/);
   });
   ownedRun(({ run, evidencePath, env }) => {
-    const alias = path.join(root, 'tasks/qualification', `dvaia-mcp-assembly-${crypto.randomBytes(4).toString('hex')}`);
+    const alias = path.join(root, 'tasks/qualification', `owasp-ai-goat-mcp-assembly-${crypto.randomBytes(4).toString('hex')}`);
     fs.symlinkSync(run, alias);
     try { assert.throws(() => admitQ05CurrentHostEvidence({ env: { ...env,
       MCP_REGISTERED_HANDOFF_Q05_EVIDENCE_ROOT: alias, TMPDIR: path.join(alias, 'tmp'),
@@ -147,7 +147,7 @@ test('Q05 writer attempts closure of every retained descriptor after one close t
 
 test('Q05 browser exception requires admitted owned profile and exact loopback origin', () => {
   ownedRun(({ run }) => {
-    const profile = fs.mkdtempSync(path.join(run, 'tmp', 'dvaia-mcp-registry-rendered-'));
+    const profile = fs.mkdtempSync(path.join(run, 'tmp', 'owasp-ai-goat-mcp-registry-rendered-'));
     const selected = { directory: run, origin: 'http://127.0.0.1:40123', profile,
       executablePath: '/controlled/chrome' };
     const scoped = q05CurrentHostBrowserOptions(selected);

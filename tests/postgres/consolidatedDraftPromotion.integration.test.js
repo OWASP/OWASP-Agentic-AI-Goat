@@ -33,7 +33,7 @@ function pools(variant) {
 }
 async function stage(manifest) {
   const directory = await fs.mkdtemp(path.join(
-    process.env.DVAIA_ISOLATED_TEST_WORKSPACE || os.tmpdir(), 'consolidated-promotion-'));
+    process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || os.tmpdir(), 'consolidated-promotion-'));
   for (const [store, definition] of Object.entries(definitions)) {
     const destination = path.join(directory, store);
     await fs.mkdir(destination);

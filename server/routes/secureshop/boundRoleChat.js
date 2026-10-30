@@ -63,7 +63,7 @@ function projectMcpManifestAssessment(value,failure=mcpManifestAssessmentFailure
    verdict:judgment.verdict,canRetry:judgment.canRetry})});
 }
 const singleLaunchHeader=req=>(req.rawHeaders||[]).filter((_,i)=>i%2===0)
- .filter(value=>String(value).toLowerCase()==='x-dvaia-secureshop-launch').length===1;
+ .filter(value=>String(value).toLowerCase()==='x-owasp-ai-goat-secureshop-launch').length===1;
 const bearer=req=>{const headers=req.rawHeaders||[],matches=[];
  for(let i=0;i<headers.length;i+=2)if(String(headers[i]).toLowerCase()==='authorization')matches.push(headers[i+1]);
  if(matches.length!==1)return null;const match=/^Bearer ([^\s]+)$/.exec(String(matches[0]));return match?match[1]:null};

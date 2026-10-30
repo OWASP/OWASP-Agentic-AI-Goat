@@ -121,7 +121,7 @@ function control(capturedOwner) {
 function admission() {
   return { version: 1, profile: 'upgrade-canonical16-v1', workspaceRoot: process.cwd(), publicationId: randomUUID(),
     publicationSha256: 'b'.repeat(64), sourceManifestSha256: 'c'.repeat(64), stores: requiredStoreManifest.map((s, i) => ({
-      storeKey: s.schema, clusterIdentifier: '123', databaseOid: i + 1, databaseName: `dvaia_${s.schema}`,
+      storeKey: s.schema, clusterIdentifier: '123', databaseOid: i + 1, databaseName: `owasp_ai_goat_${s.schema}`,
       runtimeRole: s.runtimeRole, migrationRole: `dvaia_${s.schema}_migration`, deliveryRole: s.schema === 'ctf' ? 'dvaia_ctf_delivery' : null,
       endpointPolicySha256: 'd'.repeat(64),
     })) };

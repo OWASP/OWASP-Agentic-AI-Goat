@@ -27,7 +27,7 @@ function prepareWindowsFreshEnvironment(options,dependencies){
  normalizePrivatePath(resultPath);
  // Do not reinterpret a POSIX recovery journal or unrelated temporary file.
  if(present(path.win32.join(privateDirectory,'fresh-environment.pending.json'))||present(path.win32.join(root,'.env.setup-publication')))throw fail();
- const operationHash=createHash('sha256').update('dvaia:fresh-environment:1\0').update(root).update('\0').update(privateDirectory).update('\0').update(id).digest('hex');
+ const operationHash=createHash('sha256').update('owasp-ai-goat:fresh-environment:1\0').update(root).update('\0').update(privateDirectory).update('\0').update(id).digest('hex');
  const operationId=operationHash.slice(0,8)+'-'+operationHash.slice(8,12)+'-4'+operationHash.slice(13,16)+'-'+((parseInt(operationHash[16],16)&3)|8).toString(16)+operationHash.slice(17,20)+'-'+operationHash.slice(20,32);
  const binding={targetPath:envPath,intentPath,operationId};
  let bytes,full;

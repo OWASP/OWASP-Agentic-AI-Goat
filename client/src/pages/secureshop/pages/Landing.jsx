@@ -86,7 +86,7 @@ export default function Landing() {
             color: 'var(--copper)', marginBottom: 24, padding: '4px 12px',
             border: '1px solid var(--copper)', borderRadius: 999,
           }}>
-            <Sparkles size={12} /> v2 · agentic commerce
+            <Sparkles size={12} /> agentic commerce
           </div>
           <h1 className="ss-hero__head" style={{ fontSize: 'clamp(48px, 6.5vw, 84px)' }}>
             Everything<br />
@@ -94,7 +94,7 @@ export default function Landing() {
             that <span style={{ color: 'var(--copper)' }}>actually shop</span> for you.
           </h1>
           <p className="ss-hero__sub">
-            SecureShop is a real store, backed by a hierarchy of specialist AI agents.
+            OWASP AI SecureShop is a real store, backed by a hierarchy of specialist AI agents.
             Every product page is written by an LLM, every price is set by an agent,
             every review is moderated by one. Watch every decision, in a lane, in real time.
           </p>
@@ -179,12 +179,12 @@ export default function Landing() {
                 How it works
               </div>
               <h2 style={{ fontFamily: 'var(--display)', fontSize: 44, lineHeight: 1.05, letterSpacing: '-0.01em', margin: 0 }}>
-                How SecureShop thinks.
+                How OWASP AI SecureShop thinks.
               </h2>
             </div>
             <div style={{ fontSize: 16, lineHeight: 1.65, opacity: 0.85 }}>
               <p style={{ marginTop: 0 }}>
-                Under the hood, SecureShop runs seventeen specialist agents talking over MCP.
+                Under the hood, OWASP AI SecureShop runs seventeen specialist agents talking over MCP.
                 Product summaries are written by the <strong>summarizer</strong> agent — the
                 same one that reads your uploaded manuals and answers "does this fit?".
               </p>
@@ -269,7 +269,7 @@ export default function Landing() {
 function LandingTopNav({ authed, user }) {
   return (
     <nav className="ss-landing-nav" role="navigation" aria-label="Marketing nav">
-      <Link to="/secureshop" className="ss-nav__brand">SECURESHOP</Link>
+      <Link to="/secureshop" className="ss-nav__brand">OWASP AI SecureShop</Link>
       <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
         <Link to="/secureshop/catalog" className="ss-nav__link">Shop</Link>
         <Link to="/secureshop#how" className="ss-nav__link">How it works</Link>

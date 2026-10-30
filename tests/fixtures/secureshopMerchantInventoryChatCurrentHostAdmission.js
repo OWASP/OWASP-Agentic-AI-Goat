@@ -7,7 +7,7 @@ const path = require('node:path');
 const { assertNativeEvidencePath } = require('./secureshopNativeEvidencePath');
 
 const RECEIPT = 'merchant-inventory-chat-browser.json';
-const PREFIX = 'dvaia-role-inventory-';
+const PREFIX = 'owasp-ai-goat-role-inventory-';
 const MAX_RECEIPT_BYTES = 4096;
 const CHROME_ARGS = Object.freeze([
   '--no-sandbox', '--disable-background-networking', '--disable-component-update',
@@ -36,7 +36,7 @@ function admit(env, { workspace, evidencePath, executablePath }) {
   assertNativeEvidencePath(evidencePath, { root: workspace, dockerHost: env.DOCKER_HOST, basename: RECEIPT });
   const owned = evidencePath.startsWith(`${workspace}${path.sep}`);
   if (owned) {
-    assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, workspace);
+    assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, workspace);
     const run = path.dirname(evidencePath), runtime = path.join(run, 'runtime');
     const temporary = path.join(runtime, 'tmp'), home = path.join(runtime, 'home');
     assert.equal(env.TMPDIR, temporary);
@@ -52,7 +52,7 @@ function browserArgs(admission, profile, origin) {
   if (!admission.owned) return [];
   const temporary = path.join(path.dirname(admission.evidencePath), 'runtime/tmp');
   assert.equal(path.dirname(profile), temporary);
-  assert.match(path.basename(profile), /^dvaia-role-inventory-[A-Za-z0-9_-]+$/);
+  assert.match(path.basename(profile), /^owasp-ai-goat-role-inventory-[A-Za-z0-9_-]+$/);
   privateDirectory(profile);
   const url = new URL(origin);
   assert.equal(url.origin, origin);

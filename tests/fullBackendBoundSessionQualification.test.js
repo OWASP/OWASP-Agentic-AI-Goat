@@ -17,7 +17,7 @@ test('controlled composed sequence retains logout and sibling denials, never mod
  const login={token:token('persona'),user:{id:12,role:'customer'},expiresAt:'2030-01-01T00:00:00Z'};
  const user=id=>({id,token:'platform'+id,cookie:'connect.sid=owned'+id,page:{async reload(){reloads++;},async evaluate(){return{status:200,body:{authenticated:true,user:{id}}};}}});
  const value={origin:'http://127.0.0.1:23456',env:{PG_TEST_DISPOSABLE:'yes',SS_ENABLE:'true',SS_BOUND_REVIEWS_ENABLED:'true',AI_PROVIDER:'mock'},signal:new AbortController().signal,owner:user(1),sibling:user(2),persona:{username:'student_customer',password:'synthetic'}};
- const calls=[];value.fetch=async(url,o)=>{const p=new URL(url).pathname,a=o.headers.authorization,l=o.headers['x-dvaia-secureshop-launch'];calls.push({p,method:o.method});let status=200,body={};
+ const calls=[];value.fetch=async(url,o)=>{const p=new URL(url).pathname,a=o.headers.authorization,l=o.headers['x-owasp-ai-goat-secureshop-launch'];calls.push({p,method:o.method});let status=200,body={};
   if(p==='/api/auth/logout'){loggedOut=true;body={success:true};}
   else if(p==='/api/auth/status')body={authenticated:a==='Bearer platform2'||!loggedOut,user:{id:a==='Bearer platform2'?2:1}};
   else if(p==='/api/auth/secureshop-launch'&&o.method==='POST'){status=201;body={preparationOnly:false,bearer:a==='Bearer platform1'?'launch1':'launch2'};}

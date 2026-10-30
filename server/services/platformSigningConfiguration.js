@@ -3,6 +3,7 @@
 const MINIMUM_SECRET_BYTES = 32;
 const KNOWN_PUBLIC_SECRETS = Object.freeze([
   'dvaia-secret-key-2024',
+  'owasp-ai-goat-secret-key-2024',
   'change_me_to_a_long_random_string',
   'your-secret-key',
 ]);

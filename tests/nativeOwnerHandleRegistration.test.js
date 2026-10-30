@@ -8,7 +8,7 @@ const { tmpdir } = require('node:os');
 
 const helper = join(__dirname, '..', 'scripts', 'register-native-owner-handle.py');
 function grantFile(overrides = {}) {
-  const path = join(mkdtempSync(join(tmpdir(), 'dvaia-owner-handle-')), 'grant.json');
+  const path = join(mkdtempSync(join(tmpdir(), 'owasp-ai-goat-owner-handle-')), 'grant.json');
   writeFileSync(path, JSON.stringify({ grantId: 'grant-one', owner: '/root/test', status: 'consumed',
     allowedLaunches: 1, consumerPid: 12345, ownerHandle: null, ...overrides }));
   return path;

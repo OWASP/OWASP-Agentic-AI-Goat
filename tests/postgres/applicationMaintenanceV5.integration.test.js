@@ -14,7 +14,7 @@ function environments(env=process.env){
  return Object.fromEntries(CASES.map(name=>[name,Object.fromEntries(['RUNTIME','MIGRATION'].map(role=>{
   const raw=env[`PG_MAINTENANCE_V5_${name.toUpperCase()}_${role}_URL`];assert.equal(typeof raw,'string');const u=new URL(raw);
   assert(['postgres:','postgresql:'].includes(u.protocol));assert.equal(u.hostname,'127.0.0.1');assert.match(u.port,/^[1-9][0-9]*$/);assert(Number(u.port)<=65535);assert.equal(u.search,'');assert.equal(u.hash,'');assert.equal(u.username,`dvaia_identity_${role.toLowerCase()}`);
-  const match=u.pathname.match(new RegExp(`^/dvaia_test_maintenance_v5_([a-f0-9]{12})_${name}$`));assert(match);const key=match[1]+':'+u.port;if(identity)assert.equal(key,identity);else identity=key;return[role,u.href];
+  const match=u.pathname.match(new RegExp(`^/owasp_ai_goat_test_maintenance_v5_([a-f0-9]{12})_${name}$`));assert(match);const key=match[1]+':'+u.port;if(identity)assert.equal(key,identity);else identity=key;return[role,u.href];
  }))]));
 }
 async function bounded(promise,ms){let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Owned schema deadline')),ms);})]);}finally{clearTimeout(timer);}}
@@ -38,7 +38,7 @@ async function original(q,record,{prospective=true}={}){
  const e=(await q('SELECT epoch FROM dvaia_maintenance.control')).rows[0].epoch,pub=randomUUID(),serialized=JSON.stringify(captured);
  await q('INSERT INTO dvaia_maintenance.epochs SELECT epoch,operation_id,owner_host_sha256,begun_at,NULL FROM dvaia_maintenance.control');
  await q("INSERT INTO dvaia_maintenance.epoch_bindings(epoch,operation_id,profile,workspace_sha256,store_manifest_sha256,publication_id,publication_sha256,source_manifest_sha256,owner_record,owner_record_sha256) VALUES($1,$2,'upgrade-canonical16-v1',$3,$3,$4,$3,$3,$5::jsonb,encode(sha256(convert_to($5::jsonb::text,'UTF8')),'hex'))",[e,op,HEX,pub,serialized]);
- for(const [i,s]of requiredStoreManifest.entries())await q('INSERT INTO dvaia_maintenance.epoch_stores VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[e,i+1,s.schema,'123456789',100+i,'dvaia_'+s.schema,s.runtimeRole,'dvaia_'+s.schema+'_migration',s.schema==='ctf'?'dvaia_ctf_delivery':null,HEX]);
+ for(const [i,s]of requiredStoreManifest.entries())await q('INSERT INTO dvaia_maintenance.epoch_stores VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',[e,i+1,s.schema,'123456789',100+i,'owasp_ai_goat_'+s.schema,s.runtimeRole,'dvaia_'+s.schema+'_migration',s.schema==='ctf'?'dvaia_ctf_delivery':null,HEX]);
  if(!prospective)return{e,op,pub,serialized,installation};
  const ids={identityStoreId:randomUUID(),ctfStoreId:randomUUID(),bootstrapId:randomUUID(),activationId:randomUUID()},ctf=encodeCtfReplayBinding({workspaceId:HEX,provisioningSha256:HEX,...ids});
  const artifacts=['administrator','ctf-authority','delivery','environment-publication','provisioning'].map(kind=>({kind,relativePath:kind==='environment-publication'?`additive-environment-${pub}.json`:kind==='delivery'?'ctf-delivery.json':kind+'.json',schemaVersion:kind==='ctf-authority'?2:1,bindingSha256:kind==='ctf-authority'?ctf.sha256:HEX,contentSha256:kind==='ctf-authority'?null:HEX,artifactId:kind==='ctf-authority'?ids.activationId:kind==='environment-publication'?pub:null}));
@@ -71,7 +71,7 @@ async function finish(q,x,a,claimId,exactTime){
 }
 
 test('v5 fixture rejects non-owned URLs and redacts diagnostics before connecting',()=>{
- const env={PG_TEST_DISPOSABLE:'yes'};for(const name of CASES)for(const role of ['RUNTIME','MIGRATION'])env[`PG_MAINTENANCE_V5_${name.toUpperCase()}_${role}_URL`]=`postgresql://dvaia_identity_${role.toLowerCase()}@127.0.0.1:54321/dvaia_test_maintenance_v5_abcdef012345_${name}`;
+ const env={PG_TEST_DISPOSABLE:'yes'};for(const name of CASES)for(const role of ['RUNTIME','MIGRATION'])env[`PG_MAINTENANCE_V5_${name.toUpperCase()}_${role}_URL`]=`postgresql://dvaia_identity_${role.toLowerCase()}@127.0.0.1:54321/owasp_ai_goat_test_maintenance_v5_abcdef012345_${name}`;
  assert.equal(Object.keys(environments(env)).length,3);const key='PG_MAINTENANCE_V5_FRESH_RUNTIME_URL';for(const raw of [undefined,env[key].replace('127.0.0.1','localhost'),env[key]+'?password=private',env[key].replace('abcdef012345','123456abcdef'),env[key].replace('_runtime@','_migration@')])assert.throws(()=>environments({...env,[key]:raw}));assert.deepEqual(diagnostic({message:'private',code:'42501'},'fixed'),{location:'fixed',code:'42501',kind:'Error'});assert.deepEqual(diagnostic({message:'private credentials',name:'AssertionError',code:'ERR_ASSERTION',actual:'private'},'fixed'),{location:'fixed',code:'ERR_ASSERTION',kind:'AssertionError'});assert.equal(diagnostic({code:'APPLICATION_MAINTENANCE_UPGRADE_UNCERTAIN'},'fixed').code,'APPLICATION_MAINTENANCE_UPGRADE_UNCERTAIN');assert(!JSON.stringify(diagnostic({code:'private-secret',name:'private-secret',message:'private-secret'},'fixed')).includes('private-secret'));
 });
 
@@ -83,7 +83,7 @@ test('v5 query observer is transparent and retains only closed migration names a
 });
 
 test('0005 Windows owner schema qualification',{skip:process.env.APPLICATION_MAINTENANCE_V5_ISOLATED!=='1',timeout:180000},async()=>{
- assert.equal(process.env.APPLICATION_MAINTENANCE_V5_MAIN_WORKSPACE,'1');const envs=environments(),{Client}=require('pg'),root=await fs.realpath(process.cwd()),evidence=await fs.realpath(process.env.MAINTENANCE_V5_EVIDENCE);assert.equal(root,path.resolve(__dirname,'../..'));assert.equal(root,await fs.realpath(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));assert.equal(path.dirname(evidence),path.join(root,'tasks/maintenance-v5-native-evidence'));assert.match(path.basename(evidence),/^run-[A-Za-z0-9_-]+$/);const metadata=await fs.stat(evidence);assert.equal(metadata.uid,process.getuid());assert.equal(metadata.mode&0o777,0o700);
+ assert.equal(process.env.APPLICATION_MAINTENANCE_V5_MAIN_WORKSPACE,'1');const envs=environments(),{Client}=require('pg'),root=await fs.realpath(process.cwd()),evidence=await fs.realpath(process.env.MAINTENANCE_V5_EVIDENCE);assert.equal(root,path.resolve(__dirname,'../..'));assert.equal(root,await fs.realpath(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));assert.equal(path.dirname(evidence),path.join(root,'tasks/maintenance-v5-native-evidence'));assert.match(path.basename(evidence),/^run-[A-Za-z0-9_-]+$/);const metadata=await fs.stat(evidence);assert.equal(metadata.uid,process.getuid());assert.equal(metadata.mode&0o777,0o700);
  const clients=new Set(),leases=new Set(),state={passed:false,cases:[],limits:['Synthetic owner/store inputs only; no native Windows or recovery proof','Three owned PostgreSQL stores; no application/learner stores']};let primary;
  const checkpoint=async location=>{state.location=location;await fs.writeFile(path.join(evidence,'maintenance-v5-result.json'),JSON.stringify(state,null,2)+'\n',{mode:0o600});};
  const connect=async url=>{assert(clients.size<6);const c=new Client({connectionString:url,connectionTimeoutMillis:2000,statement_timeout:3000,query_timeout:4000});clients.add(c);c.on('error',()=>{});await c.connect();return c;};

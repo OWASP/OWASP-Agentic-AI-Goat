@@ -16,7 +16,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include "invocation-attestation.h"
-#define SELF "/usr/local/libexec/dvaia-invocation-attestation-controls"
+#define SELF "/usr/local/libexec/owasp-ai-goat-invocation-attestation-controls"
 static int count_fds(void){DIR *d=opendir("/proc/self/fd");if(!d)return -1;int n=0;struct dirent *e;while((e=readdir(d)))if(strcmp(e->d_name,".")&&strcmp(e->d_name,".."))n++;closedir(d);return n;}
 static int wait_ok(pid_t pid){int status;return waitpid(pid,&status,0)==pid&&WIFEXITED(status)&&WEXITSTATUS(status)==0;}
 static int channel(int pair[2]){int enabled=1;return socketpair(AF_UNIX,SOCK_SEQPACKET|SOCK_CLOEXEC,0,pair)||setsockopt(pair[0],SOL_SOCKET,SO_PASSCRED,&enabled,sizeof(enabled));}

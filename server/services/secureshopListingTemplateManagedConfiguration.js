@@ -8,7 +8,7 @@ const captures=new WeakSet();
 const fail=()=>Object.assign(Error('Managed listing template configuration unavailable'),{code:'LISTING_TEMPLATE_MANAGED_INVALID'});
 function paths({root=path.resolve(__dirname,'../..'),home=os.homedir()}={}){
  if(!path.isAbsolute(root)||!path.isAbsolute(home)||fs.realpathSync(root)!==root||fs.realpathSync(home)!==home)throw fail();
- const directory=path.join(home,'.dvaia',workspaceId(root));if(fs.existsSync(directory)&&fs.realpathSync(directory)!==directory)throw fail();
+ const directory=path.join(home,'.owasp-ai-goat',workspaceId(root));if(fs.existsSync(directory)&&fs.realpathSync(directory)!==directory)throw fail();
  return{directory,filename:path.join(directory,'listing-template-managed.json'),stage:path.join(directory,'listing-template-provisioning.json')};
 }
 function validate(raw,{root=path.resolve(__dirname,'../..')}={},staged=false){
@@ -16,8 +16,8 @@ function validate(raw,{root=path.resolve(__dirname,'../..')}={},staged=false){
  if(!raw||Object.getPrototypeOf(raw)!==Object.prototype||Object.keys(raw).sort().join()!==[...keys].sort().join()
   ||raw.version!==1||raw.workspaceId!==id||raw.architecture!=='arm64'
   ||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(raw.ownerId)||!['dockerAuthoritySha256','sourceSha256','profileSha256'].every(k=>/^[a-f0-9]{64}$/.test(raw[k]))
-  ||!/^sha256:[a-f0-9]{64}$/.test(raw.imageId)||raw.profile!=='dvaia-owned-listing-template-'+id
-  ||raw.container!=='dvaia-listing-template-'+id||!Number.isInteger(raw.port)||raw.port<8109||raw.port>8118
+  ||!/^sha256:[a-f0-9]{64}$/.test(raw.imageId)||raw.profile!=='owasp-ai-goat-owned-listing-template-'+id
+  ||raw.container!=='owasp-ai-goat-listing-template-'+id||!Number.isInteger(raw.port)||raw.port<8109||raw.port>8118
   ||staged&&typeof raw.activateRequested!=='boolean'||!staged&&(!/^[a-f0-9]{64}$/.test(raw.containerId)||typeof raw.enabled!=='boolean'))throw fail();
  return Object.freeze(Object.fromEntries(keys.map(k=>[k,raw[k]])));
 }

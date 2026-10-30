@@ -248,7 +248,7 @@ const WorkshopSignup = () => {
             </svg>
           </div>
           <h1 className="auth-title">Create Workshop Account</h1>
-          <p className="auth-subtitle">Join the DVAIA Security Workshop</p>
+          <p className="auth-subtitle">Join the OWASP Agentic AI GOAT workshop</p>
           
           {/* Security badge */}
           <div className="security-badge">

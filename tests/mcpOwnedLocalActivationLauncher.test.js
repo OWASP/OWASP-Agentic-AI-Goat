@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'tests/postgres/run-mcp-owned-local-activation.py'), 'utf8');
 
 test('activation launcher preserves Mailpit and scopes failure cleanup to newly created runner resources', () => {
-  assert.match(source, /MAILPIT='damn-vulnerable-ai-application-mailpit-1'/);
+  assert.match(source, /MAILPIT='OWASP Agentic AI GOAT-mailpit-1'/);
   assert.match(source, /mail_before\['Id'\].*mail_identity\['id'\]/s);
   assert.match(source, /if created_runner:\n\s+try:run\(docker\+\['rm','--force',RUNNER\]\)/);
   assert.doesNotMatch(source, /docker\+\['rm','--force',MAILPIT\]/);

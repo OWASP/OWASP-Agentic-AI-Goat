@@ -32,10 +32,10 @@ from secureshop_activation_safety import (load_recovery_snapshot, persist_recove
   drain_optional_backend, recover_failed_postrestart, validate_application_schema_scope,
   stage_generated_release_sources)
 
-EXPECTED_DOCKER = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+EXPECTED_DOCKER = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 OWNER = '/root/secureshop_architecture'
 SOURCE = Path(__file__).resolve().parents[2]
-NODE_BIN = Path('/Users/averma5/.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin')
+NODE_BIN = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin')
 APPLICATION_SCHEMAS = {
     'identity': ('dvaia_migrations','graph_runtime','identity','workshop_conversations','workshop_platform'),
     'agents': ('dvaia_migrations','secureshop_agents'),
@@ -85,11 +85,11 @@ args = parser.parse_args()
 if args.docker_host != EXPECTED_DOCKER:
     raise SystemExit('the reviewed isolated PostgreSQL Docker daemon is required')
 promote_catalog = args.activate_secureshop
-evidence = Path(tempfile.mkdtemp(prefix='dvaia-secureshop-qualified-activation-'))
+evidence = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-secureshop-qualified-activation-'))
 os.chmod(evidence, 0o700)
 ownership_path = evidence / 'ownership.json'
 result_path = evidence / 'result.log'
-container = f'dvaia-secureshop-qualified-activation-{uuid.uuid4().hex[:12]}'
+container = f'owasp-ai-goat-secureshop-qualified-activation-{uuid.uuid4().hex[:12]}'
 docker = ['docker', '--host', args.docker_host]
 base_env = {key: os.environ[key] for key in ('PATH', 'HOME', 'TMPDIR') if key in os.environ}
 base_env['PATH'] = f'{NODE_BIN}:{base_env.get("PATH", "")}'
@@ -422,7 +422,7 @@ def apply_database_privileges(admin_env, database, store, recorded_inventory):
 
 def create_catalog_fixture(admin_env, port, store):
     migration_role, runtime_role = STORE_ROLES[store]
-    database = f'dvaia_acl_source_{store}'
+    database = f'owasp_ai_goat_acl_source_{store}'
     run(['psql','-X','-v','ON_ERROR_STOP=1','-c',
          f'CREATE DATABASE {quote_identifier(database)} OWNER {quote_identifier(migration_role)}'],env=admin_env)
     fixture_env = dict(admin_env,PGDATABASE=database,PGUSER=migration_role)
@@ -495,7 +495,7 @@ def atomic_copy(source, destination):
 
 def qualification_stage(argument, filename):
     assert_private_config_unchanged()
-    stage_env=dict(base_env, DVAIA_EXPECTED_PRIVATE_CONFIG_SHA256=private_config_sha256)
+    stage_env=dict(base_env, OWASP_AI_GOAT_EXPECTED_PRIVATE_CONFIG_SHA256=private_config_sha256)
     try:
         completed=run([str(NODE_BIN/'node'),'scripts/qualify-secureshop-qualified-activation.js',argument],
                       env=stage_env,text=True,timeout=300)
@@ -564,7 +564,7 @@ recovery_managed=None
 
 def managed_configuration_path():
     workspace_id=hashlib.sha256(str(SOURCE.resolve()).encode()).hexdigest()[:12]
-    return Path.home()/'.dvaia'/workspace_id/'secureshop-qualified.env'
+    return Path.home()/'.owasp-ai-goat'/workspace_id/'secureshop-qualified.env'
 
 def snapshot_managed_configuration():
     target=managed_configuration_path()
@@ -628,7 +628,7 @@ def authenticated_mounted_readiness():
     workspace_id=run([str(NODE_BIN/'node'),'-e',
       "process.stdout.write(require('./scripts/setup-application').workspaceId(process.cwd()))"],
       text=True,timeout=10).stdout.strip()
-    credential=Path.home()/'.dvaia'/workspace_id/'administrator.json'
+    credential=Path.home()/'.owasp-ai-goat'/workspace_id/'administrator.json'
     info=credential.lstat()
     if not stat.S_ISREG(info.st_mode) or credential.is_symlink() or info.st_uid!=os.getuid() \
         or info.st_mode & 0o077:
@@ -859,7 +859,7 @@ try:
     restored_urls = {}
     restored_admin_urls = {}
     for name in ('identity','agents'):
-        migration_role = roles[name]['migration']['role']; database = f'dvaia_persona_restore_{name}'
+        migration_role = roles[name]['migration']['role']; database = f'owasp_ai_goat_persona_restore_{name}'
         run(['psql','-X','-v','ON_ERROR_STOP=1','-c',f'CREATE DATABASE {database} OWNER {migration_role}'],env=admin)
         restore_env = dict(admin, PGDATABASE=database)
         run(['pg_restore','--exit-on-error','--dbname',database,str(dump_paths[name])],env=restore_env,timeout=180)
@@ -878,7 +878,7 @@ try:
     if {name:ledger(url) for name,url in restored_urls.items()} != live_ledgers:
         raise RuntimeError('restored migration ledger differs from the quiet backup')
     restored_runtime_urls = {
-        name:f'postgresql://{roles[name]["runtime"]["role"]}@127.0.0.1:{port}/dvaia_persona_restore_{name}'
+        name:f'postgresql://{roles[name]["runtime"]["role"]}@127.0.0.1:{port}/owasp_ai_goat_persona_restore_{name}'
         for name in ('identity','agents')
     }
     runtime_relations = {'identity':'identity.users','agents':'secureshop_agents.agent_sessions'}

@@ -48,8 +48,8 @@ else:value=a.owner_handle
 owner_handle=validate_owner_handle(value)
 from finflow_candidate_source import verify_launch_roots, verify_candidate_source
 source,manifest_path,canonical_workspace,grant=verify_launch_roots(a.candidate_source_root,a.candidate_manifest,a.canonical_workspace,a.grant_file,launcher_root=source)
-parent=Path.home()/'.dvaia'/'native-verification';parent.mkdir(parents=True,exist_ok=True);os.chmod(parent,0o700);root=Path(tempfile.mkdtemp(prefix='dvaia-finflow-route-',dir=parent));os.chmod(root,0o700);copy=root/'source';docker=['docker','--host',a.docker_host];container='dvaia-finflow-route-'+uuid.uuid4().hex[:12];lock=grant.with_suffix(grant.suffix+'.consume-lock');ownership=root/'ownership.json';result=root/'result.log'
-env0={k:os.environ[k] for k in ['PATH','HOME','TMPDIR'] if k in os.environ};managed=Path.home()/'.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin';env0['PATH']=str(managed)+os.pathsep+env0.get('PATH','')
+parent=Path.home()/'.owasp-ai-goat'/'native-verification';parent.mkdir(parents=True,exist_ok=True);os.chmod(parent,0o700);root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-finflow-route-',dir=parent));os.chmod(root,0o700);copy=root/'source';docker=['docker','--host',a.docker_host];container='owasp-ai-goat-finflow-route-'+uuid.uuid4().hex[:12];lock=grant.with_suffix(grant.suffix+'.consume-lock');ownership=root/'ownership.json';result=root/'result.log'
+env0={k:os.environ[k] for k in ['PATH','HOME','TMPDIR'] if k in os.environ};managed=Path.home()/'.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin';env0['PATH']=str(managed)+os.pathsep+env0.get('PATH','')
 def save(path,data):
  tmp=path.with_suffix('.pending');tmp.write_text(json.dumps(data,indent=2,sort_keys=True)+'\n');os.chmod(tmp,0o600);os.replace(tmp,path)
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -114,7 +114,7 @@ def stop_child():
 try:
  if run(['node','--version'],capture_output=True,text=True).stdout.strip()!='v26.8.2':raise RuntimeError('managed Node v26.8.2 is required')
  daemon=json.loads(run(docker+['info','--format','{{json .}}'],capture_output=True,text=True,timeout=30).stdout)
- if daemon.get('Name')!='colima-dvaia-pg-verify' or daemon.get('Architecture')!='aarch64':raise RuntimeError('exact Colima verification daemon is required')
+ if daemon.get('Name')!='colima-owasp-ai-goat-pg-verify' or daemon.get('Architecture')!='aarch64':raise RuntimeError('exact Colima verification daemon is required')
  if run(docker+['ps','-a','--filter',f'name=^{container}$','--format','{{.Names}}'],capture_output=True,text=True,timeout=20).stdout.strip():raise RuntimeError('owned PostgreSQL name is not absent')
  attempted=True;run(docker+['run','--detach','--pull','never','--name',container,'--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_USER=finflow_route_admin','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432','postgres:18','-c','shared_buffers=16MB','-c','max_connections=48','-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
  inspected=json.loads(run(docker+['inspect',container],capture_output=True,text=True).stdout)[0]
@@ -125,7 +125,7 @@ try:
   time.sleep(.25)
  else:raise RuntimeError('owned PostgreSQL did not become ready')
  port=int(run(docker+['port',container,'5432/tcp'],capture_output=True,text=True,timeout=20).stdout.strip().rsplit(':',1)[1]);psql=['psql','-h','127.0.0.1','-p',str(port),'-U','finflow_route_admin','-d','postgres','-v','ON_ERROR_STOP=1']
- stores=[('identity','dvaia_test_finflow_route_identity'),('finflow','dvaia_test_finflow_route_store')]
+ stores=[('identity','owasp_ai_goat_test_finflow_route_identity'),('finflow','owasp_ai_goat_test_finflow_route_store')]
  for command in postgres_store_setup(stores):run(psql+['-c',command],stdout=subprocess.DEVNULL)
  fixtures={'server/sensitive_files/config/secrets.env':'JWT_SECRET=owned_finflow_fixture_secret\nAPI_KEY=owned_fixture_key\n','server/sensitive_files/config/llm_config.yml':'provider: ollama\nmodel: llama3.1:8b\nendpoint: http://127.0.0.1:11434\n','server/sensitive_files/etc/passwd':'root:x:0:0:root:/root:/bin/bash\nfinflow:x:1001:1001:FinFlow:/var/app:/bin/sh\n','server/sensitive_files/logs/access.log':'127.0.0.1 GET /owned-finflow 200\n','server/config/secrets.env':'JWT_SECRET=owned_finflow_admin_secret\nAPI_KEY=owned_admin_fixture_key\n'}
  override_hashes=fixture_override_hashes(state['approvedFixtureBaselines'],fixtures)
@@ -134,7 +134,7 @@ try:
  persist();(copy/'server/workshop_data/transactions').mkdir(parents=True,exist_ok=True);(copy/'server/workshop_data/documents').mkdir(parents=True,exist_ok=True)
  if 'llama3.1:8b' not in run(['curl','--fail','--silent','--show-error','--max-time','5','http://127.0.0.1:11434/api/tags'],capture_output=True,text=True).stdout:raise RuntimeError('local Ollama does not advertise llama3.1:8b')
  jwt_secret=private_jwt_secret()
- env=dict(env0,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',FINFLOW_ROUTE_ISOLATED='1',DVAIA_ISOLATED_TEST_WORKSPACE=str(copy),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',AI_PROVIDER='ollama',JUDGE_PROVIDER='ollama',OLLAMA_MODEL='llama3.1:8b',JUDGE_MODEL='llama3.1:8b',OLLAMA_BASE_URL='http://127.0.0.1:11434',JWT_SECRET=jwt_secret,AWS_EC2_METADATA_DISABLED='true',MCP_WORKSHOP_AUTOSTART='false',MCP_SIDECARS_AUTOSTART='false',SS_ENABLE='false',HF_HUB_OFFLINE='1',SANDBOX_RUNNER_URL='http://127.0.0.1:1',SSRF_TARGET_URL='http://127.0.0.1:1',ROGUE_MCP_URL='http://127.0.0.1:1',MAILPIT_API_URL='http://127.0.0.1:1',MAILPIT_SMTP_HOST='127.0.0.1',MAILPIT_SMTP_PORT='1',LOGS_DIR=str(root/'logs'),FINFLOW_ROUTE_OBJECTIVES=a.objectives)
+ env=dict(env0,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',FINFLOW_ROUTE_ISOLATED='1',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(copy),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',AI_PROVIDER='ollama',JUDGE_PROVIDER='ollama',OLLAMA_MODEL='llama3.1:8b',JUDGE_MODEL='llama3.1:8b',OLLAMA_BASE_URL='http://127.0.0.1:11434',JWT_SECRET=jwt_secret,AWS_EC2_METADATA_DISABLED='true',MCP_WORKSHOP_AUTOSTART='false',MCP_SIDECARS_AUTOSTART='false',SS_ENABLE='false',HF_HUB_OFFLINE='1',SANDBOX_RUNNER_URL='http://127.0.0.1:1',SSRF_TARGET_URL='http://127.0.0.1:1',ROGUE_MCP_URL='http://127.0.0.1:1',MAILPIT_API_URL='http://127.0.0.1:1',MAILPIT_SMTP_HOST='127.0.0.1',MAILPIT_SMTP_PORT='1',LOGS_DIR=str(root/'logs'),FINFLOW_ROUTE_OBJECTIVES=a.objectives)
  for family,database in stores:
   prefix={'identity':'IDENTITY','finflow':'FINFLOW_WORKSHOP'}[family];env[f'{prefix}_MIGRATION_DATABASE_URL']=f'postgresql://dvaia_{family}_migration@127.0.0.1:{port}/{database}';env[f'{prefix}_DATABASE_URL']=f'postgresql://dvaia_{family}_runtime@127.0.0.1:{port}/{database}'
  preflight_staged_imports(copy,node_binary=managed/'node',environment=env)

@@ -157,7 +157,7 @@ test('Q05/Q07 controlled valid confirmation has one effect and protected GET rec
 function invokeRoute(router,method,path,{body={},params={},launchBearer='a'.repeat(43),token}={}){
  const route=router.stack.find(layer=>layer.route?.path===path&&layer.route.methods[method])?.route;
  assert.ok(route,`production ${method} ${path} route required`);
- const req=new EventEmitter();Object.assign(req,{body,params,query:{},headers:{'x-dvaia-secureshop-launch':launchBearer},rawHeaders:['x-dvaia-secureshop-launch',launchBearer],is:type=>type==='application/json'});
+ const req=new EventEmitter();Object.assign(req,{body,params,query:{},headers:{'x-owasp-ai-goat-secureshop-launch':launchBearer},rawHeaders:['x-owasp-ai-goat-secureshop-launch',launchBearer],is:type=>type==='application/json'});
  if(token){req.headers.authorization=`Bearer ${token}`;req.rawHeaders.push('authorization',`Bearer ${token}`);}
  req.get=name=>req.headers[name.toLowerCase()];
  const res=new EventEmitter(),headers={};res.statusCode=200;res.writableEnded=false;res.destroyed=false;

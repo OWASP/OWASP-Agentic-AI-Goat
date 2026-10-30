@@ -106,7 +106,7 @@ async function writeRefundDiagnostic({ workspace, sessionId, sse, agentsRuntime,
     WHERE request_id = ANY($1::uuid[])
     ORDER BY created_at`, [requests.map(request => request.request_id)])).rows;
   const diagnostic = { version: 1, events, durable: { traces, requests, refunds } };
-  const directory = workspace || path.dirname(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '/tmp');
+  const directory = workspace || path.dirname(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '/tmp');
   fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
   const file = path.join(directory, 'refund-sse-diagnostic.json');
   fs.writeFileSync(file, JSON.stringify(diagnostic), { mode: 0o600 });
@@ -164,12 +164,12 @@ test('production composition retains one coordinator and resets real bound store
       new URL(process.env[`${PREFIX}${store}_${role}_URL`])])));
   for (const value of Object.values(urls)) {
     assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-    assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   const setup = Object.fromEntries(Object.entries(urls).map(([key, value]) => [key,
     new Pool({ connectionString: value.href, max: 3 })]));
   const manualFiles = manualQualification ? createSecureShopFiles({
-    root: path.join(process.env.DVAIA_ISOLATED_TEST_WORKSPACE, 'secureshop-manual-files'),
+    root: path.join(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE, 'secureshop-manual-files'),
     maxReadBytes: 20 * 1024 * 1024, maxWriteBytes: 20 * 1024 * 1024,
   }) : undefined;
   let server, retainedAudit, reviewPrefix;
@@ -193,7 +193,7 @@ test('production composition retains one coordinator and resets real bound store
     const reviewNames=fs.readdirSync(reviewMigrations).filter(name=>name.endsWith('.sql')).sort();
     const prefixNames=reviewNames.filter(name=>/^000[1-4]_/.test(name));
     assert.equal(prefixNames.length,4);
-    reviewPrefix=fs.mkdtempSync(path.join(process.env.DVAIA_ISOLATED_TEST_WORKSPACE,'review-0004-prefix-'));
+    reviewPrefix=fs.mkdtempSync(path.join(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE,'review-0004-prefix-'));
     for(const name of prefixNames)
       fs.copyFileSync(path.join(reviewMigrations,name),path.join(reviewPrefix,name));
     await migrate(setup.REVIEW_MIGRATION,reviewPrefix);
@@ -418,7 +418,7 @@ test('production composition retains one coordinator and resets real bound store
       const value = app.listen(0, '127.0.0.1', () => resolve(value));
     });
     const base = `http://127.0.0.1:${server.address().port}/api/secureshop`;
-    const launchHeaders = { 'x-dvaia-secureshop-launch': issued.bearer };
+    const launchHeaders = { 'x-owasp-ai-goat-secureshop-launch': issued.bearer };
     const loginResponse = await fetch(`${base}/v2/auth/login`, { method: 'POST', headers: {
       ...launchHeaders, 'content-type': 'application/json',
     }, body: JSON.stringify({ username: 'student_customer', password: 'student123' }) });
@@ -785,7 +785,7 @@ test('production composition retains one coordinator and resets real bound store
       assert.match(refundSse, /Refund request submitted/);
     }
     const refundDiagnostic = await writeRefundDiagnostic({
-      workspace: process.env.DVAIA_ISOLATED_TEST_WORKSPACE,
+      workspace: process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE,
       sessionId: refundSession.sessionId,
       sse: refundSse,
       agentsRuntime: setup.AGENTS_RUNTIME,
@@ -1064,7 +1064,7 @@ test('production composition retains one coordinator and resets real bound store
     const siblingLaunch = await composition.launches.issueOrRenew({ platformOwnerId: sibling.id,
       platformSessionId: siblingPlatformSession.id,
       expiresAt: new Date(Date.now() + 3600000).toISOString() });
-    const siblingHeaders = { 'x-dvaia-secureshop-launch': siblingLaunch.bearer };
+    const siblingHeaders = { 'x-owasp-ai-goat-secureshop-launch': siblingLaunch.bearer };
     const siblingLoginResponse = await fetch(`${base}/v2/auth/login`, { method: 'POST', headers: {
       ...siblingHeaders, 'content-type': 'application/json',
     }, body: JSON.stringify({ username: 'student_customer', password: 'student123' }) });
@@ -1258,7 +1258,7 @@ test('production composition retains one coordinator and resets real bound store
           }), injectionJudgeCredit: false,
           loopAssessment: { objectiveId: 'ss_loop_observation',
             qualified: productLoopJudgeQualification, judgeCalls: loopJudgeCalls } });
-        const evidencePath = path.join(process.env.DVAIA_ISOLATED_TEST_WORKSPACE,
+        const evidencePath = path.join(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE,
           'manual-retrieval-actual-model-classification.json');
         fs.writeFileSync(evidencePath, JSON.stringify(classification), { mode: 0o600 });
         fs.chmodSync(evidencePath, 0o600);
@@ -1374,7 +1374,7 @@ test('production composition retains one coordinator and resets real bound store
     assert.equal(foreignAddressDelete.status, 200);
     assert.deepEqual(await foreignAddressDelete.json(), { ok: false });
     const crossed = await fetch(`${base}/v2/auth/whoami`, { headers: {
-      'x-dvaia-secureshop-launch': siblingLaunch.bearer, authorization: `Bearer ${login.token}`,
+      'x-owasp-ai-goat-secureshop-launch': siblingLaunch.bearer, authorization: `Bearer ${login.token}`,
     } });
     assert.equal(crossed.status, 401);
     const customer = Object.freeze({ id: login.user.id, role: 'customer' });
@@ -1441,7 +1441,7 @@ test('production composition retains one coordinator and resets real bound store
     const rotated = await composition.launches.issueOrRenew({ platformOwnerId: user.id,
       platformSessionId: platformSession.id, expiresAt: new Date(Date.now() + 2 * 3600000).toISOString(),
       expectedBearer: issued.bearer });
-    const rotatedHeaders = { 'x-dvaia-secureshop-launch': rotated.bearer };
+    const rotatedHeaders = { 'x-owasp-ai-goat-secureshop-launch': rotated.bearer };
     const renewedResponse = await fetch(`${base}/v2/auth/renew`, { method: 'PATCH', headers: {
       ...rotatedHeaders, authorization: `Bearer ${login.token}`,
     } });

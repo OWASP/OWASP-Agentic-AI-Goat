@@ -23,10 +23,10 @@ test('missing HTTP config retains durable child cleanup debt',async()=>{
  await assert.rejects(targets.retire({scope,operationId:'parent'}));
 });
 test('private service plan uses separate profile and local-only port on mac and Linux',()=>{
- const linux=plan({root:'/tmp/dvaia-owned-plan',home:'/tmp/home',platform:'linux'});
- const mac=plan({root:'/tmp/dvaia-owned-plan',home:'/tmp/home',platform:'darwin',colimaProfile:'colima-owned-test'});
- assert.match(linux.profile,/^dvaia-owned-http-/);assert.equal(mac.profile,linux.profile);
- assert.equal(linux.port,8093);assert.notEqual(linux.destination,'/etc/apparmor.d/dvaia-mcp-sandbox');
+ const linux=plan({root:'/tmp/owasp-ai-goat-owned-plan',home:'/tmp/home',platform:'linux'});
+ const mac=plan({root:'/tmp/owasp-ai-goat-owned-plan',home:'/tmp/home',platform:'darwin',colimaProfile:'colima-owned-test'});
+ assert.match(linux.profile,/^owasp-ai-goat-owned-http-/);assert.equal(mac.profile,linux.profile);
+ assert.equal(linux.port,8093);assert.notEqual(linux.destination,'/etc/apparmor.d/owasp-ai-goat-mcp-sandbox');
  assert.match(mac.dockerHost,/colima\/owned-test\/docker.sock$/);
  const value={version:1,enabled:false,url:'http://127.0.0.1:8093',token:'a'.repeat(64),profile:linux.profile,container:linux.profile,image:'sha256:'+'b'.repeat(64)};
  assert.equal(config.validate(value),value);assert.throws(()=>config.validate({...value,url:'http://public.example:8093'}));
@@ -37,7 +37,7 @@ test('Windows HTTP plan refuses an unowned guest session',()=>{
 });
 test('HTTP guest build bundle contains exact Docker COPY roots with hashed relative bytes',async()=>{
  const fs=require('node:fs/promises'),os=require('node:os');
- const root=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-http-copy-test-'));
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-http-copy-test-'));
  try {
   const base=path.join(root,'sidecars/sandbox-runner'),source=buildContext.sources.http;
   for(const name of source.files){const file=path.join(base,name);await fs.mkdir(path.dirname(file),{recursive:true});await fs.writeFile(file,name);}
@@ -55,9 +55,9 @@ test('HTTP guest build bundle contains exact Docker COPY roots with hashed relat
 });
 test('staged Linux provision keeps token private and never enables or migrates',async()=>{
  const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
- const home=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-http-install-test-'));
+ const home=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-http-install-test-'));
  try {
-  const root='/tmp/dvaia-http-controlled-root',p=plan({root,home,platform:'linux'}),calls=[];
+  const root='/tmp/owasp-ai-goat-http-controlled-root',p=plan({root,home,platform:'linux'}),calls=[];
   const run=async(file,args,options)=>{
    calls.push({file,args,stage:options.stage});let stdout='';
    if(options.stage==='profile-existing-state')return {exitCode:1,stdout:''};
@@ -65,7 +65,7 @@ test('staged Linux provision keeps token private and never enables or migrates',
    if(options.stage==='profile-published-digest')stdout=profileDigest(p);
    if(options.stage==='profile-verify')stdout=p.profile+' (enforce)\n';
    if(options.stage==='http-image')stdout=JSON.stringify([{Id:'sha256:'+'b'.repeat(64)}]);
-   if(options.stage==='http-volume-inspect')stdout=JSON.stringify([{Labels:{'dvaia.http.owner':p.profile}}]);
+   if(options.stage==='http-volume-inspect')stdout=JSON.stringify([{Labels:{'owasp-ai-goat.http.owner':p.profile}}]);
    return {exitCode:0,stdout};
   };
   const result=await require('../scripts/install/mcp-owned-http').provision({root,home,platform:'linux',commandEnv:{},run,
@@ -75,18 +75,18 @@ test('staged Linux provision keeps token private and never enables or migrates',
   const start=calls.find(c=>c.stage==='http-start');assert.ok(start.args.includes('--env-file'));
   assert.equal(start.args.some(arg=>arg.includes(saved.token)),false);
   assert.ok(start.args.includes('127.0.0.1:8093:8091'));
-  assert.equal(calls.some(c=>c.args.includes('dvaia-mcp-sandbox')),false);
+  assert.equal(calls.some(c=>c.args.includes('owasp-ai-goat-mcp-sandbox')),false);
   assert.equal((await fs.stat(p.managedPath)).mode&0o077,0);
  }finally{await fs.rm(home,{recursive:true,force:true});}
 });
 test('stopped owned HTTP container restarts by validated full ID and is re-inspected before readiness',async()=>{
  const fs=require('node:fs/promises'),os=require('node:os');
- const home=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-http-restart-test-'));
+ const home=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-http-restart-test-'));
  try{
-  const root='/tmp/dvaia-http-restart',p=plan({root,home,platform:'linux'}),image='sha256:'+'b'.repeat(64),token='a'.repeat(64),id='c'.repeat(64),calls=[];
+  const root='/tmp/owasp-ai-goat-http-restart',p=plan({root,home,platform:'linux'}),image='sha256:'+'b'.repeat(64),token='a'.repeat(64),id='c'.repeat(64),calls=[];
   await fs.mkdir(path.dirname(p.managedPath),{recursive:true});
   await fs.writeFile(p.managedPath,JSON.stringify({version:1,enabled:false,url:'http://127.0.0.1:8093',token,profile:p.profile,container:p.container,image}),{mode:0o600});
-  const found={Id:id,Image:image,State:{Running:false},Config:{User:'10001:10001',Labels:{'dvaia.http.owner':p.profile},
+  const found={Id:id,Image:image,State:{Running:false},Config:{User:'10001:10001',Labels:{'owasp-ai-goat.http.owner':p.profile},
    Env:[`MCP_OWNED_HTTP_TOKEN=${token}`,'MCP_OWNED_HTTP_ROOT=/state/targets',`MCP_OWNED_TARGET_APPARMOR_PROFILE=${p.profile}`]},
    HostConfig:{SecurityOpt:[`apparmor=${p.profile}`,'seccomp=unconfined'],PortBindings:{'8091/tcp':[{HostIp:'127.0.0.1',HostPort:'8093'}]}},
    Mounts:[{Type:'volume',Name:p.volume,Destination:'/state'}]};
@@ -119,7 +119,7 @@ test('stopped owned HTTP container restarts by validated full ID and is re-inspe
 test('Windows HTTP startExisting only resumes a pinned retained enabled container',async()=>{
  const root='/tmp/http-existing-only',p=plan({root,home:'/tmp/home',platform:'linux'}),image='sha256:'+'b'.repeat(64),id='c'.repeat(64),token='a'.repeat(64);
  const existing={version:1,enabled:true,url:'http://127.0.0.1:8093',token,profile:p.profile,container:p.container,image};
- const found={Id:id,Image:image,State:{Running:false},Config:{User:'10001:10001',Labels:{'dvaia.http.owner':p.profile},
+ const found={Id:id,Image:image,State:{Running:false},Config:{User:'10001:10001',Labels:{'owasp-ai-goat.http.owner':p.profile},
   Env:[`MCP_OWNED_HTTP_TOKEN=${token}`,'MCP_OWNED_HTTP_ROOT=/state/targets',`MCP_OWNED_TARGET_APPARMOR_PROFILE=${p.profile}`]},
   HostConfig:{SecurityOpt:[`apparmor=${p.profile}`,'seccomp=unconfined'],PortBindings:{'8091/tcp':[{HostIp:'127.0.0.1',HostPort:'8093'}]}},
   Mounts:[{Type:'volume',Name:p.volume,Destination:'/state'}]};

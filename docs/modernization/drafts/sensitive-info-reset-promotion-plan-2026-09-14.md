@@ -115,7 +115,7 @@ failure. Explicit `false` may start for maintenance, but PostgreSQL reset routes
 ## Acceptance evidence and remaining qualifier work
 
 The owned mounted HTTP proof
-`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-sensitive-info-reset-wfgokn82`
+`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-sensitive-info-reset-wfgokn82`
 passed with actual PostgreSQL authentication. It proved failed cleanup recovery,
 cross-route exact replay, wrong-owner and malformed operation rejection, stale
 run fencing, sibling preservation, inactive catalog independence, and canonical
@@ -124,14 +124,14 @@ callback-result contract is separately covered by a focused regression using
 `createRunCoordinator`.
 
 The reset-only mounted HTTP03 qualification passed with zero skips in
-`dvaia-sensitive-info-reset-fz0epvm2` (result SHA-256
+`owasp-ai-goat-sensitive-info-reset-fz0epvm2` (result SHA-256
 `823007bff6675046da945fe60a4624ee449388b045ea541ee5d6003f3b7153ee`).
 It staged only identity0044 and FinFlow0009, without the separate legacy catalog.
 After reset/replay it verified zero canonical completions, unchanged total17,
 custom labels, disabled-objective exclusion, and empty owner legacy stats/access
 logs. Root independently verified terminal results and exact container absence.
 This closes that owned qualification gate. The coherent live paired
-backup/owned restore also passed in `dvaia-sensitive-reset-recovery-qsn6uy0s`:
+backup/owned restore also passed in `owasp-ai-goat-sensitive-reset-recovery-qsn6uy0s`:
 its private manifest SHA-256 is
 `d138209abfa1eb0cf5c84651eb9e5c7f67abb60f6fd4b91fb7397d8cb7718bce`
 and comparison SHA-256 is

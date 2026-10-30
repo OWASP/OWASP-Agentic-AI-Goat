@@ -7,6 +7,27 @@ import { GUEST_CART_CHANNEL, GUEST_CART_STORAGE_KEY } from './bridge/guestCartPr
 
 jest.mock('./bridge/handshake.mjs', () => ({ mountShopFrame: jest.fn() }));
 
+test('a disconnected ready storefront offers Retry and mounts a fresh frame', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  mountShopFrame.mockReset().mockImplementation(({ frame }) => {
+    frame.src = 'http://localhost/secureshop-frame.html?guest=1#' + 'a'.repeat(64);
+    return { ready: Promise.resolve(), close: jest.fn() };
+  });
+  const host = document.createElement('div'), root = createRoot(host);
+  document.body.appendChild(host);
+  try {
+    await act(async () => root.render(<MemoryRouter initialEntries={['/secureshop/catalog']}>
+      <Routes><Route path="/secureshop/*" element={<SecureShopGuestLanding />} /></Routes>
+    </MemoryRouter>));
+    const firstFrame = host.querySelector('iframe');
+    await act(async () => mountShopFrame.mock.calls[0][0].onDisconnect());
+    expect(host.textContent).toContain('OWASP AI SecureShop is currently unavailable.');
+    await act(async () => host.querySelector('button').click());
+    expect(mountShopFrame).toHaveBeenCalledTimes(2);
+    expect(host.querySelector('iframe')).not.toBe(firstFrame);
+  } finally { await act(async () => root.unmount()); host.remove(); }
+});
+
 test('guest storefront mounts an opaque read-only frame without workshop feature flags', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   mountShopFrame.mockReset().mockImplementation(({ frame }) => {
@@ -31,7 +52,7 @@ test('guest storefront mounts an opaque read-only frame without workshop feature
   } finally { await act(async () => root.unmount()); host.remove(); }
 });
 
-test('guest connection error keeps its home link inside SecureShop', async () => {
+test('guest connection error keeps its home link inside OWASP AI SecureShop', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   mountShopFrame.mockReset().mockImplementation(({ frame }) => {
     frame.src = 'http://localhost/secureshop-frame.html?guest=1#' + 'a'.repeat(64);
@@ -43,7 +64,7 @@ test('guest connection error keeps its home link inside SecureShop', async () =>
     await act(async () => root.render(<MemoryRouter initialEntries={['/secureshop/catalog']}>
       <Routes><Route path="/secureshop/*" element={<SecureShopGuestLanding />} /></Routes>
     </MemoryRouter>));
-    expect(host.textContent).toContain('SecureShop is currently unavailable.');
+    expect(host.textContent).toContain('OWASP AI SecureShop is currently unavailable.');
     expect(host.querySelector('a[href="/secureshop"]')?.textContent).toBe('Back to home');
     expect(host.querySelector('a[href="/"]')).toBeNull();
   } finally { await act(async () => root.unmount()); host.remove(); }
@@ -186,7 +207,7 @@ test('guest registration intent opens the independent register form with a safe 
     </MemoryRouter>));
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     const frame = host.querySelector('iframe');
-    const intent = { channel: 'dvaia-secureshop-guest-route-v1', type: 'register',
+    const intent = { channel: 'owasp-ai-goat-secureshop-guest-route-v1', type: 'register',
       nonce: 'a'.repeat(64), route: '/secureshop/product/7' };
     const send = (data, origin = 'null') => window.dispatchEvent(new MessageEvent('message', {
       source: frame.contentWindow, origin, data,

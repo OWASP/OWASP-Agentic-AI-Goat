@@ -34,7 +34,7 @@ function disposableUrls() {
       assert.equal(value.hostname, '127.0.0.1');
       assert.equal(value.password, ''); assert.equal(value.search, ''); assert.equal(value.hash, '');
       assert.equal(value.username, `dvaia_${STORE_NAMES[store]}_${role.toLowerCase()}`);
-      const match = new RegExp(`^/dvaia_test_agent_host_([0-9a-f]{12})_${STORE_NAMES[store]}$`).exec(value.pathname);
+      const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([0-9a-f]{12})_${STORE_NAMES[store]}$`).exec(value.pathname);
       assert.ok(match, `closed disposable database name required for ${key}`);
       nonce ??= match[1]; port ??= value.port;
       assert.equal(match[1], nonce); assert.equal(value.port, port);
@@ -184,7 +184,7 @@ function postAndDiscardCommittedBody(url, headers, value) {
 
 test('merchant inventory chat and listing edits prepare without effects, confirm once, recover exact receipts, and fence stale or sibling authority',
   { skip: !ENABLED, timeout: 120000 }, async t => {
-    const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '');
+    const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '');
     assert.equal(workspace, process.cwd(), 'current checkout required; no source copy');
     const urls = disposableUrls();
     const pools = Object.fromEntries(STORES.flatMap(store => ['MIGRATION', 'RUNTIME'].map(role =>
@@ -355,7 +355,7 @@ test('merchant inventory chat and listing edits prepare without effects, confirm
         && Number(row.product_id) === product.productId && Number(row.retailer_id) === ownerPersona.id;
       const untouchedRows = rows => rows.filter(row => !isOwnerMutation(row));
       const headers = Object.freeze({ 'content-type': 'application/json',
-        'x-dvaia-secureshop-launch': ownerBoot.bearer, authorization: `Bearer ${ownerBoot.persona.token}` });
+        'x-owasp-ai-goat-secureshop-launch': ownerBoot.bearer, authorization: `Bearer ${ownerBoot.persona.token}` });
       const request = (pathname, options = {}) => fetch(`${origin}/api/secureshop${pathname}`, {
         ...options, headers: { ...headers, ...(options.headers || {}) },
       });
@@ -467,7 +467,7 @@ test('merchant inventory chat and listing edits prepare without effects, confirm
       assert.equal(roleDecision, 4); assert.equal(preparedRoleFinals,2); assert.equal(inventoryDecisionCalls, 1); assert.equal(judgeCalls, 0);
 
       const foreignHeaders = Object.freeze({ 'content-type': 'application/json',
-        'x-dvaia-secureshop-launch': siblingBoot.bearer, authorization: `Bearer ${siblingBoot.persona.token}` });
+        'x-owasp-ai-goat-secureshop-launch': siblingBoot.bearer, authorization: `Bearer ${siblingBoot.persona.token}` });
       const foreign = (pathname, options = {}) => fetch(`${origin}/api/secureshop${pathname}`, {
         ...options, headers: { ...foreignHeaders, ...(options.headers || {}) },
       });

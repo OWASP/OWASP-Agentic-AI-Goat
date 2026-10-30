@@ -69,7 +69,7 @@ test('server-owned discovery authorizes controlled rotation before recording a c
 });
 
 test('application rotation rediscovers a changed schema through the real SDK target transport',async t=>{
-  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-app-rotate-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
+  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-app-rotate-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
   const value=Object.freeze({...target,serverIdentity:'secureshop-weather-lab'});const rows=[];let authorized=0,revoked=0;
   const pool=createSecureShopMcpControlledTargetPool({root});t.after(()=>pool.retire(value.targetId));
   const repository={async provision(input){assert.deepEqual(input,value);},async currentSchema(){return rows.at(-1)||null;},
@@ -147,7 +147,7 @@ test('evidence distinguishes an unapproved server registration from an approved-
 });
 
 test('real MCP SDK discovery observes stable-identity rotation and invocation reads an owned protected fixture',async t=>{
-  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-owned-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
+  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-owned-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
   const resource=await createSecureShopMcpOwnedFixture({root,targetId:target.targetId});
   const server=await createSecureShopControlledMcpServer({targetId:target.targetId,resource});const transport=createSecureShopMcpSdkTransport({controlledServer:server});
   t.after(()=>transport.close());const [first,concurrent]=await Promise.all([
@@ -174,7 +174,7 @@ test('real MCP SDK discovery observes stable-identity rotation and invocation re
 });
 
 test('an unapproved controlled server exports the owned record on its first discovered schema',async t=>{
-  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-rogue-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
+  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-rogue-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
   const resource=await createSecureShopMcpOwnedFixture({root,targetId:target.targetId});
   const server=await createSecureShopControlledMcpServer({targetId:target.targetId,resource,trustScenario:'rogue_registration'});
   const transport=createSecureShopMcpSdkTransport({controlledServer:server});t.after(()=>transport.close());
@@ -208,7 +208,7 @@ test('cancellation after the controlled effect settles still consumes its privat
 });
 
 test('separate target servers isolate rotation and reject sibling target invocation',async t=>{
-  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-siblings-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
+  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-siblings-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
   const siblingId='30000000-0000-4000-8000-000000000002';
   const aResource=await createSecureShopMcpOwnedFixture({root,targetId:target.targetId});
   const bResource=await createSecureShopMcpOwnedFixture({root,targetId:siblingId});
@@ -223,7 +223,7 @@ test('separate target servers isolate rotation and reject sibling target invocat
 });
 
 test('owned fixture shares cleanup, drains accepted reads, and recognizes removal completed before a failed response',async t=>{
-  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-cleanup-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
+  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-cleanup-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
   let release,entered,failStat=true,rmCalls=0;const enteredPromise=new Promise(resolve=>{entered=resolve;});
   const fsImpl={...fsp,async readFile(file){entered();await new Promise(resolve=>{release=resolve;});return fsp.readFile(file);},
     async rm(...args){rmCalls++;const result=await fsp.rm(...args);return result;},
@@ -241,7 +241,7 @@ test('owned fixture shares cleanup, drains accepted reads, and recognizes remova
 });
 
 test('owned fixture reopens only the exact server-seeded private record after process restart',async t=>{
-  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-recover-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
+  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-recover-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
   const first=await createSecureShopMcpOwnedFixture({root,targetId:target.targetId});
   const reopened=await createSecureShopMcpOwnedFixture({root,targetId:target.targetId});
   assert.deepEqual(await reopened.read(target.targetId),await first.read(target.targetId));
@@ -249,7 +249,7 @@ test('owned fixture reopens only the exact server-seeded private record after pr
 });
 
 test('controlled target pool creates one server per target and retirement leaves siblings active',async t=>{
-  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-pool-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
+  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-pool-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
   const siblingId='30000000-0000-4000-8000-000000000002';const pool=createSecureShopMcpControlledTargetPool({root});
   const [a1,aConcurrent,b1]=await Promise.all([
     pool.discover({targetId:target.targetId,serverIdentity:'secureshop-weather-lab',trustScenario:'rug_pull'}),
@@ -267,7 +267,7 @@ test('controlled target pool creates one server per target and retirement leaves
 });
 
 test('controlled target pool rehydrates the exact durable schema phase and rejects an in-memory phase mismatch',async t=>{
-  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-rehydrate-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
+  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-rehydrate-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
   const targetId='30000000-0000-4000-8000-000000000019',pool=createSecureShopMcpControlledTargetPool({root});
   t.after(()=>pool.retire(targetId));
   const changed=await pool.ensure({targetId,serverIdentity:'secureshop-weather-lab',trustScenario:'rug_pull',schemaVersion:2});
@@ -276,7 +276,7 @@ test('controlled target pool rehydrates the exact durable schema phase and rejec
 });
 
 test('application rehydrates a persisted schema before returning it after process restart',async t=>{
-  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-app-rehydrate-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
+  const root=await fsp.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-app-rehydrate-'));t.after(()=>fsp.rm(root,{recursive:true,force:true}));
   const value=Object.freeze({...target,targetId:'30000000-0000-4000-8000-000000000020',serverIdentity:'secureshop-weather-lab'});
   const pool=createSecureShopMcpControlledTargetPool({root});t.after(()=>pool.retire(value.targetId));
   const probe=await pool.ensure({targetId:value.targetId,serverIdentity:value.serverIdentity,trustScenario:'rug_pull',schemaVersion:2});

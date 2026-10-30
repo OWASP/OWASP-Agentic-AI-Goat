@@ -102,7 +102,7 @@ class PricingOwner(unittest.TestCase):
             owner=SimpleNamespace(set_cleanup_deadline=lambda _:None,inventory=SimpleNamespace(LibProc=lambda:api))
             descriptor=dict(version=1,ownerId='11111111-1111-4111-8111-111111111111',workspaceId=m.canonical_workspace_id(m.ROOT),
                 qualificationNonce='0123456789ab',containerId='a'*64,imageId='sha256:'+'b'*64,packageSha256='c'*64,
-                profile='dvaia-owned-pricing-http-0123456789ab',origin='http://127.0.0.1:12345',token='t'*43)
+                profile='owasp-ai-goat-owned-pricing-http-0123456789ab',origin='http://127.0.0.1:12345',token='t'*43)
             private=SimpleNamespace(spec=SimpleNamespace(owner_id=descriptor['ownerId'],run_id=run_id),open=lambda _:descriptor,
                 set_cleanup_deadline=lambda _:None,close=lambda:events.append('private-release') or dict(builderReleaseAllowed=True,bridge={'failures':[]}))
             session=m._RetainedRuntime(private,processes,owner,budget,cohort,ledger);session.open(descriptor['imageId'])
@@ -110,7 +110,7 @@ class PricingOwner(unittest.TestCase):
             env=dict(PERSONA_PRICING_NATIVE='1',PERSONA_PRICING_ACTUAL='1',PERSONA_PRICING_MANUAL_ONLY='1',
                 PERSONA_PRICING_ACTUAL_REMAINING='0',PERSONA_PRICING_COHORT='baseline',PERSONA_PRICING_CANONICAL='1',PG_TEST_DISPOSABLE='yes')
             for store,family in admitted['stores'].items():
-                for role in ('runtime','migration'):env['PERSONA_'+store.upper()+'_'+role.upper()+'_URL']=f'postgresql://dvaia_{family}_{role}@127.0.0.1:12345/dvaia_test_persona_0123456789ab_{store}'
+                for role in ('runtime','migration'):env['PERSONA_'+store.upper()+'_'+role.upper()+'_URL']=f'postgresql://dvaia_{family}_{role}@127.0.0.1:12345/owasp_ai_goat_test_persona_0123456789ab_{store}'
             command=spawner.argv()
             child_options=dict(cwd=m.ROOT,start_new_session=True,umask=0o077,env=env)
             if fault=='executable-override':child_options['executable']='/bin/sh'
@@ -207,7 +207,7 @@ class PricingOwner(unittest.TestCase):
         nonce='0123456789ab'
         descriptor=dict(version=1,ownerId='11111111-1111-4111-8111-111111111111',workspaceId=m.canonical_workspace_id(m.ROOT),
             qualificationNonce=nonce,containerId='a'*64,imageId='sha256:'+'b'*64,packageSha256='c'*64,
-            profile='dvaia-owned-pricing-http-'+nonce,origin='http://127.0.0.1:12345',token='t'*43)
+            profile='owasp-ai-goat-owned-pricing-http-'+nonce,origin='http://127.0.0.1:12345',token='t'*43)
         private=SimpleNamespace(spec=SimpleNamespace(owner_id=descriptor['ownerId'],run_id=admitted['runId']),
             open=lambda _:descriptor,set_cleanup_deadline=lambda _:None,
             close=lambda:events.append('private-release') or dict(builderReleaseAllowed=True,bridge={'failures':[]}))
@@ -224,7 +224,7 @@ class PricingOwner(unittest.TestCase):
                     folder=directory/key.lower();folder.mkdir(mode=0o700);env[key]=str(folder)
                 for store,family in admitted['stores'].items():
                     for role in ('runtime','migration'):
-                        env['PERSONA_'+store.upper()+'_'+role.upper()+'_URL']=f'postgresql://dvaia_{family}_{role}@127.0.0.1:12345/dvaia_test_persona_{nonce}_{store}'
+                        env['PERSONA_'+store.upper()+'_'+role.upper()+'_URL']=f'postgresql://dvaia_{family}_{role}@127.0.0.1:12345/owasp_ai_goat_test_persona_{nonce}_{store}'
                 child=spawner(spawner.argv(),cwd=m.ROOT,env=env,stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE,start_new_session=True,umask=0o077)
                 stdout,stderr=child.communicate(timeout=20)
@@ -383,7 +383,7 @@ class PricingOwner(unittest.TestCase):
             owner=SimpleNamespace(set_cleanup_deadline=lambda _:None)
             descriptor=dict(version=1,ownerId='11111111-1111-4111-8111-111111111111',workspaceId=m.canonical_workspace_id(m.ROOT),
                 qualificationNonce='0123456789ab',containerId='a'*64,imageId='sha256:'+'b'*64,packageSha256='c'*64,
-                profile='dvaia-owned-pricing-http-0123456789ab',origin='http://127.0.0.1:12345',token='t'*43)
+                profile='owasp-ai-goat-owned-pricing-http-0123456789ab',origin='http://127.0.0.1:12345',token='t'*43)
             private=SimpleNamespace(open=lambda _:descriptor,set_cleanup_deadline=lambda _:None,
                 close=lambda:events.append('private-release') or dict(builderReleaseAllowed=True,bridge={'failures':[]}))
             session=m._RetainedRuntime(private,processes,owner,budget,cohort,ledger);session.open(descriptor['imageId'])
@@ -416,7 +416,7 @@ class PricingOwner(unittest.TestCase):
                 finally:os.close(ready)
                 if fault=='ready-delay':clock[0]=17
                 spawner.profile.mkdir(mode=0o700)
-                if fault=='wrong-profile':api.arguments=lambda _:[browser,'--user-data-dir='+str(spawner.profile.parent/'dvaia-pricing-chat-sibling')]
+                if fault=='wrong-profile':api.arguments=lambda _:[browser,'--user-data-dir='+str(spawner.profile.parent/'owasp-ai-goat-pricing-chat-sibling')]
                 if fault!='no-birth':
                     m.exclusive_record(spawner.directory/'browser-birth.json',dict(schemaVersion=2,processes=[dict(kind='pricing_v34_browser',
                         pid=43211,parentPid=43210,uid=os.getuid(),pgid=43211,sessionId=43211,birth=[20,3],
@@ -556,7 +556,7 @@ class PricingOwner(unittest.TestCase):
             owner=SimpleNamespace(set_cleanup_deadline=lambda until:events.append(('deadline',until)))
             descriptor=dict(version=1,ownerId='11111111-1111-4111-8111-111111111111',workspaceId=m.canonical_workspace_id(m.ROOT),
                 qualificationNonce='0123456789ab',containerId='a'*64,imageId='sha256:'+'b'*64,packageSha256='c'*64,
-                profile='dvaia-owned-pricing-http-0123456789ab',origin='http://127.0.0.1:12345',token='t'*43)
+                profile='owasp-ai-goat-owned-pricing-http-0123456789ab',origin='http://127.0.0.1:12345',token='t'*43)
             def opened(_):
                 events.append('start')
                 self.assertEqual(budget.child_until,1000)
@@ -647,7 +647,7 @@ class PricingOwner(unittest.TestCase):
                         raise RuntimeError('STARTUP_ACK_LOST')
                     return dict(version=1,ownerId=self.spec.owner_id,workspaceId=self.spec.workspace_id,
                         qualificationNonce=self.spec.qualification_nonce,containerId='a'*64,imageId=image_id,packageSha256='c'*64,
-                        profile='dvaia-owned-pricing-http-'+self.spec.qualification_nonce,origin='http://127.0.0.1:12345',token=self.token)
+                        profile='owasp-ai-goat-owned-pricing-http-'+self.spec.qualification_nonce,origin='http://127.0.0.1:12345',token=self.token)
                 def set_cleanup_deadline(self,value):events.append('runtime-deadline')
                 def close(self):events.append('runtime-close');return dict(builderReleaseAllowed=True,bridge={'failures':[]})
             def spec(root,run,owner,workspace,nonce,daemon,holder_contract):
@@ -743,7 +743,7 @@ require('assert/strict').equal(workspace,require('./scripts/application-data-roo
 const dir=fs.mkdtempSync(path.join(root,'tasks/qualification/workspace-control-'));
 (async()=>{let calls=0;const old=global.fetch;
 try{for(const invalid of [false,true]){
- const d={version:1,ownerId:'11111111-1111-4111-8111-111111111111',workspaceId:invalid?'000000000000':workspace,qualificationNonce:'0123456789ab',containerId:'a'.repeat(64),imageId:'sha256:'+'b'.repeat(64),packageSha256:'c'.repeat(64),profile:'dvaia-owned-pricing-http-0123456789ab',origin:'http://127.0.0.1:12345',token:'t'.repeat(43)};
+ const d={version:1,ownerId:'11111111-1111-4111-8111-111111111111',workspaceId:invalid?'000000000000':workspace,qualificationNonce:'0123456789ab',containerId:'a'.repeat(64),imageId:'sha256:'+'b'.repeat(64),packageSha256:'c'.repeat(64),profile:'owasp-ai-goat-owned-pricing-http-0123456789ab',origin:'http://127.0.0.1:12345',token:'t'.repeat(43)};
  const file=path.join(dir,invalid?'bad.json':'good.json'),bytes=JSON.stringify(d);fs.writeFileSync(file,bytes,{mode:0o600,flag:'wx'});
  const {version,token,...expected}=d;
  global.fetch=async()=>{calls++;return new Response(JSON.stringify({version:require('./sidecars/sandbox-runner/owned-pricing-http/wire').VERSION,ready:true,isolation:'bwrap-owned-pricing-http-v1',pricingCapability:'secureshop-owned-pricing-http.v1'}),{status:200});};

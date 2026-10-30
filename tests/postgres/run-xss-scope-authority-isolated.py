@@ -14,19 +14,19 @@ spec = importlib.util.spec_from_file_location(
     'owned_qualification', Path(__file__).with_name('run-csrf-email-composed-isolated.py'))
 owned = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(owned)
-owned.OWNER_LABEL = 'org.dvaia.xss-scope-owner'
-owned.NONCE_LABEL = 'org.dvaia.xss-scope-nonce'
+owned.OWNER_LABEL = 'org.owasp-ai-goat.xss-scope-owner'
+owned.NONCE_LABEL = 'org.owasp-ai-goat.xss-scope-nonce'
 
 SUITES = {
-    'application-upgrade': ('identity', 'dvaia_test_xss_upgrade_identity', 'PG_XSS_UPGRADE_IDENTITY', 'xssApplicationUpgrade.integration.test.js'),
-    'deletion-finalizers': ('identity', 'dvaia_test_deletion_identity', 'PG_STUDENT_DELETION_FINALIZER_IDENTITY', 'studentDeletionFinalizers.integration.test.js'),
-    'parent-admission-race': ('identity', 'dvaia_test_xss_parent_admission_identity', 'PG_XSS_PARENT_ADMISSION', 'xssParentAdmissionRace.integration.test.js'),
-    'parent-recovery-composed': ('identity', 'dvaia_test_xss_recovery_identity', 'PG_XSS_RECOVERY_IDENTITY', 'xssParentRecoveryComposed.integration.test.js'),
-    'xss-judgment-child': ('identity', 'dvaia_test_xss_judgment_test_native', 'PG_XSS_JUDGMENT_TEST', 'xssJudgmentChildBinding.integration.test.js'),
-    'scope-authority': ('identity', 'dvaia_test_xss_scope_authority_identity', 'PG_XSS_SCOPE', 'xssScopeAuthority.integration.test.js'),
-    'profile-origin': ('xss', 'dvaia_test_xss_profile_origin', 'PG_XSS_PROFILE_ORIGIN', 'xssProfileOrigin.integration.test.js'),
-    'profile-reset': ('xss', 'dvaia_test_xss_scoped_profile_reset', 'PG_XSS_SCOPED_PROFILE', 'xssScopedProfileReset.integration.test.js'),
-    'profile-journal': ('identity', 'dvaia_test_xss_profile_reset_journal', 'PG_XSS_PROFILE_JOURNAL', 'xssProfileResetJournal.integration.test.js'),
+    'application-upgrade': ('identity', 'owasp_ai_goat_test_xss_upgrade_identity', 'PG_XSS_UPGRADE_IDENTITY', 'xssApplicationUpgrade.integration.test.js'),
+    'deletion-finalizers': ('identity', 'owasp_ai_goat_test_deletion_identity', 'PG_STUDENT_DELETION_FINALIZER_IDENTITY', 'studentDeletionFinalizers.integration.test.js'),
+    'parent-admission-race': ('identity', 'owasp_ai_goat_test_xss_parent_admission_identity', 'PG_XSS_PARENT_ADMISSION', 'xssParentAdmissionRace.integration.test.js'),
+    'parent-recovery-composed': ('identity', 'owasp_ai_goat_test_xss_recovery_identity', 'PG_XSS_RECOVERY_IDENTITY', 'xssParentRecoveryComposed.integration.test.js'),
+    'xss-judgment-child': ('identity', 'owasp_ai_goat_test_xss_judgment_test_native', 'PG_XSS_JUDGMENT_TEST', 'xssJudgmentChildBinding.integration.test.js'),
+    'scope-authority': ('identity', 'owasp_ai_goat_test_xss_scope_authority_identity', 'PG_XSS_SCOPE', 'xssScopeAuthority.integration.test.js'),
+    'profile-origin': ('xss', 'owasp_ai_goat_test_xss_profile_origin', 'PG_XSS_PROFILE_ORIGIN', 'xssProfileOrigin.integration.test.js'),
+    'profile-reset': ('xss', 'owasp_ai_goat_test_xss_scoped_profile_reset', 'PG_XSS_SCOPED_PROFILE', 'xssScopedProfileReset.integration.test.js'),
+    'profile-journal': ('identity', 'owasp_ai_goat_test_xss_profile_reset_journal', 'PG_XSS_PROFILE_JOURNAL', 'xssProfileResetJournal.integration.test.js'),
 }
 
 
@@ -48,7 +48,7 @@ def main():
     docker = [str(cli), '--host', args.docker_host]
     owned.validate_docker_authority(docker, env, args.docker_server_id)
     owned.validate_image(docker, env, owned.POSTGRES_IMAGE)
-    evidence = Path(tempfile.mkdtemp(prefix='dvaia-xss-scope-'))
+    evidence = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-xss-scope-'))
     evidence.chmod(0o700)
     workspace = evidence / 'source'
     workspace.mkdir(mode=0o700)
@@ -58,7 +58,7 @@ def main():
         **snapshot, 'nodeSha256': args.node_sha256, 'dockerServerId': args.docker_server_id,
         'suite': args.suite, 'testFile': SUITES[args.suite][3]})
     nonce = uuid.uuid4().hex
-    intent = {'name': 'dvaia-xss-scope-' + nonce[:12], 'nonce': nonce,
+    intent = {'name': 'owasp-ai-goat-xss-scope-' + nonce[:12], 'nonce': nonce,
               'image': owned.POSTGRES_IMAGE, 'kind': 'postgres'}
     owned.write_private_json(evidence / 'container-intent.json', intent)
     child = None
@@ -96,12 +96,12 @@ def main():
         store, database, prefix, test_file = SUITES[args.suite]
         stores = [(store, database, prefix)]
         if args.suite == 'application-upgrade':
-            stores.append(('xss', 'dvaia_test_xss_upgrade_store', 'PG_XSS_UPGRADE_STORE'))
+            stores.append(('xss', 'owasp_ai_goat_test_xss_upgrade_store', 'PG_XSS_UPGRADE_STORE'))
         if args.suite == 'parent-recovery-composed':
-            stores.append(('xss', 'dvaia_test_xss_recovery_store', 'PG_XSS_RECOVERY_STORE'))
+            stores.append(('xss', 'owasp_ai_goat_test_xss_recovery_store', 'PG_XSS_RECOVERY_STORE'))
         if args.suite == 'deletion-finalizers':
-            stores.extend([('xss', 'dvaia_test_deletion_xss', 'PG_STUDENT_DELETION_FINALIZER_XSS'),
-                           ('finflow', 'dvaia_test_deletion_finflow', 'PG_STUDENT_DELETION_FINALIZER_FINFLOW')])
+            stores.extend([('xss', 'owasp_ai_goat_test_deletion_xss', 'PG_STUDENT_DELETION_FINALIZER_XSS'),
+                           ('finflow', 'owasp_ai_goat_test_deletion_finflow', 'PG_STUDENT_DELETION_FINALIZER_FINFLOW')])
         child_env = dict(env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes', AWS_EC2_METADATA_DISABLED='true')
         for store, database, prefix in stores:
             migration_role, runtime_role = f'dvaia_{store}_migration', f'dvaia_{store}_runtime'

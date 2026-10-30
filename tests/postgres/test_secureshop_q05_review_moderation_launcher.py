@@ -321,14 +321,14 @@ class Q05BrowserBirthControls(unittest.TestCase):
         self.evidence_dir = Path(self.directory.name)
         self.runtime = self.evidence_dir / 'runtime'
         (self.runtime / 'tmp').mkdir(parents=True)
-        self.profile = self.runtime / 'tmp/dvaia-q05-review-control'
+        self.profile = self.runtime / 'tmp/owasp-ai-goat-q05-review-control'
         self.profile.mkdir(mode=0o700)
         self.record = self.evidence_dir / 'q05-review-moderation-browser-birth.json'
         self.record.write_text('{"schemaVersion":2}\n', encoding='utf-8')
         self.record.chmod(0o600)
         self.row = dict(pid=23456, parentPid=12345, birth=[100, 1])
         self.captured = SimpleNamespace(profile=str(self.profile), record=self.row)
-        self.ownership = SimpleNamespace(PROFILE_PREFIX='dvaia-q05-review-',
+        self.ownership = SimpleNamespace(PROFILE_PREFIX='owasp-ai-goat-q05-review-',
             _browser_modules=lambda: (None, None, None,
                 lambda *args, **kwargs: [self.row], lambda rows: True),
             capture_live_v36=lambda *args, **kwargs: self.captured,

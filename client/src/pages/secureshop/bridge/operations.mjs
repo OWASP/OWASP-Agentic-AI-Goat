@@ -468,7 +468,7 @@ const SEPARATE = Object.freeze([
 ]);
 
 function fail(message) {
-  throw new TypeError(`SecureShop operation rejected: ${message}`);
+  throw new TypeError(`OWASP AI SecureShop operation rejected: ${message}`);
 }
 
 function cloneBoundedJson(value) {

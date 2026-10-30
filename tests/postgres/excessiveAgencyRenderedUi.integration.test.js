@@ -16,7 +16,7 @@ const KEYS = ['IDENTITY_DATABASE_URL', 'IDENTITY_MIGRATION_DATABASE_URL',
   'CTF_DATABASE_URL', 'CTF_MIGRATION_DATABASE_URL'];
 const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && process.env.EA_ROUTE_ISOLATED === '1'
   && process.env.EA_ROUTE_UI === '1' && KEYS.every(key => process.env[key])
-  && process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
+  && process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
 const live = process.env.EA_ROUTE_LIVE === '1';
 
 const exercises = Object.freeze([
@@ -41,19 +41,19 @@ const exercises = Object.freeze([
 ]);
 
 function verifyInputs() {
-  const workspace = fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  const workspace = fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   assert.equal(fs.realpathSync(process.cwd()), workspace);
   assert.equal(path.basename(workspace), 'source');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-ea-route-/);
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-ea-route-/);
   assert.ok(fs.existsSync(path.join(workspace, 'client', 'package.json')));
   assert.ok(fs.existsSync(path.join(workspace, 'client', 'node_modules')));
   const expected = new Map([
-    ['IDENTITY_DATABASE_URL', '/dvaia_test_ea_route_identity'],
-    ['IDENTITY_MIGRATION_DATABASE_URL', '/dvaia_test_ea_route_identity'],
-    ['EXCESSIVE_AGENCY_DATABASE_URL', '/dvaia_test_ea_route_lab'],
-    ['EXCESSIVE_AGENCY_MIGRATION_DATABASE_URL', '/dvaia_test_ea_route_lab'],
-    ['CTF_DATABASE_URL', '/dvaia_test_ea_route_ctf'],
-    ['CTF_MIGRATION_DATABASE_URL', '/dvaia_test_ea_route_ctf'],
+    ['IDENTITY_DATABASE_URL', '/owasp_ai_goat_test_ea_route_identity'],
+    ['IDENTITY_MIGRATION_DATABASE_URL', '/owasp_ai_goat_test_ea_route_identity'],
+    ['EXCESSIVE_AGENCY_DATABASE_URL', '/owasp_ai_goat_test_ea_route_lab'],
+    ['EXCESSIVE_AGENCY_MIGRATION_DATABASE_URL', '/owasp_ai_goat_test_ea_route_lab'],
+    ['CTF_DATABASE_URL', '/owasp_ai_goat_test_ea_route_ctf'],
+    ['CTF_MIGRATION_DATABASE_URL', '/owasp_ai_goat_test_ea_route_ctf'],
   ]);
   for (const [key, pathname] of expected) {
     const url = new URL(process.env[key]);
@@ -212,7 +212,7 @@ test('rendered EA App qualifies nine mounted objectives and resets native state'
     vite = spawn(process.execPath, [path.join(workspace, 'client/node_modules/vite/bin/vite.js'), '--host', '127.0.0.1',
       '--port', String(vitePort), '--strictPort'], { cwd: path.join(workspace, 'client'),
       env: { PATH: process.env.PATH, HOME: process.env.HOME, TMPDIR: process.env.TMPDIR || os.tmpdir(),
-        NODE_ENV: 'test', BROWSER: 'none', PORT: String(backend.address().port), DVAIA_CLIENT_PORT: String(vitePort) },
+        NODE_ENV: 'test', BROWSER: 'none', PORT: String(backend.address().port), OWASP_AI_GOAT_CLIENT_PORT: String(vitePort) },
       stdio: ['ignore', 'pipe', 'pipe'] });
     for (const stream of [vite.stdout, vite.stderr]) stream.on('data', chunk => { viteOutput = (viteOutput + chunk).slice(-100000); });
     await waitForVite(`${pageBase}/workshop-login`, vite, () => viteOutput);

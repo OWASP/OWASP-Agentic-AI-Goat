@@ -99,7 +99,7 @@ function createSecureShopSearchEchoBrowserQualification({ connectBrowser, puppet
       await page.addScriptTag({ content: loaded.script });
       signal?.throwIfAborted();
       // The source is an argument, never interpolated into bootstrap script.
-      const mounted = await page.evaluate(value => globalThis.__DVAIA_SEARCH_ECHO_MOUNT__(value), { echoHtml: html, modeCapability: selectedMode,
+      const mounted = await page.evaluate(value => globalThis.__OWASP_AI_GOAT_SEARCH_ECHO_MOUNT__(value), { echoHtml: html, modeCapability: selectedMode,
         ...(captureDom === true ? { captureDom: true } : {}) });
       signal?.throwIfAborted();
       return mounted;

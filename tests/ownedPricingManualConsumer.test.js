@@ -17,13 +17,13 @@ function setup(t) {
   const directory = fs.mkdtempSync(path.join(root, 'tasks/qualification/v25-controlled-'));
   fs.chmodSync(directory, 0o700);
   const prior = Object.fromEntries(['PERSONA_PRICING_MANUAL_ONLY','PERSONA_PRICING_ACTUAL_REMAINING',
-    'PERSONA_PRICING_COHORT','DVAIA_PRICING_OWNED_OUTPUT_ROOT','DVAIA_ISOLATED_TEST_WORKSPACE'].map(k=>[k,process.env[k]]));
+    'PERSONA_PRICING_COHORT','OWASP_AI_GOAT_PRICING_OWNED_OUTPUT_ROOT','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE'].map(k=>[k,process.env[k]]));
   Object.assign(process.env,{PERSONA_PRICING_MANUAL_ONLY:'1',PERSONA_PRICING_ACTUAL_REMAINING:'0',
-    PERSONA_PRICING_COHORT:'baseline',DVAIA_PRICING_OWNED_OUTPUT_ROOT:directory,DVAIA_ISOLATED_TEST_WORKSPACE:root});
+    PERSONA_PRICING_COHORT:'baseline',OWASP_AI_GOAT_PRICING_OWNED_OUTPUT_ROOT:directory,OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE:root});
   const descriptor = {version:1,ownerId:'10000000-0000-4000-8000-000000000001',
     workspaceId:require('../scripts/application-data-root').workspaceId(root),qualificationNonce:'b'.repeat(12),
     containerId:'c'.repeat(64),imageId:'sha256:'+'d'.repeat(64),packageSha256:'e'.repeat(64),
-    profile:'dvaia-owned-pricing-http-'+'b'.repeat(12),origin:'http://127.0.0.1:18093',token:'t'.repeat(43)};
+    profile:'owasp-ai-goat-owned-pricing-http-'+'b'.repeat(12),origin:'http://127.0.0.1:18093',token:'t'.repeat(43)};
   const file=path.join(directory,'private-executor.json'),raw=JSON.stringify(descriptor);
   fs.writeFileSync(file,raw,{mode:0o600});
   const expected=Object.fromEntries(Object.entries(descriptor).filter(([k])=>!['version','token'].includes(k)));

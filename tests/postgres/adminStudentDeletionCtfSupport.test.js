@@ -159,7 +159,7 @@ function ownedEnvironment(t) {
   const updates = { PG_TEST_DISPOSABLE: 'yes', PLATFORM_DATABASE_ENGINE: 'postgres', WORKSHOP_DATABASE_ENGINE: 'postgres',
     PG_POOL_BUDGET: '78', LEGACY_PLATFORM_LIFECYCLE_ENABLED: undefined };
   for (const store of STORES) {
-    const db = 'dvaia_test_student_deletion_123456789abc_' + store.schema;
+    const db = 'owasp_ai_goat_test_student_deletion_123456789abc_' + store.schema;
     updates[store.runtimeVariable] = `postgresql://${store.runtimeRole}@127.0.0.1:54321/${db}`;
     updates[store.migrationVariable] = `postgresql://${store.migrationRole}@127.0.0.1:54321/${db}`;
   }

@@ -14,14 +14,14 @@ const exec = promisify(execFile);
 
 const ROOT = path.resolve(__dirname, '..');
 const DOCKER = '/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker';
-const DOCKER_HOST = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock';
+const DOCKER_HOST = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock';
 const NODE_DIGEST = 'sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1';
 const NODE_IMAGE = `docker.io/library/node:26.10.0-slim@${NODE_DIGEST}`;
 const suffix = crypto.randomBytes(6).toString('hex');
-const image = `dvaia-policy-render-package:${suffix}`;
-const enabled = `dvaia-policy-render-package-enabled-${suffix}`;
-const unavailable = `dvaia-policy-render-package-unavailable-${suffix}`;
-const evidence = path.join(os.homedir(), '.dvaia', 'native-verification', `dvaia-policy-render-package-${suffix}`);
+const image = `owasp-ai-goat-policy-render-package:${suffix}`;
+const enabled = `owasp-ai-goat-policy-render-package-enabled-${suffix}`;
+const unavailable = `owasp-ai-goat-policy-render-package-unavailable-${suffix}`;
+const evidence = path.join(os.homedir(), '.owasp-ai-goat', 'native-verification', `owasp-ai-goat-policy-render-package-${suffix}`);
 const resultFile = path.join(ROOT, 'tasks', `secureshop-policy-renderer-package-native-${suffix}.json`);
 const COPIED_TREES = Object.freeze(['sidecars/sandbox-runner/owned-http',
   'sidecars/sandbox-runner/protected-operations', 'sidecars/sandbox-runner/labfs',
@@ -114,7 +114,7 @@ async function main() {
   let imageAttempted = false, enabledAttempted = false, unavailableAttempted = false;
   try {
     const daemon = JSON.parse((await docker(['info','--format','{{json .}}'], { timeout: 30000 })).stdout);
-    if (daemon.Name !== 'colima-dvaia-pg-verify' || daemon.Architecture !== 'aarch64') throw new Error('Docker daemon mismatch');
+    if (daemon.Name !== 'colima-owasp-ai-goat-pg-verify' || daemon.Architecture !== 'aarch64') throw new Error('Docker daemon mismatch');
     result.daemon = { name: daemon.Name, architecture: daemon.Architecture, serverVersion: daemon.ServerVersion };
     const nodeImage = JSON.parse((await docker(['inspect',NODE_IMAGE])).stdout)[0];
     if (nodeImage.Id !== NODE_DIGEST || nodeImage.Architecture !== 'arm64' || nodeImage.Os !== 'linux'
@@ -130,8 +130,8 @@ async function main() {
     const built = JSON.parse((await docker(['inspect',image])).stdout)[0]; result.builtImage = { id: built.Id, architecture: built.Architecture, os: built.Os };
 
     enabledAttempted = true;
-    await docker(['run','--detach','--name',enabled,'--label',`dvaia.qualification=${suffix}`,'--network','none',
-      '--security-opt','seccomp=unconfined','--security-opt','apparmor=dvaia-mcp-sandbox',
+    await docker(['run','--detach','--name',enabled,'--label',`owasp-ai-goat.qualification=${suffix}`,'--network','none',
+      '--security-opt','seccomp=unconfined','--security-opt','apparmor=owasp-ai-goat-mcp-sandbox',
       '--env','SECURESHOP_POLICY_RENDER_ENABLED=true','--env','SECURESHOP_POLICY_RENDER_MAX_CONCURRENT=1',image]);
     const health = await waitHealth(enabled, true);
     const endpointProgram = `const c=require('node:crypto');const post=async(path,body)=>{const r=await fetch('http://127.0.0.1:8090'+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});return{status:r.status,body:await r.json()}};(async()=>{const req=m=>({operationId:c.randomUUID(),name:'packaged',markdown:m,targets:['admin']});const inert=await post('/secureshop/policy-render',req('Returns for {{ store_name }}.'));const exploit=await post('/secureshop/policy-render',req(\"{{ process.mainModule.require('node:child_process').execFileSync('/bin/sh',['-c','printf packaged-real-nunjucks']).toString() }}\"));const v2req=req(${JSON.stringify(effectMarkdown)});const vulnerable=await post('/secureshop/policy-render',{version:2,mode:'vuln',request:v2req});const fixed=await post('/secureshop/policy-render',{version:2,mode:'fixed',request:v2req});const sibling=await post('/exec',{sessionId:'package-proof',command:'printf sibling-route'});process.stdout.write(JSON.stringify({inert,exploit,v2:{request:v2req,vulnerable,fixed},sibling}));})().catch(e=>{console.error(e);process.exit(1)});`;
@@ -159,7 +159,7 @@ async function main() {
     let active = false;
     for (let i = 0; i < 50; i++) {
       const top = (await docker(['top',enabled], { timeout: 10000 })).stdout;
-      if (/dvaia-policy-render-supervisor|\/usr\/bin\/bwrap/.test(top)) { active = true; break; }
+      if (/owasp-ai-goat-policy-render-supervisor|\/usr\/bin\/bwrap/.test(top)) { active = true; break; }
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     if (!active) throw new Error('Packaged shutdown descendant was not observed');
@@ -171,10 +171,10 @@ async function main() {
       transportCutoffBoundMs: 1000, durationMs: stopDurationMs, exitCode: stopped.State.ExitCode, running: stopped.State.Running };
 
     unavailableAttempted = true;
-    await docker(['run','--detach','--name',unavailable,'--label',`dvaia.qualification=${suffix}`,
-      '--network','none','--security-opt','seccomp=unconfined','--security-opt','apparmor=dvaia-mcp-sandbox',
+    await docker(['run','--detach','--name',unavailable,'--label',`owasp-ai-goat.qualification=${suffix}`,
+      '--network','none','--security-opt','seccomp=unconfined','--security-opt','apparmor=owasp-ai-goat-mcp-sandbox',
       '--env','SECURESHOP_POLICY_RENDER_ENABLED=true','--entrypoint','/bin/sh',image,'-c',
-      'chmod 0777 /usr/local/libexec/dvaia-policy-render-init && exec gosu 10001:10001 /usr/local/bin/node /app/index.js']);
+      'chmod 0777 /usr/local/libexec/owasp-ai-goat-policy-render-init && exec gosu 10001:10001 /usr/local/bin/node /app/index.js']);
     const failedHealth = await waitHealth(unavailable, false);
     const unavailableStatus = Number((await docker(['exec',unavailable,'/usr/local/bin/node','-e',
       "fetch('http://127.0.0.1:8090/secureshop/policy-render',{method:'POST',headers:{'content-type':'application/json'},body:'{}'}).then(r=>process.stdout.write(String(r.status)))"])).stdout);

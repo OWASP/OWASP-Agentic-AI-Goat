@@ -19,8 +19,8 @@ function typeErrorSource(error){
 test('mounted production admin deletion retries one durable job and clears every owner store',{skip:!enabled,timeout:120000},async()=>{
  assert.equal(Object.hasOwn(process.env,'LEGACY_PLATFORM_LIFECYCLE_ENABLED'),false,'qualification must exercise the PostgreSQL default-on policy');
  assert.equal(require('../../server/services/platformDataLifecycleActivation').isPlatformDataLifecycleRequested(process.env),true);
- for(const key of Object.keys(process.env).filter(key=>key.endsWith('_DATABASE_URL')))if(key!=='DATABASE_URL')assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
- const fixtureBase=path.join(process.env.DVAIA_ISOLATED_TEST_WORKSPACE,'bound-feature-targets');
+ for(const key of Object.keys(process.env).filter(key=>key.endsWith('_DATABASE_URL')))if(key!=='DATABASE_URL')assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
+ const fixtureBase=path.join(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE,'bound-feature-targets');
  const mcpFixtureRoot=path.join(fixtureBase,'mcp'),ssrfFixtureRoot=path.join(fixtureBase,'ssrf');
  await fs.mkdir(mcpFixtureRoot,{recursive:true,mode:0o700});await fs.mkdir(ssrfFixtureRoot,{recursive:true,mode:0o700});
  await fs.chmod(fixtureBase,0o700);await fs.chmod(mcpFixtureRoot,0o700);await fs.chmod(ssrfFixtureRoot,0o700);

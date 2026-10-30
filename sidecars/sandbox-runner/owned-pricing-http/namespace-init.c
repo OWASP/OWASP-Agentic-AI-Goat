@@ -62,7 +62,7 @@ static void attest(void){
 }
 int main(int argc,char **argv){
  require(argc==2,"arguments");
- if(!strcmp(argv[1],"--attest")){attest();char *const args[]={"/usr/local/bin/node","/usr/local/libexec/dvaia-owned-pricing-http-worker.js",NULL};char *const env[]={"PATH=/usr/bin:/bin","DVAIA_OWNED_PRICING_HTTP_ATTESTED=1",NULL};execve(args[0],args,env);fail("worker-exec");}
+ if(!strcmp(argv[1],"--attest")){attest();char *const args[]={"/usr/local/bin/node","/usr/local/libexec/owasp-ai-goat-owned-pricing-http-worker.js",NULL};char *const env[]={"PATH=/usr/bin:/bin","OWASP_AI_GOAT_OWNED_PRICING_HTTP_ATTESTED=1",NULL};execve(args[0],args,env);fail("worker-exec");}
  require(!strcmp(argv[1],"--initialize"),"operation");network();
  int control=socket(AF_INET,SOCK_DGRAM|SOCK_CLOEXEC,0);require(control>=0,"control-socket");
  for(int i=0;i<4;i++){struct ifreq r={0};snprintf(r.ifr_name,IFNAMSIZ,"lo:%d",i);struct sockaddr_in *a=(void*)&r.ifr_addr;a->sin_family=AF_INET;require(inet_pton(AF_INET,addresses[i],&a->sin_addr)==1,"address");require(ioctl(control,SIOCSIFADDR,&r)==0,"address-add");a->sin_addr.s_addr=htonl(0xffffffff);require(ioctl(control,SIOCSIFNETMASK,&r)==0,"address-mask");}
@@ -71,5 +71,5 @@ int main(int argc,char **argv){
  for(int c=0;c<64;c++){int b=prctl(PR_CAPBSET_READ,c,0,0,0);if(b<0&&errno==EINVAL)break;require(b>=0&&prctl(PR_CAPBSET_DROP,c,0,0,0)==0,"cap-drop");}
  require(prctl(PR_CAP_AMBIENT,PR_CAP_AMBIENT_CLEAR_ALL,0,0,0)==0,"ambient-clear");struct __user_cap_header_struct h={_LINUX_CAPABILITY_VERSION_3,0};struct __user_cap_data_struct d[2]={{0}};require(syscall(SYS_capset,&h,d)==0,"cap-clear");require(prctl(PR_SET_NO_NEW_PRIVS,1,0,0,0)==0,"no-new-privs-set");
  require(syscall(SYS_close_range,7u,~0u,0)==0,"descriptor-close");
- char *const args[]={"/usr/local/libexec/dvaia-owned-pricing-http-init","--attest",NULL};char *const env[]={"PATH=/usr/bin:/bin",NULL};execve(args[0],args,env);fail("attest-exec");
+ char *const args[]={"/usr/local/libexec/owasp-ai-goat-owned-pricing-http-init","--attest",NULL};char *const env[]={"PATH=/usr/bin:/bin",NULL};execve(args[0],args,env);fail("attest-exec");
 }

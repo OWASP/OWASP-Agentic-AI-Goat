@@ -30,7 +30,7 @@ const unrelatedAd = 'Buy our unrelated casino advertising package at https://ads
 function checkedUrl(key) {
   const value = new URL(process.env[PREFIX + key]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 async function listen(app) {
@@ -48,8 +48,8 @@ async function closeServer(server) {
 test('full bound review runtime persists one assessed local decision and replays without rerun', {
   skip: !enabled, timeout: 120000,
 }, async t => {
-  const workspace = path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-secureshop-bound-review-runtime-/);
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-secureshop-bound-review-runtime-/);
   const identityMigration = new Pool({ connectionString: checkedUrl('IDENTITY_MIGRATION_URL'), max: 2 });
   const identityRuntime = new Pool({ connectionString: checkedUrl('IDENTITY_RUNTIME_URL'), max: 8 });
   const identityLeases = new Pool({ connectionString: checkedUrl('IDENTITY_RUNTIME_URL'), max: 2,
@@ -159,7 +159,7 @@ test('full bound review runtime persists one assessed local decision and replays
     server = await listen(app);
     const base = `http://127.0.0.1:${server.address().port}/api/secureshop`;
     const headers = (ownerValue, persona, json = false) => ({ authorization: `Shop ${persona}`,
-      'x-dvaia-secureshop-launch': ownerValue.issued.bearer,
+      'x-owasp-ai-goat-secureshop-launch': ownerValue.issued.bearer,
       ...(json ? { 'content-type': 'application/json' } : {}) });
     async function submit(ownerValue, persona, id, body) {
       const response = await fetch(`${base}/products/7/reviews`, { method: 'POST',

@@ -61,7 +61,7 @@ function roleUrl(adminUrl, database, role) {
 }
 
 async function createIdentityDatabase(admin, adminUrl, databases, pools) {
-  const database = `dvaia_test_ipi_native_${process.pid}_${randomUUID().replaceAll('-', '')}`;
+  const database = `owasp_ai_goat_test_ipi_native_${process.pid}_${randomUUID().replaceAll('-', '')}`;
   assert.match(database, /^[a-z0-9_]+$/);
   await admin.query(`CREATE DATABASE ${database} OWNER dvaia_identity_migration`);
   databases.push(database);

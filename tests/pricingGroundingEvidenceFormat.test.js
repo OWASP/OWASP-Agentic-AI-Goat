@@ -17,7 +17,7 @@ test('effect and support blocks preserve every canonical byte through UTF-8 tran
     const raw=user(stage), encoded=F.encode(raw,stage);
     assert.equal(F.decode(Buffer.from(encoded).toString('utf8'),stage),raw);
     assert.notEqual(encoded,raw);
-    assert.match(encoded,/<<<DVAIA_PRICING_EVIDENCE_V1:BEGIN>>>/);
+    assert.match(encoded,/<<<OWASP_AI_GOAT_PRICING_EVIDENCE_V1:BEGIN>>>/);
     assert.equal(encoded.includes('expectedVerdict'),false);
   }
 });

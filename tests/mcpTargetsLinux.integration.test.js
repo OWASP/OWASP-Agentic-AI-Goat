@@ -49,7 +49,7 @@ if (process.env.MCP_TARGET_LINUX_NATIVE !== 'yes' || process.platform !== 'linux
     const curlRuntime = await store.executeTarget(pa.capability, allow,
       'command -v curl >/dev/null && curl --version | grep -F "curl "');
     assert.equal(curlRuntime.code, 0, curlRuntime.stderr); assert.match(curlRuntime.stdout, /curl \d/);
-    const seccompProbe = await store.executeTarget(pa.capability, allow, '/usr/local/libexec/dvaia-mcp-seccomp-probe');
+    const seccompProbe = await store.executeTarget(pa.capability, allow, '/usr/local/libexec/owasp-ai-goat-mcp-seccomp-probe');
     assert.equal(seccompProbe.code, 0, seccompProbe.stderr);
     assert.deepEqual(JSON.parse(seccompProbe.stdout), { clone3Enosys: true, cloneNewuserEperm: true,
       fsopenEnosys: true, mountEperm: true, setnsEperm: true, unshareEperm: true });

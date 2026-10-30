@@ -98,7 +98,7 @@ test('current assembled IPI email qualification is closed over the five canonica
   await assert.rejects(shutdownFixture({ fixture: fakeFixture, server: { close: callback => { closed.push('server'); callback(); } }, identityRuntime: { end: async () => { closed.push('runtime'); throw new Error('runtime close'); } }, identityMigration: { end: async () => closed.push('migration') }, readiness: path.join(os.tmpdir(), `ipi-final-${process.pid}`), modelDigestBefore: 'same', modelDigestFn: async () => 'changed' }), /shutdown failed/);
   assert.deepEqual(closed, ['restore', 'server', 'runtime', 'migration']);
   assert.throws(() => assertOwnedMailpit('https://mailpit.example.invalid/'));
-  const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-ipi-email-rendered-contract-'));
+  const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-ipi-email-rendered-contract-'));
   const source = path.join(parent, 'source'); fs.mkdirSync(source);
   assert.equal(assertOwnedWorkspace(source), fs.realpathSync(source));
   fs.rmSync(parent, { recursive: true, force: true });
@@ -117,7 +117,7 @@ test('current assembled IPI email qualification is closed over the five canonica
   assert.match(harness, /Mailpit must be loopback-only/);
   assert.doesNotMatch(harness, /guerrillamail\.com\/ajax\.php|smtp\.gmail\.com/);
   assert.doesNotMatch(harness, /--no-sandbox/);
-  assert.match(harness, /DVAIA_ISOLATED_TEST_WORKSPACE/);
+  assert.match(harness, /OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE/);
   assert.match(harness, /authorization: `Bearer/);
   assert.match(harness, /siblingBeforeReset/);
   assert.match(harness, /summaryBody\.safeSummary/);
@@ -147,8 +147,8 @@ test('owned Mailpit adapter is the production fetch graph provider', async () =>
     const fetcher = async input => {
       const url = new URL(input);
       if (url.pathname === '/api/v1/info') return new Response(JSON.stringify({version:'test'}), {headers:{'content-type':'application/json'}});
-      if (url.pathname === '/api/v1/search') return new Response(JSON.stringify({ messages: [{ ID: 'mailpit-1', MessageID:'<smtp-1@example.invalid>', From: { Address: 'indirectpromptinjection@dvaia.invalid' }, To: [{ Address: providerAddress }], Subject: 'Owned subject', Created:'2026-09-18T00:00:00Z' }] }), {headers:{'content-type':'application/json'}});
-      if (url.pathname === '/api/v1/message/mailpit-1') return new Response(JSON.stringify({ ID: 'mailpit-1', MessageID:'<smtp-1@example.invalid>', From: { Address: 'indirectpromptinjection@dvaia.invalid' }, To: [{ Address: providerAddress }], Subject: 'Owned subject', Text: body, HTML: `<p>${body}</p>`, Created: '2026-09-18T00:00:00Z' }), {headers:{'content-type':'application/json'}});
+      if (url.pathname === '/api/v1/search') return new Response(JSON.stringify({ messages: [{ ID: 'mailpit-1', MessageID:'<smtp-1@example.invalid>', From: { Address: 'indirectpromptinjection@owasp-ai-goat.invalid' }, To: [{ Address: providerAddress }], Subject: 'Owned subject', Created:'2026-09-18T00:00:00Z' }] }), {headers:{'content-type':'application/json'}});
+      if (url.pathname === '/api/v1/message/mailpit-1') return new Response(JSON.stringify({ ID: 'mailpit-1', MessageID:'<smtp-1@example.invalid>', From: { Address: 'indirectpromptinjection@owasp-ai-goat.invalid' }, To: [{ Address: providerAddress }], Subject: 'Owned subject', Text: body, HTML: `<p>${body}</p>`, Created: '2026-09-18T00:00:00Z' }), {headers:{'content-type':'application/json'}});
       throw new Error(`Unexpected provider URL: ${url.pathname}`);
     };
     provider = createIpiMailpitProvider({apiUrl:'http://127.0.0.1:8025/', smtpHost:'127.0.0.1', smtpPort:1025, hmacSecret:'d'.repeat(48), fetcher, mailer:{createTransport(){return {verify:async()=>{},sendMail:async()=>({}),close:async()=>{}};}}});
@@ -189,7 +189,7 @@ test('main content DOM oracle scopes canonical completed cards and foreground so
   try{assert(f.contentCard({label:'Instructor label'}));assert(!f.contentCard({label:'stale default'}));document.querySelector('.status-badge').textContent='DONE';assert(!f.contentCard({label:'Instructor label'}));const v={title:'Canonical',difficulty:'Easy',approach:'Required approach',examples:[{prompt:'payload',explanation:'reason'}],tips:['tip']};assert(!f.contentSolution(v));document.querySelector('#modal').append(Object.assign(document.createElement('p'),{textContent:v.approach}));assert(f.contentSolution(v));document.querySelector('.obj-content').append(Object.assign(document.createElement('button'),{textContent:'Hint'}));assert(!f.contentCard({label:'Instructor label'}));}finally{global.document=prior;dom.window.close();}
 });
 test('main content admission requires identity-only owned URLs without supply-chain fallback',()=>{
-  const {validateAuthority}=require('./postgres/codeBotRenderedParityMainV1');const evidence=path.join(root,'backups/private-recovery/codebot-parity/run-contract'),nonce='0123456789ab',owner={owner:'contract',sourceRoot:root,evidenceRoot:evidence,scenario:'codebot-rendered-parity',profile:'ipi-email-five-content',nativePid:process.pid,nativeStarted:true,nonce,containerId:'a'.repeat(64),databasePort:54321};const env={CODEBOT_PARITY_NATIVE:'1',PG_TEST_DISPOSABLE:'yes',CODEBOT_PARITY_SOURCE_ROOT:root,CODEBOT_PARITY_OWNER:'contract',CODEBOT_PARITY_PROFILE:'ipi-email-five-content',IDENTITY_DATABASE_URL:'postgresql://dvaia_identity_runtime@127.0.0.1:54321/dvaia_test_codebot_parity_'+nonce+'_identity',IDENTITY_MIGRATION_DATABASE_URL:'postgresql://dvaia_identity_migration@127.0.0.1:54321/dvaia_test_codebot_parity_'+nonce+'_identity'};assert.equal(validateAuthority({env,owner,evidence}),54321);assert.throws(()=>validateAuthority({env:{...env,IDENTITY_DATABASE_URL:env.IDENTITY_DATABASE_URL.replace('_identity','_foreign')},owner,evidence}));
+  const {validateAuthority}=require('./postgres/codeBotRenderedParityMainV1');const evidence=path.join(root,'backups/private-recovery/codebot-parity/run-contract'),nonce='0123456789ab',owner={owner:'contract',sourceRoot:root,evidenceRoot:evidence,scenario:'codebot-rendered-parity',profile:'ipi-email-five-content',nativePid:process.pid,nativeStarted:true,nonce,containerId:'a'.repeat(64),databasePort:54321};const env={CODEBOT_PARITY_NATIVE:'1',PG_TEST_DISPOSABLE:'yes',CODEBOT_PARITY_SOURCE_ROOT:root,CODEBOT_PARITY_OWNER:'contract',CODEBOT_PARITY_PROFILE:'ipi-email-five-content',IDENTITY_DATABASE_URL:'postgresql://dvaia_identity_runtime@127.0.0.1:54321/owasp_ai_goat_test_codebot_parity_'+nonce+'_identity',IDENTITY_MIGRATION_DATABASE_URL:'postgresql://dvaia_identity_migration@127.0.0.1:54321/owasp_ai_goat_test_codebot_parity_'+nonce+'_identity'};assert.equal(validateAuthority({env,owner,evidence}),54321);assert.throws(()=>validateAuthority({env:{...env,IDENTITY_DATABASE_URL:env.IDENTITY_DATABASE_URL.replace('_identity','_foreign')},owner,evidence}));
 });
 
 test('controlled session verdict satisfies actual canonical repository shape without credit',()=>{

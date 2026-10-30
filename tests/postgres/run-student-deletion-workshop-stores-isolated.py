@@ -4,9 +4,9 @@ import argparse, os, shutil, signal, subprocess, tempfile, time, uuid
 from pathlib import Path
 
 parser=argparse.ArgumentParser();parser.add_argument('--docker-host',required=True);args=parser.parse_args()
-source=Path(__file__).resolve().parents[2];root=Path(tempfile.mkdtemp(prefix='dvaia-student-deletion-stores-'));os.chmod(root,0o700)
+source=Path(__file__).resolve().parents[2];root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-student-deletion-stores-'));os.chmod(root,0o700)
 workspace=root/'source';workspace.mkdir();base={k:os.environ[k] for k in ['PATH','HOME','TMPDIR'] if k in os.environ}
-docker=['docker','--host',args.docker_host];tag=uuid.uuid4().hex[:12];container=f'dvaia-student-deletion-stores-{tag}';child=None;started=False
+docker=['docker','--host',args.docker_host];tag=uuid.uuid4().hex[:12];container=f'owasp-ai-goat-student-deletion-stores-{tag}';child=None;started=False
 def run(cmd,**kwargs):kwargs.setdefault('timeout',60);return subprocess.run(cmd,check=True,env=base,**kwargs)
 def stop_child():
  global child
@@ -29,9 +29,9 @@ try:
   time.sleep(.25)
  else:raise RuntimeError('Owned PostgreSQL container did not become ready')
  port=int(run(docker+['port',container,'5432'],capture_output=True,text=True).stdout.strip().rsplit(':',1)[1]);psql=['psql','-h','127.0.0.1','-p',str(port),'-U','deletion_stores_admin','-d','postgres','-v','ON_ERROR_STOP=1']
- env=dict(base,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',AWS_EC2_METADATA_DISABLED='true',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace))
+ env=dict(base,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',AWS_EC2_METADATA_DISABLED='true',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace))
  for key,schema in [('ARIA','aria'),('NOVA','nova'),('MCP','mcp'),('CSRF','csrf'),('SUPPLY','supply_chain'),('CTF','ctf')]:
-  migration=f'dvaia_{schema}_migration';runtime=f'dvaia_{schema}_runtime';database=f'dvaia_test_deletion_{schema}_{tag}'
+  migration=f'dvaia_{schema}_migration';runtime=f'dvaia_{schema}_runtime';database=f'owasp_ai_goat_test_deletion_{schema}_{tag}'
   for role in [migration,runtime]:run(psql+['-c',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
   run(psql+['-c',f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL)
   run(psql+['-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}'],stdout=subprocess.DEVNULL)

@@ -1,5 +1,5 @@
-export const REGISTERED_PASSWORD_RESET_KEY = 'dvaia.secureshop.admin-password-reset.v1';
-export const REGISTERED_PASSWORD_RESET_RESOLVED_EVENT = 'dvaia-secureshop-registered-password-reset-resolved-v1';
+export const REGISTERED_PASSWORD_RESET_KEY = 'owasp-ai-goat.secureshop.admin-password-reset.v1';
+export const REGISTERED_PASSWORD_RESET_RESOLVED_EVENT = 'owasp-ai-goat-secureshop-registered-password-reset-resolved-v1';
 
 // This deliberately reads only the opaque owner marker. The saved operation
 // reference contains no temporary password or reset receipt content.

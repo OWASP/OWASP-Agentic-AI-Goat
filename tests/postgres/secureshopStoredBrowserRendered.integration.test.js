@@ -32,7 +32,7 @@ const PAYLOAD = '<img src="invalid://owned-parent-frame" onerror="alert(\'owned-
 function checkedUrl(key) {
   const value = new URL(process.env[`${PREFIX}${key}_URL`]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 
@@ -50,8 +50,8 @@ async function closeServer(server) {
 test('built parent and opaque frame earn canonical stored-browser credit and reset fences a late effect', {
   skip: !enabled, timeout: 240000,
 }, async t => {
-  const workspace = path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-secureshop-stored-browser-/);
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-secureshop-stored-browser-/);
   const pools = Object.fromEntries(STORES.flatMap(store => ['MIGRATION', 'RUNTIME'].map(role => {
     const key = `${store}_${role}`;
     return [key, new Pool({ connectionString: checkedUrl(key), max: role === 'RUNTIME' ? 10 : 3 })];
@@ -250,7 +250,7 @@ test('built parent and opaque frame earn canonical stored-browser credit and res
     });
     assert.equal(launchProbe.status, 200);
     assert.deepEqual(await launchProbe.json(), { preparationOnly: false, launch: null });
-    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-stored-browser-parent-'));
+    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-stored-browser-parent-'));
     uiBrowser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
       ...(process.env.PUPPETEER_EXECUTABLE_PATH
         ? { executablePath: process.env.PUPPETEER_EXECUTABLE_PATH } : {}) });
@@ -297,7 +297,7 @@ test('built parent and opaque frame earn canonical stored-browser credit and res
     await page.evaluateOnNewDocument(() => {
       const originalAbort = AbortController.prototype.abort;
       const events = [];
-      Object.defineProperty(globalThis, '__dvaiaAbortEvents', { value: events });
+      Object.defineProperty(globalThis, '__owasp-ai-goatAbortEvents', { value: events });
       AbortController.prototype.abort = function observedAbort(reason) {
         events.push({ elapsedMs: Math.round(performance.now()),
           reasonName: typeof reason?.name === 'string' ? reason.name : null,
@@ -402,7 +402,7 @@ test('built parent and opaque frame earn canonical stored-browser credit and res
         expected: 2, timeoutMs: 105000 });
     } catch (error) {
       const abortEvents = await Promise.all(page.frames().map(async current => ({ url: current.url(),
-        events: await current.evaluate(() => globalThis.__dvaiaAbortEvents || []).catch(() => []) })));
+        events: await current.evaluate(() => globalThis.__owasp-ai-goatAbortEvents || []).catch(() => []) })));
       const databaseActivity = {};
       for (const store of ['IDENTITY', 'REVIEW', 'AGENTS']) {
         databaseActivity[store.toLowerCase()] = (await pools[`${store}_MIGRATION`].query(`SELECT

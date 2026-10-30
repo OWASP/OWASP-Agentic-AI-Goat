@@ -121,8 +121,8 @@ function inspected(result,intent,capturedId=null){
 function ownerFor(owner,config,commands,publish,postWorkAssert,bound=bounded){
  const binding=owner.binding(),wrapper=owner.wrapperWindow();
  const intent=Object.freeze({version:1,target:'original-v03-parent-postgres-v1',runId:binding.runId,planSha256:binding.planSha256,
-  name:'dvaia-merchant-listing-image-optimize-v03-browser-'+sha(binding.runId+':v03-postgres').slice(0,12),
-  labels:Object.freeze({'dvaia.owner':binding.runId,'dvaia.cohort':COHORT}),image:config.image,daemonId:config.daemonId});
+  name:'owasp-ai-goat-merchant-listing-image-optimize-v03-browser-'+sha(binding.runId+':v03-postgres').slice(0,12),
+  labels:Object.freeze({'owasp-ai-goat.owner':binding.runId,'owasp-ai-goat.cohort':COHORT}),image:config.image,daemonId:config.daemonId});
  let state='new',captured=null,attempted=false,retirement=null,primary=null,finalization=null;
  const writes=new Set();let publicationDebt=false;
  const save=async(name,value,end)=>{

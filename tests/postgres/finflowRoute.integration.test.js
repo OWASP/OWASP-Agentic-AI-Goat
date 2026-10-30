@@ -117,7 +117,7 @@ async function assertFinflowLogCopyDraftSemantics(migration){
  return {stage:'finflow_log_default_content_guarded',rolledBack};
 }
 test('mounted FinFlow matrix uses actual model decisions, effects, Judge, owner isolation and reset',{skip:!enabled,timeout:900000},async t=>{
- assertOwnedUrl('IDENTITY_DATABASE_URL','dvaia_test_finflow_route_identity');assertOwnedUrl('FINFLOW_WORKSHOP_DATABASE_URL','dvaia_test_finflow_route_store');assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
+ assertOwnedUrl('IDENTITY_DATABASE_URL','owasp_ai_goat_test_finflow_route_identity');assertOwnedUrl('FINFLOW_WORKSHOP_DATABASE_URL','owasp_ai_goat_test_finflow_route_store');assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
  const oob=await listenOwned({callback:'owned-finflow-oob'}),internal=await listenOwned({status:'owned-finflow-internal-health'});process.env.FINFLOW_QUALIFICATION_OOB_URL=`${oob.url}/callback`;process.env.FINFLOW_INTERNAL_HEALTH_URL=`${internal.url}/api/monitoring/health`;
  const {createPool,closePostgresPools}=require('../../server/database/postgres');const identityRuntime=createPool(process.env,'IDENTITY_DATABASE_URL'),identityMigration=createPool(process.env,'IDENTITY_MIGRATION_DATABASE_URL'),finflowRuntime=createPool(process.env,'FINFLOW_WORKSHOP_DATABASE_URL'),finflowMigration=createPool(process.env,'FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL');let server;
  try{

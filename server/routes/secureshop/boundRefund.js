@@ -9,7 +9,7 @@ function exactBody(body, keys, required = keys) {
     && Object.keys(body).every(key => keys.includes(key)) && required.every(key => Object.hasOwn(body, key));
 }
 function header(req) { return (req.rawHeaders || []).filter((_, index) => index % 2 === 0)
-  .filter(name => String(name).toLowerCase() === 'x-dvaia-secureshop-launch').length === 1; }
+  .filter(name => String(name).toLowerCase() === 'x-owasp-ai-goat-secureshop-launch').length === 1; }
 function publicError(error) {
   if (['STALE_LAUNCH', 'LAUNCH_UNAVAILABLE', 'SESSION_UNAVAILABLE', 'CONVERSATION_UNAVAILABLE', 'SHOP_AUTH_INVALID'].includes(error?.code)) return [401, true, 'SecureShop launch unavailable'];
   if (error?.code === 'INVALID_ARGUMENT') return [400, false, 'Invalid refund request'];

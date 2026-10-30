@@ -4,11 +4,11 @@ parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--docker-host',required=True)
 parser.add_argument('--http',action='store_true',help='Actual private loopback HTTP composition inside network-none container')
 args=parser.parse_args()
-EXPECTED='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+EXPECTED='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 if args.docker_host!=EXPECTED:parser.error('Reviewed owned Docker host required')
 ROOT=pathlib.Path(__file__).resolve().parents[1]
-OUT=pathlib.Path(tempfile.mkdtemp(prefix='dvaia-system-diagnostic-native-'));os.chmod(OUT,0o700)
-OWNER=uuid.uuid4().hex;NAME='dvaia-system-diagnostic-'+OWNER[:12];TAG=NAME+':owned'
+OUT=pathlib.Path(tempfile.mkdtemp(prefix='owasp-ai-goat-system-diagnostic-native-'));os.chmod(OUT,0o700)
+OWNER=uuid.uuid4().hex;NAME='owasp-ai-goat-system-diagnostic-'+OWNER[:12];TAG=NAME+':owned'
 BASE='sha256:3a771f83944bb763050c23c0225c260638c4b7899e7a72485ef75e5e570499e5'
 DOCKER=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host',args.docker_host]
 ENV={k:v for k,v in os.environ.items() if k in ['PATH','HOME','TMPDIR']}
@@ -32,7 +32,7 @@ def members():
    found.append(int(parts[0]))
  return found
 try:
- assert run(['info','--format','{{.Name}}']).stdout.strip()=='colima-dvaia-pg-verify'
+ assert run(['info','--format','{{.Name}}']).stdout.strip()=='colima-owasp-ai-goat-pg-verify'
  base=inspect('image',BASE);assert base['Id']==BASE and base['Architecture']=='arm64'
  assert run(['container','inspect',NAME],check=False).returncode!=0
  assert run(['image','inspect',TAG],check=False).returncode!=0
@@ -47,19 +47,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev b
 COPY owned-system /qualification/owned-system
 COPY secureshopSystemDiagnosticClient.js /server/services/secureshopSystemDiagnosticClient.js
 RUN mkdir -p /sidecars/sandbox-runner && ln -s /qualification/owned-system /sidecars/sandbox-runner/owned-system
-RUN mkdir -p /usr/local/libexec && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-init.c -o /usr/local/libexec/dvaia-system-diagnostic-init && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-supervisor.c -o /usr/local/libexec/dvaia-system-diagnostic-supervisor && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-native-attack.c -o /usr/bin/diagnostic-native-attack && chmod 0555 /usr/bin/diagnostic-native-attack /usr/local/libexec/dvaia-system-diagnostic-* /usr/bin/bwrap && for f in /usr/local/libexec/dvaia-system-diagnostic-init /usr/local/libexec/dvaia-system-diagnostic-supervisor; do sha256sum "$f" | cut -d' ' -f1 > "$f.sha256"; chmod 0444 "$f.sha256"; done && printf synthetic-private-sentinel > /private-qualification-sentinel && dpkg-query -W > /qualification/packages.txt
+RUN mkdir -p /usr/local/libexec && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-init.c -o /usr/local/libexec/owasp-ai-goat-system-diagnostic-init && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-supervisor.c -o /usr/local/libexec/owasp-ai-goat-system-diagnostic-supervisor && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-native-attack.c -o /usr/bin/diagnostic-native-attack && chmod 0555 /usr/bin/diagnostic-native-attack /usr/local/libexec/owasp-ai-goat-system-diagnostic-* /usr/bin/bwrap && for f in /usr/local/libexec/owasp-ai-goat-system-diagnostic-init /usr/local/libexec/owasp-ai-goat-system-diagnostic-supervisor; do sha256sum "$f" | cut -d' ' -f1 > "$f.sha256"; chmod 0444 "$f.sha256"; done && printf synthetic-private-sentinel > /private-qualification-sentinel && dpkg-query -W > /qualification/packages.txt
 USER 10001:10001
 ENTRYPOINT ["/usr/local/bin/node","/qualification/owned-system/diagnostic-native-qualification.js"]
 '''
  if args.http:dockerfile=dockerfile.replace('/qualification/owned-system/diagnostic-native-qualification.js','/qualification/owned-system/diagnostic-http-native-qualification.js')
  (context/'Dockerfile').write_text(dockerfile);state['dockerfileSha256']=hashlib.sha256(dockerfile.encode()).hexdigest();persist()
  with (OUT/'build.log').open('w') as log:
-  build=subprocess.Popen(DOCKER+['build','--pull=false','--network=default','--label','dvaia.diagnostic.owner='+OWNER,'-t',TAG,str(context)],env=ENV,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+  build=subprocess.Popen(DOCKER+['build','--pull=false','--network=default','--label','owasp-ai-goat.diagnostic.owner='+OWNER,'-t',TAG,str(context)],env=ENV,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
   state['buildPgid']=build.pid;persist();assert build.wait(timeout=300)==0
- image=inspect('image',TAG);assert image['Config']['Labels']['dvaia.diagnostic.owner']==OWNER;image=image['Id'];state['imageId']=image
- create=['create','--name',NAME,'--label','dvaia.diagnostic.owner='+OWNER,'--network','none','--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--security-opt','seccomp=unconfined','--security-opt','apparmor=dvaia-mcp-sandbox',image]
+ image=inspect('image',TAG);assert image['Config']['Labels']['owasp-ai-goat.diagnostic.owner']==OWNER;image=image['Id'];state['imageId']=image
+ create=['create','--name',NAME,'--label','owasp-ai-goat.diagnostic.owner='+OWNER,'--network','none','--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--security-opt','seccomp=unconfined','--security-opt','apparmor=owasp-ai-goat-mcp-sandbox',image]
  created=True;run(create);actual=inspect('container',NAME);host=actual['HostConfig']
- assert actual['Config']['Labels']['dvaia.diagnostic.owner']==OWNER and not actual['Mounts'] and not host.get('PortBindings') and host['NetworkMode']=='none'
+ assert actual['Config']['Labels']['owasp-ai-goat.diagnostic.owner']==OWNER and not actual['Mounts'] and not host.get('PortBindings') and host['NetworkMode']=='none'
  assert host['Memory']==536870912 and host['NanoCpus']==1000000000 and host['PidsLimit']==128 and host['ReadonlyRootfs'] and actual['Config']['User']=='10001:10001'
  state['runtime']={'hostConfig':host,'mounts':actual['Mounts'],'user':actual['Config']['User']};state['status']='running';persist()
  run(['start',NAME]);wait=run(['wait',NAME],timeout=120);state['exitCode']=int(wait.stdout.strip());logs=run(['logs',NAME],check=False);(OUT/'run.log').write_text(logs.stdout+logs.stderr)
@@ -76,13 +76,13 @@ finally:
  except BaseException as e:errors.append('build:'+type(e).__name__)
  try:
   if created and run(['container','inspect',NAME],check=False).returncode==0:
-   assert inspect('container',NAME)['Config']['Labels']['dvaia.diagnostic.owner']==OWNER
+   assert inspect('container',NAME)['Config']['Labels']['owasp-ai-goat.diagnostic.owner']==OWNER
    logs=run(['logs',NAME],check=False);(OUT/'run.log').write_text(logs.stdout+logs.stderr);run(['rm','-f',NAME])
   state['cleanup']['containerAbsent']=run(['container','inspect',NAME],check=False).returncode!=0
  except BaseException as e:errors.append('container:'+type(e).__name__)
  try:
   if run(['image','inspect',TAG],check=False).returncode==0:
-   obj=inspect('image',TAG);assert obj['Config']['Labels']['dvaia.diagnostic.owner']==OWNER;image=obj['Id'];run(['image','rm',TAG])
+   obj=inspect('image',TAG);assert obj['Config']['Labels']['owasp-ai-goat.diagnostic.owner']==OWNER;image=obj['Id'];run(['image','rm',TAG])
   state['cleanup']['imageTagAbsent']=run(['image','inspect',TAG],check=False).returncode!=0
   state['cleanup']['imageIdAbsent']=not image or run(['image','inspect',image],check=False).returncode!=0
  except BaseException as e:errors.append('image:'+type(e).__name__)

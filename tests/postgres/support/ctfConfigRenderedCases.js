@@ -27,7 +27,7 @@ function assertConfigDatabaseName(pathname, state, kind, cohortNonce = null) {
   assert(['FRESH', 'POPULATED'].includes(state));
   assert(['IDENTITY', 'CTF'].includes(kind));
   const match = pathname.match(new RegExp(
-    `^/dvaia_test_ctf_config_${state[0].toLowerCase()}_${kind[0].toLowerCase()}_([a-f0-9]{12})$`));
+    `^/owasp_ai_goat_test_ctf_config_${state[0].toLowerCase()}_${kind[0].toLowerCase()}_([a-f0-9]{12})$`));
   assert(match, 'Exact disposable Config database name required');
   if (cohortNonce !== null) assert.equal(match[1], cohortNonce);
   return match[1];

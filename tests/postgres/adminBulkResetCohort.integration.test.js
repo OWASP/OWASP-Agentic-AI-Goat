@@ -2,8 +2,8 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const {randomUUID}=require('node:crypto');const {Pool}=require('pg');const {migrate}=require('../../db/postgres/migrate');
 test('durable bulk reset cohort survives enrollment, retry, authority change and uncertain effects',{skip:process.env.BULK_RESET_NATIVE!=='1',timeout:120000},async()=>{
- assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
- const url=role=>{const u=new URL(process.env['WORKSHOP_RAG_'+role.toUpperCase()+'_URL']);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_workshop_rag_[a-f0-9]+$/);assert.equal(u.username,'dvaia_identity_'+role);return u.href;};
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
+ const url=role=>{const u=new URL(process.env['WORKSHOP_RAG_'+role.toUpperCase()+'_URL']);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/);assert.equal(u.username,'dvaia_identity_'+role);return u.href;};
  const migration=new Pool({connectionString:url('migration')}),runtime=new Pool({connectionString:url('runtime'),max:1}),leasePool=new Pool({connectionString:url('runtime'),max:2});let dir;
  try{
  dir=fs.mkdtempSync(path.join(os.tmpdir(),'bulk-cohort-'));for(const name of fs.readdirSync('db/postgres/identity-migrations'))if(name.endsWith('.sql'))fs.copyFileSync('db/postgres/identity-migrations/'+name,path.join(dir,name));

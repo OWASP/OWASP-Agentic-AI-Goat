@@ -63,7 +63,7 @@ test('verified XSS archive preserves tagged rows and rejects altered exporter by
    tables.push({name:table,columns,rows:rows.length,file,...await write(file,content)});
   }
   const schemaFile='schema.json',schema=await write(schemaFile,JSON.stringify(tables.map(table=>({type:'table',name:table.name}))));
-  await write('manifest.json',JSON.stringify({version:1,format:'dvaia-sqlite-archive-v1',complete:true,files:[{name:'xss_email_challenge.db',sourceSha256:'b'.repeat(64),schemaFile,schema,tables}]}));
+  await write('manifest.json',JSON.stringify({version:1,format:'owasp-ai-goat-sqlite-archive-v1',complete:true,files:[{name:'xss_email_challenge.db',sourceSha256:'b'.repeat(64),schemaFile,schema,tables}]}));
   const read=await readXssArchive({archive:directory,naiveTimestamps:'UTC'});read.review={...raw.review,archiveDigest:read.archiveDigest};assert.equal(mapXssArchive(read).snapshot.email_templates[0].id,80);
   await fs.appendFile(path.join(directory,'email_templates.jsonl'),'tamper');await assert.rejects(readXssArchive({archive:directory}),{code:'ARCHIVE_HASH_MISMATCH'});
  }finally{await fs.rm(directory,{recursive:true,force:true});}

@@ -206,8 +206,8 @@ def main(argv=None):
     run.chmod(0o700)
     env = clean_environment(run)
     nonce = uuid.uuid4().hex[:12]
-    name = 'dvaia-external-mail-' + nonce
-    labels = {'dvaia.qualification': SCOPE, 'dvaia.owner-uid': str(os.getuid()), 'dvaia.run-nonce': nonce}
+    name = 'owasp-ai-goat-external-mail-' + nonce
+    labels = {'owasp-ai-goat.qualification': SCOPE, 'owasp-ai-goat.owner-uid': str(os.getuid()), 'owasp-ai-goat.run-nonce': nonce}
     docker = [str(DOCKER), '--host', 'unix://' + str(SOCKET)]
     result = {'scope': SCOPE, 'passed': False, 'nativeStarted': False, 'sourceCopies': False,
         'actualSmtp': False, 'model': False, 'browser': False, 'containerName': name,
@@ -311,7 +311,7 @@ def main(argv=None):
         for role in ('migration', 'runtime'):
             sql(f'CREATE ROLE dvaia_identity_{role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS')
         for store in ('fresh', 'populated'):
-            database = f'dvaia_test_external_mail_{store}_{nonce}'
+            database = f'owasp_ai_goat_test_external_mail_{store}_{nonce}'
             sql(f'CREATE DATABASE {database} OWNER dvaia_identity_migration')
             sql(f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO dvaia_identity_migration,dvaia_identity_runtime')
             for role in ('migration', 'runtime'):

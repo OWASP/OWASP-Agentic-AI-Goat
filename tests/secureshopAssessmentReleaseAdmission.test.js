@@ -17,7 +17,7 @@ function fixture() {
     review: 'secureshop_review', commerce: 'secureshop' })) {
     const entry = stores[name] = {};
     for (const role of ['runtime', 'migration']) {
-      const database = `dvaia_test_agent_host_012345abcdef_${store}`;
+      const database = `owasp_ai_goat_test_agent_host_012345abcdef_${store}`;
       const username = `dvaia_${store}_${role}`;
       const url = `postgresql://${username}@127.0.0.1:54321/${database}`;
       const row = { database, role: username, session_role: username,

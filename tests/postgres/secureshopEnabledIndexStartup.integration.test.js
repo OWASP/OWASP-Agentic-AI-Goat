@@ -13,12 +13,12 @@ const { networkGuardSource, waitForChild, createOwnedChildren } = require('../fi
 test('enabled actual index installs prepared SecureShop grading', {skip:process.env.PG_SECURESHOP_ENABLED_STARTUP!=='1',timeout:180000},async t=>{
   const ownerDeadline = Date.now() + 180000;
   const source = path.resolve(__dirname, '../..');
-  assert.equal(fs.realpathSync(source), process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  assert.equal(fs.realpathSync(source), process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   const currentHost = process.env.ADMIN_ACL_PERMISSION_CURRENT_HOST === '1'
     ? await require('./aclPermissionCurrentHostAdmission').admitAclCurrentHost() : null;
   if (!currentHost) assert.equal(fs.statSync(source).mode & 0o222, 0, 'source must be frozen');
-  if (currentHost) assert.equal(process.env.DVAIA_ACL_PERMISSION_RECOVERY, '1');
-  const root = process.env.DVAIA_FULL_BACKEND_RUNTIME_ROOT;
+  if (currentHost) assert.equal(process.env.OWASP_AI_GOAT_ACL_PERMISSION_RECOVERY, '1');
+  const root = process.env.OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT;
   assert.ok(root && path.isAbsolute(root));
   assert.equal(fs.realpathSync(root), root);
   assert.equal(fs.statSync(root).uid, process.getuid());
@@ -30,7 +30,7 @@ test('enabled actual index installs prepared SecureShop grading', {skip:process.
   assert.equal(requiredStoreManifest.length, 16);
   const env = { PATH: process.env.PATH, NODE_ENV: 'test', PLATFORM_DATABASE_ENGINE: 'postgres',
     WORKSHOP_DATABASE_ENGINE: 'postgres', PG_TEST_DISPOSABLE: 'yes',
-    HOME: path.join(root, 'home'), DVAIA_APP_DATA_ROOT: path.join(root, 'app-data'),
+    HOME: path.join(root, 'home'), OWASP_AI_GOAT_APP_DATA_ROOT: path.join(root, 'app-data'),
     LOGS_DIR: path.join(root, 'logs'), LEGACY_SENSITIVE_FILES_ROOT: path.join(root, 'legacy-sensitive-files'), SS_ENABLE: 'true', SS_BOUND_REVIEWS_ENABLED:'true', SS_PERSONA_INBOX_READY:'true', SS_MCP_TRUST_READY:'true', SS_CONTROLLED_SSRF_READY:'true', SS_AUDIT_SUMMARY_ENABLED:'false', SS_ENABLE_REAL_MCP_SPAWN: 'false',
     MCP_SIDECARS_AUTOSTART: 'false', MCP_WORKSHOP_AUTOSTART: 'false', AI_PROVIDER: 'mock', OLLAMA_BASE_URL: 'http://127.0.0.1:1',
     AWS_EC2_METADATA_DISABLED: 'true', HF_HUB_OFFLINE: '1', TRANSFORMERS_OFFLINE: '1',
@@ -48,7 +48,7 @@ test('enabled actual index installs prepared SecureShop grading', {skip:process.
       assert.equal(decodeURIComponent(url.username), role);
       assert.equal(url.pathname, currentHost
         ? '/' + currentHost.stores.find(store => store.schema === row.schema).database
-        : `/dvaia_test_full_backend_${row.schema}`);
+        : `/owasp_ai_goat_test_full_backend_${row.schema}`);
       if (database) assert.equal(url.pathname, database);
       database = url.pathname; roles.add(role); endpoints.add(url.host);env[key] = url.href;
     }
@@ -56,12 +56,12 @@ test('enabled actual index installs prepared SecureShop grading', {skip:process.
   }
   assert.equal(databases.size, 16); assert.equal(roles.size, 32); assert.equal(endpoints.size, 1);
   if (currentHost) { env.CTF_DELIVERY_DATABASE_URL = require('./aclCtfStartupInitialize').admitDelivery({...env, CTF_DELIVERY_DATABASE_URL:process.env.CTF_DELIVERY_DATABASE_URL}); }
-  for (const directory of [env.HOME, env.LOGS_DIR, env.DVAIA_APP_DATA_ROOT]) fs.mkdirSync(directory, { mode: 0o700 });
-  env.SS_PASSWORD_RESET_KEY_PATH=path.join(env.DVAIA_APP_DATA_ROOT,'password-reset-keys.json');
+  for (const directory of [env.HOME, env.LOGS_DIR, env.OWASP_AI_GOAT_APP_DATA_ROOT]) fs.mkdirSync(directory, { mode: 0o700 });
+  env.SS_PASSWORD_RESET_KEY_PATH=path.join(env.OWASP_AI_GOAT_APP_DATA_ROOT,'password-reset-keys.json');
   fs.writeFileSync(env.SS_PASSWORD_RESET_KEY_PATH,JSON.stringify({version:1,activeKeyId:'native',keys:{native:randomBytes(32).toString('base64url')}}),{mode:0o600,flag:'wx'});
   const reservePort=async()=>{const server=http.createServer();server.listen(0,'127.0.0.1');await once(server,'listening');const port=server.address().port;await new Promise(resolve=>server.close(resolve));return port;};
   const port=await reservePort(),agentPort=await reservePort();assert.notEqual(port,agentPort);
-  if(process.env.DVAIA_USERS_RENDERED==='1')env.SS_ALLOWED_ORIGINS=`http://127.0.0.1:${port}`;
+  if(process.env.OWASP_AI_GOAT_USERS_RENDERED==='1')env.SS_ALLOWED_ORIGINS=`http://127.0.0.1:${port}`;
   for(const [key,name] of [['SS_MCP_TRUST_FIXTURE_ROOT','mcp-trust'],['SS_CONTROLLED_SSRF_FIXTURE_ROOT','ssrf']]){env[key]=path.join(root,name);fs.mkdirSync(env[key],{mode:0o700});}
   env.SS_AGENT_HOST_PORT=String(agentPort);env.SECURESHOP_REVIEW_RENDERER_ROOT=path.join(source,'client/build/secureshop-review-renderer');
   const endpoint={host:'127.0.0.1',port:[...endpoints][0].split(':')[1]},guard=path.join(root,'network-guard.cjs');
@@ -85,12 +85,12 @@ test('enabled actual index installs prepared SecureShop grading', {skip:process.
    assert.equal(readiness.status,200,JSON.stringify(readiness));assert.equal(readiness.body.ready,true);for(const name of ['catalog','review','storedBrowser','personaInbox','mcpTrust','controlledSsrf'])assert.equal(readiness.body.panels[name],true);
    assert.equal((await request('/api/admin/secureshop-runtime-readiness',token)).status,403);
    const launchResult=await request('/api/auth/secureshop-launch',token,{});assert.equal(launchResult.status,201);assert.equal(typeof launchResult.body.bearer,'string');
-   const header={'x-dvaia-secureshop-launch':launchResult.body.bearer};const persona=await request('/api/secureshop/v2/auth/login',token,{username:'student_customer',password:'student123'},header);assert.equal(persona.status,200);
+   const header={'x-owasp-ai-goat-secureshop-launch':launchResult.body.bearer};const persona=await request('/api/secureshop/v2/auth/login',token,{username:'student_customer',password:'student123'},header);assert.equal(persona.status,200);
    const siblingLaunch=await request('/api/auth/secureshop-launch',siblingToken,{});assert.equal(siblingLaunch.status,201);assert.notEqual(siblingLaunch.body.bearer,launchResult.body.bearer);assert.notEqual(siblingLaunch.body.launch.launchId,launchResult.body.launch.launchId);
    assert.equal(typeof persona.body.token,'string');
    assert.equal((await request('/api/secureshop/v2/auth/whoami',persona.body.token,undefined,header)).status,200);
    assert.equal((await request('/api/secureshop/v2/auth/login',siblingToken,{username:'student_customer',password:'student123'},header)).status,401);
-   const siblingHeader={'x-dvaia-secureshop-launch':siblingLaunch.body.bearer};
+   const siblingHeader={'x-owasp-ai-goat-secureshop-launch':siblingLaunch.body.bearer};
    assert.equal((await request('/api/secureshop/v2/auth/whoami',persona.body.token,undefined,siblingHeader)).status,401);
    assert.equal((await request('/api/secureshop/v2/auth/whoami',persona.body.token,undefined,header)).status,200);
    assert.equal((await request('/api/agent-runs/judgments',token)).status,200);
@@ -153,22 +153,22 @@ test('enabled actual index installs prepared SecureShop grading', {skip:process.
    const siblingAfter=await request('/api/secureshop/admin/users',siblingAdmin.body.token,undefined,siblingHeader);assert.equal(siblingAfter.status,200);assert.deepEqual(siblingAfter.body.users,siblingBefore.body.users);
    const userAdministration={roleBan:true,passwordReset:true,passwordResetQualified:true,credentialLookup:true,syntheticLookup:true,lookupSiblingIsolated:true,roleMutation:true,banMutation:true,operationRead:true,exactReplay:true,effectiveDirectory:true,oldCredentialDenied:true,promotedLogin:true,bannedLoginDenied:true,siblingPreserved:true};
    let renderedUsers;
-   if(process.env.DVAIA_USERS_RENDERED==='1'){
+   if(process.env.OWASP_AI_GOAT_USERS_RENDERED==='1'){
     await migration.query("UPDATE workshop_platform.exercises SET is_visible=true WHERE workshop_key='secureshop_agent_security'");
     const browserStudent=await create('browser');
-    renderedUsers=await require('../fixtures/secureshopEnabledUsersBrowser').qualifyEnabledUsersBrowser({origin:base,user:browserStudent,password,root,currentHost,prepareAclRecovery: process.env.DVAIA_ACL_PERMISSION_RECOVERY === '1' ? async (headers, personaToken) => {
+    renderedUsers=await require('../fixtures/secureshopEnabledUsersBrowser').qualifyEnabledUsersBrowser({origin:base,user:browserStudent,password,root,currentHost,prepareAclRecovery: process.env.OWASP_AI_GOAT_ACL_PERMISSION_RECOVERY === '1' ? async (headers, personaToken) => {
       const cancellation = new AbortController();
       const signal = AbortSignal.any([t.signal, cancellation.signal]);
       const check = () => { signal.throwIfAborted(); assert(Date.now() < ownerDeadline); assert.equal(child.exitCode, null); };
       check(); assert.equal(typeof personaToken, 'string');
-      const bearer = headers['x-dvaia-secureshop-launch']; assert.equal(typeof bearer, 'string');
+      const bearer = headers['x-owasp-ai-goat-secureshop-launch']; assert.equal(typeof bearer, 'string');
       return { signal, check, deadline: ownerDeadline, abortOwner: () => cancellation.abort(), readOperation: async operationId => {
         check(); assert.match(operationId, /^[0-9a-f-]{36}$/i);
         const observed = await request('/api/secureshop/admin/access-control/operations/' + operationId,
-          personaToken, undefined, {'x-dvaia-secureshop-launch': bearer}, signal);
+          personaToken, undefined, {'x-owasp-ai-goat-secureshop-launch': bearer}, signal);
         check(); assert.equal(observed.status, 200); return observed.body;
       }};
-    } : undefined,prepareMcpTools:async headers=>{const fixturePool=new Pool({connectionString:env.SECURESHOP_AGENTS_MIGRATION_DATABASE_URL,max:1});try{return await require('../helpers/secureshopMcpToolsEnabledQualification').seedMcpTools({identityPool:pool,agentsMigration:fixturePool,bearer:headers['x-dvaia-secureshop-launch']});}finally{await fixturePool.end();}}});
+    } : undefined,prepareMcpTools:async headers=>{const fixturePool=new Pool({connectionString:env.SECURESHOP_AGENTS_MIGRATION_DATABASE_URL,max:1});try{return await require('../helpers/secureshopMcpToolsEnabledQualification').seedMcpTools({identityPool:pool,agentsMigration:fixturePool,bearer:headers['x-owasp-ai-goat-secureshop-launch']});}finally{await fixturePool.end();}}});
    }
    fs.writeFileSync(path.join(root,'enabled-startup-result.json'),JSON.stringify({ready:true,panels:readiness.body.panels,scope:'actual enabled index and prepared getter; mock provider/no inference',backendPid:child.pid,agentPort,userAdministration,mcpTools,...(renderedUsers?{renderedUsers}:{})},null,2),{mode:0o600});
    if (currentHost) await currentHost.verifyBuild();

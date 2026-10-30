@@ -9,7 +9,7 @@ from the repository's public training seed data. The recorded PostgreSQL version
 is the actual disposable server version, not an invented MongoDB version.
 
 Regenerate by running `python3 tests/postgres/run-isolated.py` and copying
-`/tmp/dvaia-sql-nosql-judge-cases.json` to this path after the suite passes.
+`/tmp/owasp-ai-goat-sql-nosql-judge-cases.json` to this path after the suite passes.
 The capture includes successful ORDER BY8 and failing ORDER BY9 history,
 PostgreSQL version/schema results, public/restricted training labels, and real
 fixed-query comparisons for relative-broadening objectives.

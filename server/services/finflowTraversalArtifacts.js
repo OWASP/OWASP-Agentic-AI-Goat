@@ -16,8 +16,8 @@ const VIRTUAL_BASES = Object.freeze({
 });
 const FIXTURE_ROOT = path.join(__dirname, '..', 'sensitive_files', 'traversal-fixtures');
 const TARGET_TOKEN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const MARKER_NAME = '.dvaia-finflow-traversal-target.json';
-const ADMIN_MARKER_NAME = '.dvaia-finflow-admin-config.json';
+const MARKER_NAME = '.owasp-ai-goat-finflow-traversal-target.json';
+const ADMIN_MARKER_NAME = '.owasp-ai-goat-finflow-admin-config.json';
 
 // This exact inventory is also the packaging boundary. Never replace it with a
 // directory walk: unrelated files under sensitive_files are private inputs.
@@ -67,7 +67,7 @@ function classifyTraversal(toolName, params) {
 }
 
 function createFinflowTraversalManager({ repository,
-  root = path.join(process.env.DVAIA_APP_DATA_ROOT || path.join(os.homedir(), '.dvaia'),
+  root = path.join(process.env.OWASP_AI_GOAT_APP_DATA_ROOT || path.join(os.homedir(), '.owasp-ai-goat'),
     'finflow-traversal-targets'), fsImpl = fs } = {}) {
   if (!repository || !['get', 'getTarget', 'reserve', 'activate', 'markCleanupDebt', 'retire',
     'listOwner', 'withTargetLock']

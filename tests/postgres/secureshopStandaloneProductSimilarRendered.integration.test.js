@@ -71,14 +71,14 @@ function productSummaryBrowserArgs(env, {profile, origin}) {
   assert.equal(env.PG_TEST_DISPOSABLE, 'yes');
   assert.equal(env.LIVE_OLLAMA_TEST, '1');
   assert.equal(env.NODE_ENV, 'test');
-  assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, ROOT);
+  assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, ROOT);
   assert.equal(process.cwd(), ROOT);
-  const run = env.DVAIA_ISOLATED_TEST_WORKSPACE;
+  const run = env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
   assert.equal(path.dirname(run), path.join(ROOT, 'tasks/qualification'));
   assert.match(path.basename(run), /^run-[A-Za-z0-9_-]+$/);
   assert.equal(env.TMPDIR, path.join(run, 'runtime/tmp'));
   assert.equal(path.dirname(profile), env.TMPDIR);
-  assert.match(path.basename(profile), /^dvaia-similar-browser-[A-Za-z0-9_-]+$/);
+  assert.match(path.basename(profile), /^owasp-ai-goat-similar-browser-[A-Za-z0-9_-]+$/);
   const sync = require('node:fs');
   for (const directory of [run, path.join(run, 'runtime'), env.TMPDIR, profile]) {
     const stat = sync.lstatSync(directory);
@@ -111,7 +111,7 @@ function disposableUrls() {
     assert.equal(url.username, `dvaia_${name}_${role.toLowerCase()}`);
     assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
     assert.match(url.port, /^[1-9]\d{0,4}$/); assert.ok(Number(url.port) <= 65535);
-    const match = /^\/dvaia_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
+    const match = /^\/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
     assert.ok(match && match[2] === name); nonce ??= match[1]; port ??= url.port;
     assert.equal(match[1], nonce); assert.equal(url.port, port);
     result[`${store}_${role}`] = url.href;
@@ -200,7 +200,7 @@ test(COHORT.benign ? BENIGN_ASSERTION : SUMMARY_COHORT ? 'V16 merchant descripti
   : 'registered customer physically requests similar products and reloads only the saved result',
   { skip: !ENABLED, timeout: SUMMARY_COHORT ? 600000 : 300000 }, async t => {
     assert.equal(process.cwd(), ROOT);
-    assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
+    assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
     const evidencePath = process.env[EVIDENCE] || '';
     const browserRecordPath = process.env.SECURESHOP_PRODUCT_SIMILAR_BROWSER_RECORD_PATH || '';
     const browserSha256 = process.env.SECURESHOP_PRODUCT_SIMILAR_BROWSER_SHA256 || '';
@@ -399,7 +399,7 @@ test(COHORT.benign ? BENIGN_ASSERTION : SUMMARY_COHORT ? 'V16 merchant descripti
           captureJson(req,res,row=>{requests.push(row);if(req.ssLaunch&&req.ssUser&&req.ssPersonaSession)
             authorityByRequest.set(row,{scope:req.ssLaunch,persona:{id:req.ssUser.id,role:req.ssUser.role},
               personaSession:{sessionId:req.ssPersonaSession.sessionId,authorityVersion:req.ssPersonaSession.authorityVersion},
-              headers:{authorization:req.headers.authorization,'x-dvaia-secureshop-launch':req.headers['x-dvaia-secureshop-launch']}});});
+              headers:{authorization:req.headers.authorization,'x-owasp-ai-goat-secureshop-launch':req.headers['x-owasp-ai-goat-secureshop-launch']}});});
         next();
       });
       server = await listen(app); const origin = `http://127.0.0.1:${server.address().port}`;
@@ -415,7 +415,7 @@ test(COHORT.benign ? BENIGN_ASSERTION : SUMMARY_COHORT ? 'V16 merchant descripti
       app.use(express.static(build, { setHeaders: res => res.set('Access-Control-Allow-Origin', '*') }));
       app.get(/.*/, (_req, res) => res.sendFile('index.html', { root: build }));
 
-      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-similar-browser-'));
+      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-similar-browser-'));
       browser = await require('puppeteer').launch({ headless: true, userDataDir: profile, executablePath,
         args: productSummaryBrowserArgs(process.env, {profile, origin}) });
       browserClosed = false;
@@ -774,7 +774,7 @@ async function runProductSummaryCohort({page,origin,setup,auth,bootstrap,composi
     await page.waitForFunction(()=>window.location.pathname==='/secureshop',{timeout:30000});
   };
   const renderedSummary=async(frame,text)=>frame.waitForFunction(answer=>[...document.querySelectorAll('blockquote')].some(node=>node.textContent===answer),{timeout:30000},text);
-  const snapshotReferences=()=>page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).filter(([key])=>key.startsWith('dvaia:secureshop:'))));
+  const snapshotReferences=()=>page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).filter(([key])=>key.startsWith('owasp-ai-goat:secureshop:'))));
   const verifyWire=wire=>{assert.equal(wire.status,200);assert.equal(wire.responseComplete,true);assert.equal(wire.responseCaptureTruncated,false);assert.equal(sha(wire.response),wire.responseSha256);};
 
   setStage('v16-physical-merchant-description-edit');
@@ -982,7 +982,7 @@ async function runProductSummaryCohort({page,origin,setup,auth,bootstrap,composi
   assert.notEqual(peerScope.platformOwnerId,vulnerable.authority.scope.platformOwnerId);assert.notEqual(peerTarget.targetId,vulnerable.target.targetId);
   const peerRows=async()=>(await review.query('SELECT to_jsonb(p) AS row FROM secureshop_review.product_target_products p WHERE target_id=$1 ORDER BY product_id',[peerTarget.targetId])).rows;
   const peerBefore=await peerRows();assert.ok(peerBefore.length);
-  const peerAuthority={headers:{authorization:`Bearer ${peerBoot.persona.token}`,'x-dvaia-secureshop-launch':peerBoot.bearer}};
+  const peerAuthority={headers:{authorization:`Bearer ${peerBoot.persona.token}`,'x-owasp-ai-goat-secureshop-launch':peerBoot.bearer}};
   const ownerSource=async()=>(await agents.query('SELECT result_json FROM secureshop_agents.turn_requests WHERE session_id=$1 AND request_id=$2',
     [returned.result.sessionId,returned.result.requestId])).rows;
   const isolationBefore={counts:counts(),saved:await protectedGet(returned.savedPath,returned.authority),source:await ownerSource(),peer:peerBefore};
@@ -1002,7 +1002,7 @@ async function runProductSummaryCohort({page,origin,setup,auth,bootstrap,composi
   const adminBefore=await standalone.assessmentProgress.readLearner(administrator.context,{targetPrincipalId:capture.progress.principalId});
   assert.deepEqual(adminBefore,currentProgress.body);capture.adminProgressBeforeReset=adminBefore;
   const renewed=await auth.login({username:setup.customerName,password}),renewedBoot=await bootstrap(renewed.context);
-  const renewedAuthority={headers:{authorization:`Bearer ${renewedBoot.persona.token}`,'x-dvaia-secureshop-launch':renewedBoot.bearer}};
+  const renewedAuthority={headers:{authorization:`Bearer ${renewedBoot.persona.token}`,'x-owasp-ai-goat-secureshop-launch':renewedBoot.bearer}};
   const renewedScope=await composition.launches.resolveCapability(renewedBoot.bearer);
   assert.ok(renewedScope);
   const liveBefore=await protectedGet(`/products/${productId}`,renewedAuthority);assert.equal(liveBefore.status,200);

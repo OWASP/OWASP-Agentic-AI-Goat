@@ -73,7 +73,7 @@ async function pricingGuest(load,binding){
  const fs=require('node:fs/promises'),native=require('node:fs'),crypto=require('node:crypto'),{Readable}=require('node:stream');
  const apt=load('ownedAptAuthentication'),metadata=load('ownedPolicySystemMetadata'),closure=load('ownedMcpDependencyClosure'),replay=load('ownedMcpArtifactReplay'),egress=load('ownedPricingEgressPolicy');
  const fail=code=>Object.assign(new Error(code),{code}),sha=b=>crypto.createHash('sha256').update(b).digest('hex');
- const now=()=>Number(process.hrtime.bigint())/1e6,deadline=Number(process.env.DVAIA_ARTIFACT_DEADLINE_SECONDS)*1000,port=Number(process.env.DVAIA_ARTIFACT_PROXY_PORT);
+ const now=()=>Number(process.hrtime.bigint())/1e6,deadline=Number(process.env.OWASP_AI_GOAT_ARTIFACT_DEADLINE_SECONDS)*1000,port=Number(process.env.OWASP_AI_GOAT_ARTIFACT_PROXY_PORT);
  if(binding.target!=='v33-pricing'||binding.base!==closure.BASE||!Number.isFinite(deadline)||deadline<=0||deadline<=now()||deadline-now()>300000||!Number.isInteger(port)||port<1||port>65535)throw fail('PRICING_GUEST_ADMISSION');
  const controller=new AbortController();let service,primary,closing,ready=false,timer,phase='admit';
  let complete;const terminal=new Promise(resolve=>{complete=resolve;});
@@ -152,7 +152,7 @@ function validatePricingImage(plan,rows){
  verifyPricingBuildInputs(plan);const row=rows?.[0];
  if(!Array.isArray(rows)||rows.length!==1||!/^sha256:[a-f0-9]{64}$/.test(row?.Id)||row.Architecture!=='arm64'||row.Os!=='linux'
   ||row.Config?.User!==plan.user||!equal(row.Config?.Entrypoint,plan.entrypoint)
-  ||row.Config?.Labels?.['dvaia.pricing.package']!==plan.packageDigest||row.Config?.Labels?.['dvaia.build-run']!==plan.runId)throw fail('PRICING_IMAGE_IDENTITY');
+  ||row.Config?.Labels?.['owasp-ai-goat.pricing.package']!==plan.packageDigest||row.Config?.Labels?.['owasp-ai-goat.build-run']!==plan.runId)throw fail('PRICING_IMAGE_IDENTITY');
  return row.Id;
 }
 function validatePricingHandoff(plan,value){
@@ -183,12 +183,12 @@ pricing_identity() {
  if [ -e "$root/fs/pricing.cid" ]; then
   [ ! -L "$root/fs/pricing.cid" ]; cid=$(cat "$root/fs/pricing.cid")
  else
-  cid=$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Id}}' "dvaia-pricing-closure-$nonce")
+  cid=$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Id}}' "owasp-ai-goat-pricing-closure-$nonce")
  fi
  [ "$(printf '%s' "$cid" | wc -c | tr -d ' ')" = 64 ]; case "$cid" in *[!a-f0-9]*) return 97;; esac
  [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Id}}' "$cid")" = "$cid" ]
- [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "dvaia.pricing.closure"}}' "$cid")" = "$nonce" ]
- [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Name}}' "$cid")" = "/dvaia-pricing-closure-$nonce" ]
+ [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "owasp-ai-goat.pricing.closure"}}' "$cid")" = "$nonce" ]
+ [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Name}}' "$cid")" = "/owasp-ai-goat-pricing-closure-$nonce" ]
  [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Image}}' "$cid")" = "$(docker --host "unix://$root/fs/docker.sock" image inspect --format '{{.Id}}' 'node@BASE')" ]
 }
 `.replace('node@BASE','node@'+producer.BASE);
@@ -201,7 +201,7 @@ mkdir -m 0700 "$root/fs/pricing-closure"
 deadline=$(/usr/bin/python3 -I -S -B -c 'import time,json,sys; r=json.load(open(sys.argv[1])); now=time.monotonic(); assert now*1000+300000<r["expiresAtMs"]; print(now+300)' "$root/pricing-lease.json")
 proxy_port=$(relay_control authority)
 (set -C; printf '%s' "$nonce" > "$root/fs/pricing.intent")
-docker --host "unix://$root/fs/docker.sock" create --cidfile "$root/fs/pricing.cid" --name "dvaia-pricing-closure-$nonce" --label "dvaia.pricing.closure=$nonce" --pull never --network host --read-only --memory 768m --cpus 1 --pids-limit 64 --cap-drop ALL --security-opt no-new-privileges --log-driver local --log-opt max-size=1m --log-opt max-file=1 --log-opt compress=false --mount "type=bind,source=$root/fs/metadata-retained,target=/metadata-retained,readonly" --mount "type=bind,source=$root/fs/pricing-closure,target=/pricing-closure" --mount "type=bind,source=$root/fs/pricing-guest.js,target=/pricing-guest.js,readonly" --tmpfs /metadata:rw,nosuid,nodev,noexec,size=512m --tmpfs /tmp:rw,nosuid,nodev,noexec,size=16m --env "DVAIA_ARTIFACT_DEADLINE_SECONDS=$deadline" --env "DVAIA_ARTIFACT_PROXY_PORT=$proxy_port" --entrypoint /usr/local/bin/node 'node@BASE' /pricing-guest.js >/dev/null
+docker --host "unix://$root/fs/docker.sock" create --cidfile "$root/fs/pricing.cid" --name "owasp-ai-goat-pricing-closure-$nonce" --label "owasp-ai-goat.pricing.closure=$nonce" --pull never --network host --read-only --memory 768m --cpus 1 --pids-limit 64 --cap-drop ALL --security-opt no-new-privileges --log-driver local --log-opt max-size=1m --log-opt max-file=1 --log-opt compress=false --mount "type=bind,source=$root/fs/metadata-retained,target=/metadata-retained,readonly" --mount "type=bind,source=$root/fs/pricing-closure,target=/pricing-closure" --mount "type=bind,source=$root/fs/pricing-guest.js,target=/pricing-guest.js,readonly" --tmpfs /metadata:rw,nosuid,nodev,noexec,size=512m --tmpfs /tmp:rw,nosuid,nodev,noexec,size=16m --env "OWASP_AI_GOAT_ARTIFACT_DEADLINE_SECONDS=$deadline" --env "OWASP_AI_GOAT_ARTIFACT_PROXY_PORT=$proxy_port" --entrypoint /usr/local/bin/node 'node@BASE' /pricing-guest.js >/dev/null
 pricing_identity; docker --host "unix://$root/fs/docker.sock" start "$cid" >/dev/null
 attempt=0
 until [ -f "$root/fs/pricing-closure/ready.json" ]; do
@@ -230,7 +230,7 @@ assert seen==set(rows)
  '/usr/bin/python3 -I -S -B -c '+quote(unpack)+' "$root" '+quote(JSON.stringify(rows))+'\n'+
  'port=$(/usr/bin/python3 -I -S -B -c '+quote("import os,json,sys,stat; f=os.fdopen(os.open(sys.argv[1],os.O_RDONLY|os.O_NOFOLLOW)); s=os.fstat(f.fileno()); assert stat.S_ISREG(s.st_mode) and s.st_uid==0 and s.st_nlink==1 and 0<s.st_size<=1048576; r=json.load(f); assert r['binding']==json.loads(sys.argv[2]) and r['metadataAuthenticated'] is True and r['artifactBytesVerified'] is True; assert type(r['port']) is int and 0<r['port']<65536; print(r['port'])")+' "$root/fs/pricing-closure/ready.json" '+quote(JSON.stringify(inputs.binding))+')\n'+
  'stop_private_relay\nproxy="http://127.0.0.1:$port"\n'+
- 'timeout --signal=TERM --kill-after=10 300 docker --host "unix://$root/fs/docker.sock" build --pull=false --network=host --platform linux/arm64 --build-arg "HTTP_PROXY=$proxy" --build-arg "HTTPS_PROXY=$proxy" --build-arg "http_proxy=$proxy" --build-arg "https_proxy=$proxy" --build-arg NO_PROXY= --build-arg no_proxy= --label '+quote('dvaia.pricing.package='+inputs.packageDigest)+' --label "dvaia.build-run=$nonce" -f "$root/fs/pricing-context/'+producer.DOCKERFILE+'" -t "dvaia-pricing-build:$nonce" "$root/fs/pricing-context"\npricing_identity\n';
+ 'timeout --signal=TERM --kill-after=10 300 docker --host "unix://$root/fs/docker.sock" build --pull=false --network=host --platform linux/arm64 --build-arg "HTTP_PROXY=$proxy" --build-arg "HTTPS_PROXY=$proxy" --build-arg "http_proxy=$proxy" --build-arg "https_proxy=$proxy" --build-arg NO_PROXY= --build-arg no_proxy= --label '+quote('owasp-ai-goat.pricing.package='+inputs.packageDigest)+' --label "owasp-ai-goat.build-run=$nonce" -f "$root/fs/pricing-context/'+producer.DOCKERFILE+'" -t "owasp-ai-goat-pricing-build:$nonce" "$root/fs/pricing-context"\npricing_identity\n';
  const retire=guard+identity+String.raw`
 if [ ! -e "$root/fs/pricing.intent" ] && [ ! -L "$root/fs/pricing.intent" ]; then printf 'absent\n'; exit 0; fi
 check_mount; check_runtime; pricing_identity
@@ -242,9 +242,9 @@ code=$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.State.Ex
  'docker --host "unix://$root/fs/docker.sock" rm "$cid" >/dev/null\nids=$(docker --host "unix://$root/fs/docker.sock" ps -aq --no-trunc)\nfor id in $ids; do [ "$id" != "$cid" ]; done\nprintf \'absent\\n\'\n';
  const evidence=guard+'\ncheck_mount\n/usr/bin/python3 -I -S -B -c '+quote("import os,sys,stat,json; result={}\nfor name in ('closure.json','ready.json','replay-intent.json','terminal.json'):\n p=sys.argv[1]+'/'+name\n if not os.path.lexists(p):result[name]=None;continue\n f=os.fdopen(os.open(p,os.O_RDONLY|os.O_NOFOLLOW));s=os.fstat(f.fileno());assert stat.S_ISREG(s.st_mode) and s.st_uid==0 and s.st_nlink==1 and 0<s.st_size<=1048576\n with f:result[name]=f.read(1048577)\ntext=json.dumps(result);assert len(text.encode())<=2097152;print(text)")+' "$root/fs/pricing-closure"\n';
  const handoff=prefix+active+'stop_private_relay\ncheck_network\n'+
- '/usr/bin/python3 -I -S -B -c '+quote("import os,sys,json,subprocess\nr,run,package=sys.argv[1:]\ndef read(n):\n with open(r+'/fs/'+n) as f:return f.read(4097).strip()\ndef docker(socket,args):return subprocess.check_output(['/usr/bin/docker','--host','unix://'+socket]+args,timeout=10,text=True).strip()\ndef proc(n,exe):\n pid=int(read(n+'.pid'));start=read(n+'.start');assert pid>1 and os.readlink('/proc/'+str(pid)+'/exe')==exe and os.readlink('/proc/'+str(pid)+'/ns/net')==read('namespace.inode')\n with open('/proc/'+str(pid)+'/stat') as f:assert f.read().rsplit(')',1)[1].split()[19]==start\n return dict(pid=pid,startTicks=start,exe=exe)\ns=os.stat(r+'/fs');print(json.dumps(dict(version=1,target='original-v33-pricing',runId=run,packageDigest=package,imageId=docker(r+'/fs/docker.sock',['image','inspect','--format','{{.Id}}','dvaia-pricing-build:'+run]),daemonId=docker(r+'/fs/docker.sock',['info','--format','{{.ID}}']),sharedDaemonId=docker('/run/docker.sock',['info','--format','{{.ID}}']),namespaceInode=read('namespace.inode'),sharedNamespaceInode=read('shared.inode'),filesystemIdentity=dict(device=s.st_dev,inode=s.st_ino),daemonProcess=proc('daemon','/usr/bin/dockerd'),namespaceHolder=proc('namespace','/usr/bin/sleep'),relayRetired=True)))")+' "$root" "$nonce" '+quote(inputs.packageDigest)+'\n';
+ '/usr/bin/python3 -I -S -B -c '+quote("import os,sys,json,subprocess\nr,run,package=sys.argv[1:]\ndef read(n):\n with open(r+'/fs/'+n) as f:return f.read(4097).strip()\ndef docker(socket,args):return subprocess.check_output(['/usr/bin/docker','--host','unix://'+socket]+args,timeout=10,text=True).strip()\ndef proc(n,exe):\n pid=int(read(n+'.pid'));start=read(n+'.start');assert pid>1 and os.readlink('/proc/'+str(pid)+'/exe')==exe and os.readlink('/proc/'+str(pid)+'/ns/net')==read('namespace.inode')\n with open('/proc/'+str(pid)+'/stat') as f:assert f.read().rsplit(')',1)[1].split()[19]==start\n return dict(pid=pid,startTicks=start,exe=exe)\ns=os.stat(r+'/fs');print(json.dumps(dict(version=1,target='original-v33-pricing',runId=run,packageDigest=package,imageId=docker(r+'/fs/docker.sock',['image','inspect','--format','{{.Id}}','owasp-ai-goat-pricing-build:'+run]),daemonId=docker(r+'/fs/docker.sock',['info','--format','{{.ID}}']),sharedDaemonId=docker('/run/docker.sock',['info','--format','{{.ID}}']),namespaceInode=read('namespace.inode'),sharedNamespaceInode=read('shared.inode'),filesystemIdentity=dict(device=s.st_dev,inode=s.st_ino),daemonProcess=proc('daemon','/usr/bin/dockerd'),namespaceHolder=proc('namespace','/usr/bin/sleep'),relayRetired=True)))")+' "$root" "$nonce" '+quote(inputs.packageDigest)+'\n';
  return {inventory:meta.commands.inventory,...Object.fromEntries(Object.entries(meta.phases).filter(([n])=>n!=='version')),inspect:meta.commands.inspect,relayCheckpoint:checkpoint,startArtifacts:start.replace('--tmpfs /metadata:', '--mount "type=bind,source=$root/fs/pricing-overhead.json,target=/pricing-overhead.json,readonly" --tmpfs /metadata:'),build,retireArtifacts:retire,closureEvidence:evidence,handoff,
- image:prefix+active+'docker --host "unix://$root/fs/docker.sock" image inspect "dvaia-pricing-build:$nonce"\n'};
+ image:prefix+active+'docker --host "unix://$root/fs/docker.sock" image inspect "owasp-ai-goat-pricing-build:$nonce"\n'};
 }
 async function pricingBuildPlan(root,runId,profile='v33'){
  const inputs=pricingBuildInputs(root,runId,profile),derived=derivation.loadPricingBounded(profile),meta=await derived.pricingMetadataQualificationPlan(root,runId),guest=pricingGuestSource(inputs);

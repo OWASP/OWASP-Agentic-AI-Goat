@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 
 // One unnamed job and one pinned guardian. No PID-based termination operation.
-public sealed class DvaiaOwnedProcessJob : IDisposable {
+public sealed class OwaspAiGoatOwnedProcessJob : IDisposable {
     [StructLayout(LayoutKind.Sequential)] struct BasicLimits {
         public long PerProcessUserTimeLimit, PerJobUserTimeLimit;
         public uint LimitFlags;
@@ -47,7 +47,7 @@ public sealed class DvaiaOwnedProcessJob : IDisposable {
         Need(GetProcessTimes(guardian,out c,out e,out k,out u));
         return (((ulong)c.High << 32) | c.Low).ToString(CultureInfo.InvariantCulture);
     }
-    public DvaiaOwnedProcessJob() {
+    public OwaspAiGoatOwnedProcessJob() {
         job=CreateJobObject(IntPtr.Zero,null); // Default non-inheritable, unnamed.
         try {
             Available();

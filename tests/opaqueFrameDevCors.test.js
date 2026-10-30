@@ -14,7 +14,7 @@ async function owned(t,prefix){
  });return state;
 }
 test('actual Vite serves public modules to opaque frames without allowing opaque API or foreign-origin reads',{timeout:60000},async t=>{
- const owner=await owned(t,'dvaia-frame-cors-'),root=owner.root;
+ const owner=await owned(t,'owasp-ai-goat-frame-cors-'),root=owner.root;
  const {createServer}=await import('../client/node_modules/vite/dist/node/index.js');
  const {opaqueFrameCors}=await import('../client/vite.opaque-frame-cors.mjs');
  await fs.mkdir(path.join(root,'src'));await fs.mkdir(path.join(root,'assets'));
@@ -49,7 +49,7 @@ test('actual Vite serves public modules to opaque frames without allowing opaque
 });
 
 test('actual Vite preview serves built assets to opaque frames without opening API paths',{timeout:60000},async t=>{
- const owner=await owned(t,'dvaia-frame-preview-cors-'),root=owner.root;
+ const owner=await owned(t,'owasp-ai-goat-frame-preview-cors-'),root=owner.root;
  const dist=path.join(root,'dist');await fs.mkdir(path.join(dist,'assets'),{recursive:true});
  await fs.writeFile(path.join(dist,'index.html'),'<!doctype html><html><body>Preview</body></html>');
  await fs.writeFile(path.join(dist,'assets/frame.js'),'export const frame = true;');

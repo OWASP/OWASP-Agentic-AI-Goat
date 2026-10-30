@@ -26,10 +26,10 @@ from sensitive_info_recovery_safety import (
 )
 from mcp_owned_live_promotion_safety import select_backend_pid
 
-EXPECTED_DOCKER = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+EXPECTED_DOCKER = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 OWNER = '/root/workshop_authenticity'
 SOURCE = Path(__file__).resolve().parents[2]
-NODE_BIN = Path('/Users/averma5/.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin')
+NODE_BIN = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin')
 APPLICATION_SCHEMAS = {
     'identity': ('dvaia_migrations','graph_runtime','identity','workshop_platform','workshop_conversations'),
     'mcp': ('dvaia_migrations','mcp'),
@@ -58,7 +58,7 @@ parser.add_argument('--colima-profile', required=True)
 args = parser.parse_args()
 if args.docker_host != EXPECTED_DOCKER:
     raise SystemExit('the reviewed isolated PostgreSQL Docker daemon is required')
-if args.colima_profile != 'colima-dvaia-pg-verify':
+if args.colima_profile != 'colima-owasp-ai-goat-pg-verify':
     raise SystemExit('the reviewed named Colima profile is required')
 promote_reset = args.promote_mcp_owned_runtime
 if not promote_reset:
@@ -67,11 +67,11 @@ if (args.watcher_pid is None or args.backend_pid is None or args.watcher_pid <= 
         or args.backend_pid <= 1 or args.watcher_pid == args.backend_pid):
     raise SystemExit('distinct reviewed watcher and backend PIDs are required')
 
-evidence = Path(tempfile.mkdtemp(prefix='dvaia-mcp-owned-runtime-live-'))
+evidence = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-owned-runtime-live-'))
 os.chmod(evidence, 0o700)
 ownership_path = evidence / 'ownership.json'
 result_path = evidence / 'result.log'
-container = f'dvaia-mcp-owned-runtime-live-{uuid.uuid4().hex[:12]}'
+container = f'owasp-ai-goat-mcp-owned-runtime-live-{uuid.uuid4().hex[:12]}'
 docker = ['docker', '--host', args.docker_host]
 base_env = {key: os.environ[key] for key in ('PATH', 'HOME', 'TMPDIR') if key in os.environ}
 base_env['PATH'] = f'{NODE_BIN}:{base_env.get("PATH", "")}'
@@ -423,7 +423,7 @@ def qualification_stage(argument, filename):
                 or hashlib.sha256(target.read_bytes()).hexdigest()!=details['migrationSha256']):
             raise RuntimeError('installed promotion source changed')
     assert_private_config_unchanged()
-    stage_env=dict(base_env, DVAIA_EXPECTED_PRIVATE_CONFIG_SHA256=private_config_sha256)
+    stage_env=dict(base_env, OWASP_AI_GOAT_EXPECTED_PRIVATE_CONFIG_SHA256=private_config_sha256)
     completed=run([str(NODE_BIN/'node'),'scripts/qualify-mcp-owned-runtime-promotion.js',argument],
                   env=stage_env,text=True,timeout=300)
     assert_private_config_unchanged()
@@ -661,7 +661,7 @@ try:
     restored_urls = {}
     restored_admin_urls = {}
     for name in ('identity','mcp'):
-        migration_role = roles[name]['migration']['role']; database = f'dvaia_reset_restore_{name}'
+        migration_role = roles[name]['migration']['role']; database = f'owasp_ai_goat_reset_restore_{name}'
         run(['psql','-X','-v','ON_ERROR_STOP=1','-c',f'CREATE DATABASE {database} OWNER {migration_role}'],env=admin)
         restore_env = dict(admin, PGDATABASE=database)
         run(['pg_restore','--exit-on-error','--dbname',database,str(dump_paths[name])],env=restore_env,timeout=180)
@@ -711,7 +711,7 @@ try:
         raise RuntimeError('current startup catalog seed would change the identity snapshot')
     state['startupSeedNoOp']={'teachingDataUnchanged':True,**seed_result};write_state()
     restored_runtime_urls = {
-        name:f'postgresql://{roles[name]["runtime"]["role"]}@127.0.0.1:{port}/dvaia_reset_restore_{name}'
+        name:f'postgresql://{roles[name]["runtime"]["role"]}@127.0.0.1:{port}/owasp_ai_goat_reset_restore_{name}'
         for name in ('identity','mcp')
     }
     runtime_relations = {'identity':'identity.users','mcp':'mcp.progress'}

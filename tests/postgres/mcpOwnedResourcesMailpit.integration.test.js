@@ -13,7 +13,7 @@ const enabled = process.env.MCP_OWNED_RESOURCES_MAILPIT === 'yes';
 const executionFor = scope => ({ ownerKey: JSON.stringify(['MCP', String(scope.platformOwnerId)]),
   durableGeneration: String(scope.generation), check: async () => true, effect: async (_key, work) => work() });
 const signed = body => ({ ...body, receiptSha256: _internals.sha(Buffer.from(_internals.canonical(body))) });
-const assigned = intentId => `mcp-${intentId.toLowerCase()}@dvaia.local`;
+const assigned = intentId => `mcp-${intentId.toLowerCase()}@owasp-ai-goat.local`;
 
 async function waitFor(mail, ids, count) {
   let result;

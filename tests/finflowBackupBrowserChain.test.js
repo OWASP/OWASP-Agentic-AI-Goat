@@ -4,7 +4,7 @@ const { OBJECTIVES, ROUTES, assertStoreEnvironment, assertJudgment } = require('
 function environment() {
   const env = { PG_TEST_DISPOSABLE:'yes', PLATFORM_DATABASE_ENGINE:'postgres', WORKSHOP_DATABASE_ENGINE:'postgres' };
   for (const [prefix, name] of [['IDENTITY','identity'],['FINFLOW_WORKSHOP','finflow']]) {
-    env[prefix+'_DATABASE_URL'] = `postgresql://runtime_${name}@127.0.0.1:54399/dvaia_test_finflow_browser_123456789abc_${name}`;
+    env[prefix+'_DATABASE_URL'] = `postgresql://runtime_${name}@127.0.0.1:54399/owasp_ai_goat_test_finflow_browser_123456789abc_${name}`;
     env[prefix+'_MIGRATION_DATABASE_URL'] = env[prefix+'_DATABASE_URL'].replace('runtime_', 'migration_');
   }
   return env;
@@ -25,7 +25,7 @@ function proof(objectiveId) {
 }
 test('closed two-store environment admits same owned endpoint and rejects installed/mixed bindings', () => {
   assertStoreEnvironment(environment());
-  for (const change of [e=>{e.PG_TEST_DISPOSABLE='no';},e=>{e.IDENTITY_DATABASE_URL=e.IDENTITY_DATABASE_URL.replace('127.0.0.1','localhost');},e=>{e.IDENTITY_DATABASE_URL=e.IDENTITY_DATABASE_URL.replace('54399','54398');},e=>{e.IDENTITY_DATABASE_URL=e.IDENTITY_DATABASE_URL.replace('dvaia_test_finflow_browser_123456789abc_identity','installed_identity');},e=>{e.IDENTITY_MIGRATION_DATABASE_URL=e.IDENTITY_DATABASE_URL;}]) {
+  for (const change of [e=>{e.PG_TEST_DISPOSABLE='no';},e=>{e.IDENTITY_DATABASE_URL=e.IDENTITY_DATABASE_URL.replace('127.0.0.1','localhost');},e=>{e.IDENTITY_DATABASE_URL=e.IDENTITY_DATABASE_URL.replace('54399','54398');},e=>{e.IDENTITY_DATABASE_URL=e.IDENTITY_DATABASE_URL.replace('owasp_ai_goat_test_finflow_browser_123456789abc_identity','installed_identity');},e=>{e.IDENTITY_MIGRATION_DATABASE_URL=e.IDENTITY_DATABASE_URL;}]) {
     const e=environment();change(e);assert.throws(()=>assertStoreEnvironment(e));
   }
   assert.equal(ROUTES.includes('/api/ctf'),false); assert.deepEqual(OBJECTIVES,['admin_backup','admin_dl_backup']);

@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),crypto=requ
 const {Pool}=require('pg');const {receiptFor}=require('../fixtures/mcpOwnedHttpReceipt');
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&process.env.PG_HTTP_RUNTIME_URL&&process.env.PG_HTTP_MIGRATION_URL;
 test('candidate central HTTP intent/receipt replay, uncertainty, reset and sibling isolation', {skip:!enabled},async t=>{
- for(const key of ['PG_HTTP_RUNTIME_URL','PG_HTTP_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_http_[a-f0-9]+$/);
+ for(const key of ['PG_HTTP_RUNTIME_URL','PG_HTTP_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_http_[a-f0-9]+$/);
  const runtime=new Pool({connectionString:process.env.PG_HTTP_RUNTIME_URL}),migration=new Pool({connectionString:process.env.PG_HTTP_MIGRATION_URL});
  t.after(async()=>{await runtime.end();await migration.end();});
  const canonical=require('../../db/postgres/migrate'),view=require('../helpers/xssBoundedMigrationView').createXssBoundedMigrationView({identity:82});

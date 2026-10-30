@@ -1,4 +1,4 @@
-# DVAIA: laptop and 200-student AWS architecture
+# OWASP Agentic AI GOAT: laptop and 200-student AWS architecture
 
 > Superseded database recommendation: the active decision is [PostgreSQL as the sole target engine](postgresql-single-engine-plan-2026-09-10.md). SQLite-first and SQLite/PostgreSQL dual-runtime recommendations below are historical, not implementation instructions. AWS deployment changes remain deferred.
 

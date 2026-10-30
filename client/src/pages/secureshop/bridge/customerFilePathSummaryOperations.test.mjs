@@ -49,7 +49,7 @@ test.each(cases)('V44 %s preserves exact JSON through compiler, frame fetch and 
     expect(options.body).toBe(expectedBody === undefined ? undefined : JSON.stringify(expectedBody));
     expect(options.headers.get('content-type')).toBe(expectedBody === undefined ? null : 'application/json');
     expect(options.headers.get('authorization')).toBe('Bearer persona');
-    expect(options.headers.get('x-dvaia-secureshop-launch')).toBe('a'.repeat(43));
+    expect(options.headers.get('x-owasp-ai-goat-secureshop-launch')).toBe('a'.repeat(43));
   } finally { host.close(); }
 });
 

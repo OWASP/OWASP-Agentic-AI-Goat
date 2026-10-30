@@ -67,7 +67,7 @@ async function qualifySystemRestartBrowser({ page, frame, origin, evidenceDirect
     await frame.waitForFunction(id => document.querySelector('[data-testid="system-restart-panel"]')?.textContent.includes(id), {}, committed.operationId);
     const findReference = id => {
       for (const key of Object.keys(localStorage)) {
-        if (!key.startsWith('dvaia:secureshop:')) continue;
+        if (!key.startsWith('owasp-ai-goat:secureshop:')) continue;
         const snapshot = JSON.parse(localStorage.getItem(key));
         const raw = snapshot.ss_system_restart_recovery;
         if (!raw) continue;

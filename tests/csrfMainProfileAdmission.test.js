@@ -32,7 +32,7 @@ test('selected native path runs backend from external cwd with an absolute main 
  assert.match(native,/launchCwd=profile\.selected70b\?runtimeRoot:source/);
  assert.match(native,/cwd:launchCwd,env/);
  assert.match(native,/path\.join\(source,'server\/index\.js'\)/);
- assert.match(native,/DVAIA_ISOLATED_TEST_WORKSPACE=source/);
+ assert.match(native,/OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=source/);
  assert.match(native,/profile\.selected70b\?'--require='\+path\.join\(source,'tests\/fixtures\/dpiPostgresOnlyGuard\.cjs'\)/);
  assert.match(native,/selected70b:profile\.selected70b/);
  assert.match(native,/maxHttpCalls:\(chain\|\|postChain\|\|indirect\)\?18:8/);
@@ -52,7 +52,7 @@ test('selected-model actor wire rejects mixed or incomplete terminal provenance'
 test('selected main-only preload denies legacy learner database imports before opening a store',()=>{
  const {spawnSync}=require('node:child_process'),source=fs.realpathSync(path.join(__dirname,'..'));
  const guard=path.join(source,'tests/fixtures/dpiPostgresOnlyGuard.cjs');
- const env={PATH:process.env.PATH,DVAIA_ISOLATED_TEST_WORKSPACE:source,NODE_OPTIONS:'--require='+guard};
+ const env={PATH:process.env.PATH,OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE:source,NODE_OPTIONS:'--require='+guard};
  const denied=spawnSync(process.execPath,['-e',"require('./server/database/authDb')"],{cwd:source,env,encoding:'utf8',timeout:5000});
  assert.notEqual(denied.status,0);assert.match(denied.stderr,/Legacy SQLite module denied in disposable DPI PostgreSQL qualification/);
  const allowed=spawnSync(process.execPath,['-e',"require('pg').Pool;"],{cwd:source,env,encoding:'utf8',timeout:5000});

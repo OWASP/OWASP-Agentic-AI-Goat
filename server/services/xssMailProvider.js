@@ -1,6 +1,6 @@
 'use strict';
 
-const LOCAL_SENDER = 'attacker@dvaia.invalid';
+const LOCAL_SENDER = 'attacker@owasp-ai-goat.invalid';
 const PROVIDERS = new Set(['mailpit', 'gmail']);
 
 function workshopMailpitInboxUrl(value = process.env.WORKSHOP_MAILPIT_API_URL || 'http://127.0.0.1:8025') {
@@ -72,7 +72,7 @@ function createXssMailProviderSelector({
     assertIdentity(userId, userKey);
     const selected = getXssMailProvider();
     if (selected.provider === 'mailpit') {
-      return Object.freeze({ email: `xss-${userId}@dvaia.invalid`, mode: 'local', provider: 'mailpit',
+      return Object.freeze({ email: `xss-${userId}@owasp-ai-goat.invalid`, mode: 'local', provider: 'mailpit',
         editable: false, sender: LOCAL_SENDER, mailpitInboxUrl: workshopMailpitInboxUrl() });
     }
     const [email, status] = await Promise.all([

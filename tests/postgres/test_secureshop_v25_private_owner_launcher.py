@@ -132,10 +132,10 @@ class V25Main(unittest.TestCase):
         self.assertEqual(sum(sql.startswith('CREATE DATABASE ') for sql in calls), 5)
         self.assertEqual(sum(sql.startswith('REVOKE CONNECT ') for sql in calls), 5)
         self.assertEqual(sum(sql.startswith('GRANT CONNECT ') for sql in calls), 5)
-        self.assertEqual(len(set(re.findall(r'dvaia_test_persona_[a-f0-9]{12}_[a-z]+', ' '.join(calls)))), 5)
+        self.assertEqual(len(set(re.findall(r'owasp_ai_goat_test_persona_[a-f0-9]{12}_[a-z]+', ' '.join(calls)))), 5)
         args = SimpleNamespace(embedding_cache=str(ROOT/'tests/fixtures/fullBackendModelCache'))
         env = M.v25_environment(args, ROOT, stores)
-        self.assertEqual(env['DVAIA_ISOLATED_TEST_WORKSPACE'], str(ROOT))
+        self.assertEqual(env['OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE'], str(ROOT))
         self.assertEqual((env['PERSONA_PRICING_MANUAL_ONLY'], env['PERSONA_PRICING_ACTUAL_REMAINING'],
             env['PERSONA_PRICING_COHORT'], env['PG_TEST_DISPOSABLE'] if 'PG_TEST_DISPOSABLE' in env else None),
             ('1', '0', 'baseline', None))

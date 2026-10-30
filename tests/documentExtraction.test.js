@@ -7,7 +7,7 @@ const path = require('node:path');
 const { extractText } = require('../agent-host/agents/uploads/tools');
 
 function fixture(t, name, content) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-document-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-document-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const filePath = path.join(directory, name);
   fs.writeFileSync(filePath, content);

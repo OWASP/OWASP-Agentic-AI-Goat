@@ -29,7 +29,7 @@ class LauncherTests(unittest.TestCase):
  def test_exact_four_owned_role_urls(self):
   e=m.database_environment('a'*12,54321)
   self.assertEqual(set(e),{'PG_GRAPH_TEST_RUNTIME_URL','PG_GRAPH_TEST_MIGRATION_URL','PG_MCP_RUNTIME_URL','PG_MCP_MIGRATION_URL'})
-  for key,store,role in [('PG_GRAPH_TEST_RUNTIME_URL','identity','runtime'),('PG_GRAPH_TEST_MIGRATION_URL','identity','migration'),('PG_MCP_RUNTIME_URL','mcp','runtime'),('PG_MCP_MIGRATION_URL','mcp','migration')]:self.assertEqual(e[key],f'postgresql://dvaia_{store}_{role}@127.0.0.1:54321/dvaia_test_central_ack_'+('a'*12)+'_'+store)
+  for key,store,role in [('PG_GRAPH_TEST_RUNTIME_URL','identity','runtime'),('PG_GRAPH_TEST_MIGRATION_URL','identity','migration'),('PG_MCP_RUNTIME_URL','mcp','runtime'),('PG_MCP_MIGRATION_URL','mcp','migration')]:self.assertEqual(e[key],f'postgresql://dvaia_{store}_{role}@127.0.0.1:54321/owasp_ai_goat_test_central_ack_'+('a'*12)+'_'+store)
   for owner,port in [('bad',5432),('a'*12,0),('a'*12,65536),('a'*12,'1;sql')]:
    with self.assertRaises(ValueError):m.database_environment(owner,port)
  def test_container_layout_rejects_wrong_resources_and_remote_port(self):
@@ -42,10 +42,10 @@ class LauncherTests(unittest.TestCase):
   with self.assertRaises(RuntimeError):m.validate_layout(row)
  def test_ownership_helpers_refuse_foreign_container(self):
   from types import SimpleNamespace
-  row={'Id':'a'*64,'Name':'/owned','Image':'sha256:'+'b'*64,'Config':{'Labels':{'dvaia.test.owner':'foreign'}}}
+  row={'Id':'a'*64,'Name':'/owned','Image':'sha256:'+'b'*64,'Config':{'Labels':{'owasp-ai-goat.test.owner':'foreign'}}}
   commands=[]
   def command(argv):commands.append(argv);return SimpleNamespace(returncode=0,stdout=json.dumps([row]),stderr='')
-  with self.assertRaises(RuntimeError):m.inspect_owned(command,name='owned',labels={'dvaia.test.owner':'ours'},image='sha256:'+'b'*64)
+  with self.assertRaises(RuntimeError):m.inspect_owned(command,name='owned',labels={'owasp-ai-goat.test.owner':'ours'},image='sha256:'+'b'*64)
   self.assertEqual(commands,[['inspect','--type','container','owned']])
  def test_shared_cleanup_budget_cannot_renew_after_failure(self):
   now=[0];budget=m.CleanupBudget(30,clock=lambda:now[0]);now[0]=31

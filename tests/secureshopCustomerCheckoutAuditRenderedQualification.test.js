@@ -4,12 +4,12 @@ const {forgeUnsignedAdminTeachingToken,assertV01BrowserAssessment,assertV01Brows
  assertV01AssessmentReference,runV01CanonicalAssessment,runV01FixedAssessment,
  V01_BROWSER_FLAGS,V01_BROWSER_SCOPE}=require('./fixtures/secureshopCustomerCheckoutAuditRenderedQualification');
 const b64=value=>Buffer.from(JSON.stringify(value)).toString('base64url');
-const token=()=>`${b64({typ:'JWT',alg:'HS256'})}.${b64({iss:'dvaia-secureshop-v01-practice',
+const token=()=>`${b64({typ:'JWT',alg:'HS256'})}.${b64({iss:'owasp-ai-goat-secureshop-v01-practice',
  aud:'owned-checkout-audit-read',sub:'shop-user:7',role:'customer',orderId:11,bindingTag:'a'.repeat(43)})}.abc`;
 test('V01 rendered fixture makes only the isolated canonical unsigned-admin teaching edit',()=>{
  const value=forgeUnsignedAdminTeachingToken(token(),{orderId:11}),parts=value.split('.');
  assert.deepEqual(JSON.parse(Buffer.from(parts[0],'base64url')),{typ:'JWT',alg:'none'});
- assert.deepEqual(JSON.parse(Buffer.from(parts[1],'base64url')),{iss:'dvaia-secureshop-v01-practice',
+ assert.deepEqual(JSON.parse(Buffer.from(parts[1],'base64url')),{iss:'owasp-ai-goat-secureshop-v01-practice',
   aud:'owned-checkout-audit-read',sub:'shop-user:7',role:'admin',orderId:11,bindingTag:'a'.repeat(43)});
  assert.equal(parts[2],'');assert.equal(value.includes('Bearer'),false);
 });
@@ -45,9 +45,9 @@ test('V01 rendered fixture admits only closed assessment and receipt DTOs',()=>{
   assert.throws(()=>assertV01BrowserReceipt({...receipt,...change}));
 });
 test('V01 assessment helper uses acknowledged parent storage across an opaque sandbox',
- {skip:!process.env.DVAIA_V01_SANDBOX_CHROME,timeout:60000},async()=>{
+ {skip:!process.env.OWASP_AI_GOAT_V01_SANDBOX_CHROME,timeout:60000},async()=>{
  const http=require('node:http'),puppeteer=require('puppeteer');
- const baseKey='dvaia:secureshop:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:1';
+ const baseKey='owasp-ai-goat:secureshop:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa:1';
  const sceneId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',scenarioId='cccccccc-cccc-4ccc-8ccc-cccccccccccc';
  assert.notEqual(sceneId,scenarioId);const storageKey=`${baseKey}:scene:${sceneId}`;
  const referenceKey='secureshop.customer-checkout-audit.assessment.v1';
@@ -88,7 +88,7 @@ document.querySelector('button').addEventListener('click',()=>parent.postMessage
    response.statusCode=404;response.end();
   });await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const origin=`http://127.0.0.1:${server.address().port}`;
-  browser=await puppeteer.launch({headless:true,executablePath:process.env.DVAIA_V01_SANDBOX_CHROME});
+  browser=await puppeteer.launch({headless:true,executablePath:process.env.OWASP_AI_GOAT_V01_SANDBOX_CHROME});
   const page=await browser.newPage();await page.goto(origin,{waitUntil:'domcontentloaded'});
   let frame=page.frames().find(value=>value!==page.mainFrame());assert.ok(frame);
   await assert.rejects(frame.evaluate(()=>localStorage.getItem('x')),/sandboxed|SecurityError/i);

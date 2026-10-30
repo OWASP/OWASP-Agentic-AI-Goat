@@ -23,7 +23,7 @@ function createWindowsPrivatePublication({ execute = execFileSync, platform = pr
       const intentPath = normalizePrivatePath(options.intentPath);
       const operationId = options.operationId;
       if (typeof operationId !== 'string' || !operationPattern.test(operationId)) throw denied();
-      const stagePath = normalizePrivatePath(`${targetPath}.dvaia-${operationId}.stage`);
+      const stagePath = normalizePrivatePath(`${targetPath}.owasp-ai-goat-${operationId}.stage`);
       const originalPath = normalizePrivatePath(`${intentPath}.original`);
       const resultPath = normalizePrivatePath(`${intentPath}.result`);
       const artifacts = [targetPath, intentPath, stagePath, originalPath, resultPath];

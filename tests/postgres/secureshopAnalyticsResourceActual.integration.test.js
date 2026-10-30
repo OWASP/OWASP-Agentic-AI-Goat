@@ -35,7 +35,7 @@ function disposableUrls(env=process.env){
     assert.equal(value.protocol,'postgresql:');assert.equal(value.hostname,'127.0.0.1');
     assert.ok(/^\d+$/.test(value.port)&&Number(value.port)>0&&Number(value.port)<=65535);
     assert.equal(value.username,`dvaia_${family}_${role.toLowerCase()}`);assert.equal(value.password+value.search+value.hash,'');
-    const match=new RegExp(`^/dvaia_test_agent_host_([a-f0-9]{12})_${family}$`).exec(value.pathname);assert.ok(match);
+    const match=new RegExp(`^/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_${family}$`).exec(value.pathname);assert.ok(match);
     host??=value.host;nonce??=match[1];assert.equal(value.host,host);assert.equal(match[1],nonce);
     urls[`${store}_${role}`]=value.href;
   }
@@ -235,7 +235,7 @@ async function translatorTransport({record,onReject,signal}){
 async function freePort(){const server=net.createServer();await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});const port=server.address().port;await new Promise(resolve=>server.close(resolve));return port;}
 
 if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},async()=>{
-  assert.equal(fs.realpathSync(process.cwd()),ROOT);assert.equal(process.env.DVAIA_CURRENT_MAIN_WORKSPACE,ROOT);
+  assert.equal(fs.realpathSync(process.cwd()),ROOT);assert.equal(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,ROOT);
   assert.equal(process.env.AI_PROVIDER,'ollama');assert.equal(process.env.OLLAMA_MODEL,MODEL);
   const evidence=process.env.SECURESHOP_ANALYTICS_RESOURCE_EVIDENCE_PATH;
   require('../fixtures/secureshopNativeEvidencePath').assertNativeEvidencePath(evidence,{root:ROOT,dockerHost:process.env.DOCKER_HOST,basename:'analytics-resource-evidence.json'});

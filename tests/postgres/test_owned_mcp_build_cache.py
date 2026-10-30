@@ -85,7 +85,7 @@ class BuildCacheTests(unittest.TestCase):
         mutations = [lambda r: r.update(Id="d" * 64),
                      lambda r: r.update(Name="/unrelated"),
                      lambda r: r.update(Image="sha256:" + "e" * 64),
-                     lambda r: r["Config"]["Labels"].update({"dvaia.owner": "f" * 32})]
+                     lambda r: r["Config"]["Labels"].update({"owasp-ai-goat.owner": "f" * 32})]
         for mutation in mutations:
             with self.subTest(mutation=mutation):
                 fake = Docker()

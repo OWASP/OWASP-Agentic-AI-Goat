@@ -52,12 +52,12 @@ test('actual launch branch preserves V19 arguments and acknowledgement when owne
   const run = fs.mkdtempSync(path.join(root, 'tasks/qualification/run-v19-launch-control-'));
   t.after(() => fs.rmSync(run, { recursive: true, force: true }));
   const runtime = path.join(run, 'runtime'), tmp = path.join(runtime, 'tmp');
-  const profile = path.join(tmp, 'dvaia-v19-browser-controlled');
+  const profile = path.join(tmp, 'owasp-ai-goat-v19-browser-controlled');
   for (const directory of [runtime, tmp, profile]) fs.mkdirSync(directory, { mode: 0o700 });
   const executablePath = '/controlled/chromium', origin = 'http://127.0.0.1:12345';
   const env = { SECURESHOP_V19_TEST_NO_SANDBOX: '1', SECURESHOP_V19_FILE_SUMMARY_BROWSER_NATIVE: '1',
     PG_TEST_DISPOSABLE: 'yes', LIVE_OLLAMA_TEST: '1', NODE_ENV: 'test',
-    DVAIA_CURRENT_MAIN_WORKSPACE: root, TMPDIR: tmp,
+    OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: root, TMPDIR: tmp,
     SECURESHOP_V19_FILE_SUMMARY_BROWSER_EVIDENCE_PATH: path.join(run, 'customer-file-summary-v19-browser.json'),
     SECURESHOP_V19_BROWSER_RECORD_PATH: path.join(run, 'v19-browser.json'),
     SECURESHOP_V19_BROWSER_ACK_PATH: path.join(run, 'v19-browser-ack.json'),
@@ -117,11 +117,11 @@ test('V19 opt-in changes only its private profile prefix and preserves scenario 
   assert.equal(profile.length, 1);
   const prefix = profile[0].right.argument.arguments[0].arguments[1];
   assert.equal(prefix.type, 'ConditionalExpression');
-  assert.equal(prefix.consequent.value, 'dvaia-v19-browser-');
+  assert.equal(prefix.consequent.value, 'owasp-ai-goat-v19-browser-');
   let fallback = prefix.alternate;
   while (fallback.type === 'ConditionalExpression') fallback = fallback.alternate;
   assert.equal(fallback.type, 'StringLiteral');
-  assert.equal(fallback.value, 'dvaia-customer-checkout-');
+  assert.equal(fallback.value, 'owasp-ai-goat-customer-checkout-');
   assert.match(source, /V19_SUMMARY\s*&&\s*process\.env\.SECURESHOP_V19_TEST_NO_SANDBOX\s*===\s*'1'/);
   assert.match(source, /V19_SUMMARY\s*\?\s*\['ss_stored_browser_execution', 'ss_file_upload_instruction_adoption'\]/);
 });

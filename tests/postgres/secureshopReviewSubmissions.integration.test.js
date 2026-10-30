@@ -30,11 +30,11 @@ function submission(id, body, authorId = 700) {
 }
 
 if (require.main === module) test('learner review provenance, capacity and dynamic cleanup are durable and owner-bound', { skip: !enabled }, async () => {
-  const workspace = path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-secureshop-review-submissions-/);
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-secureshop-review-submissions-/);
   for (const key of ['PG_SECURESHOP_REVIEW_SUBMISSION_MIGRATION_URL', 'PG_SECURESHOP_REVIEW_SUBMISSION_RUNTIME_URL']) {
     const url = new URL(process.env[key]);
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
     assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
   }
   const migration = new Pool({ connectionString: process.env.PG_SECURESHOP_REVIEW_SUBMISSION_MIGRATION_URL, max: 2 });

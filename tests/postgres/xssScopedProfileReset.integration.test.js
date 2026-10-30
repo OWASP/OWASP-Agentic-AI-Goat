@@ -46,7 +46,7 @@ test('XSS migration prefix views retain exact canonical SQL and checksums', asyn
 function assertOwnedUrl(value, role) {
   const url = new URL(value);
   assert.equal(url.hostname, '127.0.0.1');
-  assert.equal(url.pathname, '/dvaia_test_xss_scoped_profile_reset');
+  assert.equal(url.pathname, '/owasp_ai_goat_test_xss_scoped_profile_reset');
   assert.equal(decodeURIComponent(url.username), role);
 }
 async function insertOrigin(pool, ownerId, field, revision, value) {

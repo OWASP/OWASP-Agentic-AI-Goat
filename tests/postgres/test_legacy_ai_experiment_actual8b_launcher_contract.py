@@ -129,7 +129,7 @@ class LauncherContract(unittest.TestCase):
         environment_block = self.source[start:end]
         for key in ('PATH', 'HOME', 'TMPDIR', 'TMP', 'TEMP', 'NODE_ENV',
                     'AWS_EC2_METADATA_DISABLED', 'LANGCHAIN_TRACING_V2',
-                    'LANGSMITH_TRACING', 'NO_PROXY', 'DVAIA_ISOLATED_TEST_WORKSPACE',
+                    'LANGSMITH_TRACING', 'NO_PROXY', 'OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE',
                     'LEGACY_AI_EXPERIMENT_ACTUAL8B_ISOLATED',
                     'LEGACY_AI_EXPERIMENT_ACTUAL8B_STAGE', 'OLLAMA_BASE_URL',
                     'AI_PROVIDER', 'OLLAMA_MODEL', 'JUDGE_PROVIDER', 'JUDGE_MODEL',

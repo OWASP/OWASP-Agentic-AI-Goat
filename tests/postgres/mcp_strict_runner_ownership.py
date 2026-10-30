@@ -57,7 +57,7 @@ class StrictRunner:
         if not isinstance(policy, bytes) or hashlib.sha256(policy).hexdigest() != policy_sha256:
             raise RuntimeError('Rendered policy hash mismatch')
         validate_build_receipt(build_receipt, image=image, context_sha256=context_sha256, template_sha256=template_sha256)
-        profile = 'dvaia-mcp-sandbox-'+nonce[:12]
+        profile = 'owasp-ai-goat-mcp-sandbox-'+nonce[:12]
         if (not isinstance(template, bytes) or hashlib.sha256(template).hexdigest() != template_sha256
                 or b'@@SUPERVISOR_PROFILE@@' not in template):
             raise RuntimeError('Exact reviewed policy template required')
@@ -68,8 +68,8 @@ class StrictRunner:
         self.daemon_id, self.image = daemon_id, image
         self.profile = profile
         self.directory = '/tmp/'+self.profile
-        self.name = 'dvaia-mcp-connected-runner-'+nonce
-        self.labels = {'dvaia.qualification':'mcp_connected_baseline','dvaia.run-nonce':nonce,'dvaia.owner-uid':str(uid)}
+        self.name = 'owasp-ai-goat-mcp-connected-runner-'+nonce
+        self.labels = {'owasp-ai-goat.qualification':'mcp_connected_baseline','owasp-ai-goat.run-nonce':nonce,'owasp-ai-goat.owner-uid':str(uid)}
         self.marker = nonce+'\n';self.policy = policy;self.policy_sha256 = policy_sha256
         self.remote_intended = False;self.container_intended = False;self.captured = None
 

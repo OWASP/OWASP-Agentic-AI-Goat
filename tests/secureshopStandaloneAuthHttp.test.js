@@ -46,7 +46,7 @@ test('independent shop login uses hardened scoped cookie and strips internal aut
   const response = await f.request('/login', { username: 'customer', password: 'fixture' });
   assert.equal(response.status, 200);
   const cookie = response.headers.get('set-cookie');
-  for (const value of ['dvaia_shop_session=', 'Path=/api/secureshop', 'HttpOnly', 'SameSite=Strict', 'Secure']) assert.ok(cookie.includes(value));
+  for (const value of ['owasp_ai_goat_shop_session=', 'Path=/api/secureshop', 'HttpOnly', 'SameSite=Strict', 'Secure']) assert.ok(cookie.includes(value));
   const data = await response.json();
   assert.equal(data.user.username, 'customer');
   for (const forbidden of ['token', 'context', 'ownerId', 'sessionId', 'passwordHash', 'internalOnly']) assert.ok(!JSON.stringify(data).includes(forbidden));
@@ -59,7 +59,7 @@ test('shop login and renewal cookies retain the exact service expiry',async t=>{
   const f=await fixture(t,{login:async()=>value,renew:async()=>value});
   for(const endpoint of ['/login','/renew']){
     const response=await f.request(endpoint,endpoint==='/login'?{username:'customer',password:'fixture'}:{},
-      {Cookie:`dvaia_shop_session=${token}`});
+      {Cookie:`owasp_ai_goat_shop_session=${token}`});
     assert.equal(response.status,200);
     const cookieExpiry=/Expires=([^;]+)/i.exec(response.headers.get('set-cookie'))?.[1];
     assert.equal(Date.parse(cookieExpiry),Date.parse(expiresAt));
@@ -105,7 +105,7 @@ test('public registration cannot assign admin or inject authority identifiers', 
 });
 
 test('status is read-only, bootstrap uses validated shop context, logout revokes only shop token', async t => {
-  const f = await fixture(t); const headers = { Cookie: `dvaia_shop_session=${token}` };
+  const f = await fixture(t); const headers = { Cookie: `owasp_ai_goat_shop_session=${token}` };
   const signedIn = await (await f.request('/login', { username: 'customer', password: 'fixture' })).json();
   const status = await (await fetch(f.base + '/session', { headers })).json();
   assert.equal(status.authenticated, true);
@@ -121,7 +121,7 @@ test('only the exact expired shop launch exposes a bounded renewal signal', asyn
     const f = await fixture(t, {}, { bootstrap: async () => {
       throw Object.assign(Error('private launch state'), { code });
     } });
-    const response = await f.request('/bootstrap', {}, { Cookie: `dvaia_shop_session=${token}` });
+    const response = await f.request('/bootstrap', {}, { Cookie: `owasp_ai_goat_shop_session=${token}` });
     const body = await response.json();
     if (code === 'SHOP_LAUNCH_EXPIRED') {
       assert.equal(response.status, 409);assert.equal(body.code, code);
@@ -135,7 +135,7 @@ test('only the exact expired shop launch exposes a bounded renewal signal', asyn
 
 test('ambiguous shop cookies fail closed instead of choosing a session', async t => {
   const f = await fixture(t);
-  assert.equal((await f.request('/bootstrap', {}, { Cookie: `dvaia_shop_session=${token}; dvaia_shop_session=${token}` })).status, 401);
+  assert.equal((await f.request('/bootstrap', {}, { Cookie: `owasp_ai_goat_shop_session=${token}; owasp_ai_goat_shop_session=${token}` })).status, 401);
   assert.equal(f.calls.length, 0);
 });
 
@@ -162,17 +162,17 @@ test('password change requires shop authority, clears its cookie and requires fr
   const f = await fixture(t);
   const input = { currentPassword: 'old-fixture', newPassword: 'new-fixture' };
   assert.equal((await f.request('/password', input, { Authorization: 'Bearer workshop-jwt' })).status, 401);
-  const response = await f.request('/password', input, { Cookie: `dvaia_shop_session=${token}` });
+  const response = await f.request('/password', input, { Cookie: `owasp_ai_goat_shop_session=${token}` });
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { authenticated: false, passwordChanged: true });
-  assert.match(response.headers.get('set-cookie'), /dvaia_shop_session=;/);
+  assert.match(response.headers.get('set-cookie'), /owasp_ai_goat_shop_session=;/);
   assert.match(response.headers.get('set-cookie'), /Path=\/api\/secureshop/);
-  assert.equal((await f.request('/bootstrap', {}, { Cookie: `dvaia_shop_session=${token}` })).status, 401);
+  assert.equal((await f.request('/bootstrap', {}, { Cookie: `owasp_ai_goat_shop_session=${token}` })).status, 401);
 });
 
 test('failed password change retains cookie and does not claim success', async t => {
   const f = await fixture(t, { changePassword: async () => { throw Object.assign(new Error('private'), { code: 'SHOP_CREDENTIALS_INVALID' }); } });
-  const response = await f.request('/password', { currentPassword: 'wrong', newPassword: 'new-fixture' }, { Cookie: `dvaia_shop_session=${token}` });
+  const response = await f.request('/password', { currentPassword: 'wrong', newPassword: 'new-fixture' }, { Cookie: `owasp_ai_goat_shop_session=${token}` });
   assert.equal(response.status, 401); assert.equal(response.headers.get('set-cookie'), null);
   assert.deepEqual(await response.json(), { error: 'Invalid shop credentials' });
 });
@@ -187,11 +187,11 @@ test('guest cart import requires shop cookie and passes only bounded item intent
     imports++; assert.equal(principal, context); assert.deepEqual(request, input); return outcome;
   } });
   assert.equal((await f.request('/cart-import', input)).status, 401);
-  const response = await f.request('/cart-import', input, { Cookie: `dvaia_shop_session=${token}` });
+  const response = await f.request('/cart-import', input, { Cookie: `owasp_ai_goat_shop_session=${token}` });
   assert.equal(response.status, 200); assert.deepEqual(await response.json(), outcome);
   assert.equal(imports, 1);
   assert.equal((await f.request('/cart-import', { ...input, items: [{ productId: 1, quantity: 2, price: 0 }] },
-    { Cookie: `dvaia_shop_session=${token}` })).status, 400);
+    { Cookie: `owasp_ai_goat_shop_session=${token}` })).status, 400);
   assert.equal(imports, 1);
 });
 
@@ -202,7 +202,7 @@ test('cart import denies authority leakage and preserves structured stock reject
     issues: [{ productId: 1, code: 'INSUFFICIENT_STOCK', availableQuantity: 0 }] };
   const f = await fixture(t, {}, { cartImport: async () => leak ? { ...rejection, token: 'private' } : rejection });
   const input = { requestId, items: [{ productId: 1, quantity: 2 }] };
-  const headers = { Cookie: `dvaia_shop_session=${token}` };
+  const headers = { Cookie: `owasp_ai_goat_shop_session=${token}` };
   assert.deepEqual(await (await f.request('/cart-import', input, headers)).json(), rejection);
   leak = true;
   const response = await f.request('/cart-import', input, headers);
@@ -219,7 +219,7 @@ test('cart import canonicalizes a valid uppercase request ID before any effect o
   } });
   for (const replayed of [false, true]) {
     const response = await f.request('/cart-import', { requestId, items: [{ productId: 1, quantity: 1 }] },
-      { Cookie: `dvaia_shop_session=${token}` });
+      { Cookie: `owasp_ai_goat_shop_session=${token}` });
     assert.equal(response.status, 200);
     const result = await response.json();
     assert.equal(result.requestId, requestId.toLowerCase()); assert.equal(result.replayed, replayed);
@@ -233,7 +233,7 @@ test('independent mode reads and CAS changes use only the cookie principal', asy
     set:async(principal,input)=>{assert.equal(principal,context);if(input.expectedRevision!==value.revision)throw Object.assign(Error('changed'),{code:'SHOP_MODE_CONFLICT'});value={mode:input.mode,revision:'2'};return value;},
   } });
   assert.equal((await fetch(f.base+'/mode')).status,401);
-  const headers={Cookie:`dvaia_shop_session=${token}`};
+  const headers={Cookie:`owasp_ai_goat_shop_session=${token}`};
   assert.deepEqual(await(await fetch(f.base+'/mode',{headers})).json(),value);
   assert.deepEqual(await(await f.request('/mode',{mode:'fixed',expectedRevision:'1'},headers)).json(),{mode:'fixed',revision:'2'});
   assert.equal((await f.request('/mode',{mode:'vuln',expectedRevision:'1'},headers)).status,409);
@@ -246,8 +246,8 @@ test('objective configuration requires independent immutable shop admin cookie a
   const catalog = { list: async () => ({ objectives: [] }), set: async () => { mutations++; } };
   const f = await fixture(t, {}, { assessmentObjectives: catalog });
   assert.equal((await fetch(f.base + '/assessment-objectives')).status, 401);
-  assert.equal((await fetch(f.base + '/assessment-objectives', {headers:{Cookie:`dvaia_shop_session=${token}`}})).status,403);
-  assert.equal((await f.request('/assessment-objectives', {objectiveId:'ss_loop_observation',enabled:true,expectedRevision:'1'}, {Cookie:`dvaia_shop_session=${token}`})).status,403);
+  assert.equal((await fetch(f.base + '/assessment-objectives', {headers:{Cookie:`owasp_ai_goat_shop_session=${token}`}})).status,403);
+  assert.equal((await f.request('/assessment-objectives', {objectiveId:'ss_loop_observation',enabled:true,expectedRevision:'1'}, {Cookie:`owasp_ai_goat_shop_session=${token}`})).status,403);
   assert.equal(mutations,0);
 });
 test('shop objective catalog projects exact safe DTO and rejects stale or unqualified changes', async t => {
@@ -257,7 +257,7 @@ test('shop objective catalog projects exact safe DTO and rejects stale or unqual
     list:async user=>{assert.equal(user,admin);return {objectives:[{...row,label:'Observe the loop'}]};},
     set:async (user,input)=>{assert.equal(user,admin);if(mode!=='ok')throw Object.assign(Error('private'),{code:mode});return {...row,enabled:input.enabled,revision:'2'};}
   }});
-  const headers={Cookie:`dvaia_shop_session=${token}`};
+  const headers={Cookie:`owasp_ai_goat_shop_session=${token}`};
   const listed=await fetch(f.base+'/assessment-objectives',{headers});assert.equal(listed.status,200);assert.equal((await listed.json()).objectives.length,1);
   const input={objectiveId:row.objectiveId,enabled:true,expectedRevision:'1'};
   assert.equal((await f.request('/assessment-objectives',input,headers)).status,200);
@@ -271,7 +271,7 @@ test('objective catalog fails closed on private output or mismatched mutation re
   const f=await fixture(t,{authenticate:async()=>({...context,role:'admin'})},{assessmentObjectives:{
     list:async()=>({objectives:[{...row,label:'Loop',secret:'private'}]}),set:async()=>row
   }});
-  const headers={Cookie:`dvaia_shop_session=${token}`};
+  const headers={Cookie:`owasp_ai_goat_shop_session=${token}`};
   const response=await fetch(f.base+'/assessment-objectives',{headers});assert.equal(response.status,503);assert(!JSON.stringify(await response.json()).includes('private'));
   assert.equal((await f.request('/assessment-objectives',{objectiveId:row.objectiveId,enabled:true,expectedRevision:'1'},headers)).status,503);
 });
@@ -283,7 +283,7 @@ test('shop assessment recovery is cookie scoped, bounded, and passes only canoni
  const f=await fixture(t,{}, {assessmentRecovery:{list:async user=>{assert.equal(user,context);return{judgments:[row]};},
   retry:async(user,input)=>{assert.equal(user,context);assert.deepEqual(input,{evaluationId});calls++;return{evaluationId,
    childEvaluationId:'bf8ea882-bcde-4123-8e11-321ef739daca',verdict:'fail',disposition:'not_pass',completed:false,replayed:false};}}});
- const headers={Cookie:`dvaia_shop_session=${token}`};
+ const headers={Cookie:`owasp_ai_goat_shop_session=${token}`};
  assert.equal((await fetch(f.base+'/assessments',{headers})).status,200);
  assert.equal((await fetch(f.base+'/assessments?userId=other',{headers})).status,400);
  assert.equal((await f.request('/assessments/retry',{evaluationId})).status,401);
@@ -296,7 +296,7 @@ test('shop recovery strips no authority silently and rejects false completion or
  const f=await fixture(t,{}, {assessmentRecovery:{list:async()=>({judgments:[],privateToken:'private'}),
   retry:async()=>{if(stale)throw Object.assign(Error('private'),{code:'SHOP_ASSESSMENT_STALE'});return{
    evaluationId,childEvaluationId:'bf8ea882-bcde-4123-8e11-321ef739daca',verdict:'fail',disposition:'not_pass',completed:true,replayed:false};}}});
- const headers={Cookie:`dvaia_shop_session=${token}`};
+ const headers={Cookie:`owasp_ai_goat_shop_session=${token}`};
  const listed=await fetch(f.base+'/assessments',{headers});assert.equal(listed.status,503);assert(!JSON.stringify(await listed.json()).includes('private'));
  assert.equal((await f.request('/assessments/retry',{evaluationId},headers)).status,503);
  stale=true;assert.equal((await f.request('/assessments/retry',{evaluationId},headers)).status,409);
@@ -310,7 +310,7 @@ test('registered reset requires independent admin cookie before service mutation
   assert.equal((await f.request('/admin/users/123/reset-password', input,
     { Authorization: 'Bearer workshop-admin', Cookie: 'connect.sid=workshop' })).status, 401);
   assert.equal((await f.request('/admin/users/123/reset-password', input,
-    { Cookie: `dvaia_shop_session=${token}` })).status, 403);
+    { Cookie: `owasp_ai_goat_shop_session=${token}` })).status, 403);
   assert.equal(resets, 0);
 });
 
@@ -329,7 +329,7 @@ test('registered reset projects exact protected receipts and confines secret to 
   };
   const f = await fixture(t, { authenticate: async value => value === token ? { ...context, role: 'admin' } : null },
     { registeredAdminReset: resetService });
-  const headers = { Cookie: `dvaia_shop_session=${token}` }, base = '/admin/users/123';
+  const headers = { Cookie: `owasp_ai_goat_shop_session=${token}` }, base = '/admin/users/123';
   const ready = await fetch(f.base + base + '/reset-readiness', { headers });
   assert.equal(ready.status, 200); assert.equal((await ready.json()).user.id, targetId);
   const input = { operationId: operationId.toUpperCase(), expectedCredentialVersion: '1', expectedAuthorityVersion: '1', expectedMembershipVersion: '1' };
@@ -367,7 +367,7 @@ test('shared-practice reset uses only shop admin cookie, exact confirmation, and
     reset: async (user, input) => { calls.push(['reset', user, input]); return {
       resetId, status: 'committed', cleanupComplete: true }; },
   } });
-  const headers = { Cookie: `dvaia_shop_session=${token}` };
+  const headers = { Cookie: `owasp_ai_goat_shop_session=${token}` };
   const ready = await fetch(f.base + '/reset-readiness', { headers });
   assert.equal(ready.status, 200);
   assert.deepEqual(await ready.json(), { available: true, scope: 'shared_practice',
@@ -388,7 +388,7 @@ test('shared-practice reset uses only shop admin cookie, exact confirmation, and
 });
 
 test('shared-practice reset fails closed on missing composition, non-admin authority and unconfirmed completion', async t => {
-  const headers = { Cookie: `dvaia_shop_session=${token}` };
+  const headers = { Cookie: `owasp_ai_goat_shop_session=${token}` };
   const absent = await fixture(t);
   assert.equal((await fetch(absent.base + '/reset-readiness', { headers })).status, 403);
   assert.equal((await absent.request('/reset', { launchId: 'af8ea882-bcde-4123-8e11-321ef739daca',
@@ -423,7 +423,7 @@ test('reset recovery is cookie-admin scoped and projects only exact retained jou
     recover: async (user, input) => { calls.push(['recover', user, input]); return {
       resetId, status: 'fenced', cleanupComplete: true, activated: false }; },
   } });
-  const headers = { Cookie: `dvaia_shop_session=${token}` };
+  const headers = { Cookie: `owasp_ai_goat_shop_session=${token}` };
   assert.equal((await fetch(f.base + '/reset-recovery')).status, 401);
   const read = await fetch(f.base + '/reset-recovery', { headers });
   assert.equal(read.status, 200);
@@ -443,7 +443,7 @@ test('reset recovery is cookie-admin scoped and projects only exact retained jou
 });
 
 test('reset recovery rejects false activation and private output, and returns 404 for foreign journal', async t => {
-  const headers = { Cookie: `dvaia_shop_session=${token}` };
+  const headers = { Cookie: `owasp_ai_goat_shop_session=${token}` };
   const admin = { authenticate: async () => ({ ...context, role: 'admin' }) };
   const absent = await fixture(t, admin);
   assert.equal((await fetch(absent.base + '/reset-recovery', { headers })).status, 503);
@@ -478,7 +478,7 @@ test('practice POST and exact GET use only current shop cookie authority and a c
     create:async(user,id)=>{assert.equal(user,context);calls.push(['create',id]);return value;},
     read:async(user,id)=>{assert.equal(user,context);calls.push(['read',id]);return value;},
   }});
-  const headers={Cookie:`dvaia_shop_session=${token}`};
+  const headers={Cookie:`owasp_ai_goat_shop_session=${token}`};
   assert.equal((await f.request('/practices',{operationId})).status,401);
   assert.equal((await f.request('/practices',{operationId,ownerId:91},headers)).status,400);
   assert.deepEqual(await (await f.request('/practices',{operationId},headers)).json(),value);
@@ -488,7 +488,7 @@ test('practice POST and exact GET use only current shop cookie authority and a c
 test('practice capacity rejection identifies exact UUID and never reports publication', async t => {
   const operationId='11111111-1111-4111-8111-111111111111';
   const f=await fixture(t,{}, {practices:{create:async()=>{throw Object.assign(Error('private detail'),{code:'SHOP_PRACTICE_CAPACITY'});}}});
-  const response=await f.request('/practices',{operationId},{Cookie:`dvaia_shop_session=${token}`});
+  const response=await f.request('/practices',{operationId},{Cookie:`owasp_ai_goat_shop_session=${token}`});
   assert.equal(response.status,409);const body=await response.json();
   assert.equal(body.code,'SHOP_PRACTICE_CAPACITY');assert.equal(body.operationId,operationId);
   assert.equal(JSON.stringify(body).includes('private detail'),false);
@@ -496,7 +496,7 @@ test('practice capacity rejection identifies exact UUID and never reports public
 test('practice router denies malformed or excessive service projections', async t => {
   const operationId='11111111-1111-4111-8111-111111111111';
   const f=await fixture(t,{}, {practices:{create:async()=>({operationId,status:'published',sceneId:operationId,canResume:false,bearer:'private'})}});
-  const response=await f.request('/practices',{operationId},{Cookie:`dvaia_shop_session=${token}`});
+  const response=await f.request('/practices',{operationId},{Cookie:`owasp_ai_goat_shop_session=${token}`});
   assert.equal(response.status,503);assert.equal(JSON.stringify(await response.json()).includes('private'),false);
 });
 
@@ -512,7 +512,7 @@ test('shop progress reads bind cookie identity and admin role with bounded selec
       readLearner: async (user, input) => { calls.push(['learner', user, input]); return { completedObjectives: 0 }; },
     },
   });
-  const headers = { Cookie: `dvaia_shop_session=${token}` };
+  const headers = { Cookie: `owasp_ai_goat_shop_session=${token}` };
   assert.equal((await fetch(f.base + '/progress')).status, 401);
   assert.equal((await fetch(f.base + '/progress', { headers })).status, 200);
   assert.equal(calls[0][1], context);
@@ -548,7 +548,7 @@ test('mounted progress uses the standalone cookie across practice reset and deni
   return {completedObjectives:completed?1:0,totalObjectives:1,objectives:[{objectiveId:'ss_file_path_traversal_read',completed}]};}},
   reset:{reset:async(user)=>{assertSecureShopStandaloneAuthPrincipal(user);assert.equal(user.principalId,principalId);resets++;completed=false;return{resetId,status:'committed',cleanupComplete:true};}}});
  const bearer=await fetch(f.base+'/progress',{headers:{Authorization:'Bearer '+token}});assert.equal(bearer.status,401);assert.equal(sessionReads,0);assert.equal(progressReads,0);
- const headers={Cookie:'dvaia_shop_session='+token};
+ const headers={Cookie:'owasp_ai_goat_shop_session='+token};
  const host=require('node:fs').readFileSync(require('node:path').join(__dirname,'postgres/secureshopCustomerCheckoutRendered.integration.test.js'),'utf8');
  const readSource=host.slice(host.indexOf('        const publicProgress=async()=>'),host.indexOf('        const sourceFor=async reference=>'));
  const page={evaluate:async work=>require('node:vm').runInNewContext('('+String(work)+')()',{

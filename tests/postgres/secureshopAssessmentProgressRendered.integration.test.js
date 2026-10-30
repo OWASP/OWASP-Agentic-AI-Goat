@@ -35,7 +35,7 @@ function storeUrls() {
       assert.equal(url.hostname, '127.0.0.1');
       assert.equal(url.username, `dvaia_${name}_${role.toLowerCase()}`);
       assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-      const match = /^\/dvaia_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
+      const match = /^\/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
       assert.ok(match && match[2] === name, `${store} must be an owned disposable database`);
       assert.ok(Number(url.port) > 0 && Number(url.port) <= 65535);
       nonce ??= match[1]; port ??= url.port;
@@ -158,7 +158,7 @@ async function controlledContribution(migration, identity, launch) {
 test('rendered standalone progress shows controlled current awards, admin tenant scope, and reset retirement',
   { skip: !ENABLED, timeout: 240000 }, async () => {
     assert.equal(process.cwd(), ROOT);
-    assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
+    assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
     const evidencePath = process.env.SECURESHOP_ASSESSMENT_PROGRESS_RENDERED_EVIDENCE_PATH || '';
     assert.ok(path.isAbsolute(evidencePath));
     assert.ok(!path.resolve(evidencePath).startsWith(`${ROOT}${path.sep}`));
@@ -319,7 +319,7 @@ test('rendered standalone progress shows controlled current awards, admin tenant
         response.set('Access-Control-Allow-Origin', '*') }));
       app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
 
-      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-progress-rendered-'));
+      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-progress-rendered-'));
       browser = await require('puppeteer').launch({ headless: true,
         userDataDir: profile, executablePath, timeout: 20000, protocolTimeout: 20000 });
       const customerBrowser = await physicalLogin(browser, origin, customerName, password);
@@ -393,7 +393,7 @@ test('rendered standalone progress shows controlled current awards, admin tenant
         (tenant_id,principal_id,shop_user_id,role) VALUES($1,$2,$3,'customer')`,
       [peerTenant, peerId, peerRow.shop_user_id]);
       const adminCookie = (await adminPage.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(cookie => cookie.name === 'dvaia_shop_session');
+        .find(cookie => cookie.name === 'owasp_ai_goat_shop_session');
       assert.ok(adminCookie);
       const foreign = await fetch(`${origin}/api/secureshop/auth/admin/progress/${peerId}`,
         { headers: { Cookie: `${adminCookie.name}=${adminCookie.value}` },
@@ -448,7 +448,7 @@ test('rendered standalone progress shows controlled current awards, admin tenant
       status.siblingPreserved = true;
 
       const customerCookie = (await customerPage.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(cookie => cookie.name === 'dvaia_shop_session');
+        .find(cookie => cookie.name === 'owasp_ai_goat_shop_session');
       assert.ok(customerCookie);
       assert.equal(await auth.logout(customerCookie.value), true);
       const denied = waitResponse(customerPage, 'GET', '/api/secureshop/auth/progress');

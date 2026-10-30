@@ -35,7 +35,7 @@ class TeachingCopyAssetsCandidatesLauncherContract(unittest.TestCase):
         self.assertIn("POSTGRES_IMAGE_ID = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'", self.source)
         self.assertIn("'image', 'inspect', POSTGRES_IMAGE_ID", self.source)
         self.assertIn("'-p', '127.0.0.1::5432', POSTGRES_IMAGE_ID", self.source)
-        self.assertIn("NODE = Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')", self.source)
+        self.assertIn("NODE = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')", self.source)
         self.assertIn("DOCKER = Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')", self.source)
         self.assertIn('EXECUTABLE_HASHES', self.source)
         self.assertNotIn("'--volume'", self.source)
@@ -52,8 +52,8 @@ class TeachingCopyAssetsCandidatesLauncherContract(unittest.TestCase):
         for value in ['dvaia_identity_migration', 'dvaia_identity_runtime',
                       'dvaia_secureshop_migration', 'dvaia_secureshop_runtime',
                       'dvaia_ctf_migration', 'dvaia_ctf_runtime',
-                      'dvaia_dpi_copy_{nonce}', 'dvaia_secureshop_assets_{nonce}',
-                      'dvaia_ctf_wrapper_{nonce}']:
+                      'owasp_ai_goat_dpi_copy_{nonce}', 'owasp_ai_goat_secureshop_assets_{nonce}',
+                      'owasp_ai_goat_ctf_wrapper_{nonce}']:
             self.assertIn(value, self.source)
         self.assertIn("docker + ['rm', '--force', container]", self.source)
         self.assertIn("'absenceVerified': not bool(remaining)", self.source)
@@ -107,7 +107,7 @@ class TeachingCopyAssetsCandidatesLauncherContract(unittest.TestCase):
             'status': 'granted', 'allowedLaunches': 1,
             'dockerHost': 'unix:///offline-mismatch.sock',
             'postgresImageId': assignments['POSTGRES_IMAGE_ID'],
-            'nodePath': '/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node',
+            'nodePath': '/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node',
             'dockerPath': '/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker',
             'psqlPath': '/Users/averma5/.local/opt/agentic-ai-goat/Postgres-2.9.6-18.app/Contents/Versions/18/bin/psql',
             'expectedSourceHashes': hashes,

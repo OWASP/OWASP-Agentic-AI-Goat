@@ -35,7 +35,7 @@ function ownedUrl(name, database, role) {
 function pool(url) {
   return new Pool({ connectionString: url, max: 2, connectionTimeoutMillis: 5000,
     statement_timeout: 30000, lock_timeout: 5000,
-    application_name: 'dvaia-finflow-integrated-migrations' });
+    application_name: 'owasp-ai-goat-finflow-integrated-migrations' });
 }
 async function objective(poolValue, id) {
   return (await poolValue.query(`SELECT workshop_key,objective_id,label,category,ordinal,
@@ -62,13 +62,13 @@ test('identity 0054 uses the real loader for fresh, populated, no-op, and rollba
     assert.notEqual(urls[0].pathname, urls[2].pathname);
     assert.equal(createHash('sha256').update(migrationSql).digest('hex'), MIGRATION_SHA256);
     const mainRuntime = pool(ownedUrl('IDENTITY_DATABASE_URL',
-      'dvaia_test_finflow_traversal_identity', 'runtime'));
+      'owasp_ai_goat_test_finflow_traversal_identity', 'runtime'));
     const mainMigration = pool(ownedUrl('IDENTITY_MIGRATION_DATABASE_URL',
-      'dvaia_test_finflow_traversal_identity', 'migration'));
+      'owasp_ai_goat_test_finflow_traversal_identity', 'migration'));
     const populatedRuntime = pool(ownedUrl('FINFLOW_IDENTITY_POPULATED_DATABASE_URL',
-      'dvaia_test_finflow_traversal_identity_populated', 'runtime'));
+      'owasp_ai_goat_test_finflow_traversal_identity_populated', 'runtime'));
     const populatedMigration = pool(ownedUrl('FINFLOW_IDENTITY_POPULATED_MIGRATION_DATABASE_URL',
-      'dvaia_test_finflow_traversal_identity_populated', 'migration'));
+      'owasp_ai_goat_test_finflow_traversal_identity_populated', 'migration'));
     const pools = [mainRuntime, mainMigration, populatedRuntime, populatedMigration];
     t.after(async () => Promise.allSettled(pools.map(value => value.end())));
 

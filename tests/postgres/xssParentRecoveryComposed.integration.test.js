@@ -16,7 +16,7 @@ const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&keys.every(key=>process.en
 test('composed parent recovery retires late writes and preserves committed reset receipts', {skip:!enabled},async()=>{
  for(const [i,key] of keys.entries()){
   const url=new URL(process.env[key]);assert.equal(url.hostname,'127.0.0.1');
-  assert.equal(url.pathname,i<2?'/dvaia_test_xss_recovery_identity':'/dvaia_test_xss_recovery_store');
+  assert.equal(url.pathname,i<2?'/owasp_ai_goat_test_xss_recovery_identity':'/owasp_ai_goat_test_xss_recovery_store');
   assert.equal(url.username,`dvaia_${i<2?'identity':'xss'}_${i%2?'migration':'runtime'}`);
  }
  const pools=keys.map(key=>createPool(process.env,key));

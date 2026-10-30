@@ -5,7 +5,7 @@ import platform_auth_ctf_profile as p
 class Profile(unittest.TestCase):
  def test_three_distinct_owned_databases(self):
   values=p.plan('a'*12);self.assertEqual(len(set(values.values())),3)
-  self.assertTrue(values['fresh'].startswith('dvaia_test_ctf_adminpolicy_'))
+  self.assertTrue(values['fresh'].startswith('owasp_ai_goat_test_ctf_adminpolicy_'))
  def test_environment_does_not_inherit(self):
   with patch.dict('os.environ',{'IDENTITY_DATABASE_URL':'private','HOME':'unowned'}):
    e=p.environment('/owned',54321,p.plan('b'*12),'ctf')

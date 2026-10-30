@@ -26,7 +26,7 @@ function poolConfig(env = process.env, key = 'DATABASE_URL', {purpose} = {}) {
     connectionTimeoutMillis: 5000, idleTimeoutMillis: 30000,
     statement_timeout: 30000, lock_timeout: 5000,
     idle_in_transaction_session_timeout: 30000,
-    application_name: 'dvaia',
+    application_name: 'owasp-ai-goat',
   };
 }
 

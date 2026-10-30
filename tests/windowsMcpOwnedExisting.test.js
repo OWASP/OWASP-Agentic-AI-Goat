@@ -11,7 +11,7 @@ const { createRequire } = require('node:module');
 const { KEYS } = require('../server/services/mcp/ownedManagedConfiguration');
 const root = path.resolve(__dirname, '..');
 const id = require('../scripts/application-data-root').workspaceId(root);
-const project = 'dvaia-' + id;
+const project = 'owasp-ai-goat-' + id;
 const containerId = 'a'.repeat(64), imageId = 'sha256:' + 'b'.repeat(64);
 const imageName = 'mcp-owned-sandbox-runner:dev';
 const volumeName = project + '_mcp-owned-targets';
@@ -32,7 +32,7 @@ function fixture({ running = false, protectedRecovery = false } = {}) {
   });
   const api = load('scripts/install/mcp-owned-provision.js', { './mcp-owned-local': local });
   const values = {
-    MCP_OWNED_TARGET_APPARMOR_PROFILE: 'dvaia-mcp-sandbox', MCP_OWNED_TARGET_PORT: '8092',
+    MCP_OWNED_TARGET_APPARMOR_PROFILE: 'owasp-ai-goat-mcp-sandbox', MCP_OWNED_TARGET_PORT: '8092',
     MCP_OWNED_TARGET_URL: 'http://127.0.0.1:8092', MCP_OWNED_TARGET_TOKEN: token,
     MCP_OWNED_RESOURCES_ENABLED: 'true', MCP_OBSERVED_ACTION_ENABLED: 'false',
     MCP_INDIRECT_INJECTION_ENABLED: 'false', MCP_SUPPLY_CHAIN_ENABLED: 'false',
@@ -42,15 +42,15 @@ function fixture({ running = false, protectedRecovery = false } = {}) {
   const privateStorage = { async read(file) { calls.push(['managed-read', file]); return Buffer.from(KEYS.map(key => `${key}=${JSON.stringify(values[key])}`).join('\n') + '\n'); } };
   const container = {
     Id: containerId, Name: '/' + project + '-mcp-owned-sandbox-1', Image: imageId,
-    AppArmorProfile: 'dvaia-mcp-sandbox', State: { Running: running },
+    AppArmorProfile: 'owasp-ai-goat-mcp-sandbox', State: { Running: running },
     Config: { Image: imageName, Labels: { 'com.docker.compose.project': project,
       'com.docker.compose.service': 'mcp-owned-sandbox' }, Env: [
       'MCP_OWNED_TARGETS_ENABLED=true', 'MCP_OWNED_TARGET_TOKEN=' + token,
-      'MCP_OWNED_TARGET_APPARMOR_PROFILE=dvaia-mcp-sandbox',
+      'MCP_OWNED_TARGET_APPARMOR_PROFILE=owasp-ai-goat-mcp-sandbox',
       'MCP_OWNED_TARGET_ROOT=/sandbox/owned-targets',
     ] },
     HostConfig: { Privileged: false, NetworkMode: networkName, PidMode: '', IpcMode: '',
-      SecurityOpt: ['apparmor=dvaia-mcp-sandbox', 'seccomp=unconfined'],
+      SecurityOpt: ['apparmor=owasp-ai-goat-mcp-sandbox', 'seccomp=unconfined'],
       PortBindings: { '8090/tcp': [{ HostIp: '127.0.0.1', HostPort: '8092' }] } },
     Mounts: [{ Type: 'volume', Name: volumeName, Destination: '/sandbox/owned-targets', RW: true }],
     NetworkSettings: { Networks: { [networkName]: {} },
@@ -136,8 +136,8 @@ test('protected recovery activation requires a trusted expected release image an
   await assert.rejects(f.api.startExisting(f.options), { code: 'MCP_INSTALL_EXISTING_UNAVAILABLE' });
   assert(!guestCalls(f).some(call => call[0] === 'start'));
   const profile = require('../scripts/render-mcp-sandbox-apparmor').renderMcpSandboxAppArmor(
-    fs.readFileSync(path.join(root, 'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'), 'utf8'),
-    'dvaia-mcp-sandbox');
+    fs.readFileSync(path.join(root, 'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'), 'utf8'),
+    'owasp-ai-goat-mcp-sandbox');
   const sha256 = require('node:crypto').createHash('sha256').update(profile).digest('hex');
   const result = await f.api.startExisting({ ...f.options, protectedRecoveryRelease: { image: imageId, profileSha256: sha256 } });
   assert.equal(result.imageId, imageId); assert.equal(f.profileSha256, sha256);

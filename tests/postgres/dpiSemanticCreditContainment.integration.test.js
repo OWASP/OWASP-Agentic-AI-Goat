@@ -50,7 +50,7 @@ test('0103 fresh/populated/no-op preserves historical awards and contains new DP
       const urls = keys.map(key => new URL(process.env[key]));
       for (const url of urls) {
         assert.equal(url.hostname, '127.0.0.1');
-        assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+        assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
       }
       assert.equal(urls[0].pathname, urls[1].pathname);
       assert.equal(urls[0].port, urls[1].port);

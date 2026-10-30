@@ -4,10 +4,10 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 // Uses the supported managed installer, never a substituted SQL service.
 async function prepareCouponFullApp({source,root,home,env}) {
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');
- assert.equal(fs.realpathSync(source),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+ assert.equal(fs.realpathSync(source),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
  assert.equal(path.dirname(home),root);
  const environment={...env,DOCKER_HOST:process.env.DOCKER_HOST};
- assert.equal(environment.DOCKER_HOST,'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock');
+ assert.equal(environment.DOCKER_HOST,'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock');
  await require('../../scripts/install/analytics-setup').setupOwnedAnalytics({requested:true,explicitActivation:true,root:source,homeDirectory:home,environment,applicationEnvironment:env});
  const record=await require('../../server/services/secureshopAnalyticsManagedConfiguration').readManagedAnalyticsConfiguration({root:source,homeDirectory:home});
  assert.equal(record.config.enabled,true);

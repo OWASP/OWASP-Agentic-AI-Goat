@@ -22,7 +22,7 @@ INVENTORY=('"945f6fce-3aaf-4d8f-a483-170464fb2416"\n'
 
 
 def plan():
-    return {'kind':'private-v23-registry-metadata','variant':'metadata-idle-barrier-v4','runId':'b'*32,'guest':'/var/tmp/dvaia-v23-build-'+'b'*32,
+    return {'kind':'private-v23-registry-metadata','variant':'metadata-idle-barrier-v4','runId':'b'*32,'guest':'/var/tmp/owasp-ai-goat-v23-build-'+'b'*32,
         'binding':{'runId':'b'*32,'target':'v23-registry','base':m.BASE},'guestSourceSha256':'a'*64,
         'relaySourceSha256':'c'*64,'admission':{'uid':501},'mux':{'masterPid':123,'masterBirth':[1,2],
             'config':'controlled','configSha256':'d'*64,'limaConfigSha256':'e'*64,
@@ -241,7 +241,7 @@ class MetadataTests(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError,'METADATA_'):m.verify_terminal(snapshot,plan())
 
     def test_stage_error_is_closed_projection_not_raw_stderr_or_causal_claim(self):
-        raw='DVAIA_METADATA_STAGE=base-pull\nproxyconnect tcp: unexpected EOF https://blob.invalid/path?token=SECRET\nAuthorization: Bearer PRIVATE\n'
+        raw='OWASP_AI_GOAT_METADATA_STAGE=base-pull\nproxyconnect tcp: unexpected EOF https://blob.invalid/path?token=SECRET\nAuthorization: Bearer PRIVATE\n'
         projected=m.stage_error(raw,'base-pull',1)
         self.assertEqual(projected,{'version':1,'stage':'base-pull','exitCode':1,
             'stderrSignals':['proxy-connect','unexpected-eof'],'interpretation':'observed-substrings-not-root-cause'})
@@ -287,7 +287,7 @@ class MetadataTests(unittest.TestCase):
                 response=super().__call__(argv,**kw)
                 if kw['input']=='acquire':
                     response.returncode=1;response.stdout=''
-                    response.stderr='DVAIA_METADATA_STAGE=base-pull\nproxyconnect tcp: unexpected EOF https://blob.invalid/?token=SECRET\n'
+                    response.stderr='OWASP_AI_GOAT_METADATA_STAGE=base-pull\nproxyconnect tcp: unexpected EOF https://blob.invalid/?token=SECRET\n'
                 return response
         class Cleanup(Runner):
             def __call__(self,argv,**kw):

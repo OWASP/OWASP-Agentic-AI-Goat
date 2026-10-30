@@ -63,7 +63,7 @@ async function activateExisting({ envPath, managedPath, activateObservedAction =
   const effective = { activateObservedAction: observed, activateIndirectInjection: activateIndirectInjection || existing.MCP_INDIRECT_INJECTION_ENABLED === 'true', activateSupplyChain: activateSupplyChain || existing.MCP_SUPPLY_CHAIN_ENABLED === 'true' };
   const checked = await probe({ ...privateEnv, ...existing });
   const r = checked?.resources;
-  if (r?.ready !== true || r.repositoryReady !== true || r.runnerReady !== true || r.runnerIsolation !== 'bwrap-seccomp-v1' || r.supervisorProfile !== 'dvaia-mcp-sandbox (enforce)' || checked.codeBot?.ready !== true || checked.codeBot.isolation !== 'bwrap-codebot-v1' || checked.conversationsReady !== true || checked.mailReady !== true) fail('MCP_ACTIVATE_READINESS_FAILED');
+  if (r?.ready !== true || r.repositoryReady !== true || r.runnerReady !== true || r.runnerIsolation !== 'bwrap-seccomp-v1' || r.supervisorProfile !== 'owasp-ai-goat-mcp-sandbox (enforce)' || checked.codeBot?.ready !== true || checked.codeBot.isolation !== 'bwrap-codebot-v1' || checked.conversationsReady !== true || checked.mailReady !== true) fail('MCP_ACTIVATE_READINESS_FAILED');
   assertRequestedCapabilities(r, effective);
   if (!(await readPrivate(envPath)).equals(originalEnv) || !(await readPrivate(managedPath)).equals(originalManaged)) fail('MCP_ACTIVATE_CONFIGURATION_CHANGED');
   await prepareOwnedManagedConfiguration({ envPath, managedPath, activateQualified: true, ...effective, randomToken: () => fail('MCP_ACTIVATE_TOKEN_REQUIRED') });

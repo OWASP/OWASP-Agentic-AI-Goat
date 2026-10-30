@@ -62,7 +62,7 @@ async function stopOwnedGroup(child) {
 // Closed test-local virtual module mapping. No source is copied or rewritten.
 function installMainModules({main,source,files}) {
   const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),Module=require('node:module');
-  const marker=Symbol.for('dvaia.test.mainModuleLoader');
+  const marker=Symbol.for('owasp-ai-goat.test.mainModuleLoader');
   if(globalThis[marker])throw Error('SecureShop preload already initialized');
   globalThis[marker]=true;
   const rows=new Map(files.map(row=>[path.join(source,row.relative),row]));

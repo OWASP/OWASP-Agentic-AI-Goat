@@ -19,8 +19,8 @@ function fixture() {
     },
     token = 'x'.repeat(64);
   const labels = {
-    'dvaia.registry.workspace': p.workspace,
-    'dvaia.registry.owner': p.profile
+    'owasp-ai-goat.registry.workspace': p.workspace,
+    'owasp-ai-goat.registry.owner': p.profile
   };
   return {
     r,
@@ -232,7 +232,7 @@ test('managed lifecycle stages private credentials, reuses exact IDs, and rolls 
         Image: p.imageId,
         Config: {
           Labels: {
-            'dvaia.registry.probe': local.workspace
+            'owasp-ai-goat.registry.probe': local.workspace
           }
         },
         HostConfig: {
@@ -259,8 +259,8 @@ test('managed lifecycle stages private credentials, reuses exact IDs, and rolls 
         Internal: false,
         EnableIPv6: false,
         Labels: {
-          'dvaia.registry.workspace': local.workspace,
-          'dvaia.registry.owner': local.profile
+          'owasp-ai-goat.registry.workspace': local.workspace,
+          'owasp-ai-goat.registry.owner': local.profile
         },
         Containers: {}
       };
@@ -274,8 +274,8 @@ test('managed lifecycle stages private credentials, reuses exact IDs, and rolls 
       container = fixture().c;
       container.Name = '/' + local.container;
       container.Config.Labels = {
-        'dvaia.registry.workspace': local.workspace,
-        'dvaia.registry.owner': local.profile
+        'owasp-ai-goat.registry.workspace': local.workspace,
+        'owasp-ai-goat.registry.owner': local.profile
       };
       container.Config.Env = env.trim().split('\n');
       container.HostConfig.NetworkMode = local.network;
@@ -414,7 +414,7 @@ test('health readiness exhaustion retains exact last failure within fixed deadli
 });
 
 test('Docker absent inspection matches exact kind and requested identity only', () => {
-  const name='dvaia-owned-mcp-registry-c231599fa8cd-internal';
+  const name='owasp-ai-goat-owned-mcp-registry-c231599fa8cd-internal';
   const observed={exitCode:1,stderr:`Error response from daemon: network ${name} not found\n`};
   assert.equal(i.isMissingInspect(observed,['network','inspect',name]),true);
   assert.equal(i.isMissingInspect({exitCode:1,stderr:'Error: No such container: exact-id'},['container','inspect','exact-id']),true);
@@ -468,7 +468,7 @@ async function replacementFixture(work,{readiness=true}={}) {
   const a=argv.slice(2);events.push(options.stage);
   if(a[1]==='inspect'){
    let value;
-   if(a[0]==='image')value={Id:opts.imageId,Architecture:'arm64',Os:'linux',Config:{User:'10001:10001',Entrypoint:c.Config.Entrypoint,Labels:{'dvaia.registry.package':next.packageDigest}}};
+   if(a[0]==='image')value={Id:opts.imageId,Architecture:'arm64',Os:'linux',Config:{User:'10001:10001',Entrypoint:c.Config.Entrypoint,Labels:{'owasp-ai-goat.registry.package':next.packageDigest}}};
    if(a[0]==='network')value={...fixture().n,Containers:Object.fromEntries([...containers.values()].filter(x=>x.NetworkSettings?.Networks?.[p.network]).map(x=>[x.Id,{}]))};
    if(a[0]==='container')value=containers.get(a[2])||[...containers.values()].find(x=>x.Name==='/'+a[2]);
    if(!value)return {exitCode:1,stdout:'',stderr:'Error: No such container: '+a[2]};
@@ -476,8 +476,8 @@ async function replacementFixture(work,{readiness=true}={}) {
   }
   if(a[0]==='create'){
    const probe=a.includes('--entrypoint'),id=(probe?'1':'2').repeat(64),name=a[a.indexOf('--name')+1];
-   const value=probe?{Id:id,Name:'/'+name,Image:opts.imageId,Config:{Labels:{'dvaia.registry.probe':p.workspace}},HostConfig:{NetworkMode:'none'},State:{Running:false,ExitCode:0}}:structuredClone(c);
-   if(!probe){value.Id=id;value.Name='/'+name;value.Image=opts.imageId;value.State={Running:false,Status:'created'};value.Config.Labels['dvaia.registry.upgrade']=a.find(x=>x.startsWith('dvaia.registry.upgrade=')).split('=')[1];}
+   const value=probe?{Id:id,Name:'/'+name,Image:opts.imageId,Config:{Labels:{'owasp-ai-goat.registry.probe':p.workspace}},HostConfig:{NetworkMode:'none'},State:{Running:false,ExitCode:0}}:structuredClone(c);
+   if(!probe){value.Id=id;value.Name='/'+name;value.Image=opts.imageId;value.State={Running:false,Status:'created'};value.Config.Labels['owasp-ai-goat.registry.upgrade']=a.find(x=>x.startsWith('owasp-ai-goat.registry.upgrade=')).split('=')[1];}
    containers.set(id,value);return {exitCode:0,stdout:id};
   }
   if(a[0]==='network'&&a[1]==='disconnect'){containers.get(a[3]).NetworkSettings.Networks={};return{exitCode:0,stdout:''};}
@@ -551,21 +551,21 @@ test('closed rehearsal namespace changes only resource names and exact ownership
  assert.equal(namespaced.profile,p.profile);assert.equal(namespaced.destination,p.destination);
  assert.equal(namespaced.directory,p.directory);assert.equal(namespaced.configFile,p.configFile);
  const {c,n,r,token}=fixture();c.Name='/'+namespaced.container;c.HostConfig.NetworkMode=namespaced.network;c.NetworkSettings.Networks={[namespaced.network]:{NetworkID:r.networkId}};
- c.Config.Labels['dvaia.registry.namespace']=namespaced.resourceNamespace;n.Name=namespaced.network;n.Labels['dvaia.registry.namespace']=namespaced.resourceNamespace;
+ c.Config.Labels['owasp-ai-goat.registry.namespace']=namespaced.resourceNamespace;n.Name=namespaced.network;n.Labels['owasp-ai-goat.registry.namespace']=namespaced.resourceNamespace;
  assert.equal(i.validateContainer(c,namespaced,r,token),c);assert.equal(i.validateNetwork(n,namespaced,r),n);
  for(const value of [undefined,'ffffffffffff']){
-  c.Config.Labels['dvaia.registry.namespace']=value;n.Labels['dvaia.registry.namespace']=value;
+  c.Config.Labels['owasp-ai-goat.registry.namespace']=value;n.Labels['owasp-ai-goat.registry.namespace']=value;
   assert.throws(()=>i.validateContainer(c,namespaced,r,token));assert.throws(()=>i.validateNetwork(n,namespaced,r));
  }
- const base=fixture();base.c.Config.Labels['dvaia.registry.namespace']='012345abcdef';base.n.Labels['dvaia.registry.namespace']='012345abcdef';
+ const base=fixture();base.c.Config.Labels['owasp-ai-goat.registry.namespace']='012345abcdef';base.n.Labels['owasp-ai-goat.registry.namespace']='012345abcdef';
  assert.throws(()=>i.validateContainer(base.c,p,base.r,base.token));assert.throws(()=>i.validateNetwork(base.n,p,base.r));
  for(const value of ['',null,1,'../installed','012345ABCDEF','012345abcde','012345abcdef0'])assert.throws(()=>plan({...options,resourceNamespace:value}),{code:'REGISTRY_NAMESPACE_INVALID'});
 });
 test('configurationHome isolates private records without changing canonical Docker or SSH authority',()=>{
  const options={root:process.cwd(),home:'/canonical-home',platform:'darwin',colimaProfile:'colima-default',imageId:p.imageId,resourceNamespace:'012345abcdef'};
  const normal=plan(options),isolated=plan({...options,configurationHome:'/owned-rehearsal'});
- assert.equal(normal.directory,'/canonical-home/.dvaia/'+p.workspace);
- assert.equal(isolated.directory,'/owned-rehearsal/.dvaia/'+p.workspace);
+ assert.equal(normal.directory,'/canonical-home/.owasp-ai-goat/'+p.workspace);
+ assert.equal(isolated.directory,'/owned-rehearsal/.owasp-ai-goat/'+p.workspace);
  for(const key of ['dockerHost','sshConfig','sshHost','profile','destination','container','network','root','workspace'])assert.equal(isolated[key],normal[key]);
  assert.equal(isolated.dockerHost,'unix:///canonical-home/.colima/default/docker.sock');
  assert.equal(isolated.sshConfig,'/canonical-home/.colima/_lima/colima-default/ssh.config');

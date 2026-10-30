@@ -179,7 +179,7 @@ function publicBinding(scope, count) {
 function submissionDigests(scope, persona, submission) {
   const bodySha256 = crypto.createHash('sha256').update(submission.body, 'utf8').digest();
   const requestSha256 = crypto.createHash('sha256').update(JSON.stringify([
-    'dvaia-secureshop-review-submission', 1,
+    'owasp-ai-goat-secureshop-review-submission', 1,
     scope.targetId, scope.launchId, scope.scenarioId, scope.generation,
     scope.platformOwnerId, scope.platformSessionId,
     persona.id, persona.role, submission.submissionId,

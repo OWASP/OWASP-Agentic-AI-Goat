@@ -30,7 +30,7 @@ class StudentDeletionPlanTests(unittest.TestCase):
         self.assertEqual(len({r['database'] for r in rows}), 16)
         self.assertEqual(rows[0], {
             'schema': 'identity',
-            'database': 'dvaia_test_student_deletion_aaaaaaaaaaaa_identity',
+            'database': 'owasp_ai_goat_test_student_deletion_aaaaaaaaaaaa_identity',
             'runtimeVariable': 'IDENTITY_DATABASE_URL',
             'migrationVariable': 'IDENTITY_MIGRATION_DATABASE_URL',
         })
@@ -97,7 +97,7 @@ class StudentDeletionPlanTests(unittest.TestCase):
             run.chmod(0o700)
             runtime.chmod(0o700)
             tmp.chmod(0o700)
-            profile = tmp / ('dvaia-student-deletion-browser-' + nonce)
+            profile = tmp / ('owasp-ai-goat-student-deletion-browser-' + nonce)
             args = SimpleNamespace(build_sha256='a'*64, snapshot_sha256='b'*64,
                 chromium=str(ROOT / 'tests/postgres/adminStudentDeletionRenderedSupport.js'))
             with patch.object(admission, 'evidence_parent', return_value=parent):

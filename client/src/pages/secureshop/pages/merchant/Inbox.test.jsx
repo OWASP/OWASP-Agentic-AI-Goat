@@ -50,7 +50,7 @@ test('visible teaching-message action performs one saved POST then its authorita
 });
 
 test('bound unavailable is an error, reload can establish empty inbox', async () => {
-  fetch.mockResolvedValueOnce(response({ error: 'Bound SecureShop operation unavailable' }, false)); await render();
+  fetch.mockResolvedValueOnce(response({ error: 'Bound OWASP AI SecureShop operation unavailable' }, false)); await render();
   expect(container.textContent).toContain('Unable to load inbox'); expect(container.textContent).not.toContain('Inbox empty');
   fetch.mockResolvedValueOnce(response({ ok: true, emails: [] })); await click('Reload'); expect(container.textContent).toContain('Inbox empty');
 });

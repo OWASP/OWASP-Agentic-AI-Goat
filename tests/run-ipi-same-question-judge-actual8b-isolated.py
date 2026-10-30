@@ -4,11 +4,11 @@ import argparse, hashlib, json, os, signal, subprocess, tempfile, time
 from datetime import datetime, timezone
 from pathlib import Path
 
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 SOURCE=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser();modes=parser.add_mutually_exclusive_group();modes.add_argument('--calibration',action='store_true');modes.add_argument('--semantic-calibration',action='store_true');args=parser.parse_args()
 test_name='tests/ipiSemanticJudgeCalibrationActual8b.test.js' if args.semantic_calibration else 'tests/ipiSameQuestionJudgeCalibrationActual8b.test.js' if args.calibration else 'tests/ipiSameQuestionJudgeActual8b.test.js'
-root=Path(tempfile.mkdtemp(prefix='dvaia-ipi-judge-replay-'));os.chmod(root,0o700);workspace=root/'source'
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-ipi-judge-replay-'));os.chmod(root,0o700);workspace=root/'source'
 env={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(root)}
 state={'version':1,'mode':'semantic_calibration' if args.semantic_calibration else 'calibration' if args.calibration else 'frozen_replay','scope':'Judge-only actual8B replay; no database/application/startup mutation','evidence':str(root),'launcherPid':os.getpid(),'child':None,'runStatus':'preparing','createdAt':datetime.now(timezone.utc).isoformat(),'cleanup':None}
 ownership=root/'ownership.json';log_path=root/'tests.log';log_path.touch(mode=0o600)

@@ -5,12 +5,12 @@
  * PostgreSQL runtime. Keep this guard before every import so an accidental
  * `node server/secureServer.js` cannot touch working data.
  */
-const LEGACY_ENTRYPOINT_ERROR_CODE = 'ERR_DVAIA_LEGACY_ENTRYPOINT_RETIRED';
+const LEGACY_ENTRYPOINT_ERROR_CODE = 'ERR_OWASP_AI_GOAT_LEGACY_ENTRYPOINT_RETIRED';
 const LEGACY_ENTRYPOINT_MESSAGE =
   'server/secureServer.js is retired; use npm run server or npm run dev (server/index.js) with PostgreSQL.';
 
 if (require.main === module) {
-  console.error(`[DVAIA] ${LEGACY_ENTRYPOINT_MESSAGE}`);
+  console.error(`[OWASP Agentic AI GOAT] ${LEGACY_ENTRYPOINT_MESSAGE}`);
   process.exit(1);
 }
 

@@ -19,7 +19,7 @@ const names = ['IDENTITY', 'AGENTS', 'REVIEW', 'COMMERCE'];
 const prefix = 'PG_SECURESHOP_STANDALONE_D22_';
 const required = [
   'SECURESHOP_STANDALONE_D22_EVIDENCE_PATH', 'SECURESHOP_STANDALONE_D22_BUILD',
-  'DVAIA_CURRENT_MAIN_WORKSPACE', 'PUPPETEER_EXECUTABLE_PATH',
+  'OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE', 'PUPPETEER_EXECUTABLE_PATH',
   'SECURESHOP_STANDALONE_D22_AUDIT_CONTROL_URL', 'OLLAMA_BASE_URL', 'OLLAMA_MODEL',
   ...names.flatMap(name => [`${prefix}${name}_RUNTIME_URL`, `${prefix}${name}_MIGRATION_URL`]),
 ];
@@ -34,7 +34,7 @@ function privateEvidencePath() {
   const value = process.env.SECURESHOP_STANDALONE_D22_EVIDENCE_PATH;
   assert.ok(value && path.isAbsolute(value));
   assert.ok(!require('node:fs').existsSync(value), 'new private D22 receipt path required');
-  const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/');
   assert.ok(!path.resolve(value).startsWith(`${workspace}${path.sep}`));
   return value;
 }
@@ -52,7 +52,7 @@ function assertNativeAdmission() {
   const target = new URL(process.env.SECURESHOP_STANDALONE_D22_AUDIT_CONTROL_URL);
   assert.equal(target.protocol, 'postgresql:');
   assert.equal(target.hostname, '127.0.0.1');
-  assert.match(target.pathname, /^\/dvaia_audit_control_[a-f0-9]+$/);
+  assert.match(target.pathname, /^\/owasp_ai_goat_audit_control_[a-f0-9]+$/);
   assert.equal(target.username, 'postgres');
   assert.equal(target.password, ''); assert.equal(target.search, ''); assert.equal(target.hash, '');
 }
@@ -66,7 +66,7 @@ function storeUrls() {
       assert.match(url.port, /^[1-9][0-9]{0,4}$/); assert.ok(Number(url.port) <= 65535);
       assert.equal(url.username, `dvaia_${storeNames[store]}_${role.toLowerCase()}`);
       assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-      const match = new RegExp(`^/dvaia_test_agent_host_([0-9a-f]{12})_${storeNames[store]}$`).exec(url.pathname);
+      const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([0-9a-f]{12})_${storeNames[store]}$`).exec(url.pathname);
       assert.ok(match, `closed disposable ${key} database required`);
       nonce ??= match[1]; port ??= url.port;
       assert.equal(match[1], nonce); assert.equal(url.port, port);
@@ -130,7 +130,7 @@ function admissionProof(row) {
 // browser and local model. A controlled-provider result cannot pass D22.
 test(assertion, { skip: process.env.SECURESHOP_STANDALONE_D22_NATIVE !== '1', timeout: 540000 }, async t => {
   assertNativeAdmission();
-  const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE);
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE);
   assert.equal(workspace, process.cwd(), 'current checkout required; no source copy');
   const evidencePath = privateEvidencePath();
   const build = path.resolve(process.env.SECURESHOP_STANDALONE_D22_BUILD);
@@ -322,9 +322,9 @@ test(assertion, { skip: process.env.SECURESHOP_STANDALONE_D22_NATIVE !== '1', ti
       if (request.method === 'POST' && request.path === '/admin/audit/agent-search')
         agentPosts.push(structuredClone(request.body));
       if (request.method === 'GET' && request.path === '/admin/access-control'
-        && request.headers['x-dvaia-secureshop-launch']
+        && request.headers['x-owasp-ai-goat-secureshop-launch']
         && /^Bearer \S+$/.test(request.headers.authorization || ''))
-        observedBrowserBoundAuth = { launch: request.headers['x-dvaia-secureshop-launch'],
+        observedBrowserBoundAuth = { launch: request.headers['x-owasp-ai-goat-secureshop-launch'],
           token: request.headers.authorization.slice('Bearer '.length) };
       next();
     });
@@ -341,7 +341,7 @@ test(assertion, { skip: process.env.SECURESHOP_STANDALONE_D22_NATIVE !== '1', ti
     // assets need cross-origin delivery, as in the passing commerce fixture.
     app.use(express.static(build, {setHeaders:response=>response.set('Access-Control-Allow-Origin','*')}));
     app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
-    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-standalone-d22-'));
+    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-standalone-d22-'));
     browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
       executablePath });
     const page = await browser.newPage(); await page.setViewport({ width: 1280, height: 900 });
@@ -370,7 +370,7 @@ test(assertion, { skip: process.env.SECURESHOP_STANDALONE_D22_NATIVE !== '1', ti
     }
     assert.equal(pageErrors.length, 0, `rendered page errors: ${pageErrors.join(', ')}`);
     const cookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-      .find(value => value.name === 'dvaia_shop_session');
+      .find(value => value.name === 'owasp_ai_goat_shop_session');
     assert.equal(cookie?.httpOnly, true);
     const current = await auth.authenticate(cookie.value);
     assert.equal(current?.principalId, tenant.principalId);
@@ -558,7 +558,7 @@ test(assertion, { skip: process.env.SECURESHOP_STANDALONE_D22_NATIVE !== '1', ti
         identity.secureshop_audit_query_operations WHERE operation_id=$1`,
       [deniedRef.requestId])).rows[0].n, 0);
       const foreign = await fetch(`${origin}/api/secureshop/admin/access-control/operations/${deny.operationId}`,
-        { headers: { 'x-dvaia-secureshop-launch': siblingFirst.bearer,
+        { headers: { 'x-owasp-ai-goat-secureshop-launch': siblingFirst.bearer,
           authorization: `Bearer ${siblingFirst.persona.token}` } });
       assert.equal(foreign.status, 404, 'sibling cannot read another policy operation');
       assert.equal((await auditRows(agents, siblingScope)).length, 0);

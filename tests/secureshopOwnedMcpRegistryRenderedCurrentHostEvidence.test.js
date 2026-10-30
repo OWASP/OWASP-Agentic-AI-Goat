@@ -12,7 +12,7 @@ const { admitV39CurrentHostEvidence, createV39PrivateWriter,
 
 function ownedRun(callback) {
   const run = path.join(root, 'tasks/qualification',
-    `dvaia-mcp-assembly-${crypto.randomBytes(4).toString('hex')}`);
+    `owasp-ai-goat-mcp-assembly-${crypto.randomBytes(4).toString('hex')}`);
   fs.mkdirSync(run, { mode: 0o700 });
   fs.mkdirSync(path.join(run, 'tmp'), { mode: 0o700 });
   const evidencePath = path.join(run, 'candidate-result.json');
@@ -66,7 +66,7 @@ test('V39 run directory cannot be a symlink or widened', () => {
     fs.chmodSync(run, 0o755);
     assert.throws(() => admitV39CurrentHostEvidence({ env, source: root, evidencePath, enabled: true }));
     fs.chmodSync(run, 0o700);
-    const alias = path.join(root, 'tasks/qualification', 'dvaia-mcp-assembly-symlink');
+    const alias = path.join(root, 'tasks/qualification', 'owasp-ai-goat-mcp-assembly-symlink');
     fs.symlinkSync(run, alias);
     try { assert.throws(() => admitV39CurrentHostEvidence({ env: { ...env,
       MCP_DESCRIPTION_V39_EVIDENCE_ROOT: alias, TMPDIR: path.join(alias, 'tmp'),
@@ -78,7 +78,7 @@ test('V39 run directory cannot be a symlink or widened', () => {
 
 test('only admitted V39 current-host browser options use the bounded local sandbox exception', () => {
   ownedRun(({ run }) => {
-    const profile = fs.mkdtempSync(path.join(run, 'tmp', 'dvaia-mcp-registry-rendered-'));
+    const profile = fs.mkdtempSync(path.join(run, 'tmp', 'owasp-ai-goat-mcp-registry-rendered-'));
     const selected = { directory: run, origin: 'http://127.0.0.1:40123', profile,
       executablePath: '/controlled/chrome' };
     const ordinary = v39CurrentHostBrowserOptions({ ...selected, directory: null });

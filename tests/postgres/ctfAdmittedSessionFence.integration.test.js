@@ -12,14 +12,14 @@ test('CTF real JWT revocation boundaries and explicit cross-store commit race', 
 }, async t => {
   assert.equal(process.env.PLATFORM_DATABASE_ENGINE, 'postgres');
   assert.equal(process.env.WORKSHOP_DATABASE_ENGINE, 'postgres');
-  assert.equal(require('node:fs').realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE),
+  assert.equal(require('node:fs').realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE),
     require('node:fs').realpathSync(process.cwd()));
   for (const prefix of ['IDENTITY', 'CTF']) {
     const runtime = new URL(process.env[`${prefix}_DATABASE_URL`]);
     const migration = new URL(process.env[`${prefix}_MIGRATION_DATABASE_URL`]);
     for (const url of [runtime, migration]) {
       assert.ok(['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname));
-      assert.match(url.pathname, /^\/dvaia_test_ctf_session_[a-z0-9_]+$/);
+      assert.match(url.pathname, /^\/owasp_ai_goat_test_ctf_session_[a-z0-9_]+$/);
     }
     assert.equal(runtime.pathname, migration.pathname);
     assert.notEqual(runtime.username, migration.username);

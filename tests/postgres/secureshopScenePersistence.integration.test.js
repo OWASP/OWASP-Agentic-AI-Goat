@@ -46,7 +46,7 @@ function disposableUrl(key) {
   const url = new URL(process.env[prefix + key]);
   assert.equal(url.protocol, 'postgresql:');
   assert.equal(url.hostname, '127.0.0.1');
-  assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   assert.equal(url.password, '');
   assert.equal(url.search, '');
   assert.equal(url.hash, '');
@@ -71,7 +71,7 @@ function historicalMigrator(directory,ceiling) {
 
 test('durable shop scene reopens customer state across logins and fences both current grants on reset',
   { skip: !enabled, timeout: 90000 }, async t => {
-    assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), process.cwd());
+    assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), process.cwd());
     const evidencePath = process.env.WORKSHOP_RAG_EVIDENCE_PATH || '';
     assert.ok(path.isAbsolute(evidencePath));
     assert.ok(!path.resolve(evidencePath).startsWith(`${process.cwd()}${path.sep}`));
@@ -392,7 +392,7 @@ test('durable shop scene reopens customer state across logins and fences both cu
     });
     t.after(()=>new Promise(resolve=>httpServer.close(resolve)));
     const base=`http://127.0.0.1:${httpServer.address().port}/api/secureshop`;
-    const headers=actor=>({'x-dvaia-secureshop-launch':actor.bearer,
+    const headers=actor=>({'x-owasp-ai-goat-secureshop-launch':actor.bearer,
       authorization:`Bearer ${actor.token}`,'content-type':'application/json'});
     const checkoutRequest={shipping_address:'Tenant fixture address',payment_method:'fixture-card',
       operationId:randomUUID()};
@@ -782,7 +782,7 @@ test('durable shop scene reopens customer state across logins and fences both cu
         const staleRead=await fetch(savedPath,{headers:headers(currentActor)});
         assert.equal(staleRead.status,401);
         assert.deepEqual(await staleRead.json(),{error:'Shop session unavailable'});
-        assert.equal(staleRead.headers.get('x-dvaia-secureshop-launch-state'),null);
+        assert.equal(staleRead.headers.get('x-owasp-ai-goat-secureshop-launch-state'),null);
         const currentProfile=await accountService.profile({scope:reloggedBuyer.scope,
           persona:{id:renewedActor.user.id,role:renewedActor.user.role},
           personaSession:{sessionId:renewedActor.sessionId,

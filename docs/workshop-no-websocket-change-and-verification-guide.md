@@ -2,7 +2,7 @@
 
 ## Colleague handoff and verification guide
 
-**Repository:** Damn Vulnerable AI Application (DVAIA)
+**Repository:** OWASP Agentic AI GOAT
 
 **Feature branch:** `cc-no-websocket`
 

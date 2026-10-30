@@ -135458,7 +135458,7 @@
       "sha256": "95fab203ab36bd2b4f3cd8a1d0dc6d084252f2ec224dc76bfbaebe1540cdd15e"
     },
     "node": {
-      "path": "/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node",
+      "path": "/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node",
       "sha256": "56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861"
     },
     "python": {
@@ -138420,5 +138420,5 @@
     "tests/postgres",
     "tests/fixtures"
   ],
-  "workspace": "/Users/averma5/Documents/github/Damn-Vulnerable-AI-Application"
+  "workspace": "/Users/averma5/Documents/github/OWASP Agentic AI GOAT"
 }

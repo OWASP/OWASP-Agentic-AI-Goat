@@ -58,7 +58,7 @@ test('borrowed renderer sends the original execution envelope and validates the 
 });
 test('borrowed V24 rejects old records, other selectors/runs, endpoint swaps and unsafe paths before network',async()=>{
  const mutations=[e=>e.SECURESHOP_POLICY_INSTRUCTION_BROWSER_NATIVE='0',e=>e.NODE_ENV='production',e=>e.PG_TEST_DISPOSABLE='no',
-  e=>e.SECURESHOP_POLICY_INSTRUCTION_BROWSER_RENDERER_TRANSPORT='legacy',e=>e.DVAIA_CURRENT_MAIN_WORKSPACE='/other',
+  e=>e.SECURESHOP_POLICY_INSTRUCTION_BROWSER_RENDERER_TRANSPORT='legacy',e=>e.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE='/other',
   e=>e.SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_RUN_ID='b'.repeat(32),e=>e.SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_DIRECTORY='/tmp',
   e=>e.SECURESHOP_POLICY_INSTRUCTION_BROWSER_POLICY_RENDERER_ADMISSION='/old/record',
   ...['http://remote:8090','http://127.0.0.1:18090','http://127.0.0.1:18091/','http://user@127.0.0.1:18091',
@@ -78,7 +78,7 @@ test('real borrowed protocol rejects bad health; unjoined local work preserves d
 test('original V24 renderer admits only exact repository run path with its owned child environment',()=>{
  const root='/owned/repository',runId='a'.repeat(32),filename=root+'/tasks/qualification/system-renderer-'+runId+'/admission.json';
  const env={SECURESHOP_POLICY_INSTRUCTION_BROWSER_NATIVE:'1',PG_TEST_DISPOSABLE:'yes',NODE_ENV:'test',
-  DVAIA_CURRENT_MAIN_WORKSPACE:root,SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_RUN_ID:runId,
+  OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:root,SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_RUN_ID:runId,
   SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_DIRECTORY:root+'/tasks/qualification/system-original-owner-'+runId};
  assert.doesNotThrow(()=>rendererAdmissionPath(root,filename,env));
  for(const key of Object.keys(env))assert.throws(()=>rendererAdmissionPath(root,filename,{...env,[key]:'wrong'}));

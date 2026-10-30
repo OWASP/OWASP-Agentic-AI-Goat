@@ -552,7 +552,7 @@ async function admitted(t) {
     ADMIN_Q05_BROWSER_ACK: path.join(runtime, 'browser-ack.json'),
     ADMIN_Q05_ADMISSION_FD: '3',
     PUPPETEER_EXECUTABLE_PATH: actual,
-    DVAIA_CHROMIUM_ACTUAL_EXECUTABLE: actual,
+    OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE: actual,
   };
   return { repo, buildDirectory, runtime, tempRoot, journalPath, env,
     q05: admitQ05({ env, repo, journalPath, tempRoot }) };
@@ -633,7 +633,7 @@ test('Q05 rejects a socket substituted for the Python FIFO admission pipe', asyn
     workerPid: child.pid, nonce: 'b'.repeat(64), workspace: repo,
     buildSha256: env.ADMIN_Q05_BUILD_SHA256,
     snapshotSha256: env.ADMIN_Q05_SNAPSHOT_SHA256,
-    outerSandbox: 'repository-only', chromium: env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE,
+    outerSandbox: 'repository-only', chromium: env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE,
     profile };
   child.stdio[3].end(JSON.stringify(grant));
   const exit = await exited;
@@ -664,7 +664,7 @@ test('Q05 repeatedly consumes and closes real FIFO grants, preserving rejected-g
     + `    child_env['ADMIN_Q05_ADMISSION_FD'] = str(read_fd)\n`
     + `    child = subprocess.Popen([os.environ['TEST_NODE_BIN'], '-e', os.environ['TEST_NODE_SCRIPT']], env=child_env, pass_fds=(read_fd,), stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)\n`
     + `    os.close(read_fd)\n`
-    + `    grant = {'version': 1, 'cohort': 'admin-q05-current-host', 'launcherPid': os.getpid(), 'workerPid': child.pid, 'nonce': 'b'*64, 'workspace': os.environ['TEST_REPO'], 'buildSha256': os.environ['ADMIN_Q05_BUILD_SHA256'], 'snapshotSha256': os.environ['ADMIN_Q05_SNAPSHOT_SHA256'], 'outerSandbox': 'repository-only', 'chromium': os.environ['DVAIA_CHROMIUM_ACTUAL_EXECUTABLE'], 'profile': os.environ['TEST_PROFILE']}\n`
+    + `    grant = {'version': 1, 'cohort': 'admin-q05-current-host', 'launcherPid': os.getpid(), 'workerPid': child.pid, 'nonce': 'b'*64, 'workspace': os.environ['TEST_REPO'], 'buildSha256': os.environ['ADMIN_Q05_BUILD_SHA256'], 'snapshotSha256': os.environ['ADMIN_Q05_SNAPSHOT_SHA256'], 'outerSandbox': 'repository-only', 'chromium': os.environ['OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE'], 'profile': os.environ['TEST_PROFILE']}\n`
     + `    if attempt == 7: grant['workerPid'] += 1\n`
     + `    os.write(write_fd, json.dumps(grant).encode())\n`
     + `    os.close(write_fd)\n`
@@ -698,7 +698,7 @@ test('Q05 launch grant validator binds every exact identity and rejects decoys',
   const { repo, tempRoot, env } = await admitted(t);
   const context = { repo, buildSha256: env.ADMIN_Q05_BUILD_SHA256,
     snapshotSha256: env.ADMIN_Q05_SNAPSHOT_SHA256,
-    chromium: env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE,
+    chromium: env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE,
     profile: path.join(tempRoot, 'chromium-profile'), launcherPid: 77, workerPid: 88 };
   const grant = { version: 1, cohort: 'admin-q05-current-host',
     launcherPid: 77, workerPid: 88, nonce: 'b'.repeat(64),
@@ -722,7 +722,7 @@ test('manual and student-reset current-host grants are mutually exclusive', asyn
   const manual = 'admin-q05-current-host';
   const context = { repo, buildSha256: env.ADMIN_Q05_BUILD_SHA256,
     snapshotSha256: env.ADMIN_Q05_SNAPSHOT_SHA256,
-    chromium: env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE,
+    chromium: env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE,
     profile: path.join(tempRoot, 'chromium-profile'), launcherPid: 77, workerPid: 88 };
   const grant = { version: 1, cohort: manual, launcherPid: 77, workerPid: 88,
     nonce: 'b'.repeat(64), workspace: repo, buildSha256: context.buildSha256,

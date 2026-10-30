@@ -53,7 +53,7 @@ async function fixture(t, rawListingAssessment) {
 function headers() {
   return {
     authorization: 'Bearer merchant-13',
-    'x-dvaia-secureshop-launch': launchBearer,
+    'x-owasp-ai-goat-secureshop-launch': launchBearer,
   };
 }
 
@@ -160,7 +160,7 @@ test('assessment routes keep merchant authentication and launch fences', async t
   });
   assert.equal(wrongRole.status, 401);
   const stale = await fetch(`${base}/agents/merchant/assistant/listing-create/assess`, {
-    method: 'POST', headers: { ...headers(), 'x-dvaia-secureshop-launch': 'x'.repeat(43), 'content-type': 'application/json' },
+    method: 'POST', headers: { ...headers(), 'x-owasp-ai-goat-secureshop-launch': 'x'.repeat(43), 'content-type': 'application/json' },
     body: JSON.stringify({ operationId }),
   });
   assert.equal(stale.status, 401);

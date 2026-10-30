@@ -7,7 +7,7 @@ const path = require('node:path');
 const net = require('node:net');
 
 test('focused unit child can write only its private repository runtime', () => {
-  const runtime = process.env.DVAIA_REPO_LOCAL_UNIT_RUNTIME;
+  const runtime = process.env.OWASP_AI_GOAT_REPO_LOCAL_UNIT_RUNTIME;
   assert.ok(runtime && runtime.startsWith(path.resolve(__dirname, '../tasks/tmp') + path.sep));
   const target = path.join(runtime, 'boundary-probe.txt');
   fs.writeFileSync(target, 'owned runtime probe\n', {flag: 'wx', mode: 0o600});

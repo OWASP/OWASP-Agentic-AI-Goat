@@ -56,7 +56,7 @@ function storeUrls() {
     assert.match(url.port, /^[1-9]\d{0,4}$/); assert(Number(url.port) <= 65535);
     assert.equal(url.username, `dvaia_${name}_${role.toLowerCase()}`);
     assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-    const match = new RegExp(`^/dvaia_test_agent_host_([a-f0-9]{12})_${name}$`).exec(url.pathname);
+    const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_${name}$`).exec(url.pathname);
     assert(match); nonce ??= match[1]; port ??= url.port;
     assert.equal(match[1], nonce); assert.equal(url.port, port); urls[key] = url.href;
     if (role === 'RUNTIME') databases.add(url.pathname);
@@ -196,7 +196,7 @@ async function avatarRecoveryStorageFacts(expectedRequestId, expectedOwnerId) {
     if (storage.length > 64) result.storageAvailable = false;
     for (let index = 0; index < count; index++) {
       const key = storage.key(index);
-      if (!key?.startsWith('dvaia:secureshop:')) continue;
+      if (!key?.startsWith('owasp-ai-goat:secureshop:')) continue;
       let snapshot, pending;
       try {
         snapshot = JSON.parse(storage.getItem(key));
@@ -293,7 +293,7 @@ module.exports.enterAvatarFilename = enterAvatarFilename;
 async function admitAvatarRoleLogin({ page, origin, expected, role, username, auth }) {
   await page.waitForFunction(() => location.pathname === '/secureshop/account', { timeout: 20000 });
   const cookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-    .find(value => value.name === 'dvaia_shop_session');
+    .find(value => value.name === 'owasp_ai_goat_shop_session');
   assert.equal(cookie?.httpOnly, true, 'physical login must establish the real shop cookie');
   const actual = await auth.authenticate(cookie.value);
   assert.equal(actual?.shopUserId, expected.user.id);
@@ -646,7 +646,7 @@ async function runAvatarCase({ frame, page, origin, workspace, uploadRoot, buyer
   avatarStage.enter('sibling-private-get');
   const siblingReply = await fetch(`${origin}${avatarGet(first.reply.requestId)}`, {
     headers: { authorization: `Bearer ${siblingReady.persona.token}`,
-      'x-dvaia-secureshop-launch': siblingReady.bearer }, signal: AbortSignal.timeout(10000) });
+      'x-owasp-ai-goat-secureshop-launch': siblingReady.bearer }, signal: AbortSignal.timeout(10000) });
   assert.equal(siblingReply.status, 200);
   const siblingBody = await siblingReply.json();
   assert.equal(siblingBody.status, 'uncertain'); assert.equal(siblingBody.operationId, null);
@@ -655,7 +655,7 @@ async function runAvatarCase({ frame, page, origin, workspace, uploadRoot, buyer
   const oldBearer = firstPost.authorization, oldLaunch = firstPost.launch;
   avatarStage.enter('current-before-reset-get');
   const currentBeforeReset = await fetch(`${origin}${avatarGet(first.reply.requestId)}`, {
-    headers: { authorization: oldBearer, 'x-dvaia-secureshop-launch': oldLaunch },
+    headers: { authorization: oldBearer, 'x-owasp-ai-goat-secureshop-launch': oldLaunch },
     signal: AbortSignal.timeout(10000) });
   assert.equal(currentBeforeReset.status, 200, 'actual current authority can read the saved upload');
   assert.equal((await currentBeforeReset.json()).operationId, first.reply.operationId);
@@ -667,7 +667,7 @@ async function runAvatarCase({ frame, page, origin, workspace, uploadRoot, buyer
   avatarStage.complete('reset-commit');
   avatarStage.enter('stale-after-reset-get');
   const staleAfterReset = await fetch(`${origin}${avatarGet(first.reply.requestId)}`, {
-    headers: { authorization: oldBearer, 'x-dvaia-secureshop-launch': oldLaunch },
+    headers: { authorization: oldBearer, 'x-owasp-ai-goat-secureshop-launch': oldLaunch },
     signal: AbortSignal.timeout(10000) });
   assert([401, 403, 409].includes(staleAfterReset.status));
   await staleAfterReset.arrayBuffer();
@@ -704,7 +704,7 @@ async function runAvatarCase({ frame, page, origin, workspace, uploadRoot, buyer
       assert(merchantSessionProof, 'merchant current-session read must precede logout');
       const revokedSessionGet = await fetch(`${origin}${avatarGet(merchantSessionProof.requestId)}`, {
         headers: { authorization: merchantSessionProof.authorization,
-          'x-dvaia-secureshop-launch': merchantSessionProof.launch },
+          'x-owasp-ai-goat-secureshop-launch': merchantSessionProof.launch },
         signal: AbortSignal.timeout(10000) });
       assert([401, 403, 409].includes(revokedSessionGet.status),
         'logged-out merchant session cannot read its saved avatar');
@@ -726,7 +726,7 @@ async function runAvatarCase({ frame, page, origin, workspace, uploadRoot, buyer
       const selected = avatarPosts.at(-1);
       const currentGet = await fetch(`${origin}${avatarGet(result.reply.requestId)}`, {
         headers: { authorization: selected.authorization,
-          'x-dvaia-secureshop-launch': selected.launch },
+          'x-owasp-ai-goat-secureshop-launch': selected.launch },
         signal: AbortSignal.timeout(10000) });
       assert.equal(currentGet.status, 200, 'merchant saved-avatar GET works before logout');
       assert.equal((await currentGet.json()).operationId, result.reply.operationId);
@@ -884,7 +884,7 @@ async function runOtherSessionPhysical({ frame, page, origin, buyerName, passwor
   // Keep the existing different-owner sibling as a foreign-denial control.
   const foreign = await fetch(`${origin}${cases.revokePath(siblingSession.sessionId)}`, {
     method: 'POST', headers: { authorization: browserAuth.authorization,
-      'x-dvaia-secureshop-launch': browserAuth.launch }, signal: AbortSignal.timeout(10000) });
+      'x-owasp-ai-goat-secureshop-launch': browserAuth.launch }, signal: AbortSignal.timeout(10000) });
   assert.equal(foreign.status, 200);
   assert.deepEqual(await foreign.json(), { ok: false });
   assert.deepEqual((await siblingRows()).rows, siblingBefore);
@@ -970,7 +970,7 @@ async function runOtherSessionPhysical({ frame, page, origin, buyerName, passwor
 
 
 async function runRenderedCase(avatar = false, other = false) {
-    const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
+    const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/');
     assert.equal(workspace, process.cwd());
     const receiptPath = process.env[avatar
       ? 'SECURESHOP_ACCOUNT_AVATAR_EVIDENCE_PATH'
@@ -1024,7 +1024,7 @@ async function runRenderedCase(avatar = false, other = false) {
       const identity = pools.IDENTITY_RUNTIME, agents = pools.AGENTS_RUNTIME;
       const review = pools.REVIEW_RUNTIME, commerce = pools.COMMERCE_RUNTIME;
       if (avatar) {
-        uploadRoot = await fs.mkdtemp(path.join(process.env.TMPDIR, 'dvaia-account-avatar-'));
+        uploadRoot = await fs.mkdtemp(path.join(process.env.TMPDIR, 'owasp-ai-goat-account-avatar-'));
         await fs.chmod(uploadRoot, 0o700);
         process.env.SECURESHOP_UPLOAD_ROOT = uploadRoot;
       }
@@ -1113,7 +1113,7 @@ async function runRenderedCase(avatar = false, other = false) {
         .createSecureShopStandaloneReset({ identityPool: identity, authService: auth,
           launches: composition.launches, scenes, resetCoordinator: reset.launchResetCoordinator,
           preflight: reset.sceneResetPreflight });
-      resetKeyDirectory = await fs.mkdtemp(path.join(process.env.TMPDIR, 'dvaia-session-reset-'));
+      resetKeyDirectory = await fs.mkdtemp(path.join(process.env.TMPDIR, 'owasp-ai-goat-session-reset-'));
       await fs.chmod(resetKeyDirectory, 0o700);
       const resetKeyFile = path.join(resetKeyDirectory, 'keys.json');
       await fs.writeFile(resetKeyFile, JSON.stringify({ version: 1, activeKeyId: 'owned',
@@ -1175,7 +1175,7 @@ async function runRenderedCase(avatar = false, other = false) {
       app.use(serveOpaqueFrameAssets(build));
       app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
       profile = await fs.mkdtemp(path.join(process.env.TMPDIR || os.tmpdir(), avatar
-        ? 'dvaia-account-avatar-' : 'dvaia-standalone-commerce-'));
+        ? 'owasp-ai-goat-account-avatar-' : 'owasp-ai-goat-standalone-commerce-'));
       if (avatar) avatarStage.enter('browser-launch');
       browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
         executablePath, args: admission.browserArgs({ profile, origin }) });
@@ -1197,7 +1197,7 @@ async function runRenderedCase(avatar = false, other = false) {
         if (avatar && request.method() === 'POST' && url.pathname === AVATAR_POST)
           avatarPosts.push({ request, path: url.pathname,
             authorization: request.headers().authorization || null,
-            launch: request.headers()['x-dvaia-secureshop-launch'] || null });
+            launch: request.headers()['x-owasp-ai-goat-secureshop-launch'] || null });
         if (avatar && request.method() === 'GET' && url.origin === origin
           && url.pathname.startsWith('/api/secureshop/uploads/avatar/operations/')) {
           avatarGetAttempts.push({ request });
@@ -1206,10 +1206,10 @@ async function runRenderedCase(avatar = false, other = false) {
         }
         if (request.method() === 'POST' && /^\/api\/secureshop\/v2\/auth\/users\/me\/sessions\/.+\/revoke$/.test(url.pathname))
           posts.push({ path: url.pathname, authorization: request.headers().authorization || null,
-            launch: request.headers()['x-dvaia-secureshop-launch'] || null });
+            launch: request.headers()['x-owasp-ai-goat-secureshop-launch'] || null });
         if (request.method() === 'GET' && url.pathname === '/api/secureshop/v2/auth/users/me/sessions')
           requests.push({ authorization: request.headers().authorization || null,
-            launch: request.headers()['x-dvaia-secureshop-launch'] || null });
+            launch: request.headers()['x-owasp-ai-goat-secureshop-launch'] || null });
       });
       page.on('requestfailed', request => {
         const url = new URL(request.url());
@@ -1254,7 +1254,7 @@ async function runRenderedCase(avatar = false, other = false) {
         buyerId: buyer.user.id, authenticate: token => auth.authenticate(token), findAccountFrame: frameFor });
       if (avatar) avatarStage.complete('initial-account');
       const browserCookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.equal(browserCookie?.httpOnly, true);
       assert.notEqual(browserCookie.value, buyer.token,
         'registration and physical browser login are separate owned sessions');
@@ -1312,7 +1312,7 @@ async function runRenderedCase(avatar = false, other = false) {
       let foreignStatus, foreignReply;
       try { const foreign = await fetch(`${origin}${cases.revokePath(siblingSession.sessionId)}`, {
         method: 'POST', headers: { authorization: browserAuth.authorization,
-          'x-dvaia-secureshop-launch': browserAuth.launch }, signal: foreignController.signal });
+          'x-owasp-ai-goat-secureshop-launch': browserAuth.launch }, signal: foreignController.signal });
         foreignStatus = foreign.status; foreignReply = await foreign.json(); }
       finally { clearTimeout(foreignDeadline); }
       assert.equal(foreignStatus, 200);
@@ -1334,7 +1334,7 @@ async function runRenderedCase(avatar = false, other = false) {
       assert.equal(posts[0].launch, browserAuth.launch);
       await page.waitForFunction(() => location.pathname === '/secureshop', { timeout: 20000 });
       const oldCookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(value => value.name === 'dvaia_shop_session');
+        .find(value => value.name === 'owasp_ai_goat_shop_session');
       assert.equal(oldCookie, undefined, 'confirmed self-revoke must sign out the parent');
       const rows = (await agents.query(`SELECT session_id,revoked_at FROM secureshop_agents.bound_persona_sessions
         WHERE platform_launch_id=$1 AND shop_user_id=$2 AND session_id=$3`,

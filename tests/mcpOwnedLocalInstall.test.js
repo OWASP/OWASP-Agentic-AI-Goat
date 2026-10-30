@@ -10,8 +10,13 @@ const { prepareOwnedEnvironment, prepareOwnedManagedConfiguration, managedConfig
 const { loadOwnedManagedConfiguration } = require('../server/services/mcp/ownedManagedConfiguration');
 const { provisionOwnedLocal, provisionFromEnvironment } = require('../scripts/install/mcp-owned-provision');
 
+async function installedProfileDigest() {
+  const template = await fs.readFile(path.join(__dirname, '../sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'), 'utf8');
+  return require('node:crypto').createHash('sha256').update(template.replaceAll('@@SUPERVISOR_PROFILE@@', 'owasp-ai-goat-mcp-sandbox')).digest('hex');
+}
+
 async function environment(t, body = `JWT_SECRET=${'s'.repeat(48)}\nCUSTOM_SETTING=preserved\n`) {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mcp-owned-install-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mcp-owned-install-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   const envPath = path.join(directory, '.env'); await fs.writeFile(envPath, body, { mode: 0o600 }); return envPath;
 }
@@ -150,12 +155,12 @@ test('invalid signing state, conflicting managed values, duplicates and pending 
 
 test('local profile plans are exact for Linux and an explicitly named Colima VM only', () => {
   const linux = localProfilePlan({ platform: 'linux', root: '/app' });
-  assert.equal(linux.destination, '/etc/apparmor.d/dvaia-mcp-sandbox'); assert.equal(linux.profile, 'dvaia-mcp-sandbox');
+  assert.equal(linux.destination, '/etc/apparmor.d/owasp-ai-goat-mcp-sandbox'); assert.equal(linux.profile, 'owasp-ai-goat-mcp-sandbox');
   assert.equal(linux.dockerHost, 'unix:///var/run/docker.sock');
-  const mac = localProfilePlan({ platform: 'darwin', root: '/app', home: '/home/test', colimaProfile: 'colima-dvaia-local' });
-  assert.equal(mac.sshConfig, '/home/test/.colima/_lima/colima-dvaia-local/ssh.config');
-  assert.equal(mac.sshHost, 'lima-colima-dvaia-local');
-  assert.equal(mac.dockerHost, 'unix:///home/test/.colima/dvaia-local/docker.sock');
+  const mac = localProfilePlan({ platform: 'darwin', root: '/app', home: '/home/test', colimaProfile: 'colima-owasp-ai-goat-local' });
+  assert.equal(mac.sshConfig, '/home/test/.colima/_lima/colima-owasp-ai-goat-local/ssh.config');
+  assert.equal(mac.sshHost, 'lima-colima-owasp-ai-goat-local');
+  assert.equal(mac.dockerHost, 'unix:///home/test/.colima/owasp-ai-goat-local/docker.sock');
   assert.throws(() => localProfilePlan({ platform: 'darwin', colimaProfile: 'default' }), { code: 'MCP_INSTALL_COLIMA_PROFILE_REQUIRED' });
   assert.throws(() => localProfilePlan({ platform: 'win32' }), { code: 'MCP_INSTALL_PLATFORM_UNSUPPORTED' });
 });
@@ -163,7 +168,7 @@ test('local profile plans are exact for Linux and an explicitly named Colima VM 
 test('compose keeps the strict owned runner opt-in, persistent and separate from legacy sidecars', async () => {
   const compose = await fs.readFile(path.join(__dirname, '../docker-compose.yml'), 'utf8');
   assert.match(compose, /mcp-owned-sandbox:\n\s+profiles: \["mcp-owned"\]/);
-  assert.match(compose, /apparmor:\$\{MCP_OWNED_TARGET_APPARMOR_PROFILE:-dvaia-mcp-sandbox\}/);
+  assert.match(compose, /apparmor:\$\{MCP_OWNED_TARGET_APPARMOR_PROFILE:-owasp-ai-goat-mcp-sandbox\}/);
   assert.match(compose, /MCP_OWNED_TARGETS_ENABLED: "true"/); assert.match(compose, /mcp-owned-targets:\/sandbox\/owned-targets/);
   assert.doesNotMatch(compose.slice(compose.indexOf('mcp-owned-sandbox:'), compose.indexOf('mailpit:')), /privileged:|cap_add:|network_mode:\s*host/);
 });
@@ -179,17 +184,19 @@ test('Linux provisioning parses and loads the exact profile before starting owne
       return { exitCode: 0, stdout: `${require('node:crypto').createHash('sha256').update(bytes).digest('hex')}  ${args.at(-1)}\n` };
     }
     if (file === 'sudo' && args[1] === 'stat') return { exitCode: 0, stdout: '0:0:600:regular file\n' };
-    if (file === 'sudo' && args[1] === 'cat') return { exitCode: 0, stdout: 'dvaia-mcp-sandbox (enforce)\n' };
+    if (file === 'sudo' && args[1] === 'cat') return { exitCode: 0, stdout: 'owasp-ai-goat-mcp-sandbox (enforce)\n' };
     return { exitCode: 0, stdout: '' };
   };
   const result = await provisionOwnedLocal({ platform: 'linux', root: path.join(__dirname, '..'), run,
     readiness: async () => ({ ready: true, runnerReady: true, repositoryReady: true,
-      runnerIsolation: 'bwrap-seccomp-v1', supervisorProfile: 'dvaia-mcp-sandbox (enforce)' }) });
+      runnerIsolation: 'bwrap-seccomp-v1', supervisorProfile: 'owasp-ai-goat-mcp-sandbox (enforce)' }) });
   assert.equal(result.activationEnabled, false); assert.match(result.profileSha256, /^[a-f0-9]{64}$/);
   assert.deepEqual(calls.map(([file, args]) => [file, args.slice(0, 3).join(' ')]), [
     ['sudo', '--non-interactive true'], ['sudo', '--non-interactive apparmor_parser --skip-kernel-load'],
-    ['sudo', '--non-interactive test -e'], ['sudo', '--non-interactive sha256sum /etc/apparmor.d/dvaia-mcp-sandbox'],
-    ['sudo', '--non-interactive stat -c'], ['sudo', '--non-interactive apparmor_parser -r'],
+    ['sudo', '--non-interactive test -e'], ['sudo', '--non-interactive stat -c'],
+    ['sudo', '--non-interactive sha256sum /etc/apparmor.d/owasp-ai-goat-mcp-sandbox'],
+    ['sudo', '--non-interactive stat -c'], ['sudo', '--non-interactive sha256sum /etc/apparmor.d/owasp-ai-goat-mcp-sandbox'],
+    ['sudo', '--non-interactive apparmor_parser -r'],
     ['sudo', '--non-interactive cat /sys/kernel/security/apparmor/profiles'],
     ['docker', '--host unix:///var/run/docker.sock compose'], ['docker', '--host unix:///var/run/docker.sock compose'],
   ]);
@@ -205,6 +212,7 @@ test('a conflicting stable profile stops before load, Compose, or readiness', as
   const run = async (file, args) => {
     calls.push([file, [...args]]);
     if (file === 'sudo' && args[1] === 'sha256sum') return { exitCode: 0, stdout: `${'0'.repeat(64)}  ${args.at(-1)}\n` };
+    if (file === 'sudo' && args[1] === 'stat') return { exitCode: 0, stdout: '0:0:600:regular file\n' };
     return { exitCode: 0, stdout: '' };
   };
   await assert.rejects(provisionOwnedLocal({ platform: 'linux', root: path.join(__dirname, '..'), run,
@@ -229,9 +237,11 @@ test('provisioning rejects an ambient Docker daemon or context that differs from
 });
 
 test('owned services never imply activation when live readiness is incomplete', async () => {
+  const profileSha256 = await installedProfileDigest();
   const run = async (file, args) => {
+    if (file === 'sudo' && args[1] === 'sha256sum') return { exitCode: 0, stdout: `${profileSha256}  ${args.at(-1)}\n` };
     if (file === 'sudo' && args[1] === 'test') return { exitCode: 1, stdout: '' };
-    if (file === 'sudo' && args[1] === 'cat') return { exitCode: 0, stdout: 'dvaia-mcp-sandbox (enforce)\n' };
+    if (file === 'sudo' && args[1] === 'cat') return { exitCode: 0, stdout: 'owasp-ai-goat-mcp-sandbox (enforce)\n' };
     if (file === 'sudo' && args[1] === 'stat') return { exitCode: 0, stdout: '0:0:600:regular file\n' };
     return { exitCode: 0, stdout: '' };
   };
@@ -242,15 +252,17 @@ test('owned services never imply activation when live readiness is incomplete', 
 });
 
 test('owned service provisioning rejects a runner without strict CodeBot isolation', async () => {
+  const profileSha256 = await installedProfileDigest();
   const run = async (file, args) => {
+    if (file === 'sudo' && args[1] === 'sha256sum') return { exitCode: 0, stdout: `${profileSha256}  ${args.at(-1)}\n` };
     if (file === 'sudo' && args[1] === 'test') return { exitCode: 1, stdout: '' };
-    if (file === 'sudo' && args[1] === 'cat') return { exitCode: 0, stdout: 'dvaia-mcp-sandbox (enforce)\n' };
+    if (file === 'sudo' && args[1] === 'cat') return { exitCode: 0, stdout: 'owasp-ai-goat-mcp-sandbox (enforce)\n' };
     if (file === 'sudo' && args[1] === 'stat') return { exitCode: 0, stdout: '0:0:600:regular file\n' };
     return { exitCode: 0, stdout: '' };
   };
   await assert.rejects(provisionOwnedLocal({ platform: 'linux', root: path.join(__dirname, '..'), run,
     readiness: async () => ({ ready: true, runnerReady: true, runnerIsolation: 'bwrap-seccomp-v1',
-      supervisorProfile: 'dvaia-mcp-sandbox (enforce)' }),
+      supervisorProfile: 'owasp-ai-goat-mcp-sandbox (enforce)' }),
     codeBotReadiness: async () => ({ ready: false, runnerReady: false, isolation: 'unavailable' }) }),
   { code: 'MCP_INSTALL_READINESS_FAILED', stage: 'owned-readiness' });
 });
@@ -260,45 +272,45 @@ test('managed Colima provisioning uses only its explicit SSH authority and clean
   const run = async (file, args) => {
     calls.push([file, [...args]]);
     const command = args.at(-1);
-    if (file === 'ssh' && /^test -e \/tmp\/dvaia-mcp-owned-/.test(command)) return { exitCode: 1, stdout: '' };
-    if (file === 'ssh' && command === 'sudo sha256sum /etc/apparmor.d/dvaia-mcp-sandbox') {
+    if (file === 'ssh' && /^test -e \/tmp\/owasp-ai-goat-mcp-owned-/.test(command)) return { exitCode: 1, stdout: '' };
+    if (file === 'ssh' && command === 'sudo sha256sum /etc/apparmor.d/owasp-ai-goat-mcp-sandbox') {
       const profile = calls.find(([name]) => name === 'scp')[1][2];
       const bytes = await fs.readFile(profile);
-      return { exitCode: 0, stdout: `${require('node:crypto').createHash('sha256').update(bytes).digest('hex')}  /etc/apparmor.d/dvaia-mcp-sandbox\n` };
+      return { exitCode: 0, stdout: `${require('node:crypto').createHash('sha256').update(bytes).digest('hex')}  /etc/apparmor.d/owasp-ai-goat-mcp-sandbox\n` };
     }
     if (file === 'ssh' && command === 'sudo cat /sys/kernel/security/apparmor/profiles') {
-      return { exitCode: 0, stdout: 'dvaia-mcp-sandbox (enforce)\n' };
+      return { exitCode: 0, stdout: 'owasp-ai-goat-mcp-sandbox (enforce)\n' };
     }
-    if (file === 'ssh' && command === 'sudo stat -c %u:%g:%a:%F /etc/apparmor.d/dvaia-mcp-sandbox') {
+    if (file === 'ssh' && command === 'sudo stat -c %u:%g:%a:%F /etc/apparmor.d/owasp-ai-goat-mcp-sandbox') {
       return { exitCode: 0, stdout: '0:0:600:regular file\n' };
     }
     return { exitCode: 0, stdout: '' };
   };
   await provisionOwnedLocal({ platform: 'darwin', root: path.join(__dirname, '..'), home: '/home/test',
-    colimaProfile: 'colima-dvaia-local', nonce: '123456abcdef', run,
+    colimaProfile: 'colima-owasp-ai-goat-local', nonce: '123456abcdef', run,
     readiness: async () => ({ ready: true, runnerReady: true, repositoryReady: true,
-      runnerIsolation: 'bwrap-seccomp-v1', supervisorProfile: 'dvaia-mcp-sandbox (enforce)' }) });
+      runnerIsolation: 'bwrap-seccomp-v1', supervisorProfile: 'owasp-ai-goat-mcp-sandbox (enforce)' }) });
   const sshCalls = calls.filter(([file]) => file === 'ssh');
   assert.ok(sshCalls.every(([, args]) => args[0] === '-F'
-    && args[1] === '/home/test/.colima/_lima/colima-dvaia-local/ssh.config'
-    && args[2] === 'lima-colima-dvaia-local'));
-  assert.match(sshCalls.at(-1)[1].at(-1), /^rm -rf \/tmp\/dvaia-mcp-owned-[a-f0-9]{12}-123456abcdef$/);
+    && args[1] === '/home/test/.colima/_lima/colima-owasp-ai-goat-local/ssh.config'
+    && args[2] === 'lima-colima-owasp-ai-goat-local'));
+  assert.match(sshCalls.at(-1)[1].at(-1), /^rm -rf \/tmp\/owasp-ai-goat-mcp-owned-[a-f0-9]{12}-123456abcdef$/);
   const docker = calls.find(([file]) => file === 'docker');
-  assert.deepEqual(docker[1].slice(0, 3), ['--host', 'unix:///home/test/.colima/dvaia-local/docker.sock', 'compose']);
+  assert.deepEqual(docker[1].slice(0, 3), ['--host', 'unix:///home/test/.colima/owasp-ai-goat-local/docker.sock', 'compose']);
 });
 
 test('an uncertain Colima directory creation is retained as explicit cleanup debt', async () => {
   const calls = [];
   const run = async (file, args) => {
     calls.push([file, [...args]]); const command = args.at(-1);
-    if (file === 'ssh' && /^test -e \/tmp\/dvaia-mcp-owned-/.test(command)) return { exitCode: 1, stdout: '' };
+    if (file === 'ssh' && /^test -e \/tmp\/owasp-ai-goat-mcp-owned-/.test(command)) return { exitCode: 1, stdout: '' };
     if (file === 'ssh' && /^mkdir -m 0700 /.test(command)) throw Object.assign(new Error('timeout'), { code: 'TIMEOUT' });
     return { exitCode: 0, stdout: '' };
   };
   let caught;
   try {
     await provisionOwnedLocal({ platform: 'darwin', root: path.join(__dirname, '..'), home: '/home/test',
-      colimaProfile: 'colima-dvaia-local', nonce: '123456abcdef', run, readiness: async () => ({ ready: true }) });
+      colimaProfile: 'colima-owasp-ai-goat-local', nonce: '123456abcdef', run, readiness: async () => ({ ready: true }) });
   } catch (error) { caught = error; }
   assert.equal(caught.code, 'MCP_INSTALL_PROFILE_RECOVERY_REQUIRED');
   assert.equal(caught.stage, 'remote-create');
@@ -312,11 +324,11 @@ test('operational entrypoint uses managed endpoint and token, preserves private 
   const run = async (file, args) => {
     if (file === 'sudo' && args[1] === 'sha256sum') {
       const profile = args.at(-1);
-      const source = await fs.readFile(path.join(__dirname, '../sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'), 'utf8');
-      const rendered = source.replaceAll('@@SUPERVISOR_PROFILE@@', 'dvaia-mcp-sandbox');
+      const source = await fs.readFile(path.join(__dirname, '../sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'), 'utf8');
+      const rendered = source.replaceAll('@@SUPERVISOR_PROFILE@@', 'owasp-ai-goat-mcp-sandbox');
       return { exitCode: 0, stdout: `${require('node:crypto').createHash('sha256').update(rendered).digest('hex')}  ${profile}\n` };
     }
-    if (file === 'sudo' && args[1] === 'cat') return { exitCode: 0, stdout: 'dvaia-mcp-sandbox (enforce)\n' };
+    if (file === 'sudo' && args[1] === 'cat') return { exitCode: 0, stdout: 'owasp-ai-goat-mcp-sandbox (enforce)\n' };
     if (file === 'sudo' && args[1] === 'stat') return { exitCode: 0, stdout: '0:0:600:regular file\n' };
     return { exitCode: 0, stdout: '' };
   };
@@ -326,7 +338,7 @@ test('operational entrypoint uses managed endpoint and token, preserves private 
     targetClientFactory(value) {
       configured = value;
       return { async readiness() { return { ready: true, runnerReady: true, isolation: 'bwrap-seccomp-v1',
-        supervisorProfile: 'dvaia-mcp-sandbox (enforce)' }; } };
+        supervisorProfile: 'owasp-ai-goat-mcp-sandbox (enforce)' }; } };
     } });
   const parsed = loadOwnedManagedConfiguration({ file: managedPath });
   assert.equal(configured.baseURL, 'http://127.0.0.1:8092');
@@ -339,18 +351,19 @@ test('operational entrypoint uses managed endpoint and token, preserves private 
 
 test('protected recovery mode requires exact inspected immutable image/profile and capability before private activation',async t=>{
  const envPath=await environment(t),managedPath=path.join(path.dirname(envPath),'protected.env');
- const template=await fs.readFile(path.join(__dirname,'../sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'),'utf8');
- const profileSha256=require('node:crypto').createHash('sha256').update(template.replaceAll('@@SUPERVISOR_PROFILE@@','dvaia-mcp-sandbox')).digest('hex');
+ const template=await fs.readFile(path.join(__dirname,'../sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'),'utf8');
+ const profileSha256=require('node:crypto').createHash('sha256').update(template.replaceAll('@@SUPERVISOR_PROFILE@@','owasp-ai-goat-mcp-sandbox')).digest('hex');
  const image='sha256:'+'a'.repeat(64);let actualImage=image;
  const run=async(file,args)=>{
+  if(file==='sudo'&&args[1]==='sha256sum')return{exitCode:0,stdout:`${profileSha256}  ${args.at(-1)}\n`};
   if(file==='sudo'&&args[1]==='test')return{exitCode:1,stdout:''};
-  if(file==='sudo'&&args[1]==='cat')return{exitCode:0,stdout:'dvaia-mcp-sandbox (enforce)\n'};
+  if(file==='sudo'&&args[1]==='cat')return{exitCode:0,stdout:'owasp-ai-goat-mcp-sandbox (enforce)\n'};
   if(file==='sudo'&&args[1]==='stat')return{exitCode:0,stdout:'0:0:600:regular file\n'};
   if(file==='docker'&&args.includes('ps'))return{exitCode:0,stdout:'b'.repeat(64)+'\n'};
-  if(file==='docker'&&args.includes('inspect'))return{exitCode:0,stdout:JSON.stringify({Image:actualImage,AppArmorProfile:'dvaia-mcp-sandbox'})};
+  if(file==='docker'&&args.includes('inspect'))return{exitCode:0,stdout:JSON.stringify({Image:actualImage,AppArmorProfile:'owasp-ai-goat-mcp-sandbox'})};
   return{exitCode:0,stdout:''};
  };
- const options={envPath,managedPath,activateQualified:true,activateProtectedRecovery:true,protectedRecoveryRelease:{image,profileSha256},platform:'linux',root:path.join(__dirname,'..'),run,codeBotReadiness:async()=>({ready:true,isolation:'bwrap-codebot-v1'}),targetClientFactory:()=>({readiness:async()=>({ready:true,runnerReady:true,isolation:'bwrap-seccomp-v1',supervisorProfile:'dvaia-mcp-sandbox (enforce)',protectedJournalCapability:'mcp-owned-protected-operation-journal.v1',protectedReadbackCapability:'mcp-owned-protected-readback.v1'})})};
+ const options={envPath,managedPath,activateQualified:true,activateProtectedRecovery:true,protectedRecoveryRelease:{image,profileSha256},platform:'linux',root:path.join(__dirname,'..'),run,codeBotReadiness:async()=>({ready:true,isolation:'bwrap-codebot-v1'}),targetClientFactory:()=>({readiness:async()=>({ready:true,runnerReady:true,isolation:'bwrap-seccomp-v1',supervisorProfile:'owasp-ai-goat-mcp-sandbox (enforce)',protectedJournalCapability:'mcp-owned-protected-operation-journal.v1',protectedReadbackCapability:'mcp-owned-protected-readback.v1'})})};
  await provisionFromEnvironment(options);assert.equal(loadOwnedManagedConfiguration({file:managedPath}).MCP_PROTECTED_RECOVERY_ENABLED,'true');
  await provisionFromEnvironment(options);assert.equal(loadOwnedManagedConfiguration({file:managedPath}).MCP_PROTECTED_RECOVERY_ENABLED,'true');
  actualImage='sha256:'+'c'.repeat(64);await assert.rejects(provisionFromEnvironment(options),{code:'MCP_INSTALL_PROTECTED_RECOVERY_UNQUALIFIED'});assert.equal(loadOwnedManagedConfiguration({file:managedPath}).MCP_PROTECTED_RECOVERY_ENABLED,'false');
@@ -359,7 +372,7 @@ test('protected recovery mode requires exact inspected immutable image/profile a
 test('requested lesson capabilities admit exact readiness and deny each missing capability before activation', async t => {
  const envPath=await environment(t),before=await fs.readFile(envPath),managedPath=path.join(path.dirname(envPath),'capabilities.env');
  const q=require('../server/services/mcp/ownedQualification');
- const receipt={ready:true,runnerReady:true,isolation:'bwrap-seccomp-v1',supervisorProfile:'dvaia-mcp-sandbox (enforce)',protectedStateCapability:q.PROTECTED_STATE_CAPABILITY,observedActionCapability:q.OBSERVED_ACTION_CAPABILITY,ticketReadCapability:q.TICKET_READ_CAPABILITY,packageInstallCapability:q.PACKAGE_INSTALL_CAPABILITY};
+ const receipt={ready:true,runnerReady:true,isolation:'bwrap-seccomp-v1',supervisorProfile:'owasp-ai-goat-mcp-sandbox (enforce)',protectedStateCapability:q.PROTECTED_STATE_CAPABILITY,observedActionCapability:q.OBSERVED_ACTION_CAPABILITY,ticketReadCapability:q.TICKET_READ_CAPABILITY,packageInstallCapability:q.PACKAGE_INSTALL_CAPABILITY};
  const options={envPath,managedPath,activateQualified:true,activateObservedAction:true,activateIndirectInjection:true,activateSupplyChain:true,provision:async({readiness})=>{await readiness();return {ok:true};}};
  for(const key of ['protectedStateCapability','observedActionCapability','ticketReadCapability','packageInstallCapability']) {
   for(const replacement of [undefined,'wrong-capability']) {

@@ -37,7 +37,7 @@ async function fixture(t) {
   const server = await new Promise(resolve => { const instance = app.listen(0, '127.0.0.1', () => resolve(instance)); });
   t.after(() => new Promise(resolve => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}/admin/tickets`;
-  const headers = { 'content-type': 'application/json', 'x-dvaia-secureshop-launch': 'a'.repeat(43) };
+  const headers = { 'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43) };
   return { state, scope, personaSession, base, headers,
     post: (ticketId, body, suffix = '', contentType = 'application/json') => fetch(`${base}/${ticketId}/assessment${suffix}`,
       { method: 'POST', headers: { ...headers, 'content-type': contentType }, body: JSON.stringify(body) }),
@@ -142,7 +142,7 @@ test('ticket assessment exposes minimal judgment and fails closed on malformed p
     const malformed = await f.get('1', requestId);
     assert.equal(malformed.status, 503);
     assert.deepEqual(await malformed.json(), { error: 'Ticket assessment unavailable' });
-    assert.equal(malformed.headers.get('x-dvaia-secureshop-launch-state'), null);
+    assert.equal(malformed.headers.get('x-owasp-ai-goat-secureshop-launch-state'), null);
   }
   assert.deepEqual(publicTicketAssessment({ completed: false, replayed: true,
     judgment: { evaluationId: original.judgment.evaluationId, verdict: 'unavailable', canRetry: true } }),
@@ -155,14 +155,14 @@ test('ticket assessment preserves stale/conflict/unavailable HTTP lifecycle with
     f.state.error = Object.assign(Error('controlled private diagnostic'), { code });
     for (const call of [() => f.post('1', { requestId }), () => f.get('1', requestId)]) {
       const stale = await call(); assert.equal(stale.status, 401);
-      assert.equal(stale.headers.get('x-dvaia-secureshop-launch-state'), 'unavailable');
+      assert.equal(stale.headers.get('x-owasp-ai-goat-secureshop-launch-state'), 'unavailable');
       assert.deepEqual(await stale.json(), { error: 'Shop session unavailable' });
     }
   }
   for (const [code, status] of [['TURN_REQUEST_CONFLICT', 409], ['TICKET_RETIRED', 503], ['INTERNAL_PRIVATE', 503]]) {
     f.state.error = Object.assign(Error('controlled private diagnostic'), { code });
     const denied = await f.post('1', { requestId }); assert.equal(denied.status, status);
-    assert.equal(denied.headers.get('x-dvaia-secureshop-launch-state'), null);
+    assert.equal(denied.headers.get('x-owasp-ai-goat-secureshop-launch-state'), null);
     assert.deepEqual(await denied.json(), { error: 'Ticket assessment unavailable' });
   }
 });

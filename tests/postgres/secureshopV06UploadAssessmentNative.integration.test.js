@@ -62,7 +62,7 @@ function urls(store) {
     assert.equal(value.protocol, 'postgresql:'); assert.equal(value.hostname, '127.0.0.1');
     assert.equal(value.username, `dvaia_${ROLE[store]}_${type.toLowerCase()}`);
     assert.equal(value.password, ''); assert.equal(value.search, ''); assert.equal(value.hash, '');
-    assert.match(value.pathname, /^\/dvaia_test_upload_assessment_[a-f0-9]{12}_[a-z_]+$/);
+    assert.match(value.pathname, /^\/owasp_ai_goat_test_upload_assessment_[a-f0-9]{12}_[a-z_]+$/);
     result[type.toLowerCase()] = value.href;
   }
   return result;
@@ -333,7 +333,7 @@ test('native V06 assessment binds original PG turn/trace/effect/serve and fences
 
     const requestId = randomUUID(), operationId = randomUUID(), storageKey = randomUUID();
     const sourceBytes = Buffer.from('<svg>native</svg>');
-    const uploadRoot = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-v06-upload-assessment-')));
+    const uploadRoot = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-v06-upload-assessment-')));
     t.after(async () => fs.rm(uploadRoot, { recursive: true, force: true }));
     const raw = { operationId, uploadRequestId: requestId, storageKey, scope: { ...scope,
       targetId, sceneId, sceneGeneration: 1, grantId, personaSessionId: personaSession.sessionId,

@@ -4,7 +4,7 @@ const fs=require('node:fs/promises'),path=require('node:path'),os=require('node:
 const {createProtectedOperationStore}=require('../sidecars/sandbox-runner/protected-operations/operationStore');
 const {canonicalDigest}=require('../sidecars/sandbox-runner/owned-http/canonical');
 async function fixture(t){
- const target=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-protected-journal-'));t.after(()=>fs.rm(target,{recursive:true,force:true}));
+ const target=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-protected-journal-'));t.after(()=>fs.rm(target,{recursive:true,force:true}));
  const binding={targetId:crypto.randomUUID(),ownerId:7,platformSessionId:71,generation:0};let calls=0,version=1,failAfter=false;
  // Controlled lock dependency; production foundation remains unmounted.
  let tail=Promise.resolve();const targetStore={withTarget(_cap,authority,work){const p=tail.then(async()=>{if(!await authority({phase:'use'}))throw Error('revoked');const result=await work({rootfs:path.join(target,'rootfs'),binding});if(!await authority({phase:'return'}))throw Error('revoked');return result;});tail=p.catch(()=>{});return p;}};

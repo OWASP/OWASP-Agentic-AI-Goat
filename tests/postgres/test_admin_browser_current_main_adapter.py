@@ -58,7 +58,7 @@ class Selector(unittest.TestCase):
         self.assertEqual(launcher.SCOPE, admission.SCOPE)
         self.assertEqual(launcher.NODE_VERSION, admission.NODE_VERSION)
         self.assertEqual(launcher.database_plan('abcdef123456'), {
-            'adminProductionAuthBrowser': 'dvaia_test_admin_browser_abcdef123456',
+            'adminProductionAuthBrowser': 'owasp_ai_goat_test_admin_browser_abcdef123456',
         })
         env = launcher.suite_environment({}, launcher.SUITES[0],
             launcher.database_plan('abcdef123456'), 55432)
@@ -255,7 +255,7 @@ class Admission(unittest.TestCase):
             self.assertEqual(grant['candidateSourceRoot'], str(root))
             self.assertEqual(grant['runningPythonSha256'], 'python')
             self.assertEqual(grant['databasePlan'], {
-                'adminProductionAuthBrowser': 'dvaia_test_admin_browser_abcdef123456',
+                'adminProductionAuthBrowser': 'owasp_ai_goat_test_admin_browser_abcdef123456',
             })
 
 

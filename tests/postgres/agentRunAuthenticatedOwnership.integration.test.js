@@ -14,8 +14,8 @@ test('durable session authentication composes with native cross-store run owners
     const url = new URL(process.env[key]);
     assert.ok(['postgres:', 'postgresql:'].includes(url.protocol));
     assert.ok(['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname));
-    if(mainAdmission){assert.equal(url.port,String(mainAdmission.port));assert.equal(url.hostname,'127.0.0.1');assert.ok(['/dvaia_identity','/dvaia_secureshop_agents'].includes(url.pathname));}
-    else assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    if(mainAdmission){assert.equal(url.port,String(mainAdmission.port));assert.equal(url.hostname,'127.0.0.1');assert.ok(['/owasp_ai_goat_identity','/owasp_ai_goat_secureshop_agents'].includes(url.pathname));}
+    else assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
     assert.ok(url.port, 'explicit disposable port required');
     assert.equal(url.search, '', 'URL connection options are forbidden');
     assert.equal(url.hash, '', 'URL fragments are forbidden');

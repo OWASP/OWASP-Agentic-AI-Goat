@@ -39,7 +39,7 @@ async function readVerifiedLegacyArchive({ archive }) {
   if (incomplete) reject('INCOMPLETE_ARCHIVE');
   const manifestBytes = await readArchiveFile(root, 'manifest.json', { budget });
   const manifest = JSON.parse(manifestBytes.toString('utf8'));
-  if (manifest.version !== 1 || manifest.format !== 'dvaia-sqlite-archive-v1' || manifest.complete !== true || !Array.isArray(manifest.files)) reject('INVALID_ARCHIVE_MANIFEST');
+  if (manifest.version !== 1 || manifest.format !== 'owasp-ai-goat-sqlite-archive-v1' || manifest.complete !== true || !Array.isArray(manifest.files)) reject('INVALID_ARCHIVE_MANIFEST');
   if (Object.keys(manifest).some(key => /wal|sidecar|journal/i.test(key))) reject('UNSUPPORTED_SIDECAR_METADATA');
   const sourceNames = new Set(), payloadNames = new Set(), sources = Object.create(null);
   for (const source of manifest.files) {

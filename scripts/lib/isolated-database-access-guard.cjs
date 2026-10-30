@@ -3,7 +3,7 @@
 const Module = require('node:module');
 
 const CODE = 'ISOLATED_DATABASE_ACCESS_DENIED';
-const installed = Symbol.for('dvaia.isolatedDatabaseAccessGuard');
+const installed = Symbol.for('owasp-ai-goat.isolatedDatabaseAccessGuard');
 
 function denied() {
   throw Object.assign(new Error('Controlled aggregate denies database access'), { code: CODE });

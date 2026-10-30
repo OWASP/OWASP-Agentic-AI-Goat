@@ -23,7 +23,7 @@ function disposableUrls(env=process.env) {
   const urls={};let nonce,port;
   for(const [store,name]of Object.entries(STORES))for(const role of ['MIGRATION','RUNTIME']) {
     const url=new URL(env[`${PREFIX}${store}_${role}_URL`]);
-    const match=/^\/dvaia_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
+    const match=/^\/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
     assert.equal(url.protocol,'postgresql:');assert.equal(url.hostname,'127.0.0.1');
     assert.equal(url.username,`dvaia_${name}_${role.toLowerCase()}`);
     assert.equal(url.password,'');assert.equal(url.search,'');assert.equal(url.hash,'');
@@ -208,7 +208,7 @@ function assertNoCreditLedger({before,after,expectedRuns,authority}) {
 }
 
 if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},async t=>{
-  assert.equal(process.cwd(),ROOT);assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE||'/'),ROOT);
+  assert.equal(process.cwd(),ROOT);assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE||'/'),ROOT);
   assert.equal(process.env.HF_HUB_OFFLINE,'1');assert.equal(process.env.OLLAMA_MODEL,MODEL);
   assert.equal(process.env.AI_PROVIDER,'ollama');assert.equal(process.env.LAB_MODE,'vuln');
   const evidencePath=process.env.SECURESHOP_PRIVATE_MANUAL_EVIDENCE_PATH;
@@ -279,7 +279,7 @@ if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},asy
       const boot=await bootstrap(active.context),scope=await composition.launches.resolveCapability(boot.bearer);
       const actor=await composition.personaAuth.authenticateBoundToken({scope,token:boot.persona.token});
       return {registered,active,boot,scope,persona:actor.user,personaSession:{sessionId:actor.sessionId,authorityVersion:actor.authorityVersion},
-        headers:{authorization:`Bearer ${boot.persona.token}`,'x-dvaia-secureshop-launch':boot.bearer},cookie:{cookie:`dvaia_shop_session=${active.token}`}};
+        headers:{authorization:`Bearer ${boot.persona.token}`,'x-owasp-ai-goat-secureshop-launch':boot.bearer},cookie:{cookie:`owasp_ai_goat_shop_session=${active.token}`}};
     };
     const merchant=await login(`v31m_${suffix}`,'merchant'),customer=await login(`v31c_${suffix}`,'customer');
     assert.notEqual(merchant.persona.id,customer.persona.id);assert.notEqual(merchant.personaSession.sessionId,customer.personaSession.sessionId);
@@ -448,7 +448,7 @@ if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},asy
     assert.notEqual(peerTarget.targetId,target.targetId);
     const peerRows=async()=>(await review.query('SELECT to_jsonb(p) AS row FROM secureshop_review.product_target_products p WHERE target_id=$1 ORDER BY product_id',[peerTarget.targetId])).rows;
     const peerBefore=await peerRows(),retained=(await review.query('SELECT to_jsonb(i) AS row FROM secureshop_review.product_target_manual_ingests i WHERE operation_id=$1',[privateUpload.result.operationId])).rows;
-    const admin=await auth.login({username:'student_admin',password:'student123'}),adminHeaders={cookie:`dvaia_shop_session=${admin.token}`};
+    const admin=await auth.login({username:'student_admin',password:'student123'}),adminHeaders={cookie:`owasp_ai_goat_shop_session=${admin.token}`};
     // Login establishes authentication; bootstrap separately issues this exact
     // administrator execution's launch, which reset readiness requires.
     const adminBootstrap=await request('/auth/bootstrap',{method:'POST',headers:adminHeaders,body:{}});

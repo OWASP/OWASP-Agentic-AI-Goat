@@ -59,7 +59,7 @@ def main():
  verify()
  path=root/'tests/postgres/run-finflow-backup-browser-main.py'
  spec=importlib.util.spec_from_file_location('codebot_browser_capture',path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
- node=Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+ node=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
  expected_node='56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
  expected_python='b08b055365df6dcd3fff0b805b688428f0f6a01839303f22c0716780155c480d'
  if sha(node)!=expected_node or sha(Path(sys.executable).resolve())!=expected_python:raise RuntimeError('Runtime authority mismatch')

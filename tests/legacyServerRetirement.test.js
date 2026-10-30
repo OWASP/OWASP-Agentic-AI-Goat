@@ -54,7 +54,7 @@ test('requiring the retired entrypoint loads no application modules or working d
     }
     Module._load = originalLoad;
     for (const [name, value] of Object.entries(originalFs)) fs[name] = value;
-    if (!caught || caught.code !== 'ERR_DVAIA_LEGACY_ENTRYPOINT_RETIRED' || !caught.message.includes(${JSON.stringify(expectedMessage)})) {
+    if (!caught || caught.code !== 'ERR_OWASP_AI_GOAT_LEGACY_ENTRYPOINT_RETIRED' || !caught.message.includes(${JSON.stringify(expectedMessage)})) {
       console.error(JSON.stringify({ caught, loads, fileAccess }));
       process.exit(2);
     }

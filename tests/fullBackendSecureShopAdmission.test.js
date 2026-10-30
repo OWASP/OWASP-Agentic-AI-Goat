@@ -14,11 +14,11 @@ function fixture(t) {
     SS_ENABLE: 'true', SS_BOUND_REVIEWS_ENABLED: 'true', SS_PERSONA_INBOX_READY: 'true', SS_MCP_TRUST_READY: 'true',
     SS_CONTROLLED_SSRF_READY: 'true', AI_PROVIDER: 'ollama', OLLAMA_MODEL: 'llama3.1:8b', JUDGE_PROVIDER: 'ollama',
     JUDGE_MODEL: 'llama3.1:8b', OLLAMA_BASE_URL: 'http://127.0.0.1:11434', PG_FULL_BACKEND_SECURESHOP_MODEL_DIGEST: MODEL_DIGEST,
-    DVAIA_ISOLATED_TEST_WORKSPACE: sourceRoot, DVAIA_FULL_BACKEND_RUNTIME_ROOT: evidenceRoot,
+    OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE: sourceRoot, OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT: evidenceRoot,
     SS_MCP_TRUST_FIXTURE_ROOT: evidenceRoot + '/trust', SS_CONTROLLED_SSRF_FIXTURE_ROOT: evidenceRoot + '/ssrf', SS_AGENT_HOST_PORT: '35002' };
   for (const row of requiredStoreManifest) {
-    env[row.runtimeVariable] = `postgresql://${row.runtimeRole}@127.0.0.1:35001/dvaia_test_full_backend_${row.schema}`;
-    env[row.migrationVariable] = `postgresql://dvaia_${row.schema}_migration@127.0.0.1:35001/dvaia_test_full_backend_${row.schema}`;
+    env[row.runtimeVariable] = `postgresql://${row.runtimeRole}@127.0.0.1:35001/owasp_ai_goat_test_full_backend_${row.schema}`;
+    env[row.migrationVariable] = `postgresql://dvaia_${row.schema}_migration@127.0.0.1:35001/owasp_ai_goat_test_full_backend_${row.schema}`;
   }
   const endpointManifest = { version: 1, postgres: { host: '127.0.0.1', port: 35001 },
     agentHost: { host: '127.0.0.1', port: 35002 }, model: { host: '127.0.0.1', port: 11434 },
@@ -38,7 +38,7 @@ test('SecureShop admission rejects missing flags, cloud fallback, source mismatc
     e => { e.AWS_PROFILE = 'ambient'; }, e => { e.OPENAI_API_KEY = 'controlled'; },
     e => { e.JUDGE_MODEL = 'other'; }, e => { e.PG_FULL_BACKEND_SECURESHOP_MODEL_DIGEST = 'a'.repeat(64); },
     e => { e.OLLAMA_BASE_URL = 'http://localhost:11434'; }, e => { e.SS_AGENT_HOST_PORT = '35003'; },
-    e => { e.SS_MCP_TRUST_FIXTURE_ROOT = f.root; }, e => { e.DVAIA_ISOLATED_TEST_WORKSPACE = f.root; },
+    e => { e.SS_MCP_TRUST_FIXTURE_ROOT = f.root; }, e => { e.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE = f.root; },
     e => { e.IDENTITY_DATABASE_URL += '?sslmode=disable'; }, e => { e.IDENTITY_DATABASE_URL += '#fragment'; },
     e => { e.IDENTITY_DATABASE_URL = e.IDENTITY_DATABASE_URL.replace('35001','5432'); },
     e => { e.IDENTITY_DATABASE_URL = e.IDENTITY_MIGRATION_DATABASE_URL; },

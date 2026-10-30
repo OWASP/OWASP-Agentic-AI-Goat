@@ -24,7 +24,7 @@ async function owned(t) {
   const runtime = path.join(run, 'runtime'), temp = path.join(runtime, 'tmp');
   await fs.mkdir(runtime, { mode: 0o700 });
   await fs.mkdir(temp, { mode: 0o700 });
-  const profile = await fs.mkdtemp(path.join(temp, 'dvaia-role-admin-reset-'));
+  const profile = await fs.mkdtemp(path.join(temp, 'owasp-ai-goat-role-admin-reset-'));
   const evidencePath = path.join(run, 'admin-password-reset-chat-browser.json');
   const executablePath = syncFs.realpathSync(process.execPath);
   const buildSha256 = (await buildInventory(path.join(ROOT, 'client/build'))).sha256;
@@ -43,7 +43,7 @@ async function owned(t) {
     SECURESHOP_BOUND_BROWSER_BIRTH_PYTHON: syncFs.realpathSync('/usr/bin/python3'),
     PUPPETEER_EXECUTABLE_PATH: executablePath,
     PG_TEST_DISPOSABLE: 'yes', LIVE_OLLAMA_TEST: '1', NODE_ENV: 'test',
-    DVAIA_CURRENT_MAIN_WORKSPACE: ROOT, TMPDIR: temp, MAC_CHROMIUM_TMPDIR: temp,
+    OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: ROOT, TMPDIR: temp, MAC_CHROMIUM_TMPDIR: temp,
     DOCKER_HOST: `unix://${ROOT}/.qualification/goat-q/docker.sock`,
   };
   return { run, profile, evidencePath, executablePath, env };
@@ -99,7 +99,7 @@ test('inherited reset grant admits exactly two physical pages, guards both and c
     + `require(${JSON.stringify(path.join(ROOT, 'tests/fixtures/secureshopDarwinBrowserBirth.js'))}).captureBrowserRecord=({kind,pid})=>({kind,pid,birth:[11,22]});`
     + `const {admitAdminResetBrowser}=require(${JSON.stringify(HELPER)});`
     + `(async()=>{const admission=await admitAdminResetBrowser(process.env,`
-    + `{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_ADMIN_PASSWORD_RESET_CHAT_BROWSER_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH});`
     + `const browser=new EventEmitter();browser.process=()=>({pid:process.pid});`
@@ -159,7 +159,7 @@ test('malformed independent browser ACK is rejected before any page admission', 
     + `require(${JSON.stringify(path.join(ROOT, 'tests/fixtures/secureshopDarwinBrowserBirth.js'))}).captureBrowserRecord=({kind,pid})=>({kind,pid,birth:[11,22]});`
     + `const {admitAdminResetBrowser}=require(${JSON.stringify(HELPER)});`
     + `(async()=>{const admission=await admitAdminResetBrowser(process.env,`
-    + `{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_ADMIN_PASSWORD_RESET_CHAT_BROWSER_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH});`
     + `const browser={process:()=>({pid:process.pid})};`

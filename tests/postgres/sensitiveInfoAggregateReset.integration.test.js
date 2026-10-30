@@ -104,9 +104,9 @@ test('draft reset/catalog migration qualifies fresh and populated stores with cr
     const bytes = await fs.readFile(path.join(ROOT, 'docs/modernization/drafts', entry.file));
     assert.equal(createHash('sha256').update(bytes).digest('hex'), entry.sha256);
   }
-  assert.ok(process.env.DVAIA_ISOLATED_TEST_WORKSPACE,
+  assert.ok(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE,
     'an explicit owned source workspace is required');
-  const isolatedRoot = await fs.realpath(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  const isolatedRoot = await fs.realpath(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   const sourceRoot = await fs.realpath(ROOT);
   const ownedRelative = path.relative(isolatedRoot, sourceRoot);
   assert.ok(ownedRelative && !ownedRelative.startsWith(`..${path.sep}`)

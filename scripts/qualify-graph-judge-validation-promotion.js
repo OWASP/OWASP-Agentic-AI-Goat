@@ -7,7 +7,7 @@ const { repositories, requiredStoreManifest } = require('../db/postgres/initiali
 
 const ROOT = path.resolve(__dirname, '..');
 const EXPECTED_NAMES = Object.freeze(repositories.map(([name]) => name));
-const PRIVATE_CONFIG_DIGEST_VARIABLE = 'DVAIA_EXPECTED_PRIVATE_CONFIG_SHA256';
+const PRIVATE_CONFIG_DIGEST_VARIABLE = 'OWASP_AI_GOAT_EXPECTED_PRIVATE_CONFIG_SHA256';
 
 function assertPrivateConfigBytes(env = process.env, dependencies = {}) {
   const expected = env[PRIVATE_CONFIG_DIGEST_VARIABLE];

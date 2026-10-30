@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {createOwnedSystemRestartTarget,ROOT}=require('./restart-target');
-const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,SHA=/^[a-f0-9]{64}$/,STATE_ROOT='/var/lib/dvaia-owned-restart/targets';
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,SHA=/^[a-f0-9]{64}$/,STATE_ROOT='/var/lib/owasp-ai-goat-owned-restart/targets';
 const fail=code=>Object.assign(new Error('Owned restart manager unavailable'),{code});
 const exact=(v,keys)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join(',')===[...keys].sort().join(',');
 function createRestartManager({stateRoot=STATE_ROOT,fsImpl=fs,targetFactory=createOwnedSystemRestartTarget,executeOwnedCommand,maxPersistedTargets=200,maxResidentTargets=32,maxConcurrentExecutions=4,maxQueuedExecutions=16,maxRetainedTombstones=200}={}){

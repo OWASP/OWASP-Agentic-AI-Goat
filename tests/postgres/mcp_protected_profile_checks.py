@@ -2,7 +2,7 @@
 import re
 
 def expected_profiles(rendered, parent):
-    if not re.fullmatch(r'dvaia-mcp-sandbox-[a-f0-9]{12}', parent):
+    if not re.fullmatch(r'owasp-ai-goat-mcp-sandbox-[a-f0-9]{12}', parent):
         raise ValueError('invalid owned profile name')
     declarations = re.findall(r'^\s*profile\s+(?:"([^"\n]+)"|([^\s{]+))\s+flags=', rendered, re.M)
     names = [quoted or bare for quoted, bare in declarations]

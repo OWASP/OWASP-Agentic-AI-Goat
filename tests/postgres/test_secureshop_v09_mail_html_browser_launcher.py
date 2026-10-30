@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-SOURCE = Path(os.environ.get('DVAIA_V09_LAUNCHER_SOURCE',
+SOURCE = Path(os.environ.get('OWASP_AI_GOAT_V09_LAUNCHER_SOURCE',
     Path(__file__).resolve().parents[2] / 'tests/postgres/run-secureshop-agent-host-transport-main.py'))
 import sys
 sys.path.insert(0, str(Path.cwd() / 'tests/postgres'))

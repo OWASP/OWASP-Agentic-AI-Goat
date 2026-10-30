@@ -6,7 +6,7 @@ from pathlib import Path
 from sql_nosql_process_ownership import OwnedProcesses
 import re
 
-EXPECTED_DOCKER='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+EXPECTED_DOCKER='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 DOCKER=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 IMAGE='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 SOURCE=Path(__file__).resolve().parents[2]
@@ -54,10 +54,10 @@ def main(argv=None):
  mode='embedding-selective'
  test_file='tests/postgres/secureshopEmbeddingSelective.integration.test.js'
  if args.docker_host!=EXPECTED_DOCKER:raise SystemExit('reviewed isolated Docker host required')
- root=Path(tempfile.mkdtemp(prefix='dvaia-embedding-selective-')).resolve();os.chmod(root,0o700);runtime=root/'runtime';runtime.mkdir(mode=0o700)
+ root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-embedding-selective-')).resolve();os.chmod(root,0o700);runtime=root/'runtime';runtime.mkdir(mode=0o700)
  for name in ['home','tmp','logs']:(runtime/name).mkdir(mode=0o700)
  workspace=SOURCE
- container='dvaia-embedding-selective-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
+ container='owasp-ai-goat-embedding-selective-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
  docker=[str(DOCKER),'--host',args.docker_host]
  env={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':str(runtime/'home'),'TMPDIR':str(runtime/'tmp'),'LOGS_DIR':str(runtime/'logs')}
  state={'container':container,'owner':owner,'image':IMAGE,'evidence':str(root),'launcherPid':os.getpid(),
@@ -87,7 +87,7 @@ def main(argv=None):
   if not re.fullmatch(r'v26\.10\.[0-9]+',version):raise RuntimeError('Selected Node 26.10 required')
   state['nodeVersion']=version;persist()
   daemon_name=run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
-  if daemon_name!='colima-dvaia-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
+  if daemon_name!='colima-owasp-ai-goat-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
   image_id=run(docker+['image','inspect','--format','{{.Id}}',IMAGE],stdout=subprocess.PIPE,text=True).stdout.strip()
   if image_id!=IMAGE:raise RuntimeError('immutable PostgreSQL image identity mismatch')
   state['dockerDaemon']=daemon_name;state['daemonId']=run(docker+['info','--format','{{.ID}}'],stdout=subprocess.PIPE,text=True).stdout.strip();state['imageId']=image_id;persist()
@@ -95,13 +95,13 @@ def main(argv=None):
   run([str(NODE),'--check',str(SOURCE/test_file)],cwd=runtime)
   if source_inventory(SOURCE)!=source_before:raise RuntimeError('Main source changed before allocation')
   creation_attempted=True;state['containerCreationAttempted']=True;persist()
-  run(docker+['run','--detach','--pull','never','--name',container,'--label','dvaia.test.owner='+owner,
+  run(docker+['run','--detach','--pull','never','--name',container,'--label','owasp-ai-goat.test.owner='+owner,
    '--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_HOST_AUTH_METHOD=trust',
    '-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=40',
    '-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
   details=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
   state['containerId']=details['Id'];persist()
-  if details.get('Mounts') or details['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
+  if details.get('Mounts') or details['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
   for _ in range(100):
    ready=subprocess.run(docker+['exec',container,'pg_isready','-h','127.0.0.1','-U','postgres'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=2)
    if ready.returncode==0:break
@@ -114,7 +114,7 @@ def main(argv=None):
   nonce=owner[:12]
   state['databases']=[];persist()
   for store in ['fresh','working']:
-   database=f'dvaia_test_embedding_selective_{nonce}_{store}';migration=roles[0];runtime_role=roles[1]
+   database=f'owasp_ai_goat_test_embedding_selective_{nonce}_{store}';migration=roles[0];runtime_role=roles[1]
    run(psql+[f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL)
    run(psql+[f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime_role}'],stdout=subprocess.DEVNULL)
    state['databases'].append(database);persist()
@@ -123,7 +123,7 @@ def main(argv=None):
   env['EMBEDDING_SELECTIVE_NATIVE']='1'
   env['EMBEDDING_SELECTIVE_OWNER']=nonce
   env['EMBEDDING_SELECTIVE_EVIDENCE_ROOT']=str(root)
-  env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+  env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
    PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',
    AI_PROVIDER='mock',TRANSFORMERS_OFFLINE='1',JWT_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,SESSION_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,
    AWS_EC2_METADATA_DISABLED='true',MCP_WORKSHOP_AUTOSTART='false',MCP_SIDECARS_AUTOSTART='false',SS_ENABLE='false',HF_HUB_OFFLINE='1',
@@ -153,7 +153,7 @@ def main(argv=None):
    try:
     if not exact_absence():
      info=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
-     if info['Config']['Labels'].get('dvaia.test.owner')!=owner or (state.get('containerId') is not None and info['Id']!=state['containerId']) or info['Image']!=IMAGE or run(docker+['info','--format','{{.ID}}'],stdout=subprocess.PIPE,text=True).stdout.strip()!=state.get('daemonId'):raise RuntimeError('refusing foreign container cleanup')
+     if info['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner or (state.get('containerId') is not None and info['Id']!=state['containerId']) or info['Image']!=IMAGE or run(docker+['info','--format','{{.ID}}'],stdout=subprocess.PIPE,text=True).stdout.strip()!=state.get('daemonId'):raise RuntimeError('refusing foreign container cleanup')
      remove_code=subprocess.run(docker+['rm','-f','-v',info['Id']],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=30).returncode
     else:remove_code=0
    except Exception as error:errors.append('remove:'+type(error).__name__)

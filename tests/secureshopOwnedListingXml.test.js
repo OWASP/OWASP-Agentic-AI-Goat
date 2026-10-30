@@ -7,7 +7,7 @@ const path = require('node:path');
 const { parseOwnedListingXml } = require('../sidecars/sandbox-runner/owned-listings/xml-parser');
 const document = uri => `<!DOCTYPE products [<!ENTITY lesson SYSTEM "${uri}">]><products><product><name>Owned</name><description>&lesson;</description><price>3.5</price></product></products>`;
 test('XML parser resolves actual owned file bytes and records their provenance', async () => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-listing-xml-'));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-listing-xml-'));
   try {
     const file = path.join(dir, 'synthetic.txt'); await fs.writeFile(file, 'OWNED_SYNTHETIC_ONLY');
     const result = await parseOwnedListingXml(document('file:///owned/synthetic.txt'), {

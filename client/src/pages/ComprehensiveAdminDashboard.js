@@ -1853,14 +1853,14 @@ const ComprehensiveAdminDashboard = () => {
       const token = localStorage.getItem('token');
       const newValue = !secureshopVisible;
       await axios.put('/api/admin/config/secureshop_visible',
-        { value: newValue ? 'true' : 'false', type: 'boolean', description: 'Show SecureShop Playground card on landing and workshop pages', isPublic: true },
+        { value: newValue ? 'true' : 'false', type: 'boolean', description: 'Show OWASP AI SecureShop Playground card on landing and workshop pages', isPublic: true },
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       setSecureshopVisible(newValue);
-      toast.success(`SecureShop Playground ${newValue ? 'shown' : 'hidden'}`);
+      toast.success(`OWASP AI SecureShop Playground ${newValue ? 'shown' : 'hidden'}`);
     } catch (error) {
-      console.error('Failed to toggle SecureShop:', error);
-      toast.error('Failed to toggle SecureShop: ' + (error.response?.data?.error || error.message));
+      console.error('Failed to toggle OWASP AI SecureShop:', error);
+      toast.error('Failed to toggle OWASP AI SecureShop: ' + (error.response?.data?.error || error.message));
     } finally {
       setSecureshopLoading(false);
     }
@@ -3391,7 +3391,7 @@ const ComprehensiveAdminDashboard = () => {
   const handleDatabaseReset = async (resetType) => {
     if (resetType === 'challenges' && !resetPermissionRef.current) return;
     const resetMessages = {
-      challenges: 'This resets canonical workshop data and progress for all learners. User accounts, CTF and SecureShop data are preserved.',
+      challenges: 'This resets canonical workshop data and progress for all learners. User accounts, CTF and OWASP AI SecureShop data are preserved.',
       logs: 'This clears activity logs older than 7 days. Workshop progress and audit receipts are preserved.',
       full: 'Full database reset is not available through this page.'
     };
@@ -6083,7 +6083,7 @@ const ComprehensiveAdminDashboard = () => {
 
       <div style={{ marginTop: '1.5rem' }}>
         <h4 style={{ color: '#2d3748', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FiShoppingCart /> SecureShop Playground
+          <FiShoppingCart /> OWASP AI SecureShop Playground
         </h4>
         <div style={{
           display: 'flex',
@@ -6096,10 +6096,10 @@ const ComprehensiveAdminDashboard = () => {
         }}>
           <div>
             <div style={{ fontWeight: '600', color: '#1a202c', marginBottom: '0.25rem' }}>
-              Show SecureShop Playground
+              Show OWASP AI SecureShop Playground
             </div>
             <div style={{ fontSize: '0.85rem', color: '#666' }}>
-              Toggle visibility of the SecureShop e-commerce card on the landing page and workshop home.
+              Toggle visibility of the OWASP AI SecureShop e-commerce card on the landing page and workshop home.
               Currently: <strong style={{ color: secureshopVisible ? '#22c55e' : '#ef4444' }}>{secureshopVisible ? 'Visible' : 'Hidden'}</strong>
             </div>
           </div>
@@ -7430,7 +7430,7 @@ const ComprehensiveAdminDashboard = () => {
                     <option value="gmail">Gmail / SharkLasers</option>
                     <option value="mailpit">Mailpit (local lab)</option>
                   </select>
-                  <span>{emailConfigurationDraft.xssProvider === 'gmail' ? 'Use the learner-selected external temporary inbox.' : 'Use an isolated xss-<learner>@dvaia.invalid inbox.'}</span>
+                  <span>{emailConfigurationDraft.xssProvider === 'gmail' ? 'Use the learner-selected external temporary inbox.' : 'Use an isolated workshop inbox for each learner.'}</span>
                 </EmailProviderField>
               </EmailProviderGrid>
               {gmailSelected && (
@@ -9468,7 +9468,7 @@ const ComprehensiveAdminDashboard = () => {
           <div className="brand">
             <div className="brand-icon"><FiShield /></div>
             <div className="brand-text">
-              <h1>DVAIA Admin</h1>
+              <h1>Agentic AI Goat Admin</h1>
               <p>Security Workshop</p>
             </div>
           </div>
@@ -9540,7 +9540,7 @@ const ComprehensiveAdminDashboard = () => {
         <Header>
           <HeaderTitle>
             <h1>Admin Dashboard</h1>
-            <p>Manage your DVAIA security workshop platform</p>
+            <p>Manage your OWASP Agentic AI GOAT security workshop platform</p>
           </HeaderTitle>
           <UserInfo>
             <div className="avatar">

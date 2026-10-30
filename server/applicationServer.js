@@ -70,7 +70,7 @@ assertActive();
 // signing keys before framework, database, or provider initialization.
 const proxyTrust = require('./services/applicationProxyTrust').applicationProxyTrust();
 require('./middleware/eventGate').assertEventGateConfiguration(process.env);
-process.env.DVAIA_APP_DATA_ROOT = require('../scripts/application-data-root')
+process.env.OWASP_AI_GOAT_APP_DATA_ROOT = require('../scripts/application-data-root')
   .ensureApplicationDataRoot({ workspace: require('node:path').resolve(__dirname, '..'), environment: process.env });
 Object.assign(process.env, require('./services/mcp/ownedManagedConfiguration').loadOwnedManagedConfiguration());
 Object.assign(process.env, require('./services/secureshopSystemManagedEnvironment').loadWithQualified());
@@ -540,7 +540,7 @@ const startup = workshopInitialization.then(async results => {
     ollamaModel: process.env.OLLAMA_MODEL || 'llama3.1:8b',
     aiProvider: process.env.AI_PROVIDER || 'ollama'
   });
-  console.log(`🚀 DVAIA Server running on port ${PORT}`);
+  console.log(`🚀 OWASP Agentic AI GOAT Server running on port ${PORT}`);
   console.log(`🔄 Database-backed HTTP revision polling active`);
   console.log(`🤖 Ollama integration enabled; capacity depends on configured model and hardware`);
   console.log(`📊 Performance monitoring active`);

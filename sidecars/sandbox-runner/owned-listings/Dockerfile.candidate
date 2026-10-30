@@ -10,20 +10,20 @@ COPY server/services/secureshopListingRequestContract.js /source/server/services
 COPY sidecars/sandbox-runner/owned-http/namespace-init.c sidecars/sandbox-runner/mcpSeccompFilter.c /build/
 COPY sidecars/sandbox-runner/owned-mcp-registry/process-supervisor.c /build/
 RUN mkdir /out \
- && node -e "const f=require('node:fs');f.writeFileSync('/build/listings-init.c',f.readFileSync('/build/namespace-init.c','utf8').replaceAll('dvaia-owned-http','dvaia-owned-listings').replaceAll('DVAIA_OWNED_HTTP_ATTESTED','DVAIA_OWNED_LISTINGS_ATTESTED'))" \
- && gcc -O2 -Wall -Wextra -Werror listings-init.c -o /out/dvaia-owned-listings-init \
- && gcc -O2 -Wall -Wextra -Werror process-supervisor.c -o /out/dvaia-owned-listings-supervisor \
+ && node -e "const f=require('node:fs');f.writeFileSync('/build/listings-init.c',f.readFileSync('/build/namespace-init.c','utf8').replaceAll('owasp-ai-goat-owned-http','owasp-ai-goat-owned-listings').replaceAll('OWASP_AI_GOAT_OWNED_HTTP_ATTESTED','OWASP_AI_GOAT_OWNED_LISTINGS_ATTESTED'))" \
+ && gcc -O2 -Wall -Wextra -Werror listings-init.c -o /out/owasp-ai-goat-owned-listings-init \
+ && gcc -O2 -Wall -Wextra -Werror process-supervisor.c -o /out/owasp-ai-goat-owned-listings-supervisor \
  && gcc -O2 -Wall -Wextra -Werror mcpSeccompFilter.c -lseccomp -o /tmp/filter && /tmp/filter /out/mcp-target.seccomp.bpf \
- && NODE_PATH=/build/node_modules ./node_modules/.bin/esbuild /source/sidecars/sandbox-runner/owned-listings/namespace-worker.js --bundle --platform=node --format=cjs --outfile=/out/dvaia-owned-listings-worker.js \
+ && NODE_PATH=/build/node_modules ./node_modules/.bin/esbuild /source/sidecars/sandbox-runner/owned-listings/namespace-worker.js --bundle --platform=node --format=cjs --outfile=/out/owasp-ai-goat-owned-listings-worker.js \
  && NODE_PATH=/build/node_modules ./node_modules/.bin/esbuild /source/sidecars/sandbox-runner/owned-listings/json-worker.js --bundle --platform=node --format=cjs --outfile=/out/json-worker.js
 FROM node:26.10.0-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1
-RUN test "$(dpkg --print-architecture)" = arm64 && apt-get update && apt-get install -y --no-install-recommends bubblewrap libseccomp2 && rm -rf /var/lib/apt/lists/* && mkdir -p /usr/share/dvaia /usr/local/libexec /journal && chown 10001:10001 /journal && chmod 700 /journal
+RUN test "$(dpkg --print-architecture)" = arm64 && apt-get update && apt-get install -y --no-install-recommends bubblewrap libseccomp2 && rm -rf /var/lib/apt/lists/* && mkdir -p /usr/share/owasp-ai-goat /usr/local/libexec /journal && chown 10001:10001 /journal && chmod 700 /journal
 WORKDIR /app
 COPY sidecars/sandbox-runner/owned-listings /app/sidecars/sandbox-runner/owned-listings
 COPY server/services/secureshopListingRequestContract.js /app/server/services/secureshopListingRequestContract.js
 COPY --from=build /out/ /usr/local/libexec/
-RUN mv /usr/local/libexec/mcp-target.seccomp.bpf /usr/share/dvaia/mcp-target.seccomp.bpf && printf 'DVAIA synthetic supplier secret\n' > /usr/local/libexec/listings-synthetic-secret.txt
-COPY sidecars/sandbox-runner/owned-listings/network-manifest.json /usr/local/libexec/dvaia-owned-listings-manifest.json
+RUN mv /usr/local/libexec/mcp-target.seccomp.bpf /usr/share/owasp-ai-goat/mcp-target.seccomp.bpf && printf 'OWASP-AI-GOAT synthetic supplier secret\n' > /usr/local/libexec/listings-synthetic-secret.txt
+COPY sidecars/sandbox-runner/owned-listings/network-manifest.json /usr/local/libexec/owasp-ai-goat-owned-listings-manifest.json
 RUN node sidecars/sandbox-runner/owned-listings/buildAssets.js
 COPY tests/fixtures/secureshopOwnedListingsPackaged.native.cjs /app/tests/fixtures/secureshopOwnedListingsPackaged.native.cjs
 COPY tests/fixtures/secureshopListingsSharedManager.native.cjs /app/tests/fixtures/secureshopListingsSharedManager.native.cjs

@@ -4,8 +4,8 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawn, spawnSync } = require('node:child_process');
 const { VERSION, ISOLATION, hash, normalizeRequest, requestDigest } = require('./contract');
-const INIT = '/usr/local/libexec/dvaia-system-config-init';
-const SUPERVISOR = '/usr/local/libexec/dvaia-system-config-supervisor';
+const INIT = '/usr/local/libexec/owasp-ai-goat-system-config-init';
+const SUPERVISOR = '/usr/local/libexec/owasp-ai-goat-system-config-supervisor';
 const CLEAN_PATH = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
 const ATTESTATION = Buffer.from('system-config-init-v1 uid=10001 gid=10001 caps=zero bounding=zero ambient=zero nnp=1\n');
 const ASSET_HASHES = Object.freeze({

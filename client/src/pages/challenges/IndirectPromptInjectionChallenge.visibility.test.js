@@ -295,9 +295,9 @@ test('local email health uses the assigned sender and reset inbox wins over stal
     if (url === '/api/email-agent/health') {
       return Promise.resolve({ data: {
         provider: 'mailpit',
-        gmail: { targetEmail: 'local-sender@dvaia.invalid' },
+        gmail: { targetEmail: 'local-sender@owasp-ai-goat.invalid' },
         llm: {},
-        allowedDomains: ['dvaia.invalid'],
+        allowedDomains: ['owasp-ai-goat.invalid'],
       } });
     }
     if (url === '/api/email-agent/owned-inbox') {
@@ -305,14 +305,14 @@ test('local email health uses the assigned sender and reset inbox wins over stal
       if (ownedInboxCalls === 1) {
         return new Promise(resolve => { resolveInitialInbox = resolve; });
       }
-      return Promise.resolve({ data: { ownedInbox: 'learner-reset-2@dvaia.invalid' } });
+      return Promise.resolve({ data: { ownedInbox: 'learner-reset-2@owasp-ai-goat.invalid' } });
     }
     return defaultGet(url, ...args);
   });
 
   const view = renderChallenge();
   await flush();
-  expect(view.node.querySelector('.email-display').textContent).toBe('local-sender@dvaia.invalid');
+  expect(view.node.querySelector('.email-display').textContent).toBe('local-sender@owasp-ai-goat.invalid');
   expect(view.node.textContent).toContain('Messages are captured by the owned local inbox.');
 
   act(() => view.node.querySelector('[data-scenario-tab="email"]').click());
@@ -326,10 +326,10 @@ test('local email health uses the assigned sender and reset inbox wins over stal
   await flush();
 
   const emailInput = view.node.querySelector('input[placeholder="Assigned local inbox"]');
-  expect(emailInput.value).toBe('learner-reset-2@dvaia.invalid');
-  act(() => resolveInitialInbox({ data: { ownedInbox: 'stale-before-reset@dvaia.invalid' } }));
+  expect(emailInput.value).toBe('learner-reset-2@owasp-ai-goat.invalid');
+  act(() => resolveInitialInbox({ data: { ownedInbox: 'stale-before-reset@owasp-ai-goat.invalid' } }));
   await flush();
-  expect(emailInput.value).toBe('learner-reset-2@dvaia.invalid');
+  expect(emailInput.value).toBe('learner-reset-2@owasp-ai-goat.invalid');
   act(() => view.root.unmount());
 });
 
@@ -722,7 +722,7 @@ test.each(['initial-inbox', 'pending-reset'])('late old email %s cannot replace 
     resolveOld({ data: { ownedInbox: 'retired-owner@workshop.invalid' } }); await flush();
     expect(view.node.querySelector('input[placeholder="Assigned local inbox"]').value).toBe('current-owner@workshop.invalid');
     expect(view.node.textContent).not.toContain('retired-owner@workshop.invalid');
-    expect(localStorage.getItem('dvaia_email_agent_temp_email')).toBe('current-owner@workshop.invalid');
+    expect(localStorage.getItem('owasp_ai_goat_email_agent_temp_email')).toBe('current-owner@workshop.invalid');
     expect(toast.success).not.toHaveBeenCalledWith('Email Agent scenario reset.');
   } finally { resolveOld({ data: {} }); await flush(); act(() => view.root.unmount()); }
 });

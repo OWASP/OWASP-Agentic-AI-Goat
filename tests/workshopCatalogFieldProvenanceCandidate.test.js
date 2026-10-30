@@ -100,7 +100,7 @@ test('admin integration marks only edited default-controlled fields and is sourc
 test('native candidate launcher is single-use, owned and stages only a private test migration', () => {
   const source = fs.readFileSync(path.join(ROOT,
     'tests/postgres/run-workshop-catalog-field-provenance-isolated.py'), 'utf8');
-  assert.match(source, /EXPECTED_DOCKER='unix:\/\/\/Users\/averma5\/\.colima\/dvaia-pg-verify\/docker\.sock'/);
+  assert.match(source, /EXPECTED_DOCKER='unix:\/\/\/Users\/averma5\/\.colima\/owasp-ai-goat-pg-verify\/docker\.sock'/);
   assert.match(source, /9999_workshop_catalog_field_provenance\.sql/);
   assert.match(source, /register_owner\(\);prepare\(\);creation_attempted=True/);
   assert.match(source, /grant\['consumerPid'\]=os\.getpid\(\)/);

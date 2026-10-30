@@ -14,7 +14,7 @@ def unique(pairs):
  return out
 def decode(raw):return json.loads(raw,object_pairs_hook=unique)
 need(OP in ('claim','check') and PHASE in LIMITS and re.fullmatch('[a-f0-9]{32}',RUN))
-need(ROOT=='/var/tmp/dvaia-v23-build-'+RUN and os.path.realpath(ROOT)==ROOT)
+need(ROOT=='/var/tmp/owasp-ai-goat-v23-build-'+RUN and os.path.realpath(ROOT)==ROOT)
 info=os.lstat(ROOT);need(stat.S_ISDIR(info.st_mode) and info.st_uid==0 and stat.S_IMODE(info.st_mode)==0o700)
 def read(name):
  fd=os.open(ROOT+'/'+name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)

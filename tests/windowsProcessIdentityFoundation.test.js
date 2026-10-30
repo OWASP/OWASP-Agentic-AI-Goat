@@ -207,5 +207,5 @@ test('native absence uses complete system snapshots, stable observer and repeate
   assert.match(helper, /request\.recordedPids -isnot \[Array\]/);
   assert.match(helper, /request\.recordedPids\.Count -gt 32/);
   assert.match(helper, /recordedPid -isnot \[int\]/);
-  assert.match(helper, /DvaiaWindowsProcessIdentity\]::ObserveAbsence/);
+  assert.match(helper, /OwaspAiGoatWindowsProcessIdentity\]::ObserveAbsence/);
 });

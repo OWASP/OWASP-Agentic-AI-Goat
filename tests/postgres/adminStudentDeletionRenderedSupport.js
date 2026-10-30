@@ -19,8 +19,8 @@ function admitStores(env){
       const u=new URL(env[key]);assert.equal(u.protocol,'postgresql:');assert.equal(u.hostname,'127.0.0.1');
       assert.match(u.port,/^[1-9][0-9]{0,4}$/);assert.ok(Number(u.port)<=65535);
       assert.equal(u.search,'');assert.equal(u.hash,'');
-      const tag=u.pathname.match(/^\/dvaia_test_student_deletion_([a-f0-9]{12})_/ )?.[1];
-      assert.ok(tag);const expected=`dvaia_test_student_deletion_${tag}_${store.schema}`;
+      const tag=u.pathname.match(/^\/owasp_ai_goat_test_student_deletion_([a-f0-9]{12})_/ )?.[1];
+      assert.ok(tag);const expected=`owasp_ai_goat_test_student_deletion_${tag}_${store.schema}`;
       assert.ok(Buffer.byteLength(expected,'utf8')<=63);
       assert.equal(u.pathname,'/'+expected);
       return u;

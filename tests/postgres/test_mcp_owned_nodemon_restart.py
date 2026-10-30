@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[2]
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin/node')
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin/node')
 NODEMON=ROOT/'node_modules/nodemon/bin/nodemon.js'
 
 def alive(pid):
@@ -24,7 +24,7 @@ def wait_until(predicate,seconds=10):
 
 class NodemonRestartIntegrationTest(unittest.TestCase):
     def test_clean_child_exit_waits_then_sighup_restarts_distinct_child(self):
-        with tempfile.TemporaryDirectory(prefix='dvaia-nodemon-restart-') as directory:
+        with tempfile.TemporaryDirectory(prefix='owasp-ai-goat-nodemon-restart-') as directory:
             root=Path(directory);pid_file=root/'child.pid'
             (root/'child.js').write_text("require('fs').writeFileSync(process.env.PID_FILE,String(process.pid));setInterval(()=>{},1000);\n")
             (root/'nodemon.json').write_text('{"watch":["."],"ext":"js","delay":"50"}\n')

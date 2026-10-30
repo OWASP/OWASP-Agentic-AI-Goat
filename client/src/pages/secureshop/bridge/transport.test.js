@@ -189,7 +189,7 @@ test('persona-anonymous catalog reads use public GET without launch authority', 
   expect(options.method).toBe('GET');
   expect(options.credentials).toBe('omit');
   expect(options.headers.has('Authorization')).toBe(false);
-  expect(options.headers.has('X-DVAIA-SecureShop-Launch')).toBe(false);
+  expect(options.headers.has('X-OWASP-AI-GOAT-SecureShop-Launch')).toBe(false);
   transport.close();
 });
 
@@ -210,10 +210,10 @@ test('a present shop bearer and auth operations never fall back to public reads'
   expect(port.messages.filter(message => message.type === 'error')).toEqual([]);
   expect(fetchImpl.mock.calls[0][0]).toBe('https://shop.invalid/api/secureshop/products');
   expect(fetchImpl.mock.calls[0][1].headers.get('Authorization')).toBe('Bearer expired-shop-token');
-  expect(fetchImpl.mock.calls[0][1].headers.get('X-DVAIA-SecureShop-Launch')).toBe('a'.repeat(43));
+  expect(fetchImpl.mock.calls[0][1].headers.get('X-OWASP-AI-GOAT-SecureShop-Launch')).toBe('a'.repeat(43));
   expect(fetchImpl.mock.calls[1][0]).toBe('https://shop.invalid/api/secureshop/v2/auth/login');
   expect(fetchImpl.mock.calls[1][1].method).toBe('POST');
   expect(fetchImpl.mock.calls[1][1].headers.has('Authorization')).toBe(false);
-  expect(fetchImpl.mock.calls[1][1].headers.get('X-DVAIA-SecureShop-Launch')).toBe('a'.repeat(43));
+  expect(fetchImpl.mock.calls[1][1].headers.get('X-OWASP-AI-GOAT-SecureShop-Launch')).toBe('a'.repeat(43));
   transport.close();
 });

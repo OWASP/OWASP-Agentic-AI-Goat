@@ -5,7 +5,7 @@ const customer = { role: 'customer' };
 const merchant = { role: 'merchant' };
 const admin = { role: 'admin' };
 
-describe('SecureShop mounted route admission', () => {
+describe('OWASP AI SecureShop mounted route admission', () => {
   test('keeps mounted public product and catalog routes and exact customer destinations', () => {
     expect(safeShopRoute('/secureshop/product/7?color=blue')).toBe('/secureshop/product/7?color=blue');
     expect(safeShopRoute('/secureshop/v2/catalog?q=book')).toBe('/secureshop/v2/catalog?q=book');

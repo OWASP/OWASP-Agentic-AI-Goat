@@ -12,7 +12,7 @@ const {
   MAX_MANIFEST_BYTES,
 } = require('./asset-bundle');
 
-const RESTORE_FORMAT = 'dvaia-asset-restore-v1';
+const RESTORE_FORMAT = 'owasp-ai-goat-asset-restore-v1';
 const RESTORE_MANIFEST = 'restore.json';
 const INCOMPLETE = 'INCOMPLETE';
 const PROOFS = new WeakSet();

@@ -32,7 +32,7 @@ const sender = 'indirectpromptinjection@gmail.com';
 
 function assertOwnedUrl(value) {
   const url = new URL(value);
-  assert.match(url.pathname, /^\/dvaia_test_xss_email_dispatch_identity$/);
+  assert.match(url.pathname, /^\/owasp_ai_goat_test_xss_email_dispatch_identity$/);
   assert.equal(url.hostname, '127.0.0.1');
 }
 
@@ -259,7 +259,7 @@ test('native dispatch uses owned Mailpit for two isolated owner inboxes and rese
     const coordinator = createRunCoordinator({ family: 'XSS', ledger: createPostgresRunLedger(pool, { leasePool: lease }) });
     const sent = new Map();
     for (const owner of owners) {
-      const address = `xss-${owner.id}@dvaia.invalid`;
+      const address = `xss-${owner.id}@owasp-ai-goat.invalid`;
       const payload = `<img src=x onerror="globalThis.mailpitOwner=${owner.id}">`;
       await coordinator.run(owner.id, {}, async execution => {
         const generation = await progress.getGeneration(owner.id, 'xss_workshop');

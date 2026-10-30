@@ -22,7 +22,7 @@ const KEYS = Object.freeze([
 const KEY_SET = new Set(KEYS);
 const TOKEN = /^[A-Za-z0-9_-]{43,128}$/;
 const EXACT = Object.freeze({
-  MCP_OWNED_TARGET_APPARMOR_PROFILE: 'dvaia-mcp-sandbox',
+  MCP_OWNED_TARGET_APPARMOR_PROFILE: 'owasp-ai-goat-mcp-sandbox',
   MCP_OWNED_TARGET_PORT: '8092',
   MCP_OWNED_TARGET_URL: 'http://127.0.0.1:8092',
   CODEBOT_SANDBOX_RUNNER_URL: 'http://127.0.0.1:8092',
@@ -37,7 +37,7 @@ function workspaceId(root) {
 }
 
 function managedConfigurationPath({ root = path.resolve(__dirname, '../../..'), home = os.homedir() } = {}) {
-  return path.join(home, '.dvaia', workspaceId(root), 'mcp-owned.env');
+  return path.join(home, '.owasp-ai-goat', workspaceId(root), 'mcp-owned.env');
 }
 
 function parseManagedConfiguration(bytes) {

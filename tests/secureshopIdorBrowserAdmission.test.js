@@ -22,10 +22,10 @@ function inputs() {
   const run = path.join(ROOT, 'tasks/qualification/run-controlled'), tmp = path.join(run, 'runtime/tmp');
   return {
     options: { workspace: ROOT, evidencePath: path.join(run, 'customer-idor-lesson-browser.json'),
-      profile: path.join(tmp, 'dvaia-customer-idor-browser-controlled'), origin: 'http://127.0.0.1:12345' },
+      profile: path.join(tmp, 'owasp-ai-goat-customer-idor-browser-controlled'), origin: 'http://127.0.0.1:12345' },
     env: { SECURESHOP_IDOR_LESSON_TEST_NO_SANDBOX: '1',
       SECURESHOP_CUSTOMER_IDOR_LESSON_BROWSER_NATIVE: '1', PG_TEST_DISPOSABLE: 'yes',
-      LIVE_OLLAMA_TEST: '1', NODE_ENV: 'test', DVAIA_CURRENT_MAIN_WORKSPACE: ROOT, TMPDIR: tmp,
+      LIVE_OLLAMA_TEST: '1', NODE_ENV: 'test', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: ROOT, TMPDIR: tmp,
       SECURESHOP_IDOR_LESSON_BROWSER_RECORD_PATH: path.join(run, 'idor-lesson-browser.json'),
       SECURESHOP_IDOR_LESSON_BROWSER_ACK_PATH: path.join(run, 'idor-lesson-browser-ack.json'),
       SECURESHOP_IDOR_LESSON_BROWSER_SHA256: 'a'.repeat(64),
@@ -52,7 +52,7 @@ test('V12 exception admits only full original cohort, owned profile and exact lo
     { SECURESHOP_CUSTOMER_IDOR_CART_V10_ONLY: '1' },
     { SECURESHOP_CUSTOMER_IDOR_LESSON_BROWSER_NATIVE: '0' },
     { PG_TEST_DISPOSABLE: 'no' }, { LIVE_OLLAMA_TEST: '0' }, { NODE_ENV: 'production' },
-    { DVAIA_CURRENT_MAIN_WORKSPACE: '/foreign' }, { TMPDIR: '/foreign' },
+    { OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: '/foreign' }, { TMPDIR: '/foreign' },
     { SECURESHOP_IDOR_LESSON_BROWSER_ACK_PATH: '/foreign' },
     { SECURESHOP_IDOR_LESSON_BROWSER_RECORD_PATH: '/foreign' },
     { SECURESHOP_IDOR_LESSON_BROWSER_SHA256: 'bad' },
@@ -60,7 +60,7 @@ test('V12 exception admits only full original cohort, owned profile and exact lo
   ]) assert.throws(() => f.browserArgs({ ...env, ...patch }, options));
   for (const origin of ['http://example.com:12345', 'https://127.0.0.1:12345', 'http://127.0.0.1:12345/path'])
     assert.throws(() => f.browserArgs(env, { ...options, origin }));
-  assert.throws(() => f.browserArgs(env, { ...options, profile: path.join(env.TMPDIR, 'dvaia-manual-rag-other') }));
+  assert.throws(() => f.browserArgs(env, { ...options, profile: path.join(env.TMPDIR, 'owasp-ai-goat-manual-rag-other') }));
   mode = 0o755; assert.throws(() => f.browserArgs(env, options));
   mode = 0o700; uid++; assert.throws(() => f.browserArgs(env, options));
   uid = process.getuid(); link = true; assert.throws(() => f.browserArgs(env, options));
@@ -145,7 +145,7 @@ test('V12 renewal requires server-authenticated unchanged owner, session and gen
       return currentActor;
     } },
   };
-  const headers = { authorization: 'Bearer original.signed.token', 'x-dvaia-secureshop-launch': 'x'.repeat(43) };
+  const headers = { authorization: 'Bearer original.signed.token', 'x-owasp-ai-goat-secureshop-launch': 'x'.repeat(43) };
   const baseline = await f.authenticateOwnerHeaders(composition, headers);
   const renewed = { ...headers, authorization: 'Bearer renewed.signed.token' };
   currentActor = { ...actor, expiresAt: 'renewed' };

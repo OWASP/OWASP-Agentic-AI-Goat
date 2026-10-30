@@ -86,7 +86,7 @@ function assertPrivateIdorEvidencePath(evidencePath, { root, dockerHost, cartOnl
     return evidencePath; // Historical external-evidence admission is unchanged.
   }
   const profile = dockerHost.slice(currentHostPrefix.length);
-  assert.match(profile, /^(?:dvaia|goat)-[a-z0-9]+(?:-[a-z0-9]+)*\/docker\.sock$/);
+  assert.match(profile, /^(?:owasp-ai-goat|goat)-[a-z0-9]+(?:-[a-z0-9]+)*\/docker\.sock$/);
   const run = path.dirname(evidencePath);
   assert.match(path.basename(run), /^run-[A-Za-z0-9_-]+$/);
   assert.equal(evidencePath, path.join(root, 'tasks', 'qualification', path.basename(run),

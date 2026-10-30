@@ -22,7 +22,7 @@ function tagged(tag){const marker=`$${tag}$`,start=sql.indexOf(marker),end=sql.i
 function url(name,database){const value=new URL(process.env[name]);assert.equal(value.protocol,'postgresql:');
   assert.equal(value.hostname,'127.0.0.1');assert.equal(value.pathname,`/${database}`);return value.href;}
 function pool(Pool,value){return new Pool({connectionString:value,max:1,connectionTimeoutMillis:5000,
-  statement_timeout:30000,lock_timeout:5000,application_name:'dvaia-finflow-log-overlay-defaults-0058'});}
+  statement_timeout:30000,lock_timeout:5000,application_name:'owasp-ai-goat-finflow-log-overlay-defaults-0058'});}
 function migrationCopy(through,corrupt=false){const directory=fs.mkdtempSync(path.join(os.tmpdir(),'finflow-0058-'));
   for(const file of fs.readdirSync(migrationDirectory).filter(file=>/^\d{4}_[a-z0-9_]+\.sql$/.test(file)&&file<=through).sort())
     fs.copyFileSync(path.join(migrationDirectory,file),path.join(directory,file));
@@ -78,9 +78,9 @@ native('0058 real loader preserves custom/NULL fields, toggles and provenance; r
   {timeout:180000},async t=>{
   const {Pool}=require('pg'),migrate=require(path.join(sourceRoot,'db/postgres/migrate')).migrate;
   const values=[
-    ['POPULATED','dvaia_test_finflow_log_overlay_defaults_populated'],
-    ['CUSTOM','dvaia_test_finflow_log_overlay_defaults_custom'],
-    ['ROLLBACK','dvaia_test_finflow_log_overlay_defaults_rollback'],
+    ['POPULATED','owasp_ai_goat_test_finflow_log_overlay_defaults_populated'],
+    ['CUSTOM','owasp_ai_goat_test_finflow_log_overlay_defaults_custom'],
+    ['ROLLBACK','owasp_ai_goat_test_finflow_log_overlay_defaults_rollback'],
   ];
   const pools={};
   for(const [kind,database] of values){pools[`${kind}R`]=pool(Pool,url(`FINFLOW_LOG_OVERLAY_DEFAULTS_${kind}_DATABASE_URL`,database));

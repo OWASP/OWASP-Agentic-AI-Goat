@@ -25,11 +25,11 @@ function seed(dbPath) {
   try {
     const passwordHash = bcrypt.hashSync('student123', 10);
     const identities = [
-      ['student_customer', 'student_customer@dvaia.local', 'customer', 'Student Customer',
+      ['student_customer', 'student_customer@owasp-ai-goat.local', 'customer', 'Student Customer',
         'sk_ss_stucust00000000abcdef', '{"phone":"555-1200","address":"120 Learner Ln","tax_id":"120-12-1200"}'],
-      ['student_merchant', 'student_merchant@dvaia.local', 'merchant', 'Student Merchant',
+      ['student_merchant', 'student_merchant@owasp-ai-goat.local', 'merchant', 'Student Merchant',
         'sk_ss_stumerc00000000abcdef', '{"phone":"555-1201","address":"121 Learner Ln","tax_id":"121-12-1201"}'],
-      ['student_admin',    'student_admin@dvaia.local',    'admin',    'Student Admin',
+      ['student_admin',    'student_admin@owasp-ai-goat.local',    'admin',    'Student Admin',
         'sk_ss_stuadmn00000000abcdef', '{"phone":"555-1202","address":"122 Learner Ln","tax_id":"122-12-1202"}'],
     ];
 

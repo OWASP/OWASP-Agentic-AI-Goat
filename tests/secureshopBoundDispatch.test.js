@@ -19,7 +19,7 @@ async function fixture(t) {
 test('unready bound requests cannot fall through to legacy auth or mutations', async t => {
   const f = await fixture(t);
   for (const value of ['', 'invalid', 'a'.repeat(43)]) {
-    const result = await f.request({ 'x-dvaia-secureshop-launch': value });
+    const result = await f.request({ 'x-owasp-ai-goat-secureshop-launch': value });
     assert.equal(result.status, 503);
     assert.equal(result.headers.get('cache-control'), 'no-store');
     await result.arrayBuffer();
@@ -35,13 +35,13 @@ test('ready dispatch never lets an unmatched or failed gateway select legacy han
   for (const gateway of [(_req, _res, next) => next(), (_req, _res, next) => next('route'),
     () => { throw new Error('private details'); }, async () => { throw new Error('private async details'); }]) {
     f.setGateway(gateway);
-    const result = await f.request({ 'x-dvaia-secureshop-launch': 'a'.repeat(43) });
+    const result = await f.request({ 'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43) });
     assert.ok([404, 503].includes(result.status));
     assert.doesNotMatch(await result.text(), /private/);
   }
   assert.equal(f.effects(), 0);
   f.setGateway((_req, res) => res.json({ bound: true }));
-  const result = await f.request({ 'x-dvaia-secureshop-launch': 'a'.repeat(43) });
+  const result = await f.request({ 'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43) });
   assert.deepEqual(await result.json(), { bound: true });
   assert.equal(f.effects(), 0);
 });

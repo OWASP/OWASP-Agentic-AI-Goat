@@ -75,8 +75,8 @@ test('shared shutdown bounds a stalled non-policy transport only after policy dr
 test('sandbox image compiles fixed helpers and packages only checked runtime assets with an exact shared contract copy', () => {
   const root = path.join(__dirname, '..');
   const dockerfile = fs.readFileSync(path.join(root, 'sidecars/sandbox-runner/Dockerfile'), 'utf8');
-  assert.match(dockerfile, /gcc -static[^\n]+process-supervisor\.c[^\n]+dvaia-policy-render-supervisor/);
-  assert.match(dockerfile, /gcc -static[^\n]+policy-init\.c[^\n]+dvaia-policy-render-init/);
+  assert.match(dockerfile, /gcc -static[^\n]+process-supervisor\.c[^\n]+owasp-ai-goat-policy-render-supervisor/);
+  assert.match(dockerfile, /gcc -static[^\n]+policy-init\.c[^\n]+owasp-ai-goat-policy-render-init/);
   assert.match(dockerfile, /chmod 0555[^\n]*\/usr\/bin\/bwrap/);
   assert.match(dockerfile, /COPY policy-render\/executor\.js policy-render\/http-handler\.js policy-render\/worker\.js/);
   assert.match(dockerfile, /COPY policy-render\/assets \.\/policy-render\/assets/);

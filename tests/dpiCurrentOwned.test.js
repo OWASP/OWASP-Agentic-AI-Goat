@@ -66,7 +66,7 @@ test('response validation distinguishes physically complete output limit from tr
 });
 test('entry imports remain inert and reject installed, foreign or option-bearing database URLs',()=>{
  const {urls}=require('./postgres/dpiCurrentOwnedMain');require('./postgres/dpiCurrentOwnedActualTransport');require('./fixtures/dpiCurrentOwnedQualification');
- const nonce='a'.repeat(12),env={IDENTITY_DATABASE_URL:`postgresql://dvaia_identity_runtime@127.0.0.1:54321/dvaia_test_dpi_current_${nonce}_identity`,IDENTITY_MIGRATION_DATABASE_URL:`postgresql://dvaia_identity_migration@127.0.0.1:54321/dvaia_test_dpi_current_${nonce}_identity`};urls(env,54321,nonce);
+ const nonce='a'.repeat(12),env={IDENTITY_DATABASE_URL:`postgresql://dvaia_identity_runtime@127.0.0.1:54321/owasp_ai_goat_test_dpi_current_${nonce}_identity`,IDENTITY_MIGRATION_DATABASE_URL:`postgresql://dvaia_identity_migration@127.0.0.1:54321/owasp_ai_goat_test_dpi_current_${nonce}_identity`};urls(env,54321,nonce);
  for(const bad of [env.IDENTITY_DATABASE_URL+'?sslmode=disable',env.IDENTITY_DATABASE_URL.replace('127.0.0.1','localhost'),env.IDENTITY_DATABASE_URL.replace(nonce,'b'.repeat(12)),env.IDENTITY_MIGRATION_DATABASE_URL])assert.throws(()=>urls({...env,IDENTITY_DATABASE_URL:bad},54321,nonce));assert.throws(()=>urls({...env,CTF_DATABASE_URL:env.IDENTITY_DATABASE_URL},54321,nonce));
 });
 test('actual SDK decoder tool transcript matches independent exact wire projection',async()=>{

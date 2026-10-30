@@ -14,7 +14,7 @@ function windowsBindings({root,directory,id,operationId},dependencies){
  const envPath=path.win32.join(root,'.env'),journal=path.win32.join(directory,`additive-environment-${operationId}.json`);
  const journalBinding={targetPath:journal,intentPath:journal+'.native-journal',operationId},environmentBinding={targetPath:envPath,intentPath:journal+'.native-environment',operationId};
  const names=[];
- for(const binding of [journalBinding,environmentBinding])for(const p of [binding.targetPath,binding.intentPath,binding.targetPath+`.dvaia-${operationId}.stage`,binding.intentPath+'.original',binding.intentPath+'.result']){
+ for(const binding of [journalBinding,environmentBinding])for(const p of [binding.targetPath,binding.intentPath,binding.targetPath+`.owasp-ai-goat-${operationId}.stage`,binding.intentPath+'.original',binding.intentPath+'.result']){
   normalizePrivatePath(p);if(Buffer.from(p).toString()!==p)throw invalid();names.push(p.toUpperCase());
  }
  if(new Set(names).size!==names.length)throw invalid();

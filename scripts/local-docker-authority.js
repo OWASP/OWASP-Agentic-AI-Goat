@@ -356,7 +356,7 @@ async function executeBoundDocker({ authority, execute = exec, environment = pro
 
 function defaultAuthorityDirectory({ workspace, homeDirectory = os.homedir() } = {}) {
   const { workspaceId } = require('./application-data-root');
-  return path.join(homeDirectory, '.dvaia', workspaceId(workspace));
+  return path.join(homeDirectory, '.owasp-ai-goat', workspaceId(workspace));
 }
 
 const defaultStorage = createLocalDockerAuthorityStorage();

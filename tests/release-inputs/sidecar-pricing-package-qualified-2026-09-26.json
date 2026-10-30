@@ -1,7 +1,7 @@
 {
   "status": "passed",
   "scope": "Node26.10 supported local ARM64 Pricing provisioner in owned workspace/private home",
-  "evidence": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-pricing-provision-native-ujuwuqfa",
+  "evidence": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-pricing-provision-native-ujuwuqfa",
   "sourceHashesVerified": 671,
   "package": {
     "version": 1,

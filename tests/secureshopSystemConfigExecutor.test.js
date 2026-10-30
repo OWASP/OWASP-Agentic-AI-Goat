@@ -22,7 +22,7 @@ test('namespace exposes only fixed read-only synthetic files and checked code, n
  assert.deepEqual(argv.slice(argv.indexOf(INIT,argv.indexOf('--hostname'))+1, -1),['--read',Buffer.from(JSON.stringify(request)).toString('base64')]);
 });
 test('real synthetic file reads including traversal correspond to outer known bytes; negative read is completed negative',()=>{
- const root=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-system-reader-contract-'));try{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-system-reader-contract-'));try{
  fs.mkdirSync(path.join(root,'config'));for(const [target,content]of Object.entries(FIXTURES))fs.writeFileSync(path.join(root,target.slice('/app/'.length)),content);
  for(const input of ['application.json','....//.env','....//platform_secrets.json','platform_secrets.json','missing','/etc/passwd','....//....//etc/passwd','','application.json/nope']){
  const req={...request,path:input};const observation=readSyntheticConfig(root,input);const result=decodeRead(envelope(req,observation),marker,req);assert.deepEqual(result.readResult,observation);

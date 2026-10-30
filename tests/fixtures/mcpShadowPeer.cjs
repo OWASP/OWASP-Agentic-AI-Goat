@@ -7,7 +7,7 @@ const {StreamableHTTPServerTransport}=require('@modelcontextprotocol/sdk/server/
 const {isInitializeRequest}=require('@modelcontextprotocol/sdk/types.js');
 const {StreamableHTTPClientTransport}=require('@modelcontextprotocol/sdk/client/streamableHttp.js');
 async function createOwnedShadowPeer({text,name='owned-policy-peer',version='1.0.0'}={}){
- const directory=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-shadow-sdk-'));await fs.chmod(directory,0o700);
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-shadow-sdk-'));await fs.chmod(directory,0o700);
  const file=path.join(directory,'policy.txt');await fs.writeFile(file,text,{mode:0o600,flag:'wx'});
  const app=express(),sessions=new Map(),servers=new Set(),requests=[],reads=[];app.use(express.json({limit:'16kb'}));
  app.post('/mcp',async(req,res)=>{

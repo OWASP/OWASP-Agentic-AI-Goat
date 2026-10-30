@@ -34,7 +34,7 @@ async function v44Row(p){return(await p.query('SELECT * FROM secureshop_auth.ass
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&['FRESH','POPULATED'].every(s=>['MIGRATION','RUNTIME'].every(r=>process.env[`${PREFIX}${s}_${r}_URL`]));
 function checked(store){const u=['MIGRATION','RUNTIME'].map(r=>new URL(process.env[`${PREFIX}${store}_${r}_URL`]));u.forEach((x,i)=>{
  assert.equal(x.protocol,'postgresql:');assert.equal(x.hostname,'127.0.0.1');assert.equal(x.username,`dvaia_identity_${i?'runtime':'migration'}`);
- assert.equal(x.password,'');assert.equal(x.search,'');assert.equal(x.hash,'');assert.match(x.pathname,new RegExp(`^/dvaia_test_persona_${store.toLowerCase()}_[a-f0-9]{12}$`));});
+ assert.equal(x.password,'');assert.equal(x.search,'');assert.equal(x.hash,'');assert.match(x.pathname,new RegExp(`^/owasp_ai_goat_test_persona_${store.toLowerCase()}_[a-f0-9]{12}$`));});
  assert.equal(u[0].host,u[1].host);assert.equal(u[0].pathname,u[1].pathname);const peer=new URL(process.env[`${PREFIX}${store==='FRESH'?'POPULATED':'FRESH'}_MIGRATION_URL`]);
  assert.equal(u[0].host,peer.host);assert.notEqual(u[0].pathname,peer.pathname);return u;}
 async function open(store,t){const [m,r]=checked(store),migration=new Pool({connectionString:m.href,max:2,statement_timeout:15000,lock_timeout:3000}),runtime=new Pool({connectionString:r.href,max:2,statement_timeout:15000,lock_timeout:3000});

@@ -5,7 +5,7 @@ const {createBoundRoleChatRouter}=require('../server/routes/secureshop/boundRole
 const scope={launchId:randomUUID(),scenarioId:randomUUID(),generation:1,platformOwnerId:4,platformSessionId:5};
 const session={sessionId:randomUUID(),authorityVersion:'2'};
 const ids={sessionId:randomUUID(),requestId:randomUUID()};
-const headers={'content-type':'application/json','x-dvaia-secureshop-launch':'a'.repeat(43),authorization:'Bearer controlled'};
+const headers={'content-type':'application/json','x-owasp-ai-goat-secureshop-launch':'a'.repeat(43),authorization:'Bearer controlled'};
 async function fixture(t){
  const calls=[];let output={completed:false,status:'unconfirmed',modelEvaluated:false};
  const runtime=Object.fromEntries(['createSession','run','readRequest','confirmInventory','confirmPricing','confirmListing','readListing',

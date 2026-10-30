@@ -71,7 +71,7 @@ const RUNTIME_ASSET_PATHS = Object.freeze([
   'scripts/install/Mac/macos-dev-setup.sh',
   'scripts/install/Mac/test-macos-install.sh',
   'scripts/install/Linux/install-linux.sh',
-  'scripts/install/Ubuntu/install-dvaia-ubuntu.sh',
+  'scripts/install/Ubuntu/install-owasp-ai-goat-ubuntu.sh',
   'scripts/install/Ubuntu/quick-start.sh',
   'scripts/install/Windows/install-windows.ps1',
   'scripts/install/Windows/start_all.ps1',

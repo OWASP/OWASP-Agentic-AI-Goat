@@ -413,7 +413,7 @@ async function qualify({ page, frame, frameFor, click, origin, binding, personaS
           '/api/secureshop/agents/admin/chat/description-assessment'].includes(url.pathname)) return;
     requests.push({ request, path: url.pathname, body: JSON.parse(request.postData()),
       authorization: request.headers().authorization,
-      launch: request.headers()['x-dvaia-secureshop-launch'], sha256: sha(request.postData()) });
+      launch: request.headers()['x-owasp-ai-goat-secureshop-launch'], sha256: sha(request.postData()) });
   };
   page.on('request', onRequest);
   const onFailed = request => { if (handoffOnly) failedPosts.push(request); };
@@ -443,11 +443,11 @@ async function qualify({ page, frame, frameFor, click, origin, binding, personaS
     await click(frame, { label: registered ? 'Send to registered tools' : 'Send to admin assistant' });
     const posted = await wait(() => requests.slice(before).find(row => row.path === path));
     if (handoffOnly) await assertObservedHandoffBearer({ authorization: posted.authorization,
-      launch: posted.launch, expectedLaunch: headers['x-dvaia-secureshop-launch'],
+      launch: posted.launch, expectedLaunch: headers['x-owasp-ai-goat-secureshop-launch'],
       authenticateObservedBearer, binding, personaSession });
     else {
       assert.equal(posted.authorization, headers.authorization);
-      assert.equal(posted.launch, headers['x-dvaia-secureshop-launch']);
+      assert.equal(posted.launch, headers['x-owasp-ai-goat-secureshop-launch']);
     }
     assert.equal(posted.body.message, message);
     if (!handoffOnly) {
@@ -549,7 +549,7 @@ async function qualify({ page, frame, frameFor, click, origin, binding, personaS
       assert.deepEqual(Object.keys(posted.body).sort(), ['message', 'requestId', 'sessionId']);
       assert.equal(posted.body.message, prompt);
       await assertObservedHandoffBearer({ authorization: posted.authorization,
-        launch: posted.launch, expectedLaunch: headers['x-dvaia-secureshop-launch'],
+        launch: posted.launch, expectedLaunch: headers['x-owasp-ai-goat-secureshop-launch'],
         authenticateObservedBearer, binding, personaSession });
       assert.deepEqual(handoffGets.slice(startGets).map(row => row.path), [setup.savedPath]);
       receipt.exactSetupGetBeforeAskPost = true; receipt.physicalAskOnce = true;
@@ -651,7 +651,7 @@ async function qualify({ page, frame, frameFor, click, origin, binding, personaS
       receipt.sessionDenied = true;
       const renewed = await bootstrap(ownerBase);
       const renewedHeaders = { authorization: `Bearer ${renewed.persona.token}`,
-        'x-dvaia-secureshop-launch': renewed.bearer };
+        'x-owasp-ai-goat-secureshop-launch': renewed.bearer };
       const registryBeforeReset = await readRegistry();
       const resetResult = await reset.launchResetCoordinator.reset({ ...scope,
         expectedGeneration: scope.generation, idempotencyKey: require('node:crypto').randomUUID() });
@@ -818,7 +818,7 @@ async function qualify({ page, frame, frameFor, click, origin, binding, personaS
       assert.equal(retired.status, 401); await retired.json();
       const renewed = await bootstrap(ownerBase);
       const renewedHeaders = { authorization: `Bearer ${renewed.persona.token}`,
-        'x-dvaia-secureshop-launch': renewed.bearer };
+        'x-owasp-ai-goat-secureshop-launch': renewed.bearer };
       const registryBeforeReset = await readRegistry();
       const resetResult = await resetAfterControlRelayRetirement({ retirePhysicalArm, reset, scope });
       const stale = await fetch(`${origin}${assessmentPath}`, { headers: renewedHeaders });
@@ -956,7 +956,7 @@ async function qualify({ page, frame, frameFor, click, origin, binding, personaS
     assert.equal(retired.status, 401); await retired.json(); receipt.sessionDenied = true;
     const renewed = await bootstrap(ownerBase);
     const renewedHeaders = { authorization: `Bearer ${renewed.persona.token}`,
-      'x-dvaia-secureshop-launch': renewed.bearer };
+      'x-owasp-ai-goat-secureshop-launch': renewed.bearer };
     const immutable = (await identity.query(`SELECT * FROM secureshop_auth.assessment_completions
       WHERE tenant_id=$1 AND principal_id=$2 ORDER BY evaluation_id`,
     [principal.tenantId, principal.principalId])).rows;

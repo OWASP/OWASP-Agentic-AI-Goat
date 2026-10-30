@@ -91,7 +91,7 @@ def make_plan(run_id, lifecycle, runner, target='v23-registry'):
     packet=json.loads(response.stdout);plan=packet['plan'];sources=packet['sources']
     if (plan['kind']!=('private-v23-registry-metadata' if target=='v23-registry' else 'private-v24-system-metadata') or plan['variant']!='metadata-idle-barrier-v4' or plan['runId']!=run_id
             or plan['binding']!={'runId':run_id,'target':target,'base':BASE if target=='v23-registry' else SYSTEM_BASE}
-            or plan['guest']!='/var/tmp/dvaia-v23-build-'+run_id or set(plan['commands'])!=OPERATIONS
+            or plan['guest']!='/var/tmp/owasp-ai-goat-v23-build-'+run_id or set(plan['commands'])!=OPERATIONS
             or plan['executionApproved'] is not False or plan['buildApproved'] is not False
             or plan['candidateOnly'] is not True or plan['storageCapBytes']!=6442450944
             or plan['storageAllocation']!='sparse-fixed-size' or plan['acquisitionSeconds']!=300):
@@ -313,7 +313,7 @@ def run_metadata(plan,sources,directory,lifecycle,probe,mux,work,cleanup,validat
             remote_terminal=type(response.returncode) is int and 0<=response.returncode<255
             if remote_terminal:remote_quiescent=True;pending_remote=None
             if len(response.stdout.encode())>1024**2 or len(response.stderr.encode())>1024**2:raise RuntimeError('METADATA_STREAM_LIMIT')
-            stages=[stage for stage in re.findall(r'^DVAIA_METADATA_STAGE=([a-z-]+)$',response.stderr,re.M) if stage in STAGES]
+            stages=[stage for stage in re.findall(r'^OWASP_AI_GOAT_METADATA_STAGE=([a-z-]+)$',response.stderr,re.M) if stage in STAGES]
             lifecycle.persist(directory,str(command_count)+'-'+operation+'-command.json',{'exitCode':response.returncode,
                 'lastStage':stages[-1] if stages else None,
                 'stageError':stage_error(response.stderr,stages[-1] if stages else None,response.returncode),

@@ -9,15 +9,15 @@ test('production bootstrap binds real IPI and CSRF route exports before mounted 
   skip: process.env.WORKSHOP_RAG_PRODUCTION_NATIVE !== '1', timeout: 120000,
 }, async () => {
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
+  assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
   const url = role => {
     const u = new URL(process.env['WORKSHOP_RAG_' + role.toUpperCase() + '_URL']);
-    assert.equal(u.hostname, '127.0.0.1'); assert.match(u.pathname, /^\/dvaia_test_workshop_rag_[a-f0-9]+$/);
+    assert.equal(u.hostname, '127.0.0.1'); assert.match(u.pathname, /^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/);
     assert.equal(u.username, 'dvaia_identity_' + role); return u.href;
   };
   process.env.PLATFORM_DATABASE_ENGINE = 'postgres';
   process.env.WORKSHOP_DATABASE_ENGINE='postgres';process.env.AI_PROVIDER='mock';process.env.JUDGE_PROVIDER='mock';
-  for(const role of ['RUNTIME','MIGRATION']){const u=new URL(process.env['CSRF_NATIVE_'+role+'_URL']);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_csrf_[a-f0-9]+$/);assert.equal(u.username,'dvaia_csrf_'+role.toLowerCase());process.env[role==='RUNTIME'?'CSRF_WORKSHOP_DATABASE_URL':'CSRF_WORKSHOP_MIGRATION_DATABASE_URL']=u.href;}
+  for(const role of ['RUNTIME','MIGRATION']){const u=new URL(process.env['CSRF_NATIVE_'+role+'_URL']);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_csrf_[a-f0-9]+$/);assert.equal(u.username,'dvaia_csrf_'+role.toLowerCase());process.env[role==='RUNTIME'?'CSRF_WORKSHOP_DATABASE_URL':'CSRF_WORKSHOP_MIGRATION_DATABASE_URL']=u.href;}
   process.env.IDENTITY_DATABASE_URL = url('runtime');
   process.env.IDENTITY_MIGRATION_DATABASE_URL = url('migration');
   process.env.JWT_SECRET = 'owned-native-route-qualification-secret-32bytes';

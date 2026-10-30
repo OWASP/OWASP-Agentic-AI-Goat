@@ -4,10 +4,10 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {Pool}=require('pg');const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
 async function main(){
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(process.env.HF_HUB_OFFLINE,'1');assert.equal(process.env.TRANSFORMERS_OFFLINE,'1');
- assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
+ assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
  const stage=process.env.EMBEDDING_TRANSITION_STAGE;assert.ok(['baseline','candidate'].includes(stage));
  const statePath=process.env.EMBEDDING_TRANSITION_STATE;assert.ok(path.isAbsolute(statePath));
- const urls=['EMBEDDING_MIGRATION_URL','EMBEDDING_RUNTIME_URL'].map(k=>{const u=new URL(process.env[k]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_embedding_transition_[a-f0-9]+$/);return u.href;});
+ const urls=['EMBEDDING_MIGRATION_URL','EMBEDDING_RUNTIME_URL'].map(k=>{const u=new URL(process.env[k]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_embedding_transition_[a-f0-9]+$/);return u.href;});
  const migration=new Pool({connectionString:urls[0]}),runtime=new Pool({connectionString:urls[1]});
  const store=require('../../server/services/ragVectorStore');
  try{

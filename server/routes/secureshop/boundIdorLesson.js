@@ -14,7 +14,7 @@ const invalid = () => Object.assign(new Error('Invalid isolated lesson response'
   { code: 'IDOR_LESSON_UNAVAILABLE' });
 const singleLaunchHeader = req => (req.rawHeaders || [])
   .filter((_, i) => i % 2 === 0)
-  .filter(value => String(value).toLowerCase() === 'x-dvaia-secureshop-launch').length === 1;
+  .filter(value => String(value).toLowerCase() === 'x-owasp-ai-goat-secureshop-launch').length === 1;
 
 function mode(value) {
   if (!exact(value, ['version','featureId','policyVersion','effectiveMode','scope'])

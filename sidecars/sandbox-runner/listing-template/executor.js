@@ -28,7 +28,7 @@ function checkedAssets(readFileSync = fs.readFileSync) {
       || digest(contract) !== CONTRACT_SHA256) throw Object.assign(new Error('Listing template assets unavailable'), { code: 'LISTING_TEMPLATE_ASSET_INVALID' });
   return { compiler, worker, contract };
 }
-function buildListingTemplateArgv(raw, marker, mounts = strict.runtimeMounts(), effectRoot = '/tmp/dvaia-listing-template-effect') {
+function buildListingTemplateArgv(raw, marker, mounts = strict.runtimeMounts(), effectRoot = '/tmp/owasp-ai-goat-listing-template-effect') {
   const request = normalizeListingTemplateExecution(raw);
   const encoded = Buffer.from(JSON.stringify({ ...request, requestSha256: listingTemplateExecutionDigest(request) })).toString('base64');
   if (encoded.length > 131072) throw new TypeError('Listing template request exceeds namespace limit');
@@ -71,7 +71,7 @@ function createListingTemplateExecutor({ spawnImpl = defaultSpawn, spawnSyncImpl
       ensureStrict();
       const marker = `__LISTING_TEMPLATE_${randomBytes(32).toString('hex')}__`;
       const canary = randomBytes(32);
-      const effectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-listing-template-'));
+      const effectRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-listing-template-'));
       fs.chmodSync(effectRoot, 0o700);
       const argv = buildListingTemplateArgv(request, marker, mounts, effectRoot);
       return new Promise((resolve, reject) => {

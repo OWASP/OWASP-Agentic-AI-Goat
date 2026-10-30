@@ -60,11 +60,11 @@ function SuspenseFallback() {
   );
 }
 
-function SecureShopFallback({ message = 'Opening SecureShop…', error, onRetry }) {
+function SecureShopFallback({ message = 'Opening OWASP AI SecureShop…', error, onRetry }) {
   return <main style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center',
     background: '#f7f5f0', color: '#252525', fontFamily: 'Inter, sans-serif' }}>
     <div style={{ textAlign: 'center', padding: 24 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 20 }}>SECURESHOP</div>
+      <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 20 }}>OWASP AI SecureShop</div>
       {!error && <SecureShopSpinner aria-hidden="true" style={{
         display: 'block', width: 20, height: 20, margin: '0 auto 20px',
         border: '2px solid rgba(11,13,16,0.15)', borderTopColor: '#E5451A',

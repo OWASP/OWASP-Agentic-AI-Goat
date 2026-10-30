@@ -39,7 +39,7 @@ const enabled = process.env[GATE] === '1' && process.env.PG_TEST_DISPOSABLE === 
 function nativeConfiguration(env = process.env) {
   assert.equal(env[GATE], '1'); assert.equal(env.PG_TEST_DISPOSABLE, 'yes');
   assert.equal(env.LIVE_OLLAMA_TEST, '1');
-  assert.equal(path.resolve(env.DVAIA_CURRENT_MAIN_WORKSPACE || ''), ROOT);
+  assert.equal(path.resolve(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || ''), ROOT);
   assert.equal(process.cwd(), ROOT);
   const evidencePath = env.SECURESHOP_ORDER_STATUS_BROWSER_EVIDENCE_PATH;
   const recordPath = env.SECURESHOP_ORDER_STATUS_BROWSER_RECORD_PATH;
@@ -59,7 +59,7 @@ function nativeConfiguration(env = process.env) {
       assert.equal(url.protocol, 'postgresql:'); assert.equal(url.hostname, '127.0.0.1');
       assert.equal(url.username, `dvaia_${name}_${role.toLowerCase()}`);
       assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-      const match = /^\/dvaia_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
+      const match = /^\/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
       assert.ok(match && match[2] === name);
       nonce ??= match[1]; port ??= url.port;
       assert.equal(match[1], nonce); assert.equal(url.port, port);
@@ -162,9 +162,9 @@ function waitResponse(page, method, pathname, timeout = 90000) {
 function headersFrom(request) {
   const headers = request.headers();
   assert.match(headers.authorization || '', /^Bearer [A-Za-z0-9_.-]+$/);
-  assert.match(headers['x-dvaia-secureshop-launch'] || '', /^[A-Za-z0-9_-]{43}$/);
+  assert.match(headers['x-owasp-ai-goat-secureshop-launch'] || '', /^[A-Za-z0-9_-]{43}$/);
   return { authorization: headers.authorization,
-    'x-dvaia-secureshop-launch': headers['x-dvaia-secureshop-launch'] };
+    'x-owasp-ai-goat-secureshop-launch': headers['x-owasp-ai-goat-secureshop-launch'] };
 }
 
 async function protectedGet(origin, pathname, headers, status = 200) {
@@ -263,8 +263,8 @@ test(TITLE, { skip: !enabled, timeout: 600000 }, async t => {
     const analyticsPort = Number(process.env.SECURESHOP_COUPON_ANALYTICS_PORT);
     assert.match(ownerToken, /^[a-f0-9]{12}$/);
     assert.ok(Number.isSafeInteger(analyticsPort) && analyticsPort > 0 && analyticsPort <= 65535);
-    const analyticsDatabase = `dvaia_analytics_control_${ownerToken}`;
-    const analyticsCluster = `dvaia-owned-analytics-${ownerToken}`;
+    const analyticsDatabase = `owasp_ai_goat_analytics_control_${ownerToken}`;
+    const analyticsCluster = `owasp-ai-goat-owned-analytics-${ownerToken}`;
     assert.equal(process.env.SECURESHOP_COUPON_ANALYTICS_DATABASE, analyticsDatabase);
     assert.equal(process.env.SECURESHOP_COUPON_ANALYTICS_CLUSTER, analyticsCluster);
     const expectedSystemId = process.env.SECURESHOP_COUPON_ANALYTICS_SYSTEM_IDENTIFIER || '';
@@ -551,7 +551,7 @@ test(TITLE, { skip: !enabled, timeout: 600000 }, async t => {
     app.use(express.static(config.build, { setHeaders: response =>
       response.set('Access-Control-Allow-Origin', '*') }));
     app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: config.build }));
-    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-order-status-browser-'));
+    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-order-status-browser-'));
     browser = await require('puppeteer').launch({ headless: true,
       userDataDir: profile, executablePath: config.browser });
     await recordBrowser(browser, config.recordPath, config.browser,
@@ -584,7 +584,7 @@ test(TITLE, { skip: !enabled, timeout: 600000 }, async t => {
     const cart = await firstCart; assert.equal(cart.status(), 200);
     const ownerHeaders = headersFrom(cart.request());
     const scope = await composition.launches.resolveCapability(
-      ownerHeaders['x-dvaia-secureshop-launch']);
+      ownerHeaders['x-owasp-ai-goat-secureshop-launch']);
     const actor = await composition.personaAuth.authenticateBoundToken({ scope,
       token: ownerHeaders.authorization.slice('Bearer '.length) });
     const persona = { id: actor.user.id, role: 'customer' };
@@ -592,7 +592,7 @@ test(TITLE, { skip: !enabled, timeout: 600000 }, async t => {
       authorityVersion: actor.authorityVersion };
     const ownerPrincipal = await auth.establishTenantContext(
       await auth.authenticate((await page.cookies(`${origin}/api/secureshop/auth/session`))
-        .find(cookie => cookie.name === 'dvaia_shop_session').value));
+        .find(cookie => cookie.name === 'owasp_ai_goat_shop_session').value));
     assert.equal(ownerPrincipal.ownerId, ownerTenant.ownerId);
     await composition.catalog.prepareTarget({ scope, persona, personaSession });
     const target = await scenes.readExisting(scope);
@@ -913,7 +913,7 @@ test(TITLE, { skip: !enabled, timeout: 600000 }, async t => {
     const siblingAnalytics = await analyticsService.provision(createLaunchScope(siblingScope));
     assert.notEqual(siblingAnalytics.targetId, sqlBefore[0].target_id);
     const siblingHeaders = { authorization: `Bearer ${siblingReady.persona.token}`,
-      'x-dvaia-secureshop-launch': siblingReady.bearer };
+      'x-owasp-ai-goat-secureshop-launch': siblingReady.bearer };
     const ownerBeforeSibling = await sqlRows();
     const siblingRead = await fetch(`${origin}${vulnerable.savedPath}`, { headers: siblingHeaders,
       redirect: 'error', signal: AbortSignal.timeout(10000) });

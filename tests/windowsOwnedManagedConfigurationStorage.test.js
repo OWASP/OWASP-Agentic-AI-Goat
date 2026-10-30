@@ -9,12 +9,12 @@ const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const missing = () => Object.assign(Error('absent'), { code: 'ENOENT' });
 
 function configuration(kind, enabled = false) {
-  const profile = `dvaia-owned-${kind}-${'a'.repeat(12)}`;
+  const profile = `owasp-ai-goat-owned-${kind}-${'a'.repeat(12)}`;
   return { version: 1, enabled, url: 'http://127.0.0.1:8094', token: 'x'.repeat(64), profile,
     container: profile, image: `sha256:${'b'.repeat(64)}`, ...(kind === 'shadow' ? { runtimeDigest: enabled ? 'c'.repeat(64) : null } : {}) };
 }
 function fixture(kind = 'http') {
-  const file = String.raw`C:\Users\Alice\.dvaia\aaaaaaaaaaaa\mcp-owned-${kind}.json`, parent = path.win32.dirname(file);
+  const file = String.raw`C:\Users\Alice\.owasp-ai-goat\aaaaaaaaaaaa\mcp-owned-${kind}.json`, parent = path.win32.dirname(file);
   const files = new Map(), intents = new Map(), calls = [], flags = {};
   let sequence = 1, directoryId = '1111111111111111';
   const identity = () => ({ volumeSerial: 1, fileId: (++sequence).toString(16).padStart(16, '0') });

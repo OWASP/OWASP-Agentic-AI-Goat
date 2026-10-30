@@ -16,8 +16,8 @@ while time.monotonic()<deadline:
  time.sleep(.1)
 if not owner_text.isdecimal() or int(owner_text)<=0: raise SystemExit('owner handle handshake timed out or invalid')
 owner_handle=int(owner_text);grant_path=(source/args.grant_file).resolve();docker=['docker','--host',args.docker_host]
-evidence_parent=Path.home()/'.dvaia'/'native-verification';evidence_parent.mkdir(parents=True,exist_ok=True);os.chmod(evidence_parent,0o700)
-root=Path(tempfile.mkdtemp(prefix='dvaia-mcp-owned-runtime-migrations-',dir=evidence_parent));os.chmod(root,0o700);workspace=root/'source'
+evidence_parent=Path.home()/'.owasp-ai-goat'/'native-verification';evidence_parent.mkdir(parents=True,exist_ok=True);os.chmod(evidence_parent,0o700)
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-owned-runtime-migrations-',dir=evidence_parent));os.chmod(root,0o700);workspace=root/'source'
 def ignore(_directory,names):
  denied={'.git','node_modules','build','logs','uploads','sensitive_files','workshop_data','vector-indexes','coverage','.cache','__pycache__'}
  return [name for name in names if name in denied or name.startswith('.env') or name.endswith(('.db','.db-wal','.db-shm','.log'))]
@@ -50,7 +50,7 @@ for pattern in ['server/services/mcp/**/*.js','server/database/postgres/*.js','s
   name=str(path.relative_to(source))
   if name not in tracked: tracked.append(name)
 digest=lambda path:hashlib.sha256(path.read_bytes()).hexdigest();ownership_path=root/'ownership.json'
-suffix=uuid.uuid4().hex[:12];container='dvaia-mcp-owned-runtime-migrations-'+suffix
+suffix=uuid.uuid4().hex[:12];container='owasp-ai-goat-mcp-owned-runtime-migrations-'+suffix
 ownership={'version':1,'owner':'/root/workshop_authenticity','ownerHandle':owner_handle,'launcherPid':os.getpid(),
  'grantId':args.grant_id,'dockerHost':args.docker_host,'evidence':str(root),'status':'prepared','container':container,
  'createdAt':datetime.now(timezone.utc).isoformat(),'sourceHashes':{name:digest(source/name) for name in tracked},
@@ -68,7 +68,7 @@ def safe(error):
  if isinstance(error,subprocess.TimeoutExpired): return {'type':type(error).__name__,'stage':'timeout'}
  return {'type':type(error).__name__,'message':str(error)[:200]}
 base_env={key:os.environ[key] for key in ['PATH','HOME','TMPDIR'] if key in os.environ}
-base_env['PATH']=str(Path.home()/'.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin')+os.pathsep+base_env.get('PATH','')
+base_env['PATH']=str(Path.home()/'.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin')+os.pathsep+base_env.get('PATH','')
 save();lock=grant_path.with_suffix(grant_path.suffix+'.consume-lock')
 try: lock.mkdir(mode=0o700)
 except FileExistsError as error: raise RuntimeError('grant already being consumed') from error
@@ -85,7 +85,7 @@ finally: lock.rmdir()
 attempted=False;child=None
 try:
  info=json.loads(run(docker+['info','--format','{{json .}}'],capture_output=True,text=True,timeout=30).stdout)
- if info.get('Name')!='colima-dvaia-pg-verify' or info.get('Architecture')!='aarch64': raise RuntimeError('exact Colima verification daemon required')
+ if info.get('Name')!='colima-owasp-ai-goat-pg-verify' or info.get('Architecture')!='aarch64': raise RuntimeError('exact Colima verification daemon required')
  if run(docker+['ps','-a','--filter',f'name=^{container}$','--format','{{.Names}}'],capture_output=True,text=True,timeout=20).stdout.strip(): raise RuntimeError('owned name not absent')
  attempted=True;run(docker+['run','--detach','--pull','never','--name',container,'--tmpfs','/var/lib/postgresql:rw,size=268435456',
   '-e','POSTGRES_USER=mcp_integration_admin','-e','POSTGRES_HOST_AUTH_METHOD=trust',
@@ -111,9 +111,9 @@ try:
   run(psql+['-c',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
  dbs={'identity':'dvaia_identity_migration','mcp':'dvaia_mcp_migration'}
  for label,owner in dbs.items():
-  name=f'dvaia_test_mcp_integration_{label}_{suffix}';run(psql+['-c',f'CREATE DATABASE {name} OWNER {owner}'],stdout=subprocess.DEVNULL)
+  name=f'owasp_ai_goat_test_mcp_integration_{label}_{suffix}';run(psql+['-c',f'CREATE DATABASE {name} OWNER {owner}'],stdout=subprocess.DEVNULL)
   runtime=f'dvaia_{label}_runtime';run(psql+['-c',f'REVOKE CONNECT ON DATABASE {name} FROM PUBLIC; GRANT CONNECT ON DATABASE {name} TO {owner},{runtime}'],stdout=subprocess.DEVNULL)
- urls={label:{kind:f'postgresql://dvaia_{label}_{kind}@127.0.0.1:{port}/dvaia_test_mcp_integration_{label}_{suffix}' for kind in ['runtime','migration']} for label in dbs}
+ urls={label:{kind:f'postgresql://dvaia_{label}_{kind}@127.0.0.1:{port}/owasp_ai_goat_test_mcp_integration_{label}_{suffix}' for kind in ['runtime','migration']} for label in dbs}
  env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',AWS_EC2_METADATA_DISABLED='true',
   PG_MCP_INTEGRATION_IDENTITY_RUNTIME_URL=urls['identity']['runtime'],PG_MCP_INTEGRATION_IDENTITY_MIGRATION_URL=urls['identity']['migration'],
   PG_MCP_INTEGRATION_RUNTIME_URL=urls['mcp']['runtime'],PG_MCP_INTEGRATION_MIGRATION_URL=urls['mcp']['migration'])

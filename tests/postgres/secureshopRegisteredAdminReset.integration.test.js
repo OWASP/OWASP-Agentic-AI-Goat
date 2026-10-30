@@ -27,7 +27,7 @@ function disposableUrl(key) {
   const url = new URL(process.env[prefix + key]);
   assert.equal(url.protocol, 'postgresql:');
   assert.equal(url.hostname, '127.0.0.1');
-  assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   assert.equal(url.password, '');
   assert.equal(url.search, '');
   assert.equal(url.hash, '');
@@ -61,7 +61,7 @@ function resetInput(target, operationId = randomUUID()) {
 
 test('registered administrator reset preserves history and fences credentials across tenants',
   { skip: !enabled, timeout: 180000 }, async t => {
-    assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), process.cwd());
+    assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), process.cwd());
     const evidencePath = process.env.SECURESHOP_REGISTERED_ADMIN_RESET_EVIDENCE_PATH || '';
     assert.ok(path.isAbsolute(evidencePath));
     assert.ok(!path.resolve(evidencePath).startsWith(`${process.cwd()}${path.sep}`));

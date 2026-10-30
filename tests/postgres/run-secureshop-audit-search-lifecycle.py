@@ -4,9 +4,9 @@ import argparse, hashlib, json, os, re, signal, subprocess, sys, tempfile, time,
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-NODE = Path.home() / '.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node'
+NODE = Path.home() / '.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node'
 DOCKER = Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
-DOCKER_HOST = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+DOCKER_HOST = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 POSTGRES_IMAGE = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 NODE_SHA256 = '56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 DOCKER_SHA256 = '95fab203ab36bd2b4f3cd8a1d0dc6d084252f2ec224dc76bfbaebe1540cdd15e'
@@ -110,7 +110,7 @@ def verify_host(docker, env):
     if not DOCKER.is_file() or DOCKER.is_symlink(): raise RuntimeError('reviewed Docker executable required')
     if digest(DOCKER) != DOCKER_SHA256: raise RuntimeError('Docker executable digest mismatch')
     daemon = command(docker + ['info', '--format', '{{.Name}}'], env=env, timeout=20).stdout.strip()
-    if daemon != 'colima-dvaia-pg-verify': raise RuntimeError('reviewed isolated Docker daemon required')
+    if daemon != 'colima-owasp-ai-goat-pg-verify': raise RuntimeError('reviewed isolated Docker daemon required')
     daemon_id = command(docker + ['info', '--format', '{{.ID}}'], env=env, timeout=20).stdout.strip()
     if daemon_id != DOCKER_DAEMON_ID: raise RuntimeError('reviewed Docker daemon ID mismatch')
     image = command(docker + ['image', 'inspect', '--format', '{{.Id}}', POSTGRES_IMAGE], env=env, timeout=20).stdout.strip()
@@ -121,9 +121,9 @@ def verify_host(docker, env):
 def main():
     parser = argparse.ArgumentParser(); parser.add_argument('--plan', action='store_true'); args = parser.parse_args()
     if args.plan: plan(); return 0
-    evidence = Path(tempfile.mkdtemp(prefix='dvaia-audit-search-', dir=os.getenv('TMPDIR', '/tmp'))); os.chmod(evidence, 0o700)
+    evidence = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-audit-search-', dir=os.getenv('TMPDIR', '/tmp'))); os.chmod(evidence, 0o700)
     nonce, owner = uuid.uuid4().hex[:12], uuid.uuid4().hex
-    name, database = f'dvaia-audit-search-{nonce}', f'dvaia_test_audit_search_{nonce}'
+    name, database = f'owasp-ai-goat-audit-search-{nonce}', f'owasp_ai_goat_test_audit_search_{nonce}'
     docker = [str(DOCKER), '--host', DOCKER_HOST]
     env = {'PATH': f'{NODE.parent}:/usr/bin:/bin', 'HOME': os.environ.get('HOME', str(Path.home())), 'TMPDIR': str(evidence)}
     result = {'name': name, 'owner': owner, 'candidateOnly': True, 'actualModel': False,
@@ -138,7 +138,7 @@ def main():
         if not exact_name_absent(docker, env, name): raise RuntimeError('owned container name unexpectedly exists')
         command([str(NODE), '--check', TEST_FILE], env=env, timeout=20, cwd=ROOT)
         creation_attempted = True
-        run_result = command(docker + ['run', '--detach', '--pull', 'never', '--name', name, '--label', f'dvaia.test.owner={owner}',
+        run_result = command(docker + ['run', '--detach', '--pull', 'never', '--name', name, '--label', f'owasp-ai-goat.test.owner={owner}',
           '--memory', '512m', '--cpus', '1', '--pids-limit', '128', '--tmpfs', '/var/lib/postgresql:rw,size=536870912',
           '-e', 'POSTGRES_USER=http_test_admin', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', '-e', 'POSTGRES_INITDB_ARGS=--wal-segsize=1',
           '-p', '127.0.0.1::5432', POSTGRES_IMAGE, '-c', 'shared_buffers=16MB', '-c', 'max_connections=24',
@@ -146,8 +146,8 @@ def main():
         container_id = run_result.stdout.strip()
         if not re.fullmatch(r'[0-9a-f]{64}', container_id): container_id = command(docker + ['inspect', '--format', '{{.Id}}', name], env=env, timeout=20).stdout.strip()
         details = json.loads(command(docker + ['inspect', container_id], env=env, timeout=20).stdout)[0]
-        if details['Id'] != container_id or details['Config']['Labels'].get('dvaia.test.owner') != owner: raise RuntimeError('owned container ID/label verification failed')
-        result.update(containerId=container_id, containerLabel={'dvaia.test.owner': owner})
+        if details['Id'] != container_id or details['Config']['Labels'].get('owasp-ai-goat.test.owner') != owner: raise RuntimeError('owned container ID/label verification failed')
+        result.update(containerId=container_id, containerLabel={'owasp-ai-goat.test.owner': owner})
         for _ in range(80):
             ready = subprocess.run(docker + ['exec', container_id, 'pg_isready', '-h', '127.0.0.1', '-U', 'http_test_admin'], env=env, capture_output=True, timeout=5)
             if ready.returncode == 0: break
@@ -181,7 +181,7 @@ def main():
         if cleanup_daemon_verified and creation_attempted and not container_id:
             try:
                 inspected = json.loads(command(docker + ['inspect', name], env=env, timeout=20).stdout)[0]
-                if inspected['Config']['Labels'].get('dvaia.test.owner') != owner: raise RuntimeError('refusing non-owned creation-ack recovery')
+                if inspected['Config']['Labels'].get('owasp-ai-goat.test.owner') != owner: raise RuntimeError('refusing non-owned creation-ack recovery')
                 container_id = inspected['Id']
             except subprocess.CalledProcessError:
                 pass
@@ -190,7 +190,7 @@ def main():
         if cleanup_daemon_verified and creation_attempted and container_id:
             try:
                 inspected = json.loads(command(docker + ['inspect', container_id], env=env, timeout=20).stdout)[0]
-                if inspected['Id'] != container_id or inspected['Config']['Labels'].get('dvaia.test.owner') != owner: raise RuntimeError('refusing cleanup of non-owned container')
+                if inspected['Id'] != container_id or inspected['Config']['Labels'].get('owasp-ai-goat.test.owner') != owner: raise RuntimeError('refusing cleanup of non-owned container')
                 remove_code = subprocess.run(docker + ['rm', '-f', '-v', container_id], env=env, capture_output=True, timeout=30).returncode
             except Exception as error: cleanup_errors.append(f'container:{type(error).__name__}')
         try:

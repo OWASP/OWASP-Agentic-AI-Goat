@@ -8,13 +8,13 @@ const { assertFullBackendMcpAdmission, MODEL_DIGEST } = require('./fixtures/full
 const { networkGuardSource } = require('./fixtures/fullBackendBootControls');
 
 function fixture(t) {
-  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-full-mcp-admission-')));
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-full-mcp-admission-')));
   const source = path.join(root, 'source'), evidence = path.join(root, 'evidence');
   fs.mkdirSync(source); fs.mkdirSync(evidence); fs.chmodSync(source, 0o555); fs.chmodSync(evidence, 0o700);
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const env = { PG_FULL_BACKEND_MCP_INDIRECT: '1', PG_FULL_BACKEND_AUTH: '1', PG_FULL_BACKEND_RENDERED: '1',
-    PG_TEST_DISPOSABLE: 'yes', DVAIA_ISOLATED_TEST_WORKSPACE: fs.realpathSync(source),
-    DVAIA_FULL_BACKEND_RUNTIME_ROOT: fs.realpathSync(evidence), PG_FULL_BACKEND_MCP_MODEL_DIGEST: MODEL_DIGEST,
+    PG_TEST_DISPOSABLE: 'yes', OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE: fs.realpathSync(source),
+    OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT: fs.realpathSync(evidence), PG_FULL_BACKEND_MCP_MODEL_DIGEST: MODEL_DIGEST,
     AI_PROVIDER: 'ollama', OLLAMA_BASE_URL: 'http://127.0.0.1:11434', OLLAMA_MODEL: 'llama3.1:8b',
     JUDGE_PROVIDER: 'ollama', JUDGE_MODEL: 'llama3.1:8b', MCP_OWNED_RESOURCES_ENABLED: 'true',
     MCP_OBSERVED_ACTION_ENABLED: 'true', MCP_INDIRECT_INJECTION_ENABLED: 'true', MCP_SUPPLY_CHAIN_ENABLED: 'false',

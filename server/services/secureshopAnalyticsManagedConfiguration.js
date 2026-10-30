@@ -4,7 +4,7 @@ const fail=()=>Object.assign(Error('Private Analytics configuration unavailable'
 const hash=value=>createHash('sha256').update(value).digest('hex');
 const keys=['version','enabled','workspaceId','dockerAuthoritySha256','containerName','containerId','volumeName','imageId','port','password','ownerId','identity','controlSchemaSha256'];
 function validate(value,{root,platform=process.platform}) {
- const workspaceId=hash((platform==='win32'?path.win32:path).resolve(root)).slice(0,12),name=`dvaia-analytics-${workspaceId}`;
+ const workspaceId=hash((platform==='win32'?path.win32:path).resolve(root)).slice(0,12),name=`owasp-ai-goat-analytics-${workspaceId}`;
  if(!value||Object.getPrototypeOf(value)!==Object.prototype||Object.keys(value).sort().join()!==[...keys].sort().join()
   ||value.version!==1||typeof value.enabled!=='boolean'||value.workspaceId!==workspaceId
   ||value.containerName!==name||value.volumeName!==name+'-data'
@@ -13,7 +13,7 @@ function validate(value,{root,platform=process.platform}) {
   ||typeof value.ownerId!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value.ownerId))throw fail();
  const identity=value.identity;
  if(!identity||Object.getPrototypeOf(identity)!==Object.prototype||Object.keys(identity).sort().join()!=='clusterName,controlDatabase,systemIdentifier'
-  ||identity.controlDatabase!==`dvaia_analytics_control_${workspaceId}`||identity.clusterName!==`dvaia-owned-analytics-${workspaceId}`
+  ||identity.controlDatabase!==`owasp_ai_goat_analytics_control_${workspaceId}`||identity.clusterName!==`owasp-ai-goat-owned-analytics-${workspaceId}`
   ||typeof identity.systemIdentifier!=='string'||!/^[0-9]{10,24}$/.test(identity.systemIdentifier))throw fail();
  return Object.freeze({...value,identity:Object.freeze({...identity})});
 }
@@ -23,7 +23,7 @@ async function readManagedAnalyticsConfiguration({root,homeDirectory=os.homedir(
   try{
    const native=privateState||require('../../scripts/lib/windows-private-state'),p=path.win32;
    if(typeof root!=='string'||typeof homeDirectory!=='string'||native.normalizePrivatePath(root)!==root||native.normalizePrivatePath(homeDirectory)!==homeDirectory)throw fail();
-   const directory=p.join(homeDirectory,'.dvaia',hash(p.resolve(root)).slice(0,12)),filename=p.join(directory,'analytics-managed.json');
+   const directory=p.join(homeDirectory,'.owasp-ai-goat',hash(p.resolve(root)).slice(0,12)),filename=p.join(directory,'analytics-managed.json');
    // Only an exact named absence observed BEFORE native admission is optional.
    // Native denial, including disappearance after this check, is never absence.
    try{await fileSystem.lstat(filename);}catch(error){if(error.code==='ENOENT')return null;throw error;}
@@ -36,7 +36,7 @@ async function readManagedAnalyticsConfiguration({root,homeDirectory=os.homedir(
   }catch{throw fail();}
  }
  if(typeof root!=='string'||!path.isAbsolute(root)||typeof homeDirectory!=='string'||!path.isAbsolute(homeDirectory)||!Number.isInteger(uid))throw fail();
- const directory=path.join(homeDirectory,'.dvaia',hash(path.resolve(root)).slice(0,12)),filename=path.join(directory,'analytics-managed.json');
+ const directory=path.join(homeDirectory,'.owasp-ai-goat',hash(path.resolve(root)).slice(0,12)),filename=path.join(directory,'analytics-managed.json');
  let handle;
  try {
   const parent=await fs.lstat(directory);if(!parent.isDirectory()||parent.isSymbolicLink()||parent.uid!==uid||(parent.mode&0o077))throw fail();

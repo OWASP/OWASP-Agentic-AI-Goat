@@ -12,9 +12,9 @@ launcher=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(launcher)
 class UploadProductResetLauncher(unittest.TestCase):
  def test_fixture_database_guard_matches_owned_launcher_nonce(self):
   shared=launcher.SHARED.read_text();fixture=(launcher.ROOT/launcher.FIXTURE).read_text()
-  self.assertIn("nonce=uuid.uuid4().hex; name='dvaia-persona-transition-'+nonce[:12]",shared)
-  self.assertIn("'dvaia_test_persona_'+store.lower()+'_'+nonce[:12]",shared)
-  self.assertIn("^\\/dvaia_test_persona_(identity|agents|review)_[a-f0-9]{12}$",fixture)
+  self.assertIn("nonce=uuid.uuid4().hex; name='owasp-ai-goat-persona-transition-'+nonce[:12]",shared)
+  self.assertIn("'owasp_ai_goat_test_persona_'+store.lower()+'_'+nonce[:12]",shared)
+  self.assertIn("^\\/owasp_ai_goat_test_persona_(identity|agents|review)_[a-f0-9]{12}$",fixture)
  def test_plan_is_three_owned_stores_and_resource_free(self):
   output=io.StringIO()
   with patch.object(launcher,'validate_sources'),patch.object(launcher.importlib.util,'spec_from_file_location',side_effect=AssertionError('plan loaded resources')):

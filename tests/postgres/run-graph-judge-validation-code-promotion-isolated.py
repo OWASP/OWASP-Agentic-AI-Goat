@@ -22,16 +22,16 @@ else: supplied=args.owner_handle
 if not supplied.isdecimal() or int(supplied)<=0: raise SystemExit('owner handle must be the positive exec session ID')
 owner_handle=int(supplied);grant_path=(source/args.grant_file).resolve() if not Path(args.grant_file).is_absolute() else Path(args.grant_file)
 grant_lock=grant_path.with_suffix(grant_path.suffix+'.consume-lock');docker=['docker','--host',args.docker_host]
-evidence_parent=Path.home()/'.dvaia'/'native-verification';evidence_parent.mkdir(parents=True,exist_ok=True);os.chmod(evidence_parent,0o700)
-root=Path(tempfile.mkdtemp(prefix='dvaia-graph-judge-validation-promotion-',dir=evidence_parent));os.chmod(root,0o700);workspace=root/'source'
+evidence_parent=Path.home()/'.owasp-ai-goat'/'native-verification';evidence_parent.mkdir(parents=True,exist_ok=True);os.chmod(evidence_parent,0o700)
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-graph-judge-validation-promotion-',dir=evidence_parent));os.chmod(root,0o700);workspace=root/'source'
 def ignore(_directory,names):
  denied={'.git','node_modules','build','logs','uploads','sensitive_files','workshop_data','vector-indexes','coverage','.cache','__pycache__'}
  return [name for name in names if name in denied or name.startswith('.env') or any(name.endswith(s) for s in ['.db','.db-wal','.db-shm','.db-journal','.sqlite','.sqlite3','.log'])]
 for directory in ['server','db','tests','docs']: shutil.copytree(source/directory,workspace/directory,ignore=ignore)
 for filename in ['package.json','package-lock.json']: shutil.copy2(source/filename,workspace/filename)
 (workspace/'node_modules').symlink_to(source/'node_modules',target_is_directory=True)
-base_env={key:os.environ[key] for key in ['PATH','HOME','TMPDIR'] if key in os.environ};managed=Path.home()/'.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin';base_env['PATH']=str(managed)+os.pathsep+base_env.get('PATH','')
-suffix=uuid.uuid4().hex[:12];container='dvaia-graph-judge-validation-promotion-'+suffix
+base_env={key:os.environ[key] for key in ['PATH','HOME','TMPDIR'] if key in os.environ};managed=Path.home()/'.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin';base_env['PATH']=str(managed)+os.pathsep+base_env.get('PATH','')
+suffix=uuid.uuid4().hex[:12];container='owasp-ai-goat-graph-judge-validation-promotion-'+suffix
 tracked=['docs/modernization/drafts/graph-judge-validation-code.sql','db/postgres/identity-migrations/0016_graph_judge_trace_metadata.sql',
  'server/agent-runtime/objectiveJudge.js','server/agent-runtime/runTraceStore.js','server/agent-runtime/runCoordinator.js',
  'server/agent-runtime/postgresRunLedger.js','server/agent-runtime/judgeErrors.js',
@@ -73,7 +73,7 @@ finally: grant_lock.rmdir()
 attempted=False;child=None
 try:
  daemon=json.loads(run(docker+['info','--format','{{json .}}'],capture_output=True,text=True,timeout=30).stdout)
- if daemon.get('Name')!='colima-dvaia-pg-verify' or daemon.get('Architecture')!='aarch64': raise RuntimeError('Exact Colima verification daemon is required')
+ if daemon.get('Name')!='colima-owasp-ai-goat-pg-verify' or daemon.get('Architecture')!='aarch64': raise RuntimeError('Exact Colima verification daemon is required')
  prior=run(docker+['ps','-a','--filter',f'name=^{container}$','--format','{{.Names}}'],capture_output=True,text=True,timeout=20)
  if prior.stdout.strip(): raise RuntimeError('Owned PostgreSQL container name was not absent before use')
  attempted=True;run(docker+['run','--detach','--pull','never','--name',container,'--tmpfs','/var/lib/postgresql:rw,size=268435456',
@@ -90,7 +90,7 @@ try:
  port=int(run(docker+['port',container,'5432/tcp'],capture_output=True,text=True,timeout=20).stdout.strip().rsplit(':',1)[1])
  psql=['psql','-h','127.0.0.1','-p',str(port),'-U','graph_validation_admin','-d','postgres','-v','ON_ERROR_STOP=1']
  for role in ['dvaia_identity_migration','dvaia_identity_runtime']: run(psql+['-c',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
- database='dvaia_test_graph_validation_promotion';run(psql+['-c',f'CREATE DATABASE {database} OWNER dvaia_identity_migration'],stdout=subprocess.DEVNULL)
+ database='owasp_ai_goat_test_graph_validation_promotion';run(psql+['-c',f'CREATE DATABASE {database} OWNER dvaia_identity_migration'],stdout=subprocess.DEVNULL)
  run(psql+['-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO dvaia_identity_migration,dvaia_identity_runtime'],stdout=subprocess.DEVNULL)
  env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',AWS_EC2_METADATA_DISABLED='true',
   PG_GRAPH_VALIDATION_PROMOTION_MIGRATION_URL=f'postgresql://dvaia_identity_migration@127.0.0.1:{port}/{database}',

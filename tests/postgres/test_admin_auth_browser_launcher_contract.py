@@ -200,10 +200,10 @@ console.log('MCP_DOM_HELPERS_OK');
             ['authHttp', 'adminHttp', 'adminProgressAnalytics', 'adminProductionAuthBrowser'])
         plan = LAUNCHER.database_plan('a1b2c3d4e5f6')
         self.assertEqual(plan, {
-            'authHttp': 'dvaia_test_auth_http_a1b2c3d4e5f6',
-            'adminHttp': 'dvaia_test_admin_http_a1b2c3d4e5f6',
-            'adminProgressAnalytics': 'dvaia_test_admin_analytics_a1b2c3d4e5f6',
-            'adminProductionAuthBrowser': 'dvaia_test_admin_browser_a1b2c3d4e5f6',
+            'authHttp': 'owasp_ai_goat_test_auth_http_a1b2c3d4e5f6',
+            'adminHttp': 'owasp_ai_goat_test_admin_http_a1b2c3d4e5f6',
+            'adminProgressAnalytics': 'owasp_ai_goat_test_admin_analytics_a1b2c3d4e5f6',
+            'adminProductionAuthBrowser': 'owasp_ai_goat_test_admin_browser_a1b2c3d4e5f6',
         })
         analytics = LAUNCHER.SUITES[2]
         self.assertEqual(analytics['migrationVariable'],
@@ -214,7 +214,7 @@ console.log('MCP_DOM_HELPERS_OK');
         self.assertEqual(LAUNCHER.POSTGRES_IMAGE_ID,
             'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280')
         self.assertEqual(LAUNCHER.DOCKER_HOST,
-            'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock')
+            'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock')
 
     def test_manifest_accepts_only_exact_readonly_source_and_dependency_inventory(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -293,10 +293,10 @@ console.log('MCP_DOM_HELPERS_OK');
 
     def test_uncertain_container_create_removes_only_exact_labeled_identity(self):
         container_id = 'a' * 64
-        name = 'dvaia-admin-auth-browser-' + 'b' * 12
+        name = 'owasp-ai-goat-admin-auth-browser-' + 'b' * 12
         labels = {
-            'dvaia.owner': '/root', 'dvaia.grant': 'grant',
-            'dvaia.scope': LAUNCHER.SCOPE, 'dvaia.nonce': 'b' * 12,
+            'owasp-ai-goat.owner': '/root', 'owasp-ai-goat.grant': 'grant',
+            'owasp-ai-goat.scope': LAUNCHER.SCOPE, 'owasp-ai-goat.nonce': 'b' * 12,
         }
         calls = []
         original = LAUNCHER.run
@@ -316,7 +316,7 @@ console.log('MCP_DOM_HELPERS_OK');
             LAUNCHER.run = original
         self.assertEqual(calls[-1][-1], container_id)
 
-        wrong = dict(labels, **{'dvaia.owner': '/other'})
+        wrong = dict(labels, **{'owasp-ai-goat.owner': '/other'})
         LAUNCHER.run = lambda command, **_kwargs: subprocess.CompletedProcess(command, 0,
             json.dumps([{'Id': container_id, 'Name': '/' + name,
                          'Config': {'Labels': wrong}}]), '')

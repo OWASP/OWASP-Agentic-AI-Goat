@@ -6,7 +6,7 @@ exports.qualifyMerchantMetrics = async function(environment) {
   const parsed = urls.map(raw => new URL(raw));
   for (const u of parsed) {
     assert.equal(u.hostname, '127.0.0.1');
-    assert.match(u.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(u.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   assert.equal(parsed[0].username, 'dvaia_secureshop_review_migration');
   assert.equal(parsed[1].username, 'dvaia_secureshop_review_runtime');

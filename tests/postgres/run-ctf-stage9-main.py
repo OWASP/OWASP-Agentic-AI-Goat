@@ -182,7 +182,7 @@ def checked_command(response, code, state):
 
 def store_configuration(label,port):
     if label not in ('identity','ctf') or type(port) is not int or not 1<=port<=65535:raise ValueError('Closed store/port required')
-    migration='dvaia_'+label+'_migration';role='dvaia_'+label+'_runtime';database='dvaia_test_ctf_stage9_'+label
+    migration='dvaia_'+label+'_migration';role='dvaia_'+label+'_runtime';database='owasp_ai_goat_test_ctf_stage9_'+label
     sql=f'CREATE ROLE {migration} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE DATABASE {database} OWNER {migration}; REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{role};'
     urls={f'PG_CTF_STAGE9_{label.upper()}_{kind}_URL':f'postgresql://{username}@127.0.0.1:{port}/{database}' for kind,username in [('MIGRATION',migration),('RUNTIME',role)]}
     if label=='ctf':
@@ -271,7 +271,7 @@ def main_current(argv):
     evidence=Path(tempfile.mkdtemp(prefix='run-',dir=parent));runtime=evidence/'runtime';runtime.mkdir(mode=0o700)
     for name in ['home','tmp','logs','assets']:(runtime/name).mkdir(mode=0o700)
     clean={'PATH':str(Path(args.node).parent)+':'+str(Path(args.docker).parent)+':/usr/bin:/bin','HOME':str(runtime/'home'),'TMPDIR':str(runtime/'tmp'),'LANG':'C','DOCKER_HOST':args.docker_host}
-    owner=str(uuid.uuid4());name=('dvaia-ctf-stage6-' if args.mode=='stage6-actual' else 'dvaia-ctf-stage9-')+uuid.uuid4().hex[:12];labels={'dvaia.owner':owner,'dvaia.cohort':cohort}
+    owner=str(uuid.uuid4());name=('owasp-ai-goat-ctf-stage6-' if args.mode=='stage6-actual' else 'owasp-ai-goat-ctf-stage9-')+uuid.uuid4().hex[:12];labels={'owasp-ai-goat.owner':owner,'owasp-ai-goat.cohort':cohort}
     state={'cohort':cohort,'sourceRoot':str(source),'parentPid':os.getpid(),'owner':owner,'children':[],'nativeStarted':False,'mode':args.mode,'manifestSha256':args.manifest_sha256,'containerName':name,'containerLabels':labels,'imageId':args.image_id,'dockerDaemon':args.docker_daemon,'creationAttempted':False}
     def record():publish(evidence/'ownership.json',state)
     deadline=time.monotonic()+work_seconds

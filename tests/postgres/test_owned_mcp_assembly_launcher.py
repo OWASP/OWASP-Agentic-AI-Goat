@@ -99,7 +99,7 @@ class Contracts(unittest.TestCase):
 
  def test_q05_producer_environment_admits_the_actual_fixture_writer_and_browser_boundary(self):
   parent=module.SOURCE/'tasks/qualification'
-  with tempfile.TemporaryDirectory(prefix='dvaia-mcp-assembly-',dir=parent) as directory:
+  with tempfile.TemporaryDirectory(prefix='owasp-ai-goat-mcp-assembly-',dir=parent) as directory:
    run=pathlib.Path(directory).resolve();run.chmod(0o700)
    (run/'tmp').mkdir(mode=0o700)
    (run/'logs').mkdir(mode=0o700)
@@ -116,7 +116,7 @@ const writer=native.createQ05PrivateWriter(run);
 for(const name of ['candidate-result.json','registered-handoff-model.json','registered-handoff-wire.json',
 'registered-handoff-committed-loss.json','registered-handoff-qualification.json','registered-handoff-receipt.json'])
  writer.write(name,'{"version":1}\\n');
-const profile=fs.mkdtempSync(path.join(run,'tmp','dvaia-mcp-registry-rendered-'));
+const profile=fs.mkdtempSync(path.join(run,'tmp','owasp-ai-goat-mcp-registry-rendered-'));
 const launch=native.q05CurrentHostBrowserOptions({directory:run,origin:'http://127.0.0.1:40123',
  profile,executablePath:'/controlled/chrome'});
 assert.equal(launch.args.filter(x=>x==='--no-sandbox').length,1);
@@ -419,7 +419,7 @@ writer.close();process.stdout.write('Q05_PRODUCER_FIXTURE_BOUNDARY_OK\\n');'''
    self.assertEqual(plan['bounds']['modelCalls'],8);self.assertEqual(plan['bounds']['browserCalls'],1)
    self.assertEqual(len(plan['stores']),4)
    for row in plan['stores']:
-    self.assertEqual(row['database'],'dvaia_test_agent_host_012345abcdef_'+row['schema'])
+    self.assertEqual(row['database'],'owasp_ai_goat_test_agent_host_012345abcdef_'+row['schema'])
     for role in ('runtime','migration'):self.assertEqual(row[role],'dvaia_'+row['schema']+'_'+role)
    env=module.v66_environment();self.assertEqual(env[module.V66_FLAG],'1')
    self.assertNotIn(module.V43_FLAG,env);self.assertEqual(env['OLLAMA_MODEL'],module.V43_MODEL)
@@ -555,7 +555,7 @@ writer.close();process.stdout.write('Q05_PRODUCER_FIXTURE_BOUNDARY_OK\\n');'''
    self.assertEqual(len(plan['stores']),4)
    self.assertEqual({row['label'] for row in plan['stores']},{'IDENTITY','AGENTS','COMMERCE','REVIEW'})
    for row in plan['stores']:
-    self.assertEqual(row['database'],'dvaia_test_agent_host_012345abcdef_'+row['schema'])
+    self.assertEqual(row['database'],'owasp_ai_goat_test_agent_host_012345abcdef_'+row['schema'])
     for role in ('runtime','migration'):self.assertEqual(row[role],'dvaia_'+row['schema']+'_'+role)
    env=module.v43_environment()
    self.assertEqual(env[module.V43_FLAG],'1');self.assertEqual(env['LIVE_OLLAMA_TEST'],'1')
@@ -735,10 +735,10 @@ writer.close();process.stdout.write('Q05_PRODUCER_FIXTURE_BOUNDARY_OK\\n');'''
    with patch.object(module,'current_client',return_value=client):
     with self.assertRaisesRegex(RuntimeError,'remains'):module.rendered_browser_absent(root)
    (root/'tmp'/'puppeteer_dev_chrome_profile-nested').rmdir()
-   (root/'tmp'/'dvaia-mcp-trust-rendered-test').mkdir()
+   (root/'tmp'/'owasp-ai-goat-mcp-trust-rendered-test').mkdir()
    with patch.object(module,'current_client',return_value=client):
     with self.assertRaisesRegex(RuntimeError,'remains'):module.rendered_browser_absent(root)
-   (root/'tmp'/'dvaia-mcp-trust-rendered-test').rmdir()
+   (root/'tmp'/'owasp-ai-goat-mcp-trust-rendered-test').rmdir()
    client=type('Client',(),{'absent':lambda self,*args:(_ for _ in ()).throw(PermissionError('denied'))})()
    with patch.object(module,'current_client',return_value=client):
     with self.assertRaises(PermissionError):module.rendered_browser_absent(root)
@@ -819,7 +819,7 @@ writer.close();process.stdout.write('Q05_PRODUCER_FIXTURE_BOUNDARY_OK\\n');'''
  def test_journal_mode_adds_only_one_owned_same_family_database(self):
   normal=module.database_plan('012345abcdef');rows=module.database_plan('012345abcdef',True)
   self.assertEqual(rows[:4],normal);self.assertEqual(len(rows),5)
-  self.assertEqual(rows[-1]['database'],'dvaia_test_mcp_assembly_012345abcdef_agents_fresh')
+  self.assertEqual(rows[-1]['database'],'owasp_ai_goat_test_mcp_assembly_012345abcdef_agents_fresh')
   self.assertEqual(rows[-1]['migration'],normal[2]['migration']);self.assertEqual(rows[-1]['runtime'],normal[2]['runtime'])
   result=subprocess.run(['python3','-B',str(PATH),'--docker-host',module.HOST,'--invocation-journal'],capture_output=True,text=True,check=True)
   plan=json.loads(result.stdout);self.assertEqual(len(plan['stores']),5);self.assertFalse(plan['qualification']);self.assertEqual(plan['bounds'],module.BOUNDS)
@@ -853,7 +853,7 @@ writer.close();process.stdout.write('Q05_PRODUCER_FIXTURE_BOUNDARY_OK\\n');'''
  def test_internal_endpoint_and_tunnel_are_bound_to_exact_owned_network(self):
   import copy
   identifier='a'*64;name='owned';owner='fixture'
-  network={'Id':'b'*64,'Name':name,'Driver':'bridge','Internal':True,'Labels':{'dvaia.owner':owner},'IPAM':{'Config':[{'Subnet':'172.28.0.0/16'}]},'Containers':{identifier:{'IPv4Address':'172.28.0.2/16'}}}
+  network={'Id':'b'*64,'Name':name,'Driver':'bridge','Internal':True,'Labels':{'owasp-ai-goat.owner':owner},'IPAM':{'Config':[{'Subnet':'172.28.0.0/16'}]},'Containers':{identifier:{'IPv4Address':'172.28.0.2/16'}}}
   container={'Id':identifier,'HostConfig':{'PortBindings':{'8094/tcp':[{'HostIp':'127.0.0.1','HostPort':''}]}},'NetworkSettings':{'Networks':{name:{'NetworkID':network['Id'],'IPAddress':'172.28.0.2'}}}}
   self.assertEqual(module.validate_internal_endpoint(container,network,name,owner,identifier),'172.28.0.2')
   for field,value in [('Internal',False),('Driver','host'),('Id','c'*64),('Containers',{})]:
@@ -907,7 +907,7 @@ writer.close();process.stdout.write('Q05_PRODUCER_FIXTURE_BOUNDARY_OK\\n');'''
   self.assertEqual(result['listenerLogs']['stdout'],'ready')
  def test_exact_store_names_roles(self):
   plan=module.database_plan('012345abcdef');self.assertEqual(len(plan),4);self.assertEqual(len({r['database'] for r in plan}),4)
-  for row in plan:self.assertNotEqual(row['migration'],row['runtime']);self.assertTrue(row['database'].startswith('dvaia_test_mcp_assembly_012345abcdef_'))
+  for row in plan:self.assertNotEqual(row['migration'],row['runtime']);self.assertTrue(row['database'].startswith('owasp_ai_goat_test_mcp_assembly_012345abcdef_'))
   for value in ('x','0'*13,';DROP DATABASE'):
    with self.assertRaises(ValueError):module.database_plan(value)
  def test_plan_does_not_launch_resources(self):
@@ -918,7 +918,7 @@ writer.close();process.stdout.write('Q05_PRODUCER_FIXTURE_BOUNDARY_OK\\n');'''
   from sql_nosql_docker_ownership import inspect_owned
   from types import SimpleNamespace
   with self.assertRaisesRegex(RuntimeError,'could not be established'):
-   inspect_owned(lambda argv:SimpleNamespace(returncode=1,stdout='',stderr='Cannot connect to Docker daemon'),name='owned',labels={'dvaia.owner':'x'},image=module.PG_IMAGE)
+   inspect_owned(lambda argv:SimpleNamespace(returncode=1,stdout='',stderr='Cannot connect to Docker daemon'),name='owned',labels={'owasp-ai-goat.owner':'x'},image=module.PG_IMAGE)
  def test_dependency_byte_mutation_changes_manifest(self):
   import tempfile
   from owned_mcp_assembly_freeze import dependencies,digest
@@ -1082,13 +1082,13 @@ writer.close();process.stdout.write('Q05_PRODUCER_FIXTURE_BOUNDARY_OK\\n');'''
     module.reusable_v23_image(module.SOURCE,'prospective-v2')
   good={'Id':proof['runtimeImageId'],'Descriptor':proof['descriptor'],'Architecture':'arm64','Os':'linux',
         'Config':{'User':'10001:10001','Entrypoint':['node','sidecars/sandbox-runner/owned-mcp-registry/http-listener.js'],
-                  'Labels':{'dvaia.registry.package':proof['packageDigest'],'dvaia.build-run':proof['runId']}},
+                  'Labels':{'owasp-ai-goat.registry.package':proof['packageDigest'],'owasp-ai-goat.build-run':proof['runId']}},
         'RepoTags':None,'RepoDigests':None}
   self.assertIs(module.admit_reused_image_row(good,proof),good)
   for changed in ({**good,'Id':proof['configImageId']},
                   {**good,'Descriptor':{**proof['descriptor'],'size':1}},
                   {**good,'RepoTags':['unexpected:tag']},
-                  {**good,'Config':{**good['Config'],'Labels':{'dvaia.registry.package':proof['packageDigest'],'dvaia.build-run':'other'}}}):
+                  {**good,'Config':{**good['Config'],'Labels':{'owasp-ai-goat.registry.package':proof['packageDigest'],'owasp-ai-goat.build-run':'other'}}}):
    with self.assertRaisesRegex(RuntimeError,'identity mismatch'):
     module.admit_reused_image_row(changed,proof)
 
@@ -1124,7 +1124,7 @@ writer.close();process.stdout.write('Q05_PRODUCER_FIXTURE_BOUNDARY_OK\\n');'''
          'packageDigest':module.REGISTRY_PACKAGED_PROSPECTIVE_DIGEST}
   row={'Id':proof['runtimeImageId'],'Descriptor':proof['descriptor'],'Architecture':'arm64','Os':'linux',
        'Config':{'User':'10001:10001','Entrypoint':['node','sidecars/sandbox-runner/owned-mcp-registry/http-listener.js'],
-                 'Labels':{'dvaia.registry.package':proof['packageDigest'],'dvaia.build-run':proof['runId']}},
+                 'Labels':{'owasp-ai-goat.registry.package':proof['packageDigest'],'owasp-ai-goat.build-run':proof['runId']}},
        'RepoTags':None,'RepoDigests':None}
   inventory=[proof['runtimeImageId']+' <none>:<none>'];checks=[]
   def inspect(command,kind,name):
@@ -1174,11 +1174,11 @@ writer.close();process.stdout.write('Q05_PRODUCER_FIXTURE_BOUNDARY_OK\\n');'''
    with self.assertRaisesRegex(RuntimeError,'controls changed'):module.packaged_postflight(root,selection,manifest,rows,pins)
   with self.assertRaisesRegex(RuntimeError,'authority or controls changed'):
    module.packaged_postflight(root,selection,manifest,{**rows,'changed':{}},pins)
-  owner='owned';labels={'dvaia.owner':owner,'dvaia.registry.package':module.REGISTRY_PACKAGED_PROSPECTIVE_DIGEST,
-   'dvaia.registry.authority':selection,'dvaia.registry.cohort':module.REGISTRY_PACKAGED_PROSPECTIVE_SCOPE}
+  owner='owned';labels={'owasp-ai-goat.owner':owner,'owasp-ai-goat.registry.package':module.REGISTRY_PACKAGED_PROSPECTIVE_DIGEST,
+   'owasp-ai-goat.registry.authority':selection,'owasp-ai-goat.registry.cohort':module.REGISTRY_PACKAGED_PROSPECTIVE_SCOPE}
   module.packaged_image_labels(labels,owner,selection)
-  for field,value in (('dvaia.owner','other'),('dvaia.registry.package',module.REGISTRY_PACKAGED_DIGEST),
-                      ('dvaia.registry.authority','historical'),('dvaia.registry.cohort',module.REGISTRY_PACKAGED_SCOPE)):
+  for field,value in (('owasp-ai-goat.owner','other'),('owasp-ai-goat.registry.package',module.REGISTRY_PACKAGED_DIGEST),
+                      ('owasp-ai-goat.registry.authority','historical'),('owasp-ai-goat.registry.cohort',module.REGISTRY_PACKAGED_SCOPE)):
    with self.assertRaisesRegex(RuntimeError,'authority mismatch'):
     module.packaged_image_labels({**labels,field:value},owner,selection)
   with self.assertRaisesRegex(RuntimeError,'Unknown packaged authority'):
@@ -1211,7 +1211,7 @@ console.log(JSON.stringify({discoveryReceipt:{version:1,operationId,registryRequ
   import ast
   tree=ast.parse(PATH.read_text());full=PATH.read_text()
   self.assertEqual(module.native_child_argv(registry_packaged=True),[str(module.NODE),module.REGISTRY_PACKAGED_FIXTURE])
-  self.assertIn("'dvaia.registry.package='+packaged_digest",full)
+  self.assertIn("'owasp-ai-goat.registry.package='+packaged_digest",full)
   self.assertIn("'exec',executor,'node','/app/'+REGISTRY_PACKAGED_FIXTURE",full)
   self.assertIn("state['finalIntegrity']=packaged_postflight(SOURCE,args.packaged_authority,authority,source_rows,control_pins)",full)
  def test_v42_native_plan_is_closed_current_main_four_store_no_model_browser(self):

@@ -36,7 +36,7 @@ const enabled=process.env.RUN_LIVE_FULLSTACK==='1'&&process.env.PG_TEST_DISPOSAB
 function assertDisposableUrl(value, name) {
   const url = new URL(value);
   assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname), `${name} must be loopback-only`);
-  assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/, `${name} must name a disposable test database`);
+  assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/, `${name} must name a disposable test database`);
 }
 
 async function availablePort() {
@@ -67,7 +67,7 @@ function shouldCopy(source) {
 }
 
 async function copyApplication() {
-  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-pg-boot-'));
+  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-pg-boot-'));
   const workspace = path.join(parent, 'workspace');
   await fs.cp(REPO, workspace, { recursive: true, filter: shouldCopy });
   await fs.symlink(path.join(REPO, 'node_modules'), path.join(workspace, 'node_modules'), 'dir');
@@ -121,7 +121,7 @@ test('production bundle login and DPI/IPI browser workflow on owned PostgreSQL',
  try{
   await fs.symlink(path.join(REPO,'client/node_modules'),path.join(workspace,'client/node_modules'),'dir');
   for(const [prefix,family] of Object.entries(DATABASES)){
-   const schema=family.toLowerCase(),name=`dvaia_test_browser_${process.pid}_${schema}`;await admin.query(`CREATE DATABASE ${name} OWNER dvaia_${schema}_migration`);owned.push(name);await admin.query(`REVOKE CONNECT ON DATABASE ${name} FROM PUBLIC`);await admin.query(`GRANT CONNECT ON DATABASE ${name} TO dvaia_${schema}_runtime`);
+   const schema=family.toLowerCase(),name=`owasp_ai_goat_test_browser_${process.pid}_${schema}`;await admin.query(`CREATE DATABASE ${name} OWNER dvaia_${schema}_migration`);owned.push(name);await admin.query(`REVOKE CONNECT ON DATABASE ${name} FROM PUBLIC`);await admin.query(`GRANT CONNECT ON DATABASE ${name} TO dvaia_${schema}_runtime`);
    for(const role of ['runtime','migration']){const u=new URL(adminUrl);u.pathname='/'+name;u.username=`dvaia_${schema}_${role}`;u.password='';databaseEnv[`${prefix}_${role==='runtime'?'':'MIGRATION_'}DATABASE_URL`]=u.href;}
   }
   const port=await availablePort(),agentPort=await availablePort();const env={PATH:process.env.PATH,HOME:process.env.HOME,TMPDIR:os.tmpdir(),...databaseEnv,PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',PORT:String(port),SS_ALLOWED_ORIGINS:`http://127.0.0.1:${port}`,SS_AGENT_HOST_PORT:String(agentPort),SS_ENABLE:'true',SS_ENABLE_REAL_MCP_SPAWN:'false',MCP_SIDECARS_AUTOSTART:'false',AI_PROVIDER:'ollama',OLLAMA_BASE_URL:'http://127.0.0.1:11434',OLLAMA_MODEL:'llama3.1:8b',JUDGE_PROVIDER:'ollama',JUDGE_MODEL:'llama3.1:8b',JWT_SECRET:'owned-browser-fixture-secret-at-least-32-bytes',EVENT_GATE_ENABLED:'false',NODE_ENV:'test',AWS_EC2_METADATA_DISABLED:'true',XENOVA_CACHE:process.env.XENOVA_CACHE,HF_HUB_OFFLINE:'1',TRANSFORMERS_OFFLINE:'1',LANGCHAIN_TRACING_V2:'false',LANGSMITH_TRACING:'false'};

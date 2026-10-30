@@ -23,7 +23,7 @@ async function ownedListener() {
 }
 
 function cookie() {
-  return { name: 'dvaia_csrf_victim', value: randomBytes(24).toString('base64url') };
+  return { name: 'owasp_ai_goat_csrf_victim', value: randomBytes(24).toString('base64url') };
 }
 
 test('real Chrome executes exact form payload once and reports the outgoing ambient cookie without exposing it to the page', { timeout: 30000 }, async t => {

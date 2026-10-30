@@ -889,7 +889,7 @@ const IndirectPromptInjectionChallenge = () => {
   const fileInputRef = useRef(null);
 
   // Email Agent State (Reversed Flow)
-  const [tempEmail, setTempEmail] = useState(() => localStorage.getItem('dvaia_email_agent_temp_email') || '');
+  const [tempEmail, setTempEmail] = useState(() => localStorage.getItem('owasp_ai_goat_email_agent_temp_email') || '');
   const [selectedScenario, setSelectedScenario] = useState('role_hijack');
   const [customPayload, setCustomPayload] = useState('');
   const [availableScenarios, setAvailableScenarios] = useState([]);
@@ -932,7 +932,7 @@ const IndirectPromptInjectionChallenge = () => {
     setIsUploading(false); setIsQuerying(false); setRagError(null); setCompletedObjectivesFromPoll({});
     setActiveObjectiveId(visibleRagObjectives[0]?.id || null);
     if (fileInputRef.current) fileInputRef.current.value = '';
-    setTempEmail(''); localStorage.removeItem('dvaia_email_agent_temp_email');
+    setTempEmail(''); localStorage.removeItem('owasp_ai_goat_email_agent_temp_email');
     setSelectedScenario('role_hijack'); setCustomPayload('');
     setEmailSent(false); setSentEmailInfo(null); setScrapedEmails([]); setFetchedEmail(null);
     setEmailSummary(null); setVulnerableEmailSummary(null); setEmailResponseMode(null);
@@ -1265,7 +1265,7 @@ const IndirectPromptInjectionChallenge = () => {
           const owned = await axios.get('/api/email-agent/owned-inbox');
           if (scenarioIsCurrent('email', emailGeneration) && owned.data?.ownedInbox) {
             setTempEmail(owned.data.ownedInbox);
-            localStorage.setItem('dvaia_email_agent_temp_email', owned.data.ownedInbox);
+            localStorage.setItem('owasp_ai_goat_email_agent_temp_email', owned.data.ownedInbox);
             setMailpitInboxUrl(owned.data.mailpitInboxUrl || res.data.mailpitInboxUrl || null);
           }
         } else if (scenarioIsCurrent('email', emailGeneration)) {
@@ -1616,7 +1616,7 @@ const IndirectPromptInjectionChallenge = () => {
       toast.error('Please use a temporary email service (e.g., sharklasers.com, guerrillamail.com)');
       return;
     }
-    localStorage.setItem('dvaia_email_agent_temp_email', tempEmail);
+    localStorage.setItem('owasp_ai_goat_email_agent_temp_email', tempEmail);
     const scenarioGeneration = captureScenario('email');
     try {
       const response = await axios.post('/api/email-agent/save-email', { tempEmail });
@@ -1829,7 +1829,7 @@ const IndirectPromptInjectionChallenge = () => {
   };
 
   const ragReset = useWorkshopResetController({
-    operationStorageKey: user?.id ? `dvaia:reset:${user.id}:indirect:document` : undefined,
+    operationStorageKey: user?.id ? `owasp-ai-goat:reset:${user.id}:indirect:document` : undefined,
     owner: {
       attendeeId: `platform-session-${ownerRevision}`,
       workshopKey: indirectPromptInjectionExperience.workshopKey,
@@ -1915,7 +1915,7 @@ const IndirectPromptInjectionChallenge = () => {
       const owned = await axios.get('/api/email-agent/owned-inbox');
       if (scenarioIsCurrent('email', emailGeneration) && owned.data?.ownedInbox) {
         setTempEmail(owned.data.ownedInbox);
-        localStorage.setItem('dvaia_email_agent_temp_email', owned.data.ownedInbox);
+        localStorage.setItem('owasp_ai_goat_email_agent_temp_email', owned.data.ownedInbox);
         setMailpitInboxUrl(owned.data.mailpitInboxUrl || null);
       }
       if (!scenarioIsCurrent('email', emailGeneration)) return;

@@ -41,7 +41,7 @@ TOTAL=${selected.totalMs}
 PHASES={${Object.entries(selected.phases).map(([k,v])=>"'"+k+"':"+v).join(',')}}
 def require(v):
  if not v:raise RuntimeError('ORIGINAL_SERVICE_LEASE_UNPROVEN')
-require(re.fullmatch('[a-f0-9]{32}',RUN) and ROOT=='/var/tmp/dvaia-v23-build-'+RUN and os.path.realpath(ROOT)==ROOT)
+require(re.fullmatch('[a-f0-9]{32}',RUN) and ROOT=='/var/tmp/owasp-ai-goat-v23-build-'+RUN and os.path.realpath(ROOT)==ROOT)
 s=os.lstat(ROOT);require(stat.S_ISDIR(s.st_mode) and s.st_uid==0 and stat.S_IMODE(s.st_mode)==0o700)
 def read(name):
  fd=os.open(ROOT+'/'+name,os.O_RDONLY|os.O_NOFOLLOW)

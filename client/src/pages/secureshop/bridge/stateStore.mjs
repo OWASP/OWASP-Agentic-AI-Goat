@@ -110,7 +110,7 @@ export function createScopedShopStateStore({ storage, scenarioId, generation, is
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(scenarioId)
     || !Number.isSafeInteger(generation) || generation < 1 || typeof isCurrent !== 'function'
     || typeof canRetire !== 'function' || typeof storage?.getItem !== 'function' || typeof storage?.setItem !== 'function') throw new TypeError('Trusted shop state dependencies required');
-  const storageKey = `dvaia:secureshop:${scenarioId.toLowerCase()}:${generation}`;
+  const storageKey = `owasp-ai-goat:secureshop:${scenarioId.toLowerCase()}:${generation}`;
   let closed = false;
   const assertCurrent = () => { if (closed || isCurrent() !== true) throw new DOMException('Shop state is stale', 'AbortError'); };
   return Object.freeze({

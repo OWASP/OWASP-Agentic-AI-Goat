@@ -39,7 +39,7 @@ function createModelScheduler({ concurrency = 2, queueLimit = 256, ownerQueueLim
         // pump runs from whichever prior job settled; invoking work directly
         // there would silently attribute queued model calls to that context.
         const job = { work, signal, resolve, reject, abort: null, enqueuedAt: now(), started: false,
-          resource: new AsyncResource('dvaia-model-scheduler-job') };
+          resource: new AsyncResource('owasp-ai-goat-model-scheduler-job') };
         job.abort = () => {
           const queue = queues.get(key), index = queue?.indexOf(job) ?? -1;
           if (index < 0) return;

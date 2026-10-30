@@ -284,14 +284,14 @@ test('denied hint requires canonical 409 with zero outbox, progress, receipt and
 
 test('three exact disposable database names share one nonce', () => {
   const nonce = 'abcdef123456';
-  assert.equal(facet.assertDatabaseName(`/dvaia_test_ctf_learner_attempt_gate_f_i_${nonce}`,
+  assert.equal(facet.assertDatabaseName(`/owasp_ai_goat_test_ctf_learner_attempt_gate_f_i_${nonce}`,
     'FRESH', 'IDENTITY'), nonce);
-  assert.equal(facet.assertDatabaseName(`/dvaia_test_ctf_learner_attempt_gate_p_c_${nonce}`,
+  assert.equal(facet.assertDatabaseName(`/owasp_ai_goat_test_ctf_learner_attempt_gate_p_c_${nonce}`,
     'POPULATED', 'CTF', nonce), nonce);
   assert.throws(() => facet.assertDatabaseName(
-    `/dvaia_test_ctf_learner_entry_hint_f_i_${nonce}`, 'FRESH', 'IDENTITY'));
+    `/owasp_ai_goat_test_ctf_learner_entry_hint_f_i_${nonce}`, 'FRESH', 'IDENTITY'));
   assert.throws(() => facet.assertDatabaseName(
-    `/dvaia_test_ctf_learner_attempt_gate_p_i_${nonce}`, 'FRESH', 'IDENTITY'));
+    `/owasp_ai_goat_test_ctf_learner_attempt_gate_p_i_${nonce}`, 'FRESH', 'IDENTITY'));
 });
 
 test('physical call accounting rejects defense reviewer and uncounted failures', () => {

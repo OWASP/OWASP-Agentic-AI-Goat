@@ -56,7 +56,7 @@ def database_plan(nonce):
     if not isinstance(nonce, str) or re.fullmatch(r'[a-f0-9]{12}', nonce) is None:
         raise RuntimeError('Exact disposable database nonce required')
     rows = tuple({'schema': schema,
-                  'database': f'dvaia_test_student_deletion_{nonce}_{schema}',
+                  'database': f'owasp_ai_goat_test_student_deletion_{nonce}_{schema}',
                   'runtimeVariable': prefix + '_DATABASE_URL',
                   'migrationVariable': prefix + '_MIGRATION_DATABASE_URL'}
                  for schema, prefix in STORES)
@@ -89,7 +89,7 @@ def admission_grant(repo, run_root, nonce, args, worker_pid, profile):
         if directory.is_symlink() or not directory.is_dir() \
                 or directory.stat().st_uid != os.getuid() or directory.stat().st_mode & 0o077:
             raise RuntimeError('Exact private student-deletion runtime required')
-    expected_profile = tmp / ('dvaia-student-deletion-browser-' + nonce)
+    expected_profile = tmp / ('owasp-ai-goat-student-deletion-browser-' + nonce)
     if Path(profile) != expected_profile or expected_profile.exists() or expected_profile.is_symlink():
         raise RuntimeError('Fresh exact student-deletion browser profile required')
     if type(worker_pid) is not int or worker_pid <= 0:

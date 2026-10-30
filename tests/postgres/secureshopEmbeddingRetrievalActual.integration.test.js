@@ -4,10 +4,10 @@ const{Pool}=require('pg');const{migrate}=require('../../db/postgres/migrate');
 const enabled=process.env.EMBEDDING_RETRIEVAL_ACTUAL_NATIVE==='1';
 const sha=x=>crypto.createHash('sha256').update(x).digest('hex');
 test('actual cached CPU embeddings drive assembled owned revision retrieval and preserve manual receipts',{skip:!enabled,timeout:180000},async()=>{
- assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
  assert.equal(process.env.HF_HUB_OFFLINE,'1');assert.equal(process.env.TRANSFORMERS_OFFLINE,'1');
  const cache=fs.realpathSync(process.env.XENOVA_CACHE);assert.ok(cache.startsWith(fs.realpathSync(process.cwd())+path.sep));
- const urls=['EMBEDDING_POPULATED_MIGRATION_URL','EMBEDDING_POPULATED_RUNTIME_URL'].map(k=>{const u=new URL(process.env[k]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_embedding_populated_[a-f0-9]+$/);return u.href;});
+ const urls=['EMBEDDING_POPULATED_MIGRATION_URL','EMBEDDING_POPULATED_RUNTIME_URL'].map(k=>{const u=new URL(process.env[k]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_embedding_populated_[a-f0-9]+$/);return u.href;});
  const evidencePath=process.env.EMBEDDING_RETRIEVAL_EVIDENCE_PATH;assert.ok(path.isAbsolute(evidencePath));assert.ok(!path.resolve(evidencePath).startsWith(process.cwd()+path.sep));
  const evidence={status:'incomplete',kind:'actual-cpu-assembled-retrieval',llmCalled:false};const persist=()=>fs.writeFileSync(evidencePath,JSON.stringify(evidence,null,2)+'\n',{mode:0o600});persist();
  const load=Module._load;Module._load=function(request,parent,isMain){if(/(?:^|\/)(?:authDb|sqlite|sqlite3|better-sqlite3)(?:\.js)?$/.test(request))throw Error('SQLite forbidden');return load.call(this,request,parent,isMain);};

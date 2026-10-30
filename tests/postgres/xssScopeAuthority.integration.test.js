@@ -20,7 +20,7 @@ const password = '$2b$12$000000000000000000000uG3W0Jp6IPhhD1TRqN8Yc2zJQG3vVnSA';
 function assertOwnedUrl(value, role) {
   const url = new URL(value);
   assert.equal(url.hostname, '127.0.0.1');
-  assert.equal(url.pathname, '/dvaia_test_xss_scope_authority_identity');
+  assert.equal(url.pathname, '/owasp_ai_goat_test_xss_scope_authority_identity');
   assert.equal(decodeURIComponent(url.username), role);
 }
 

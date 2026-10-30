@@ -35,7 +35,7 @@ function pool(url, applicationName, max = 8) {
 function assertDisposable(url) {
   const parsed = new URL(url);
   assert.ok(['127.0.0.1', 'localhost'].includes(parsed.hostname));
-  assert.match(parsed.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(parsed.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   assert.equal(parsed.search, '');
   assert.equal(parsed.hash, '');
 }
@@ -69,7 +69,7 @@ async function provisionProducts(repository, scope, name) {
   return repository.provision(scope, { ownMerchantId: 12, products: source(name) });
 }
 function prefixFixture(t) {
-  const workspace = process.env.DVAIA_ISOLATED_TEST_WORKSPACE || os.tmpdir();
+  const workspace = process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || os.tmpdir();
   const directory = fs.mkdtempSync(path.join(workspace, 'retrieval-through-0010-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   for (const name of prefixNames) fs.copyFileSync(path.join(migrations, name), path.join(directory, name));
@@ -272,8 +272,8 @@ test('fresh review migration qualifies retrieval authority, replay, cleanup and 
   const migrationUrl = process.env[`${PREFIX}FRESH_REVIEW_MIGRATION_URL`];
   const runtimeUrl = process.env[`${PREFIX}FRESH_REVIEW_RUNTIME_URL`];
   assertDisposable(migrationUrl); assertDisposable(runtimeUrl);
-  const migration = pool(migrationUrl, 'dvaia-retrieval-fresh-migration', 3);
-  const runtime = pool(runtimeUrl, 'dvaia-retrieval-fresh-runtime', 8);
+  const migration = pool(migrationUrl, 'owasp-ai-goat-retrieval-fresh-migration', 3);
+  const runtime = pool(runtimeUrl, 'owasp-ai-goat-retrieval-fresh-runtime', 8);
   try {
     assert.deepEqual(await migrate(migration, migrations), migrationNames);
     assert.deepEqual(await migrate(migration, migrations), []);
@@ -288,8 +288,8 @@ test('populated review prefix through 0010 survives additive retrieval migration
   const migrationUrl = process.env[`${PREFIX}POPULATED_REVIEW_MIGRATION_URL`];
   const runtimeUrl = process.env[`${PREFIX}POPULATED_REVIEW_RUNTIME_URL`];
   assertDisposable(migrationUrl); assertDisposable(runtimeUrl);
-  const migration = pool(migrationUrl, 'dvaia-retrieval-populated-migration', 3);
-  const runtime = pool(runtimeUrl, 'dvaia-retrieval-populated-runtime', 6);
+  const migration = pool(migrationUrl, 'owasp-ai-goat-retrieval-populated-migration', 3);
+  const runtime = pool(runtimeUrl, 'owasp-ai-goat-retrieval-populated-runtime', 6);
   try {
     const prefix = prefixFixture(t);
     assert.deepEqual(await migrate(migration, prefix), prefixNames);

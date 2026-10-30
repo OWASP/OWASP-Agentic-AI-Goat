@@ -26,7 +26,7 @@ async function scene(work) {
     const runtime = mkdir(run, 'runtime');
     const temporary = mkdir(runtime, 'tmp');
     const home = mkdir(runtime, 'home');
-    const profile = mkdir(temporary, 'dvaia-role-inventory-control');
+    const profile = mkdir(temporary, 'owasp-ai-goat-role-inventory-control');
     const qualified = mkdir(root, '.qualification');
     const host = mkdir(qualified, 'goat-q');
     const socket = path.join(host, 'docker.sock');
@@ -40,7 +40,7 @@ async function scene(work) {
       SECURESHOP_STANDALONE_INVENTORY_NATIVE: '0',
       SECURESHOP_STANDALONE_INVENTORY_RETRY_NATIVE: '0',
       DOCKER_HOST: `unix://${socket}`,
-      DVAIA_CURRENT_MAIN_WORKSPACE: root,
+      OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: root,
       PUPPETEER_EXECUTABLE_PATH: executablePath,
       TMPDIR: temporary,
       MAC_CHROMIUM_TMPDIR: temporary,
@@ -204,7 +204,7 @@ test('owned selector rejects escaped or symlinked evidence, wrong private env an
   const modified = [
     { ...s.env, TMPDIR: s.root },
     { ...s.env, MAC_CHROMIUM_TMPDIR: s.root },
-    { ...s.env, DVAIA_CURRENT_MAIN_WORKSPACE: s.run },
+    { ...s.env, OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: s.run },
     { ...s.env, SECURESHOP_MERCHANT_INVENTORY_CHAT_BROWSER_NATIVE: '0' },
   ];
   for (const env of modified) assert.throws(() => H.admit(env, s));

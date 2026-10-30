@@ -5,12 +5,12 @@ const cohort=process.env.DPI_SCOPED_COHORT??'current';
 assert.ok(['current','historical-wrong-answer'].includes(cohort),'Closed DPI scoped cohort required');
 const calibrationCount=cohort==='historical-wrong-answer'?8:10,maxHttpCalls=cohort==='historical-wrong-answer'?22:26;
 (async()=>{
- const root=process.env.DPI_SCOPED_EVIDENCE_ROOT;assert.ok(root);assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+ const root=process.env.DPI_SCOPED_EVIDENCE_ROOT;assert.ok(root);assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
  const write=(name,value)=>fs.writeFileSync(path.join(root,name),JSON.stringify(value,null,2)+'\n',{mode:0o600});
  const result={cohort,maxHttpCalls,status:'preparing',actors:[],calibration:[],scope:['virtualization','obfuscation'],limitations:['Synthetic responses qualify Judge semantics only, never actor execution or credit.','One prospectively fixed shipped actor attempt per objective; refusals and unavailability are retained.','No browser or installed database claim.']};const save=()=>write('candidate-result.json',result);save();
  let transport,server,ai,originalChat;const pools=[];
  try{
-  const pool=variable=>{const u=new URL(process.env[variable]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_dpi_[a-f0-9]+_identity$/);const p=new Pool({connectionString:u.href,max:4});pools.push(p);return p;};
+  const pool=variable=>{const u=new URL(process.env[variable]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_dpi_[a-f0-9]+_identity$/);const p=new Pool({connectionString:u.href,max:4});pools.push(p);return p;};
   const runtime=pool('DPI_IDENTITY_RUNTIME_URL'),migration=pool('DPI_IDENTITY_MIGRATION_URL');process.env.IDENTITY_DATABASE_URL=runtime.options.connectionString;
   const identityApi=require('../../server/database/postgres/identityRepository');await identityApi.initializeIdentityRepository(runtime,migration);await require('../../server/database/postgres/workshopPlatformSeed').seedWorkshopPlatform(migration);
   const identity=identityApi.createIdentityRepository(runtime),progress=require('../../server/database/postgres/workshopProgressRepository').createWorkshopProgressRepository(runtime),config=require('../../server/database/postgres/workshopConfigRepository').createWorkshopConfigRepository(runtime);

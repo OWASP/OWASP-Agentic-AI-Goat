@@ -12,7 +12,7 @@ function migrationView(directory,limit,inclusive=false){
 }
 
 test('real CLI and HTTP composed application lifecycle preserves siblings and disabled cleanup debt',{skip:process.env.PG_TEST_DISPOSABLE!=='yes'||!process.env.MCP_CLI_TEST_URL,timeout:120000},async t=>{
- const pools=[];const pool=key=>{const url=new URL(process.env[key]);assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/dvaia_test_http_[a-f0-9]+(?:_mcp)?(?:_fresh)?$/);const p=new Pool({connectionString:url.href});pools.push(p);return p;};
+ const pools=[];const pool=key=>{const url=new URL(process.env[key]);assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/owasp_ai_goat_test_http_[a-f0-9]+(?:_mcp)?(?:_fresh)?$/);const p=new Pool({connectionString:url.href});pools.push(p);return p;};
  const identity=pool('PG_HTTP_RUNTIME_URL'),identityMigration=pool('PG_HTTP_MIGRATION_URL'),mcp=pool('PG_MCP_RUNTIME_URL'),mcpMigration=pool('PG_MCP_MIGRATION_URL');t.after(()=>Promise.all(pools.map(p=>p.end())));
  const identityFresh=pool('PG_HTTP_FRESH_MIGRATION_URL'),mcpFresh=pool('PG_MCP_FRESH_MIGRATION_URL');
  const password=await require('bcryptjs').hash('migration-owned-synthetic',4),preservedUsername='migration-'+crypto.randomUUID();
@@ -51,7 +51,7 @@ test('real CLI and HTTP composed application lifecycle preserves siblings and di
  const http=require('../../server/services/mcp/ownedHttpServiceClient').createOwnedHttpServiceClient({baseUrl:process.env.MCP_HTTP_TEST_BASE_URL,token:process.env.MCP_HTTP_TEST_TOKEN});
  assert.equal((await cli.readiness()).ready,true);assert.equal((await http.readiness()).ready,true);
  const configDir=await fs.mkdtemp(path.join(os.tmpdir(),'http-activation-'));t.after(()=>fs.rm(configDir,{recursive:true,force:true}));const configFile=path.join(configDir,'http.json');
- const config={version:1,enabled:false,url:'http://127.0.0.1:8093',token:'a'.repeat(64),profile:'dvaia-owned-http-111111111111',container:'dvaia-owned-http-111111111111',image:'sha256:'+'b'.repeat(64)};
+ const config={version:1,enabled:false,url:'http://127.0.0.1:8093',token:'a'.repeat(64),profile:'owasp-ai-goat-owned-http-111111111111',container:'owasp-ai-goat-owned-http-111111111111',image:'sha256:'+'b'.repeat(64)};
  await fs.writeFile(configFile,JSON.stringify(config)+'\n',{mode:0o600});
  const activate=require('../../scripts/install/mcp-owned-http-activate').activateOwnedHttpCandidate;
  const activation={file:configFile,identityPool:identity,resourcePool:mcp,identityMigrationPool:identityMigration,resourceMigrationPool:mcpMigration,cli,http};

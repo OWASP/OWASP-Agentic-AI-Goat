@@ -375,13 +375,13 @@ class _V34BrowserOwner:
         self.session=session;self.admitted=admitted;self.config=admitted['browser']['value']
         self.directory=session.directory/'browser';self.directory.mkdir(mode=0o700)
         (self.directory/'tmp').mkdir(mode=0o700)
-        self.profile=self.directory/'tmp/dvaia-pricing-chat-owned'
+        self.profile=self.directory/'tmp/owasp-ai-goat-pricing-chat-owned'
         self.evidence=self.directory/'merchant-pricing-v34-manual-experiment-browser.json'
         self.child=None;self.captured=None;self.profile_identity=None;self.error=None
         self.watcher=None;self.stopped=threading.Event();self.acknowledged=False
         self.attempted=False;self.retired=False;self.fds=set()
         self.ownership=load('run-secureshop-audit-collection-browser.py')
-        self.ownership.PROFILE_PREFIX='dvaia-pricing-chat-'
+        self.ownership.PROFILE_PREFIX='owasp-ai-goat-pricing-chat-'
         self.api=self.ownership._browser_modules()[0]()
 
     def environment(self):
@@ -594,8 +594,8 @@ class _V25ManualOwner:
 
     def environment(self):
         return {'SECURESHOP_PRICING_V25_MANUAL_NATIVE':'1',
-            'DVAIA_PRICING_OWNED_OUTPUT_ROOT':str(self.output),
-            'DVAIA_ISOLATED_TEST_WORKSPACE':str(ROOT)}
+            'OWASP_AI_GOAT_PRICING_OWNED_OUTPUT_ROOT':str(self.output),
+            'OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE':str(ROOT)}
 
     def _inputs(self):
         self.session.check()
@@ -660,7 +660,7 @@ class _V25ManualOwner:
                 raw=env.get('PERSONA_'+store.upper()+'_'+role.upper()+'_URL')
                 if type(raw) is not str:raise RuntimeError('PRICING_MANUAL_STORES')
                 value=urlsplit(raw)
-                match=re.fullmatch('/dvaia_test_persona_([a-f0-9]{12})_'+store,value.path)
+                match=re.fullmatch('/owasp_ai_goat_test_persona_([a-f0-9]{12})_'+store,value.path)
                 if value.scheme not in ('postgresql','postgres') or value.hostname!='127.0.0.1' \
                         or value.username!='dvaia_'+family+'_'+role or value.password is not None \
                         or value.query or value.fragment or not match or not value.port or not 0<value.port<65536:

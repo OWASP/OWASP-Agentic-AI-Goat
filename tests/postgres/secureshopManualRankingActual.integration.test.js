@@ -169,7 +169,7 @@ function validateAggregate({consumer,revision,uploads,query,productId,sponsoredI
 }
 
 if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},async t=>{
-  assert.equal(process.cwd(),ROOT);assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE||'/'),ROOT);
+  assert.equal(process.cwd(),ROOT);assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE||'/'),ROOT);
   assert.equal(process.env.HF_HUB_OFFLINE,'1');assert.equal(process.env.TRANSFORMERS_OFFLINE,'1');
   assert.equal(process.env.OLLAMA_MODEL,MODEL);assert.equal(process.env.AI_PROVIDER,'ollama');
   const evidence=process.env.SECURESHOP_MANUAL_RANKING_EVIDENCE_PATH;
@@ -248,7 +248,7 @@ if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},asy
       await auth.logout(registered.token);const active=await auth.login({username:name,password}),boot=await bootstrap(active.context),scope=await composition.launches.resolveCapability(boot.bearer);
       const actor=await composition.personaAuth.authenticateBoundToken({scope,token:boot.persona.token});
       return {registered,active,boot,scope,persona:actor.user,personaSession:{sessionId:actor.sessionId,authorityVersion:actor.authorityVersion},
-        headers:{authorization:`Bearer ${boot.persona.token}`,'x-dvaia-secureshop-launch':boot.bearer},cookie:{cookie:`dvaia_shop_session=${active.token}`}};};
+        headers:{authorization:`Bearer ${boot.persona.token}`,'x-owasp-ai-goat-secureshop-launch':boot.bearer},cookie:{cookie:`owasp_ai_goat_shop_session=${active.token}`}};};
     const merchant=await login(`v32m_${suffix}`,'merchant'),customer=await login(`v32c_${suffix}`,'customer');
     const make=listing=>composition.catalog.createMerchantProduct({scope:merchant.scope,persona:merchant.persona,personaSession:merchant.personaSession,listing:{...listing,images:[],templateSource:null}});
     const seed={name:'Wireless headphone listening guide',description:'Comfortable wireless headphones for everyday music listening.',price:80,category:'Electronics'};
@@ -352,7 +352,7 @@ if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},asy
     const peerScope=await composition.launches.resolveCapability(peerBoot.bearer),peerActor=await composition.personaAuth.authenticateBoundToken({scope:peerScope,token:peerBoot.persona.token});
     const peerTarget=await composition.catalog.prepareTarget({scope:peerScope,persona:peerActor.user,personaSession:{sessionId:peerActor.sessionId,authorityVersion:peerActor.authorityVersion}});assert.notEqual(peerTarget.targetId,target.targetId);
     const peerRows=async()=>(await review.query('SELECT to_jsonb(p) row FROM secureshop_review.product_target_products p WHERE target_id=$1 ORDER BY product_id',[peerTarget.targetId])).rows,peerBefore=await peerRows();
-    const admin=await auth.login({username:'student_admin',password:'student123'}),headers={cookie:`dvaia_shop_session=${admin.token}`};
+    const admin=await auth.login({username:'student_admin',password:'student123'}),headers={cookie:`owasp_ai_goat_shop_session=${admin.token}`};
     const boot=await request('/auth/bootstrap',{method:'POST',headers,body:{}}),readiness=await request('/auth/reset-readiness',{headers});assert.equal(readiness.available,true);assert.equal(readiness.launchId,boot.launch.launchId);
     await request('/auth/reset',{method:'POST',headers,body:{launchId:readiness.launchId,expectedGeneration:readiness.generation,idempotencyKey:randomUUID(),sceneId:readiness.scene.id,confirmation:'RESET_SHARED_PRACTICE'}});status.authenticatedReset=true;
     assert.deepEqual(await request(fixedPoisoned.savedPath,{headers:customer.headers,expected:409}),{error:'Shop practice has changed. Reopen SecureShop to continue.',code:'SHOP_SCENE_STALE'});

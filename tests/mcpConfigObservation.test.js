@@ -97,7 +97,7 @@ test('ungraded reads validate the receipt but never mint a capability', async ()
 });
 
 test('accepts the real owned-file snapshot factory with raw env and JSON escape byte provenance', async () => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mcp-config-observation-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mcp-config-observation-'));
   try {
     const envPath = path.join(directory, 'lab.env');
     const credentialsPath = path.join(directory, 'credentials.json');

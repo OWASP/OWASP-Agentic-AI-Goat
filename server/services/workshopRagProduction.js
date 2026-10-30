@@ -16,7 +16,7 @@ function createWorkshopRagProduction({env=process.env,load=require,
   if(!productionEmbedder)throw unavailable();
   if(!embeddingAttempt)embeddingAttempt=(async()=>{
    embeddingState='loading';
-   const warm=await productionEmbedder.embed('DVAIA document embedding startup readiness');
+   const warm=await productionEmbedder.embed('OWASP-AI-GOAT document embedding startup readiness');
    if(warm?.embeddingDimension!==384||!Array.isArray(warm.embedding)||warm.embedding.length!==384
     ||!warm.embedding.every(Number.isFinite)||!warm.embedding.some(value=>value!==0)
     ||!/^[a-f0-9]{64}$/.test(productionEmbedder.getRuntimeFingerprint?.()?.fingerprint||''))throw unavailable();

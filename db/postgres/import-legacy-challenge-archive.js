@@ -4,8 +4,8 @@ const {readVerifiedLegacyArchive}=require('./read-platform-archive');
 const {COLUMNS,mapLegacyChallengeArchive}=require('./map-legacy-challenge-archive');
 async function readLegacyChallengeArchive({archive,naiveTimestamps='reject'}){
  const verified=await readVerifiedLegacyArchive({archive});
- if(!verified.sources['dvaia.db'])throw Object.assign(new Error('MISSING_LEGACY_CHALLENGE_SOURCE'),{code:'MISSING_LEGACY_CHALLENGE_SOURCE'});
- return {tables:verified.sources['dvaia.db'].tables,archiveDigest:verified.archiveDigest,naiveTimestamps};
+ if(!verified.sources['owasp-ai-goat.db'])throw Object.assign(new Error('MISSING_LEGACY_CHALLENGE_SOURCE'),{code:'MISSING_LEGACY_CHALLENGE_SOURCE'});
+ return {tables:verified.sources['owasp-ai-goat.db'].tables,archiveDigest:verified.archiveDigest,naiveTimestamps};
 }
 async function importLegacyChallengeArchive(pool,raw,{apply=false}={}){
  if(typeof apply!=='boolean')throw new TypeError('Invalid apply option');

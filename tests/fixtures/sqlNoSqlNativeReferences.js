@@ -33,7 +33,7 @@ async function readNovaNativeReferences({ pool, literalQuery } = {}) {
   try {
     await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY'); begun = true;
     const identity = (await client.query('SELECT current_database() AS database, current_user AS role')).rows[0];
-    if (!/^dvaia_test_[a-z0-9_]+$/.test(identity?.database || '') || identity?.role !== 'dvaia_nova_runtime') {
+    if (!/^owasp_ai_goat_test_[a-z0-9_]+$/.test(identity?.database || '') || identity?.role !== 'dvaia_nova_runtime') {
       throw new Error('Owned disposable NOVA runtime session required');
     }
     const papers = (await client.query('SELECT * FROM nova.papers ORDER BY citations DESC')).rows.map(paper);

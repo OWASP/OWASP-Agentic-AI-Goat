@@ -34,12 +34,12 @@ test('review renderer accepts an explicit external output root for immutable-sou
   const priorOutDir = process.env.SECURESHOP_REVIEW_RENDERER_OUT_DIR;
   const priorNode = process.env.NODE_ENV;
   const priorVite = process.env.VITE_USER_NODE_ENV;
-  process.env.SECURESHOP_REVIEW_RENDERER_OUT_DIR = '/tmp/dvaia-review-renderer-staging';
+  process.env.SECURESHOP_REVIEW_RENDERER_OUT_DIR = '/tmp/owasp-ai-goat-review-renderer-staging';
   try {
     const module = await import(`${pathToFileURL(path.join(__dirname,
       '../client/vite.review-renderer.config.mjs')).href}?external=${Date.now()}`);
     const config = await module.default({ command: 'build', mode: 'production' });
-    assert.equal(config.build.outDir, '/tmp/dvaia-review-renderer-staging');
+    assert.equal(config.build.outDir, '/tmp/owasp-ai-goat-review-renderer-staging');
     assert.equal(config.build.emptyOutDir, true);
     assert.equal(config.build.copyPublicDir, false);
   } finally {

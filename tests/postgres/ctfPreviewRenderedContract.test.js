@@ -227,7 +227,7 @@ test('Preview receipt rejects invented credit, provider overrun, false readback 
 test('Preview database names bind FRESH/POPULATED identity and CTF to one nonce', () => {
   const nonce = 'a1b2c3d4e5f6';
   for (const state of ['FRESH', 'POPULATED']) for (const kind of ['IDENTITY', 'CTF']) {
-    const name = `/dvaia_test_ctf_preview_${state[0].toLowerCase()}_${kind[0].toLowerCase()}_${nonce}`;
+    const name = `/owasp_ai_goat_test_ctf_preview_${state[0].toLowerCase()}_${kind[0].toLowerCase()}_${nonce}`;
     assert.equal(assertPreviewDatabaseName(name, state, kind, nonce), nonce);
     assert.throws(() => assertPreviewDatabaseName(name, state, kind, 'ffffffffffff'));
     assert.throws(() => assertPreviewDatabaseName(name, state === 'FRESH' ? 'POPULATED' : 'FRESH', kind, nonce));

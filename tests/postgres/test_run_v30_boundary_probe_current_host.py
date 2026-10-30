@@ -120,8 +120,8 @@ class NoResourceContracts(unittest.TestCase):
         nonce = 'a1b2c3d4e5f6'
         urls = launcher.prepare_stores(command, 'b' * 64, 49162, nonce)
         self.assertEqual(urls, {
-            'secureshop': 'postgresql://dvaia_secureshop_runtime@127.0.0.1:49162/dvaia_test_agent_host_a1b2c3d4e5f6_secureshop',
-            'secureshop_agents': 'postgresql://dvaia_secureshop_agents_runtime@127.0.0.1:49162/dvaia_test_agent_host_a1b2c3d4e5f6_secureshop_agents',
+            'secureshop': 'postgresql://dvaia_secureshop_runtime@127.0.0.1:49162/owasp_ai_goat_test_agent_host_a1b2c3d4e5f6_secureshop',
+            'secureshop_agents': 'postgresql://dvaia_secureshop_agents_runtime@127.0.0.1:49162/owasp_ai_goat_test_agent_host_a1b2c3d4e5f6_secureshop_agents',
         })
         self.assertEqual(len(seen), 10)
         for parts in seen:
@@ -196,11 +196,11 @@ class NoResourceContracts(unittest.TestCase):
         self.assertTrue(children[0].stderr.closed)
 
     def test_postgres_run_flags_match_unchanged_ownership_layout(self):
-        labels={'dvaia.owner':'11111111-2222-4333-8444-555555555555',
-            'dvaia.cohort':launcher.host.COHORT}
-        args=launcher.postgres_run_args('dvaia-v30-original-disclosure-a1b2c3d4e5f6',labels)
+        labels={'owasp-ai-goat.owner':'11111111-2222-4333-8444-555555555555',
+            'owasp-ai-goat.cohort':launcher.host.COHORT}
+        args=launcher.postgres_run_args('owasp-ai-goat-v30-original-disclosure-a1b2c3d4e5f6',labels)
         self.assertEqual(args[:6],['run','--detach','--pull','never','--name',
-            'dvaia-v30-original-disclosure-a1b2c3d4e5f6'])
+            'owasp-ai-goat-v30-original-disclosure-a1b2c3d4e5f6'])
         self.assertEqual(args[-4:],['127.0.0.1::5432',launcher.host.IMAGE,
             '-c','max_connections=64'])
         self.assertEqual(args.count('--label'),2)
@@ -231,24 +231,24 @@ class NoResourceContracts(unittest.TestCase):
                 launcher.validate_owner_write_paths(repo,parent,run,runtime)
 
     def test_failed_create_by_name_cleans_only_exact_owned_identity(self):
-        labels={'dvaia.owner':'11111111-2222-4333-8444-555555555555',
-            'dvaia.cohort':launcher.host.COHORT}
+        labels={'owasp-ai-goat.owner':'11111111-2222-4333-8444-555555555555',
+            'owasp-ai-goat.cohort':launcher.host.COHORT}
         expected={'status':'removed_absence_verified','containerId':'a'*64}
         with mock.patch.object(launcher,'cleanup_owned',return_value=expected) as cleanup:
             self.assertEqual(launcher.retire_container_if_safe(object(),
                 creation_attempted=True,probe_attempted=False,probe_terminal=False,
                 probe_report=False,probe_group_absent=False,sandbox_group_absent=False,
-                name='dvaia-v30-original-disclosure-a1b2c3d4e5f6',labels=labels,
+                name='owasp-ai-goat-v30-original-disclosure-a1b2c3d4e5f6',labels=labels,
                 captured_id=None),expected)
             self.assertEqual(cleanup.call_args.kwargs['name'],
-                'dvaia-v30-original-disclosure-a1b2c3d4e5f6')
+                'owasp-ai-goat-v30-original-disclosure-a1b2c3d4e5f6')
             self.assertIsNone(cleanup.call_args.kwargs['captured_id'])
             cleanup.reset_mock()
             with self.assertRaisesRegex(RuntimeError,'RETAINED_UNCERTAIN'):
                 launcher.retire_container_if_safe(object(),creation_attempted=True,
                     probe_attempted=True,probe_terminal=True,probe_report=False,
                     probe_group_absent=True,sandbox_group_absent=True,
-                    name='dvaia-v30-original-disclosure-a1b2c3d4e5f6',labels=labels,
+                    name='owasp-ai-goat-v30-original-disclosure-a1b2c3d4e5f6',labels=labels,
                     captured_id='a'*64)
             cleanup.assert_not_called()
 
@@ -259,7 +259,7 @@ class NoResourceContracts(unittest.TestCase):
             intent=json.loads((run/'pg-create-intent.json').read_text())
             self.assertEqual(intent['imageId'],launcher.host.IMAGE)
             self.assertEqual(intent['daemonId'],launcher.host.DAEMON)
-            self.assertEqual(intent['name'],'dvaia-v30-original-disclosure-'+run.name[-12:])
+            self.assertEqual(intent['name'],'owasp-ai-goat-v30-original-disclosure-'+run.name[-12:])
             self.assertIsNone(cleanup.call_args.kwargs['captured_id'])
             result=json.loads((run/'v30-boundary-probe-owner-result.json').read_text())
             self.assertIs(result['passed'],False)

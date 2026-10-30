@@ -19,19 +19,19 @@ class IdentityLiveTailLauncherTest(unittest.TestCase):
         ast.parse(self.source)
 
     def test_owned_pinned_container_and_internal_databases(self):
-        self.assertIn("LEGACY_NODE = Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')", self.source)
-        self.assertIn("CURRENT_MAIN_NODE = Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')", self.source)
+        self.assertIn("LEGACY_NODE = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')", self.source)
+        self.assertIn("CURRENT_MAIN_NODE = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')", self.source)
         self.assertIn("CURRENT_MAIN_NODE: '56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'", self.source)
         self.assertIn("POSTGRES_IMAGE_ID = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'", self.source)
-        self.assertIn("f'dvaia_test_identity_qualification_{nonce}'", self.source)
-        self.assertIn("f'dvaia_test_identity_fresh_{nonce}'", self.source)
+        self.assertIn("f'owasp_ai_goat_test_identity_qualification_{nonce}'", self.source)
+        self.assertIn("f'owasp_ai_goat_test_identity_fresh_{nonce}'", self.source)
         self.assertIn("'dvaia_identity_migration', 'dvaia_identity_runtime'", self.source)
-        self.assertNotIn("os.environ.get('DVAIA_IDENTITY_QUALIFICATION", self.source)
+        self.assertNotIn("os.environ.get('OWASP_AI_GOAT_IDENTITY_QUALIFICATION", self.source)
         for name in (
-            'DVAIA_IDENTITY_QUALIFICATION_MIGRATION_URL',
-            'DVAIA_IDENTITY_QUALIFICATION_RUNTIME_URL',
-            'DVAIA_IDENTITY_FRESH_MIGRATION_URL',
-            'DVAIA_IDENTITY_FRESH_RUNTIME_URL',
+            'OWASP_AI_GOAT_IDENTITY_QUALIFICATION_MIGRATION_URL',
+            'OWASP_AI_GOAT_IDENTITY_QUALIFICATION_RUNTIME_URL',
+            'OWASP_AI_GOAT_IDENTITY_FRESH_MIGRATION_URL',
+            'OWASP_AI_GOAT_IDENTITY_FRESH_RUNTIME_URL',
         ):
             self.assertIn(name, self.source)
 

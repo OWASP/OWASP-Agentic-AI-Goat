@@ -194,22 +194,22 @@ async function request(base, endpoint, token, body, method='POST') {
 test('actual local8B qualifies durable delete/create/download effects with controls, isolation, reset, and history',
  {skip:!enabled,timeout:1800000},async t=>{
   const bindings=[
-   ['IDENTITY_DATABASE_URL','dvaia_test_finflow_backup_model_identity'],
-   ['IDENTITY_MIGRATION_DATABASE_URL','dvaia_test_finflow_backup_model_identity'],
-   ['FINFLOW_WORKSHOP_DATABASE_URL','dvaia_test_finflow_backup_model_store'],
-   ['FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL','dvaia_test_finflow_backup_model_store'],
+   ['IDENTITY_DATABASE_URL','owasp_ai_goat_test_finflow_backup_model_identity'],
+   ['IDENTITY_MIGRATION_DATABASE_URL','owasp_ai_goat_test_finflow_backup_model_identity'],
+   ['FINFLOW_WORKSHOP_DATABASE_URL','owasp_ai_goat_test_finflow_backup_model_store'],
+   ['FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL','owasp_ai_goat_test_finflow_backup_model_store'],
   ];
   const urls=Object.fromEntries(bindings.map(([name])=>[name,new URL(process.env[name])]));
   for(const [name,database] of bindings){assert.equal(urls[name].hostname,'127.0.0.1');assert.equal(urls[name].pathname,`/${database}`);}
   assert.notEqual(urls.IDENTITY_DATABASE_URL.username,urls.IDENTITY_MIGRATION_DATABASE_URL.username);
   assert.notEqual(urls.FINFLOW_WORKSHOP_DATABASE_URL.username,urls.FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL.username);
-  assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
+  assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
   assert.deepEqual(String(process.env.FINFLOW_ROUTE_OBJECTIVES).split(',').sort(),GRADED.map(x=>x.id).sort());
   const evidencePath=path.resolve(process.env.FINFLOW_BACKUP_MODEL_EVIDENCE_PATH||'');
   assert.equal(path.isAbsolute(process.env.FINFLOW_BACKUP_MODEL_EVIDENCE_PATH||''),true);
   assert.equal(evidencePath.startsWith(`${path.resolve(process.cwd())}${path.sep}`),false);
-  const appRoot=path.resolve(process.env.DVAIA_APP_DATA_ROOT||'');
-  assert.equal(path.isAbsolute(process.env.DVAIA_APP_DATA_ROOT||''),true);
+  const appRoot=path.resolve(process.env.OWASP_AI_GOAT_APP_DATA_ROOT||'');
+  assert.equal(path.isAbsolute(process.env.OWASP_AI_GOAT_APP_DATA_ROOT||''),true);
   const backupRoot=path.join(appRoot,'finflow-backups');
   assert.equal(path.resolve(process.env.FINFLOW_BACKUP_ROOT||''),backupRoot);
   assert.equal(path.resolve(process.env.FINFLOW_TRAVERSAL_TARGET_ROOT||''),path.join(appRoot,'finflow-traversal-targets'));

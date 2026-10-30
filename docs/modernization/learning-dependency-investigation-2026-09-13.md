@@ -2,7 +2,7 @@
 
 The learning-dependency gate now reports **0 protected versions, 0 frozen investigations and 4 current-reviewed entries**. None of the four has version-specific curriculum evidence. Nunjucks and xml2js were already at the current npm `latest` tag. Disposable qualification passed for jsonwebtoken 9.0.3 and sax 1.6.1, so both exact updates are declared and locked.
 
-Registry metadata was queried with TLS verification and version claims were checked against official upstream changelogs/diffs. Candidate installation and tests used `/tmp/dvaia-learning-deps-trial.7vEtTd`, whose `node_modules` was an independent copy rather than a symlink. No learner database, model, secret, AWS asset or deployment file was used.
+Registry metadata was queried with TLS verification and version claims were checked against official upstream changelogs/diffs. Candidate installation and tests used `/tmp/owasp-ai-goat-learning-deps-trial.7vEtTd`, whose `node_modules` was an independent copy rather than a symlink. No learner database, model, secret, AWS asset or deployment file was used.
 
 | Package | Installed | npm `latest` checked 2026-09-12 | Actual teaching dependency | Recommendation |
 | --- | ---: | ---: | --- | --- |
@@ -21,7 +21,7 @@ The first targeted workspace install then used `--package-lock=false`. Although 
 
 The registry retains all four packages as `current-reviewed` inventory entries so future drift still checks manifests, locks, importing code and proofs. `preserve-for-learning` remains reserved for exact-version evidence. Current verifier acceptance is zero unexplained frozen investigations.
 
-Final post-install isolated snapshots matched the current runtime/test source across 1,100 hashed files. The unit snapshot passed **1,101 tests**, skipped 29 gated tests and failed none (`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-regression-sUkWZW/tests.log`). The SecureShop snapshot passed **305 tests**, skipped one gated test and failed none (`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-regression-cLUfGm/tests.log`). These runners use isolated application data and mock inference; they are not native PostgreSQL, live-model or AWS qualification.
+Final post-install isolated snapshots matched the current runtime/test source across 1,100 hashed files. The unit snapshot passed **1,101 tests**, skipped 29 gated tests and failed none (`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-regression-sUkWZW/tests.log`). The SecureShop snapshot passed **305 tests**, skipped one gated test and failed none (`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-regression-cLUfGm/tests.log`). These runners use isolated application data and mock inference; they are not native PostgreSQL, live-model or AWS qualification.
 
 The legacy `/api/vulnerabilities/xxe` comment previously said `explicitChildren: true` allowed external entities, while the code supplies no external-entity resolver. The comment is now corrected without changing behavior, and the mounted-route characterization records normal XML at 200 and a SYSTEM file entity rejected at 400 `Invalid character entity` ([audit](legacy-vulnerability-authenticity-2026-09-13.md)). This route therefore supplies no package-version hold evidence.
 

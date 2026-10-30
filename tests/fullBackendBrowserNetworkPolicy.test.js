@@ -15,7 +15,7 @@ test('network policy permits only exact proxy egress and exact DevTools listener
   assert.throws(() => browserNetworkPolicy({ proxyPort: 12345, devtoolsPort: 12345 }));
 });
 test('clean child environment excludes inherited credential and loader variables', () => {
-  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-policy-test-')));
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-policy-test-')));
   try {
     assert.deepEqual(Object.keys(cleanBrowserEnvironment(root)).sort(), ['HOME','PATH','TEMP','TMP','TMPDIR']);
     assert.throws(() => cleanBrowserEnvironment('relative'));

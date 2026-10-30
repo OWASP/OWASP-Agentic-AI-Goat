@@ -36,7 +36,7 @@ module.exports.refreshedLaunch=refreshedLaunch;
 function observedModelCounts(transport){return {actualModelCalls:transport.calls.length,metadataCalls:transport.metadataCount()};}
 module.exports.observedModelCounts=observedModelCounts;
 
-function currentOuterHeaders(original,prior,current,bearer){refreshedLaunch(prior,current);assert.equal(typeof bearer,'string');assert(bearer.length>0);return {...original,'x-dvaia-secureshop-launch':bearer};}
+function currentOuterHeaders(original,prior,current,bearer){refreshedLaunch(prior,current);assert.equal(typeof bearer,'string');assert(bearer.length>0);return {...original,'x-owasp-ai-goat-secureshop-launch':bearer};}
 function safeRecoveryDiagnostic(response,credentialVersion){const body=response?.body||{};return{status:response.status,credentialVersion,body:Object.fromEntries(['code','status','requestId','email_id','sent_email_id','canRetry'].filter(k=>Object.hasOwn(body,k)&&['string','number','boolean'].includes(typeof body[k])).map(k=>[k,body[k]]))};}
 module.exports.currentOuterHeaders=currentOuterHeaders;module.exports.safeRecoveryDiagnostic=safeRecoveryDiagnostic;
 

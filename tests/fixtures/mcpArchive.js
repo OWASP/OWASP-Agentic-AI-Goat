@@ -14,7 +14,7 @@ async function archive(){
   tables.push({name,columns,rows:rows.length,file,...await write(file,content)});
  }
  const schemaFile='schema.json',schema=await write(schemaFile,JSON.stringify(tables.map(({name})=>({type:'table',name}))));
- await write('manifest.json',JSON.stringify({version:1,format:'dvaia-sqlite-archive-v1',complete:true,files:[{name:'mcp_workshop.db',sourceSha256:'b'.repeat(64),schemaFile,schema,tables}]}));
+ await write('manifest.json',JSON.stringify({version:1,format:'owasp-ai-goat-sqlite-archive-v1',complete:true,files:[{name:'mcp_workshop.db',sourceSha256:'b'.repeat(64),schemaFile,schema,tables}]}));
  return directory;
 }
 module.exports.archive=archive;

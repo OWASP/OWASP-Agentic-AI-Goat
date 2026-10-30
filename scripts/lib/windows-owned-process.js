@@ -127,24 +127,24 @@ async function createWindowsOwnedProcess({ platform = process.platform, systemRo
       child.once('error', () => { if (!stopping && !closing) fail(); });
       child.once('disconnect', unexpectedGuardianLoss);
       try {
-        const hello = await guardianMessage('dvaia-owned-guardian-ready', value => exact(value, ['type', 'pid', 'challenge'])
+        const hello = await guardianMessage('owasp-ai-goat-owned-guardian-ready', value => exact(value, ['type', 'pid', 'challenge'])
           && value.pid === child.pid && typeof value.challenge === 'string' && /^[a-f0-9]{64}$/.test(value.challenge),
-        { type: 'dvaia-owned-guardian-hello' });
+        { type: 'owasp-ai-goat-owned-guardian-hello' });
         const pinned = await request('pin', { pid: child.pid });
         if (!exact(pinned, ['pid', 'creationFileTime']) || pinned.pid !== child.pid || !fileTime(pinned.creationFileTime)) throw denied();
         identity = Object.freeze({ ...pinned });
         // The guardian must answer a fresh challenge AFTER the native handle opens.
         const nonce = crypto.randomBytes(32).toString('hex');
-        await guardianMessage('dvaia-owned-guardian-proof', value => exact(value, ['type', 'pid', 'challenge', 'nonce'])
+        await guardianMessage('owasp-ai-goat-owned-guardian-proof', value => exact(value, ['type', 'pid', 'challenge', 'nonce'])
           && value.pid === identity.pid && value.challenge === hello.challenge && value.nonce === nonce,
-        { type: 'dvaia-owned-guardian-probe', challenge: hello.challenge, nonce });
+        { type: 'owasp-ai-goat-owned-guardian-probe', challenge: hello.challenge, nonce });
         const assigned = await request('assign', { creationFileTime: identity.creationFileTime });
         if (!exact(assigned, ['assigned']) || assigned.assigned !== true) throw denied();
         const state = await members();
         if (state.activeCount !== 1 || state.pids[0] !== identity.pid) throw denied();
-        await guardianMessage('dvaia-owned-guardian-active', value => exact(value, ['type', 'pid', 'challenge', 'nonce'])
+        await guardianMessage('owasp-ai-goat-owned-guardian-active', value => exact(value, ['type', 'pid', 'challenge', 'nonce'])
           && value.pid === identity.pid && value.challenge === hello.challenge && value.nonce === nonce,
-        { type: 'dvaia-owned-guardian-activate', challenge: hello.challenge, nonce });
+        { type: 'owasp-ai-goat-owned-guardian-activate', challenge: hello.challenge, nonce });
         admitted = true;
         return identity;
       } catch { fail(); throw broken; }
@@ -173,7 +173,7 @@ async function createWindowsOwnedProcess({ platform = process.platform, systemRo
         if (!admitted || broken || !Number.isSafeInteger(graceMs) || graceMs < 0) throw broken || denied();
         stopping = true;
         if (guardian.connected) {
-          try { guardian.send({ type: 'dvaia-owned-guardian-stop' }); } catch { /* Job authority still drains. */ }
+          try { guardian.send({ type: 'owasp-ai-goat-owned-guardian-stop' }); } catch { /* Job authority still drains. */ }
         }
         if (graceMs > 0) {
           try { await waitForDrain(graceMs); return; } catch { if (broken) throw broken; }

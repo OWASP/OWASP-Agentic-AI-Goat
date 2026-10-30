@@ -1,5 +1,5 @@
 {
-  "name": "dvaia-owned-mcp-registry-build",
+  "name": "owasp-ai-goat-owned-mcp-registry-build",
   "version": "1.0.0",
   "private": true,
   "description": "Build-only dependencies for the isolated owned MCP registry executor",

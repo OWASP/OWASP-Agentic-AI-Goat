@@ -1,7 +1,7 @@
 {
   "status": "terminal_pass_cleaned",
   "ownerHandle": 24510,
-  "evidence": "/Users/averma5/.dvaia/native-verification/dvaia-finflow_0068_admin_enum_copy_defaults-b031b78466ee",
+  "evidence": "/Users/averma5/.owasp-ai-goat/native-verification/owasp-ai-goat-finflow_0068_admin_enum_copy_defaults-b031b78466ee",
   "rootCleanupVerified": true,
   "sourceAndDependenciesUnchanged": true,
   "passed": 2,

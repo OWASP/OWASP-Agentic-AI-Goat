@@ -32,14 +32,14 @@ function collectionBrowserArgs(env, { workspace, evidencePath, profile, origin }
   assert.equal(env.PG_TEST_DISPOSABLE, 'yes');
   assert.equal(env.LIVE_OLLAMA_TEST, '1');
   assert.equal(env.NODE_ENV, 'test');
-  assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, workspace);
+  assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, workspace);
   assert.equal(workspace, process.cwd());
   const run = path.dirname(evidencePath);
   assert.equal(path.dirname(run), path.join(workspace, 'tasks/qualification'));
   assert.match(path.basename(run), /^run-[A-Za-z0-9_-]+$/);
   assert.equal(env.TMPDIR, path.join(run, 'runtime/tmp'));
   assert.equal(path.dirname(profile), env.TMPDIR);
-  assert.match(path.basename(profile), /^dvaia-admin-audit-jobs-[A-Za-z0-9_-]+$/);
+  assert.match(path.basename(profile), /^owasp-ai-goat-admin-audit-jobs-[A-Za-z0-9_-]+$/);
   const record = path.join(run, 'audit-collection-v36-browser.json');
   const ack = path.join(run, 'audit-collection-v36-browser-ack.json');
   assert.equal(env.SECURESHOP_AUDIT_COLLECTION_BROWSER_RECORD_PATH, record);
@@ -167,7 +167,7 @@ function urls() {
     assert.equal(u.username, `dvaia_${name}_${role.toLowerCase()}`);
     assert.equal(u.password, ''); assert.equal(u.search, ''); assert.equal(u.hash, '');
     assert.match(u.port, /^[1-9][0-9]{0,4}$/); assert.ok(Number(u.port) <= 65535);
-    const match = new RegExp(`^/dvaia_test_agent_host_([a-f0-9]{12})_${name}$`).exec(u.pathname);
+    const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_${name}$`).exec(u.pathname);
     assert.ok(match); nonce ??= match[1]; port ??= u.port;
     assert.equal(match[1], nonce); assert.equal(u.port, port); out[`${key}_${role}`] = u.href;
   }
@@ -312,7 +312,7 @@ async function physicalMerchantListing(page, origin, bootstraps, physical, descr
   return { actor, productId, saved: { preview, confirm, reviewed }, frame };
 }
 function v15Headers(actor) {
-  return { 'x-dvaia-secureshop-launch': actor.launch, authorization: actor.authorization };
+  return { 'x-owasp-ai-goat-secureshop-launch': actor.launch, authorization: actor.authorization };
 }
 async function v15Http(origin, url, headers, options = {}) {
   const response = await fetch(origin + url, { ...options, headers: { ...headers, ...options.headers },
@@ -782,7 +782,7 @@ async function qualifyV15SceneAudit({ page, origin, physical, bootstraps, identi
     WHERE target_id=$1 AND retailer_id=$2 ORDER BY product_id LIMIT 10`,
   [peerBinding.targetId, peerPersona.id])).rows;
   assert.ok(peerRows.length > 0);
-  const peerHeaders = { 'x-dvaia-secureshop-launch': peerBase.bearer,
+  const peerHeaders = { 'x-owasp-ai-goat-secureshop-launch': peerBase.bearer,
     authorization: `Bearer ${peerBase.persona.token}` };
   const siblingPath = '/api/secureshop/merchant/products?page=1&per_page=8';
   const siblingBefore = await v15Http(origin, siblingPath, peerHeaders);
@@ -955,7 +955,7 @@ if ([DIRECT_ENABLED, V15_ENABLED, COLLECTION_ENABLED, TIMING_ENABLED].filter(Boo
 
 async function runAuditFixture({ direct = false, v15 = false, benign = false, collection = false, timing = false } = {}) {
   assert.equal(benign && !v15, false, 'Benign diagnostic requires exact V15 physical flow');
-  const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || ''); assert.equal(workspace, process.cwd());
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || ''); assert.equal(workspace, process.cwd());
   const build = path.resolve(process.env[`${ENV}BUILD`] || ''); assert.equal(build, path.join(workspace, 'client/build'));
   const evidencePath = path.resolve(process.env[`${ENV}EVIDENCE_PATH`] || '');
   assert.equal(path.dirname(evidencePath), path.resolve(process.env.TMPDIR, '../..'));
@@ -965,7 +965,7 @@ async function runAuditFixture({ direct = false, v15 = false, benign = false, co
   if (collection) assert.equal(process.env.OLLAMA_CONTEXT_WINDOW, '32768');
   const db = urls(), target = new URL(process.env[`${ENV}AUDIT_CONTROL_URL`] || '');
   assert.equal(target.protocol, 'postgresql:'); assert.equal(target.hostname, '127.0.0.1');
-  assert.match(target.pathname, /^\/dvaia_audit_control_[a-f0-9]+$/); assert.equal(target.username, 'postgres');
+  assert.match(target.pathname, /^\/owasp_ai_goat_audit_control_[a-f0-9]+$/); assert.equal(target.username, 'postgres');
   assert.equal(target.password, ''); assert.equal(target.search, ''); assert.equal(target.hash, '');
   assert.notEqual(target.port, new URL(db.IDENTITY_RUNTIME).port, 'separate disposable audit SQL cluster');
   const pools = Object.fromEntries(Object.entries(db).map(([k, connectionString]) => [k, new Pool({ connectionString, max: k.endsWith('RUNTIME') ? 12 : 3 })]));
@@ -1171,7 +1171,7 @@ async function runAuditFixture({ direct = false, v15 = false, benign = false, co
     app.get(/.*/, (_q, r) => r.sendFile('index.html', { root: build }));
     const sceneAdmission = v15 ? require('../fixtures/secureshopSceneAuditBrowserAdmission') : null;
     profile = await fs.mkdtemp(path.join(os.tmpdir(), v15
-      ? 'dvaia-scene-audit-v15-' : 'dvaia-admin-audit-jobs-'));
+      ? 'owasp-ai-goat-scene-audit-v15-' : 'owasp-ai-goat-admin-audit-jobs-'));
     browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
       args: v15 ? sceneAdmission.sceneAuditBrowserArgs(process.env, { workspace, evidencePath, profile, origin })
@@ -1228,7 +1228,7 @@ async function runAuditFixture({ direct = false, v15 = false, benign = false, co
       peerScopeForCleanup = await composition.launches.resolveCapability(peerBase.bearer);
       if (timing) {
         stage = 'v52-timing';
-        const peerHeaders = { 'x-dvaia-secureshop-launch': peerBase.bearer, authorization: `Bearer ${peerBase.persona.token}` };
+        const peerHeaders = { 'x-owasp-ai-goat-secureshop-launch': peerBase.bearer, authorization: `Bearer ${peerBase.persona.token}` };
         const peerPrincipal = await composition.personaAuth.authenticateBoundToken({ scope: peerScopeForCleanup, token: peerBase.persona.token });
         await composition.catalog.prepareTarget({ scope: ownerScope, persona: principal.user });
         await composition.catalog.prepareTarget({ scope: peerScopeForCleanup, persona: peerPrincipal.user });
@@ -1254,7 +1254,7 @@ async function runAuditFixture({ direct = false, v15 = false, benign = false, co
         const siblingBefore = await siblingSnapshot(); for (const key of ['events', 'manual', 'remote']) assert.equal(siblingBefore[key].length, 1);
         timingCapture.sibling = { before: siblingBefore, operationId: siblingOperationId };
         const result = await timingHelper.qualifyAuditTiming({ page, frame, origin, scope: ownerScope, principal,
-          headers: { 'x-dvaia-secureshop-launch': actor.launch, authorization: actor.authorization },
+          headers: { 'x-owasp-ai-goat-secureshop-launch': actor.launch, authorization: actor.authorization },
           peer: { scope: peerScopeForCleanup, headers: peerHeaders }, identity, agents, control, audit, backend,
           composition, scenes, modeRepository, reset, provider, judgeResults, judgeTranscripts,
           actorCalls: () => status.actorCalls, judgeCalls: () => status.judgeCalls, wires: timingCapture.wires,
@@ -1269,8 +1269,8 @@ async function runAuditFixture({ direct = false, v15 = false, benign = false, co
       } else if (collection) {
         stage = 'v36-collection';
         const result = await collectionHelper.qualifyAuditCollection({ page, frame, origin, scope: ownerScope, principal,
-          headers: { 'x-dvaia-secureshop-launch': actor.launch, authorization: actor.authorization },
-          peer: { scope: peerScopeForCleanup, headers: { 'x-dvaia-secureshop-launch': peerBase.bearer, authorization: `Bearer ${peerBase.persona.token}` } },
+          headers: { 'x-owasp-ai-goat-secureshop-launch': actor.launch, authorization: actor.authorization },
+          peer: { scope: peerScopeForCleanup, headers: { 'x-owasp-ai-goat-secureshop-launch': peerBase.bearer, authorization: `Bearer ${peerBase.persona.token}` } },
           identity, agents, audit, composition, scenes, modeRepository, reset, provider, judgeResults, judgeTranscripts,
           actorCalls: () => status.actorCalls, judgeCalls: () => status.judgeCalls, wires: collectionCapture.wires,
           capture: collectionCapture, frameFor,
@@ -1280,8 +1280,8 @@ async function runAuditFixture({ direct = false, v15 = false, benign = false, co
       } else {
       stage = 'direct-audit';
       await qualifyDirectAudit({ page, frame, origin, scope: ownerScope, principal,
-        headers: { 'x-dvaia-secureshop-launch': actor.launch, authorization: actor.authorization },
-        peer: { scope: peerScopeForCleanup, headers: { 'x-dvaia-secureshop-launch': peerBase.bearer, authorization: `Bearer ${peerBase.persona.token}` } },
+        headers: { 'x-owasp-ai-goat-secureshop-launch': actor.launch, authorization: actor.authorization },
+        peer: { scope: peerScopeForCleanup, headers: { 'x-owasp-ai-goat-secureshop-launch': peerBase.bearer, authorization: `Bearer ${peerBase.persona.token}` } },
         identity, agents, control, audit, backend, launches: composition.launches,
         modeAuthority, assessmentCatalog, configurationAdminContext: configurationAdmin.context,
         errorEvidence: () => directErrors.slice(), actorCalls: () => status.actorCalls,
@@ -1372,7 +1372,7 @@ async function runAuditFixture({ direct = false, v15 = false, benign = false, co
     assert.equal(judgments[0].result_json.verdict, summaryRun.assessment.judgment.verdict);
     assert.equal(judgments[0].result_json.provider, 'ollama'); assert.equal(judgments[0].result_json.model, MODEL);
     status.canonicalAssessmentRetained = true;
-    const headers = { 'x-dvaia-secureshop-launch': actor.launch, authorization: actor.authorization };
+    const headers = { 'x-owasp-ai-goat-secureshop-launch': actor.launch, authorization: actor.authorization };
     const getPath = p => `/api/secureshop/agents/admin/assistant/audit/job/operations/${p.source.sessionId}/${p.source.requestId}/${p.proposalId}`;
     // A real second admin credential, not a role-denied merchant shortcut.
     const peerId = randomUUID(), peerName = `audit_peer_${randomUUID().slice(0, 8)}`;
@@ -1387,7 +1387,7 @@ async function runAuditFixture({ direct = false, v15 = false, benign = false, co
     const peerBase = await bootstrap(peer.context);
     assert.equal(peerBase.persona.user.role, 'admin');
     assert.notEqual(peerBase.bearer, actor.launch);
-    assert.notEqual((await fetch(origin + getPath(jobs[0].saved.auditJobProposal), { headers: { 'x-dvaia-secureshop-launch': peerBase.bearer, authorization: `Bearer ${peerBase.persona.token}` }, signal: AbortSignal.timeout(15000) })).status, 200);
+    assert.notEqual((await fetch(origin + getPath(jobs[0].saved.auditJobProposal), { headers: { 'x-owasp-ai-goat-secureshop-launch': peerBase.bearer, authorization: `Bearer ${peerBase.persona.token}` }, signal: AbortSignal.timeout(15000) })).status, 200);
     status.siblingOperationDenied = true;
     await composition.launches.beginReset({ launchId: ownerScope.launchId, platformSessionId: ownerScope.platformSessionId, platformOwnerId: ownerScope.platformOwnerId, expectedGeneration: ownerScope.generation, idempotencyKey: `audit-jobs-${randomUUID()}` });
     assert.notEqual((await fetch(origin + getPath(jobs[1].saved.auditJobProposal), { headers, signal: AbortSignal.timeout(15000) })).status, 200); status.resetSessionDenied = true;

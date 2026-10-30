@@ -3,8 +3,8 @@ import argparse,hashlib,json,os,pathlib,shlex,shutil,signal,subprocess,tempfile,
 
 ROOT=pathlib.Path(__file__).resolve().parents[1]
 DOCKER=pathlib.Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
-HOST='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-SSH=['/usr/bin/ssh','-F',str(pathlib.Path.home()/'.colima/_lima/colima-dvaia-pg-verify/ssh.config'),'lima-colima-dvaia-pg-verify']
+HOST='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+SSH=['/usr/bin/ssh','-F',str(pathlib.Path.home()/'.colima/_lima/colima-owasp-ai-goat-pg-verify/ssh.config'),'lima-colima-owasp-ai-goat-pg-verify']
 FILES=['sidecars/sandbox-runner/owned-listings','sidecars/sandbox-runner/owned-mcp-registry/package.json','sidecars/sandbox-runner/owned-mcp-registry/package-lock.json','sidecars/sandbox-runner/owned-mcp-registry/process-supervisor.c','sidecars/sandbox-runner/owned-http/namespace-init.c','sidecars/sandbox-runner/mcpSeccompFilter.c','server/services/secureshopListingRequestContract.js','tests/fixtures/secureshopOwnedListingsPackaged.native.cjs','tests/fixtures/secureshopListingsSharedManager.native.cjs']
 def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
 def run(argv,timeout=30,**kw):return subprocess.run(argv,text=True,capture_output=True,timeout=timeout,**kw)
@@ -18,12 +18,12 @@ def main():
  signal.alarm(600)
  parser=argparse.ArgumentParser();parser.add_argument('--docker-host',required=True);args=parser.parse_args()
  if args.docker_host!=HOST:raise SystemExit('reviewed isolated Docker host required')
- nonce=uuid.uuid4().hex[:12];name='dvaia-owned-listings-'+nonce;profile=name;tag=name+':candidate';remote='/tmp/'+name
- evidence_dir=pathlib.Path(tempfile.mkdtemp(prefix='dvaia-owned-listings-executor-'));closure=evidence_dir/'source';result={'name':name,'profile':profile,'evidence':str(evidence_dir),'status':'running','cleanup':{},'sourceSha256':{}}
+ nonce=uuid.uuid4().hex[:12];name='owasp-ai-goat-owned-listings-'+nonce;profile=name;tag=name+':candidate';remote='/tmp/'+name
+ evidence_dir=pathlib.Path(tempfile.mkdtemp(prefix='owasp-ai-goat-owned-listings-executor-'));closure=evidence_dir/'source';result={'name':name,'profile':profile,'evidence':str(evidence_dir),'status':'running','cleanup':{},'sourceSha256':{}}
  volume=name+"-journal";volume_created=False
  container_started=image_id=None;profile_loaded=remote_created=False;build=None;test=None;ca_file=None
  docker=[str(DOCKER),'--host',HOST]
- if checked(docker+['info','--format','{{.Name}}']).strip()!='colima-dvaia-pg-verify':raise RuntimeError('Unexpected daemon')
+ if checked(docker+['info','--format','{{.Name}}']).strip()!='colima-owasp-ai-goat-pg-verify':raise RuntimeError('Unexpected daemon')
  try:
   for rel in FILES:
    src=ROOT/rel;dst=closure/rel
@@ -45,8 +45,8 @@ def main():
   if result['buildExitCode']!=0:raise RuntimeError('candidate image build failed')
   image_id=checked(docker+['image','inspect',tag,'--format','{{.Id}}']).strip();result['imageId']=image_id
   absent=run(docker+['volume','inspect',volume]);assert absent.returncode!=0 and ('no such volume' in absent.stderr.lower() or 'not found' in absent.stderr.lower())
-  checked(docker+['volume','create','--label','dvaia.owner='+nonce,volume]);volume_created=True
-  command=docker+['run','--name',name,'--label','dvaia.owner='+nonce,'--network','none','--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--security-opt','apparmor='+profile,'--security-opt','seccomp=unconfined','--user','10001:10001','--env','LISTINGS_PROFILE='+profile,'--mount','type=volume,src='+volume+',dst=/journal','--entrypoint','node',image_id,'/app/tests/fixtures/secureshopOwnedListingsPackaged.native.cjs']
+  checked(docker+['volume','create','--label','owasp-ai-goat.owner='+nonce,volume]);volume_created=True
+  command=docker+['run','--name',name,'--label','owasp-ai-goat.owner='+nonce,'--network','none','--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--security-opt','apparmor='+profile,'--security-opt','seccomp=unconfined','--user','10001:10001','--env','LISTINGS_PROFILE='+profile,'--mount','type=volume,src='+volume+',dst=/journal','--entrypoint','node',image_id,'/app/tests/fixtures/secureshopOwnedListingsPackaged.native.cjs']
   test=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,start_new_session=True);result['test']={'pid':test.pid,'pgid':os.getpgid(test.pid)};container_started=True
   stdout,stderr=test.communicate(timeout=120);result['testExitCode']=test.returncode;(evidence_dir/'test.stdout').write_text(stdout);(evidence_dir/'test.stderr').write_text(stderr)
   if test.returncode!=0:raise RuntimeError('packaged executor gate failed')
@@ -68,7 +68,7 @@ def main():
   rm=run(docker+['rm','-f',name],timeout=20);result['cleanup']['containerRemoveExitCode']=rm.returncode
   result['cleanup']['containerAbsent']=not checked(docker+['ps','-aq','--filter','name=^/'+name+'$']).strip()
   if volume_created:
-   owner=checked(docker+['volume','inspect',volume,'--format','{{index .Labels "dvaia.owner"}}']).strip()
+   owner=checked(docker+['volume','inspect',volume,'--format','{{index .Labels "owasp-ai-goat.owner"}}']).strip()
    if owner==nonce:run(docker+['volume','rm',volume])
   result['cleanup']['volumeAbsent']=run(docker+['volume','inspect',volume]).returncode!=0
   if image_id:run(docker+['image','rm','-f',image_id],timeout=30)

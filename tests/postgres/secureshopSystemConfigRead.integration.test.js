@@ -13,11 +13,11 @@ function migrationView(before){
  loaded._compile(fs.readFileSync(filename,'utf8'),filename);return loaded.exports;
 }
 test('canonical System config admission native authority and lifecycle',{skip:process.env.PERSONA_SYSTEM_CONFIG_NATIVE!=='1',timeout:180000},async t=>{
- assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
  const output=process.env.SYSTEM_CONFIG_TEST_OUTPUT_DIR;assert.ok(output&&path.isAbsolute(output),'Explicit absolute owned output directory required');
  const outputStat=fs.lstatSync(output);assert.ok(outputStat.isDirectory()&&!outputStat.isSymbolicLink());assert.equal(outputStat.uid,process.getuid());assert.equal(outputStat.mode&0o077,0);assert.equal(fs.realpathSync(output),output);assert.notEqual(output,fs.realpathSync(process.cwd()));
  const save=(name,value)=>fs.writeFileSync(path.join(output,name),JSON.stringify(value,null,2),{flag:'wx',mode:0o600});
- const pools=[];const pool=(store,role)=>{const u=new URL(process.env[`PERSONA_${store}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_persona_[a-f0-9]+_(identity|fresh|commerce|aclfresh)$/);const p=new Pool({connectionString:u.href,max:2,statement_timeout:8000});pools.push(p);return p;};
+ const pools=[];const pool=(store,role)=>{const u=new URL(process.env[`PERSONA_${store}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_persona_[a-f0-9]+_(identity|fresh|commerce|aclfresh)$/);const p=new Pool({connectionString:u.href,max:2,statement_timeout:8000});pools.push(p);return p;};
  t.after(async()=>{const results=await Promise.allSettled(pools.map(p=>p.end()));assert.ok(results.every(r=>r.status==='fulfilled'));});
  const identity=pool('IDENTITY','RUNTIME'),im=pool('IDENTITY','MIGRATION'),agents=pool('FRESH','RUNTIME'),am=pool('FRESH','MIGRATION'),commerce=pool('COMMERCE','RUNTIME'),cm=pool('COMMERCE','MIGRATION'),fresh=pool('ACLFRESH','RUNTIME'),fm=pool('ACLFRESH','MIGRATION');
  const {migrate,readMigrations}=require('../../db/postgres/migrate');const base=agentsDirectory;

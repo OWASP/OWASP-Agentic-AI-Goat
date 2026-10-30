@@ -42,21 +42,21 @@ class Controls(unittest.TestCase):
         for label in ['identity','ctf']:
             sql,urls=module.store_configuration(label,55432);all_urls.update(urls)
             self.assertIn('NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS',sql)
-            self.assertIn('REVOKE CONNECT ON DATABASE dvaia_test_ctf_stage9_'+label+' FROM PUBLIC',sql)
+            self.assertIn('REVOKE CONNECT ON DATABASE owasp_ai_goat_test_ctf_stage9_'+label+' FROM PUBLIC',sql)
             self.assertNotIn('BEGIN',sql)
             self.assertEqual('CREATE ROLE dvaia_ctf_delivery' in sql,label=='ctf')
         self.assertEqual(len(all_urls),5)
         from urllib.parse import urlparse
         for key,value in all_urls.items():
             url=urlparse(value);self.assertEqual(url.hostname,'127.0.0.1');self.assertEqual(url.port,55432)
-            self.assertIn(url.path,['/dvaia_test_ctf_stage9_identity','/dvaia_test_ctf_stage9_ctf'])
+            self.assertIn(url.path,['/owasp_ai_goat_test_ctf_stage9_identity','/owasp_ai_goat_test_ctf_stage9_ctf'])
         for label,port in [('other',55432),('ctf',0),('identity',True)]:
             with self.assertRaises(ValueError):module.store_configuration(label,port)
     def test_private_env_does_not_inherit_application_or_provider_settings(self):
         args=type('Args',(),{'mode':'controlled','manifest':'/main/manifest.json','manifest_sha256':'a'*64})()
         with patch.dict(module.os.environ,{'IDENTITY_DATABASE_URL':'private','OPENAI_API_KEY':'private','OLLAMA_BASE_URL':'http://installed','NODE_OPTIONS':'private'}):
             env=module.child_environment({'PATH':'/pinned:/usr/bin:/bin','HOME':'/owned/home'},Path('/owned'),Path('/owned/runtime'),'owner',args)
-        for denied in ['IDENTITY_DATABASE_URL','OPENAI_API_KEY','OLLAMA_BASE_URL','NODE_OPTIONS','DVAIA_ISOLATED_TEST_WORKSPACE']:
+        for denied in ['IDENTITY_DATABASE_URL','OPENAI_API_KEY','OLLAMA_BASE_URL','NODE_OPTIONS','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE']:
             self.assertNotIn(denied,env)
         self.assertEqual(env['CTF_STAGE9_MAIN_ISOLATED'],'1')
         self.assertEqual(env['LOGS_DIR'],'/owned/runtime/logs')

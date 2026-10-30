@@ -44,8 +44,8 @@ function parseFormattedString(stdout, description) {
 }
 
 function assertOwnedPostgresResources({ container, volume, id, name, port, imageId }) {
-  assert.equal(container?.Config?.Labels?.['org.dvaia.workspace'], id);
-  assert.equal(volume?.Labels?.['org.dvaia.workspace'], id);
+  assert.equal(container?.Config?.Labels?.['org.owasp-ai-goat.workspace'], id);
+  assert.equal(volume?.Labels?.['org.owasp-ai-goat.workspace'], id);
   assert.equal(container.Image, imageId, 'Container must use the preflight image identity');
   assert.ok(container.Mounts?.some(item => item.Type === 'volume' && item.Name === name
     && item.Destination === '/var/lib/postgresql'));
@@ -60,7 +60,7 @@ test('owned local PostgreSQL binding survives restart and legacy authority adopt
 }, async t => {
   const id = randomBytes(6).toString('hex');
   const nonce = randomBytes(16).toString('hex');
-  const name = `dvaia-postgres-${id}`;
+  const name = `owasp-ai-goat-postgres-${id}`;
   const directory = await createOwnedDirectory({ id, nonce });
   let client = null;
   let admitted = false;
@@ -127,8 +127,8 @@ test('owned local PostgreSQL binding survives restart and legacy authority adopt
     client = new (require('pg').Client)({ connectionString: freshUrl });
     await client.connect();
     assert.match((await client.query('SHOW server_version')).rows[0].server_version, /^18\./);
-    await client.query('CREATE TABLE dvaia_native_binding_sentinel (id text PRIMARY KEY)');
-    await client.query('INSERT INTO dvaia_native_binding_sentinel(id) VALUES ($1)', [nonce]);
+    await client.query('CREATE TABLE owasp_ai_goat_native_binding_sentinel (id text PRIMARY KEY)');
+    await client.query('INSERT INTO owasp_ai_goat_native_binding_sentinel(id) VALUES ($1)', [nonce]);
     await client.end(); client = null;
 
     journal = { ...journal, status: 'restart-running', phases: [...journal.phases, { name: 'restart', complete: false }] };
@@ -140,7 +140,7 @@ test('owned local PostgreSQL binding survives restart and legacy authority adopt
     assert.equal(new URL(restartedUrl).password, new URL(freshUrl).password);
     client = new (require('pg').Client)({ connectionString: restartedUrl });
     await client.connect();
-    assert.deepEqual((await client.query('SELECT id FROM dvaia_native_binding_sentinel')).rows, [{ id: nonce }]);
+    assert.deepEqual((await client.query('SELECT id FROM owasp_ai_goat_native_binding_sentinel')).rows, [{ id: nonce }]);
     await client.end(); client = null;
     journal = { ...journal, status: 'restart-complete',
       phases: journal.phases.map(phase => phase.name === 'restart' ? { ...phase, complete: true } : phase) };
@@ -174,7 +174,7 @@ test('owned local PostgreSQL binding survives restart and legacy authority adopt
     });
     client = new (require('pg').Client)({ connectionString: adoptedUrl });
     await client.connect();
-    assert.deepEqual((await client.query('SELECT id FROM dvaia_native_binding_sentinel')).rows, [{ id: nonce }]);
+    assert.deepEqual((await client.query('SELECT id FROM owasp_ai_goat_native_binding_sentinel')).rows, [{ id: nonce }]);
     journal = { ...journal, status: 'legacy-complete',
       phases: journal.phases.map(phase => phase.name === 'legacy-adoption' ? { ...phase, complete: true } : phase) };
     await updateRecoveryJournal({ evidencePath, workspace, state: journal });

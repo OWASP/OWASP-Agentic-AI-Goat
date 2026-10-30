@@ -47,7 +47,7 @@ test('V17 binds the original verified authority despite token resigning and reje
   };
   const original = { launch: 'original launch capability', authorization: 'Bearer re-signed token',
     verifiedAuthority: structuredClone(expected) };
-  const physical = { headers: () => ({ 'x-dvaia-secureshop-launch': original.launch,
+  const physical = { headers: () => ({ 'x-owasp-ai-goat-secureshop-launch': original.launch,
     authorization: original.authorization }) };
   assert.doesNotThrow(() => assertReviewRequestAuthority(original, physical, expected));
   for (const mutate of [
@@ -67,7 +67,7 @@ test('V17 binds the original verified authority despite token resigning and reje
     const changed = structuredClone(original); mutate(changed);
     assert.throws(() => assertReviewRequestAuthority(changed, physical, expected));
   }
-  const foreignHeaders = { headers: () => ({ 'x-dvaia-secureshop-launch': original.launch,
+  const foreignHeaders = { headers: () => ({ 'x-owasp-ai-goat-secureshop-launch': original.launch,
     authorization: 'Bearer private foreign token' }) };
   assert.throws(() => assertReviewRequestAuthority(original, foreignHeaders, expected), error =>
     !error.message.includes('private foreign token') && !error.message.includes('re-signed token'));

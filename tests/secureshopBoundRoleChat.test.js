@@ -2551,7 +2551,7 @@ test('assistant routes do not mix merchant and admin authority or legacy admin c
  const server=app.listen(0,'127.0.0.1');t.after(()=>new Promise(resolve=>server.close(resolve)));
  await new Promise(resolve=>server.once('listening',resolve));
  const base=`http://127.0.0.1:${server.address().port}/api/secureshop`;
- const options={method:'POST',headers:{'content-type':'application/json','x-dvaia-secureshop-launch':'a'.repeat(43)},body:'{}'};
+ const options={method:'POST',headers:{'content-type':'application/json','x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)},body:'{}'};
  const merchant=await fetch(`${base}/agents/merchant/assistant/session`,options);assert.equal(merchant.status,200);
  assert.equal((await merchant.json()).sessionId,session.sessionId);
  const admin=await fetch(`${base}/agents/admin/assistant/session`,options);assert.equal(admin.status,403);
@@ -2622,7 +2622,7 @@ test('merchant role chat route forwards only the exact typed product details sel
  const server=app.listen(0,'127.0.0.1');t.after(()=>new Promise(resolve=>server.close(resolve)));
  await new Promise(resolve=>server.once('listening',resolve));
  const url=`http://127.0.0.1:${server.address().port}/api/secureshop/agents/merchant/assistant/chat`;
- const headers={'content-type':'application/json','x-dvaia-secureshop-launch':'a'.repeat(43)};
+ const headers={'content-type':'application/json','x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)};
  const body={sessionId:session.sessionId,requestId,message:'Show my selected product details.',
   selection:{choiceId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',intent:'product_details'}};
  const accepted=await fetch(url,{method:'POST',headers,body:JSON.stringify(body)});
@@ -2712,7 +2712,7 @@ test('administrator chat ingress rejects merchant Listings rewrite selection',as
  const server=app.listen(0,'127.0.0.1');t.after(()=>new Promise(resolve=>server.close(resolve)));
  await new Promise(resolve=>server.once('listening',resolve));
  const response=await fetch(`http://127.0.0.1:${server.address().port}/api/secureshop/agents/admin/assistant/chat`,{
-  method:'POST',headers:{'content-type':'application/json','x-dvaia-secureshop-launch':'a'.repeat(43)},
+  method:'POST',headers:{'content-type':'application/json','x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)},
   body:JSON.stringify({sessionId:session.sessionId,requestId,message:'Rewrite this listing',
    selection:{choiceId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',intent:'listing_rewrite'}})});
  assert.equal(response.status,400);assert.equal(calls,0);
@@ -2739,7 +2739,7 @@ test('merchant mail confirmation and retained operation read accept only exact s
  const server=app.listen(0,'127.0.0.1');t.after(()=>new Promise(resolve=>server.close(resolve)));
  await new Promise(resolve=>server.once('listening',resolve));
  const base=`http://127.0.0.1:${server.address().port}/api/secureshop/agents/merchant/assistant/mail`;
- const headers={'content-type':'application/json','x-dvaia-secureshop-launch':'a'.repeat(43)};
+ const headers={'content-type':'application/json','x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)};
  const body={sessionId:session.sessionId,requestId,proposalId};
  const confirm=await fetch(`${base}/confirm`,{method:'POST',headers,body:JSON.stringify(body)});
  assert.equal(confirm.status,202);assert.equal(confirm.headers.get('cache-control'),'no-store');
@@ -2795,7 +2795,7 @@ test('admin role route keeps bearer private while forwarding exact source-bound 
  const server=app.listen(0,'127.0.0.1');t.after(()=>new Promise(resolve=>server.close(resolve)));
  await new Promise(resolve=>server.once('listening',resolve));
  const base=`http://127.0.0.1:${server.address().port}/api/secureshop/agents/admin/assistant`;
- const headers={'content-type':'application/json','x-dvaia-secureshop-launch':'a'.repeat(43),
+ const headers={'content-type':'application/json','x-owasp-ai-goat-secureshop-launch':'a'.repeat(43),
   authorization:'Bearer private-route-token'};
  const chat=await fetch(`${base}/chat`,{method:'POST',headers,
   body:JSON.stringify({sessionId:session.sessionId,requestId,message:'Search audit'})});
@@ -2859,7 +2859,7 @@ test('admin MCP confirmation preserves existing registry admitted and terminal s
  await new Promise(resolve=>server.once('listening',resolve));
  const url=`http://127.0.0.1:${server.address().port}/api/secureshop/agents/admin/assistant/mcp/confirm`;
  const post=()=>fetch(url,{method:'POST',headers:{'content-type':'application/json',
-  'x-dvaia-secureshop-launch':'a'.repeat(43)},body:JSON.stringify({sessionId:session.sessionId,
+  'x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)},body:JSON.stringify({sessionId:session.sessionId,
   requestId,proposalId:requestId})});
  for(const [value,status] of [['admitted',202],['completed',200],['failed',200],['unknown',200]]){
   state=value;const response=await post();assert.equal(response.status,status);

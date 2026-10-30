@@ -2,16 +2,16 @@ import importlib.util,io,json,pathlib,tarfile,tempfile,unittest,hashlib,uuid,sub
 from unittest.mock import patch
 ROOT=pathlib.Path(__file__).resolve().parents[2]
 spec=importlib.util.spec_from_file_location('listing',ROOT/'tests/postgres/run-listing-template-native-isolated.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-NODE='/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node'
+NODE='/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node'
 class TestListingTemplateNativeLauncher(unittest.TestCase):
  def test_closed_twelve_file_no_copy_plan(self):
-  p=m.plan(ROOT,'a'*12);self.assertEqual(len(m.FILES),12);self.assertFalse(p['sourceCopy']);self.assertEqual(set(p['files']),set(m.FILES));self.assertEqual(p['profile'],'dvaia-owned-listing-template-'+'a'*12);self.assertIn('command-effect-witness',p['checks']);self.assertNotIn('fixed-workflow-denial',p['checks'])
+  p=m.plan(ROOT,'a'*12);self.assertEqual(len(m.FILES),12);self.assertFalse(p['sourceCopy']);self.assertEqual(set(p['files']),set(m.FILES));self.assertEqual(p['profile'],'owasp-ai-goat-owned-listing-template-'+'a'*12);self.assertIn('command-effect-witness',p['checks']);self.assertNotIn('fixed-workflow-denial',p['checks'])
  def test_streamed_context_has_only_pinned_sandbox_relative_members(self):
   pins=m.manifest(ROOT);raw=m.context_bytes(ROOT,pins)
   with tarfile.open(fileobj=io.BytesIO(raw)) as a:
    names=a.getnames();self.assertEqual(len(names),12);self.assertIn('listing-template/Dockerfile',names);self.assertFalse(any(n.startswith('/') or '..' in pathlib.PurePosixPath(n).parts for n in names))
  def test_nonce_identity_is_not_installed_name(self):
-  p=m.plan(ROOT,'b'*12);self.assertTrue(p['container'].startswith('dvaia-listing-template-qual-'));self.assertNotEqual(p['container'],'dvaia-listing-template-'+'b'*12)
+  p=m.plan(ROOT,'b'*12);self.assertTrue(p['container'].startswith('owasp-ai-goat-listing-template-qual-'));self.assertNotEqual(p['container'],'owasp-ai-goat-listing-template-'+'b'*12)
  def test_canonical_contract_validator_accepts_bound_inert_receipt(self):
   source='Hello {{ title }}';req={'version':1,'operationId':str(uuid.uuid4()),'productId':1,'sourceSha256':hashlib.sha256(source.encode()).hexdigest(),'templateSource':source,'title':'world','description':'','price':0}
   with tempfile.TemporaryDirectory() as d:
@@ -35,9 +35,9 @@ class TestCommandWitness(unittest.TestCase):
 
 class LifecycleFixture:
  def __init__(self):
-  self.state={'labels':{'dvaia.qualification':'listing-template','dvaia.qualification.nonce':'a'*12,'dvaia.qualification.owner':'owned'},
+  self.state={'labels':{'owasp-ai-goat.qualification':'listing-template','owasp-ai-goat.qualification.nonce':'a'*12,'owasp-ai-goat.qualification.owner':'owned'},
    'image':'owned:candidate','imageId':'sha256:'+'1'*64,'container':'owned','containerId':'2'*64,'network':'owned-bridge','networkId':'3'*64,
-   'profile':{'name':'dvaia-owned-listing-template-'+'a'*12},'port':31000,'attempted':['profile','image','network','container']}
+   'profile':{'name':'owasp-ai-goat-owned-listing-template-'+'a'*12},'port':31000,'attempted':['profile','image','network','container']}
   labels=self.state['labels'];bindings={'8090/tcp':[{'HostIp':'127.0.0.1','HostPort':'31000'}]}
   self.rows={
    'image':{'Id':self.state['imageId'],'RepoTags':['owned:candidate'],'Architecture':'arm64','Config':{'Labels':labels,'User':'10001:10001'}},

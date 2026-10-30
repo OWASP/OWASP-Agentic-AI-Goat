@@ -11,7 +11,7 @@ const launch = 'l'.repeat(43);
 const scope = Object.freeze({ launchId: randomUUID(), scenarioId: randomUUID(), generation: 3,
   platformOwnerId: 71, platformSessionId: 72 });
 const personaSession = Object.freeze({ sessionId: randomUUID(), authorityVersion: '2' });
-const authHeaders = () => ({ 'x-dvaia-secureshop-launch': launch,
+const authHeaders = () => ({ 'x-owasp-ai-goat-secureshop-launch': launch,
   authorization: 'Bearer customer-41' });
 const getWithBody = (url, headers, body) => new Promise((resolve, reject) => {
   const request = http.request(url, { method: 'GET', headers: { ...headers,
@@ -63,7 +63,7 @@ test('retired scene product absence is exact 404 for live authority; revoked lau
  let reads=0;const f=await fixture(t,{summary:async()=>{},similar:async()=>{}},{getProduct:async()=>{reads++;return null;}});
  const live=await fetch(`${f.base}/products/126`,{headers:authHeaders()});
  assert.equal(live.status,404);assert.deepEqual(await live.json(),{error:'not found'});assert.equal(reads,1);
- const revoked=await fetch(`${f.base}/products/126`,{headers:{...authHeaders(),'x-dvaia-secureshop-launch':'r'.repeat(43)}});
+ const revoked=await fetch(`${f.base}/products/126`,{headers:{...authHeaders(),'x-owasp-ai-goat-secureshop-launch':'r'.repeat(43)}});
  assert.equal(revoked.status,401);assert.deepEqual(await revoked.json(),{error:'SecureShop launch unavailable'});
  assert.equal(reads,1);assert.equal(f.legacyCalls(),0);
 });

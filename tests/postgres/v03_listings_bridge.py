@@ -97,7 +97,7 @@ class V03ListingsBridge(PrivateListingsBridge):
         # before each channel, then cap the existing lock/connect/pump budget
         # by its absolute endpoint. SSH transit can never add runtime.
         expected=repr(self.claim_record)
-        prefix="import sys,io,contextlib,json\n_v03_argv=sys.argv\ntry:\n sys.argv=['lease',"+repr('/var/tmp/dvaia-v23-build-'+self.run_id)+','+repr(self.run_id)+",'check','cohort']\n _v03_output=io.StringIO()\n with contextlib.redirect_stdout(_v03_output):exec("+repr(self.lease_program)+",{})\n _v03_claim=json.loads(_v03_output.getvalue())\n assert _v03_claim=="+expected+"\nfinally:sys.argv=_v03_argv\n"
+        prefix="import sys,io,contextlib,json\n_v03_argv=sys.argv\ntry:\n sys.argv=['lease',"+repr('/var/tmp/owasp-ai-goat-v23-build-'+self.run_id)+','+repr(self.run_id)+",'check','cohort']\n _v03_output=io.StringIO()\n with contextlib.redirect_stdout(_v03_output):exec("+repr(self.lease_program)+",{})\n _v03_claim=json.loads(_v03_output.getvalue())\n assert _v03_claim=="+expected+"\nfinally:sys.argv=_v03_argv\n"
         return prefix+original.replace(needle,"end=min(__import__('time').monotonic()+SECONDS,_v03_claim['deadlineMs']/1000)")
 
     def _connection(self,client):

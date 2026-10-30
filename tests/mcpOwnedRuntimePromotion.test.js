@@ -8,18 +8,18 @@ const path = require('node:path');
 const promotion = require('../scripts/qualify-mcp-owned-runtime-promotion');
 
 test('promotion helper requires and rechecks the exact private config bytes', async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mcp-promotion-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mcp-promotion-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   const configPath = path.join(directory, '.env'); const bytes = Buffer.from(`JWT_SECRET=${'s'.repeat(48)}\n`);
   await fs.writeFile(configPath, bytes, { mode: 0o600 });
   const expected = crypto.createHash('sha256').update(bytes).digest('hex');
   assert.doesNotThrow(() => promotion.assertPrivateConfigBytes(
-    { DVAIA_EXPECTED_PRIVATE_CONFIG_SHA256: expected }, { configPath }));
+    { OWASP_AI_GOAT_EXPECTED_PRIVATE_CONFIG_SHA256: expected }, { configPath }));
   assert.throws(() => promotion.assertPrivateConfigBytes({}, { configPath }),
     { code: 'PRIVATE_CONFIG_DIGEST_REQUIRED' });
   await fs.appendFile(configPath, 'changed=true\n');
   assert.throws(() => promotion.assertPrivateConfigBytes(
-    { DVAIA_EXPECTED_PRIVATE_CONFIG_SHA256: expected }, { configPath }), { code: 'PRIVATE_CONFIG_CHANGED' });
+    { OWASP_AI_GOAT_EXPECTED_PRIVATE_CONFIG_SHA256: expected }, { configPath }), { code: 'PRIVATE_CONFIG_CHANGED' });
 });
 
 test('identity and MCP normal initializers run without the application seed or unrelated stores', async () => {

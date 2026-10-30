@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sourced by Unix installers. Keep the qualified runtime floor in one place.
-DVAIA_MINIMUM_NODE_VERSION=26.10.0
-DVAIA_MINIMUM_NPM_VERSION=12.1.0
+OWASP_AI_GOAT_MINIMUM_NODE_VERSION=26.10.0
+OWASP_AI_GOAT_MINIMUM_NPM_VERSION=12.1.0
 
 version_at_least() {
   local actual="${1#v}" required="${2#v}"
@@ -15,11 +15,11 @@ version_at_least() {
 }
 
 validate_node_binary() {
-  command -v node >/dev/null 2>&1 && version_at_least "$(node --version 2>/dev/null)" "$DVAIA_MINIMUM_NODE_VERSION"
+  command -v node >/dev/null 2>&1 && version_at_least "$(node --version 2>/dev/null)" "$OWASP_AI_GOAT_MINIMUM_NODE_VERSION"
 }
 
 validate_npm() {
-  command -v npm >/dev/null 2>&1 && version_at_least "$(npm --version 2>/dev/null)" "$DVAIA_MINIMUM_NPM_VERSION"
+  command -v npm >/dev/null 2>&1 && version_at_least "$(npm --version 2>/dev/null)" "$OWASP_AI_GOAT_MINIMUM_NPM_VERSION"
 }
 
 validate_node() { validate_node_binary && validate_npm; }
