@@ -13,6 +13,7 @@ Top 10, and classic OWASP Web Top 10 attack surfaces.
 
 - [Installation guide — all platforms](install/INSTALLATION.md)
 - [Quick start (all platforms)](QUICK_START.md)
+- [Tracing at smith.langchain.com](install/LANGSMITH.md) — configuration and a walkthrough of agent decisions, model calls, and tool results.
 
 ## Project docs
 

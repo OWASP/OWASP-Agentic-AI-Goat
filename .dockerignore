@@ -1,21 +1,56 @@
-# Private historical data must never enter an application build context.
+# Repository-root build contexts only; sidecar contexts have their own rules.
+# Keep source, package locks, schemas, seeds and synthetic teaching fixtures.
+
+# Version control and local tooling
 .git/
-node_modules/
-client/node_modules/
-.env
-.env.*
-!.env.example
+.codex/
+.claude/
+.agents/
+.superpowers/
+**/.DS_Store
+**/.idea/
+**/.vscode/
+
+# Dependencies and generated output
+**/node_modules/
+**/.cache/
+**/.preflight/
+**/__pycache__/
+**/*.pyc
+**/coverage/
+**/.nyc_output/
+client/build/
+client/dist/
+test-results/
+playwright-report/
+.playwright-mcp/
+
+# Private configuration and OAuth credentials
 **/.env
 **/.env.*
 !**/.env.example
+**/client_secret*.json
+**/gmail*credentials*.json
+**/gmail-token*.json
+**/gmail_token*.json
+server/.credentials/
+config/keys.js
+config/prod.js
+
+# Local runtime data and work journals
 tasks/
+client/tasks/cache/
+.qualification/
+scratch/
+tmp/
+plans/
 server/logs/
 backups/
-server/database/users_auth.db
-server/database/users_auth.db-*
-tasks/main-workspace-preservation-2026-09-28/
+server/restricted/
+server/database/vector-indexes/*.hnsw
+tests/release-inputs/frontend-build-*/
 
-# SQLite databases and journals are runtime state; build from reviewed schemas/seeds.
+# SQLite state; images use reviewed schemas and seeds instead.
 **/*.db
 **/*.db-*
 **/*.sqlite
