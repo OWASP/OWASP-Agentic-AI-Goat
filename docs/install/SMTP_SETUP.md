@@ -7,11 +7,12 @@ DVAIA supports optional Gmail SMTP for these workshop features:
 - **XSS Workshop, "email" tab** — the stored-XSS-in-email exercise on
   `/workshop/xss`
 
-Fresh setup configures both exercises with the owned local Mailpit service.
-Local delivery does not require a Gmail account or App Password. Use this guide
-only when choosing Gmail explicitly; existing installations retain their selected
-provider. External email delivery and HTML filtering differ from local Mailpit
-and are not proof of exact exploit-body preservation.
+Fresh setup provisions the owned local Mailpit service for local lab workflows.
+The XSS email exercise defaults to Gmail and an editable SharkLasers inbox, so
+it needs these credentials before sending. The IPI Email Agent remains
+configurable independently. Local delivery does not require a Gmail account or
+App Password. External email delivery and HTML filtering differ from local
+Mailpit and are not proof of exact exploit-body preservation.
 
 The fresh installer deliberately does not collect third-party credentials, but
 it writes blank `GMAIL_USER` and `GMAIL_APP_PASSWORD` placeholders into the
@@ -120,6 +121,16 @@ MAILPIT_API_URL=http://127.0.0.1:8025
 ```
 
 The application assigns a generation-scoped inbox per signed-in learner. It accepts a message only after local SMTP reports the exact recipient, then reads the exact message through Mailpit's bounded HTTP API. The Mailpit API is loopback-only in host mode; this mode provides local capture, not external delivery.
+
+To use the XSS email exercise with the same local capture service instead of
+SharkLasers, add this setting and restart the application:
+
+```bash
+XSS_MAIL_PROVIDER=mailpit
+```
+
+Open <http://localhost:8025> to inspect captured messages. Mailpit accepts SMTP
+on `127.0.0.1:1025`; it does not send mail to external inboxes.
 
 ## SecureShop external test email
 
