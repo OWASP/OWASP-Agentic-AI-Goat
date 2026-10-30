@@ -7,8 +7,16 @@
 <p align="center">Practice attacking and defending AI agents.</p>
 
 <p align="center">
+  <a href="https://owasp.org/projects/agentic-ai-goat"><img src="https://img.shields.io/badge/OWASP-Incubator%20Project-f7b73c" alt="OWASP Incubator Project"></a>
+  <a href="https://github.com/OWASP/OWASP-Agentic-AI-Goat/actions/workflows/contribution-checks.yml"><img src="https://github.com/OWASP/OWASP-Agentic-AI-Goat/actions/workflows/contribution-checks.yml/badge.svg?branch=main" alt="Contribution checks"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/OWASP/OWASP-Agentic-AI-Goat/stargazers"><img src="https://img.shields.io/github/stars/OWASP/OWASP-Agentic-AI-Goat?style=flat&amp;label=GitHub%20stars" alt="GitHub stars"></a>
+  <a href="https://github.com/OWASP/OWASP-Agentic-AI-Goat/issues"><img src="https://img.shields.io/github/issues/OWASP/OWASP-Agentic-AI-Goat" alt="Open issues"></a>
   <a href="docs/CONTRIBUTING.md"><img src="https://img.shields.io/badge/contributions-welcome-6f1d46" alt="Contributions welcome"></a>
+  <a href="CODE_OF_CONDUCT.md"><img src="https://img.shields.io/badge/OWASP-Code%20of%20Conduct-blue" alt="OWASP Code of Conduct"></a>
 </p>
 
 <p align="center">
