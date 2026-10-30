@@ -15,6 +15,7 @@ const emailRuns = createRunCoordinator({family:'IndirectEmail'});
 const emailStore = require('../services/emailWorkshopStore');
 const emailArtifacts = require('../services/emailArtifactStore');
 const { getIpiEmailProvider, isLocal } = require('../services/ipiEmailProvider');
+const { workshopMailpitInboxUrl } = require('../services/xssMailProvider');
 // The admin can change the delivery provider while the application is running.
 // Resolve the provider on every service method instead of retaining startup-only
 // references in this route module.
@@ -452,6 +453,7 @@ router.get('/health', async (req, res) => {
     mode: 'reversed-flow',
     provider: ipiProvider.mode,
     ownedInbox: undefined,
+    mailpitInboxUrl: isLocal() ? workshopMailpitInboxUrl() : null,
     gmail: {
       initialized: gmailStatus.initialized,
       targetEmail: gmailStatus.targetEmail,
@@ -516,7 +518,7 @@ router.get('/owned-inbox', authenticateToken, async (req, res) => {
       const generation = execution.durableGeneration ?? execution.generation;
       return ipiProvider.addressFor({ownerId:getEmailAgentOwnerId(req), generation});
     });
-    res.json({success:true, provider:'mailpit', ownedInbox});
+    res.json({success:true, provider:'mailpit', ownedInbox, mailpitInboxUrl: workshopMailpitInboxUrl()});
   } catch (error) {
     if(sendEmailSessionError(res,error))return;
     if(sendEmailCapacityError(res,error))return;

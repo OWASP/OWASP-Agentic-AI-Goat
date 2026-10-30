@@ -129,14 +129,19 @@ function createXssEmailDispatch({ repository, transport, mailbox, codec, expecte
 let configured;
 function getXssEmailDispatch() {
   if (process.env.PLATFORM_DATABASE_ENGINE !== 'postgres') throw new Error('Authenticated email grading requires the PostgreSQL platform');
-  if (!configured) configured = createXssEmailDispatch({
+  const provider = require('./xssMailProvider').getXssMailProvider();
+  if (!configured || configured.provider !== provider.provider) configured = {
+    provider: provider.provider,
+    dispatch: createXssEmailDispatch({
     repository: require('../database/postgres/objectiveEvidenceRepository').createObjectiveEvidenceRepository(
       require('./postgresPlatformStores').getPostgresPlatformStores().pool,
       { maxEntries: 100, maxBytes: 16000, retentionSeconds: 2592000 }),
-    ...require('./xssMailProvider').getXssMailProvider(),
+    ...provider,
     codec: require('./xssEmailCodec'),
-  });
-  return configured;
+  }) };
+  return configured.dispatch;
 }
 
-module.exports = { createXssEmailDispatch, getXssEmailDispatch, inspectXssMailProof };
+function refreshXssEmailDispatch() { configured = null; }
+
+module.exports = { createXssEmailDispatch, getXssEmailDispatch, refreshXssEmailDispatch, inspectXssMailProof };

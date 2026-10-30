@@ -21,7 +21,7 @@ test('admin email configuration reports only safe SMTP status fields', async (t)
   const f = await fixture(); t.after(() => fs.rm(f.directory, { recursive: true, force: true }));
   assert.deepEqual(await f.configuration.status(), {
     ipiProvider: 'mailpit', xssProvider: 'gmail', gmailConfigured: true,
-    mailpitSigningConfigured: false, restartRequired: true,
+    mailpitSigningConfigured: false, mailpitInboxUrl: 'http://127.0.0.1:8025', restartRequired: true,
   });
 });
 
@@ -59,11 +59,15 @@ test('runtime providers are refreshed only after a successful private configurat
   const f = await fixture(undefined, { applyRuntime: updates => applied.push({ ...updates }) });
   t.after(() => fs.rm(f.directory, { recursive: true, force: true }));
   await f.configuration.save({ ipiProvider: 'gmail', xssProvider: 'mailpit' });
-  assert.deepEqual(applied, [{ IPI_EMAIL_PROVIDER: 'gmail', XSS_MAIL_PROVIDER: 'mailpit' }]);
+  assert.deepEqual(applied, [{
+    IPI_EMAIL_PROVIDER: 'gmail', XSS_MAIL_PROVIDER: 'mailpit',
+    WORKSHOP_MAILPIT_SMTP_HOST: '127.0.0.1', WORKSHOP_MAILPIT_SMTP_PORT: '1025',
+    WORKSHOP_MAILPIT_API_URL: 'http://127.0.0.1:8025',
+  }]);
   const broken = await fixture('IPI_EMAIL_PROVIDER=mailpit\nXSS_MAIL_PROVIDER=mailpit\n');
   t.after(() => fs.rm(broken.directory, { recursive: true, force: true }));
   await assert.rejects(() => broken.configuration.save({ ipiProvider: 'gmail', xssProvider: 'mailpit' }));
-  assert.deepEqual(applied, [{ IPI_EMAIL_PROVIDER: 'gmail', XSS_MAIL_PROVIDER: 'mailpit' }]);
+  assert.equal(applied.length, 1);
 });
 
 test('selecting IPI Mailpit provisions its private signing secret', async (t) => {
@@ -72,6 +76,9 @@ test('selecting IPI Mailpit provisions its private signing secret', async (t) =>
   const saved = dotenv.parse(await fs.readFile(f.envPath));
   assert.equal(saved.IPI_EMAIL_PROVIDER, 'mailpit');
   assert.match(saved.IPI_MAIL_HMAC_SECRET, /^[a-f0-9]{64}$/);
+  assert.equal(saved.WORKSHOP_MAILPIT_SMTP_HOST, '127.0.0.1');
+  assert.equal(saved.WORKSHOP_MAILPIT_SMTP_PORT, '1025');
+  assert.equal(saved.WORKSHOP_MAILPIT_API_URL, 'http://127.0.0.1:8025');
 });
 
 test('selecting Gmail without credentials is rejected and leaves the private config unchanged', async (t) => {

@@ -825,7 +825,7 @@ const XSSWorkshop = () => {
   const [viewingObjectiveSolution, setViewingObjectiveSolution] = useState(null);
   const pendingObjectiveSolutionRef = useRef(null);
   const [sharklaserEmail, setSharklaserEmail] = useState('');
-  const [emailConfig, setEmailConfig] = useState({ resolved: false, mode: null, provider: null, editable: false, sender: '' });
+  const [emailConfig, setEmailConfig] = useState({ resolved: false, mode: null, provider: null, editable: false, sender: '', mailpitInboxUrl: null });
   const [emailSendError, setEmailSendError] = useState('');
   const emailConfigRef = useRef(emailConfig);
   const externalEmailEditedRef = useRef(false);
@@ -894,7 +894,7 @@ const XSSWorkshop = () => {
     pendingObjectiveSolutionRef.current = null; setViewingObjectiveSolution(null);
     setSharklaserEmail(''); setEmailSendStatus(null); setEmailSendError(''); setCustomPayload(''); setSelectedPayload(0);
     externalEmailEditedRef.current = false;
-    const emptyMail = { resolved: false, mode: null, provider: null, editable: false, sender: '' };
+    const emptyMail = { resolved: false, mode: null, provider: null, editable: false, sender: '', mailpitInboxUrl: null };
     emailConfigRef.current = emptyMail; setEmailConfig(emptyMail);
     setLlmStatus({ available: false, model: null, message: '', availableModels: [] });
     activeExerciseRef.current = null; queryTabApplied.current = false;
@@ -991,6 +991,7 @@ const XSSWorkshop = () => {
           provider: data.provider,
           editable: data.mode === 'external' && data.editable === true,
           sender: typeof data.sender === 'string' ? data.sender : '',
+          mailpitInboxUrl: data.provider === 'mailpit' && typeof data.mailpitInboxUrl === 'string' ? data.mailpitInboxUrl : null,
         };
         const previous = emailConfigRef.current;
         const retainExternalEdit = next.mode === 'external' && previous.mode === 'external'
@@ -1003,7 +1004,7 @@ const XSSWorkshop = () => {
         setEmailConfig(next);
       } catch (_) {
         if (!ownerIsCurrent() || navigation !== navigationGeneration.current) return;
-        const unavailable = { resolved: false, mode: null, provider: null, editable: false, sender: '' };
+        const unavailable = { resolved: false, mode: null, provider: null, editable: false, sender: '', mailpitInboxUrl: null };
         emailConfigRef.current = unavailable;
         setEmailConfig(unavailable);
         setSharklaserEmail('');
@@ -1730,6 +1731,18 @@ const XSSWorkshop = () => {
                   }}
                 >
                   <FiExternalLink size={12} /> Open SharkLasers.com
+                </a>}
+                {emailConfig.provider === 'mailpit' && emailConfig.mailpitInboxUrl && <a
+                  href={emailConfig.mailpitInboxUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.3rem',
+                    marginTop: '0.4rem', fontSize: '0.78rem', fontWeight: 600,
+                    color: '#667eea', textDecoration: 'none',
+                  }}
+                >
+                  <FiExternalLink size={12} /> Open Mailpit inbox
                 </a>}
 
                 <div style={{ marginTop: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>

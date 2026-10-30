@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createXssMailProviderSelector } = require('../server/services/xssMailProvider');
+const { createXssMailProviderSelector, workshopMailpitInboxUrl } = require('../server/services/xssMailProvider');
 
 function adapter() {
   return { sendEmail() {}, fetchEmails() {}, fetchEmail() {}, close() {},
@@ -53,6 +53,21 @@ test('explicit gmail resolves the configured external inbox and status sender la
   const selected = selector.getXssMailProvider();
   assert.equal(selected.transport, gmail);
   assert.equal(selected.mailbox, mailbox);
+});
+
+test('local workshop context exposes only a safe dedicated Mailpit inbox URL', async () => {
+  const prior = process.env.WORKSHOP_MAILPIT_API_URL;
+  process.env.WORKSHOP_MAILPIT_API_URL = 'http://127.0.0.1:8025/mailpit/';
+  try {
+    const selector = createXssMailProviderSelector({ readProvider: () => 'mailpit', createLocal: adapter });
+    const context = await selector.resolveXssMailContext(7, 'owner-7');
+    assert.equal(context.mailpitInboxUrl, 'http://127.0.0.1:8025/mailpit');
+    assert.equal(workshopMailpitInboxUrl('http://user:password@127.0.0.1:8025'), null);
+    assert.equal(workshopMailpitInboxUrl('file:///tmp/mailpit'), null);
+  } finally {
+    if (prior === undefined) delete process.env.WORKSHOP_MAILPIT_API_URL;
+    else process.env.WORKSHOP_MAILPIT_API_URL = prior;
+  }
 });
 
 test('unknown providers and invalid platform identities fail without loading adapters or stores', async () => {

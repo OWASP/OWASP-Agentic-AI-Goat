@@ -629,6 +629,22 @@ const EmailSetupNotice = styled.div`
   strong { display: block; margin-bottom: 0.25rem; }
 `;
 
+const MailpitInboxLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  background: #48bb78;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover { background: #38a169; color: white; }
+`;
+
 const ModalOverlay = styled(motion.div)`
   position: fixed;
   top: 0;
@@ -7439,6 +7455,9 @@ const ComprehensiveAdminDashboard = () => {
                 <EmailSetupNotice $kind="mailpit">
                   <strong>Mailpit is auto-configured for local delivery</strong>
                   The local SMTP and inbox routing are populated automatically. {emailConfigurationDraft.ipiProvider === 'mailpit' && (emailConfiguration.mailpitSigningConfigured ? 'The IPI inbox signing key is ready.' : 'Saving creates the IPI inbox signing key.')} {emailConfigurationDraft.xssProvider === 'mailpit' && 'XSS inboxes use a generated learner-specific local address.'}
+                  <MailpitInboxLink href={emailConfiguration.mailpitInboxUrl || 'http://localhost:8025'} target="_blank" rel="noreferrer">
+                    <FiEye /> Open Mailpit inbox
+                  </MailpitInboxLink>
                 </EmailSetupNotice>
               )}
             </EmailDeliveryPanel>

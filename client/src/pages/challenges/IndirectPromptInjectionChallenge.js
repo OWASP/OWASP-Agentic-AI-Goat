@@ -912,6 +912,7 @@ const IndirectPromptInjectionChallenge = () => {
   const [emailProgressLoading, setEmailProgressLoading] = useState(true);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [emailHealth, setEmailHealth] = useState({ gmail: { initialized: false, canSend: false }, llm: { available: false }, allowedDomains: [] });
+  const [mailpitInboxUrl, setMailpitInboxUrl] = useState(null);
   const [manualFallback, setManualFallback] = useState(false);
   const [manualEmailContent, setManualEmailContent] = useState('');
   const [isRefreshingRagHealth, setIsRefreshingRagHealth] = useState(false);
@@ -1265,7 +1266,10 @@ const IndirectPromptInjectionChallenge = () => {
           if (scenarioIsCurrent('email', emailGeneration) && owned.data?.ownedInbox) {
             setTempEmail(owned.data.ownedInbox);
             localStorage.setItem('dvaia_email_agent_temp_email', owned.data.ownedInbox);
+            setMailpitInboxUrl(owned.data.mailpitInboxUrl || res.data.mailpitInboxUrl || null);
           }
+        } else if (scenarioIsCurrent('email', emailGeneration)) {
+          setMailpitInboxUrl(null);
         }
       })
       .catch(() => {
@@ -1912,6 +1916,7 @@ const IndirectPromptInjectionChallenge = () => {
       if (scenarioIsCurrent('email', emailGeneration) && owned.data?.ownedInbox) {
         setTempEmail(owned.data.ownedInbox);
         localStorage.setItem('dvaia_email_agent_temp_email', owned.data.ownedInbox);
+        setMailpitInboxUrl(owned.data.mailpitInboxUrl || null);
       }
       if (!scenarioIsCurrent('email', emailGeneration)) return;
       toast.success('Email Agent scenario reset.');
@@ -2378,6 +2383,11 @@ const IndirectPromptInjectionChallenge = () => {
                   </a>
                   <a href="https://www.sharklasers.com" target="_blank" rel="noopener noreferrer" className="secondary">
                     <FiExternalLink /> SharkLasers.com
+                  </a>
+                </ExternalLinks>}
+                {emailHealth.provider === 'mailpit' && mailpitInboxUrl && <ExternalLinks>
+                  <a href={mailpitInboxUrl} target="_blank" rel="noopener noreferrer" className="primary">
+                    <FiExternalLink /> Open Mailpit inbox
                   </a>
                 </ExternalLinks>}
                 <div className="step">

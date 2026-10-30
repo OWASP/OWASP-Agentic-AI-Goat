@@ -3,6 +3,16 @@
 const LOCAL_SENDER = 'attacker@dvaia.invalid';
 const PROVIDERS = new Set(['mailpit', 'gmail']);
 
+function workshopMailpitInboxUrl(value = process.env.WORKSHOP_MAILPIT_API_URL || 'http://127.0.0.1:8025') {
+  try {
+    const url = new URL(String(value));
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) return null;
+    return `${url.origin}${url.pathname.replace(/\/$/, '')}`;
+  } catch {
+    return null;
+  }
+}
+
 function configuredProvider(value) {
   const provider = String(value || 'gmail').trim().toLowerCase();
   if (!PROVIDERS.has(provider)) throw new Error(`Unsupported XSS_MAIL_PROVIDER: ${provider}`);
@@ -20,9 +30,9 @@ function createXssMailProviderSelector({
   createLocal = () => {
     const config = require('./mcp/config');
     return require('./xssLocalMail').createXssLocalMail({
-      smtpHost: config.MAILPIT_SMTP_HOST,
-      smtpPort: config.MAILPIT_SMTP_PORT,
-      apiUrl: config.MAILPIT_API_URL,
+      smtpHost: process.env.WORKSHOP_MAILPIT_SMTP_HOST || '127.0.0.1',
+      smtpPort: Number(process.env.WORKSHOP_MAILPIT_SMTP_PORT || 1025),
+      apiUrl: process.env.WORKSHOP_MAILPIT_API_URL || 'http://127.0.0.1:8025',
       timeoutMs: config.BACKEND_TIMEOUT_MS,
     });
   },
@@ -63,7 +73,7 @@ function createXssMailProviderSelector({
     const selected = getXssMailProvider();
     if (selected.provider === 'mailpit') {
       return Object.freeze({ email: `xss-${userId}@dvaia.invalid`, mode: 'local', provider: 'mailpit',
-        editable: false, sender: LOCAL_SENDER });
+        editable: false, sender: LOCAL_SENDER, mailpitInboxUrl: workshopMailpitInboxUrl() });
     }
     const [email, status] = await Promise.all([
       Promise.resolve(getEmailStore().getConfiguredEmail(userKey)),
@@ -113,4 +123,5 @@ module.exports = {
   close: singleton.close,
   createXssMailProviderSelector,
   LOCAL_SENDER,
+  workshopMailpitInboxUrl,
 };

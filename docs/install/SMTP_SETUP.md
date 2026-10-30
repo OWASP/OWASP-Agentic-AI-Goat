@@ -115,9 +115,9 @@ Fresh setup provisions the owned loopback Mailpit provider automatically. It req
 ```bash
 IPI_EMAIL_PROVIDER=mailpit
 IPI_MAIL_HMAC_SECRET=$(node -e "console.log(require('crypto').randomBytes(48).toString('hex'))")
-MAILPIT_SMTP_HOST=127.0.0.1
-MAILPIT_SMTP_PORT=1025
-MAILPIT_API_URL=http://127.0.0.1:8025
+WORKSHOP_MAILPIT_SMTP_HOST=127.0.0.1
+WORKSHOP_MAILPIT_SMTP_PORT=1025
+WORKSHOP_MAILPIT_API_URL=http://127.0.0.1:8025
 ```
 
 The application assigns a generation-scoped inbox per signed-in learner. It accepts a message only after local SMTP reports the exact recipient, then reads the exact message through Mailpit's bounded HTTP API. The Mailpit API is loopback-only in host mode; this mode provides local capture, not external delivery.

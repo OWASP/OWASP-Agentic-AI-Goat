@@ -8,6 +8,7 @@ const dotenv = require('dotenv');
 const PROVIDERS = new Set(['gmail', 'mailpit']);
 const ENV_KEYS = Object.freeze([
   'IPI_EMAIL_PROVIDER', 'XSS_MAIL_PROVIDER', 'GMAIL_USER', 'GMAIL_APP_PASSWORD', 'IPI_MAIL_HMAC_SECRET',
+  'WORKSHOP_MAILPIT_SMTP_HOST', 'WORKSHOP_MAILPIT_SMTP_PORT', 'WORKSHOP_MAILPIT_API_URL',
 ]);
 
 function configError(message, field) {
@@ -38,6 +39,14 @@ function validateCredential(value, field) {
 
 function serializeEnvValue(value) {
   return /^[A-Za-z0-9._:@/+={}-]*$/.test(value) ? value : JSON.stringify(value);
+}
+
+function mailpitInboxUrl(value) {
+  try {
+    const url = new URL(String(value || 'http://127.0.0.1:8025'));
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) return null;
+    return `${url.origin}${url.pathname.replace(/\/$/, '')}`;
+  } catch { return null; }
 }
 
 function updateEnvText(source, updates) {
@@ -82,6 +91,7 @@ function applyRuntimeEmailConfiguration(updates) {
   require('./gmailEmailAgentService').reconfigureFromEnvironment();
   require('./ipiEmailProvider').refreshIpiEmailProvider();
   require('./xssMailProvider').refreshXssMailProvider();
+  require('./xssEmailDispatch').refreshXssEmailDispatch();
 }
 
 function createAdminEmailConfiguration({
@@ -110,6 +120,7 @@ function createAdminEmailConfiguration({
       xssProvider,
       gmailConfigured: Boolean(String(saved.GMAIL_USER || '').trim() && String(saved.GMAIL_APP_PASSWORD || '').trim()),
       mailpitSigningConfigured: Boolean(String(saved.IPI_MAIL_HMAC_SECRET || '').trim()),
+      mailpitInboxUrl: mailpitInboxUrl(saved.WORKSHOP_MAILPIT_API_URL),
       restartRequired: configuredProvider(running.IPI_EMAIL_PROVIDER, 'mailpit') !== ipiProvider
         || configuredProvider(running.XSS_MAIL_PROVIDER, 'gmail') !== xssProvider
         || String(running.GMAIL_USER || '') !== String(saved.GMAIL_USER || '')
@@ -140,6 +151,11 @@ function createAdminEmailConfiguration({
     if (ipiProvider === 'mailpit' && String(current.IPI_MAIL_HMAC_SECRET || '').trim().length < 32) {
       updates.IPI_MAIL_HMAC_SECRET = crypto.randomBytes(32).toString('hex');
     }
+    if (ipiProvider === 'mailpit' || xssProvider === 'mailpit') {
+      updates.WORKSHOP_MAILPIT_SMTP_HOST = String(current.WORKSHOP_MAILPIT_SMTP_HOST || '127.0.0.1').trim();
+      updates.WORKSHOP_MAILPIT_SMTP_PORT = String(current.WORKSHOP_MAILPIT_SMTP_PORT || '1025').trim();
+      updates.WORKSHOP_MAILPIT_API_URL = String(current.WORKSHOP_MAILPIT_API_URL || 'http://127.0.0.1:8025').trim();
+    }
     await atomicWritePrivateEnv(envPath, updateEnvText(text, updates));
     applyRuntime(updates);
     return status();
@@ -148,4 +164,4 @@ function createAdminEmailConfiguration({
   return Object.freeze({ status, save });
 }
 
-module.exports = { createAdminEmailConfiguration, updateEnvText, serializeEnvValue, applyRuntimeEmailConfiguration };
+module.exports = { createAdminEmailConfiguration, updateEnvText, serializeEnvValue, mailpitInboxUrl, applyRuntimeEmailConfiguration };
