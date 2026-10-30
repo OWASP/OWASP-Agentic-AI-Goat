@@ -35,6 +35,7 @@ async function mount() {
 function button(label) { const found = [...node.querySelectorAll('button')].find(item => item.textContent.trim() === label); expect(found).toBeTruthy(); return found; }
 function reactHandler(element) { const props = element[Object.keys(element).find(key => key.startsWith('__reactProps$'))]; expect(typeof props?.onClick).toBe('function'); return props.onClick; }
 function dialog() { return node.querySelector('[role="dialog"][aria-label="Confirm all exercise visibility change"]'); }
+function contentDialog() { return node.querySelector('[role="dialog"][aria-label="Confirm all hint and solution visibility change"]'); }
 async function click(label) { await act(async () => button(label).click()); await flush(); }
 function deferred() { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; }
 
@@ -63,8 +64,11 @@ test('Enable All stages full-catalog consequence and Cancel sends no POST', asyn
   await click('Cancel');
   expect(axios.post).not.toHaveBeenCalled();
 });
-test('global hint and solution controls use the database-backed bulk endpoint', async () => {
+test('global hint and solution controls stage and confirm the database-backed bulk endpoint', async () => {
   await mount(); await click('Enable All Hints & Solutions');
+  expect(axios.patch).not.toHaveBeenCalled();
+  expect(contentDialog()).not.toBeNull();
+  await click('Confirm Enable All');
   expect(axios.patch).toHaveBeenCalledWith('/api/admin/exercises/content-visibility', { enabled: true }, expect.objectContaining({
     headers: { Authorization: 'Bearer admin-a' }, timeout: 10000,
   }));

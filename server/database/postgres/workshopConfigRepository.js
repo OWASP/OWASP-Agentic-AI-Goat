@@ -182,8 +182,17 @@ function createWorkshopConfigRepository(pool,{isSecureShopReady=()=>{
    });
   },
   setAllExerciseVisibility(enabled,updatedBy){boolean(enabled);return mutate(null,async client=>{
-   if(enabled)for(const row of (await client.query('SELECT workshop_key,route FROM workshop_platform.exercises WHERE catalog_active=true')).rows)requireExerciseReady(row,true);
-   return {changed:(await client.query('UPDATE workshop_platform.exercises SET is_visible=$1,updated_by=$2,updated_at=now() WHERE catalog_active=true AND is_visible IS DISTINCT FROM $1',[enabled,updatedBy??null])).rowCount};
+   const unavailableWorkshops=[];
+   if(enabled)for(const row of (await client.query('SELECT workshop_key,route FROM workshop_platform.exercises WHERE catalog_active=true')).rows){
+    try{requireExerciseReady(row,true);}catch(err){
+     if(err?.code!=='EXERCISE_NOT_READY')throw err;
+     unavailableWorkshops.push(row.workshop_key);
+    }
+   }
+   const excluded=enabled&&unavailableWorkshops.length?' AND workshop_key<>ALL($3::text[])':'';
+   const params=excluded?[enabled,updatedBy??null,unavailableWorkshops]:[enabled,updatedBy??null];
+   return {changed:(await client.query(`UPDATE workshop_platform.exercises SET is_visible=$1,updated_by=$2,updated_at=now() WHERE catalog_active=true AND is_visible IS DISTINCT FROM $1${excluded}`,params)).rowCount,
+    extra:{unavailableWorkshops}};
   });},
   setAllHintAndSolutionVisibility(enabled,updatedBy){boolean(enabled);return mutate(null,async client=>{
    let changed=0;
