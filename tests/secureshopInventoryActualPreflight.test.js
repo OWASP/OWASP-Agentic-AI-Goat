@@ -21,7 +21,7 @@ test('reviewed inventory eligibility staging is a strict no-op with complete def
  const catalog=sandbox.module.exports;helper.validateInventoryCandidateCatalog({...catalog,HINTS:structuredClone(catalog.HINTS),SOLUTIONS:structuredClone(catalog.SOLUTIONS)});
  assert.equal(require(file).isQualifiedObjective('ss_inventory_cross_merchant_stock'),true);
  assert.equal(catalog.OBJECTIVES.find(row=>row.id==='ss_inventory_cross_merchant_stock').defaultEnabled,false);
- assert.equal(catalog.CHALLENGE.defaultVisible,false);
+ assert.equal(catalog.CHALLENGE.defaultVisible,true);
  assert.equal(source,original);assert.equal(helper.stageInventoryCandidateCatalog(source),source);
  assert.equal(fs.readFileSync(file,'utf8'),original);
  // Already-eligible sources still require the exact reviewed teaching contract.

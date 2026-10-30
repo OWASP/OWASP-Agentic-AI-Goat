@@ -13,10 +13,10 @@ const { createWorkshopPlatformSeed } = require('../server/database/postgres/work
 const { releasePhase } = require('./helpers/workshopCatalogReleasePhase');
 const phase = releasePhase();
 
-test('SecureShop curriculum is one hidden PostgreSQL-ready catalog with exact readiness', () => {
+test('SecureShop curriculum is a visible PostgreSQL-ready catalog with exact readiness', () => {
   assert.equal(curriculum.WORKSHOP_KEY, 'secureshop_agent_security');
   assert.equal(curriculum.CHALLENGE.route, phase.generated ? '/workshop/secureshop' : '');
-  assert.equal(curriculum.CHALLENGE.defaultVisible, false);
+  assert.equal(curriculum.CHALLENGE.defaultVisible, true);
   assert.equal(curriculum.EXERCISES.length, 48);
   assert.equal(curriculum.OBJECTIVES.length, 64);
   assert.deepEqual(curriculum.EXERCISES.flatMap(row => row.objectiveIds),
@@ -361,7 +361,7 @@ test('System restart command-injection objective is qualified but remains instru
   assert.equal(objective.exerciseId, 'ss_system_restart');
   assert.equal(objective.qualification, 'native-browser-judge');
   assert.equal(objective.defaultEnabled, false);
-  assert.equal(curriculum.CHALLENGE.defaultVisible, false);
+  assert.equal(curriculum.CHALLENGE.defaultVisible, true);
   assert.equal(curriculum.isQualifiedObjective(id), true);
   assert.match(objective.evidence, /qualified bound_system_restart_injection.*secureshop-system-restart-injection-v1/s);
   assert.match(objective.evidence, /physical IDs-only confirmation.*completed owned isolated restart receipt/s);
@@ -431,6 +431,8 @@ test('MCP impersonation objective stays default-disabled and its catalog seed is
   challenges: [curriculum.CHALLENGE], catalogVersion: 'v43-curriculum-test',
  };
  assert.equal((await seed(client, input)).changed, true, 'fresh seed inserts the disabled objective');
+ const freshExercise = calls.find(call => call.sql.startsWith('INSERT INTO workshop_platform.exercises'));
+ assert.equal(freshExercise.args[8], true, 'fresh installation shows SecureShop in the admin catalog');
  const fresh = calls.find(call => call.sql.startsWith('INSERT INTO workshop_platform.objectives'));
  assert.equal(fresh.args[1], id); assert.equal(fresh.args[8], false, 'fresh seed must not enable it');
  assert.deepEqual(adopted.filter(spec => spec.entityKind === 'objective').map(spec => spec.fieldName).sort(),

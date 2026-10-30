@@ -29,6 +29,15 @@ test('per-objective gate derives only its own master and exercise visibility sta
  assert.equal(f.state().show_solutions,true);assert.equal(f.state().hint_enabled,true);
  await f.service.setExerciseVisibility('direct_prompt_injection',false,71);assert.equal(f.state().is_visible,false);assert.equal(f.state().solution_enabled,true);
 });
+test('global hint and solution mutation updates both database gates atomically',async()=>{
+ const f=fixture();const enabled=await f.service.setAllHintAndSolutionVisibility(true,71);
+ assert.equal(enabled.changed,true);assert.equal(f.state().show_hints,true);assert.equal(f.state().show_solutions,true);
+ assert.equal(f.state().hint_enabled,true);assert.equal(f.state().solution_enabled,true);assert.equal(f.state().revision,1);
+ const disabled=await f.service.setAllHintAndSolutionVisibility(false,71);
+ assert.equal(disabled.changed,true);assert.equal(f.state().show_hints,false);assert.equal(f.state().show_solutions,false);
+ assert.equal(f.state().hint_enabled,false);assert.equal(f.state().solution_enabled,false);assert.equal(f.state().revision,2);
+ assert(f.calls.filter(c=>c.sql.startsWith('UPDATE workshop_platform.')&&c.sql.includes('updated_by=$2')).every(c=>c.args[1]===71));
+});
 test('revision failure rolls back controlled transaction and never reports commit',async()=>{
  const f=fixture(),before=structuredClone(f.state());f.failRevision();
  await assert.rejects(f.service.setMasterSolutionVisibility('direct_prompt_injection',true,71),/Controlled revision failure/);

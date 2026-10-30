@@ -36,11 +36,14 @@ test('native catalog remains hidden, preserves choices and blocks pending enable
       for (const mutate of [
         () => config.setExerciseVisibility(curriculum.WORKSHOP_KEY, true),
         () => config.toggleExerciseVisibility(curriculum.WORKSHOP_KEY),
-        () => config.setAllExerciseVisibility(true),
         () => config.updateExercise({ key: curriculum.WORKSHOP_KEY,
           challengeName: 'SecureShop', category: 'ai', difficulty: 'advanced',
           isVisible: true, showSolutions: false, description: 'fixture', route: '/secureshop' }),
       ]) await assert.rejects(mutate(), { code: 'EXERCISE_NOT_READY', statusCode: 409 });
+      const bulkEnable = await config.setAllExerciseVisibility(true);
+      assert.deepEqual(bulkEnable.unavailableWorkshops, [curriculum.WORKSHOP_KEY]);
+      assert.equal(bulkEnable.exercises[curriculum.WORKSHOP_KEY].isVisible, false,
+        'bulk enablement preserves the runtime gate for SecureShop');
       for (const id of curriculum.PENDING_OBJECTIVE_IDS) {
         await assert.rejects(config.setObjectiveVisibility(curriculum.WORKSHOP_KEY, id, true),
           { code: 'OBJECTIVE_UNQUALIFIED', statusCode: 409 });

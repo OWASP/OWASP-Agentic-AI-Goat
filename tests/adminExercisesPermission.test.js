@@ -16,7 +16,7 @@ test('exercise configuration writes require a current challenge-management grant
   const auth = createPostgresAdminAuth({ repository, validateSession: async token => ({
     user: { id: 1, role: token === 'student' ? 'student' : 'admin', admin_level: 1 }, session: {},
   }) });
-  const methods = ['setExerciseVisibility', 'setObjectiveVisibility', 'setMasterHintVisibility',
+  const methods = ['setAllHintAndSolutionVisibility', 'setExerciseVisibility', 'setObjectiveVisibility', 'setMasterHintVisibility',
     'setObjectiveHintVisibility', 'setMasterSolutionVisibility', 'setObjectiveSolutionVisibility',
     'updateObjectiveMetadata', 'updateHintContent', 'updateSolutionContent'];
   const service = {
@@ -36,8 +36,10 @@ test('exercise configuration writes require a current challenge-management grant
   const server = app.listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
-  const base = `http://127.0.0.1:${server.address().port}/api/admin/exercises/workshop`;
+  const root = `http://127.0.0.1:${server.address().port}/api/admin/exercises`;
+  const base = `${root}/workshop`;
   const requests = [
+    ['PATCH', `${root}/content-visibility`, { enabled: true }],
     ['PATCH', base, { enabled: true }],
     ['PATCH', `${base}/objectives/objective`, { enabled: true }],
     ['PATCH', `${base}/hints`, { enabled: true }],

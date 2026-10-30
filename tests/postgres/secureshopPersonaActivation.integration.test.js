@@ -181,8 +181,8 @@ test('candidate persona activation mounts real JWT launch and preserves catalog 
       assert.equal(expected.get(row.objective_id).defaultEnabled, false);
     }
     assert.equal(curriculum.CHALLENGE.route, '/workshop/secureshop');
-    assert.equal(curriculum.CHALLENGE.defaultVisible, false);
-    assert.equal(curriculum.CHALLENGE.visible, 0);
+    assert.equal(curriculum.CHALLENGE.defaultVisible, true);
+    assert.equal(curriculum.CHALLENGE.visible, 1);
     const newlyQualified = curriculum.OBJECTIVES.filter(row => candidate.QUALIFIED.includes(row.id));
     assert.deepEqual(newlyQualified.map(row => row.id), candidate.QUALIFIED);
     assert.ok(newlyQualified.every(row => row.qualification === 'native-model'));
@@ -190,7 +190,7 @@ test('candidate persona activation mounts real JWT launch and preserves catalog 
     assert.ok(curriculum.PENDING_OBJECTIVE_IDS.every(id => !candidate.QUALIFIED.includes(id)));
     const exercise = (await pools.IDENTITY_MIGRATION.query(`SELECT route,is_visible
       FROM workshop_platform.exercises WHERE workshop_key=$1`, [WORKSHOP])).rows[0];
-    assert.deepEqual(exercise, { route: '/workshop/secureshop', is_visible: false });
+    assert.deepEqual(exercise, { route: '/workshop/secureshop', is_visible: true });
     await pools.IDENTITY_MIGRATION.query(`UPDATE workshop_platform.exercises SET is_visible=true
       WHERE workshop_key=$1`, [WORKSHOP]);
     await pools.IDENTITY_MIGRATION.query(`UPDATE workshop_platform.objectives SET is_enabled=true

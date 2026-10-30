@@ -899,6 +899,22 @@ const ComprehensiveAdminDashboard = () => {
     return () => { resetActorRef.current = null; };
   }, [user?.id]);
   const { registerReconciler, refreshAfterMutation, retireSnapshotReads, snapshotReadSequence, snapshot: canonicalConfig } = useWorkshopConfig();
+  // Cards render from the shared canonical snapshot. A bulk mutation carries the
+  // same authoritative projection, so retain it until the background snapshot
+  // read catches up instead of making the instructor refresh the page.
+  const [bulkConfigOverlay, setBulkConfigOverlay] = useState(null);
+  const applyBulkConfigOverlay = (exercises, revision) => {
+    const numericRevision = Number(revision);
+    if (!exercises || typeof exercises !== 'object' || !Number.isSafeInteger(numericRevision) || numericRevision < 0) return;
+    setBulkConfigOverlay({ exercises, revision: numericRevision });
+  };
+  useEffect(() => {
+    if (!bulkConfigOverlay) return;
+    const canonicalRevision = Number(canonicalConfig?.revision);
+    if (Number.isSafeInteger(canonicalRevision) && canonicalRevision >= bulkConfigOverlay.revision) {
+      setBulkConfigOverlay(null);
+    }
+  }, [bulkConfigOverlay, canonicalConfig?.revision]);
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -1154,6 +1170,9 @@ const ComprehensiveAdminDashboard = () => {
       stagedBulkVisibilityRef.current = null;
       setBulkVisibilityConfirm(null);
       setBulkVisibilityOutcome(null);
+      stagedBulkContentRef.current = null;
+      setBulkContentConfirm(null);
+      setBulkContentOutcome(null);
       lockedUsersLoadGenerationRef.current += 1;
       setLockedUsers([]);
       if (activeSectionRef.current === 'locked-users') void fetchLockedUsers();
@@ -1188,6 +1207,7 @@ const ComprehensiveAdminDashboard = () => {
       stagedBulkResetRef.current = null;
       stagedAccountAccessRef.current = null;
       stagedBulkVisibilityRef.current = null;
+      stagedBulkContentRef.current = null;
       lockedUsersLoadGenerationRef.current += 1;
       stagedDeactivationRef.current = null;
       stagedAdministratorEditRef.current = null;
@@ -1280,6 +1300,12 @@ const ComprehensiveAdminDashboard = () => {
 
   // Bulk challenge toggle state
   const [bulkTogglingChallenges, setBulkTogglingChallenges] = useState(false);
+  const [bulkContentPending, setBulkContentPending] = useState(false);
+  const bulkContentRef = useRef(false);
+  const [bulkContentConfirm, setBulkContentConfirm] = useState(null);
+  const [bulkContentOutcome, setBulkContentOutcome] = useState(null);
+  const stagedBulkContentRef = useRef(null);
+  const pendingBulkContentRef = useRef(null);
   const [bulkVisibilityConfirm, setBulkVisibilityConfirm] = useState(null);
   const [bulkVisibilityOutcome, setBulkVisibilityOutcome] = useState(null);
   const stagedBulkVisibilityRef = useRef(null);
@@ -1359,6 +1385,15 @@ const ComprehensiveAdminDashboard = () => {
       stagedBulkVisibilityRef.current = null;
       setBulkVisibilityConfirm(null);
       setBulkVisibilityOutcome(null);
+    }
+  }, [exerciseIdentity, resetAuthRevision, activeSection]);
+  useEffect(() => {
+    const staged = stagedBulkContentRef.current;
+    if (staged && (!isCurrentAdminAuthority(staged.authority) || !challengePermissionRef.current
+      || activeSection !== 'exercises')) {
+      stagedBulkContentRef.current = null;
+      setBulkContentConfirm(null);
+      setBulkContentOutcome(null);
     }
   }, [exerciseIdentity, resetAuthRevision, activeSection]);
   useEffect(() => {
@@ -1563,20 +1598,27 @@ const ComprehensiveAdminDashboard = () => {
       const data = response.data;
       const validRevision = (typeof data?.revision === 'string' && /^\d+$/.test(data.revision))
         || (typeof data?.revision === 'number' && Number.isSafeInteger(data.revision) && data.revision >= 0);
+      const unavailableWorkshops = Array.isArray(data?.unavailableWorkshops)
+        && data.unavailableWorkshops.every(key => typeof key === 'string') ? data.unavailableWorkshops : [];
       const validSnapshot = data?.exercises && typeof data.exercises === 'object' && !Array.isArray(data.exercises)
         && Object.entries(data.exercises).every(([key, item]) => item && typeof item === 'object'
           && !Array.isArray(item) && item.workshopKey === key
-          && typeof item.isVisible === 'boolean' && item.isVisible === staged.enabled);
+          && typeof item.isVisible === 'boolean' && (item.isVisible === staged.enabled
+            || (staged.enabled && unavailableWorkshops.includes(key) && item.isVisible === false)));
       const validAck = response.status === 200 && data?.success === true && data.enabled === staged.enabled
         && typeof data.changed === 'boolean' && Number.isSafeInteger(data.affectedCount)
         && data.affectedCount >= 0 && data.affectedCount <= Object.keys(data.exercises || {}).length
         && data.changed === (data.affectedCount > 0)
         && validRevision && validSnapshot;
       if (!validAck) throw new Error('The server response did not confirm the visibility change.');
+      applyBulkConfigOverlay(data.exercises, data.revision);
       stagedBulkVisibilityRef.current = null;
       setBulkVisibilityConfirm(null);
       setBulkVisibilityOutcome(null);
-      toast.success(`All catalog-active exercises ${staged.enabled ? 'enabled' : 'disabled'}${data.changed ? '' : ' (already in this state)'}.`);
+      const skipped = staged.enabled && unavailableWorkshops.length;
+      toast.success(skipped
+        ? `All ready exercises enabled. ${unavailableWorkshops.join(', ')} remains hidden until its runtime is ready.`
+        : `All catalog-active exercises ${staged.enabled ? 'enabled' : 'disabled'}${data.changed ? '' : ' (already in this state)'}.`);
       void loadDashboardData(true, () => studentDeletionMountedRef.current
         && challengePermissionRef.current && activeSectionRef.current === 'exercises'
         && isCurrentAdminAuthority(staged.authority));
@@ -1588,6 +1630,75 @@ const ComprehensiveAdminDashboard = () => {
       if (pendingBulkVisibilityRef.current === staged) {
         pendingBulkVisibilityRef.current = null;
         if (studentDeletionMountedRef.current) setBulkTogglingChallenges(false);
+      }
+    }
+  };
+
+  const stageBulkContentVisibility = enabled => {
+    if (bulkContentRef.current || !challengePermissionRef.current || activeSectionRef.current !== 'exercises'
+      || stagedBulkContentRef.current || pendingBulkContentRef.current) return;
+    const authority = captureAdminAuthority();
+    if (!authority) return;
+    const staged = { enabled, authority, consumed: false };
+    stagedBulkContentRef.current = staged;
+    setBulkContentConfirm(staged);
+    setBulkContentOutcome(null);
+  };
+  const closeBulkContentVisibility = staged => {
+    if (stagedBulkContentRef.current !== staged || pendingBulkContentRef.current === staged) return;
+    stagedBulkContentRef.current = null;
+    setBulkContentConfirm(null);
+    setBulkContentOutcome(null);
+  };
+  const confirmBulkContentVisibility = async staged => {
+    if (bulkContentRef.current || stagedBulkContentRef.current !== staged || staged.consumed
+      || pendingBulkContentRef.current || !challengePermissionRef.current
+      || activeSectionRef.current !== 'exercises' || !isCurrentAdminAuthority(staged.authority)) return;
+    staged.consumed = true;
+    pendingBulkContentRef.current = staged;
+    bulkContentRef.current = true;
+    setBulkContentPending(true);
+    setBulkContentOutcome({ kind: 'pending' });
+    const current = () => stagedBulkContentRef.current === staged && challengePermissionRef.current
+      && activeSectionRef.current === 'exercises' && isCurrentAdminAuthority(staged.authority);
+    try {
+      const response = await axios.patch('/api/admin/exercises/content-visibility', { enabled: staged.enabled }, {
+        headers: { Authorization: `Bearer ${staged.authority.token}` }, timeout: 10000,
+      });
+      if (!current()) return;
+      const data = response.data;
+      const validRevision = (typeof data?.revision === 'string' && /^\d+$/.test(data.revision))
+        || (typeof data?.revision === 'number' && Number.isSafeInteger(data.revision) && data.revision >= 0);
+      const exercises = data?.exercises;
+      const validExercises = exercises && typeof exercises === 'object' && !Array.isArray(exercises)
+        && Object.values(exercises).every(exercise => exercise && typeof exercise === 'object'
+          && exercise.showHints === staged.enabled && exercise.showSolutions === staged.enabled);
+      if (response.status !== 200 || data?.success !== true || typeof data.changed !== 'boolean'
+        || !validRevision || !validExercises) {
+        throw new Error('The server response did not confirm the content visibility change.');
+      }
+      applyBulkConfigOverlay(exercises, data.revision);
+      stagedBulkContentRef.current = null;
+      setBulkContentConfirm(null);
+      setBulkContentOutcome(null);
+      setChallenges(previous => previous.map(challenge => {
+        const exercise = exercises[toWorkshopKey(challenge.key || challenge.id || challenge.workshopKey)];
+        return exercise ? { ...challenge, enabled: exercise.isVisible, showHints: exercise.showHints,
+          showSolutions: exercise.showSolutions } : challenge;
+      }));
+      // The mutation response is authoritative. Refresh the shared projection afterwards,
+      // but do not report a committed update as failed if that independent read is delayed.
+      void refreshAfterMutation();
+      toast.success(`All available hints and solutions ${staged.enabled ? 'enabled' : 'disabled'}${data.changed ? '' : ' (already in this state)'}.`);
+    } catch (error) {
+      if (!current()) return;
+      setBulkContentOutcome({ kind: error.response?.status >= 400 && error.response.status < 500
+        && error.response.status !== 408 ? 'rejected' : 'unknown' });
+    } finally {
+      if (pendingBulkContentRef.current === staged) {
+        pendingBulkContentRef.current = null;
+        bulkContentRef.current = false;
+        setBulkContentPending(false);
       }
     }
   };
@@ -4595,7 +4706,7 @@ const ComprehensiveAdminDashboard = () => {
           <ModalBody>
             <p>This {staged.enabled ? 'shows' : 'hides'} all catalog-active exercises to learners, including those outside the current filtered list.</p>
             <p>Effective access to objectives, hints, and solutions follows exercise visibility. This does not delete exercises, reset learner progress, or change their configured gates.</p>
-            {staged.enabled && <p>Enable All can be rejected if any active exercise fails the server readiness checks.</p>}
+            {staged.enabled && <p>Exercises whose required runtime is not ready remain hidden; the server reports them after confirmation.</p>}
             {bulkVisibilityOutcome?.kind === 'pending' && <p role="status">Changing exercise visibility…</p>}
             {bulkVisibilityOutcome?.kind === 'unknown' && <p role="alert">
               The request outcome could not be confirmed. This dialog cannot retry it; close and review current visibility before a new confirmation.
@@ -4617,6 +4728,45 @@ const ComprehensiveAdminDashboard = () => {
     );
   };
 
+  const renderBulkContentVisibilityConfirmModal = () => {
+    if (!bulkContentConfirm) return null;
+    const staged = bulkContentConfirm;
+    const close = () => closeBulkContentVisibility(staged);
+    const verb = staged.enabled ? 'Enable' : 'Disable';
+    return (
+      <ModalOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
+        <ModalContent role="dialog" aria-label="Confirm all hint and solution visibility change"
+          initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+          onClick={event => event.stopPropagation()} style={{ maxWidth: '500px' }}>
+          <ModalHeader>
+            <h2>{verb} all hints and solutions?</h2>
+            <button type="button" aria-label="Close all hint and solution visibility confirmation"
+              disabled={bulkContentOutcome?.kind === 'pending'} onClick={close}><FiX /></button>
+          </ModalHeader>
+          <ModalBody>
+            <p>This {staged.enabled ? 'makes available' : 'hides'} all configured hints and solutions for catalog-active exercises, including those outside the current filtered list.</p>
+            <p>It does not change exercise or objective visibility, delete teaching content, or reset learner progress. Objectives without the relevant content remain unavailable.</p>
+            {bulkContentOutcome?.kind === 'pending' && <p role="status">Changing hint and solution visibility…</p>}
+            {bulkContentOutcome?.kind === 'unknown' && <p role="alert">
+              The request outcome could not be confirmed. This dialog cannot retry it; close and review current visibility before a new confirmation.
+            </p>}
+            {bulkContentOutcome?.kind === 'rejected' && <p role="alert">
+              The server rejected this hint and solution visibility change. No automatic retry was sent.
+            </p>}
+          </ModalBody>
+          <ModalFooter>
+            <SecondaryButton type="button" disabled={bulkContentOutcome?.kind === 'pending'} onClick={close}>
+              {staged.consumed ? 'Close' : 'Cancel'}
+            </SecondaryButton>
+            {!staged.consumed && <ActionButton type="button" onClick={() => confirmBulkContentVisibility(staged)}>
+              Confirm {verb} All
+            </ActionButton>}
+          </ModalFooter>
+        </ModalContent>
+      </ModalOverlay>
+    );
+  };
+
   const renderExercises = () => (
     <ContentSection
       initial={{ opacity: 0, y: 20 }}
@@ -4625,6 +4775,20 @@ const ComprehensiveAdminDashboard = () => {
       <SectionHeader>
         <h2><FiBookOpen /> Exercises Management</h2>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <ActionButton
+            onClick={() => stageBulkContentVisibility(true)}
+            disabled={bulkContentPending || !!bulkContentConfirm || !canManageChallenges}
+            style={{ background: '#3182ce', color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <FiToggleRight /> Enable All Hints &amp; Solutions
+          </ActionButton>
+          <ActionButton
+            onClick={() => stageBulkContentVisibility(false)}
+            disabled={bulkContentPending || !!bulkContentConfirm || !canManageChallenges}
+            style={{ background: '#dd6b20', color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <FiToggleLeft /> Disable All Hints &amp; Solutions
+          </ActionButton>
           <ActionButton
             onClick={() => stageBulkVisibility(true)}
             disabled={bulkTogglingChallenges || !!bulkVisibilityConfirm || !canManageChallenges}
@@ -4645,7 +4809,7 @@ const ComprehensiveAdminDashboard = () => {
       <div style={{ marginBottom: '2rem' }}>
         <p style={{ color: '#718096', marginBottom: '1.5rem' }}>
           Show or hide each exercise, control student visibility of solutions &amp; hints, and open
-          <strong> Manage Objectives</strong> for per-objective control. Visible exercises with no enabled objectives remain locked for students. Use <strong>Enable / Disable All</strong> above to change exercise visibility.
+          <strong> Manage Objectives</strong> for per-objective control. Visible exercises with no enabled objectives remain locked for students. Use the bulk controls above to change exercise visibility or all available hints and solutions.
         </p>
 
         {loading && (
@@ -4668,7 +4832,8 @@ const ComprehensiveAdminDashboard = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
             {challenges.map(storedChallenge => {
               const cKey = storedChallenge.key || storedChallenge.id;
-              const canonical = canonicalConfig?.exercises?.[toWorkshopKey(cKey)];
+              const canonical = bulkConfigOverlay?.exercises?.[toWorkshopKey(cKey)]
+                || canonicalConfig?.exercises?.[toWorkshopKey(cKey)];
               const challenge = canonical ? { ...storedChallenge, enabled: canonical.isVisible, showHints: canonical.showHints, showSolutions: canonical.showSolutions } : storedChallenge;
               const { solutionPanel } = resolveExerciseKeys(cKey);
               const active = challenge.enabled;
@@ -9193,6 +9358,7 @@ const ComprehensiveAdminDashboard = () => {
       </AnimatePresence>
       {accountAccessConfirm && renderAccountAccessConfirmModal()}
       {bulkVisibilityConfirm && renderBulkVisibilityConfirmModal()}
+      {bulkContentConfirm && renderBulkContentVisibilityConfirmModal()}
     </AdminContainer>
   );
 };

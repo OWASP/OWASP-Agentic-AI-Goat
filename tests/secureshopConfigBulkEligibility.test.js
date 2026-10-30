@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const { createWorkshopConfigRepository } = require('../server/database/postgres/workshopConfigRepository');
 const { QUALIFIED_OBJECTIVE_IDS, WORKSHOP_KEY } = require('../server/config/secureshopCurriculum');
 
-function fixture() {
+function fixture({ ready = true } = {}) {
   const calls = [];
   const exercise = { workshop_key: WORKSHOP_KEY, challenge_name: 'SecureShop', category: 'ai', difficulty: 'advanced',
     is_visible: false, show_solutions: false, challenge_description: 'desc', route: '/workshop/secureshop' };
@@ -13,6 +13,7 @@ function fixture() {
     calls.push({ sql, params });
     if (sql === 'SELECT * FROM workshop_platform.exercises WHERE (workshop_key=$1 OR challenge_key=$1) AND catalog_active=true') return { rows: [exercise] };
     if (/SELECT revision FROM workshop_platform\.config_revision/.test(sql)) return { rows: [{ revision: 0 }] };
+    if (/SELECT workshop_key,route FROM workshop_platform\.exercises/.test(sql)) return { rows: [exercise] };
     if (/SELECT w\.\*,o\.objective_id/.test(sql)) return { rows: [] };
     if (sql === 'SELECT * FROM workshop_platform.objectives WHERE workshop_key=$1 AND objective_id=$2 AND catalog_active=true')
       return { rows: [{ objective_id: params[1], workshop_key: WORKSHOP_KEY }] };
@@ -23,7 +24,7 @@ function fixture() {
     return { rowCount: 0, rows: [] };
   }, release() {} };
   const pool = { async connect() { return client; }, async query(sql, params) { return client.query(sql, params); } };
-  return { service: createWorkshopConfigRepository(pool, { isSecureShopReady: () => true }), calls };
+  return { service: createWorkshopConfigRepository(pool, { isSecureShopReady: () => ready }), calls };
 }
 
 function objectiveUpdate(calls, field) {
@@ -46,6 +47,32 @@ test('master disable clears all active objectives without a qualification filter
     assert.doesNotMatch(update.sql, /objective_id = ANY/);
     assert.deepEqual(update.params, [false, 9, WORKSHOP_KEY]);
   }
+});
+
+test('global help enable keeps unqualified SecureShop objectives disabled', async () => {
+  const enabled = fixture();
+  await enabled.service.setAllHintAndSolutionVisibility(true, 9);
+  for (const field of ['hint_enabled', 'solution_enabled']) {
+    const update = objectiveUpdate(enabled.calls, field);
+    assert.match(update.sql, /workshop_key<>\$3 OR objective_id=ANY\(\$4::text\[\]\)/);
+    assert.deepEqual(update.params, [true, 9, WORKSHOP_KEY, QUALIFIED_OBJECTIVE_IDS]);
+  }
+  const disabled = fixture();
+  await disabled.service.setAllHintAndSolutionVisibility(false, 9);
+  for (const field of ['hint_enabled', 'solution_enabled']) {
+    const update = objectiveUpdate(disabled.calls, field);
+    assert.doesNotMatch(update.sql, /objective_id=ANY/);
+    assert.deepEqual(update.params, [false, 9]);
+  }
+});
+
+test('global exercise enable reports an unavailable SecureShop instead of rejecting all ready exercises', async () => {
+  const f = fixture({ ready: false });
+  const result = await f.service.setAllExerciseVisibility(true, 9);
+  assert.deepEqual(result.unavailableWorkshops, [WORKSHOP_KEY]);
+  const update = f.calls.find(call => call.sql.includes('SET is_visible=') && call.sql.includes('workshop_platform.exercises'));
+  assert.match(update.sql, /workshop_key<>ALL\(\$3::text\[\]\)/);
+  assert.deepEqual(update.params, [true, 9, [WORKSHOP_KEY]]);
 });
 
 test('exercise showSolutions enable updates only qualified objectives', async () => {

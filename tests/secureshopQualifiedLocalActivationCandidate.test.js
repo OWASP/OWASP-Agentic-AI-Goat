@@ -50,7 +50,7 @@ test('installed curriculum retains all qualified objectives and the historical b
     assert.doesNotMatch(curriculum.SOLUTIONS[id].approach, /^Unavailable/);
     assert.notEqual(curriculum.SOLUTIONS[id].examples[0].action, 'Unavailable');
   }
-  assert.equal(curriculum.CHALLENGE.defaultVisible, false);
+  assert.equal(curriculum.CHALLENGE.defaultVisible, true);
 });
 
 test('installed catalog and managed configuration preserve startup ordering', () => {
