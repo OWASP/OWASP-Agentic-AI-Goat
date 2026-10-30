@@ -12,7 +12,7 @@ const LandingContainer = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 6rem 2rem 3rem;
   position: relative;
   overflow: hidden;
 `;
@@ -69,6 +69,13 @@ const Title = styled(motion.h1)`
   }
 `;
 
+const BrandLogo = styled.img`
+  display: block;
+  width: min(352px, 80%);
+  height: auto;
+  margin: 0 auto;
+`;
+
 const Subtitle = styled(motion.p)`
   color: rgba(255, 255, 255, 0.9);
   font-size: 1.4rem;
@@ -86,21 +93,23 @@ const Subtitle = styled(motion.p)`
 `;
 
 const PlatformCards = styled(motion.div)`
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 440px));
+  grid-auto-rows: 1fr;
   justify-content: center;
   gap: 2.5rem;
   margin-top: 2rem;
   width: 100%;
   
   @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: center;
     gap: 2rem;
   }
 `;
 
 const PlatformCard = styled(motion.div)`
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px);
   border-radius: 24px;
@@ -132,6 +141,7 @@ const PlatformCard = styled(motion.div)`
 `;
 
 const CardIcon = styled.div`
+  flex-shrink: 0;
   width: 70px;
   height: 70px;
   border-radius: 18px;
@@ -203,7 +213,7 @@ const CardButton = styled.button`
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin: 0 auto;
+  margin: auto auto 0;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
   
   &:hover {
@@ -225,7 +235,7 @@ const LandingPage = () => {
   return (
     <>
       <WarningBanner>
-        ⚠️ WARNING: This is a deliberately vulnerable application for educational purposes only!
+        ⚠️ This application is deliberately vulnerable. Use it for security training only.
       </WarningBanner>
       
       <LandingContainer>
@@ -237,7 +247,13 @@ const LandingPage = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.8 }}
           >
-            OWASP Agentic AI GOAT
+            <BrandLogo
+              src="/images/branding/owasp-agentic-ai-goat-logo.png"
+              alt="OWASP Agentic AI GOAT"
+              width="1774"
+              height="887"
+              fetchPriority="high"
+            />
           </Title>
           
           <Subtitle
@@ -246,8 +262,8 @@ const LandingPage = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
           >
             {showSecureshop
-              ? 'Choose Your Learning Path: Security Education or Hands-On E-commerce Practice'
-              : 'Hands-On Security Education & Vulnerability Practice'}
+              ? 'Practice AI security in the workshops or explore the AI-powered shop.'
+              : 'Learn AI security by trying the attacks yourself.'}
           </Subtitle>
 
           <PlatformCards
@@ -264,23 +280,23 @@ const LandingPage = () => {
                 <FiShield />
               </CardIcon>
               
-              <CardTitle>Security Workshop</CardTitle>
+              <CardTitle>Security workshops</CardTitle>
 
               <CardDescription>
-                Exploit real AI vulnerabilities — prompt injection, agent manipulation,
-                SQL/NoSQL injection via LLMs, XSS in AI chat, MCP tool poisoning,
-                supply chain attacks and more — across 12 fully hands-on workshops.
+                Try prompt injection and agent manipulation, inject SQL and NoSQL
+                queries through an LLM, or test XSS in AI chat. The workshops also
+                cover supply chain attacks and other AI vulnerabilities.
               </CardDescription>
 
               <CardFeatures>
-                <FeatureItem color="#667eea">12 AI Security Workshops</FeatureItem>
-                <FeatureItem color="#667eea">Prompt Injection, RAG Poisoning & Agent Exploitation</FeatureItem>
-                <FeatureItem color="#667eea">10-Level CTF Platform with Adaptive Defenses</FeatureItem>
-                <FeatureItem color="#667eea">Now includes MCP tool poisoning & LLM06 excessive agency</FeatureItem>
+                <FeatureItem color="#667eea">12 practical AI security workshops</FeatureItem>
+                <FeatureItem color="#667eea">Prompt injection, RAG poisoning and agent exploitation</FeatureItem>
+                <FeatureItem color="#667eea">A 10-level CTF with adaptive defenses</FeatureItem>
+                <FeatureItem color="#667eea">MCP tool poisoning and LLM06 excessive agency</FeatureItem>
               </CardFeatures>
               
               <CardButton gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
-                Enter Workshop
+                Open workshops
                 <FiArrowRight />
               </CardButton>
             </PlatformCard>
@@ -295,23 +311,22 @@ const LandingPage = () => {
                   <FiShoppingCart />
                 </CardIcon>
                 
-                <CardTitle>OWASP AI SecureShop Playground</CardTitle>
+                <CardTitle>OWASP AI SecureShop</CardTitle>
 
                 <CardDescription>
-                  Explore an agentic e-commerce site with real login, cart, checkout
-                  and a live Agent Lane that traces every hop of the underlying
-                  multi-agent system.
+                  Browse the shop, add items to your cart and check out. Follow
+                  each step in Agent Lane to see how the agents handle your requests.
                 </CardDescription>
 
                 <CardFeatures>
-                  <FeatureItem color="#28a745">Real login, cart, checkout & Agent Lane observability</FeatureItem>
-                  <FeatureItem color="#28a745">17 role-based agents (customer / merchant / admin)</FeatureItem>
-                  <FeatureItem color="#28a745">Customer, Merchant & Admin surfaces</FeatureItem>
-                  <FeatureItem color="#28a745">Guest browsing — sign in to save your cart</FeatureItem>
+                  <FeatureItem color="#28a745">Working login, cart and checkout</FeatureItem>
+                  <FeatureItem color="#28a745">17 agents across customer, merchant and admin roles</FeatureItem>
+                  <FeatureItem color="#28a745">Separate customer, merchant and admin pages</FeatureItem>
+                  <FeatureItem color="#28a745">Browse as a guest or sign in to save your cart</FeatureItem>
                 </CardFeatures>
                 
                 <CardButton gradient="linear-gradient(135deg, #28a745 0%, #20c997 100%)">
-                  Start Shopping
+                  Open shop
                   <FiPlay />
                 </CardButton>
               </PlatformCard>

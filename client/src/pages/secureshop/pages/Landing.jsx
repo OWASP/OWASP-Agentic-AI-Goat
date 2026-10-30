@@ -269,7 +269,11 @@ export default function Landing() {
 function LandingTopNav({ authed, user }) {
   return (
     <nav className="ss-landing-nav" role="navigation" aria-label="Marketing nav">
-      <Link to="/secureshop" className="ss-nav__brand">OWASP AI SecureShop</Link>
+      <Link to="/secureshop" className="ss-nav__brand" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+        <img src="/images/branding/goat-emblem.png" alt="" width="40" height="40"
+          style={{ display: 'block', flexShrink: 0, objectFit: 'contain' }} />
+        <span>OWASP AI SecureShop</span>
+      </Link>
       <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
         <Link to="/secureshop/catalog" className="ss-nav__link">Shop</Link>
         <Link to="/secureshop#how" className="ss-nav__link">How it works</Link>
