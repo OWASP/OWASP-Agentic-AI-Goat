@@ -80,6 +80,7 @@ See the [quick start](docs/QUICK_START.md) for Windows startup, service checks, 
 Keep credentials in your private `.env`. Do not commit them.
 
 - [Environment settings](.env.example): AI providers, models, grading, ports, and lab settings. Ollama is the default; cloud providers require your own credentials.
+- [LangSmith tracing](docs/install/LANGSMITH.md): configure tracing and inspect LangGraph decisions, LangChain model calls, and tool results.
 - [Email setup](docs/install/SMTP_SETUP.md): Gmail SMTP, SharkLasers, and local Mailpit delivery. Choose the workshop email provider in Admin → Settings → Email Delivery. With Mailpit selected, the IPI and XSS email labs include a link to the inbox.
 - [Workshop entry password](docs/install/INSTALLATION.md#optional-workshop-entry-password): restrict entry during an event.
 - [Custom ports and browser origins](docs/install/INSTALLATION.md#browser-origins-and-custom-ports) and [reverse proxies](docs/install/INSTALLATION.md#reverse-proxies).
