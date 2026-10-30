@@ -381,10 +381,10 @@ to check the preserved learning dependency versions.
 
 ### Optional: Gmail SMTP
 
-The **Email Agent** challenge needs Gmail App Password credentials only when `IPI_EMAIL_PROVIDER=gmail`. The **XSS Workshop email tab** needs them only when `XSS_MAIL_PROVIDER=gmail`. See **[docs/install/SMTP_SETUP.md](docs/install/SMTP_SETUP.md)**
+The **Email Agent** challenge needs Gmail App Password credentials only when `IPI_EMAIL_PROVIDER=gmail`. The **XSS Workshop email tab** defaults to `XSS_MAIL_PROVIDER=gmail`, so it needs them for its editable SharkLasers inbox. See **[docs/install/SMTP_SETUP.md](docs/install/SMTP_SETUP.md)**
 for setup steps. Configure these optional credentials in your private `.env` after installation.
 
-The XSS email exercise defaults to the local Mailpit sidecar (`XSS_MAIL_PROVIDER=mailpit`), with a separate server-assigned inbox for each signed-in student. It does not require Gmail credentials. Fresh setup provisions the same owned loopback Mailpit service for the Email Agent and writes `IPI_EMAIL_PROVIDER=mailpit` with a private HMAC secret; setup verifies the API and SMTP listener before provisioning application databases. Set `IPI_EMAIL_PROVIDER=gmail` explicitly for the external Gmail/temporary-inbox workflow. Existing `.env` files keep their selected provider. External providers may filter HTML, so that workflow is not yet qualified for exact exploit-body preservation. Local Mailpit capture proves owned local delivery/readback, not external Gmail delivery.
+The XSS email exercise defaults to Gmail/SharkLasers (`XSS_MAIL_PROVIDER=gmail`). Set `XSS_MAIL_PROVIDER=mailpit` to use its separate local inbox instead, then inspect captured messages at `http://localhost:8025`. Fresh setup still provisions the owned loopback Mailpit service for local lab workflows and defaults IPI to `IPI_EMAIL_PROVIDER=mailpit` unless Gmail is selected explicitly. Existing `.env` files keep their selected provider. External providers may filter HTML, so that workflow is not yet qualified for exact exploit-body preservation. Local Mailpit capture proves owned local delivery/readback, not external Gmail delivery.
 
 ---
 

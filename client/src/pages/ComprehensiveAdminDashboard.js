@@ -566,6 +566,85 @@ const ActionButton = styled.button`
   }
 `;
 
+const EmailDeliveryPanel = styled.section`
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8faff 100%);
+  box-shadow: 0 10px 24px rgba(72, 85, 125, 0.08);
+`;
+
+const EmailProviderGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+`;
+
+const EmailProviderField = styled.label`
+  display: grid;
+  gap: 0.5rem;
+  color: #2d3748;
+  font-size: 0.875rem;
+  font-weight: 700;
+
+  span { color: #718096; font-weight: 500; }
+
+  select, input {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;
+    border: 1px solid #cbd5e0;
+    border-radius: 10px;
+    padding: 0.65rem 0.8rem;
+    color: #1a202c;
+    font: inherit;
+    font-weight: 500;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  select {
+    appearance: auto;
+    cursor: pointer;
+  }
+
+  select:focus, input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.16);
+  }
+`;
+
+const EmailSetupNotice = styled.div`
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid ${props => props.$kind === 'gmail' ? '#bfdbfe' : '#bbf7d0'};
+  border-radius: 12px;
+  background: ${props => props.$kind === 'gmail' ? '#eff6ff' : '#f0fdf4'};
+  color: ${props => props.$kind === 'gmail' ? '#1e3a8a' : '#166534'};
+  font-size: 0.9rem;
+  line-height: 1.5;
+
+  strong { display: block; margin-bottom: 0.25rem; }
+`;
+
+const MailpitInboxLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  background: #48bb78;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover { background: #38a169; color: white; }
+`;
+
 const ModalOverlay = styled(motion.div)`
   position: fixed;
   top: 0;
@@ -1061,6 +1140,13 @@ const ComprehensiveAdminDashboard = () => {
   const selfPasswordPermissionRef = useRef(Number(user?.adminLevel) >= 1);
   selfPasswordPermissionRef.current = Number(user?.adminLevel) >= 1;
   const [securitySettings, setSecuritySettings] = useState({});
+  const [emailConfiguration, setEmailConfiguration] = useState(null);
+  const [emailConfigurationModalOpen, setEmailConfigurationModalOpen] = useState(false);
+  const [emailConfigurationLoading, setEmailConfigurationLoading] = useState(false);
+  const [emailConfigurationSaving, setEmailConfigurationSaving] = useState(false);
+  const [emailConfigurationDraft, setEmailConfigurationDraft] = useState({
+    ipiProvider: 'mailpit', xssProvider: 'gmail', gmailUser: '', gmailAppPassword: ''
+  });
   const [systemLogs, setSystemLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [solutions, setSolutions] = useState([]);
@@ -2762,6 +2848,49 @@ const ComprehensiveAdminDashboard = () => {
     } catch (error) {
       console.error('Error loading security settings:', error);
       toast.error('Failed to load security settings');
+    }
+  };
+
+  const loadEmailConfiguration = async (openModal = true) => {
+    setEmailConfigurationLoading(true);
+    try {
+      const response = await axios.get('/api/admin/email-configuration');
+      const configuration = response.data?.configuration;
+      if (!configuration) throw new Error('Email configuration was not returned.');
+      setEmailConfiguration(configuration);
+      setEmailConfigurationDraft(current => ({ ...current,
+        ipiProvider: configuration.ipiProvider,
+        xssProvider: configuration.xssProvider,
+        gmailUser: '', gmailAppPassword: ''
+      }));
+      if (openModal) setEmailConfigurationModalOpen(true);
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to load email configuration');
+    } finally {
+      setEmailConfigurationLoading(false);
+    }
+  };
+
+  const saveEmailConfiguration = async () => {
+    setEmailConfigurationSaving(true);
+    try {
+      const draft = emailConfigurationDraft;
+      const payload = { ipiProvider: draft.ipiProvider, xssProvider: draft.xssProvider };
+      if (draft.gmailUser || draft.gmailAppPassword) {
+        payload.gmailUser = draft.gmailUser;
+        payload.gmailAppPassword = draft.gmailAppPassword;
+      }
+      const response = await axios.put('/api/admin/email-configuration', payload);
+      const configuration = response.data.configuration;
+      setEmailConfiguration(configuration);
+      setEmailConfigurationDraft(current => ({ ...current, gmailUser: '', gmailAppPassword: '' }));
+      toast.success(configuration?.restartRequired
+        ? 'Email delivery configuration saved. Restart the application to apply it.'
+        : 'Email delivery configuration saved. The running application already uses these settings.');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to save email configuration');
+    } finally {
+      setEmailConfigurationSaving(false);
     }
   };
 
@@ -5682,7 +5811,8 @@ const ComprehensiveAdminDashboard = () => {
     );
   };
 
-  const renderSettings = () => (
+  const renderSettings = () => {
+    return (
     <ContentSection
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -5736,6 +5866,24 @@ const ComprehensiveAdminDashboard = () => {
           </div>
           <ActionButton onClick={handleSecuritySettings}>
             <FiEdit /> Configure Security
+          </ActionButton>
+        </div>
+
+        <div style={{
+          background: '#f8f9fa',
+          padding: '1.5rem',
+          borderRadius: '12px',
+          border: '2px solid #e9ecef'
+        }}>
+          <h4 style={{ color: '#1a202c', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <FiServer /> Email Delivery
+          </h4>
+          <div style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+            Choose Gmail/SharkLasers or local Mailpit for the email workshops. SMTP secrets are write-only.
+          </div>
+          <ActionButton onClick={loadEmailConfiguration} disabled={emailConfigurationLoading || Number(user?.adminLevel) < 2 || !canManageChallenges}
+            title={Number(user?.adminLevel) < 2 || !canManageChallenges ? 'Administrator level 2 with challenge management permission required' : 'Configure email delivery'}>
+            <FiSettings /> {emailConfigurationLoading ? 'Loading...' : 'Configure Email'}
           </ActionButton>
         </div>
         
@@ -6066,7 +6214,8 @@ const ComprehensiveAdminDashboard = () => {
         </>
       )}
     </ContentSection>
-  );
+    );
+  };
 
   // Unified objective-panel config: maps challenge_key → { objectives array, toggle fn, bulkToggle fn, editFn, labels, loading state }
   const getObjectivePanelConfig = (challengeKey) => {
@@ -7238,6 +7387,91 @@ const ComprehensiveAdminDashboard = () => {
       </ModalContent>
     </ModalOverlay>
   );
+
+  const renderEmailConfigurationModal = () => {
+    if (!emailConfiguration) return null;
+    const gmailSelected = emailConfigurationDraft.ipiProvider === 'gmail'
+      || emailConfigurationDraft.xssProvider === 'gmail';
+    const mailpitSelected = emailConfigurationDraft.ipiProvider === 'mailpit'
+      || emailConfigurationDraft.xssProvider === 'mailpit';
+    return (
+      <ModalOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={() => setEmailConfigurationModalOpen(false)}>
+        <ModalContent role="dialog" aria-modal="true" aria-labelledby="email-delivery-title"
+          initial={{ scale: 0.94, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.94, opacity: 0 }}
+          onClick={event => event.stopPropagation()} style={{ maxWidth: '820px' }}>
+          <ModalHeader>
+            <div>
+              <h2 id="email-delivery-title">Email workshop delivery</h2>
+              <p style={{ margin: '0.3rem 0 0', color: '#718096', fontSize: '0.9rem' }}>Choose the startup default for Indirect Prompt Injection and Email Summarization XSS.</p>
+            </div>
+            <button aria-label="Close email delivery configuration" onClick={() => setEmailConfigurationModalOpen(false)}><FiX /></button>
+          </ModalHeader>
+          <ModalBody>
+            <EmailDeliveryPanel style={{ marginTop: 0, boxShadow: 'none' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                <ActionButton onClick={() => loadEmailConfiguration(false)} disabled={emailConfigurationLoading}><FiRefreshCw /> Refresh</ActionButton>
+              </div>
+              {emailConfiguration.restartRequired && <div role="status" style={{ marginBottom: '1rem', padding: '0.75rem', borderRadius: '8px', background: '#fff3cd', color: '#664d03' }}>
+                Saved settings differ from the running application. Restart the application to apply them.
+              </div>}
+              <EmailProviderGrid>
+                <EmailProviderField>
+                  Indirect Prompt Injection email
+                  <select value={emailConfigurationDraft.ipiProvider} onChange={event => setEmailConfigurationDraft(current => ({ ...current, ipiProvider: event.target.value }))}>
+                    <option value="mailpit">Mailpit (local lab)</option>
+                    <option value="gmail">Gmail / SharkLasers</option>
+                  </select>
+                  <span>{emailConfigurationDraft.ipiProvider === 'gmail' ? 'Send to the learner’s editable SharkLasers inbox.' : 'Generate an owned local inbox for each learner run.'}</span>
+                </EmailProviderField>
+                <EmailProviderField>
+                  Email Summarization XSS
+                  <select value={emailConfigurationDraft.xssProvider} onChange={event => setEmailConfigurationDraft(current => ({ ...current, xssProvider: event.target.value }))}>
+                    <option value="gmail">Gmail / SharkLasers</option>
+                    <option value="mailpit">Mailpit (local lab)</option>
+                  </select>
+                  <span>{emailConfigurationDraft.xssProvider === 'gmail' ? 'Use the learner-selected external temporary inbox.' : 'Use an isolated xss-<learner>@dvaia.invalid inbox.'}</span>
+                </EmailProviderField>
+              </EmailProviderGrid>
+              {gmailSelected && (
+                <EmailSetupNotice $kind="gmail">
+                  <strong>{emailConfiguration.gmailConfigured ? 'Gmail is configured' : 'Gmail / SharkLasers setup required'}</strong>
+                  {emailConfiguration.gmailConfigured
+                    ? 'The SMTP credentials are stored privately. Leave both fields blank to keep them, or enter both fields to replace them.'
+                    : 'Enter the Gmail sender address and a Google App Password. Gmail sends messages; learners choose the SharkLasers inbox where they receive them.'}
+                  <EmailProviderGrid style={{ marginTop: '0.85rem' }}>
+                    <EmailProviderField>
+                      Gmail address
+                      <input type="email" autoComplete="off" value={emailConfigurationDraft.gmailUser} onChange={event => setEmailConfigurationDraft(current => ({ ...current, gmailUser: event.target.value }))} placeholder={emailConfiguration.gmailConfigured ? 'Configured — enter a replacement' : 'sender@gmail.com'} />
+                    </EmailProviderField>
+                    <EmailProviderField>
+                      Gmail App Password <span>(write-only)</span>
+                      <input type="password" autoComplete="new-password" value={emailConfigurationDraft.gmailAppPassword} onChange={event => setEmailConfigurationDraft(current => ({ ...current, gmailAppPassword: event.target.value }))} placeholder={emailConfiguration.gmailConfigured ? 'Configured — enter a replacement' : '16-character app password'} />
+                    </EmailProviderField>
+                  </EmailProviderGrid>
+                </EmailSetupNotice>
+              )}
+              {mailpitSelected && (
+                <EmailSetupNotice $kind="mailpit">
+                  <strong>Mailpit is auto-configured for local delivery</strong>
+                  The local SMTP and inbox routing are populated automatically. {emailConfigurationDraft.ipiProvider === 'mailpit' && (emailConfiguration.mailpitSigningConfigured ? 'The IPI inbox signing key is ready.' : 'Saving creates the IPI inbox signing key.')} {emailConfigurationDraft.xssProvider === 'mailpit' && 'XSS inboxes use a generated learner-specific local address.'}
+                  <MailpitInboxLink href={emailConfiguration.mailpitInboxUrl || 'http://localhost:8025'} target="_blank" rel="noreferrer">
+                    <FiEye /> Open Mailpit inbox
+                  </MailpitInboxLink>
+                </EmailSetupNotice>
+              )}
+            </EmailDeliveryPanel>
+          </ModalBody>
+          <ModalFooter>
+            <SecondaryButton onClick={() => setEmailConfigurationModalOpen(false)}>Close</SecondaryButton>
+            <ActionButton onClick={saveEmailConfiguration} disabled={emailConfigurationSaving}>
+              <FiSave /> {emailConfigurationSaving ? 'Saving...' : 'Save email configuration'}
+            </ActionButton>
+          </ModalFooter>
+        </ModalContent>
+      </ModalOverlay>
+    );
+  };
 
   const renderUserManagementModal = () => (
     <UserManagementOverlay
@@ -9329,6 +9563,7 @@ const ComprehensiveAdminDashboard = () => {
         {deleteStudentModalOpen && renderDeleteStudentModal()}
         {changeStudentPasswordModalOpen && renderChangeStudentPasswordModal()}
         {securitySettingsModalOpen && renderSecuritySettingsModal()}
+        {emailConfigurationModalOpen && renderEmailConfigurationModal()}
         {userManagementModalOpen && hasUserManagementPermission && renderUserManagementModal()}
         {systemLogsModalOpen && renderSystemLogsModal()}
         {changePasswordModalOpen && renderChangePasswordModal()}

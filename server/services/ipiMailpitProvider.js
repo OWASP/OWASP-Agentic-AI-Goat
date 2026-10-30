@@ -21,9 +21,9 @@ function bounded(value, name, max, {empty = true} = {}) {
 function normalize(value) { return typeof value === 'string' ? value.trim().toLowerCase() : ''; }
 
 function createIpiMailpitProvider({
-  smtpHost = process.env.MAILPIT_SMTP_HOST || '127.0.0.1',
-  smtpPort = Number(process.env.MAILPIT_SMTP_PORT || 1025),
-  apiUrl = process.env.MAILPIT_API_URL || 'http://127.0.0.1:8025',
+  smtpHost = process.env.WORKSHOP_MAILPIT_SMTP_HOST || '127.0.0.1',
+  smtpPort = Number(process.env.WORKSHOP_MAILPIT_SMTP_PORT || 1025),
+  apiUrl = process.env.WORKSHOP_MAILPIT_API_URL || 'http://127.0.0.1:8025',
   domain = process.env.IPI_MAIL_DOMAIN || DEFAULT_DOMAIN,
   sender = process.env.IPI_MAIL_FROM || DEFAULT_SENDER,
   hmacSecret = process.env.IPI_MAIL_HMAC_SECRET,

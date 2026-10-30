@@ -2,31 +2,32 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createXssMailProviderSelector, LOCAL_SENDER } = require('../server/services/xssMailProvider');
+const { createXssMailProviderSelector, workshopMailpitInboxUrl } = require('../server/services/xssMailProvider');
 
 function adapter() {
   return { sendEmail() {}, fetchEmails() {}, fetchEmail() {}, close() {},
     getStatus: () => ({ targetEmail: 'Sender@Example.COM' }) };
 }
 
-test('mailpit is the lazy default and derives an immutable inbox from platform identity', async () => {
+test('gmail is the lazy default and resolves the editable SharkLasers inbox', async () => {
   let created = 0;
-  const local = adapter();
+  const gmail = adapter();
+  const mailbox = adapter();
   const selector = createXssMailProviderSelector({
     readProvider: () => undefined,
-    createLocal: () => { created += 1; return local; },
-    getGmail: () => { throw new Error('gmail loaded eagerly'); },
-    getExternalMailbox: () => { throw new Error('external mailbox loaded eagerly'); },
-    getEmailStore: () => { throw new Error('identity store loaded for local mode'); },
+    createLocal: () => { created += 1; throw new Error('local adapter loaded'); },
+    getGmail: () => gmail,
+    getExternalMailbox: () => mailbox,
+    getEmailStore: () => ({ getConfiguredEmail: async () => ' learner@sharklasers.com ' }),
   });
   assert.equal(created, 0);
   const selected = selector.getXssMailProvider();
-  assert.equal(created, 1);
+  assert.equal(created, 0);
   assert.equal(selector.getXssMailProvider(), selected);
-  assert.deepEqual(selected, { provider: 'mailpit', mode: 'local', transport: local, mailbox: local });
+  assert.deepEqual(selected, { provider: 'gmail', mode: 'external', transport: gmail, mailbox });
   const context = await selector.resolveXssMailContext(42, '42');
-  assert.deepEqual(context, { email: 'xss-42@dvaia.invalid', mode: 'local', provider: 'mailpit',
-    editable: false, sender: LOCAL_SENDER });
+  assert.deepEqual(context, { email: 'learner@sharklasers.com', mode: 'external', provider: 'gmail',
+    editable: true, sender: 'sender@example.com' });
   assert.equal(Object.isFrozen(context), true);
 });
 
@@ -52,6 +53,21 @@ test('explicit gmail resolves the configured external inbox and status sender la
   const selected = selector.getXssMailProvider();
   assert.equal(selected.transport, gmail);
   assert.equal(selected.mailbox, mailbox);
+});
+
+test('local workshop context exposes only a safe dedicated Mailpit inbox URL', async () => {
+  const prior = process.env.WORKSHOP_MAILPIT_API_URL;
+  process.env.WORKSHOP_MAILPIT_API_URL = 'http://127.0.0.1:8025/mailpit/';
+  try {
+    const selector = createXssMailProviderSelector({ readProvider: () => 'mailpit', createLocal: adapter });
+    const context = await selector.resolveXssMailContext(7, 'owner-7');
+    assert.equal(context.mailpitInboxUrl, 'http://127.0.0.1:8025/mailpit');
+    assert.equal(workshopMailpitInboxUrl('http://user:password@127.0.0.1:8025'), null);
+    assert.equal(workshopMailpitInboxUrl('file:///tmp/mailpit'), null);
+  } finally {
+    if (prior === undefined) delete process.env.WORKSHOP_MAILPIT_API_URL;
+    else process.env.WORKSHOP_MAILPIT_API_URL = prior;
+  }
 });
 
 test('unknown providers and invalid platform identities fail without loading adapters or stores', async () => {
@@ -84,6 +100,20 @@ test('provider selection is fixed after lazy initialization', () => {
   selector.getXssMailProvider();
   provider = 'gmail';
   assert.throws(() => selector.getXssMailProvider(), /cannot change after initialization/);
+});
+
+test('an explicit administrator refresh changes provider for subsequent operations', () => {
+  let provider = 'mailpit';
+  const selector = createXssMailProviderSelector({
+    readProvider: () => provider,
+    createLocal: adapter,
+    getGmail: adapter,
+    getExternalMailbox: adapter,
+  });
+  assert.equal(selector.getXssMailProvider().provider, 'mailpit');
+  provider = 'gmail';
+  selector.refreshXssMailProvider();
+  assert.equal(selector.getXssMailProvider().provider, 'gmail');
 });
 
 test('close before selection is lazy, idempotent, and permanently revokes the selector', async () => {
