@@ -4,7 +4,7 @@ const LOCAL_SENDER = 'attacker@dvaia.invalid';
 const PROVIDERS = new Set(['mailpit', 'gmail']);
 
 function configuredProvider(value) {
-  const provider = String(value || 'mailpit').trim().toLowerCase();
+  const provider = String(value || 'gmail').trim().toLowerCase();
   if (!PROVIDERS.has(provider)) throw new Error(`Unsupported XSS_MAIL_PROVIDER: ${provider}`);
   return provider;
 }

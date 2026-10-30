@@ -2,31 +2,32 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createXssMailProviderSelector, LOCAL_SENDER } = require('../server/services/xssMailProvider');
+const { createXssMailProviderSelector } = require('../server/services/xssMailProvider');
 
 function adapter() {
   return { sendEmail() {}, fetchEmails() {}, fetchEmail() {}, close() {},
     getStatus: () => ({ targetEmail: 'Sender@Example.COM' }) };
 }
 
-test('mailpit is the lazy default and derives an immutable inbox from platform identity', async () => {
+test('gmail is the lazy default and resolves the editable SharkLasers inbox', async () => {
   let created = 0;
-  const local = adapter();
+  const gmail = adapter();
+  const mailbox = adapter();
   const selector = createXssMailProviderSelector({
     readProvider: () => undefined,
-    createLocal: () => { created += 1; return local; },
-    getGmail: () => { throw new Error('gmail loaded eagerly'); },
-    getExternalMailbox: () => { throw new Error('external mailbox loaded eagerly'); },
-    getEmailStore: () => { throw new Error('identity store loaded for local mode'); },
+    createLocal: () => { created += 1; throw new Error('local adapter loaded'); },
+    getGmail: () => gmail,
+    getExternalMailbox: () => mailbox,
+    getEmailStore: () => ({ getConfiguredEmail: async () => ' learner@sharklasers.com ' }),
   });
   assert.equal(created, 0);
   const selected = selector.getXssMailProvider();
-  assert.equal(created, 1);
+  assert.equal(created, 0);
   assert.equal(selector.getXssMailProvider(), selected);
-  assert.deepEqual(selected, { provider: 'mailpit', mode: 'local', transport: local, mailbox: local });
+  assert.deepEqual(selected, { provider: 'gmail', mode: 'external', transport: gmail, mailbox });
   const context = await selector.resolveXssMailContext(42, '42');
-  assert.deepEqual(context, { email: 'xss-42@dvaia.invalid', mode: 'local', provider: 'mailpit',
-    editable: false, sender: LOCAL_SENDER });
+  assert.deepEqual(context, { email: 'learner@sharklasers.com', mode: 'external', provider: 'gmail',
+    editable: true, sender: 'sender@example.com' });
   assert.equal(Object.isFrozen(context), true);
 });
 
