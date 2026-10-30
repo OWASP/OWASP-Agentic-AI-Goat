@@ -224,6 +224,7 @@ function initializeWorkshopRagProduction() {
 authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const { createAdminExercisesRouter } = require('./routes/adminExercises');
+const { createAdminEmailConfigurationRouter } = require('./routes/adminEmailConfiguration');
 const vulnerabilityRoutes = require('./routes/vulnerabilities');
 const monitoringRoutes = require('./routes/monitoring');
 const ctfRoutes = (req,res,next) => ctfAuthorityRouter
@@ -377,6 +378,7 @@ app.use('/api/admin/secureshop-runtime-readiness',
   require('./routes/secureshopRuntimeReadiness').createRouter({ authenticateToken, requireAdminLevel,
     getReadiness: () => app.locals.secureshopBoundReadiness }));
 app.use('/api/admin/exercises', createAdminExercisesRouter());
+app.use('/api/admin/email-configuration', createAdminEmailConfigurationRouter());
 app.use('/api/agent-runs', createAgentRunsRouter({ authenticateToken,
   listJudgments: objectiveGrading.listJudgments, regrade: objectiveGrading.regrade }));
 app.use('/api/admin/agent-runs', createAgentRunsRouter({ authenticateToken, requirePermission, admin: true }));
