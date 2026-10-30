@@ -39,7 +39,7 @@ async function run(input,{inherited=true}={}){
    await new Promise((resolve,reject)=>{listener.once('error',reject);listener.listen(inherited?{fd:definition.fd}:{host:new URL(definition.endpoint).hostname,port:Number(new URL(definition.endpoint).port||80)},resolve);});
   }
   if(inherited){syncFs.closeSync(3);syncFs.closeSync(5);}
-  client=new Client({name:'dvaia-owned-shadow',version:'1.0.0'});
+  client=new Client({name:'owasp-ai-goat-owned-shadow',version:'1.0.0'});
   const transport=new StreamableHTTPClientTransport(new URL(input.endpoint),{fetch:async(url,options)=>{
    if(String(url)!==input.endpoint)throw error('SHADOW_DESTINATION_CHANGED');
    const response=await fetch(url,{...options,redirect:'error',signal:AbortSignal.timeout(3000)});
@@ -52,9 +52,9 @@ async function run(input,{inherited=true}={}){
   if(catalog.nextCursor||catalog.tools?.length!==1||catalog.tools[0].name!=='read_policy')throw error('SHADOW_CATALOG_CHANGED');
   const catalogDigest=require('../owned-http/canonical').canonicalDigest(catalog.tools);let result=null;
   if(input.action==='invoke'){if(catalogDigest!==input.expectedCatalogDigest)throw error('SHADOW_CATALOG_CHANGED');result=await client.callTool({name:input.remoteName,arguments:input.args},undefined,{timeout:3000});}
-  return {version:1,endpoint:input.endpoint,peerId:selected.id,approved:selected.id==='approved',identity,catalog:catalog.tools,catalogDigest,result,hits,reads,isolationAttested:process.env.DVAIA_OWNED_HTTP_ATTESTED==='1'};
+  return {version:1,endpoint:input.endpoint,peerId:selected.id,approved:selected.id==='approved',identity,catalog:catalog.tools,catalogDigest,result,hits,reads,isolationAttested:process.env.OWASP_AI_GOAT_OWNED_HTTP_ATTESTED==='1'};
  }finally{await client?.close().catch(()=>{});for(const s of sessions)await s.close().catch(()=>{});for(const l of listeners){l.closeAllConnections();await new Promise(resolve=>l.listening?l.close(resolve):resolve());}await fs.rm(directory,{recursive:true,force:true});}
 }
-async function main(){if(process.platform!=='linux'||process.env.DVAIA_OWNED_HTTP_ATTESTED!=='1'||syncFs.existsSync('/proc/self/status'))throw error('SHADOW_UNATTESTED');let size=0;const parts=[];for await(const c of process.stdin){size+=c.length;if(size>49152)throw error('SHADOW_INPUT_LIMIT');parts.push(c);}process.stdout.write(JSON.stringify(await run(JSON.parse(Buffer.concat(parts))))+'\n');}
+async function main(){if(process.platform!=='linux'||process.env.OWASP_AI_GOAT_OWNED_HTTP_ATTESTED!=='1'||syncFs.existsSync('/proc/self/status'))throw error('SHADOW_UNATTESTED');let size=0;const parts=[];for await(const c of process.stdin){size+=c.length;if(size>49152)throw error('SHADOW_INPUT_LIMIT');parts.push(c);}process.stdout.write(JSON.stringify(await run(JSON.parse(Buffer.concat(parts))))+'\n');}
 if(require.main===module)main().catch(()=>{process.stderr.write('owned-shadow:operation_failed\n');process.exitCode=70;});
 module.exports={run,validate,peers};

@@ -1,3 +1,5 @@
+import { launchHeaders } from './launchHeaders.mjs';
+
 const AUTH = '/api/secureshop/auth';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const BEARER = /^[A-Za-z0-9_-]{43}$/;
@@ -19,7 +21,7 @@ const sharklasers = value => typeof value === 'string' && SHARKLASERS.test(value
   && !value.split('@')[0].endsWith('.') && !value.includes('..');
 const gmail = value => typeof value === 'string' && GMAIL.test(value)
   && !value.split('@')[0].endsWith('.') && !value.includes('..');
-const externalMailText = operationId => `This is a manually requested SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n`;
+const externalMailText = operationId => `This is a manually requested OWASP AI SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n`;
 
 const exact = (value, keys) => value && typeof value === 'object' && !Array.isArray(value)
   && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
@@ -300,7 +302,7 @@ function externalMailOperation(value, operationId, scopeKey, recipient = null) {
     || !gmail(preview.sender)
     || !sharklasers(preview.recipient)
     || (recipient !== null && preview.recipient !== recipient)
-    || preview.subject !== 'SecureShop synthetic delivery test'
+    || preview.subject !== 'OWASP AI SecureShop synthetic delivery test'
     || preview.text !== externalMailText(operationId)
     || typeof value.expiresAt !== 'string' || !Number.isFinite(Date.parse(value.expiresAt))
     || !(smtp === null || exact(smtp, ['smtpAccepted', 'deliveryConfirmed', 'messageId', 'acceptedRecipient'])
@@ -325,7 +327,7 @@ export function createStandaloneShopClient({ fetchImpl = globalThis.fetch } = {}
     }
     const response = await fetchImpl(path, { method, credentials: registeredCookie || !launch ? 'include' : 'omit', redirect: 'error', signal,
       headers: { Accept: 'application/json', ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-        ...(launch ? { 'X-DVAIA-SecureShop-Launch': launch } : {}),
+        ...(launch ? launchHeaders(launch) : {}),
         ...(personaToken ? { Authorization: `Bearer ${personaToken}` } : {}) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });

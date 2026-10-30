@@ -64,7 +64,7 @@ function storeUrls() {
       assert.equal(url.hostname, '127.0.0.1');
       assert.equal(url.username, `dvaia_${name}_${role.toLowerCase()}`);
       assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-      const match = /^\/dvaia_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
+      const match = /^\/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
       assert.ok(match && match[2] === name, `${store} must be an owned disposable store`);
       assert.ok(Number(url.port) > 0 && Number(url.port) <= 65535);
       nonce ??= match[1]; port ??= url.port;
@@ -121,10 +121,10 @@ function headersFrom(request) {
   const headers = request.headers();
   assert.ok(/^Bearer [A-Za-z0-9_.-]+$/.test(headers.authorization || ''),
     'physical request requires bearer authorization');
-  assert.ok(/^[A-Za-z0-9_-]{43}$/.test(headers['x-dvaia-secureshop-launch'] || ''),
+  assert.ok(/^[A-Za-z0-9_-]{43}$/.test(headers['x-owasp-ai-goat-secureshop-launch'] || ''),
     'physical request requires launch authorization');
   return { authorization: headers.authorization,
-    'x-dvaia-secureshop-launch': headers['x-dvaia-secureshop-launch'] };
+    'x-owasp-ai-goat-secureshop-launch': headers['x-owasp-ai-goat-secureshop-launch'] };
 }
 async function protectedGet(origin, pathname, headers, expectedStatus = 200) {
   const response = await fetch(`${origin}${pathname}`, { headers,
@@ -137,7 +137,7 @@ async function protectedGet(origin, pathname, headers, expectedStatus = 200) {
 test(TEST_TITLE,
   { skip: !ENABLED, timeout: 360000 }, async t => {
     assert.equal(process.cwd(), ROOT, 'current checkout required');
-    assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
+    assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
     const evidencePath = process.env.SECURESHOP_CUSTOMER_IDOR_LESSON_EVIDENCE_PATH || '';
     assertPrivateIdorEvidencePath(evidencePath, { root: ROOT,
       dockerHost: process.env.DOCKER_HOST, cartOnly: V10_ONLY });
@@ -409,7 +409,7 @@ test(TEST_TITLE,
         setHeaders: response => response.set('Access-Control-Allow-Origin', '*'),
       }));
       app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
-      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-customer-idor-browser-'));
+      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-customer-idor-browser-'));
       browser = await require('puppeteer').launch({ headless: true,
         userDataDir: profile, executablePath, args: browserArgs(process.env, {
           workspace: ROOT,
@@ -522,7 +522,7 @@ test(TEST_TITLE,
 
       const ownerPrincipal = await auth.establishTenantContext(
         await auth.authenticate((await page.cookies(`${origin}/api/secureshop/auth/session`))
-          .find(cookie => cookie.name === 'dvaia_shop_session').value));
+          .find(cookie => cookie.name === 'owasp_ai_goat_shop_session').value));
       const assessmentRows = async (table, objectiveId) => snapshot(identity, table,
         ownerPrincipal, objectiveId);
       const assertCanonicalAward = async (objectiveId, assessment) => {
@@ -793,7 +793,7 @@ test(TEST_TITLE,
       const siblingBirth = await lessonRepository.readBirth(siblingBase);
       assertCardsMatchBirth(siblingCards.cards, siblingBirth);
       const siblingHeaders = { authorization: `Bearer ${siblingReady.persona.token}`,
-        'x-dvaia-secureshop-launch': siblingReady.bearer };
+        'x-owasp-ai-goat-secureshop-launch': siblingReady.bearer };
       const privateRead = await fetch(origin + replayTurn.savedPath, {
         headers: siblingHeaders, redirect: 'error', signal: AbortSignal.timeout(10000) });
       assert.equal(privateRead.status, 401);

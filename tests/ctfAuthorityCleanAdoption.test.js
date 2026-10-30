@@ -205,11 +205,11 @@ test('controlled prospective admission verifies legacy activation and drains bot
    const home=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'ctf-adoption-admission-'))),root=path.join(home,'app');
    t.after(()=>fs.rmSync(home,{recursive:true,force:true}));fs.mkdirSync(root);
    const sha=value=>createHash('sha256').update(value).digest('hex');
-   const directory=path.join(home,'.dvaia',sha(root).slice(0,12));fs.mkdirSync(directory,{recursive:true,mode:0o700});
+   const directory=path.join(home,'.owasp-ai-goat',sha(root).slice(0,12));fs.mkdirSync(directory,{recursive:true,mode:0o700});
    const sql='db/postgres/identity-migrations/0001.sql';fs.mkdirSync(path.dirname(path.join(root,sql)),{recursive:true});fs.writeFileSync(path.join(root,sql),'SELECT 1;');
    const plan=require('../db/postgres/provision-application').provisioningPlan(),env={PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres'};
    for(const row of plan)for(const kind of ['runtime','migration'])env[row[kind+'Variable']]=`postgresql://${row[kind+'Role']}:fixture@127.0.0.1/${row.database}`;
-   env.CTF_DELIVERY_DATABASE_URL='postgresql://dvaia_ctf_delivery:fixture@127.0.0.1/dvaia_ctf';
+   env.CTF_DELIVERY_DATABASE_URL='postgresql://dvaia_ctf_delivery:fixture@127.0.0.1/owasp_ai_goat_ctf';
    const admin={username:'owned-admin',email:'owned@example.test',password:'owned-synthetic-password'};
    const write=(name,value)=>fs.writeFileSync(path.join(directory,name),encode(value),{mode:0o600});
    write('administrator.json',admin);write('provisioning.json',{version:1,status:'complete',configuration:env,plan});write('ctf-delivery.json',{version:1,status:'complete'});

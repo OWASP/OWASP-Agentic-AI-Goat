@@ -14,7 +14,7 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes'
 
 test('native PostgreSQL session metadata enforces owner and role', { skip: !enabled }, async () => {
   for (const key of ['PG_SECURESHOP_AGENT_CONTROL_TEST_MIGRATION_URL', 'PG_SECURESHOP_AGENT_CONTROL_TEST_RUNTIME_URL']) {
-    assert.match(new URL(process.env[key]).pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(new URL(process.env[key]).pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   const migrationPool = createPool(process.env, 'PG_SECURESHOP_AGENT_CONTROL_TEST_MIGRATION_URL');
   const runtimePool = createPool(process.env, 'PG_SECURESHOP_AGENT_CONTROL_TEST_RUNTIME_URL');

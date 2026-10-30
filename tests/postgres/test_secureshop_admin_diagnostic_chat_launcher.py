@@ -121,12 +121,12 @@ class AdminDiagnosticChatLauncherTest(unittest.TestCase):
                 identity = 'a' * 64
                 if kind == 'container':
                     return {'Id': identity, 'Name': '/' + name,
-                            'Config': {'Labels': {'dvaia.test.owner': owner}}}
+                            'Config': {'Labels': {'owasp-ai-goat.test.owner': owner}}}
                 if kind == 'network':
                     return {'Id': identity, 'Name': name,
-                            'Labels': {'dvaia.test.owner': owner}}
+                            'Labels': {'owasp-ai-goat.test.owner': owner}}
                 return {'Id': 'sha256:' + identity,
-                        'Config': {'Labels': {'dvaia.test.owner': owner}}}
+                        'Config': {'Labels': {'owasp-ai-goat.test.owner': owner}}}
         with tempfile.TemporaryDirectory() as directory:
             executor = FakeExecutor()
             ids = launcher.capture_owned_diagnostic_ids(executor, owner, Path(directory))
@@ -138,7 +138,7 @@ class AdminDiagnosticChatLauncherTest(unittest.TestCase):
             def replaced(kind, name):
                 if kind == 'container':
                     return {'Id': 'b' * 64, 'Name': '/' + name,
-                            'Config': {'Labels': {'dvaia.test.owner': owner}}}
+                            'Config': {'Labels': {'owasp-ai-goat.test.owner': owner}}}
                 return FakeExecutor.inspect(executor, kind, name)
             executor.inspect = replaced
             successor = launcher.capture_owned_diagnostic_ids(executor, owner, Path(directory))

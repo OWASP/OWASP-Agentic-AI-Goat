@@ -8,7 +8,7 @@ const contract=require('../server/services/secureshopPromptPolicyContract');
 const ROOT=path.resolve(__dirname,'..'),IMAGE='sha256:'+'a'.repeat(64),ID='b'.repeat(64);
 function fixture(t){
  const home=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'policy-installer-controlled-'));t.after(()=>fs.rmSync(home,{recursive:true,force:true}));
- const id=workspaceId(ROOT),directory=path.join(home,'.dvaia',id);fs.mkdirSync(directory,{recursive:true,mode:0o700});
+ const id=workspaceId(ROOT),directory=path.join(home,'.owasp-ai-goat',id);fs.mkdirSync(directory,{recursive:true,mode:0o700});
  fs.writeFileSync(path.join(directory,'local-docker.json'),JSON.stringify({version:1,workspaceId:id,host:'unix:///var/run/docker.sock',daemonId:'controlled-policy-daemon',source:'environment-host'}),{mode:0o600});
  const calls=[],state={image:null,network:null,container:null,badHealth:false,badReceipt:false,createLost:false,foreign:false,profile:false,port:false,healthRemaining:0,healthCalls:0,renderCalls:0,onRender:null,daemon:'controlled-policy-daemon',networkMissingError:null};
  const labels=args=>Object.fromEntries(args.flatMap((v,i)=>v==='--label'?[[args[i+1].split('=')[0],args[i+1].slice(args[i+1].indexOf('=')+1)]]:[]));
@@ -30,8 +30,8 @@ function fixture(t){
    assert.ok(!args.includes('--mount')&&!args.includes('--volume')&&!args.includes('--cap-add'));
    const network=args[args.indexOf('--network')+1],port=args[args.indexOf('--publish')+1].split(':')[1];
    state.container={Id:ID,Name:'/'+args[args.indexOf('--name')+1],Image:IMAGE,Mounts:[],RestartCount:0,State:{Running:false,Status:'created',StartedAt:'0001-01-01T00:00:00Z',FinishedAt:'0001-01-01T00:00:00Z'},
-    Config:{...state.image.Config,Labels:labels(args)},HostConfig:{Privileged:false,ReadonlyRootfs:true,Memory:536870912,NanoCpus:1000000000,PidsLimit:128,CapAdd:null,CapDrop:['ALL'],PidMode:'',IpcMode:'private',UsernsMode:'',Binds:null,Devices:[],DeviceRequests:null,Tmpfs:{'/tmp':'rw,nosuid,nodev,noexec,mode=1777,size=128m'},SecurityOpt:['seccomp=unconfined','apparmor=dvaia-owned-policy-renderer-'+id],NetworkMode:network,PortBindings:{'8090/tcp':[{HostIp:'127.0.0.1',HostPort:port}]}},NetworkSettings:{Networks:{},Ports:null}};
-   if(state.foreign)state.container.Config.Labels['dvaia.policy.owner']='foreign';
+    Config:{...state.image.Config,Labels:labels(args)},HostConfig:{Privileged:false,ReadonlyRootfs:true,Memory:536870912,NanoCpus:1000000000,PidsLimit:128,CapAdd:null,CapDrop:['ALL'],PidMode:'',IpcMode:'private',UsernsMode:'',Binds:null,Devices:[],DeviceRequests:null,Tmpfs:{'/tmp':'rw,nosuid,nodev,noexec,mode=1777,size=128m'},SecurityOpt:['seccomp=unconfined','apparmor=owasp-ai-goat-owned-policy-renderer-'+id],NetworkMode:network,PortBindings:{'8090/tcp':[{HostIp:'127.0.0.1',HostPort:port}]}},NetworkSettings:{Networks:{},Ports:null}};
+   if(state.foreign)state.container.Config.Labels['owasp-ai-goat.policy.owner']='foreign';
    if(state.createLost){state.createLost=false;throw Error('controlled lost create acknowledgement');}
   }else if(args[0]==='start'){
    assert.equal(args[1],ID);state.container.State.Running=true;state.container.State.Status='running';state.container.NetworkSettings={Networks:{[state.container.HostConfig.NetworkMode]:{}},Ports:state.container.HostConfig.PortBindings};
@@ -142,14 +142,14 @@ test('pinned build context excludes all unlisted files including descendants of 
 
 test('exact native network-not-found permits provisioning under retained staging identity',async t=>{
  const f=fixture(t);f.state.profile=true;await assert.rejects(installer.provision({...f.options,activate:true}));const stage=managed.capture(f.options,true);
- f.state.profile=false;f.state.networkMissingError='Error response from daemon: network dvaia-policy-renderer-'+f.id+'-bridge not found';
+ f.state.profile=false;f.state.networkMissingError='Error response from daemon: network owasp-ai-goat-policy-renderer-'+f.id+'-bridge not found';
  const result=await installer.provision({...f.options,activate:true});assert.equal(result.ready,true);assert.equal(result.enabled,true);assert.equal(managed.capture(f.options).value.ownerId,stage.value.ownerId);assert.equal(managed.capture(f.options).value.imageId,stage.value.imageId);assert.equal(f.calls.filter(c=>c.args[2]==='build').length,1);
 });
 test('generic or differently named network failures remain closed with bounded stage diagnostics',async t=>{
- for(const message of ['permission denied','Error response from daemon: network foreign-bridge not found','Error response from daemon: network dvaia-policy-renderer-'+workspaceId(ROOT)+'-bridge not found; extra']){
+ for(const message of ['permission denied','Error response from daemon: network foreign-bridge not found','Error response from daemon: network owasp-ai-goat-policy-renderer-'+workspaceId(ROOT)+'-bridge not found; extra']){
   const f=fixture(t);f.state.networkMissingError=message;await assert.rejects(installer.provision({...f.options,activate:true}),{code:'POLICY_RENDER_COMMAND_FAILED',stage:'docker-network-inspect'});assert.equal(f.state.network,null);assert.equal(f.state.container,null);assert.equal(managed.capture(f.options),null);
  }
 });
 test('dedicated AppArmor name matches its exact profile admission length',()=>{
- const id=workspaceId(ROOT),name='dvaia-owned-policy-renderer-'+id;assert.equal(name.length,40);assert.ok(installer._internals.profileBytes(ROOT,id).toString().includes(name));
+ const id=workspaceId(ROOT),name='owasp-ai-goat-owned-policy-renderer-'+id;assert.equal(name.length,40);assert.ok(installer._internals.profileBytes(ROOT,id).toString().includes(name));
 });

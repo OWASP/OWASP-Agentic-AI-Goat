@@ -73,7 +73,7 @@ test('product summary assessment accepts null-prototype Express GET params and k
 
 test('product summary assessment rejects malformed path IDs, foreign roles, and duplicate launch routing', () => {
   const f = fixture(); const res = response(); let next;
-  f.post[0].handle({ rawHeaders: ['X-DVAIA-SecureShop-Launch', 'a', 'X-DVAIA-SecureShop-Launch', 'b'] }, res, value => { next = value; });
+  f.post[0].handle({ rawHeaders: ['X-OWASP-AI-GOAT-SecureShop-Launch', 'a', 'X-OWASP-AI-GOAT-SecureShop-Launch', 'b'] }, res, value => { next = value; });
   assert.equal(next, 'route');
   for (const role of ['admin', 'merchant', undefined]) {
     f.post.at(-2).handle({ ...f.req, ssUser: { id: 17, role } }, res, () => assert.fail('continued'));

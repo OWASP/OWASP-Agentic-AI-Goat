@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sensitive_info_recovery_safety import SignalGate
 
-EXPECTED_DOCKER='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+EXPECTED_DOCKER='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 DOCKER=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 IMAGE='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 SOURCE=Path(__file__).resolve().parents[2]
@@ -23,8 +23,8 @@ if disclosure or args.mode in ['reply-authority','reply-authority-actual']:
 mode='bound-mail-'+args.mode
 test_file={'disclosure-native':'tests/postgres/secureshopMailDisclosure.native.js','disclosure-actual':'tests/postgres/secureshopMailDisclosure.native.js','migration':'tests/postgres/secureshopBoundMail.native.js','lifecycle':'tests/postgres/secureshopBoundMailLifecycle.native.js','actual':'tests/postgres/secureshopBoundMailActual.native.js','header':'tests/postgres/secureshopMailHeader.native.js','header-actual':'tests/postgres/secureshopMailHeaderActual.native.js','reply-authority':'tests/postgres/secureshopMailHeader.native.js','reply-authority-actual':'tests/postgres/secureshopMailHeader.native.js'}[args.mode]
 if args.docker_host!=EXPECTED_DOCKER:raise SystemExit('reviewed isolated Docker host required')
-root=Path(tempfile.mkdtemp(prefix='dvaia-bound-mail-'));os.chmod(root,0o700);workspace=root/'source'
-container='dvaia-bound-mail-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-bound-mail-'));os.chmod(root,0o700);workspace=root/'source'
+container='owasp-ai-goat-bound-mail-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
 docker=[str(DOCKER),'--host',args.docker_host]
 env={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(root)}
 state={'container':container,'owner':owner,'image':IMAGE,'evidence':str(root),'launcherPid':os.getpid(),
@@ -100,7 +100,7 @@ try:
   expected_staged,staged_bytes=reply_freeze.stage_expected(reviewed_rows,SOURCE)
   state['reviewedIntegrity']={'sourceDigest':args.reviewed_source_sha256,'dependencyDigest':args.reviewed_dependency_sha256,'stagedSourceDigest':reply_freeze.digest(expected_staged),'sourceCount':len(reviewed_rows)}
  daemon_name=run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
- if daemon_name!='colima-dvaia-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
+ if daemon_name!='colima-owasp-ai-goat-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
  if disclosure or args.mode in ['reply-authority','reply-authority-actual']:
   daemon_id=run(docker+['info','--format','{{.ID}}'],stdout=subprocess.PIPE,text=True,timeout=10).stdout.strip()
   reply_freeze.check_pins(NODE,DOCKER,daemon_id);state['dockerDaemonId']=daemon_id;state['dockerSha256']=digest(DOCKER)
@@ -151,12 +151,12 @@ try:
   reply_freeze.verify(SOURCE,args.reviewed_source_sha256,args.reviewed_dependency_sha256)
   reply_freeze.verify(workspace,reply_freeze.digest(expected_staged),args.reviewed_dependency_sha256)
  creation_attempted=True;state['containerCreationAttempted']=True;persist()
- run(docker+['run','--detach','--pull','never','--name',container,'--label','dvaia.test.owner='+owner,
+ run(docker+['run','--detach','--pull','never','--name',container,'--label','owasp-ai-goat.test.owner='+owner,
   '--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_HOST_AUTH_METHOD=trust',
   '-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=40',
   '-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
  details=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
- if details.get('Mounts') or details['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
+ if details.get('Mounts') or details['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
  for _ in range(100):
   ready=subprocess.run(docker+['exec',container,'pg_isready','-h','127.0.0.1','-U','postgres'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=2)
   if ready.returncode==0:break
@@ -170,7 +170,7 @@ try:
  for label,schema in [('IDENTITY','identity'),('COMMERCE','secureshop'),('AGENTS','secureshop_agents'),('REVIEW','secureshop_review') if args.mode!='migration' else ('FRESH','secureshop_agents')]:
   migration='dvaia_'+schema+'_migration';runtime='dvaia_'+schema+'_runtime'
   if label!='FRESH':run(psql+[f'CREATE ROLE {migration} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE {runtime} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
-  database=f'dvaia_test_mail_{nonce}_{label.lower()}'
+  database=f'owasp_ai_goat_test_mail_{nonce}_{label.lower()}'
   run(psql+[f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL)
   run(psql+[f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}'],stdout=subprocess.DEVNULL)
   state['databases'].append(database)
@@ -184,7 +184,7 @@ try:
  if args.mode=='reply-authority':env['MAIL_REPLY_AUTHORITY_NATIVE']='1'
  if args.mode=='reply-authority-actual':env['MAIL_REPLY_AUTHORITY_ACTUAL']='1'
  env['MAIL_RESULT']=str(root/'candidate-result.json')
- env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+ env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
   PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',
   AI_PROVIDER='mock',TRANSFORMERS_OFFLINE='1',JWT_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,SESSION_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,
   AWS_EC2_METADATA_DISABLED='true',MCP_WORKSHOP_AUTOSTART='false',MCP_SIDECARS_AUTOSTART='false',SS_ENABLE='false',HF_HUB_OFFLINE='1',
@@ -216,7 +216,7 @@ finally:
   try:
    if not exact_absence():
     info=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True,timeout=10).stdout)[0]
-    if info['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('refusing foreign container cleanup')
+    if info['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('refusing foreign container cleanup')
     remove_code=bounded_run(docker+['rm','-f','-v',container],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=30).returncode
    else:remove_code=0
   except Exception as error:errors.append('remove:'+type(error).__name__)

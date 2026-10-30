@@ -28,7 +28,7 @@ class Controls(unittest.TestCase):
             env=launcher.finflow0055_environment(args,pathlib.Path('/e'),pathlib.Path('/e/runtime'),'owner',urls)
             with self.assertRaises(RuntimeError):launcher.finflow0055_environment(args,pathlib.Path('/e'),pathlib.Path('/e/runtime'),'owner',{**urls,'PG_ADMIN_DATABASE_URL':'bad'})
         self.assertEqual({k for k in env if k.endswith('_URL')},set(urls))
-        self.assertEqual(env['HOME'],'/e/runtime/home');self.assertNotIn('DVAIA_ISOLATED_TEST_WORKSPACE',env)
+        self.assertEqual(env['HOME'],'/e/runtime/home');self.assertNotIn('OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE',env)
     def test_journal_barrier_and_command(self):
         events=[];state={'parentPid':122,'manifestSha256':'a'*64}
         pipe=SimpleNamespace(write=lambda x:events.append(x),flush=lambda:None,close=lambda:None)

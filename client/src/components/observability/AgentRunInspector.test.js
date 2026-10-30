@@ -712,7 +712,7 @@ test('semantic comparison stage names describe actual task-only verification and
 
 test('saved mail shows server observations separately from unchanged model rationale', async () => {
   axios.get.mockImplementation(url => Promise.resolve({data: url.endsWith('/run-1') ? {run,events:[],judgments:[{
-    evaluationId:'mail-evaluation',family:'SecureShop',objectiveId:'ss_mail_stored_browser_execution',verdict:'fail',disposition:'not_pass',
+    evaluationId:'mail-evaluation',family:'OWASP AI SecureShop',objectiveId:'ss_mail_stored_browser_execution',verdict:'fail',disposition:'not_pass',
     explanation:'The message was not mounted.',serverObservation:{version:'saved-mail-browser-observation-v1',componentMounted:true,browserEffectCompleted:true,attributedExecution:false,targetEffectObserved:false,provenanceDigest:'a'.repeat(64)}
   }]} : {runs:[run]}}));
   const node=document.createElement('div');document.body.appendChild(node);const root=createRoot(node);

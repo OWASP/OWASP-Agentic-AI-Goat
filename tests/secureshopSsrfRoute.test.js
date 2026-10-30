@@ -24,7 +24,7 @@ async function setup(t) {
   const server = await new Promise(resolve => { const value = app.listen(0, '127.0.0.1', () => resolve(value)); });
   t.after(() => new Promise(resolve => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}`;
-  const headers = { 'content-type': 'application/json', 'x-dvaia-secureshop-launch': capability,
+  const headers = { 'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': capability,
     'x-request-id': '40000000-0000-4000-8000-000000000001', authorization: 'Bearer shop-fixture' };
   return { calls, htmlCalls, diagnostics, hide() { enabled = false; }, fail(value) { failure = value; }, respond(value) { result = value; },
     get: (url, supplied = headers) => fetch(base + url, { headers: supplied }),
@@ -53,7 +53,7 @@ test('SSRF route binds server launch/persona and exposes only two controlled res
 test('SSRF route requires both identities, projects readiness and does not leak internal errors', async t => {
   const f = await setup(t);
   assert.equal((await f.get('/v2/controlled-ssrf/readiness', {})).status, 401);
-  assert.equal((await f.get('/v2/controlled-ssrf/readiness', { 'x-dvaia-secureshop-launch': capability })).status, 401);
+  assert.equal((await f.get('/v2/controlled-ssrf/readiness', { 'x-owasp-ai-goat-secureshop-launch': capability })).status, 401);
   assert.deepEqual(await (await f.get('/v2/controlled-ssrf/readiness')).json(), { ready: true });
   f.hide(); assert.deepEqual(await (await f.get('/v2/controlled-ssrf/readiness')).json(), { ready: false });
   const secret = 'private URL, bearer, nonce, stack and internal connection data';
@@ -79,11 +79,11 @@ test('SSRF route requires both identities, projects readiness and does not leak 
   f.fail(Object.assign(new Error('stale private scope'), { code: 'STALE_LAUNCH' }));
   const stale = await f.post({ resource: 'private-policy', request_id: requestId });
   assert.equal(stale.status, 401);
-  assert.equal(stale.headers.get('x-dvaia-secureshop-launch-state'), 'unavailable');
+  assert.equal(stale.headers.get('x-owasp-ai-goat-secureshop-launch-state'), 'unavailable');
   f.fail(Object.assign(new Error('foreign owner'), { code: 'OWNER_MISMATCH' }));
   const foreign = await f.post({ resource: 'private-policy', request_id: requestId });
   assert.equal(foreign.status, 401);
-  assert.equal(foreign.headers.get('x-dvaia-secureshop-launch-state'), null);
+  assert.equal(foreign.headers.get('x-owasp-ai-goat-secureshop-launch-state'), null);
   assert.equal(f.diagnostics.length, 2, 'ordinary launch failures are not reported as SSRF execution failures');
   f.fail(null); f.respond({ resourceKind:'private-policy', replayed:false, stopReason:'error',
     response:'[AI provider unavailable]' });

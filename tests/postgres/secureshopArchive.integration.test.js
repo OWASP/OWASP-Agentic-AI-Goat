@@ -18,7 +18,7 @@ function pools(prefix) {
     for (const role of ['runtime', 'migration']) {
       const url = new URL(process.env[`PG_${schema.toUpperCase()}_${prefix}_TEST_${role.toUpperCase()}_URL`]);
       assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
-      assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+      assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
       result[schema][role] = new Pool({connectionString: url.href});
     }
   }
@@ -38,7 +38,7 @@ const count = async (pool, schema, table) => (await pool.query(`SELECT count(*):
 test('SecureShop archive preserves raw state, rolls back dry runs and late failures, and fences runtime provenance', {skip: !enabled('IMPORT'), timeout: 60000}, async () => {
   const all = pools('IMPORT');
   const fs = require('node:fs/promises');
-  const assetRoot = await fs.mkdtemp(path.join(require('node:os').tmpdir(), 'dvaia-ss-import-assets-'));
+  const assetRoot = await fs.mkdtemp(path.join(require('node:os').tmpdir(), 'owasp-ai-goat-ss-import-assets-'));
   try {
     await initialize(all);
     const raw = fixture();

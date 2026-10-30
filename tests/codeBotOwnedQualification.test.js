@@ -62,7 +62,7 @@ test('deterministic mounted HTTP qualifier cannot claim model or effect qualific
 
 test('one-use launcher binds the exact grant and owns both disposable containers', () => {
   const source = read('tests/postgres/run-codebot-owned-workflow-isolated.py');
-  assert.match(source, /EXPECTED_DOCKER = 'unix:\/\/\/Users\/averma5\/\.colima\/dvaia-pg-verify\/docker\.sock'/);
+  assert.match(source, /EXPECTED_DOCKER = 'unix:\/\/\/Users\/averma5\/\.colima\/owasp-ai-goat-pg-verify\/docker\.sock'/);
   assert.match(source, /grant\.get\('sourceHashes'\)/);
   assert.match(source, /set\(expected\) != set\(TRACKED\)/);
   assert.match(source, /consumerPid=os\.getpid\(\)/);
@@ -73,8 +73,8 @@ test('one-use launcher binds the exact grant and owns both disposable containers
   assert.match(source, /missing = \[name for name in TRACKED if not \(workspace \/ name\)\.is_file\(\)\]/);
   assert.ok(source.indexOf('copied CodeBot source inventory is incomplete')
     < source.indexOf("for source, target in PREFIX.items():"));
-  assert.match(source, /'postgres': f'dvaia-codebot-pg-/);
-  assert.match(source, /'sandbox': f'dvaia-codebot-sandbox-/);
+  assert.match(source, /'postgres': f'owasp-ai-goat-codebot-pg-/);
+  assert.match(source, /'sandbox': f'owasp-ai-goat-codebot-sandbox-/);
   assert.ok(source.indexOf("creation_attempted.add(containers['postgres'])")
     < source.indexOf("docker + ['run', '--detach', '--name', containers['postgres']"));
   assert.ok(source.indexOf("creation_attempted.add(containers['sandbox'])")
@@ -82,7 +82,7 @@ test('one-use launcher binds the exact grant and owns both disposable containers
   assert.match(source, /'--security-opt', 'seccomp=unconfined'/);
   assert.match(source, /mount\.get\('Type'\) != 'tmpfs'/);
   assert.match(source, /expected_tmpfs = \{'\/var\/lib\/postgresql'\} if key == 'postgres' else set\(\)/);
-  assert.match(source, /profile_name = f'dvaia-mcp-sandbox-\{suffix\}'/);
+  assert.match(source, /profile_name = f'owasp-ai-goat-mcp-sandbox-\{suffix\}'/);
   assert.match(source, /render-mcp-sandbox-apparmor\.js/);
   assert.match(source, /'--security-opt', f'apparmor=\{profile_name\}'/);
   assert.doesNotMatch(source, /--cap-add/);

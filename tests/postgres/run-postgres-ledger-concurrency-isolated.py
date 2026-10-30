@@ -15,12 +15,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--docker-host', required=True)
 args = parser.parse_args()
 source = Path(__file__).resolve().parents[2]
-root = Path(tempfile.mkdtemp(prefix='dvaia-postgres-ledger-concurrency-'))
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-postgres-ledger-concurrency-'))
 workspace = root / 'source'
 workspace.mkdir(); os.chmod(root, 0o700)
 base_env = {key: os.environ[key] for key in ['PATH', 'HOME', 'TMPDIR'] if key in os.environ}
 docker = ['docker', '--host', args.docker_host]
-container = 'dvaia-postgres-ledger-concurrency-' + uuid.uuid4().hex[:12]
+container = 'owasp-ai-goat-postgres-ledger-concurrency-' + uuid.uuid4().hex[:12]
 started = False
 child = None
 
@@ -72,7 +72,7 @@ try:
     port = int(run(docker + ['port', container, '5432'], capture_output=True, text=True).stdout.strip().rsplit(':', 1)[1])
     psql = ['psql', '-h', '127.0.0.1', '-p', str(port), '-U', 'ledger_test_admin', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1']
     migration_role, runtime_role = 'dvaia_identity_migration', 'dvaia_identity_runtime'
-    database = 'dvaia_test_postgres_ledger_concurrency'
+    database = 'owasp_ai_goat_test_postgres_ledger_concurrency'
     for role in [migration_role, runtime_role]:
         run(psql + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'], stdout=subprocess.DEVNULL)
     run(psql + ['-c', f'CREATE DATABASE {database} OWNER {migration_role}'], stdout=subprocess.DEVNULL)

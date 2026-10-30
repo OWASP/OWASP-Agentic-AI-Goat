@@ -45,7 +45,7 @@ function ownedUrl(store, role) {
   assert.equal(value.password, '');
   assert.equal(value.search, '');
   assert.equal(value.hash, '');
-  assert.match(value.pathname, new RegExp(`^/dvaia_test_external_mail_${store.toLowerCase()}_[a-f0-9]{12}$`));
+  assert.match(value.pathname, new RegExp(`^/owasp_ai_goat_test_external_mail_${store.toLowerCase()}_[a-f0-9]{12}$`));
   return value;
 }
 
@@ -66,7 +66,7 @@ test('identity0153 fresh and populated migration preserve history, runtime grant
     assert.equal(new Set(Object.values(urls).map(url => url.pathname)).size, 2);
     const pools = Object.fromEntries(Object.entries(urls).map(([name, url]) =>
       [name, new Pool({ connectionString: url.href, max: 5, statement_timeout: 10000,
-        lock_timeout: 3000, application_name: 'dvaia-external-mail-repository-native' })]));
+        lock_timeout: 3000, application_name: 'owasp-ai-goat-external-mail-repository-native' })]));
     t.after(async () => {
       const results = await Promise.allSettled(Object.values(pools).map(pool => pool.end()));
       assert.ok(results.every(value => value.status === 'fulfilled'), 'all owned connections close');

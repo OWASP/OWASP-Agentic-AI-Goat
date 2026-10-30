@@ -104,7 +104,7 @@ def cleanup_activation_resources(intent, docker, runner=subprocess.run):
         volume = intent['volume']
         image = intent['image']
         if (not isinstance(workspace, str) or not re.fullmatch(r'[a-f0-9]{12}', workspace)
-                or name != 'dvaia-audit-sql-' + workspace or volume != name + '-data'
+                or name != 'owasp-ai-goat-audit-sql-' + workspace or volume != name + '-data'
                 or not isinstance(image, str) or not re.fullmatch(r'sha256:[a-f0-9]{64}', image)):
             raise ValueError('Invalid activation ownership intent')
         def command(args):
@@ -119,7 +119,7 @@ def cleanup_activation_resources(intent, docker, runner=subprocess.run):
         ids, volumes = container_ids(), volume_names()
         if len(ids) > 1 or volumes not in ([], [volume]):
             raise RuntimeError('Ambiguous activation resources')
-        labels = {'dvaia.workspace': workspace, 'dvaia.purpose': 'owned-audit-sql'}
+        labels = {'owasp-ai-goat.workspace': workspace, 'owasp-ai-goat.purpose': 'owned-audit-sql'}
         if ids:
             if not re.fullmatch(r'[a-f0-9]{64}', ids[0]):
                 raise RuntimeError('Invalid activation container identity')
@@ -198,7 +198,7 @@ def build_digest(root):
 def prepare_rendered(root,evidence,node,env,children,chrome,state):
     chrome=pathlib.Path(chrome).resolve(strict=True)
     if not chrome.is_file() or not os.access(chrome,os.X_OK):raise RuntimeError('Explicit installed Chrome required')
-    rendered_root=pathlib.Path(tempfile.mkdtemp(prefix='dvaia-audit-rendered-')).resolve()
+    rendered_root=pathlib.Path(tempfile.mkdtemp(prefix='owasp-ai-goat-audit-rendered-')).resolve()
     rendered_root.chmod(0o700);state['runtimeRoot']=str(rendered_root)
     helpers.write_private_json(evidence/'browser-ownership.json',state)
     temporary=rendered_root/'tmp';temporary.mkdir(mode=0o700)
@@ -292,10 +292,10 @@ def prepare_activation(root, evidence, node, docker, env, image, runner=subproce
     if result.returncode!=0:raise RuntimeError('Activation plan failed')
     intent=json.loads(result.stdout)
     expected_id=hashlib.sha256(str(workspace).encode()).hexdigest()[:12]
-    name='dvaia-audit-sql-'+expected_id
+    name='owasp-ai-goat-audit-sql-'+expected_id
     if any(intent.get(k)!=v for k,v in {'root':str(workspace),'id':expected_id,'name':name,
             'volume':name+'-data','dockerHost':docker[2],
-            'file':str(home/'.dvaia'/expected_id/'audit-sql-target.json')}.items()):
+            'file':str(home/'.owasp-ai-goat'/expected_id/'audit-sql-target.json')}.items()):
         raise RuntimeError('Unexpected activation plan')
     intent.update(image=image,home=str(home))
     for args in (['ps','-aq','--filter','name=^/'+name+'$'],
@@ -337,11 +337,11 @@ def selected_fixture(mode, env):
 
 def qualify_legacy_reset(args):
     root=pathlib.Path(__file__).resolve().parents[2]
-    docker=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host','unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock']
+    docker=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host','unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock']
     node=pathlib.Path(args.node).resolve()
     nonce=uuid.uuid4().hex[:12]
-    name='dvaia-legacy-reset-'+nonce
-    database='dvaia_test_workshop_rag_'+nonce
+    name='owasp-ai-goat-legacy-reset-'+nonce
+    database='owasp_ai_goat_test_workshop_rag_'+nonce
     evidence=create_evidence(root/'tests/release-inputs')
     children=[];intents=[];primary=None
     fixture=({'finflow-resources':'tests/postgres/finflowDurableResources.integration.test.js',
@@ -365,7 +365,7 @@ def qualify_legacy_reset(args):
         assert not run(docker+['ps','-aq','--filter','name=^/'+name+'$']).stdout.strip()
         intents.append({'name':name})
         helpers.write_private_json(evidence/'container-intents.json',{'containers':intents})
-        run(docker+['run','-d','--pull','never','--name',name,'--label','dvaia.owner='+nonce,
+        run(docker+['run','-d','--pull','never','--name',name,'--label','owasp-ai-goat.owner='+nonce,
                     '--tmpfs','/var/lib/postgresql:rw,size=536870912','-e','POSTGRES_USER=reset_test_admin',
                     '-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1',
                     '-p','127.0.0.1::5432','postgres:18','-c','shared_buffers=16MB',
@@ -381,12 +381,12 @@ def qualify_legacy_reset(args):
         for suffix,store in ((('','identity'),) if args.mode=='judgments-replay' else (('','identity'),('_fresh','identity'),('_finflow','finflow'))):
             sql+=f'CREATE DATABASE {database}{suffix} OWNER dvaia_{store}_migration; '
         if args.mode=='finflow-resources':
-            for suffix in ('probe','store'):sql+=f'CREATE DATABASE dvaia_test_finflow_traversal_{suffix} OWNER dvaia_finflow_migration; '
+            for suffix in ('probe','store'):sql+=f'CREATE DATABASE owasp_ai_goat_test_finflow_traversal_{suffix} OWNER dvaia_finflow_migration; '
         run(docker+['exec','-i',name,'psql','-U','reset_test_admin','-d','postgres','-v','ON_ERROR_STOP=1'],input=sql)
         port=run(docker+['port',name,'5432/tcp']).stdout.strip().rsplit(':',1)[1]
         env=owned_environment(evidence,node)
         env.update(NODE_ENV='test',PG_TLS='disable',PG_TEST_DISPOSABLE='yes',
-                   LEGACY_CANDIDATE_ROUTES_NATIVE='1',DVAIA_ISOLATED_TEST_WORKSPACE=str(root),
+                   LEGACY_CANDIDATE_ROUTES_NATIVE='1',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(root),
                    WORKSHOP_RAG_EVIDENCE_PATH=str(evidence/'qualification.json'),
                    AWS_EC2_METADATA_DISABLED='true',LANGCHAIN_TRACING_V2='false',LANGSMITH_TRACING='false',
                    HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1')
@@ -403,7 +403,7 @@ def qualify_legacy_reset(args):
             env['FINFLOW_TRAVERSAL_ISOLATED']='1'
             for prefix,suffix in (('FINFLOW_TRAVERSAL_PROBE','probe'),('FINFLOW_WORKSHOP','store')):
                 for role,key in (('runtime','DATABASE_URL'),('migration','MIGRATION_DATABASE_URL')):
-                    env[f'{prefix}_{key}']=f'postgresql://dvaia_finflow_{role}@127.0.0.1:{port}/dvaia_test_finflow_traversal_{suffix}'
+                    env[f'{prefix}_{key}']=f'postgresql://dvaia_finflow_{role}@127.0.0.1:{port}/owasp_ai_goat_test_finflow_traversal_{suffix}'
         command=[str(node),'--test','--test-reporter=tap',fixture]
         if args.mode=='judgments-replay':
             for role in ('runtime','migration'):
@@ -449,8 +449,8 @@ def qualify_legacy_reset(args):
 def qualify(args):
     actual_model_url(args)
     root=pathlib.Path(__file__).resolve().parents[2]
-    D=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host','unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock']
-    nonce=uuid.uuid4().hex[:12];name='dvaia-http-receipt-'+nonce;database='dvaia_test_http_'+nonce
+    D=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host','unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock']
+    nonce=uuid.uuid4().hex[:12];name='owasp-ai-goat-http-receipt-'+nonce;database='owasp_ai_goat_test_http_'+nonce
     node=pathlib.Path(args.node).resolve()
     if args.mode in ('rendered','parity','rendered-actual') and not getattr(args,'chrome',None):raise ValueError('Explicit Chrome required')
     flags={'AUDIT_SQL_RENDERED':'yes',**({'AUDIT_SQL_PARITY':'yes'} if args.mode=='parity' else {})} if args.mode in ('rendered','parity','rendered-actual') else {'AUDIT_SQL_ACTIVATION':'yes'} if args.mode=='activation' else {'BOUND_ADMIN_READS':'yes'} if args.mode=='admin-reads' else {}
@@ -459,8 +459,8 @@ def qualify(args):
     evidence=create_evidence(root/'tests/release-inputs')
     children=[];intents=[]
     result_path=evidence/'result.json'
-    service_name='dvaia-audit-central-service-'+nonce
-    service_database='dvaia_test_audit_search_'+nonce
+    service_name='owasp-ai-goat-audit-central-service-'+nonce
+    service_database='owasp_ai_goat_test_audit_search_'+nonce
     result={'name':name,'candidateOnly':True,'actualModel':args.mode in ('actual-model','rendered-actual'),'actualNetworkEffects':False,'rendered':False}
     files=['docs/modernization/drafts/audit-sql/0090_secureshop_audit_query_operations.candidate.sql','server/database/postgres/secureshopAuditQueryRepository.js','server/services/secureshopOwnedAuditQueryAdapter.js','tests/postgres/secureshopAuditQueryCentral.integration.test.js']
     files += ['tests/helpers/secureshopBoundAdminReadRendered.js','client/src/pages/secureshop/pages/admin/Overview.jsx','server/services/secureshopOwnedAuditSearchApplication.js','server/services/secureshopOwnedAuditManualAdapter.js','server/database/postgres/secureshopAuditManualRepository.js','server/services/secureshopBoundPersonaAuth.js','server/services/secureshopAuditQueryExecutionBinding.js','server/services/secureshopOwnedAuditSearchBackend.js','server/services/secureshopOwnedAuditSearchSnapshot.js','sidecars/audit-sql-target/service.js','sidecars/audit-sql-target/journal.js','sidecars/audit-sql-target/readiness.js','sidecars/audit-sql-target/schema.sql','sidecars/audit-sql-target/migrations/0002_query_receipts.sql','sidecars/audit-sql-target/migrations/0003_query_destruction_tombstones.sql']
@@ -502,7 +502,7 @@ def qualify(args):
       assert not run(D+['ps','-aq','--filter','name=^/'+owned_name+'$']).stdout.strip()
       intents.append({'name':owned_name})
      helpers.write_private_json(evidence/'container-intents.json',{'containers':intents})
-     run(D+['run','-d','--pull','never','--name',name,'--label','dvaia.owner='+nonce,'--tmpfs','/var/lib/postgresql:rw,size=536870912','-e','POSTGRES_USER=http_test_admin','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432','postgres:18','-c','shared_buffers=16MB','-c','max_connections=24','-c','max_wal_size=16MB','-c','min_wal_size=4MB'])
+     run(D+['run','-d','--pull','never','--name',name,'--label','owasp-ai-goat.owner='+nonce,'--tmpfs','/var/lib/postgresql:rw,size=536870912','-e','POSTGRES_USER=http_test_admin','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432','postgres:18','-c','shared_buffers=16MB','-c','max_connections=24','-c','max_wal_size=16MB','-c','min_wal_size=4MB'])
      result['postgresImage']=run(D+['inspect','--format','{{.Image}}',name]).stdout.strip()
      for _ in range(80):
       probe=subprocess.run(D+['exec',name,'pg_isready','-h','127.0.0.1','-U','http_test_admin'],capture_output=True,timeout=5)
@@ -510,7 +510,7 @@ def qualify(args):
       time.sleep(.25)
      else:raise RuntimeError('owned PostgreSQL not ready')
      run(D+['exec','-i',name,'psql','-h','127.0.0.1','-U','http_test_admin','-d','postgres','-v','ON_ERROR_STOP=1'],input='CREATE ROLE dvaia_secureshop_review_runtime LOGIN; CREATE ROLE dvaia_secureshop_review_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE; CREATE DATABASE '+database+'_review OWNER dvaia_secureshop_review_migration; CREATE ROLE dvaia_secureshop_runtime LOGIN; CREATE ROLE dvaia_secureshop_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE; CREATE DATABASE '+database+'_commerce OWNER dvaia_secureshop_migration; CREATE ROLE dvaia_secureshop_agents_runtime LOGIN; CREATE ROLE dvaia_secureshop_agents_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE; CREATE DATABASE '+database+'_agents OWNER dvaia_secureshop_agents_migration; CREATE ROLE dvaia_identity_runtime LOGIN; CREATE ROLE dvaia_identity_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION; CREATE DATABASE '+database+' OWNER dvaia_identity_migration; CREATE DATABASE '+database+'_fresh OWNER dvaia_identity_migration;')
-     run(D+['run','-d','--pull','never','--name',service_name,'--label','dvaia.owner='+nonce,'--tmpfs','/var/lib/postgresql:rw,size=536870912','-e','POSTGRES_USER=sqltargetadmin','-e','POSTGRES_DB='+service_database,'-e','POSTGRES_HOST_AUTH_METHOD=trust','-p','127.0.0.1::5432','postgres:18'])
+     run(D+['run','-d','--pull','never','--name',service_name,'--label','owasp-ai-goat.owner='+nonce,'--tmpfs','/var/lib/postgresql:rw,size=536870912','-e','POSTGRES_USER=sqltargetadmin','-e','POSTGRES_DB='+service_database,'-e','POSTGRES_HOST_AUTH_METHOD=trust','-p','127.0.0.1::5432','postgres:18'])
      for _ in range(80):
       ready=subprocess.run(D+['exec',service_name,'pg_isready','-U','sqltargetadmin','-d',service_database],capture_output=True,timeout=5)
       if ready.returncode==0:break
@@ -531,7 +531,7 @@ def qualify(args):
      if args.mode=='composition':
       workspace=pathlib.Path(env['TMPDIR']).parent/'workspace'
       workspace.mkdir(mode=0o700)
-      env['DVAIA_ISOLATED_TEST_WORKSPACE']=str(workspace)
+      env['OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE']=str(workspace)
      result.update(fixture=fixture,mode=args.mode)
      test=run_owned_child([str(node),'--test','--test-reporter=tap',fixture],cwd=root,env=env,evidence=evidence,children=children,browser=browser)
      result.update(exitCode=test.returncode,stdout=test.stdout,stderr=test.stderr,actualNetworkEffects='AUDIT_CENTRAL_NATIVE_ACTUAL_SQL_TRANSPORT_PASSED' in test.stdout)
@@ -569,7 +569,7 @@ def qualify(args):
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--chrome',help='Explicit installed browser executable for rendered/parity')
-    parser.add_argument('--node',default=str(pathlib.Path.home()/'.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node'))
+    parser.add_argument('--node',default=str(pathlib.Path.home()/'.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node'))
     parser.add_argument('--mode',choices=('central','actual-model','rendered-actual','rendered','parity','activation','admin-reads','audit-journal','composition','legacy-reset','legacy-reset-bulk','legacy-reset-rendered','legacy-reset-parity','finflow-resources','judgments-replay'),default='admin-reads')
     parser.add_argument('--allow-actual-model',action='store_true',help='Explicit source gate; model execution remains separately authorized')
     parser.add_argument('--ollama-base-url',help='Explicit HTTP literal loopback endpoint with port')

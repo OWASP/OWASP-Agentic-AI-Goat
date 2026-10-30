@@ -2,11 +2,11 @@
 // Controlled persisted events qualify SQL/recovery boundaries, never actual-model history.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{randomUUID}=require('node:crypto'),{Pool}=require('pg');
 (async()=>{
- const root=process.env.CSRF_RECON_EVIDENCE_ROOT;assert(root);assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+ const root=process.env.CSRF_RECON_EVIDENCE_ROOT;assert(root);assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
  const result={status:'preparing',actualModelCalls:0,controlledPersistedEvents:true,cases:[],limitations:['Synthetic model metadata exercises database predicates only; not genuine actor evidence.','No browser or installed database mutation.']};
  const save=()=>fs.writeFileSync(path.join(root,'candidate-result.json'),JSON.stringify(result,null,2)+'\n',{mode:0o600});save();const pools=[];
  try{
-  const pool=key=>{const u=new URL(process.env[key]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_csrfrecon_[a-f0-9]+_identity$/);const p=new Pool({connectionString:u.href,max:4});pools.push(p);return p;};
+  const pool=key=>{const u=new URL(process.env[key]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_csrfrecon_[a-f0-9]+_identity$/);const p=new Pool({connectionString:u.href,max:4});pools.push(p);return p;};
   const runtime=pool('CSRF_RECON_IDENTITY_RUNTIME_URL'),migration=pool('CSRF_RECON_IDENTITY_MIGRATION_URL');process.env.IDENTITY_DATABASE_URL=runtime.options.connectionString;
   const api=require('../../server/database/postgres/identityRepository');await api.initializeIdentityRepository(runtime,migration);const seed=require('../../server/database/postgres/workshopPlatformSeed').seedWorkshopPlatform;await seed(migration);
   const identity=api.createIdentityRepository(runtime),progress=require('../../server/database/postgres/workshopProgressRepository').createWorkshopProgressRepository(runtime),config=require('../../server/database/postgres/workshopConfigRepository').createWorkshopConfigRepository(runtime);

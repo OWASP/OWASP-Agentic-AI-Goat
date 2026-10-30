@@ -19,7 +19,7 @@ const { createCtfDb } = require('../helpers/loadCtfDbForProvenance');
 function pool(url, max = 3) {
   const parsed = new URL(url);
   assert.equal(parsed.hostname, '127.0.0.1');
-  assert.match(parsed.pathname, /^\/dvaia_ctf_provenance_(fresh|populated)_[a-f0-9]{12}$/);
+  assert.match(parsed.pathname, /^\/owasp_ai_goat_ctf_provenance_(fresh|populated)_[a-f0-9]{12}$/);
   assert.ok(['dvaia_ctf_migration', 'dvaia_ctf_runtime'].includes(parsed.username));
   assert.equal(parsed.search, '');
   assert.equal(parsed.hash, '');

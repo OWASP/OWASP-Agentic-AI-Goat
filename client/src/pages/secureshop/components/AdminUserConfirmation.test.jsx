@@ -266,7 +266,7 @@ test('self-change protected GET denial keeps exact ref and offers explicit paren
     const signIn = [...node.querySelectorAll('button')].find(button => button.textContent === 'Sign in again');
     expect(signIn).toBeTruthy();
     await act(async () => signIn.click());
-    expect(post).toHaveBeenCalledWith({ channel: 'dvaia-secureshop-standalone-session-v1',
+    expect(post).toHaveBeenCalledWith({ channel: 'owasp-ai-goat-secureshop-standalone-session-v1',
       type: 'auth-required', nonce }, new URL(document.baseURI).origin);
     expect(values.get(SHOP_USER_ADMIN_KEY)).toBe(JSON.stringify(saved));
     expect(transport).toHaveBeenCalledTimes(1);

@@ -40,7 +40,7 @@ const FIXTURE_HASH = '$2b$12$000000000000000000000uG3W0Jp6IPhhD1TRqN8Yc2zJQG3vVn
 function disposableUrl(key, expectedRole) {
   const value = new URL(process.env[PREFIX + key]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname), 'disposable PostgreSQL must be loopback');
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/, 'disposable database name required');
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/, 'disposable database name required');
   assert.equal(decodeURIComponent(value.username), expectedRole, `${key} has the wrong PostgreSQL role`);
   assert.equal(value.search, '');
   assert.equal(value.hash, '');
@@ -467,7 +467,7 @@ test('DRAFT ONLY: restricted identity runtime protects legacy AI history through
       database: new URL(process.env[PREFIX + 'IDENTITY_RUNTIME_URL']).pathname.slice(1),
     }).begin(deniedBatch), /migration authority/);
     await assert.rejects(createLegacyAiHistoryImportTarget(migration, {
-      database: 'dvaia_test_wrong_database',
+      database: 'owasp_ai_goat_test_wrong_database',
     }).begin(deniedBatch), /migration authority/);
     for (const signature of [
       'begin_history_import(uuid,text,integer,text)',

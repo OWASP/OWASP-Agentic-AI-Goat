@@ -18,7 +18,7 @@ function fixture(steer = '', kind = 'setup') {
 $script:events = New-Object 'System.Collections.Generic.List[string]'
 $base = [IO.Path]::GetTempPath()
 $bindings = @{ nodeExecutable = (Join-Path $base 'node folder/node.exe'); npmCli = (Join-Path $base 'npm folder/npm-cli.js'); npmExecpath = (Join-Path $base 'npm folder/npm-cli.js'); gitExecutable = (Join-Path $base 'git folder/git.exe'); pythonExecutable = (Join-Path $base 'python folder/python.exe'); visualStudioInstallation = (Join-Path $base 'VS folder'); ollamaExecutable = (Join-Path $base 'ollama folder/ollama.exe'); multipassExecutable = (Join-Path $base 'multipass folder/multipass.exe'); sshExecutable = (Join-Path $base 'SSH folder/ssh.exe') }
-$caller = @{ Path = 'prior path'; TOKEN = 'synthetic private token'; VCINSTALLDIR = 'unrelated VS'; DVAIA_WINDOWS_SSH_EXECUTABLE = 'unrelated SSH' }
+$caller = @{ Path = 'prior path'; TOKEN = 'synthetic private token'; VCINSTALLDIR = 'unrelated VS'; OWASP_AI_GOAT_WINDOWS_SSH_EXECUTABLE = 'unrelated SSH' }
 $script:ok = $true; $script:retained = $false; $script:restart = $false; $script:exitCode = 0; $script:privateFailure = $false; $script:captured = $null
 $provider = { param($Request) return @{ componentSucceeded = $script:ok; bindings = $bindings; restartRequired = $script:restart; operationRetained = $script:retained; operationUncertain = $false; childEnvironment = @{ TOKEN = 'malicious supplied environment' } } }
 $provision = { param($Request) $script:events.Add('provision'); & $provider $Request }
@@ -26,13 +26,13 @@ $discover = { param($Request) $script:events.Add('discover'); & $provider $Reque
 $runner = { param($Request)
  $script:events.Add('canonical')
  if ($script:privateFailure) { throw 'synthetic private error not printable' }
- $script:captured = @{ executable = $Request.executable; arguments = @($Request.arguments); secretPreserved = ($Request.environment['TOKEN'] -ceq $caller['TOKEN']); inheritedVsRemoved = (-not $Request.environment.ContainsKey('VCINSTALLDIR')); ssh = $Request.environment['DVAIA_WINDOWS_SSH_EXECUTABLE']; multipass = $Request.environment['DVAIA_WINDOWS_MULTIPASS_EXECUTABLE']; npm = $Request.environment['npm_execpath'] }
+ $script:captured = @{ executable = $Request.executable; arguments = @($Request.arguments); secretPreserved = ($Request.environment['TOKEN'] -ceq $caller['TOKEN']); inheritedVsRemoved = (-not $Request.environment.ContainsKey('VCINSTALLDIR')); ssh = $Request.environment['OWASP_AI_GOAT_WINDOWS_SSH_EXECUTABLE']; multipass = $Request.environment['OWASP_AI_GOAT_WINDOWS_MULTIPASS_EXECUTABLE']; npm = $Request.environment['npm_execpath'] }
  return @{ exitCode = $script:exitCode }
 }
 $params = @{ Kind = '${kind}'; CompositionReady = $true; RepoRoot = ${quote(root)}; UserProfile = $base; SystemRoot = $base; Environment = $caller; ObserveHost = { $script:events.Add('host'); @{ hostSupported = $true } }; RootEnvironmentExists = { param($File) $script:events.Add('rootEnv'); return $false }; IsElevated = { $false }; Provision = $provision; Discover = $discover; Runner = $runner }
 ${steer}
-$result = Invoke-DvaiaWindowsWrapperHandoff @params
-@{ result = $result; events = @($script:events); captured = $script:captured; callerPreserved = ($caller.TOKEN -ceq 'synthetic private token' -and $caller.VCINSTALLDIR -ceq 'unrelated VS' -and $caller.DVAIA_WINDOWS_SSH_EXECUTABLE -ceq 'unrelated SSH') } | ConvertTo-Json -Depth 8 -Compress
+$result = Invoke-OwaspAiGoatWindowsWrapperHandoff @params
+@{ result = $result; events = @($script:events); captured = $script:captured; callerPreserved = ($caller.TOKEN -ceq 'synthetic private token' -and $caller.VCINSTALLDIR -ceq 'unrelated VS' -and $caller.OWASP_AI_GOAT_WINDOWS_SSH_EXECUTABLE -ceq 'unrelated SSH') } | ConvertTo-Json -Depth 8 -Compress
 `;
   const run = spawnSync(interpreter,['-NoProfile','-NonInteractive','-Command',program],{encoding:'utf8',timeout:10000});
   assert.equal(run.status,0,run.stderr);
@@ -44,7 +44,7 @@ test('wrappers enable qualified composition and retain host admission with Stop 
   for (const name of ['install-windows.ps1','start_all.ps1']) {
     const wrapper = read(name);
     assert.match(wrapper,/wrapper-handoff\.ps1/);
-    assert.match(wrapper,/Invoke-DvaiaWindowsWrapperHandoff/);
+    assert.match(wrapper,/Invoke-OwaspAiGoatWindowsWrapperHandoff/);
     assert.match(wrapper,/-CompositionReady \$true/);
     assert.doesNotMatch(wrapper,/WINDOWS_NATIVE_(?:INSTALL|START)_UNQUALIFIED|remains blocked|integration remain incomplete/);
     assert.match(wrapper,/if \(\$MyInvocation.InvocationName -ne '\.'\)/);
@@ -56,7 +56,7 @@ test('wrappers enable qualified composition and retain host admission with Stop 
 test('canonical runner replaces full child environment, direct argv and bounded setup while start owns foreground lifetime', () => {
   assert.match(source,/EnvironmentVariables.Clear\(\)/);
   assert.match(source,/UseShellExecute = \$false/);
-  assert.match(source,/ConvertTo-DvaiaProcessArgument/);
+  assert.match(source,/ConvertTo-OwaspAiGoatProcessArgument/);
   assert.match(source,/WorkingDirectory = \$Request.repoRoot/);
   assert.match(source,/WaitForExit\(3600000\)/);
   assert.match(source,/if \(\$Request.kind -ceq 'start'\).*?[\s\S]*?\$child.WaitForExit\(\)/);
@@ -64,15 +64,15 @@ test('canonical runner replaces full child environment, direct argv and bounded 
 });
 
 test('fresh guard and Plan precede provisioning; upgrade/start discovery cannot install or start services', () => {
-  const invoke = source.slice(source.indexOf('function Invoke-DvaiaWindowsWrapperHandoff'));
+  const invoke = source.slice(source.indexOf('function Invoke-OwaspAiGoatWindowsWrapperHandoff'));
   assert.ok(invoke.indexOf('WINDOWS_FRESH_ENVIRONMENT_EXISTS') < invoke.indexOf('& $Provision'));
   assert.ok(invoke.indexOf('if ($PlanMode -or $result.blockers.Count') < invoke.indexOf('& $Provision'));
   assert.match(invoke,/-not \$Upgrade -or \$Repair/);
   assert.match(invoke,/WINDOWS_WRAPPER_RUN_AS_NORMAL_USER/);
-  const discover = source.slice(source.indexOf('function Get-DvaiaWindowsWrapperBindings'),source.indexOf('function New-DvaiaWindowsCanonicalProcessInfo'));
+  const discover = source.slice(source.indexOf('function Get-OwaspAiGoatWindowsWrapperBindings'),source.indexOf('function New-OwaspAiGoatWindowsCanonicalProcessInfo'));
   assert.match(discover,/npm-bootstrap-operation.json','windows-package-operation.json','windows-package-restart.json/);
-  assert.match(discover,/runtimePolicy|Get-DvaiaDependencyCoordinatorPolicy/);
-  assert.doesNotMatch(discover,/Invoke-DvaiaWindowsDependencies|Invoke-DvaiaWindowsPackages|Invoke-DvaiaWindowsPrerequisites|Start-Process|install.*arguments/i);
+  assert.match(discover,/runtimePolicy|Get-OwaspAiGoatDependencyCoordinatorPolicy/);
+  assert.doesNotMatch(discover,/Invoke-OwaspAiGoatWindowsDependencies|Invoke-OwaspAiGoatWindowsPackages|Invoke-OwaspAiGoatWindowsPrerequisites|Start-Process|install.*arguments/i);
 });
 
 test('controlled fresh and no-install native provisioning precedes canonical argv with safe child environment', { skip }, () => {
@@ -152,7 +152,7 @@ test('controlled host denial precedes every fresh repair upgrade startup and Pla
 });
 
 test('controlled process descriptor clears inherited environment and quotes paths with spaces without spawning', { skip }, () => {
-  const program = `. ${quote(filename)}; $base = [IO.Path]::GetTempPath(); $request = @{ kind = 'setup'; repoRoot = ${quote(root)}; executable = (Join-Path $base 'Node with spaces/node.exe'); arguments = @((Join-Path ${quote(root)} 'scripts/setup-application.js'),'--repair'); environment = @{ TOKEN = 'private synthetic token'; Path = 'bound child path' } }; $info = New-DvaiaWindowsCanonicalProcessInfo $request; @{ shell = $info.UseShellExecute; file = $info.FileName; arguments = $info.Arguments; count = $info.EnvironmentVariables.Count; hasOnlyRequested = ($info.EnvironmentVariables['TOKEN'] -ceq 'private synthetic token' -and $info.EnvironmentVariables['Path'] -ceq 'bound child path') } | ConvertTo-Json -Compress`;
+  const program = `. ${quote(filename)}; $base = [IO.Path]::GetTempPath(); $request = @{ kind = 'setup'; repoRoot = ${quote(root)}; executable = (Join-Path $base 'Node with spaces/node.exe'); arguments = @((Join-Path ${quote(root)} 'scripts/setup-application.js'),'--repair'); environment = @{ TOKEN = 'private synthetic token'; Path = 'bound child path' } }; $info = New-OwaspAiGoatWindowsCanonicalProcessInfo $request; @{ shell = $info.UseShellExecute; file = $info.FileName; arguments = $info.Arguments; count = $info.EnvironmentVariables.Count; hasOnlyRequested = ($info.EnvironmentVariables['TOKEN'] -ceq 'private synthetic token' -and $info.EnvironmentVariables['Path'] -ceq 'bound child path') } | ConvertTo-Json -Compress`;
   const run = spawnSync(interpreter,['-NoProfile','-NonInteractive','-Command',program],{encoding:'utf8',timeout:10000});
   assert.equal(run.status,0,run.stderr);
   const value = JSON.parse(run.stdout);
@@ -177,7 +177,7 @@ $runner = { param($Request)
  throw 'UNEXPECTED_MUTATION'
 }
 $probe = { param($Id,$Runner) $script:events.Add('probe:' + $Id); return @{ id = $Id; status = $(if (${variant === 'missingPackage' ? '$true' : '$false'} -and $Id -eq 'multipass') { 'missing' } else { 'present' }); path = (Join-Path $base ($Id + '/owned path')) } }
-try { $result = Get-DvaiaWindowsWrapperBindings -Request $request -Runner $runner -Probe $probe -Find $find -Exists $exists -NormalFile { $true }; @{ bindings = $result.bindings; events = @($script:events); copied = ($result.childEnvironment['TOKEN'] -ceq $request.environment.TOKEN) } | ConvertTo-Json -Depth 5 -Compress }
+try { $result = Get-OwaspAiGoatWindowsWrapperBindings -Request $request -Runner $runner -Probe $probe -Find $find -Exists $exists -NormalFile { $true }; @{ bindings = $result.bindings; events = @($script:events); copied = ($result.childEnvironment['TOKEN'] -ceq $request.environment.TOKEN) } | ConvertTo-Json -Depth 5 -Compress }
 catch { @{ code = $_.Exception.Message; events = @($script:events) } | ConvertTo-Json -Compress }
 `;
     const run = spawnSync(interpreter,['-NoProfile','-NonInteractive','-Command',program],{encoding:'utf8',timeout:10000});

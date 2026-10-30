@@ -10,7 +10,7 @@ test('fresh and resumed database startup retries transport failures within a bou
  calls=0;await assert.rejects(installer._internals.awaitDatabase({query:async()=>{calls++;throw Object.assign(Error('offline'),{code:'ECONNREFUSED'});}},{attempts:3,pause:async()=>{}}),{code:'ANALYTICS_DATABASE_UNAVAILABLE'});assert.equal(calls,3);
 });
 test('installer refuses resources without a private ownership intent before any mutation',async()=>{
- const home=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-analytics-install-control-')),p=installer.plan({root:path.join(home,'source'),homeDirectory:home});await fs.mkdir(p.directory,{recursive:true,mode:0o700});
+ const home=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-analytics-install-control-')),p=installer.plan({root:path.join(home,'source'),homeDirectory:home});await fs.mkdir(p.directory,{recursive:true,mode:0o700});
  const original={resolve:authority.resolveDockerAuthority,verify:authority.verifyDockerAuthority,bound:authority.executeBoundDocker};const calls=[];
  authority.resolveDockerAuthority=async()=>({authority:{version:1,workspaceId:p.workspaceId,host:'unix:///owned.sock',daemonId:'owned'},persisted:true});authority.verifyDockerAuthority=async()=>{};
  authority.executeBoundDocker=async({args})=>{calls.push(args);if(args[0]==='container')return{stdout:JSON.stringify([{Id:'foreign',Config:{Labels:{}}}])};if(args[0]==='volume')throw Object.assign(Error('missing'),{code:1,stderr:'No such volume'});throw Error('Mutation attempted');};
@@ -22,5 +22,5 @@ test('repeat intent binds native immutable image, private credentials and reserv
  const intent={version:1,workspaceId:p.workspaceId,ownerId:randomUUID(),authoritySha256:digest,imageId:'sha256:'+'b'.repeat(64),password:'c'.repeat(64),port:19096};
  assert.equal(installer._internals.checkIntent(intent,p,digest),intent);
  for(const bad of [{...intent,workspaceId:'d'.repeat(12)},{...intent,port:0},{...intent,imageId:'postgres:18'},{...intent,password:'fixture'},{...intent,databaseUrl:'postgres://app'}])assert.throws(()=>installer._internals.checkIntent(bad,p,digest));
- assert.throws(()=>installer._internals.volumeOwned({Name:p.volumeName,Labels:{'dvaia.workspace':p.workspaceId,'dvaia.purpose':'owned-analytics','dvaia.owner':'someone-else'}},p,intent.ownerId));
+ assert.throws(()=>installer._internals.volumeOwned({Name:p.volumeName,Labels:{'owasp-ai-goat.workspace':p.workspaceId,'owasp-ai-goat.purpose':'owned-analytics','owasp-ai-goat.owner':'someone-else'}},p,intent.ownerId));
 });

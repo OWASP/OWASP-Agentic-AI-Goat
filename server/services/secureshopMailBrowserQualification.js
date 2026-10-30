@@ -38,7 +38,7 @@ function createSecureShopMailBrowserQualification({ connectBrowser, puppeteer } 
       await page.addScriptTag({ content: loaded.script });
       signal?.throwIfAborted();
       // The source is an argument, never interpolated into bootstrap script.
-      await page.evaluate(value => globalThis.__DVAIA_MAIL_MOUNT__(value), html);
+      await page.evaluate(value => globalThis.__OWASP_AI_GOAT_MAIL_MOUNT__(value), html);
       signal?.throwIfAborted();
     } });
   let closed = false;

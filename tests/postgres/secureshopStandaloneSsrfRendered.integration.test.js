@@ -32,7 +32,7 @@ const STORES = Object.freeze({
 function nativeConfig(env = process.env) {
   assert.equal(env[NATIVE], '1');
   assert.equal(env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(path.resolve(env.DVAIA_CURRENT_MAIN_WORKSPACE || ''), ROOT);
+  assert.equal(path.resolve(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || ''), ROOT);
   assert.equal(process.cwd(), ROOT);
   const urls = {};
   for (const [name, store] of Object.entries(STORES)) {
@@ -41,7 +41,7 @@ function nativeConfig(env = process.env) {
       const url = new URL(env[PREFIX + name + '_' + role + '_URL']);
       assert.equal(url.protocol, 'postgresql:');
       assert.equal(url.hostname, '127.0.0.1');
-      assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+      assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
       assert.equal(url.username, `dvaia_${store}_${role.toLowerCase()}`);
       assert.equal(url.password, '');
       assert.equal(url.search, '');
@@ -165,7 +165,7 @@ async function qualifyPolicyRendererSandbox({browser,html,onCapture=async()=>{}}
         },{html,selector:H.POLICY_OUTPUT_MARKER_SELECTOR,handler:H.POLICY_OUTPUT_HANDLER});
         assert.deepEqual(parsed,{staticMarkers:0,handlers:[H.POLICY_OUTPUT_HANDLER]});
         await frame.addScriptTag({content:loaded.script});
-        await frame.evaluate(input=>globalThis.__DVAIA_POLICY_OUTPUT_MOUNT__(input),{html,modeCapability:{version:1,
+        await frame.evaluate(input=>globalThis.__OWASP_AI_GOAT_POLICY_OUTPUT_MOUNT__(input),{html,modeCapability:{version:1,
           featureId:'controlled_ssrf',policyVersion:'owned-public-destination-v1',effectiveMode:mode,
           scope:{kind:'launch_feature',id:'controlled_ssrf'}}});
         await frame.waitForFunction(({mode,html,selector,text,handler})=>{
@@ -1056,7 +1056,7 @@ test(POLICY_OUTPUT?POLICY_OUTPUT_TITLE:TITLE, {
     async function readiness(context) {
       const response = await fetch(origin + '/api/secureshop/v2/controlled-ssrf/'+(POLICY_OUTPUT?'html/readiness':'readiness'), {
         headers: {
-          'x-dvaia-secureshop-launch': context.bearer,
+          'x-owasp-ai-goat-secureshop-launch': context.bearer,
           authorization: 'Bearer ' + context.token
         },
         signal: AbortSignal.timeout(15000)
@@ -1163,7 +1163,7 @@ test(POLICY_OUTPUT?POLICY_OUTPUT_TITLE:TITLE, {
       }
       async function protectedGet(context,route){
         const response=await fetch(origin+'/api/secureshop/v2/controlled-ssrf/html/'+route,{headers:{
-          'x-dvaia-secureshop-launch':context.bearer,authorization:'Bearer '+context.token},signal:AbortSignal.timeout(15000)});
+          'x-owasp-ai-goat-secureshop-launch':context.bearer,authorization:'Bearer '+context.token},signal:AbortSignal.timeout(15000)});
         return{status:response.status,body:await response.json()};
       }
       const rendered=await flow.qualifyPolicyOutputRendered({browser,origin,credentials:{username:registration.user.username,password},

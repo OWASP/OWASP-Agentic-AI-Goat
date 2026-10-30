@@ -2,10 +2,10 @@
 import argparse,hashlib,json,os,re,shutil,signal,subprocess,tempfile,time
 from pathlib import Path
 parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--docker-host',required=True);args=parser.parse_args()
-HOST='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+HOST='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 if args.docker_host!=HOST:parser.error('reviewed explicit Docker authority required')
-SOURCE=Path(__file__).resolve().parents[1];OUT=Path(tempfile.mkdtemp(prefix='dvaia-pricing-supported-startup-')).resolve();OUT.chmod(0o700);WORK=OUT/'source';WORK.mkdir()
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node');CLI=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker');DOCKER=[str(CLI),'--host',HOST]
+SOURCE=Path(__file__).resolve().parents[1];OUT=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-pricing-supported-startup-')).resolve();OUT.chmod(0o700);WORK=OUT/'source';WORK.mkdir()
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node');CLI=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker');DOCKER=[str(CLI),'--host',HOST]
 ENV={'PATH':str(NODE.parent)+':'+str(CLI.parent)+':/usr/bin:/bin','HOME':'/Users/averma5','TMPDIR':str(OUT)}
 state={'version':1,'out':str(OUT),'status':'preparing','sourceHashes':{},'cleanup':{},'resources':{'buildSeconds':300,'parentSeconds':1200,'listenerCount':1,'eachMemoryBytes':536870912,'eachCpu':1,'eachPids':128,'eachTmpfsBytes':134217728,'drainSeconds':25},'installedActivation':False,'supportedStartupGate':True};child=None
 
@@ -61,7 +61,7 @@ def interrupted(signum,frame):raise InterruptedError('qualification interrupted'
 signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted);persist()
 try:
  state['sharedCacheBefore']=shared_cache_snapshot();persist()
- assert docker(['info','--format','{{.Name}}']).stdout.strip()=='colima-dvaia-pg-verify'
+ assert docker(['info','--format','{{.Name}}']).stdout.strip()=='colima-owasp-ai-goat-pg-verify'
  subprocess.run([str(NODE),'-e',"require('./scripts/lib/isolated-source-copy').copyIsolatedSource(process.argv[1],process.argv[2])",str(SOURCE),str(WORK)],cwd=SOURCE,env=ENV,check=True,timeout=60)
  (WORK/'node_modules').symlink_to(SOURCE/'node_modules',target_is_directory=True)
  (WORK/'client/node_modules').mkdir(mode=0o700)
@@ -69,16 +69,16 @@ try:
   if dependency.name in ['.vite','.vite-temp','.cache']:continue
   (WORK/'client/node_modules'/dependency.name).symlink_to(dependency,target_is_directory=dependency.is_dir())
  state['sourceHashes']={str(p.relative_to(WORK)):sha(p) for p in WORK.rglob('*') if p.is_file()};state['nodeSha256']=sha(NODE)
- wid=hashlib.sha256(str(WORK.resolve()).encode()).hexdigest()[:12];state['workspaceId']=wid;private=OUT/'home'/'.dvaia'/wid
- assert not private.exists();state['privateDirectory']=str(private);state['containers']=[f'dvaia-pricing-{wid}'];state['network']=f'dvaia-pricing-{wid}-network';state['imageTag']=f'dvaia-owned-pricing-{wid}:local';state['profile']=f'dvaia-owned-pricing-http-{wid}'
+ wid=hashlib.sha256(str(WORK.resolve()).encode()).hexdigest()[:12];state['workspaceId']=wid;private=OUT/'home'/'.owasp-ai-goat'/wid
+ assert not private.exists();state['privateDirectory']=str(private);state['containers']=[f'owasp-ai-goat-pricing-{wid}'];state['network']=f'owasp-ai-goat-pricing-{wid}-network';state['imageTag']=f'owasp-ai-goat-owned-pricing-{wid}:local';state['profile']=f'owasp-ai-goat-owned-pricing-http-{wid}'
  for name in state['containers']:assert inspect('container',name) is None
  assert inspect('network',state['network']) is None and inspect('image',state['imageTag']) is None
- pg_name='dvaia-pricing-supported-pg-'+wid;state['postgresContainer']=pg_name;persist()
+ pg_name='owasp-ai-goat-pricing-supported-pg-'+wid;state['postgresContainer']=pg_name;persist()
  assert inspect('container',pg_name) is None
  pg_image='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
  assert inspect('image',pg_image)['Id']==pg_image
- docker(['run','--detach','--pull','never','--name',pg_name,'--label','dvaia.test.workspace='+wid,'--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=1073741824','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',pg_image,'-c','shared_buffers=16MB','-c','max_connections=100','-c','max_wal_size=16MB','-c','min_wal_size=4MB'])
- pg=inspect('container',pg_name);assert not pg.get('Mounts') and pg['Config']['Labels']['dvaia.test.workspace']==wid;state['postgresId']=pg['Id'];persist()
+ docker(['run','--detach','--pull','never','--name',pg_name,'--label','owasp-ai-goat.test.workspace='+wid,'--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=1073741824','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',pg_image,'-c','shared_buffers=16MB','-c','max_connections=100','-c','max_wal_size=16MB','-c','min_wal_size=4MB'])
+ pg=inspect('container',pg_name);assert not pg.get('Mounts') and pg['Config']['Labels']['owasp-ai-goat.test.workspace']==wid;state['postgresId']=pg['Id'];persist()
  for _ in range(100):
   if docker(['exec',pg_name,'pg_isready','-h','127.0.0.1','-U','postgres'],False).returncode==0:break
   time.sleep(.25)
@@ -125,7 +125,7 @@ finally:
   except BaseException as error:errors.append('application-group:'+str(pgid)+':'+type(error).__name__)
  stage_path=Path(state['privateDirectory'])/'pricing-provisioning.json' if state.get('privateDirectory') else None
  staged=json.loads(stage_path.read_text()) if stage_path and stage_path.exists() else {}
- expected={'dvaia.pricing.workspace':state.get('workspaceId'),'dvaia.pricing.owner':staged.get('ownerId'),'dvaia.pricing.package':staged.get('packageSha256')}
+ expected={'owasp-ai-goat.pricing.workspace':state.get('workspaceId'),'owasp-ai-goat.pricing.owner':staged.get('ownerId'),'owasp-ai-goat.pricing.package':staged.get('packageSha256')}
  def owned(labels):return all(v is not None and labels.get(k)==v for k,v in expected.items())
  for name in state.get('containers',[]):
   try:
@@ -146,13 +146,13 @@ finally:
  try:
   tag=state.get('imageTag');i=inspect('image',tag) if tag else None
   if i:
-   assert i['Config']['Labels'].get('dvaia.pricing.package')==json.loads((WORK/'sidecars/sandbox-runner/owned-pricing-http/local-package-manifest.json').read_text())['sha256'] and i['RepoTags']==[tag];state['imageId']=i['Id'];docker(['image','rm',tag]);assert inspect('image',i['Id']) is None
+   assert i['Config']['Labels'].get('owasp-ai-goat.pricing.package')==json.loads((WORK/'sidecars/sandbox-runner/owned-pricing-http/local-package-manifest.json').read_text())['sha256'] and i['RepoTags']==[tag];state['imageId']=i['Id'];docker(['image','rm',tag]);assert inspect('image',i['Id']) is None
   state['cleanup']['imageAbsent']=True
  except BaseException as error:errors.append('image:'+type(error).__name__)
  try:
   pg_name=state.get('postgresContainer');pg=inspect('container',pg_name) if pg_name else None
   if pg:
-   assert pg['Config']['Labels'].get('dvaia.test.workspace')==state['workspaceId']
+   assert pg['Config']['Labels'].get('owasp-ai-goat.test.workspace')==state['workspaceId']
    if state.get('postgresId'):assert pg['Id']==state['postgresId']
    docker(['rm','--force',pg['Id']])
   if pg_name:assert inspect('container',pg_name) is None
@@ -162,7 +162,7 @@ finally:
   import shlex
   profile=state.get('profile')
   assert all(inspect('container',name) is None for name in state.get('containers',[]))
-  ssh=['/usr/bin/ssh','-F','/Users/averma5/.colima/_lima/colima-dvaia-pg-verify/ssh.config','lima-colima-dvaia-pg-verify']
+  ssh=['/usr/bin/ssh','-F','/Users/averma5/.colima/_lima/colima-owasp-ai-goat-pg-verify/ssh.config','lima-colima-owasp-ai-goat-pg-verify']
   def remote(args):return subprocess.run(ssh+[shlex.join(args)],capture_output=True,text=True,timeout=25)
   if profile and remote(['sudo','test','-e','/etc/apparmor.d/'+profile]).returncode==0:
    expected_profile=(WORK/'sidecars/sandbox-runner/owned-pricing-http/http-profile.apparmor.in').read_text().replace('@@SUPERVISOR_PROFILE@@',profile)

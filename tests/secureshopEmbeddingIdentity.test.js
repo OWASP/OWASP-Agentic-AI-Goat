@@ -9,7 +9,7 @@ function load(){
 test('actual offline fallback has hash provenance while public embed retains Float32Array API',async()=>{
  const Store=load(),store=Object.create(Store.prototype);store.dim=3;store._repository={};store._isOllamaReachable=async()=>false;store._isLMStudioReachable=async()=>false;
  const result=await store.embedWithIdentity('raw SYSTEM poison');assert.ok(result.vector instanceof Float32Array);
- assert.deepEqual(result.identity,{provider:'hash',model:'dvaia-bow-hash-v1',algorithm:'dvaia-bow-hash-v1',dimension:3});assert.ok(await store.embed('raw') instanceof Float32Array);
+ assert.deepEqual(result.identity,{provider:'hash',model:'owasp-ai-goat-bow-hash-v1',algorithm:'owasp-ai-goat-bow-hash-v1',dimension:3});assert.ok(await store.embed('raw') instanceof Float32Array);
 });
 test('native add and search forward the identity from that exact embedding call',async()=>{
  const Store=load(),store=Object.create(Store.prototype);store.dim=2;store.corpus='reviews';const calls=[];

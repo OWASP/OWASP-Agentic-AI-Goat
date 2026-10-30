@@ -27,7 +27,7 @@ test('model-free Excessive Agency learner and instructor full-App parity', {
   skip: process.env.EA_FULL_APP_PARITY !== '1', timeout: process.env.EA_PARITY_MAIN === '1' ? 600000 : 240000,
 }, async () => {
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+  assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
   assert.notEqual(process.env.EA_ROUTE_LIVE, '1');
   const main = process.env.EA_PARITY_MAIN === '1';
   const assertLoaded = main ? admitMain() : () => {};
@@ -44,10 +44,10 @@ test('model-free Excessive Agency learner and instructor full-App parity', {
   const { Pool } = require('pg'); const pools = [];
   const pool = (key, role, database) => { const url = new URL(process.env[key]); assert.equal(url.hostname, '127.0.0.1');
     assert.equal(url.pathname, database); assert.equal(url.username, role); const result = new Pool({ connectionString: url.href, max: 6 }); pools.push(result); return result; };
-  const identity = pool('IDENTITY_DATABASE_URL', 'dvaia_identity_runtime', '/dvaia_test_ea_parity_identity');
-  const migration = pool('IDENTITY_MIGRATION_DATABASE_URL', 'dvaia_identity_migration', '/dvaia_test_ea_parity_identity');
-  const lab = pool('EXCESSIVE_AGENCY_DATABASE_URL', 'dvaia_excessive_agency_runtime', '/dvaia_test_ea_parity_lab');
-  const labMigration = pool('EXCESSIVE_AGENCY_MIGRATION_DATABASE_URL', 'dvaia_excessive_agency_migration', '/dvaia_test_ea_parity_lab');
+  const identity = pool('IDENTITY_DATABASE_URL', 'dvaia_identity_runtime', '/owasp_ai_goat_test_ea_parity_identity');
+  const migration = pool('IDENTITY_MIGRATION_DATABASE_URL', 'dvaia_identity_migration', '/owasp_ai_goat_test_ea_parity_identity');
+  const lab = pool('EXCESSIVE_AGENCY_DATABASE_URL', 'dvaia_excessive_agency_runtime', '/owasp_ai_goat_test_ea_parity_lab');
+  const labMigration = pool('EXCESSIVE_AGENCY_MIGRATION_DATABASE_URL', 'dvaia_excessive_agency_migration', '/owasp_ai_goat_test_ea_parity_lab');
   let server; let authRouter; let parity; let restore; let proof; let primary;
   try {
     Object.assign(process.env, { PLATFORM_DATABASE_ENGINE: 'postgres', WORKSHOP_DATABASE_ENGINE: 'postgres',

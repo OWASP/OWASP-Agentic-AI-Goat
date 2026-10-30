@@ -11,8 +11,8 @@ class Contracts(unittest.TestCase):
    path.unlink();path.symlink_to(root/'missing')
    with self.assertRaises(OSError):m.capture_attestation_artifacts(root)
  def test_native_attestation_closed_results_and_selection(self):
-  self.assertEqual(m.parse_attestation_asset('a'*64+'  /usr/local/libexec/dvaia-invocation-attestation-controls\n'),'a'*64)
-  for invalid in ['a'*64+'  /tmp/other\n','bad','a'*64+'  /usr/local/libexec/dvaia-invocation-attestation-controls\nextra']:
+  self.assertEqual(m.parse_attestation_asset('a'*64+'  /usr/local/libexec/owasp-ai-goat-invocation-attestation-controls\n'),'a'*64)
+  for invalid in ['a'*64+'  /tmp/other\n','bad','a'*64+'  /usr/local/libexec/owasp-ai-goat-invocation-attestation-controls\nextra']:
    with self.assertRaises(ValueError):m.parse_attestation_asset(invalid)
   valid={'version':1,'diagnosticOnly':True,'passedCases':6,'expectedCases':6,'maxRights':253}
   self.assertEqual(m.parse_attestation_result(json.dumps(valid)),valid)
@@ -24,7 +24,7 @@ class Contracts(unittest.TestCase):
  def test_native_attestation_qualification_asset_separate_from_default_runtime(self):
   root=PATH.parents[2];docker=(root/'sidecars/sandbox-runner/owned-mcp-registry/Dockerfile.invocation').read_text();assets=(root/'sidecars/sandbox-runner/owned-mcp-registry/invocation-build-assets.js').read_text();source=PATH.read_text()
   self.assertTrue(docker.rstrip().endswith('FROM runtime AS default-runtime'))
-  self.assertNotIn('dvaia-invocation-attestation-controls',assets)
+  self.assertNotIn('owasp-ai-goat-invocation-attestation-controls',assets)
   self.assertIn("'attestation-qualification' if a.attestation_controls else 'runtime'",source)
   self.assertIn("state['attestationControlAttempt']=attempt;persist()",source)
   self.assertLess(source.index("state['attestationControlAttempt']=attempt;persist()"),source.index("state['attestationControlResult']=parse_attestation_result"))
@@ -98,7 +98,7 @@ console.log(JSON.stringify({output,stderr,exitCode:processStub.exitCode,error,cl
     return SimpleNamespace(returncode=0)
    result=m.retain_native_failure(command,root,'owned-id')
    self.assertEqual(result['sha256'],hashlib.sha256(b'PRIVATE_UNTRUSTED_CHILD_DATA').hexdigest())
-   self.assertNotIn('PRIVATE_UNTRUSTED',json.dumps(result));self.assertEqual(calls[0][-1],'/var/lib/dvaia-invocation/first-worker-failure.bin')
+   self.assertNotIn('PRIVATE_UNTRUSTED',json.dumps(result));self.assertEqual(calls[0][-1],'/var/lib/owasp-ai-goat-invocation/first-worker-failure.bin')
    with self.assertRaisesRegex(RuntimeError,'collision'):m.retain_native_failure(command,root,'owned-id')
    self.assertEqual(m.retain_native_failure(lambda _:SimpleNamespace(returncode=1),root,'owned-id'),{'status':'absent'})
  def test_private_capture_c_disabled_collision_symlink_bound_and_silence(self):
@@ -132,7 +132,7 @@ int f=openat(d,"first-worker-failure.bin",O_RDONLY);char b[7]={0};assert(read(f,
    with self.assertRaises(OSError):m.capture_claim_receipt(root)
  def test_invocation_endpoint_keeps_discovery_default_and_rejects_published_or_foreign(self):
   import copy
-  identifier='a'*64;network={'Id':'b'*64,'Name':'owned','Driver':'bridge','Internal':True,'Labels':{'dvaia.owner':'fixture'},'IPAM':{'Config':[{'Subnet':'172.28.0.0/16'}]},'Containers':{identifier:{'IPv4Address':'172.28.0.2/16'}}}
+  identifier='a'*64;network={'Id':'b'*64,'Name':'owned','Driver':'bridge','Internal':True,'Labels':{'owasp-ai-goat.owner':'fixture'},'IPAM':{'Config':[{'Subnet':'172.28.0.0/16'}]},'Containers':{identifier:{'IPv4Address':'172.28.0.2/16'}}}
   container={'Id':identifier,'HostConfig':{'PortBindings':{}},'NetworkSettings':{'Networks':{'owned':{'NetworkID':network['Id'],'IPAddress':'172.28.0.2'}}}}
   self.assertEqual(m.M.validate_internal_endpoint(container,network,'owned','fixture',identifier,binding_mode='invocation'),'172.28.0.2')
   with self.assertRaisesRegex(RuntimeError,'binding'):m.M.validate_internal_endpoint(container,network,'owned','fixture',identifier)
@@ -193,12 +193,12 @@ int f=openat(d,"first-worker-failure.bin",O_RDONLY);char b[7]={0};assert(read(f,
   def command(argv):
    calls.append(argv)
    return SimpleNamespace(returncode=0,stdout=m.M.DAEMON_ID if argv[0]=='info' else '',stderr='')
-  with patch.object(m.M,'inspect_resource',side_effect=[{'Id':identifier,'Config':{'Labels':{'dvaia.owner':'owner'}}},None,None]):
+  with patch.object(m.M,'inspect_resource',side_effect=[{'Id':identifier,'Config':{'Labels':{'owasp-ai-goat.owner':'owner'}}},None,None]):
    proof=m.cleanup_image(command,'owned:tag','owner')
   self.assertTrue(proof['tagAbsent']);self.assertTrue(proof['imageIdAbsent']);self.assertIn(['image','rm','owned:tag'],calls)
  def test_cleanup_refuses_foreign_replaced_and_unknown_resources(self):
   command=lambda argv:SimpleNamespace(returncode=0,stdout=m.M.DAEMON_ID,stderr='')
-  for row in [{'Id':'sha256:'+'b'*64,'Config':{'Labels':{'dvaia.owner':'foreign'}}},{'Id':'sha256:'+'b'*64,'Config':{'Labels':{'dvaia.owner':'owner'}}}]:
+  for row in [{'Id':'sha256:'+'b'*64,'Config':{'Labels':{'owasp-ai-goat.owner':'foreign'}}},{'Id':'sha256:'+'b'*64,'Config':{'Labels':{'owasp-ai-goat.owner':'owner'}}}]:
    with patch.object(m.M,'inspect_resource',return_value=row),self.assertRaisesRegex(RuntimeError,'identity mismatch'):m.cleanup_image(command,'owned:tag','owner','sha256:'+'a'*64)
   with patch.object(m.M,'inspect_resource',side_effect=RuntimeError('daemon unavailable')),self.assertRaisesRegex(RuntimeError,'daemon unavailable'):m.cleanup_image(command,'owned:tag','owner')
  def test_sigterm_runs_finally_and_reaps_owned_process_group(self):

@@ -11,7 +11,7 @@ import { decodeMailReferences } from './bridge/mailReferences.mjs';
 import { decodeRefundReferences } from './utils/refundReferences.mjs';
 import { decodeRoleAssistantReferences } from './utils/roleAssistantReferences.mjs';
 
-const cancelled = () => new DOMException('SecureShop connection closed', 'AbortError');
+const cancelled = () => new DOMException('OWASP AI SecureShop connection closed', 'AbortError');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const exactKeys = (value, keys) => value && Object.getPrototypeOf(value) === Object.prototype
   && Object.keys(value).sort().join(',') === keys.slice().sort().join(',');
@@ -47,7 +47,7 @@ export function createSecureShopStandaloneController({
   let recovery = null, recoveryReceipt = null, pendingRecovery = null;
   let originalSceneId = null;
   const practiceKey = UUID.test(principalId || '')
-    ? `dvaia:secureshop:practice-admission:v1:${principalId.toLowerCase()}` : null;
+    ? `owasp-ai-goat:secureshop:practice-admission:v1:${principalId.toLowerCase()}` : null;
   let practiceAttempt = null, practiceReceipt = null;
   const readPracticeAttempt = () => {
     if (!practiceKey) return null;
@@ -82,9 +82,9 @@ export function createSecureShopStandaloneController({
     current?.session?.close(); current?.frame?.remove(); current?.store?.close(); current = null;
   };
   const fresh = captured => active && captured === epoch;
-  const scopeKey = credential => `dvaia:secureshop:${credential.launch.launchId.toLowerCase()}:${credential.launch.generation}`;
+  const scopeKey = credential => `owasp-ai-goat:secureshop:${credential.launch.launchId.toLowerCase()}:${credential.launch.generation}`;
   const markerKey = credential => `${scopeKey(credential)}:scene-storage-v1`;
-  const cartMirrorKey = sceneId => `dvaia:secureshop:scene-cart:v1:${principalId.toLowerCase()}:${sceneId.toLowerCase()}`;
+  const cartMirrorKey = sceneId => `owasp-ai-goat:secureshop:scene-cart:v1:${principalId.toLowerCase()}:${sceneId.toLowerCase()}`;
   function readCartMirror(sceneId) {
     const bytes = storage.getItem(cartMirrorKey(sceneId));
     if (bytes === null) return null;
@@ -360,8 +360,8 @@ export function createSecureShopStandaloneController({
   async function mount(credential, captured, selectedSceneId) {
     if (!fresh(captured) || !host?.isConnected) throw cancelled();
     const frame = documentRef.createElement('iframe');
-    frame.title = 'SecureShop';
-    frame.setAttribute('aria-label', 'SecureShop storefront');
+    frame.title = 'OWASP AI SecureShop';
+    frame.setAttribute('aria-label', 'OWASP AI SecureShop storefront');
     Object.assign(frame.style, { width: '100%', height: '100%', border: '0', display: 'block' });
     const sceneId = selectedSceneId || sceneList?.find(row => row.isDefault)?.id
       || (sceneList?.length === 1 ? sceneList[0].id : null);
@@ -380,13 +380,19 @@ export function createSecureShopStandaloneController({
       url.searchParams.set('entry', initialRoute);
       url.searchParams.set('standalone', '1');
       const session = mountFrame({ frame, url: url.href, origin, compileOperation: compileStandaloneFrameOperation,
+        waitForInitialLoad: true,
+        onDisconnect: () => {
+          if (!fresh(captured) || current !== state) return;
+          detach();
+          publish({ status: 'error', message: 'Shop connection changed. Retry to reconnect to your practice.' });
+        },
         stateStore: store, getLaunchBearer: () => {
           if (!fresh(captured) || current !== state) throw cancelled();
           return state.credential.bearer;
         }, transportOptions: { publicReadFallback: true,
           onLaunchUnavailable: bearer => {
             if (fresh(captured) && current === state && bearer === state.credential.bearer) {
-              detach(); publish({ status: 'error', message: 'Shop session changed. Reopen SecureShop to continue.' });
+              detach(); publish({ status: 'error', message: 'Shop session changed. Reopen OWASP AI SecureShop to continue.' });
             }
           } },
       });
@@ -511,7 +517,7 @@ export function createSecureShopStandaloneController({
             if (retained) { practiceAttempt = retained; saved = true; }
           } catch {
             detach();
-            publish({ status: 'error', message: 'Saved new practice storage could not be verified. Reopen SecureShop before starting another practice.' });
+            publish({ status: 'error', message: 'Saved new practice storage could not be verified. Reopen OWASP AI SecureShop before starting another practice.' });
             throw error;
           }
         }
@@ -531,7 +537,7 @@ export function createSecureShopStandaloneController({
               await mount(credential, captured, state.sceneId);
               publish(readyState({ practiceError: 'Practice capacity is full. Your current practice is unchanged.' }));
             } catch {
-              publish({ status: 'error', message: 'Practice capacity is full. Reopen SecureShop to return to a retained practice.' });
+              publish({ status: 'error', message: 'Practice capacity is full. Reopen OWASP AI SecureShop to return to a retained practice.' });
             }
           } else publish({ status: 'practice-recovery', practice: practiceReceipt || { operationId: practiceAttempt,
             status: 'unconfirmed', sceneId: null, canResume: false },
@@ -639,7 +645,14 @@ export function createSecureShopStandaloneController({
       if (scenes.length > 1 && defaults.length === 0) {
         publish({ status: 'choose-scene', scenes }); return;
       }
-      await mount(result, captured);
+      try {
+        await mount(result, captured);
+      } catch (error) {
+        // Only an initial document that never received a port may be replaced.
+        // Reuse the admitted launch and scene; do not replay API operations.
+        if (error?.code !== 'SHOP_FRAME_LOAD_TIMEOUT' || !fresh(captured) || controller.signal.aborted) throw error;
+        await mount(result, captured);
+      }
     } catch (error) {
       if (fresh(captured)) {
         if (practiceAttempt) publish({ status: 'practice-recovery', practice: practiceReceipt || {
@@ -648,7 +661,7 @@ export function createSecureShopStandaloneController({
         else publish({ status: 'error',
           message: error?.code === 'LAUNCH_CAPACITY'
             ? 'Shop practice capacity is full. Reopen a retained practice from a valid shop session, or ask an instructor to resolve retained resources.'
-            : error.message || 'SecureShop unavailable',
+            : error.message || 'OWASP AI SecureShop unavailable',
           authenticated: error.status !== 401 });
       }
       throw error;

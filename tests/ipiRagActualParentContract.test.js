@@ -30,7 +30,7 @@ test('closed email transport retains original graph decision and response forms 
  assert.equal(wire.caseDeadlineFor(p,999,()=>1),999);
 });
 test('email Mailpit admission requires owned label, exact image and independent loopback ports',()=>{
- const main=require('./postgres/codeBotRenderedParityMainV1'),owner='a'.repeat(32),v={creationAttempted:true,name:'dvaia-ipi-email-'+owner.slice(0,12),labels:{'dvaia.owner':owner,'dvaia.cohort':'ipi-email-trigger-actual'},imageId:'sha256:98b916bd3c8d61f7633a52d3ea2f58d00620cb01ca57ab59edde68c347a95365',containerId:'b'.repeat(64),apiUrl:'http://127.0.0.1:4025',smtpHost:'127.0.0.1',smtpPort:4026};
+ const main=require('./postgres/codeBotRenderedParityMainV1'),owner='a'.repeat(32),v={creationAttempted:true,name:'owasp-ai-goat-ipi-email-'+owner.slice(0,12),labels:{'owasp-ai-goat.owner':owner,'owasp-ai-goat.cohort':'ipi-email-trigger-actual'},imageId:'sha256:98b916bd3c8d61f7633a52d3ea2f58d00620cb01ca57ab59edde68c347a95365',containerId:'b'.repeat(64),apiUrl:'http://127.0.0.1:4025',smtpHost:'127.0.0.1',smtpPort:4026};
  assert.equal(main.validateEmailMailpit(v,owner),v);
- for(const change of [x=>x.labels['dvaia.owner']='other',x=>x.apiUrl='http://example.invalid:4025',x=>x.smtpPort=4025,x=>x.cleanup={status:'removed'},x=>x.imageId='sha256:'+'0'.repeat(64)]){const bad=structuredClone(v);change(bad);assert.throws(()=>main.validateEmailMailpit(bad,owner));}
+ for(const change of [x=>x.labels['owasp-ai-goat.owner']='other',x=>x.apiUrl='http://example.invalid:4025',x=>x.smtpPort=4025,x=>x.cleanup={status:'removed'},x=>x.imageId='sha256:'+'0'.repeat(64)]){const bad=structuredClone(v);change(bad);assert.throws(()=>main.validateEmailMailpit(bad,owner));}
 });

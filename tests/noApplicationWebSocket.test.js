@@ -89,8 +89,8 @@ test('root dependency and development proxy require ordinary HTTP only', () => {
 
 test('Ubuntu install wrappers contain no application socket or host-service configuration', () => {
   const wrappers = [
-    ['scripts/install/Ubuntu/install-dvaia-ubuntu.sh', /bootstrap-unix\.sh/],
-    ['scripts/install/Ubuntu/quick-start.sh', /install-dvaia-ubuntu\.sh/],
+    ['scripts/install/Ubuntu/install-owasp-ai-goat-ubuntu.sh', /bootstrap-unix\.sh/],
+    ['scripts/install/Ubuntu/quick-start.sh', /install-owasp-ai-goat-ubuntu\.sh/],
   ];
   for (const [relative, delegatedEntrypoint] of wrappers) {
     const source = read(relative);

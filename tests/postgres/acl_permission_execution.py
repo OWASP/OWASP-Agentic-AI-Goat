@@ -58,11 +58,11 @@ def store_urls(nonce, port):
 def container_command(docker, docker_host, name, image, owner):
     if not all(type(item) is str and item for item in (docker, docker_host, name, image, owner)) \
             or not re.fullmatch(r'sha256:[a-f0-9]{64}', image) \
-            or not re.fullmatch(r'dvaia-acl-permission-[a-f0-9]{12}', name) \
+            or not re.fullmatch(r'owasp-ai-goat-acl-permission-[a-f0-9]{12}', name) \
             or not re.fullmatch(r'[a-f0-9]{32}', owner):
         raise RuntimeError('Exact owned container identity required')
     return (docker, '--host', docker_host, 'run', '-d', '--pull', 'never',
-            '--name', name, '--label', 'dvaia.test.owner=' + owner,
+            '--name', name, '--label', 'owasp-ai-goat.test.owner=' + owner,
             '--memory', str(LIMITS['memoryBytes']), '--cpus', str(LIMITS['cpus']),
             '--memory-swap', str(LIMITS['memorySwapBytes']),
             '--pids-limit', str(LIMITS['pids']),
@@ -102,8 +102,8 @@ def worker_environment(repo, runtime, nonce, port, args, snapshot_sha256, jwt_se
                   PGOPTIONS='-c statement_timeout=15000 -c idle_in_transaction_session_timeout=30000',
                   PLATFORM_DATABASE_ENGINE='postgres', WORKSHOP_DATABASE_ENGINE='postgres',
                   AWS_EC2_METADATA_DISABLED='true', JWT_SECRET=jwt_secret,
-                  DVAIA_ISOLATED_TEST_WORKSPACE=str(repo),
-                  DVAIA_APP_DATA_ROOT=str(runtime), LOGS_DIR=str(runtime / 'logs'),
+                  OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(repo),
+                  OWASP_AI_GOAT_APP_DATA_ROOT=str(runtime), LOGS_DIR=str(runtime / 'logs'),
                   ADMIN_ACL_PERMISSION_CURRENT_HOST='1',
                   ADMIN_ACL_PERMISSION_BUILD_DIRECTORY=str(repo / 'client/build'),
                   ADMIN_ACL_PERMISSION_BUILD_SHA256=args.build_sha256,
@@ -113,9 +113,9 @@ def worker_environment(repo, runtime, nonce, port, args, snapshot_sha256, jwt_se
                   ACL_PERMISSION_RESOURCE_JOURNAL=str(tmp / 'acl-permission-resources.json'),
                   ACL_PERMISSION_EVIDENCE_PATH=str(expected_run / 'acl-permission-evidence.json'),
                   PUPPETEER_EXECUTABLE_PATH=args.chromium,
-                  DVAIA_CHROMIUM_ACTUAL_EXECUTABLE=args.chromium)
-    result.update(PG_SECURESHOP_ENABLED_STARTUP='1', DVAIA_USERS_RENDERED='1',
-                  DVAIA_ACL_PERMISSION_RECOVERY='1', DVAIA_FULL_BACKEND_RUNTIME_ROOT=str(runtime / 'fixture'))
+                  OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE=args.chromium)
+    result.update(PG_SECURESHOP_ENABLED_STARTUP='1', OWASP_AI_GOAT_USERS_RENDERED='1',
+                  OWASP_AI_GOAT_ACL_PERMISSION_RECOVERY='1', OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT=str(runtime / 'fixture'))
     result.update(store_urls(nonce, port))
     return result
 
@@ -361,7 +361,7 @@ def execute(args, *, repo, inspector, before, verify_fixture, verify_tap,
     docker_env = dict(PATH='/usr/bin:/bin', HOME=str(runtime / 'home'),
                       TMPDIR=str(runtime / 'tmp'))
     owner_token = os.urandom(16).hex()
-    name = 'dvaia-acl-permission-' + nonce
+    name = 'owasp-ai-goat-acl-permission-' + nonce
     container_id = None
     owned = Owned()
     child = None
@@ -395,7 +395,7 @@ def execute(args, *, repo, inspector, before, verify_fixture, verify_tap,
         if type(data) is not list or len(data) != 1:
             raise RuntimeError('Exact owned container inspection required')
         row = data[0]
-        if row['Config']['Labels'].get('dvaia.test.owner') != owner_token or \
+        if row['Config']['Labels'].get('owasp-ai-goat.test.owner') != owner_token or \
                 (container_id is not None and row['Id'] != container_id):
             raise RuntimeError('Owned container identity changed')
         return row
@@ -449,7 +449,7 @@ def execute(args, *, repo, inspector, before, verify_fixture, verify_tap,
             args.snapshot_sha256, os.urandom(32).hex())
         # Original enabled-index fixture owns its original 90s initialization.
         (runtime / 'fixture').mkdir(mode=0o700)
-        profile = runtime / 'tmp' / ('dvaia-acl-permission-browser-' + nonce)
+        profile = runtime / 'tmp' / ('owasp-ai-goat-acl-permission-browser-' + nonce)
         read_fd, write_fd = os.pipe()
         environment['ADMIN_ACL_PERMISSION_ADMISSION_FD'] = str(read_fd)
         log_path = root / 'browser.tap'

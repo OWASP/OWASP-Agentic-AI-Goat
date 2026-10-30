@@ -7,7 +7,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { createOwnedHttpOperationStore } = require('../sidecars/sandbox-runner/owned-http/operationStore');
 async function fixture(t, executor, bindingOverride) {
- const root = await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-http-journal-'));
+ const root = await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-http-journal-'));
  t.after(() => fs.rm(root,{recursive:true,force:true}));
  const binding = bindingOverride||{targetId:crypto.randomUUID(),ownerId:'7',platformSessionId:'trusted',generation:'0'};
  const request = {runId:crypto.randomUUID(),invocationId:crypto.randomUUID(),operationId:crypto.randomUUID(),mcpSessionId:'mcp_7',mode:'vuln',url:'http://169.254.169.254/latest/meta-data/'};
@@ -91,6 +91,6 @@ test('packaged canonical serializer matches protocol digest for nested identitie
 });
 test('executor cannot select the ordinary CLI profile or caller command',()=>{
  const {createOwnedHttpExecutor}=require('../sidecars/sandbox-runner/owned-http/executor');
- assert.throws(()=>createOwnedHttpExecutor({expectedProfile:'dvaia-mcp-sandbox'}),TypeError);
- assert.throws(()=>createOwnedHttpExecutor({expectedProfile:'dvaia-owned-http-123456789abc',timeoutMs:30001}),TypeError);
+ assert.throws(()=>createOwnedHttpExecutor({expectedProfile:'owasp-ai-goat-mcp-sandbox'}),TypeError);
+ assert.throws(()=>createOwnedHttpExecutor({expectedProfile:'owasp-ai-goat-owned-http-123456789abc',timeoutMs:30001}),TypeError);
 });

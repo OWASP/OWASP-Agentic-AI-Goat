@@ -25,10 +25,10 @@ function admit(environment,{source=SOURCE,io=fs,nativePid=process.pid}={}){
  if(environment.PG_MAIN_CAPACITY_200!==undefined)assert.equal(environment.PG_MAIN_CAPACITY_200,'1');
  assert.equal(environment.PG_FULL_BACKEND_CAPACITY,capacity?'1':undefined);
  assert.equal(environment.PG_MAIN_BACKEND_AUTH,'1');assert.equal(environment.PG_TEST_DISPOSABLE,'yes');
- assert.equal(environment.DVAIA_ISOLATED_TEST_WORKSPACE,undefined,'Main is not a copied workspace');
+ assert.equal(environment.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE,undefined,'Main is not a copied workspace');
  for(const key of ['PG_FULL_BACKEND_MCP_INDIRECT','PG_FULL_BACKEND_SECURESHOP','PG_SQL_NOVA_CATALOG'])assert.equal(environment[key],undefined);
  assert.equal(io.realpathSync(source),source);
- const evidence=environment.MAIN_BACKEND_AUTH_EVIDENCE,root=environment.DVAIA_FULL_BACKEND_RUNTIME_ROOT;
+ const evidence=environment.MAIN_BACKEND_AUTH_EVIDENCE,root=environment.OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT;
  assert.equal(typeof evidence,'string');assert.equal(typeof root,'string');
  assert.equal(io.realpathSync(evidence),evidence);assert.equal(io.realpathSync(root),root);
  assert(evidence.startsWith(path.join(source,'backups/private-recovery/backend-auth')+path.sep));assert.equal(path.dirname(root),evidence);assert.equal(path.basename(root),'runtime');

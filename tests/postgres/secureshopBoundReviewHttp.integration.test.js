@@ -33,11 +33,11 @@ async function closeServer(server) {
 }
 
 test('mounted bound review flow preserves launch, persona and target isolation', { skip: !enabled }, async () => {
-  const workspace = path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-secureshop-bound-review-http-/);
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-secureshop-bound-review-http-/);
   for (const key of ['IDENTITY_MIGRATION_URL', 'IDENTITY_RUNTIME_URL', 'REVIEW_MIGRATION_URL', 'REVIEW_RUNTIME_URL']) {
     const url = new URL(process.env[PREFIX + key]);
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
     assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
   }
   const identityMigration = new Pool({ connectionString: process.env[PREFIX + 'IDENTITY_MIGRATION_URL'], max: 2 });
@@ -100,7 +100,7 @@ test('mounted bound review flow preserves launch, persona and target isolation',
     server = await listen(app);
     const base = `http://127.0.0.1:${server.address().port}/api/secureshop`;
     const headers = (launch, persona, json = false) => ({ authorization: `Shop ${persona}`,
-      'x-dvaia-secureshop-launch': launch.issued.bearer,
+      'x-owasp-ai-goat-secureshop-launch': launch.issued.bearer,
       ...(json ? { 'content-type': 'application/json' } : {}) });
     const submissionId = '41000000-0000-4000-8000-000000000071';
     const submission = { submission_id: submissionId, author_id: 999, body: poison, rating: 1 };
@@ -146,7 +146,7 @@ test('mounted bound review flow preserves launch, persona and target isolation',
     assert.equal(bobBody.total, 1, 'sibling launch sees only its neutral target fixture');
 
     const invalid = await fetch(`${base}/products/7/reviews`, { headers: {
-      authorization: 'Shop alice-customer', 'x-dvaia-secureshop-launch': 'x'.repeat(43),
+      authorization: 'Shop alice-customer', 'x-owasp-ai-goat-secureshop-launch': 'x'.repeat(43),
     } });
     assert.equal(invalid.status, 401);
     assert.deepEqual(await invalid.json(), { error: 'SecureShop launch unavailable' });

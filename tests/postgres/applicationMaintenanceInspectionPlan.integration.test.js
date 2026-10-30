@@ -1,9 +1,9 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),{createHash}=require('node:crypto'),{spawn}=require('node:child_process'),{Client}=require('pg');
-function identityAdminUrl(value){const url=new URL(value);url.pathname='/dvaia_identity';return url.href;}
+function identityAdminUrl(value){const url=new URL(value);url.pathname='/owasp_ai_goat_identity';return url.href;}
 test('identity diagnostic URL changes database only, preserving admin role and credential',()=>{
  for(const value of ['postgresql://postgres:owned%2Fpostgres@127.0.0.1:49123/postgres','postgresql://postgres@127.0.0.1:49123/postgres?application_name=postgres']){
-  const before=new URL(value),after=new URL(identityAdminUrl(value));assert.equal(after.pathname,'/dvaia_identity');for(const key of ['username','password','host','search','protocol'])assert.equal(after[key],before[key]);
+  const before=new URL(value),after=new URL(identityAdminUrl(value));assert.equal(after.pathname,'/owasp_ai_goat_identity');for(const key of ['username','password','host','search','protocol'])assert.equal(after[key],before[key]);
  }
 });
 function ownedStoreUrl(environment,store){
@@ -13,16 +13,16 @@ function ownedStoreUrl(environment,store){
 function ownedEndpoint(value,admin){const target=new URL(value);assert.equal(target.hostname,admin.hostname);assert.equal(target.port,admin.port);return target.href;}
 test('owned runtime probes use canonical variable and reject implicit/default endpoints',()=>{
  const admin=new URL('postgresql://postgres@127.0.0.1:49123/postgres');
- const expected='postgresql://dvaia_aria_runtime@127.0.0.1:49123/dvaia_aria';
+ const expected='postgresql://dvaia_aria_runtime@127.0.0.1:49123/owasp_ai_goat_aria';
  assert.equal(ownedEndpoint(ownedStoreUrl({SQL_WORKSHOP_DATABASE_URL:expected},'aria'),admin),expected);
  assert.throws(()=>ownedStoreUrl({ARIA_DATABASE_URL:expected},'aria'));
  for(const bad of [undefined,'postgresql://postgres@127.0.0.1:5432/postgres','postgresql://postgres@localhost:49123/postgres'])assert.throws(()=>ownedEndpoint(bad,admin));
 });
 const enabled=process.env.SETUP_DATABASE_PHASE_ISOLATED==='1'&&process.env.SETUP_PHASE_SCENARIO==='inspection-plan';
 test('actual recovery CLI observes canonical stores without granting recovery or altering private state',{skip:!enabled,timeout:240000},async()=>{
- assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');const root=await fs.realpath(process.cwd()),evidence=await fs.realpath(process.env.SETUP_PHASE_EVIDENCE_ROOT);assert.equal(root,await fs.realpath(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));assert.equal(path.dirname(root),evidence);assert.match(path.basename(evidence),/^dvaia-setup-phase-/);assert.match(process.env.SETUP_PHASE_OWNER,/^[a-f0-9]{32}$/);
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');const root=await fs.realpath(process.cwd()),evidence=await fs.realpath(process.env.SETUP_PHASE_EVIDENCE_ROOT);assert.equal(root,await fs.realpath(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));assert.equal(path.dirname(root),evidence);assert.match(path.basename(evidence),/^owasp-ai-goat-setup-phase-/);assert.match(process.env.SETUP_PHASE_OWNER,/^[a-f0-9]{32}$/);
  const adminUrl=new URL(process.env.PG_ADMIN_DATABASE_URL);assert.equal(adminUrl.hostname,'127.0.0.1');assert.equal(adminUrl.pathname,'/postgres');
- const home=path.join(evidence,'plan-home');await fs.mkdir(home,{mode:0o700});const id=createHash('sha256').update(root).digest('hex').slice(0,12),directory=path.join(home,'.dvaia',id);await fs.mkdir(directory,{recursive:true,mode:0o700});
+ const home=path.join(evidence,'plan-home');await fs.mkdir(home,{mode:0o700});const id=createHash('sha256').update(root).digest('hex').slice(0,12),directory=path.join(home,'.owasp-ai-goat',id);await fs.mkdir(directory,{recursive:true,mode:0o700});
  const manifestPath=path.join(directory,'provisioning.json'),envPath=path.join(root,'.env'),deliveryPath=path.join(directory,'ctf-delivery.json');await assert.rejects(fs.lstat(envPath),{code:'ENOENT'});
  const clients=new Set(),children=new Set();let lease;const result={status:'running',cases:[],recoveryAuthorized:false,scope:'Real CLI observations only; no recovery execution, TLS or password-rejection proof'};
  const save=()=>fs.writeFile(path.join(evidence,'inspection-plan-result.json'),JSON.stringify(result,null,2)+'\n',{mode:0o600});
@@ -52,7 +52,7 @@ test('actual recovery CLI observes canonical stores without granting recovery or
   const acquire=()=>require('../../server/services/applicationMaintenanceLease').acquireApplicationMaintenanceLease({mode:'maintenance',env:environment});lease=await acquire();const token=await lease.beginMaintenance();await lease.finishMaintenance(token);await lease.close();lease=null;
   const snapshot=()=>sql('SELECT row_to_json(c)::text AS value FROM dvaia_maintenance.control c UNION ALL SELECT row_to_json(e)::text FROM dvaia_maintenance.epochs e UNION ALL SELECT row_to_json(l)::text FROM dvaia_maintenance.ledger l ORDER BY value');const before=await snapshot();
   for(const name of ['clean','noop']){const x=await run(name);assert.equal(x.code,0);assert.equal(x.value.storeInspection.storeCount,16);assert.equal(x.value.storeInspection.deliveryPresent,false);}
-  await fs.writeFile(path.join(directory,'local-postgres.json'),JSON.stringify({version:1,id,name:`dvaia-postgres-${id}`,port:Number(adminUrl.port),password:'a'.repeat(64)}),{mode:0o600});assert.equal((await run('local-state',false)).code,0);
+  await fs.writeFile(path.join(directory,'local-postgres.json'),JSON.stringify({version:1,id,name:`owasp-ai-goat-postgres-${id}`,port:Number(adminUrl.port),password:'a'.repeat(64)}),{mode:0o600});assert.equal((await run('local-state',false)).code,0);
   const idle=await connect(ownedStoreUrl(environment,'aria'));const blocked=await run('idle-runtime');assert.equal(blocked.code,1);assert.equal(blocked.value.storeInspection.code,'MAINTENANCE_INSPECTION_OTHER_BACKEND');await close(idle);
   lease=await require('../../server/services/applicationMaintenanceLease').acquireApplicationMaintenanceLease({mode:'application',env:environment});assert.equal((await run('shared-lease')).code,1);await lease.close();lease=null;
   const original=await fs.readFile(envPath);await fs.appendFile(envPath,'IDENTITY_DATABASE_URL: '+environment.IDENTITY_DATABASE_URL+'\n');assert.equal((await run('colon-duplicate')).code,1);await fs.writeFile(envPath,original);await fs.chmod(envPath,0o644);assert.equal((await run('public-mode')).code,1);await fs.chmod(envPath,0o600);

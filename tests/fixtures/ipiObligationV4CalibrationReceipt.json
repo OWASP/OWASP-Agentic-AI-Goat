@@ -2,7 +2,7 @@
   "version": 1,
   "provenance": {
     "kind": "retained_synthetic_calibration",
-    "origin": "actual calibration40099 /var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-ipi-judge-replay-_p934vm1/judge-evidence.json",
+    "origin": "actual calibration40099 /var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-ipi-judge-replay-_p934vm1/judge-evidence.json",
     "originSha256": "367b87d40ac78b82caf093227ef1c70dd493ae61eccb73488e09258f6d28f1c0",
     "claim": "Copied Judge output from a disposable synthetic calibration. This is not a fresh model or actor run and is not evidence of a positive real-world attack."
   },

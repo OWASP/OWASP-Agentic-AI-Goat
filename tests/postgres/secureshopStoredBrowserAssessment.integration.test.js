@@ -51,14 +51,14 @@ const PAYLOAD = '<img src="invalid://owned-browser-proof" onerror="alert(\'owned
 function checkedUrl(key) {
   const value = new URL(process.env[PREFIX + key]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 test('native launch-bound ReviewCard browser execution earns one actual-Judge completion and reset wins the race', {
   skip: !enabled, timeout: 180000,
 }, async t => {
-  const workspace = path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-secureshop-stored-browser-/);
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-secureshop-stored-browser-/);
   const identityMigration = new Pool({ connectionString: checkedUrl('IDENTITY_MIGRATION_URL'), max: 2 });
   const identity = new Pool({ connectionString: checkedUrl('IDENTITY_RUNTIME_URL'), max: 10 });
   const leases = new Pool({ connectionString: checkedUrl('IDENTITY_RUNTIME_URL'), max: 4,

@@ -18,11 +18,11 @@ sys.dont_write_bytecode = True
 from xss_launcher_cleanup import cleanup_owned_containers
 
 
-EXPECTED_DOCKER_HOST = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+EXPECTED_DOCKER_HOST = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 EXPECTED_DOCKER_DAEMON_ID = '2c9da9a7-1f8c-490b-af98-87bbf6bf83db'
 DOCKER_CLI = Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 DOCKER_CLI_SHA256 = '95fab203ab36bd2b4f3cd8a1d0dc6d084252f2ec224dc76bfbaebe1540cdd15e'
-NODE = Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+NODE = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 NODE_VERSION = 'v26.10.0'
 NODE_SHA256 = '56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 BROWSER = Path('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')
@@ -147,7 +147,7 @@ def main(args):
     if not (workspace / test_file).is_file():
         raise RuntimeError(f'Current checkout lacks selected XSS test: {test_file}')
 
-    root = Path(tempfile.mkdtemp(prefix=f'dvaia-xss-current-{cohort}-')).resolve()
+    root = Path(tempfile.mkdtemp(prefix=f'owasp-ai-goat-xss-current-{cohort}-')).resolve()
     os.chmod(root, 0o700)
     runtime_root = root / 'runtime'; runtime_root.mkdir(mode=0o700)
     for name in ('logs', 'artifacts', 'vite-cache', 'browser-ui', 'browser-grader'):
@@ -171,7 +171,7 @@ def main(args):
         return subprocess.run(command, check=True, env=base_env, **kwargs)
 
     daemon = json.loads(run(docker + ['info', '--format', '{{json .}}'], capture_output=True, text=True).stdout)
-    if daemon.get('ID') != EXPECTED_DOCKER_DAEMON_ID or daemon.get('Name') != 'colima-dvaia-pg-verify' \
+    if daemon.get('ID') != EXPECTED_DOCKER_DAEMON_ID or daemon.get('Name') != 'colima-owasp-ai-goat-pg-verify' \
             or daemon.get('Architecture') != 'aarch64':
         raise RuntimeError('Exact Colima verification daemon required')
 
@@ -203,8 +203,8 @@ def main(args):
     }, indent=2, sort_keys=True) + '\n')
 
     run_nonce = uuid.uuid4().hex
-    postgres_name = 'dvaia-xss-current-pg-' + uuid.uuid4().hex[:12]
-    mailpit_name = 'dvaia-xss-current-mail-' + uuid.uuid4().hex[:12]
+    postgres_name = 'owasp-ai-goat-xss-current-pg-' + uuid.uuid4().hex[:12]
+    mailpit_name = 'owasp-ai-goat-xss-current-mail-' + uuid.uuid4().hex[:12]
     started = []
     container_ids = {}
 
@@ -217,8 +217,8 @@ def main(args):
             raise RuntimeError(f'Container identity could not be established: {name}')
         row = json.loads(result.stdout)[0]; labels = row['Config']['Labels'] or {}
         if (expected_id and row['Id'] != expected_id) or row['Image'] != image \
-                or labels.get('dvaia.scope') != 'xss-current-checkout' \
-                or labels.get('dvaia.owner') != str(os.getuid()) or labels.get('dvaia.run-nonce') != run_nonce:
+                or labels.get('owasp-ai-goat.scope') != 'xss-current-checkout' \
+                or labels.get('owasp-ai-goat.owner') != str(os.getuid()) or labels.get('owasp-ai-goat.run-nonce') != run_nonce:
             raise RuntimeError(f'Owned container identity mismatch: {name}')
         return row['Id']
 
@@ -285,8 +285,8 @@ def main(args):
             raise RuntimeError('Owned Node process group cleanup did not complete')
 
     try:
-        labels = ['--label', 'dvaia.scope=xss-current-checkout', '--label', f'dvaia.owner={os.getuid()}',
-                  '--label', f'dvaia.run-nonce={run_nonce}']
+        labels = ['--label', 'owasp-ai-goat.scope=xss-current-checkout', '--label', f'owasp-ai-goat.owner={os.getuid()}',
+                  '--label', f'owasp-ai-goat.run-nonce={run_nonce}']
         started.append(postgres_name)
         run(docker + ['run', '--detach', '--pull', 'never', '--name', postgres_name, *labels,
             '--tmpfs', '/var/lib/postgresql:rw,size=268435456', '-e', 'POSTGRES_USER=xss_email_route_admin',
@@ -311,10 +311,10 @@ def main(args):
         for role in roles:
             run(psql + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],
                 stdout=subprocess.DEVNULL)
-        databases = [('dvaia_test_xss_email_route_identity', roles[0], roles[1]),
-                     ('dvaia_test_xss_email_route_xss', roles[2], roles[3])]
+        databases = [('owasp_ai_goat_test_xss_email_route_identity', roles[0], roles[1]),
+                     ('owasp_ai_goat_test_xss_email_route_xss', roles[2], roles[3])]
         if needs_ctf:
-            databases.append(('dvaia_test_xss_email_route_ctf', roles[4], roles[5]))
+            databases.append(('owasp_ai_goat_test_xss_email_route_ctf', roles[4], roles[5]))
         for database, migration, runtime in databases:
             run(psql + ['-c', f'CREATE DATABASE {database} OWNER {migration}'], stdout=subprocess.DEVNULL)
             run(psql + ['-c', f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; '
@@ -338,9 +338,9 @@ def main(args):
             XSS_REFLECTED_ROUTE_UI='yes' if cohort == 'reflected' else 'no',
             XSS_STORED_USER_ROUTE_UI='yes' if cohort == 'stored_user' else 'no',
             XSS_STORED_LLM_ROUTE_UI='yes' if cohort == 'stored_llm' else 'no',
-            DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace), DVAIA_XSS_RENDERED_RUNTIME_ROOT=str(runtime_root),
-            DVAIA_XSS_CURRENT_CHECKOUT='yes', DVAIA_XSS_CURRENT_CHECKOUT_RECEIPT=str(receipt),
-            DVAIA_XSS_CURRENT_CHECKOUT_RECEIPT_SHA256=receipt_digest, DVAIA_EMPTY_DOTENV_PATH=str(empty_env),
+            OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace), OWASP_AI_GOAT_XSS_RENDERED_RUNTIME_ROOT=str(runtime_root),
+            OWASP_AI_GOAT_XSS_CURRENT_CHECKOUT='yes', OWASP_AI_GOAT_XSS_CURRENT_CHECKOUT_RECEIPT=str(receipt),
+            OWASP_AI_GOAT_XSS_CURRENT_CHECKOUT_RECEIPT_SHA256=receipt_digest, OWASP_AI_GOAT_EMPTY_DOTENV_PATH=str(empty_env),
             LOGS_DIR=str(runtime_root / 'logs'), PLATFORM_DATABASE_ENGINE='postgres', WORKSHOP_DATABASE_ENGINE='postgres',
             XSS_MAIL_PROVIDER='mailpit', MAILPIT_SMTP_HOST='127.0.0.1', MAILPIT_SMTP_PORT=str(smtp_port),
             MAILPIT_API_URL=f'http://127.0.0.1:{api_port}/',

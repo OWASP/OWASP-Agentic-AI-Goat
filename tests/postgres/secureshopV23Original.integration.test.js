@@ -159,7 +159,7 @@ function urls(env){
   for(const role of ['RUNTIME','MIGRATION']){
    const u=new URL(env[PREFIX+key+'_'+role+'_URL']);assert.equal(u.protocol,'postgresql:');assert.equal(u.hostname,'127.0.0.1');
    assert.equal(u.username,'dvaia_'+store+'_'+role.toLowerCase());assert.equal(u.search,'');assert.equal(u.hash,'');
-   const m=new RegExp('^/dvaia_test_agent_host_([a-f0-9]{12})_'+store+'$').exec(u.pathname);assert(m);nonces.add(m[1]);ports.add(u.port);names.add(u.pathname);result[key+'_'+role]=u.href;
+   const m=new RegExp('^/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_'+store+'$').exec(u.pathname);assert(m);nonces.add(m[1]);ports.add(u.port);names.add(u.pathname);result[key+'_'+role]=u.href;
   }
  }assert.equal(names.size,4);assert.equal(nonces.size,1);assert.equal(ports.size,1);assert(!ports.has(''));return result;
 }
@@ -229,7 +229,7 @@ function assertReceipt(r){
 }
 async function freePort(){return new Promise((resolve,reject)=>{const s=net.createServer();s.once('error',reject);s.listen(0,'127.0.0.1',()=>{const p=s.address().port;s.close(e=>e?reject(e):resolve(p));});});}
 async function runNative(env=process.env,ownedScope){
- assert.equal(env.SECURESHOP_V23_ORIGINAL_NATIVE,'1');assert.equal(env.LIVE_OLLAMA_TEST,'1');assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE,ROOT);
+ assert.equal(env.SECURESHOP_V23_ORIGINAL_NATIVE,'1');assert.equal(env.LIVE_OLLAMA_TEST,'1');assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,ROOT);
  assert(fixture.REQUEST_VARIANTS.includes(env.V23_REQUEST_VARIANT));const requestVariant=env.V23_REQUEST_VARIANT;
  assert(fixture.BOUNDARY_CONTRACTS.includes(env.V23_BOUNDARY_CONTRACT));const boundaryContract=env.V23_BOUNDARY_CONTRACT;
  const owned=require('./ownedMcpOriginalCohortDriver').assertScope(ownedScope);

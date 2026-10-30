@@ -1,5 +1,6 @@
 import { buildAccountAvatarFormData, buildAvatarTraversalFormData, buildAvatarUploadFormData, buildFileSummaryFormData, buildUploadFormData } from './uploads.mjs';
 import { compileGuestRead, isGuestReadOperation } from './guestRead.mjs';
+import { launchHeaders, launchUnavailable } from '../launchHeaders.mjs';
 
 // Ports must be transferred only after the host verifies the expected frame,
 // origin and launch generation. This transport does not perform that handshake.
@@ -68,13 +69,13 @@ export function createHostTransport({ port, compileOperation, fetchImpl = global
       const launch = publicOnly || anonymousCatalogRead ? null : getLaunchBearer();
       if (launch !== null) {
         if (typeof launch !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(launch)) throw protocolError();
-        headers.set('X-DVAIA-SecureShop-Launch', launch);
+        for (const [name, value] of Object.entries(launchHeaders(launch))) headers.set(name, value);
       }
       const response = await fetchImpl(url.href, { method: request.method, headers, body,
         credentials: 'omit', redirect: 'error', signal: controller.signal });
       if (controller.signal.aborted || closed) throw abortError();
       if (launch !== null && response.status === 401
-        && response.headers.get('x-dvaia-secureshop-launch-state') === 'unavailable') {
+        && launchUnavailable(response.headers)) {
         onLaunchUnavailable?.(launch);
         if (controller.signal.aborted || closed) throw abortError();
       }

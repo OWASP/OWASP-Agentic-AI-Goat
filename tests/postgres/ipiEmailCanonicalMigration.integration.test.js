@@ -55,9 +55,9 @@ const { createEmailArtifactRepository } = require(path.join(
   sourceRoot, 'server/database/postgres/emailArtifactRepository'));
 
 const databaseByKind = Object.freeze({
-  FRESH: 'dvaia_test_ipi_email_0065_fresh',
-  POPULATED: 'dvaia_test_ipi_email_0065_populated',
-  ROLLBACK: 'dvaia_test_ipi_email_0065_rollback',
+  FRESH: 'owasp_ai_goat_test_ipi_email_0065_fresh',
+  POPULATED: 'owasp_ai_goat_test_ipi_email_0065_populated',
+  ROLLBACK: 'owasp_ai_goat_test_ipi_email_0065_rollback',
 });
 const urlVariables = Object.keys(databaseByKind).flatMap(kind => [
   `PG_IPI_EMAIL_0065_${kind}_MIGRATION_URL`,
@@ -100,7 +100,7 @@ function pool(url, suffix) {
     connectionTimeoutMillis: 5000,
     statement_timeout: 30000,
     lock_timeout: 5000,
-    application_name: `dvaia-ipi-email-0065-${suffix}`,
+    application_name: `owasp-ai-goat-ipi-email-0065-${suffix}`,
   });
 }
 

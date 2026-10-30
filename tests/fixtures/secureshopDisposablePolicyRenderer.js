@@ -20,9 +20,9 @@ const sha = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const UUID_HEX = /^[a-f0-9]{12}$/;
 
 function createArgs({ name, network, profile, imageId, labels, port }) {
-  assert.match(name, /^dvaia-v59-policy-[a-f0-9]{12}$/);
-  assert.match(network, /^dvaia-v59-policy-[a-f0-9]{12}$/);
-  assert.match(profile, /^dvaia-owned-policy-renderer-[a-f0-9]{12}$/);
+  assert.match(name, /^owasp-ai-goat-v59-policy-[a-f0-9]{12}$/);
+  assert.match(network, /^owasp-ai-goat-v59-policy-[a-f0-9]{12}$/);
+  assert.match(profile, /^owasp-ai-goat-owned-policy-renderer-[a-f0-9]{12}$/);
   assert.match(imageId, /^sha256:[a-f0-9]{64}$/);
   assert.ok(Number.isInteger(port) && port >= 1024 && port <= 65535);
   return ['create', '--name', name, ...Object.entries(labels).flatMap(([key, value]) => ['--label', `${key}=${value}`]),
@@ -66,7 +66,7 @@ async function diagnosticDestination(filename) {
     && path.basename(filename) === 'disposable-policy-renderer-diagnostic.json');
   const parent = path.dirname(filename), stat = await fs.lstat(parent);
   if (!/^run-[A-Za-z0-9_]{8,32}$/.test(path.basename(parent))) {
-    const workspace = process.env.DVAIA_CURRENT_MAIN_WORKSPACE;
+    const workspace = process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE;
     assert.ok(typeof workspace === 'string' && path.isAbsolute(workspace)
       && await fs.realpath(workspace) === workspace);
     rendererAdmissionPath(workspace, path.join(workspace, 'tasks/qualification',
@@ -152,7 +152,7 @@ async function captureDisposableAdmission({ workspace, admissionFilename, diagno
   assert.equal(stage?.sha256, admission.value.stageSha256);
   assert.equal(record.value.enabled, true);
   assert.equal(record.authority.workspaceId, record.value.workspaceId);
-  assert.equal(record.value.profile, `dvaia-owned-policy-renderer-${record.value.workspaceId}`);
+  assert.equal(record.value.profile, `owasp-ai-goat-owned-policy-renderer-${record.value.workspaceId}`);
   assert.equal(sha(installer._internals.profileBytes(workspace, record.value.workspaceId)), record.value.profileSha256);
   const source = installer.sourceManifest(workspace);
   return { diagnosticDirectory, admission, options, record, stage, source };
@@ -164,10 +164,10 @@ async function createDisposablePolicyRenderer(options = {}) {
     = await captureDisposableAdmission(options);
   const suffix = crypto.randomBytes(6).toString('hex');
   assert.match(suffix, UUID_HEX);
-  const name = `dvaia-v59-policy-${suffix}`, network = name, image = `${name}:local`;
-  const labels = { 'dvaia.policy.workspace': record.value.workspaceId,
-    'dvaia.policy.owner': record.value.ownerId, 'dvaia.policy.source': source.sha256,
-    'dvaia.qualification': suffix };
+  const name = `owasp-ai-goat-v59-policy-${suffix}`, network = name, image = `${name}:local`;
+  const labels = { 'owasp-ai-goat.policy.workspace': record.value.workspaceId,
+    'owasp-ai-goat.policy.owner': record.value.ownerId, 'owasp-ai-goat.policy.source': source.sha256,
+    'owasp-ai-goat.qualification': suffix };
   const env = authority.sanitizeDockerEnvironment(process.env);
   const execute = async (file, args, { timeoutMs = 30000, maxBuffer = 1024 * 1024 } = {}) => {
     assert.ok(['docker', 'ssh', 'sudo'].includes(file));
@@ -213,7 +213,7 @@ async function createDisposablePolicyRenderer(options = {}) {
   };
   const labeled = async kind => {
     const args = kind === 'container' ? ['ps', '-aq'] : kind === 'network' ? ['network', 'ls'] : ['images'];
-    return (await docker([...args, '--filter', `label=dvaia.qualification=${suffix}`,
+    return (await docker([...args, '--filter', `label=owasp-ai-goat.qualification=${suffix}`,
       '--format', kind === 'container' ? '{{.ID}}' : kind === 'network' ? '{{.ID}}' : '{{.Repository}}:{{.Tag}}'], 10000)).trim();
   };
   async function check() {
@@ -317,9 +317,9 @@ async function createDisposablePolicyRenderer(options = {}) {
     assert.ok(await absent('container', name) && await absent('network', network) && await absent('image', image));
     setupStage = 'dedicated-image-build';
     imageAttempted = true;
-    await docker(['build', '--pull=false', '--network=default', '--label', `dvaia.policy.source=${source.sha256}`,
-      '--label', `dvaia.qualification=${suffix}`, '--label', `dvaia.policy.workspace=${record.value.workspaceId}`,
-      '--label', `dvaia.policy.owner=${record.value.ownerId}`,
+    await docker(['build', '--pull=false', '--network=default', '--label', `owasp-ai-goat.policy.source=${source.sha256}`,
+      '--label', `owasp-ai-goat.qualification=${suffix}`, '--label', `owasp-ai-goat.policy.workspace=${record.value.workspaceId}`,
+      '--label', `owasp-ai-goat.policy.owner=${record.value.ownerId}`,
       '-f', path.join(workspace, 'sidecars/sandbox-runner/policy-render/Dockerfile'),
       '-t', image, path.join(workspace, 'sidecars/sandbox-runner')], 300000, 16 * 1024 * 1024);
     await assertUnchanged();

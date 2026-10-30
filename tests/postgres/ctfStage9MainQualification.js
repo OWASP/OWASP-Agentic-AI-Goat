@@ -6,7 +6,7 @@ function validateUrls(env,port){
  for(const store of ['IDENTITY','CTF'])for(const role of ['RUNTIME','MIGRATION']){
   const u=new URL(env[`PG_CTF_STAGE9_${store}_${role}_URL`]);
   assert.equal(u.protocol,'postgresql:');assert.equal(u.hostname,'127.0.0.1');assert.equal(Number(u.port),port);
-  assert.equal(u.pathname,`/dvaia_test_ctf_stage9_${store.toLowerCase()}`);assert.equal(u.username,`dvaia_${store.toLowerCase()}_${role.toLowerCase()}`);assert.equal(u.password+u.search+u.hash,'');
+  assert.equal(u.pathname,`/owasp_ai_goat_test_ctf_stage9_${store.toLowerCase()}`);assert.equal(u.username,`dvaia_${store.toLowerCase()}_${role.toLowerCase()}`);assert.equal(u.password+u.search+u.hash,'');
  }
  const d=new URL(env.PG_CTF_STAGE9_CTF_DELIVERY_URL),c=new URL(env.PG_CTF_STAGE9_CTF_RUNTIME_URL);
  assert.equal(d.protocol,'postgresql:');assert.equal(d.host,c.host);assert.equal(d.pathname,c.pathname);assert.equal(d.username,'dvaia_ctf_delivery');assert.equal(d.password+d.search+d.hash,'');

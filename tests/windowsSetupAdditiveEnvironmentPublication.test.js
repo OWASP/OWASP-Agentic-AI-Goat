@@ -24,7 +24,7 @@ function fixture(){
  };
  const executePublication=(exe,argv,wire)=>{
   const r=JSON.parse(wire.input);calls.push(r);if(unsafe)throw Error('synthetic native authority denial');
-  const kind=r.targetPath===journal?'journal':'environment',stagePath=r.targetPath+`.dvaia-${r.operationId}.stage`,oldPath=r.intentPath+'.original',resultPath=r.intentPath+'.result';
+  const kind=r.targetPath===journal?'journal':'environment',stagePath=r.targetPath+`.owasp-ai-goat-${r.operationId}.stage`,oldPath=r.intentPath+'.original',resultPath=r.intentPath+'.result';
   let intentFile=files.get(r.intentPath),intent,current=files.get(r.targetPath),old=files.get(oldPath),result=files.get(resultPath),stage=files.get(stagePath);
   if(!intentFile){
    if(r.operation!=='preparePrivatePublication')throw Error('intent required');
@@ -60,7 +60,7 @@ test('Windows additive retains exact existing JSON journal and publishes only af
  assert(f.files.get(f.journal).bytes.equals(expected));assert(f.files.get(f.envPath).bytes.equals(f.args.originalBytes));
  assert(f.files.has(f.journal+'.native-journal'));assert(f.files.has(f.journal+'.native-environment.original'));assert(f.files.has(f.journal+'.native-environment.result'));
  assert.equal(f.calls.filter(r=>r.operation==='publishPrivatePublication').length,1);assert.equal(f.calls.find(r=>r.operation==='publishPrivatePublication').targetPath,f.journal);
- const stage=f.files.get(f.envPath+`.dvaia-${operationId}.stage`);publication.resultBytes.fill(0);f.args.originalBytes.fill(0);
+ const stage=f.files.get(f.envPath+`.owasp-ai-goat-${operationId}.stage`);publication.resultBytes.fill(0);f.args.originalBytes.fill(0);
  publication.publish();assert.equal(f.files.get(f.envPath),stage);assert(f.files.get(f.envPath).bytes.equals(result));
  assert(Object.isFrozen(publication));assert(!f.files.has(f.args.root+'\\.env.upgrade'));
 });

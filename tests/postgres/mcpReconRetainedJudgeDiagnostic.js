@@ -2,7 +2,7 @@
 // Retained-packet diagnostic only: no actors, databases, completion service or credit.
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict'),{createHash}=require('node:crypto');
 const root=path.resolve(__dirname,'../..');
-const nodePath='/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node',nodeSha='56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861';
+const nodePath='/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node',nodeSha='56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861';
 const PROFILES=Object.freeze({
  historical70b:Object.freeze({id:'historical70b',model:'llama3.3:70b',modelDigest:'a6eb4748fd2990ad2952b2335a95a7f952d1a06119a0aa6a2df6cd052a93a3fa',
   base:'backups/private-recovery/mcp-mounted-http/run-jnwm1qcv/',retainedVerdict:'unavailable',retainedErrorCode:'JUDGE_TIMEOUT',wireTerminal:'incomplete',evidencePrefix:'mcp-recon-judge70b-',fixedPairDigests:null,

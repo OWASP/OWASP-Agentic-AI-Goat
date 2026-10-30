@@ -23,7 +23,7 @@ function prototypeResponse(index, method, url) {
   return Buffer.from('{"products":[{"name":"Prototype training lamp","price":12,"description":"Owned synthetic supplier product","__proto__":{"listingTrainingMarker":"owned-only"}}]}');
 }
 async function main() {
-  if (process.env.DVAIA_OWNED_LISTINGS_ATTESTED !== '1') throw Error('Namespace attestation required');
+  if (process.env.OWASP_AI_GOAT_OWNED_LISTINGS_ATTESTED !== '1') throw Error('Namespace attestation required');
   try { await require('node:fs/promises').writeFile('/owned-listing-files/secret.txt', 'unexpected write'); throw Error('Synthetic mount writable'); }
   catch (error) { if (error.code !== 'EROFS') throw error; }
   let size = 0; const chunks = [];

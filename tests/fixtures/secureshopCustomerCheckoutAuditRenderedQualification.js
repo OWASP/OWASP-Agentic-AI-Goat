@@ -31,7 +31,7 @@ function forgeUnsignedAdminTeachingToken(token,{orderId}={}){
   const header=decode(parts[0]),payload=decode(parts[1]);
   assert.deepEqual(header,{typ:'JWT',alg:'HS256'});
   assert.deepEqual(Object.keys(payload),['iss','aud','sub','role','orderId','bindingTag']);
-  assert.equal(payload.iss,'dvaia-secureshop-v01-practice');
+  assert.equal(payload.iss,'owasp-ai-goat-secureshop-v01-practice');
   assert.equal(payload.aud,'owned-checkout-audit-read');assert.match(payload.sub,/^shop-user:[1-9]\d*$/);
   assert.equal(payload.role,'customer');assert.equal(payload.orderId,orderId);
   assert.match(payload.bindingTag,/^[A-Za-z0-9_-]{43}$/);

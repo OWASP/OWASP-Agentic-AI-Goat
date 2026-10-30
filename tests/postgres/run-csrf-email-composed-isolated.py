@@ -30,8 +30,8 @@ SOURCE_FILES = ("package.json", "package-lock.json")
 DENIED_NAMES = frozenset({".git", "node_modules", "logs", "uploads",
     "sensitive_files", "workshop_data", "vector-indexes", "coverage", ".cache", "__pycache__"})
 DENIED_SUFFIXES = (".db", ".db-wal", ".db-shm", ".db-journal", ".sqlite", ".sqlite3", ".log")
-OWNER_LABEL = "org.dvaia.csrf-email-composed-owner"
-NONCE_LABEL = "org.dvaia.csrf-email-composed-nonce"
+OWNER_LABEL = "org.owasp-ai-goat.csrf-email-composed-owner"
+NONCE_LABEL = "org.owasp-ai-goat.csrf-email-composed-nonce"
 BROWSER_RECORDS = (("fixture-browser.json", "fixture_browser"),
                    ("qualification-browser.json", "qualification_browser"))
 
@@ -569,7 +569,7 @@ def run_qualification(args):
     validate_image(docker, base_env, POSTGRES_IMAGE)
     validate_image(docker, base_env, MAILPIT_IMAGE)
 
-    evidence = Path(tempfile.mkdtemp(prefix="dvaia-csrf-email-composed-"))
+    evidence = Path(tempfile.mkdtemp(prefix="owasp-ai-goat-csrf-email-composed-"))
     os.chmod(evidence, 0o700)
     workspace = evidence / "source"
     workspace.mkdir(mode=0o700)
@@ -584,9 +584,9 @@ def run_qualification(args):
 
     nonce = uuid.uuid4().hex
     intents = [
-        {"name": f"dvaia-csrf-email-pg-{nonce[:12]}", "nonce": nonce,
+        {"name": f"owasp-ai-goat-csrf-email-pg-{nonce[:12]}", "nonce": nonce,
          "image": POSTGRES_IMAGE, "kind": "postgres"},
-        {"name": f"dvaia-csrf-email-mail-{nonce[:12]}", "nonce": nonce,
+        {"name": f"owasp-ai-goat-csrf-email-mail-{nonce[:12]}", "nonce": nonce,
          "image": MAILPIT_IMAGE, "kind": "mailpit"},
     ]
     write_private_json(evidence / "container-intent.json", {"schemaVersion": 1,
@@ -646,7 +646,7 @@ def run_qualification(args):
         for store in ("identity", "csrf"):
             migration = f"dvaia_{store}_migration"
             runtime = f"dvaia_{store}_runtime"
-            database = f"dvaia_test_csrf_email_{store}_{nonce[:10]}"
+            database = f"owasp_ai_goat_test_csrf_email_{store}_{nonce[:10]}"
             for role in (migration, runtime):
                 run(psql + [f"CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"])
             run(psql + [f"CREATE DATABASE {database} OWNER {migration}"])
@@ -680,10 +680,10 @@ def run_qualification(args):
             IDENTITY_MIGRATION_DATABASE_URL=urls["identity"]["migration"],
             CSRF_WORKSHOP_DATABASE_URL=urls["csrf"]["runtime"],
             CSRF_WORKSHOP_MIGRATION_DATABASE_URL=urls["csrf"]["migration"],
-            DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace), PUPPETEER_EXECUTABLE_PATH=str(browser),
+            OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace), PUPPETEER_EXECUTABLE_PATH=str(browser),
             CSRF_EMAIL_COMPOSED_BROWSER_PID_DIR=str(browser_pid_dir),
             CSRF_EMAIL_COMPOSED_BROWSER_SHA256=args.browser_sha256,
-            DVAIA_APP_DATA_ROOT=str(app_data), LOGS_DIR=str(logs_root),
+            OWASP_AI_GOAT_APP_DATA_ROOT=str(app_data), LOGS_DIR=str(logs_root),
             CSRF_EMAIL_COMPOSED_OWNER_USER="csrf-email-owner",
             CSRF_EMAIL_COMPOSED_OWNER_PASSWORD="OwnedCsrfEmailFixture@123",
             CSRF_EMAIL_COMPOSED_SIBLING_USER="csrf-email-sibling",

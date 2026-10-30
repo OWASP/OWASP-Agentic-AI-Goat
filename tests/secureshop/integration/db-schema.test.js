@@ -21,7 +21,7 @@ function admitUrl(key,role){
   if(!['127.0.0.1','localhost','[::1]'].includes(url.hostname))throw new Error(`${key} must use a loopback host`);
   if(decodeURIComponent(url.username)!==role)throw new Error(`${key} must use role ${role}`);
   const database=decodeURIComponent(url.pathname.slice(1));
-  if(!/^dvaia_test_[a-z0-9_]+$/.test(database))throw new Error(`${key} must name a dvaia_test_* database`);
+  if(!/^owasp_ai_goat_test_[a-z0-9_]+$/.test(database))throw new Error(`${key} must name a owasp_ai_goat_test_* database`);
   return{database,hostname:url.hostname,port:url.port||'5432'};
 }
 

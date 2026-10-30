@@ -185,7 +185,7 @@ export default function TopNav({ role }) {
       </button>
       <style>{`@media (max-width: 900px){.ss-nav__mobile-toggle{display:inline-flex !important;} .ss-nav__desktop-links{display:none !important;} .ss-nav__desktop-search{display:none !important;}}`}</style>
 
-      <Link to={brandTo} className="ss-nav__brand" aria-label="SecureShop home"><GoatBrand shop /></Link>
+      <Link to={brandTo} className="ss-nav__brand" aria-label="OWASP AI SecureShop home"><GoatBrand shop /></Link>
 
       <div className="ss-nav__desktop-links" style={{ display: 'flex', gap: 22, flex: '0 0 auto' }}>
         {items.map((it) => (

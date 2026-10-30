@@ -21,7 +21,7 @@ async function qualifyBoundSessions({origin,env,signal,owner,sibling,persona,fet
  let requests=0;const checks={};
  async function request(path,{token,launch,cookie,method='GET',body}={}){
   assert(PATHS.has(path));signal.throwIfAborted();assert(++requests<=32);
-  const response=await send(origin+path,{method,redirect:'error',signal:AbortSignal.any([signal,AbortSignal.timeout(15000)]),headers:{...(token?{authorization:'Bearer '+token}:{}),...(launch?{'x-dvaia-secureshop-launch':launch}:{}),...(cookie?{cookie}:{}),...(body!==undefined?{'content-type':'application/json'}:{})},...(body!==undefined?{body:JSON.stringify(body)}:{})});
+  const response=await send(origin+path,{method,redirect:'error',signal:AbortSignal.any([signal,AbortSignal.timeout(15000)]),headers:{...(token?{authorization:'Bearer '+token}:{}),...(launch?{'x-owasp-ai-goat-secureshop-launch':launch}:{}),...(cookie?{cookie}:{}),...(body!==undefined?{'content-type':'application/json'}:{})},...(body!==undefined?{body:JSON.stringify(body)}:{})});
   const text=await response.text();assert(Buffer.byteLength(text)<=65536);return{status:response.status,body:JSON.parse(text)};
  }
  const save=()=>record({scope:'R02-composed-bound-sessions',checks:{...checks},requests,actualModel:false,creditAuthorized:false});

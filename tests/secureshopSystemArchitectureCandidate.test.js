@@ -52,8 +52,8 @@ test('checked-in AMD64 candidate has complete preview source closure but remains
  for(const file of ['upload-preview-contract.js','upload-preview-dependencies.js','upload-preview-executor.js',
   'upload-preview-http-handler.js','upload-preview-http-listener.js','upload-preview-worker.js','upload-preview-init.c',
   'upload-preview-runtime/package.json','upload-preview-runtime/package-lock.json'])assert.ok(Object.hasOwn(selected.files,file),file);
- assert.match(docker,/gcc -static[^\n]+upload-preview-init\.c -o \/usr\/local\/libexec\/dvaia-upload-preview-init/);
- assert.match(docker,/node \/opt\/dvaia-owned-system\/upload-preview-dependencies\.js --build-manifest/);
+ assert.match(docker,/gcc -static[^\n]+upload-preview-init\.c -o \/usr\/local\/libexec\/owasp-ai-goat-upload-preview-init/);
+ assert.match(docker,/node \/opt\/owasp-ai-goat-owned-system\/upload-preview-dependencies\.js --build-manifest/);
  assert.match(docker,/npm ci --omit=dev --ignore-scripts --include=optional --bin-links=false/);
  assert.match(docker,/USER 10001:10001/);
  assert.doesNotMatch(docker,/^(?:ENV|VOLUME|EXPOSE|CMD|ADD)\s/m);

@@ -1,11 +1,11 @@
 import os,pathlib,tempfile,subprocess,secrets,json,time,hashlib,signal,shutil,sys
-repo=pathlib.Path('/Users/averma5/Documents/github/Damn-Vulnerable-AI-Application')
-root=pathlib.Path(tempfile.mkdtemp(prefix='dvaia-ipi-document-rendered-'));os.chmod(root,0o700);workspace=root/'source'
-node='/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node'
-docker=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host','unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock']
+repo=pathlib.Path('/Users/averma5/Documents/github/OWASP Agentic AI GOAT')
+root=pathlib.Path(tempfile.mkdtemp(prefix='owasp-ai-goat-ipi-document-rendered-'));os.chmod(root,0o700);workspace=root/'source'
+node='/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node'
+docker=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host','unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock']
 image='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 env={'PATH':str(pathlib.Path(node).parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(root)}
-nonce=secrets.token_hex(6);name='dvaia-workshop-rag-'+nonce;cid=None;child=None;result=1;cleaned=False
+nonce=secrets.token_hex(6);name='owasp-ai-goat-workshop-rag-'+nonce;cid=None;child=None;result=1;cleaned=False
 actual='--actual' in sys.argv
 restore='--restore' in sys.argv
 sha=lambda p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
@@ -23,12 +23,12 @@ try:
  receipt('source-hashes.json',{f:sha(workspace/f) for f in files})
  receipt('migration-hashes.json',{p.name:sha(p) for p in sorted((workspace/'db/postgres/identity-migrations').glob('*.sql'))})
  if actual:
-  cache=pathlib.Path('/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-embedding-430-255u6f1z/cache')
+  cache=pathlib.Path('/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-embedding-430-255u6f1z/cache')
   if not cache.is_dir():raise RuntimeError('Reviewed public model cache unavailable')
   shutil.copytree(cache,workspace/'model-cache')
   env.update(XENOVA_CACHE=str(workspace/'model-cache'),HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',WORKSHOP_RAG_ACTUAL_EMBEDDING='1')
  receipt('container-intent.json',{'name':name,'image':image,'ownerLabel':nonce})
- cid=run(docker+['run','--detach','--pull','never','--name',name,'--label','dvaia.test.owner='+nonce,'-e','POSTGRES_HOST_AUTH_METHOD=trust','-p','127.0.0.1::5432',image])
+ cid=run(docker+['run','--detach','--pull','never','--name',name,'--label','owasp-ai-goat.test.owner='+nonce,'-e','POSTGRES_HOST_AUTH_METHOD=trust','-p','127.0.0.1::5432',image])
  receipt('container-created.json',{'name':name,'id':cid})
  for attempt in range(60):
   try:run(docker+['exec',cid,'pg_isready','-h','127.0.0.1','-U','postgres']);break
@@ -37,9 +37,9 @@ try:
  port=run(docker+['port',cid,'5432/tcp']).split(':')[-1]
  base=docker+['exec',cid,'psql','-h','127.0.0.1','-U','postgres','-v','ON_ERROR_STOP=1','-c']
  run(base+['CREATE ROLE dvaia_identity_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE dvaia_identity_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;'])
- db='dvaia_test_workshop_rag_'+nonce;run(base+[f'CREATE DATABASE {db} OWNER dvaia_identity_migration'])
+ db='owasp_ai_goat_test_workshop_rag_'+nonce;run(base+[f'CREATE DATABASE {db} OWNER dvaia_identity_migration'])
  if restore:env['WORKSHOP_RAG_CHILD_RESTORE']='1'
- env.update(PG_TEST_DISPOSABLE='yes',WORKSHOP_RAG_ROUTES_NATIVE='1',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),WORKSHOP_RAG_EVIDENCE_PATH=str(root/'service-evidence.json'))
+ env.update(PG_TEST_DISPOSABLE='yes',WORKSHOP_RAG_ROUTES_NATIVE='1',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),WORKSHOP_RAG_EVIDENCE_PATH=str(root/'service-evidence.json'))
  for role in ['migration','runtime']:env['WORKSHOP_RAG_'+role.upper()+'_URL']=f'postgresql://dvaia_identity_{role}@127.0.0.1:{port}/{db}'
  with open(root/'tests.log','w') as output:
   child=subprocess.Popen([node,'--test','tests/postgres/ipiDocumentRendered.integration.test.js'],cwd=workspace,env=env,stdout=output,stderr=output,start_new_session=True)
@@ -51,7 +51,7 @@ finally:
   except subprocess.TimeoutExpired:os.killpg(child.pid,signal.SIGKILL);child.wait(timeout=5)
  if cid:
   owned=json.loads(run(docker+['inspect',cid]))[0]
-  if owned['Config']['Labels'].get('dvaia.test.owner')!=nonce:raise RuntimeError('Ownership changed')
+  if owned['Config']['Labels'].get('owasp-ai-goat.test.owner')!=nonce:raise RuntimeError('Ownership changed')
   run(docker+['rm','--force','--volumes',cid]);cleaned=not run(docker+['ps','--all','--quiet','--filter','id='+cid])
  evidence={'directory':str(root),'exitCode':result,'actualEmbedding':actual,'containerId':cid,'containerRemoved':cleaned,'pidAbsent':child is None or absent(child.pid),'pgidAbsent':child is None or absent(child.pid,True)}
  receipt('result.json',evidence);(repo/'tasks/ipi-document-rendered-2026-09-19.json').write_text(json.dumps(evidence,indent=2)+'\n');print(json.dumps(evidence))

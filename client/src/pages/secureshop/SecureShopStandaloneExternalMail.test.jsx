@@ -6,13 +6,13 @@ const principalId = '11111111-1111-4111-8111-111111111111';
 const operationId = '22222222-2222-4222-8222-222222222222';
 const scopeKey = 'a'.repeat(64), requestSha256 = 'b'.repeat(64);
 const preview = { sender: 'shop@gmail.com', recipient: 'person@sharklasers.com',
-  subject: 'SecureShop synthetic delivery test',
-  text: `This is a manually requested SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n` };
+  subject: 'OWASP AI SecureShop synthetic delivery test',
+  text: `This is a manually requested OWASP AI SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n` };
 const prepared = { version: 1, operationId, scopeKey, requestSha256, state: 'prepared',
   preview, expiresAt: new Date(Date.now() + 600000).toISOString(), smtp: null };
 const ready = { version: 1, available: true, scopeKey, sender: preview.sender,
   templateVersion: 'synthetic-test-v1', limits: { ownerPerHour: 3, senderPerHour: 20 } };
-const key = `dvaia:secureshop:external-mail:v1:${principalId}`;
+const key = `owasp-ai-goat:secureshop:external-mail:v1:${principalId}`;
 
 let root, container, originalUuid;
 const flush = async () => { await act(async () => { await Promise.resolve(); await Promise.resolve(); }); };

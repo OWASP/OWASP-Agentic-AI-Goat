@@ -34,7 +34,7 @@ function assertTwoStoreEnvironment(env = process.env) {
     'CTF_DATABASE_URL', 'CTF_MIGRATION_DATABASE_URL', 'CTF_DELIVERY_DATABASE_URL'].map(name => new URL(env[name]));
   for (const url of selected) {
     assert.equal(url.hostname, '127.0.0.1');
-    assert.match(url.pathname, /^\/dvaia_test_ctf_/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_ctf_/);
   }
   assert.equal(selected[0].pathname, selected[1].pathname);
   assert.equal(selected[2].pathname, selected[3].pathname);
@@ -59,7 +59,7 @@ function admitFullResetBrowser(env = process.env) {
   assert.equal(env.CTF_FULL_RESET_SOURCE_ROOT, ROOT);
   const run = path.dirname(env.CTF_FULL_RESET_RUNTIME_DIRECTORY);
   assert.equal(path.dirname(run), path.join(ROOT, 'tasks/qualification'));
-  assert.match(path.basename(run), /^dvaia-ctf-stages-route-[A-Za-z0-9_-]+$/);
+  assert.match(path.basename(run), /^owasp-ai-goat-ctf-stages-route-[A-Za-z0-9_-]+$/);
   const runtime = path.join(run, 'runtime'), evidence = path.join(run, 'rendered-evidence');
   const profile = path.join(evidence, 'full-reset-profile');
   assert.equal(env.CTF_FULL_RESET_RUNTIME_DIRECTORY, runtime);

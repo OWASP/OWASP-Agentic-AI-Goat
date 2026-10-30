@@ -4,7 +4,7 @@ const {createMcpTargetStore,_internals}=require('../../sidecars/sandbox-runner/m
 async function fixture(t,options={}){
  const {pythonExecutable,...storeOptions}=options;
  if(pythonExecutable!==undefined&&(!path.isAbsolute(pythonExecutable)||/[\r\n]/.test(pythonExecutable)))throw new TypeError('Absolute fixture Python executable required');
- const base=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-target-'));
+ const base=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-target-'));
  const owned=await fs.lstat(base);
  t.after(async()=>{
   const current=await fs.lstat(base);

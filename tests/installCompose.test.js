@@ -9,7 +9,7 @@ for(const plugin of ['compose','buildx'])for(const platform of ['linux','macos']
   const file=path.resolve(__dirname,`../scripts/install/${platform}-prerequisites.sh`);
   // Exercise real plugin discovery/linking only inside disposable directories.
   // A successful package-manager command alone is not Compose v2 readiness.
-  const fixture=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-compose-prerequisite-'));
+  const fixture=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-compose-prerequisite-'));
   t.after(()=>fs.rmSync(fixture,{recursive:true,force:true}));
   const dockerConfig=path.join(fixture,'docker-config');
   fs.mkdirSync(dockerConfig);

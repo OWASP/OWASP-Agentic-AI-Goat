@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os');
 const {captureAssetBundle}=require('../db/postgres/asset-bundle');
 const {restoreAssetBundle,verifyRestoredAssetBundle,isAssetRestoreProof}=require('../db/postgres/restore-asset-bundle');
-async function fixture(fn){const root=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-restore-'));try{
+async function fixture(fn){const root=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-restore-'));try{
  const source=path.join(root,'source');await fs.mkdir(source);const bytes=Buffer.from([0,255,60,115,99,114,105,112,116,62]);await fs.writeFile(path.join(source,'raw.svg'),bytes);
  const bundle=await captureAssetBundle({sourceRoot:source,relativePaths:['raw.svg'],destinationRoot:path.join(root,'bundle')});
  const input={bundleRoot:bundle.bundleRoot,expectedManifestDigest:bundle.manifestDigest,destinationRoot:path.join(root,'restore'),bindings:[{sourcePath:'raw.svg',targetPath:'uploads/raw.svg'}]};await fn({root,bytes,bundle,input});

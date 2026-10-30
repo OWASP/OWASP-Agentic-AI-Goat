@@ -23,7 +23,7 @@ export default function SecureShopPassword({ client, onChanged }) {
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, ease: [0.16, 1, 0.3, 1] }} style={{ width: '100%', maxWidth: 480 }}>
       <Link to="/secureshop/account" style={{ fontFamily: 'Fraunces, serif', fontWeight: 700, fontSize: 22,
-        letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--ink)', textDecoration: 'none' }}>SecureShop</Link>
+        letterSpacing: '0.02em', textTransform: 'uppercase', color: 'var(--ink)', textDecoration: 'none' }}>OWASP AI SecureShop</Link>
       <h1 className="ss-display" style={{ fontSize: 48, margin: '28px 0 8px' }}>Change password.</h1>
       <p style={{ opacity: 0.75, marginBottom: 24 }}>You’ll sign in again after changing your password.</p>
       <form className="ss-form" onSubmit={submit}>

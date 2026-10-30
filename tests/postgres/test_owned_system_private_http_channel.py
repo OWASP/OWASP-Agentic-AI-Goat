@@ -20,7 +20,7 @@ spec.loader.exec_module(channel)
 def binding():
     return {'version':1,'target':'original-v24-system','runId':'a'*32,
             'imageId':'sha256:'+'b'*64,'inputSha256':'c'*64,'daemonId':'d'*36,
-            'physical':{'privateDockerHost':'unix:///var/tmp/dvaia-v23-build-'+'a'*32+'/fs/docker.sock',
+            'physical':{'privateDockerHost':'unix:///var/tmp/owasp-ai-goat-v23-build-'+'a'*32+'/fs/docker.sock',
                         'namespaceInode':'net:[12345]','filesystemIdentity':{'device':1,'inode':2},
                         'daemonProcess':{'pid':101,'startTicks':'100','exe':'/usr/bin/dockerd'},
                         'namespaceHolder':{'pid':102,'startTicks':'101','exe':'/usr/bin/sleep'}}}
@@ -46,7 +46,7 @@ class ControlledRuntime(channel.GuestRuntime):
         if args[0]=='ps': return b'a' if self.row else b''
         if args[0]=='create':
             self.row={'Id':'f'*64,'Image':self.binding['imageId'],'Name':'/'+self.name,
-                'Config':{'Labels':{'dvaia.system.runtime':self.binding['runId']},'User':'10001:10001',
+                'Config':{'Labels':{'owasp-ai-goat.system.runtime':self.binding['runId']},'User':'10001:10001',
                           'Entrypoint':['/usr/local/bin/node','/qualification/owned-system/http-listener.js']},
                 'HostConfig':{'NetworkMode':'host','PortBindings':{},'ReadonlyRootfs':True,'Memory':536870912,
                               'NanoCpus':1000000000,'PidsLimit':128,'Tmpfs':{'/tmp':'rw,nosuid,nodev,size=128m'},
@@ -160,7 +160,7 @@ class ChannelTests(unittest.TestCase):
 
     def test_fixed_lifecycle_intent_before_effect_and_remote_before_teardown(self):
         runtime=ControlledRuntime()
-        profile=Path(__file__).parents[2].joinpath('sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in').read_bytes()
+        profile=Path(__file__).parents[2].joinpath('sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in').read_bytes()
         with patch.object(channel,'bounded_command',runtime.command), patch.object(channel.os,'stat',return_value=SimpleNamespace(st_ino=12345)), \
              patch.object(runtime,'docker',wraps=runtime.docker) as docker:
             result=runtime.start('x'*43,profile,time.monotonic()+20)
@@ -450,7 +450,7 @@ class PolicyRuntimeTests(unittest.TestCase):
                 self.argv.append(args)
                 result=ControlledRuntime.docker(self,*args)
                 if args[0]=='create':
-                    self.row['Config'].update(Labels={'dvaia.policy.runtime':self.binding['runId']},Entrypoint=self.entrypoint,
+                    self.row['Config'].update(Labels={'owasp-ai-goat.policy.runtime':self.binding['runId']},Entrypoint=self.entrypoint,
                         Env=['SECURESHOP_POLICY_RENDER_ENABLED=true','SECURESHOP_POLICY_RENDER_MAX_CONCURRENT=1'])
                     self.row['HostConfig'].update(NetworkMode='none',CapDrop=['ALL'],CapAdd=[],Privileged=False,
                         Tmpfs={'/tmp':'rw,nosuid,nodev,noexec,mode=1777,size=128m'})
@@ -473,7 +473,7 @@ class PolicyRuntimeTests(unittest.TestCase):
             return SimpleNamespace(st_ino=namespace if str(name)=='/proc/201/ns/net' else 100)
         with patch.object(ns['os'],'stat',side_effect=stat_),patch.object(ns['os'],'fstat',side_effect=fstat),\
              patch.object(ns['os'],'readlink',return_value='/usr/local/bin/node'),patch.dict(ns,{'birth':lambda pid:'900'}):
-            result=runtime.start(None,Path(channel.__file__).parents[2].joinpath('sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in').read_bytes(),end)
+            result=runtime.start(None,Path(channel.__file__).parents[2].joinpath('sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in').read_bytes(),end)
         return result
 
     def test_actual_serialized_policy_start_private_namespace_and_original_argv(self):
@@ -607,11 +607,11 @@ class PolicyRuntimeTests(unittest.TestCase):
         before=len(runtime.argv)
         with patch.object(ns['os'],'fstat',side_effect=fstat):
             with self.assertRaisesRegex(RuntimeError,'POLICY_COHORT_CHANGED'):
-                runtime.start(None,Path(channel.__file__).parents[2].joinpath('sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in').read_bytes(),time.monotonic()+21)
+                runtime.start(None,Path(channel.__file__).parents[2].joinpath('sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in').read_bytes(),time.monotonic()+21)
         self.assertEqual(len(runtime.argv),before)
 
     def test_expired_or_invalid_renderer_deadline_has_zero_effect(self):
-        profile=Path(channel.__file__).parents[2].joinpath('sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in').read_bytes()
+        profile=Path(channel.__file__).parents[2].joinpath('sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in').read_bytes()
         for end in [float('nan'),float('inf'),time.monotonic()-1,time.monotonic()+901]:
             runtime,ns=self.fixture()
             with self.assertRaisesRegex(RuntimeError,'RUNTIME_DEADLINE'):runtime.start(None,profile,end)

@@ -26,7 +26,7 @@ const enabled = process.env.CSRF_EMAIL_COMPOSED_LIVE === '1'
   && process.env.CSRF_EMAIL_COMPOSED_SIBLING_PASSWORD
   && process.env.IPI_MAIL_HMAC_SECRET
   && process.env.CSRF_EMAIL_COMPOSED_MAX_MODEL_CALLS
-    && process.env.DVAIA_ISOLATED_TEST_WORKSPACE
+    && process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE
     && process.env.CSRF_EMAIL_COMPOSED_BROWSER_PID_DIR
     && process.env.CSRF_EMAIL_COMPOSED_BROWSER_SHA256
   && URL_KEYS.every(key => process.env[key]);
@@ -40,15 +40,15 @@ function ownedUrl(value, label) {
 }
 
 function verifyInputs() {
-  const workspace = fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  const workspace = fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   assert.equal(path.basename(workspace), 'source');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-csrf-email-composed-/);
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-csrf-email-composed-/);
   const app = ownedUrl(process.env.CSRF_EMAIL_COMPOSED_APP_URL, 'application');
   const mailpit = ownedUrl(process.env.CSRF_EMAIL_COMPOSED_MAILPIT_API_URL, 'Mailpit');
   const urls = Object.fromEntries(URL_KEYS.map(key => [key, new URL(process.env[key])]));
   for (const [key, url] of Object.entries(urls)) {
     assert.ok(['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname), `${key} must be loopback`);
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   assert.equal(urls.PG_CSRF_EMAIL_COMPOSED_IDENTITY_RUNTIME_URL.pathname,
     urls.PG_CSRF_EMAIL_COMPOSED_IDENTITY_MIGRATION_URL.pathname);

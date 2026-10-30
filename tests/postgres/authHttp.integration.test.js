@@ -16,7 +16,7 @@ const {createPostgresSessionManager}=require('../../server/middleware/postgresSe
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&Boolean(process.env.PG_HTTP_TEST_MIGRATION_URL);
 test('real PG18 HTTP auth and session middleware: coherent login/status/logout/password/profile/verification contracts',{skip:!enabled,timeout:300000},async()=>{
  require('./platformAuthCtfScope').pair(process.env,'PG_HTTP_TEST');
- for(const key of ['PG_HTTP_TEST_MIGRATION_URL','PG_HTTP_TEST_RUNTIME_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const key of ['PG_HTTP_TEST_MIGRATION_URL','PG_HTTP_TEST_RUNTIME_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const migration=createPool(process.env,'PG_HTTP_TEST_MIGRATION_URL'),pool=createPool(process.env,'PG_HTTP_TEST_RUNTIME_URL');
  let server,manager,router,primaryFailure;
  try{

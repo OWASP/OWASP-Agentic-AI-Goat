@@ -11,7 +11,7 @@ const {createBoundConversationsRepository}=require('../../server/database/postgr
 const {createTurnRequestsRepository}=require('../../server/database/postgres/secureshopTurnRequestsRepository');
 const PREFIX='PG_SECURESHOP_V09_ORIGINAL_READER_',PURPOSE=SECURESHOP_CONVERSATION_PURPOSES.merchantAssistant;
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&['MIGRATION','RUNTIME'].every(role=>process.env[`${PREFIX}FRESH_${role}_URL`]);
-function url(role){const value=new URL(process.env[`${PREFIX}FRESH_${role}_URL`]);assert.equal(value.protocol,'postgresql:');assert.equal(value.hostname,'127.0.0.1');assert.equal(value.username,`dvaia_secureshop_agents_${role.toLowerCase()}`);assert.equal(value.password,'');assert.equal(value.search,'');assert.equal(value.hash,'');assert.match(value.pathname,/^\/dvaia_test_persona_fresh_[a-f0-9]{12}$/);return value.href;}
+function url(role){const value=new URL(process.env[`${PREFIX}FRESH_${role}_URL`]);assert.equal(value.protocol,'postgresql:');assert.equal(value.hostname,'127.0.0.1');assert.equal(value.username,`dvaia_secureshop_agents_${role.toLowerCase()}`);assert.equal(value.password,'');assert.equal(value.search,'');assert.equal(value.hash,'');assert.match(value.pathname,/^\/owasp_ai_goat_test_persona_fresh_[a-f0-9]{12}$/);return value.href;}
 const queue=async(_id,action)=>action();
 function source(binding,sessionId,requestId){
  const body='Hello from the merchant.\\n\\n<iframe title="V09 native original"></iframe>';

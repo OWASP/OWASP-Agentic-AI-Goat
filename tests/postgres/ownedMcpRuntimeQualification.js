@@ -15,8 +15,8 @@ const RUNTIME_DIGEST='d88092cd25f6dd885f1fbb319c53a844dc9873649657341c578e0467d9
 function specification(root,nonce,runtimeDigest){
   const base=admission.specification(root);
   if(!/^[a-f0-9]{12}$/.test(nonce||'')||runtimeDigest!==RUNTIME_DIGEST)throw fail('RUNTIME_INVALID_IDENTITY');
-  const name='dvaia-owned-mcp-registry-'+nonce;
-  return Object.freeze({...base,nonce,runtimeDigest,name,profile:name,guest:'/var/tmp/dvaia-v23-runtime-'+nonce,
+  const name='owasp-ai-goat-owned-mcp-registry-'+nonce;
+  return Object.freeze({...base,nonce,runtimeDigest,name,profile:name,guest:'/var/tmp/owasp-ai-goat-v23-runtime-'+nonce,
     directory:path.join(root,'tasks/tmp/v23-runtime-'+nonce),lima:path.join(root,'tasks/runtime/container/bin/limactl'),limaHome:path.join(root,'tasks/l')});
 }
 async function journal(spec,name,value){
@@ -27,8 +27,8 @@ async function journal(spec,name,value){
 const guard=`set -eu
 umask 077
 root="$1"; nonce="$2"; profile="$3"; digest="$4"
-[ "$root" = "/var/tmp/dvaia-v23-runtime-$nonce" ]
-[ "$profile" = "dvaia-owned-mcp-registry-$nonce" ]
+[ "$root" = "/var/tmp/owasp-ai-goat-v23-runtime-$nonce" ]
+[ "$profile" = "owasp-ai-goat-owned-mcp-registry-$nonce" ]
 [ "\${#nonce}" = 12 ]; case "$nonce" in *[!0-9a-f]*) exit 80;; esac
 [ "\${#digest}" = 64 ]; case "$digest" in *[!0-9a-f]*) exit 80;; esac
 labels() { cat /sys/kernel/security/apparmor/profiles; }
@@ -88,9 +88,9 @@ function createGuest({launch=spawn,delay=ms=>new Promise(resolve=>setTimeout(res
   };
 }
 const guest=createGuest();
-function createArgs(spec){return ['create','--name',spec.name,'--label','dvaia.runtime='+spec.nonce,'--network','none','--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--memory','512m','--cpus','1','--pids-limit','128','--log-driver','none','--cap-drop','ALL','--security-opt','apparmor='+spec.profile,'--security-opt','seccomp=unconfined','--user','10001:10001','--env','SECURESHOP_MCP_REGISTRY_PROFILE='+spec.profile,'--entrypoint','node','-i',RUNTIME_IMAGE,'-'];}
+function createArgs(spec){return ['create','--name',spec.name,'--label','owasp-ai-goat.runtime='+spec.nonce,'--network','none','--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--memory','512m','--cpus','1','--pids-limit','128','--log-driver','none','--cap-drop','ALL','--security-opt','apparmor='+spec.profile,'--security-opt','seccomp=unconfined','--user','10001:10001','--env','SECURESHOP_MCP_REGISTRY_PROFILE='+spec.profile,'--entrypoint','node','-i',RUNTIME_IMAGE,'-'];}
 function verifyContainer(spec,id,row){
-  if(row?.Id!==id||row.Name!=='/'+spec.name||row.Image!==RUNTIME_IMAGE||row.Config?.Labels?.['dvaia.runtime']!==spec.nonce)throw fail('RUNTIME_CONTAINER_IDENTITY');
+  if(row?.Id!==id||row.Name!=='/'+spec.name||row.Image!==RUNTIME_IMAGE||row.Config?.Labels?.['owasp-ai-goat.runtime']!==spec.nonce)throw fail('RUNTIME_CONTAINER_IDENTITY');
 }
 function verifyBoundary(spec,row){
   const h=row.HostConfig,c=row.Config;
@@ -113,7 +113,7 @@ async function registrationFixture(expectedDigest){
   let receipt;
   try{
     await listener.start();const health=await request('GET','/health');assert.equal(health.status,200);assert.equal(health.value.registrationCapability,'owned-mcp-registration-v1');assert.equal(health.value.runtimeDigest,expectedDigest);
-    const command="printf 'owned-stdio-effect' > /owned-mcp-files/stdio-effect; exec /usr/local/bin/node /usr/local/libexec/dvaia-owned-mcp-registry-worker.js --stdio-peer";
+    const command="printf 'owned-stdio-effect' > /owned-mcp-files/stdio-effect; exec /usr/local/bin/node /usr/local/libexec/owasp-ai-goat-owned-mcp-registry-worker.js --stdio-peer";
     const q={version:1,action:'register',operationId:crypto.randomUUID(),expectedVersion:'0',name:'tracked-stdio',transport:'stdio',url:'',stdio_cmd:command};
     const identity={instanceId:health.value.instanceId,operationId:q.operationId,requestSha256:registryRequestDigest(q)};
     const input={version:1,...identity,mode:'vuln',request:q,activeEntries:[]};

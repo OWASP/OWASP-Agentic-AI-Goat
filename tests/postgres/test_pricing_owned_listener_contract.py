@@ -56,11 +56,11 @@ class PricingListenerPublication(unittest.TestCase):
             'workspaceId': workspace_id,
             'ownerId': '10000000-0000-4000-8000-000000000001',
             'dockerAuthoritySha256': 'a' * 64,
-            'containerName': 'dvaia-pricing-' + workspace_id,
+            'containerName': 'owasp-ai-goat-pricing-' + workspace_id,
             'containerId': 'b' * 64,
             'imageId': 'sha256:' + 'c' * 64,
             'packageSha256': 'd' * 64,
-            'profile': 'dvaia-owned-pricing-http-' + workspace_id,
+            'profile': 'owasp-ai-goat-owned-pricing-http-' + workspace_id,
             'port': 18093,
             'token': 'e' * 43,
         }
@@ -104,7 +104,7 @@ class PricingListenerPublication(unittest.TestCase):
                 'containerId': 'c' * 64,
                 'imageId': 'sha256:' + 'd' * 64,
                 'packageSha256': 'e' * 64,
-                'profile': 'dvaia-owned-pricing-http-' + 'b' * 12,
+                'profile': 'owasp-ai-goat-owned-pricing-http-' + 'b' * 12,
                 'origin': 'http://127.0.0.1:18093',
                 'token': 'f' * 43,
             }

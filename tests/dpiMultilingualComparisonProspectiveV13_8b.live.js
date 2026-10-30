@@ -23,7 +23,7 @@ const PER_CHAT_MS = 60_000;
 const RUN_MS = 900_000;
 const MAX_OUTPUT = 900;
 const CONTEXT = 32_768;
-const NODE = '/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node';
+const NODE = '/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node';
 const NODE_SHA256 = '56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861';
 const SOURCE_PINS = new Map([
   [CORPUS, '336f1096b66c7993d7e5d06fdb7e2c71689a41a2f7869abdbbb35201c26ef81a'],

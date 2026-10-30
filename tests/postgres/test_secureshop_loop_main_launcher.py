@@ -74,7 +74,7 @@ class Controls(unittest.TestCase):
     def test_upgrade_uses_extra_database_and_canonical_existing_roles(self):
         sql=module.upgrade_database_sql()
         self.assertNotIn('CREATE ROLE',sql)
-        self.assertIn('CREATE DATABASE dvaia_test_secureshop_loop_agents_upgrade OWNER dvaia_secureshop_agents_migration',sql)
+        self.assertIn('CREATE DATABASE owasp_ai_goat_test_secureshop_loop_agents_upgrade OWNER dvaia_secureshop_agents_migration',sql)
         self.assertIn('REVOKE CONNECT',sql)
         proof=dict(status='passed',version=1,legacyRows=4,newMappedRows=1,modelCalls=0,remoteCalls=0,genuineCredit=0,exactRowsPreserved=True,wrapperReplayPreserved=True,grantsVerified=True,mappedEndpointDenied=True,secondRunNoop=True)
         module.registry_upgrade_receipt(proof)
@@ -131,13 +131,13 @@ if __name__=='__main__':unittest.main()
 
 class RegistryControls(unittest.TestCase):
     def test_registry_pin_contract_closed(self):
-        good={'imageId':'sha256:'+'a'*64,'runtimeDigest':'b'*64,'apparmorProfile':'dvaia-owned-mcp-registry-'+'c'*12}
+        good={'imageId':'sha256:'+'a'*64,'runtimeDigest':'b'*64,'apparmorProfile':'owasp-ai-goat-owned-mcp-registry-'+'c'*12}
         self.assertEqual(module.validate_registry_config(good),good)
         for patching in [{'imageId':'latest'},{'apparmorProfile':'unconfined'},{'runtimeDigest':'x'},{'url':'http://foreign'}]:
             with self.assertRaises((ValueError,TypeError)):module.validate_registry_config({**good,**patching})
     def test_registry_actual_inspect_layout_denies_host_network_and_public_port(self):
         import copy
-        image='sha256:'+'a'*64;labels={'dvaia.owner':'owned'}
+        image='sha256:'+'a'*64;labels={'owasp-ai-goat.owner':'owned'}
         row={'Image':image,'Config':{'Labels':labels,'User':'10001:10001'},'HostConfig':{'NetworkMode':'owned-net','ReadonlyRootfs':True,'CapDrop':['ALL'],'Memory':536870912,'NanoCpus':1000000000,'PidsLimit':128,'Tmpfs':{'/tmp':'rw,nosuid,nodev,noexec,size=16m'}},'Mounts':[],'NetworkSettings':{'Networks':{'owned-net':{}},'Ports':{'8094/tcp':[{'HostIp':'127.0.0.1','HostPort':'65432'}]}}}
         self.assertEqual(module.registry_layout(row,'owned-net',labels,image),65432)
         tmp=copy.deepcopy(row);tmp['Mounts']=[{'Type':'tmpfs','Destination':'/tmp'}];self.assertEqual(module.registry_layout(tmp,'owned-net',labels,image),65432)
@@ -146,7 +146,7 @@ class RegistryControls(unittest.TestCase):
             with self.assertRaises(ValueError):module.registry_layout(bad,'owned-net',labels,image)
 
     def test_registry_control_bridge_exact_endpoints(self):
-        good={'Id':'a'*64,'Name':'owned-net','Driver':'bridge','Internal':False,'EnableIPv6':False,'Labels':{'dvaia.owner':'owned'},'Containers':{}}
+        good={'Id':'a'*64,'Name':'owned-net','Driver':'bridge','Internal':False,'EnableIPv6':False,'Labels':{'owasp-ai-goat.owner':'owned'},'Containers':{}}
         self.assertEqual(module.registry_network_layout(good,'owned-net','owned'),'a'*64)
         live={**good,'Containers':{'container':{}}}
         self.assertEqual(module.registry_network_layout(live,'owned-net','owned','container'),'a'*64)
@@ -158,7 +158,7 @@ class RegistryControls(unittest.TestCase):
         tree=ast.parse(PATH.read_text())
         calls=[n for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Name) and n.func.id=='command' and n.args and isinstance(n.args[0],ast.List) and any(isinstance(v,ast.Name) and v.id=='registry' for v in n.args[0].elts) and any(isinstance(v,ast.Constant) and v.value=='--detach' for v in n.args[0].elts)]
         self.assertEqual(len(calls),1)
-        labels={'dvaia.owner':'controlled-owner','dvaia.cohort':module.COHORT};image='sha256:'+'a'*64
+        labels={'owasp-ai-goat.owner':'controlled-owner','owasp-ai-goat.cohort':module.COHORT};image='sha256:'+'a'*64
         argv=eval(compile(ast.Expression(calls[0].args[0]),str(PATH),'eval'),{'owner':'controlled-owner','labels':labels,'registry':'controlled-registry','registry_network':'controlled-net','registry_env':{},'config':{'imageId':image,'apparmorProfile':'controlled-profile'}})
         emitted=dict(argv[i+1].split('=',1) for i,v in enumerate(argv) if v=='--label')
         spec=importlib.util.spec_from_file_location('actual_docker_ownership',PATH.with_name('sql_nosql_docker_ownership.py'));ownership=importlib.util.module_from_spec(spec);spec.loader.exec_module(ownership)
@@ -224,7 +224,7 @@ class ReplacementControls(unittest.TestCase):
     def test_replacement_cleanup_exact_ids_never_profile_or_foreign(self):
         import json,os
         from types import SimpleNamespace
-        identity='a'*64;namespace='b'*12;workspace='c'*12;name='dvaia-owned-mcp-registry-'+workspace+'-qualification-'+namespace
+        identity='a'*64;namespace='b'*12;workspace='c'*12;name='owasp-ai-goat-owned-mcp-registry-'+workspace+'-qualification-'+namespace
         config={'previousBuild':{'imageId':'sha256:'+'1'*64},'nextBuild':{'imageId':'sha256:'+'2'*64}}
         with tempfile.TemporaryDirectory() as tmp:
             evidence=Path(tmp);journal=evidence/'replacement-resources.json';journal.write_text(json.dumps([dict(kind='container',id=identity,name=name,namespace=namespace,workspace=workspace)]));journal.chmod(0o600)
@@ -234,7 +234,7 @@ class ReplacementControls(unittest.TestCase):
                 calls.append(argv)
                 if argv[:2]==['container','inspect']:
                     if not present:return SimpleNamespace(returncode=1,stdout='',stderr='No such container')
-                    return SimpleNamespace(returncode=0,stderr='',stdout=json.dumps([{'Id':identity,'Name':'/'+name+'-rollback-any','Image':config['previousBuild']['imageId'],'Config':{'Labels':{'dvaia.registry.namespace':namespace}},'State':{'Running':False}}]))
+                    return SimpleNamespace(returncode=0,stderr='',stdout=json.dumps([{'Id':identity,'Name':'/'+name+'-rollback-any','Image':config['previousBuild']['imageId'],'Config':{'Labels':{'owasp-ai-goat.registry.namespace':namespace}},'State':{'Running':False}}]))
                 if argv==['rm',identity]:present=False;return SimpleNamespace(returncode=0,stdout='',stderr='')
                 raise AssertionError(argv)
             self.assertTrue(module.cleanup_replacement_resources(command,evidence,config,Path.cwd())['absent'])
@@ -246,7 +246,7 @@ class ReplacementControls(unittest.TestCase):
     def test_rollback_duplicate_name_checked_after_both_exact_ids(self):
         import json
         from types import SimpleNamespace
-        original='a'*64;candidate='b'*64;namespace='c'*12;workspace='d'*12;name='dvaia-owned-mcp-registry-'+workspace+'-qualification-'+namespace
+        original='a'*64;candidate='b'*64;namespace='c'*12;workspace='d'*12;name='owasp-ai-goat-owned-mcp-registry-'+workspace+'-qualification-'+namespace
         config={'previousBuild':{'imageId':'sha256:'+'1'*64},'nextBuild':{'imageId':'sha256:'+'2'*64}}
         with tempfile.TemporaryDirectory() as tmp:
             evidence=Path(tmp);p=evidence/'replacement-resources.json';p.write_text(json.dumps([dict(kind='container',id=i,name=name,namespace=namespace,workspace=workspace) for i in [original,candidate]]));p.chmod(0o600)
@@ -254,7 +254,7 @@ class ReplacementControls(unittest.TestCase):
             def command(argv):
                 nonlocal present
                 if argv[:2]==['container','inspect']:
-                    if argv[2] in [original,name] and present:return SimpleNamespace(returncode=0,stderr='',stdout=json.dumps([{'Id':original,'Name':'/'+name,'Image':config['previousBuild']['imageId'],'Config':{'Labels':{'dvaia.registry.namespace':namespace}},'State':{'Running':False}}]))
+                    if argv[2] in [original,name] and present:return SimpleNamespace(returncode=0,stderr='',stdout=json.dumps([{'Id':original,'Name':'/'+name,'Image':config['previousBuild']['imageId'],'Config':{'Labels':{'owasp-ai-goat.registry.namespace':namespace}},'State':{'Running':False}}]))
                     return SimpleNamespace(returncode=1,stderr='No such container',stdout='')
                 if argv==['rm',original]:present=False;removed.append(original);return SimpleNamespace(returncode=0,stdout='',stderr='')
                 raise AssertionError(argv)

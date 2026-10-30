@@ -2,10 +2,10 @@
 import argparse,hashlib,json,os,re,shutil,signal,subprocess,tempfile,time
 from pathlib import Path
 parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--docker-host',required=True);args=parser.parse_args()
-HOST='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+HOST='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 if args.docker_host!=HOST:parser.error('reviewed explicit Docker authority required')
-SOURCE=Path(__file__).resolve().parents[1];OUT=Path(tempfile.mkdtemp(prefix='dvaia-system-supported-startup-')).resolve();OUT.chmod(0o700);WORK=OUT/'source';WORK.mkdir()
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node');CLI=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker');DOCKER=[str(CLI),'--host',HOST]
+SOURCE=Path(__file__).resolve().parents[1];OUT=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-system-supported-startup-')).resolve();OUT.chmod(0o700);WORK=OUT/'source';WORK.mkdir()
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node');CLI=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker');DOCKER=[str(CLI),'--host',HOST]
 ENV={'PATH':str(NODE.parent)+':'+str(CLI.parent)+':/usr/bin:/bin','HOME':'/Users/averma5','TMPDIR':str(OUT)}
 state={'version':1,'out':str(OUT),'status':'preparing','sourceHashes':{},'cleanup':{},'resources':{'buildSeconds':300,'parentSeconds':1200,'listenerCount':2,'eachMemoryBytes':536870912,'eachCpu':1,'eachPids':128,'eachTmpfsBytes':134217728,'drainSeconds':25},'installedActivation':False,'supportedStartupGate':True};child=None
 
@@ -51,21 +51,21 @@ def join():
 def interrupted(signum,frame):raise InterruptedError('qualification interrupted')
 signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted);persist()
 try:
- assert docker(['info','--format','{{.Name}}']).stdout.strip()=='colima-dvaia-pg-verify'
+ assert docker(['info','--format','{{.Name}}']).stdout.strip()=='colima-owasp-ai-goat-pg-verify'
  subprocess.run([str(NODE),'-e',"require('./scripts/lib/isolated-source-copy').copyIsolatedSource(process.argv[1],process.argv[2])",str(SOURCE),str(WORK)],cwd=SOURCE,env=ENV,check=True,timeout=60)
  (WORK/'node_modules').symlink_to(SOURCE/'node_modules',target_is_directory=True)
  (WORK/'client/node_modules').symlink_to(SOURCE/'client/node_modules',target_is_directory=True)
  state['sourceHashes']={str(p.relative_to(WORK)):sha(p) for p in WORK.rglob('*') if p.is_file()};state['nodeSha256']=sha(NODE)
- wid=hashlib.sha256(str(WORK.resolve()).encode()).hexdigest()[:12];state['workspaceId']=wid;private=Path('/Users/averma5/.dvaia')/wid
- assert not private.exists();state['privateDirectory']=str(private);state['containers']=[f'dvaia-owned-system-{wid}-{m}' for m in ['config','diagnostic']];state['network']=f'dvaia-owned-system-{wid}-bridge';state['imageTag']=f'dvaia-owned-system-{wid}:local'
+ wid=hashlib.sha256(str(WORK.resolve()).encode()).hexdigest()[:12];state['workspaceId']=wid;private=Path('/Users/averma5/.owasp-ai-goat')/wid
+ assert not private.exists();state['privateDirectory']=str(private);state['containers']=[f'owasp-ai-goat-owned-system-{wid}-{m}' for m in ['config','diagnostic']];state['network']=f'owasp-ai-goat-owned-system-{wid}-bridge';state['imageTag']=f'owasp-ai-goat-owned-system-{wid}:local'
  for name in state['containers']:assert inspect('container',name) is None
  assert inspect('network',state['network']) is None and inspect('image',state['imageTag']) is None
- pg_name='dvaia-system-supported-pg-'+wid;state['postgresContainer']=pg_name;persist()
+ pg_name='owasp-ai-goat-system-supported-pg-'+wid;state['postgresContainer']=pg_name;persist()
  assert inspect('container',pg_name) is None
  pg_image='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
  assert inspect('image',pg_image)['Id']==pg_image
- docker(['run','--detach','--pull','never','--name',pg_name,'--label','dvaia.test.workspace='+wid,'--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=1073741824','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',pg_image,'-c','shared_buffers=16MB','-c','max_connections=100','-c','max_wal_size=16MB','-c','min_wal_size=4MB'])
- pg=inspect('container',pg_name);assert not pg.get('Mounts') and pg['Config']['Labels']['dvaia.test.workspace']==wid;state['postgresId']=pg['Id'];persist()
+ docker(['run','--detach','--pull','never','--name',pg_name,'--label','owasp-ai-goat.test.workspace='+wid,'--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=1073741824','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',pg_image,'-c','shared_buffers=16MB','-c','max_connections=100','-c','max_wal_size=16MB','-c','min_wal_size=4MB'])
+ pg=inspect('container',pg_name);assert not pg.get('Mounts') and pg['Config']['Labels']['owasp-ai-goat.test.workspace']==wid;state['postgresId']=pg['Id'];persist()
  for _ in range(100):
   if docker(['exec',pg_name,'pg_isready','-h','127.0.0.1','-U','postgres'],False).returncode==0:break
   time.sleep(.25)
@@ -108,7 +108,7 @@ finally:
     if group_alive(pgid):os.killpg(pgid,signal.SIGKILL)
    assert not group_alive(pgid)
   except BaseException as error:errors.append('application-group:'+str(pgid)+':'+type(error).__name__)
- expected={'dvaia.system.workspace':state.get('workspaceId'),'dvaia.system.authority':fixture.get('authoritySha256'),'dvaia.system.source':fixture.get('sourceSha256')}
+ expected={'owasp-ai-goat.system.workspace':state.get('workspaceId'),'owasp-ai-goat.system.authority':fixture.get('authoritySha256'),'owasp-ai-goat.system.source':fixture.get('sourceSha256')}
  def owned(labels):return all(v is not None and labels.get(k)==v for k,v in expected.items())
  for name in state.get('containers',[]):
   try:
@@ -135,7 +135,7 @@ finally:
  try:
   pg_name=state.get('postgresContainer');pg=inspect('container',pg_name) if pg_name else None
   if pg:
-   assert pg['Config']['Labels'].get('dvaia.test.workspace')==state['workspaceId']
+   assert pg['Config']['Labels'].get('owasp-ai-goat.test.workspace')==state['workspaceId']
    if state.get('postgresId'):assert pg['Id']==state['postgresId']
    docker(['rm','--force',pg['Id']])
   if pg_name:assert inspect('container',pg_name) is None

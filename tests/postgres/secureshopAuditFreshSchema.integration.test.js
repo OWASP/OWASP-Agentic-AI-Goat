@@ -9,14 +9,14 @@ const {migrate}=require('../../db/postgres/migrate');
 const prefix='PG_SECURESHOP_BOUND_AUDIT_';
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&['AGENTS','REVIEW'].every(store=>['RUNTIME','MIGRATION'].every(role=>process.env[`${prefix}${store}_${role}_URL`]));
 test('fresh audit migration chain and exact no-op replay qualify runtime readiness',{skip:!enabled},async()=>{
-  const pools=[],directory=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-audit-fresh-'));
+  const pools=[],directory=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-audit-fresh-'));
   try{
     const stores={};
     for(const store of ['AGENTS','REVIEW']){
       stores[store]={};
       for(const role of ['RUNTIME','MIGRATION']){
         const url=new URL(process.env[`${prefix}${store}_${role}_URL`]);
-        assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+        assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
         const pool=new Pool({connectionString:url.href,max:2,statement_timeout:15000});pools.push(pool);stores[store][role]=pool;
       }
     }

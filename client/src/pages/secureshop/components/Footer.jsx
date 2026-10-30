@@ -9,14 +9,14 @@ export default function Footer() {
     <footer className="ss-footer">
       <div className="ss-footer__grid">
         <div>
-          <div className="ss-footer__brand">SecureShop</div>
+          <div className="ss-footer__brand">OWASP AI SecureShop</div>
           <div style={{ maxWidth: '46ch', fontSize: 13, opacity: 0.75, lineHeight: 1.5, marginBottom: 12 }}>
             An agentic e-commerce demo. Product summaries are written by LLMs.
             Reviews are moderated by LLMs. Prices are set by LLMs. Watch the
             agent lane on the right — that's the honest surface of an agentic system.
           </div>
           <div style={{ fontSize: 11, fontFamily: 'var(--mono)', opacity: 0.55, lineHeight: 1.5 }}>
-            NOTE — SecureShop is a security teaching lab. Every "vulnerability" is
+            NOTE — OWASP AI SecureShop is a security teaching lab. Every "vulnerability" is
             intentional. Do not enter real payment credentials.
           </div>
         </div>
@@ -38,12 +38,12 @@ export default function Footer() {
         <div>
           <div className="ss-footer__title">About</div>
           {/* MemoryRouter keeps section hashes inside the opaque shop frame. */}
-          <Link className="ss-footer__link" to="/secureshop#about">How SecureShop thinks</Link>
+          <Link className="ss-footer__link" to="/secureshop#about">How OWASP AI SecureShop thinks</Link>
           <Link className="ss-footer__link" to="/secureshop#agent-lane">Agent lane</Link>
           <Link className="ss-footer__link" to="/secureshop#lab-notes">Lab notes</Link>
           <a
             className="ss-footer__link"
-            href="https://github.com/hackerabhinavverma/Damn-Vulnerable-AI-Application"
+            href="https://github.com/OWASP/OWASP-Agentic-AI-Goat"
             target="_blank"
             rel="noreferrer"
           >
@@ -52,7 +52,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="ss-footer__legal">
-        © 2026 SecureShop · An educational agentic-commerce lab · v2
+        © 2026 OWASP AI SecureShop · An educational agentic-commerce lab
       </div>
     </footer>
   );

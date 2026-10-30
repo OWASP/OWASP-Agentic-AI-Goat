@@ -8,8 +8,8 @@ from pathlib import Path
 from sensitive_info_recovery_safety import SignalGate
 from owned_dependency_overlay import install_owned_metadata, prepare_owned_runtime_directories, vite_config_arguments
 
-EXPECTED_DOCKER='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+EXPECTED_DOCKER='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 DOCKER=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 IMAGE='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 SOURCE=Path(__file__).resolve().parents[2]
@@ -89,8 +89,8 @@ if args.docker_host!=EXPECTED_DOCKER:raise SystemExit('reviewed isolated Docker 
 if args.mail_disclosure_rendered:
  browser=Path.home()/'.cache/puppeteer/chrome-headless-shell/mac_arm-152.0.7977.75/chrome-headless-shell-mac-arm64/chrome-headless-shell'
  if not browser.is_file() or browser.is_symlink() or not os.access(browser,os.X_OK) or hashlib.sha256(browser.read_bytes()).hexdigest()!='51083e7cf58ba060a0160b8f447ea04c0e9bada00c30a047259bcfe1217b82c3':raise SystemExit('Disclosure browser pin mismatch before resources')
-root=Path(tempfile.mkdtemp(prefix='dvaia-listings-integrated-')).resolve();os.chmod(root,0o700);workspace=root/'source'
-container='dvaia-listings-integrated-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-listings-integrated-')).resolve();os.chmod(root,0o700);workspace=root/'source'
+container='owasp-ai-goat-listings-integrated-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
 docker=[str(DOCKER),'--host',args.docker_host]
 env={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(root)}
 state={'container':container,'owner':owner,'image':IMAGE,'evidence':str(root),'launcherPid':os.getpid(),
@@ -141,7 +141,7 @@ try:
   if digest(NODE)!=coupon_integrity.NODE_SHA or version!='v26.10.0' or digest(DOCKER)!=coupon_integrity.DOCKER_SHA:raise RuntimeError('Coupon executable pin mismatch')
   state['couponDependencyIntegrity']=coupon_integrity.verify(DEPENDENCIES,json.loads(args.dependency_hashes),(args.mail_disclosure_dependency_byte_sha256 if args.mail_disclosure_rendered else args.mail_reply_dependency_byte_sha256 if args.mail_reply_rendered else args.coupon_dependency_byte_sha256))
  daemon_name=run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
- if daemon_name!='colima-dvaia-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
+ if daemon_name!='colima-owasp-ai-goat-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
  if args.coupon_rendered or args.mail_reply_rendered or args.mail_disclosure_rendered:
   daemon_id=run(docker+['info','--format','{{.ID}}'],stdout=subprocess.PIPE,text=True,timeout=10).stdout.strip()
   coupon_integrity.pins(NODE,DOCKER,daemon_id);state['couponDaemonId']=daemon_id
@@ -222,7 +222,7 @@ try:
  if args.full_app:
   # Fail inexpensive fixture/configuration errors before rebuilding the frontend.
   run([str(NODE),'--check',test_file],cwd=workspace)
-  run([str(NODE),'-e',"const fs=require('fs'),assert=require('assert/strict');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.argv[1]));for(const name of ['express','pg','bcryptjs','puppeteer'])require.resolve(name);const m=require('./db/postgres/initialize-application').requiredStoreManifest;assert.equal(m.length,16);assert.equal(new Set(m.flatMap(x=>[x.runtimeVariable,x.migrationVariable])).size,32);if(process.argv[2]!=='dpi')require('./scripts/install/secureshop-owned-listings-qualified-candidate').qualifiedPackage({root:process.cwd(),architecture:'arm64'});const path=require('path');const data=path.join(path.dirname(process.cwd()),'preflight-app-data');require('./scripts/application-data-root').ensureApplicationDataRoot({workspace:process.cwd(),environment:{DVAIA_APP_DATA_ROOT:data}});fs.rmdirSync(data);",str(workspace),'dpi' if args.dpi_rendered or args.csrf_full_app or args.mail_reply_seed_only else 'listings'],cwd=workspace)
+  run([str(NODE),'-e',"const fs=require('fs'),assert=require('assert/strict');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.argv[1]));for(const name of ['express','pg','bcryptjs','puppeteer'])require.resolve(name);const m=require('./db/postgres/initialize-application').requiredStoreManifest;assert.equal(m.length,16);assert.equal(new Set(m.flatMap(x=>[x.runtimeVariable,x.migrationVariable])).size,32);if(process.argv[2]!=='dpi')require('./scripts/install/secureshop-owned-listings-qualified-candidate').qualifiedPackage({root:process.cwd(),architecture:'arm64'});const path=require('path');const data=path.join(path.dirname(process.cwd()),'preflight-app-data');require('./scripts/application-data-root').ensureApplicationDataRoot({workspace:process.cwd(),environment:{OWASP_AI_GOAT_APP_DATA_ROOT:data}});fs.rmdirSync(data);",str(workspace),'dpi' if args.dpi_rendered or args.csrf_full_app or args.mail_reply_seed_only else 'listings'],cwd=workspace)
  if (args.rendered_catalog or args.full_app) and args.csrf_full_app!='controlled-diagnostic' and not args.mail_reply_seed_only and not args.mail_disclosure_initialize_only:
   (workspace/'client/node_modules').symlink_to(DEPENDENCIES/'client/node_modules',target_is_directory=True)
   with (root/'frontend-build.log').open('w') as build_log:
@@ -264,12 +264,12 @@ try:
  state['sourceSha256']={name:digest(workspace/name) for name in sorted(set(inventory))};state['candidate0022Sha256']=digest(candidate_dir/'0022_owned_listing_operations.sql');state['preCandidateMigrationCount']=len(list(canonical_dir.glob('*.sql')));state['postCandidateMigrationCount']=len(list(candidate_dir.glob('*.sql')));state['nodeSha256']=digest(NODE);persist()
  run([str(NODE),'--check',test_file],cwd=workspace)
  creation_attempted=True;state['containerCreationAttempted']=True;persist()
- run(docker+['run','--detach','--pull','never','--name',container,'--label','dvaia.test.owner='+owner,
+ run(docker+['run','--detach','--pull','never','--name',container,'--label','owasp-ai-goat.test.owner='+owner,
   '--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size='+('1073741824' if args.full_app else '268435456'),'-e','POSTGRES_HOST_AUTH_METHOD=trust',
   '-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections='+('100' if args.full_app else '40'),
   '-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
  details=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
- if details.get('Mounts') or details['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
+ if details.get('Mounts') or details['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
  for _ in range(100):
   ready=subprocess.run(docker+['exec',container,'pg_isready','-h','127.0.0.1','-U','postgres'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=2)
   if ready.returncode==0:break
@@ -285,7 +285,7 @@ try:
  for store in stores:
   schema=store['schema'];migration='dvaia_'+schema+'_migration';runtime='dvaia_'+schema+'_runtime'
   run(psql+[f'CREATE ROLE {migration} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE {runtime} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
-  database=f'dvaia_test_listings_{nonce}_{schema}'
+  database=f'owasp_ai_goat_test_listings_{nonce}_{schema}'
   run(psql+[f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL)
   run(psql+[f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}'],stdout=subprocess.DEVNULL)
   state['databases'].append(database)
@@ -303,7 +303,7 @@ try:
  if args.actual_grading_browser:env['LISTINGS_ACTUAL_GRADING_BROWSER']='1'
  env['LISTINGS_EVIDENCE_ROOT']=str(root)
  env['OWNED_LISTING_RESULT']=str(root/'candidate-result.json')
- env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+ env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
   PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',
   AI_PROVIDER='mock',TRANSFORMERS_OFFLINE='1',JWT_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,SESSION_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,
   AWS_EC2_METADATA_DISABLED='true',MCP_WORKSHOP_AUTOSTART='false',MCP_SIDECARS_AUTOSTART='false',SS_ENABLE='false',HF_HUB_OFFLINE='1',
@@ -359,7 +359,7 @@ finally:
   try:
    if not cleanup_step(exact_absence):
     info=json.loads(cleanup_step(lambda:run(docker+['inspect',container],stdout=subprocess.PIPE,text=True)).stdout)[0]
-    if info['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('refusing foreign container cleanup')
+    if info['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('refusing foreign container cleanup')
     remove_code=cleanup_step(lambda:subprocess.run(docker+['rm','-f','-v',container],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=30)).returncode
    else:remove_code=0
   except Exception as error:errors.append('remove:'+type(error).__name__)

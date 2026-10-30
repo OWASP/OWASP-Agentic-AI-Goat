@@ -169,7 +169,7 @@ class OwnedIdorNativeLauncherContract(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, 'Unable to inspect'):
                 launcher.inspect_owned(docker, 'owned', 'owner')
         foreign = {'Name': '/owned', 'Id': 'foreign-id',
-                   'Config': {'Labels': {'dvaia.test.owner': 'foreign'}}}
+                   'Config': {'Labels': {'owasp-ai-goat.test.owner': 'foreign'}}}
         observed = subprocess.CompletedProcess(docker, 0, json.dumps([foreign]), '')
         with patch.object(launcher.subprocess, 'run', return_value=observed):
             with self.assertRaisesRegex(RuntimeError, 'different run'):

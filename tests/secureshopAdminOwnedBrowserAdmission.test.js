@@ -4,11 +4,11 @@ const ROOT=path.resolve(__dirname,'..');
 const source=fs.readFileSync(path.join(__dirname,'fixtures/secureshopAdminOwnedBrowserAdmission.js'),'utf8');
 const evidenceSource=fs.readFileSync(path.join(__dirname,'fixtures/secureshopNativeEvidencePath.js'),'utf8');
 function setup(cohort='admin-policy-chat-browser') {
- const prefixes={'admin-policy-chat-browser':'dvaia-role-admin-policy-','admin-audit-browser':'dvaia-role-admin-audit-','admin-acl-chat-browser':'dvaia-q64-admin-acl-'};
+ const prefixes={'admin-policy-chat-browser':'owasp-ai-goat-role-admin-policy-','admin-audit-browser':'owasp-ai-goat-role-admin-audit-','admin-acl-chat-browser':'owasp-ai-goat-q64-admin-acl-'};
  const gates={'admin-policy-chat-browser':'SECURESHOP_ADMIN_POLICY_CHAT_BROWSER_NATIVE','admin-audit-browser':'SECURESHOP_ADMIN_AUDIT_CHAT_BROWSER_NATIVE','admin-acl-chat-browser':'SECURESHOP_ADMIN_ACL_CHAT_BROWSER_NATIVE'};
  const run=ROOT+'/tasks/qualification/run-test',tmp=run+'/runtime/tmp',home=run+'/runtime/home';
  const args={cohort,root:ROOT,evidencePath:run+'/'+cohort+'.json',profile:tmp+'/'+prefixes[cohort]+'abc',executablePath:'/owned/chrome',origin:'http://127.0.0.1:12345'};
- const env={[gates[cohort]]:'1',DOCKER_HOST:'unix://'+ROOT+'/.qualification/goat-q/docker.sock',DVAIA_CURRENT_MAIN_WORKSPACE:ROOT,TMPDIR:tmp,MAC_CHROMIUM_TMPDIR:tmp,XDG_CACHE_HOME:home+'/.cache',XDG_CONFIG_HOME:home+'/.config',PUPPETEER_EXECUTABLE_PATH:args.executablePath};
+ const env={[gates[cohort]]:'1',DOCKER_HOST:'unix://'+ROOT+'/.qualification/goat-q/docker.sock',OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:ROOT,TMPDIR:tmp,MAC_CHROMIUM_TMPDIR:tmp,XDG_CACHE_HOME:home+'/.cache',XDG_CONFIG_HOME:home+'/.config',PUPPETEER_EXECUTABLE_PATH:args.executablePath};
  const proc={env,cwd:()=>ROOT,getuid:()=>501};
  const info=p=>({isDirectory:()=>!p.endsWith('docker.sock'),isSocket:()=>p.endsWith('docker.sock'),isSymbolicLink:()=>false,uid:501,mode:0o700});
  const mockfs={lstatSync:p=>{if(p.endsWith('.json'))throw Object.assign(Error('absent'),{code:'ENOENT'});return info(p)},realpathSync:p=>p};

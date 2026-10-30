@@ -35,9 +35,9 @@ try {
     # No source or request content is expanded into a PowerShell command.
     Add-Type -Path (Join-Path $PSScriptRoot 'windows-private-state.cs') -ErrorAction Stop
     if ($request.operation -ceq 'deleteMatchingPrivateFile') {
-        $response = [Dvaia.WindowsPrivateState]::Invoke($request.operation, $request.path, $request.bytesBase64,
+        $response = [OwaspAiGoat.WindowsPrivateState]::Invoke($request.operation, $request.path, $request.bytesBase64,
             [uint32]$request.expectedIdentity.volumeSerial, $request.expectedIdentity.fileId)
-    } else { $response = [Dvaia.WindowsPrivateState]::Invoke($request.operation, $request.path, $request.bytesBase64) }
+    } else { $response = [OwaspAiGoat.WindowsPrivateState]::Invoke($request.operation, $request.path, $request.bytesBase64) }
     $json = ConvertTo-Json -InputObject $response -Depth 4 -Compress
     if ([System.Text.Encoding]::UTF8.GetByteCount($json) -gt $limit) { throw 'Denied' }
     [Console]::Out.Write($json)

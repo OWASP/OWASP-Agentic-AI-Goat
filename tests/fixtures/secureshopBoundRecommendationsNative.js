@@ -5,7 +5,7 @@ const {Pool}=require('pg');
 exports.qualifyRecommendations=async function(environment){
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');
  const urls=[environment.SECURESHOP_REVIEW_MIGRATION_DATABASE_URL,environment.SECURESHOP_REVIEW_DATABASE_URL];
- for(const raw of urls){const u=new URL(raw);assert.equal(u.hostname,'127.0.0.1');assert.equal(u.pathname,'/dvaia_test_full_backend_secureshop_review');}
+ for(const raw of urls){const u=new URL(raw);assert.equal(u.hostname,'127.0.0.1');assert.equal(u.pathname,'/owasp_ai_goat_test_full_backend_secureshop_review');}
  const [migration,runtime]=urls.map(connectionString=>new Pool({connectionString,max:1,statement_timeout:3000}));
  const scope={targetId:randomUUID(),launchId:randomUUID(),scenarioId:randomUUID(),generation:1,platformOwnerId:9101,platformSessionId:9201};
  try{

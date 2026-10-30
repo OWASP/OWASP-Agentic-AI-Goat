@@ -30,7 +30,7 @@ function admittedOptions(){
  assert.equal(owned.path,base);assert.equal(owned.device,identity.dev);assert.equal(owned.inode,identity.ino);assert.equal(owned.uid,process.getuid());
  const installation=path.join(base,'installation'),home=path.join(base,'home');fs.mkdirSync(installation,{mode:0o700});if(!fs.existsSync(home))fs.mkdirSync(home,{mode:0o700});
  const options={...request.value,installation,home,admin:process.env.PG_ADMIN_DATABASE_URL,port:Number(new URL(process.env.PG_ADMIN_DATABASE_URL).port)};
- assert.equal(options.port,journal.databasePort);const directory=path.join(home,'.dvaia',sha(Buffer.from(installation)).slice(0,12));
+ assert.equal(options.port,journal.databasePort);const directory=path.join(home,'.owasp-ai-goat',sha(Buffer.from(installation)).slice(0,12));
  options.mappings=Object.fromEntries(Object.entries(options.mappings).map(([key,value])=>[key,value.replace(/^@private(?=\/|$)/,directory).replace(/^@installation(?=\/|$)/,installation).replace(/^@home(?=\/|$)/,home)]));
  return Object.freeze({evidence,options});
 }

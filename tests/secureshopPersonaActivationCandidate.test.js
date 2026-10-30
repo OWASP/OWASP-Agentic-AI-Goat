@@ -197,7 +197,7 @@ test('candidate builder rejects source drift and leaves frozen production bytes 
 
 test('copied application requests the shared default and fails before mounting when readiness rejects',
   { skip: phase.generated }, async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-persona-activation-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-persona-activation-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const built = build();
   fs.writeFileSync(path.join(directory, 'secureshopBoundApplication.js'), built.application);
@@ -242,7 +242,7 @@ test('copied application requests the shared default and fails before mounting w
 
 test('copied curriculum exposes exactly the three persona objectives while preserving instructor defaults',
   { skip: phase.generated }, t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-persona-curriculum-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-persona-curriculum-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const filename = path.join(directory, 'secureshopCurriculum.js');
   fs.writeFileSync(filename, build().curriculum);

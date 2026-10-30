@@ -5,7 +5,7 @@ const {createWorkshopRagRepository}=require('../../server/database/postgres/work
 const enabled=process.env.WORKSHOP_RAG_NATIVE==='1';
 test('registered RAG migration preserves exact bytes, generations, isolation and cleanup authority',{skip:!enabled,timeout:90000},async()=>{
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');const pools=[];let directory;
- function open(key,role){const u=new URL(process.env[key]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_embedding_(fresh|populated)_[a-f0-9]+$/);assert.equal(u.username,'dvaia_identity_'+role);const p=new Pool({connectionString:u.href,max:5,statement_timeout:10000,lock_timeout:5000});pools.push(p);return p;}
+ function open(key,role){const u=new URL(process.env[key]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_embedding_(fresh|populated)_[a-f0-9]+$/);assert.equal(u.username,'dvaia_identity_'+role);const p=new Pool({connectionString:u.href,max:5,statement_timeout:10000,lock_timeout:5000});pools.push(p);return p;}
  try{
  const migration=open('EMBEDDING_POPULATED_MIGRATION_URL','migration'),runtime=open('EMBEDDING_POPULATED_RUNTIME_URL','runtime'),fresh=open('EMBEDDING_FRESH_MIGRATION_URL','migration');
  const base=path.resolve(__dirname,'../../db/postgres/identity-migrations');

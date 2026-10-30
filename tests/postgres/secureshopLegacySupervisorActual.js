@@ -27,7 +27,7 @@ function admittedUrl(key, role) {
       || !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)
       || decodeURIComponent(url.username) !== role) throw Error(`${key} is not an admitted disposable role URL`);
   const database = decodeURIComponent(url.pathname.slice(1));
-  if (!/^dvaia_test_[a-z0-9_]+$/.test(database)) throw Error(`${key} must name a disposable test database`);
+  if (!/^owasp_ai_goat_test_[a-z0-9_]+$/.test(database)) throw Error(`${key} must name a disposable test database`);
   return { value, database, host: url.hostname, port: url.port || '5432' };
 }
 
@@ -35,8 +35,8 @@ function admitEnvironment() {
   if (process.env.PG_TEST_DISPOSABLE !== 'yes' || process.env.OLLAMA_BASE_URL !== ACTOR_URL
       || process.env.OLLAMA_MODEL !== MODEL || process.env.AI_PROVIDER !== 'ollama'
       || fs.realpathSync(process.cwd()) !== fs.realpathSync(ROOT)
-      || !process.env.DVAIA_ISOLATED_TEST_WORKSPACE
-      || fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE) !== fs.realpathSync(ROOT))
+      || !process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE
+      || fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE) !== fs.realpathSync(ROOT))
     throw Error('Explicit repository, disposable PostgreSQL and pinned local actor admission required');
   const stores = {};
   for (const [name, prefix, runtimeRole, migrationRole] of [
@@ -247,7 +247,7 @@ async function run({ caseId, manifest, onCheckpoint } = {}) {
   const { Pool } = require('pg');
   const migrationPools = [stores.commerce.migration, stores.agents.migration].map(store =>
     new Pool({ connectionString: store.value, max: 1, connectionTimeoutMillis: 5000,
-      statement_timeout: 15000, application_name: 'dvaia_legacy_supervisor_diagnostic' }));
+      statement_timeout: 15000, application_name: 'owasp_ai_goat_legacy_supervisor_diagnostic' }));
   const pools = require('../../server/database/postgres/secureshopPools');
   let transport, policyId = null, sessionId = null, witness = null;
   const message = caseId === 'V14' ? V14_MESSAGE : V30_MESSAGE;

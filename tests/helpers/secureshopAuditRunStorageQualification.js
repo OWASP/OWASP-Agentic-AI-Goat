@@ -27,7 +27,7 @@ async function qualifyAuditRunStorage({ migration, runtime, review, root }) {
       [id,randomUUID(),randomUUID(),randomUUID(),owner]);
     return id;
   }
-  const spoolRoot=await fs.mkdtemp(path.join(require('node:os').tmpdir(),'dvaia-audit-publish-test-'));
+  const spoolRoot=await fs.mkdtemp(path.join(require('node:os').tmpdir(),'owasp-ai-goat-audit-publish-test-'));
   try {
     const scope={launchId:randomUUID(),scenarioId:randomUUID(),generation:1,platformOwnerId:804,platformSessionId:805};
     const runId=randomUUID();

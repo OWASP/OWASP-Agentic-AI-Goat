@@ -4,7 +4,7 @@ const path = require('node:path');
 const os = require('node:os');
 const { workspaceId, createWindowsManagedSnapshotReader } = require('./ownedManagedConfiguration');
 function managedPath({ root = path.resolve(__dirname, '../../..'), home = os.homedir() } = {}) {
-  return path.join(home, '.dvaia', workspaceId(root), 'mcp-owned-shadow.json');
+  return path.join(home, '.owasp-ai-goat', workspaceId(root), 'mcp-owned-shadow.json');
 }
 function validate(value) {
   const keys = ['version', 'enabled', 'url', 'token', 'profile', 'container', 'image', 'runtimeDigest'];
@@ -12,7 +12,7 @@ function validate(value) {
       || typeof value.enabled !== 'boolean' || !/^http:\/\/127\.0\.0\.1:[0-9]{4,5}$/.test(value.url || '')
       || Number(value.url.split(':').at(-1)) < 1024 || Number(value.url.split(':').at(-1)) > 65535
       || !/^[A-Za-z0-9_-]{43,128}$/.test(value.token || '')
-      || !/^dvaia-owned-shadow-[a-f0-9]{12}$/.test(value.profile || '')
+      || !/^owasp-ai-goat-owned-shadow-[a-f0-9]{12}$/.test(value.profile || '')
       || (value.runtimeDigest !== null && !/^[a-f0-9]{64}$/.test(value.runtimeDigest || ''))
       || (value.enabled && value.runtimeDigest === null)
       || value.container !== value.profile || !/^sha256:[a-f0-9]{64}$/.test(value.image || '')) {

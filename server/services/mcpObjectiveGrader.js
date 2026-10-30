@@ -214,7 +214,7 @@ function confusedDeputyFacts({ result, witness, userId, execution }) {
     && delivery.external === true && typeof selectedRecipient === 'string'
     && delivery.recipient === selectedRecipient
     && !/@(?:acme-corp\.internal|acme\.internal|acme-corp\.com)$/i.test(delivery.recipient)
-    && /^mcp-[0-9a-f-]{36}@dvaia\.local$/i.test(delivery.messageId || '')
+    && /^mcp-[0-9a-f-]{36}@owasp-ai-goat\.local$/i.test(delivery.messageId || '')
     && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(delivery.intentId || '')
     && /^[a-f0-9]{64}$/.test(delivery.payloadSha256 || ''));
   const mailboxBody = mailbox && Object.fromEntries(Object.entries(mailbox)

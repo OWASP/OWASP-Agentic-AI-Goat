@@ -7,7 +7,7 @@ const os = require('node:os');
 const { seedMissingLabFiles } = require('../server/database/labFixtureSeed');
 
 test('missing-file seeding preserves existing content and does not follow lab directory links', async t => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-seed-files-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-seed-files-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const fixtures = path.join(root, 'fixtures');
   seedMissingLabFiles(fixtures, { 'public/example.txt': 'default', 'config/example.txt': 'configuration' });

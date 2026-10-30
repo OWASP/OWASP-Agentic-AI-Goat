@@ -6,13 +6,13 @@ const test = require('node:test');
 const { randomUUID } = require('node:crypto');
 
 test('model-free CodeBot learner, instructor, and run projection full-App parity', { skip: process.env.CODEBOT_FULL_APP_PARITY !== '1', timeout: 240000 }, async () => {
-  assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes'); assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+  assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes'); assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
   const { Pool } = require('pg'); const pools = [];
   const makePool = (key, role, database) => { const url = new URL(process.env[key]); assert.equal(url.hostname, '127.0.0.1'); assert.equal(url.pathname, database); assert.equal(url.username, role); const value = new Pool({ connectionString: url.href, max: 6 }); pools.push(value); return value; };
-  const identity = makePool('IDENTITY_DATABASE_URL', 'dvaia_identity_runtime', '/dvaia_test_codebot_parity_identity');
-  const migration = makePool('IDENTITY_MIGRATION_DATABASE_URL', 'dvaia_identity_migration', '/dvaia_test_codebot_parity_identity');
-  const lab = makePool('SUPPLY_CHAIN_WORKSHOP_DATABASE_URL', 'dvaia_supply_chain_runtime', '/dvaia_test_codebot_parity_lab');
-  const labMigration = makePool('SUPPLY_CHAIN_WORKSHOP_MIGRATION_DATABASE_URL', 'dvaia_supply_chain_migration', '/dvaia_test_codebot_parity_lab');
+  const identity = makePool('IDENTITY_DATABASE_URL', 'dvaia_identity_runtime', '/owasp_ai_goat_test_codebot_parity_identity');
+  const migration = makePool('IDENTITY_MIGRATION_DATABASE_URL', 'dvaia_identity_migration', '/owasp_ai_goat_test_codebot_parity_identity');
+  const lab = makePool('SUPPLY_CHAIN_WORKSHOP_DATABASE_URL', 'dvaia_supply_chain_runtime', '/owasp_ai_goat_test_codebot_parity_lab');
+  const labMigration = makePool('SUPPLY_CHAIN_WORKSHOP_MIGRATION_DATABASE_URL', 'dvaia_supply_chain_migration', '/owasp_ai_goat_test_codebot_parity_lab');
   let server; let authRouter; let parity;
   try {
     Object.assign(process.env, { PLATFORM_DATABASE_ENGINE: 'postgres', WORKSHOP_DATABASE_ENGINE: 'postgres', AI_PROVIDER: 'mock', JUDGE_PROVIDER: 'mock', EVENT_GATE_ENABLED: 'false' });

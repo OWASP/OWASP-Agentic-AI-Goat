@@ -199,7 +199,7 @@ function createXssBrowserQualification({ puppeteer, connectBrowser, clientMount,
       .filter(source => typeof source === 'string' && source.length && html.includes(source));
     const eventToken = eventSources.length ? randomBytes(16).toString('hex') : null;
     const eventPayload = eventToken ? BigInt(`0x${eventToken}`).toString() : null;
-    const bindingName = eventToken ? `__dvaiaTarget_${randomBytes(12).toString('hex')}` : null;
+    const bindingName = eventToken ? `__owasp-ai-goatTarget_${randomBytes(12).toString('hex')}` : null;
     const proofCall = eventToken ? `globalThis.${bindingName}(String(0x${eventToken}n));` : null;
     const browserHtml = eventToken ? eventSources.reduce((document, source) =>
       instrumentEventSource(document, source, eventToken, bindingName), html) : html;

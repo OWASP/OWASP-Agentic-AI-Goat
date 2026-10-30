@@ -9,7 +9,7 @@ test('native deletion quarantine preserves progress and requires an exact privil
   skip: process.env.PG_TEST_DISPOSABLE !== 'yes' || !process.env.PG_DELETION_RUNTIME_URL,
 }, async () => {
   for (const key of ['PG_DELETION_RUNTIME_URL', 'PG_DELETION_MIGRATION_URL']) {
-    assert.match(new URL(process.env[key]).pathname, /^\/dvaia_test_/);
+    assert.match(new URL(process.env[key]).pathname, /^\/owasp_ai_goat_test_/);
   }
 
   const { createPool } = require('../../server/database/postgres');

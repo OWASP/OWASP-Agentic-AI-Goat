@@ -14,7 +14,7 @@ Root independently verified all 294 source files and their staged copies.
 
 Execution grant: `finflow-integrated-native-20260915-01` (identifier only; execution completed September 14 UTC).
 Actual execution handle: `27191`; launcher PID: `76966`; terminal exit: `0`.
-Evidence directory: `/Users/averma5/.dvaia/native-verification/dvaia-finflow-traversal-3udoei4n`.
+Evidence directory: `/Users/averma5/.owasp-ai-goat/native-verification/owasp-ai-goat-finflow-traversal-3udoei4n`.
 Native log SHA-256: `a4621f73e866c1b6e5c4e29e8877d280a812955f2c4039ccaa3772ed510b0873`.
 Ownership record SHA-256: `9343daf9aa2175a04bb03efcb78659250e44625bb33d56ed170387033213b873`.
 

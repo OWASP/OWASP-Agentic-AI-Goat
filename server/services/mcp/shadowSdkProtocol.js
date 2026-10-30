@@ -32,7 +32,7 @@ function createShadowSdkProtocolFixture({connector,checkCurrent,timeoutMs=3000}=
     if(attestation?.endpoint!==endpoint||attestation.scopeDigest!==scopeDigest||attestation.authentication!=='owned-control-manifest'
       ||!/^[a-f0-9]{64}$/.test(attestation.manifestDigest||'')||typeof attestation.peerKey!=='string')throw fail('SHADOW_ENDPOINT_DENIED');
     if(mode==='fixed'&&attestation.approved!==true)throw fail('SHADOW_UNAPPROVED_PEER');
-    client=new Client({name:'dvaia-shadow-protocol-fixture',version:'1.0.0'});
+    client=new Client({name:'owasp-ai-goat-shadow-protocol-fixture',version:'1.0.0'});
     await client.connect(connection.transport,{timeout:timeoutMs});await checkCurrent(owned);
     const identity=client.getServerVersion();bounded(identity,2048);
     if(!identity||identity.name!==attestation.expectedServerName||identity.version!==attestation.expectedServerVersion)throw fail('SHADOW_PEER_IDENTITY_MISMATCH');

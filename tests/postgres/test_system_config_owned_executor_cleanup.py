@@ -115,7 +115,7 @@ class ExecutorCleanupTests(unittest.TestCase):
         def inspect(kind, name):
             self.assertEqual(name, {'container': executor.name, 'network': executor.network,
                                     'image': executor.tag}[kind])
-            labels = {'dvaia.test.owner': 'foreign' if kind == 'image' and foreign else owner}
+            labels = {'owasp-ai-goat.test.owner': 'foreign' if kind == 'image' and foreign else owner}
             return {'Config': {'Labels': labels}, 'Labels': labels,
                     'State': {'ExitCode': 0}, 'Containers': {}, 'Id': final_id}
 
@@ -312,7 +312,7 @@ class RestartCacheAdmissionTests(unittest.TestCase):
         executor=OwnedSystemRestartExecutor(root,root,['never'],{},'owned',lambda:None,mode='upload-preview')
         commands=[];inspections=[]
         executor.run=lambda args:commands.append(args) or SimpleNamespace(stdout='\n'.join(listed))
-        image={'Id':'sha256:'+'b'*64,'Architecture':'arm64','Config':{'Labels':{'dvaia.cache.kind':'system-restart-content','dvaia.cache.source':source_digest,'dvaia.cache.base':RESTART_BASE}}}
+        image={'Id':'sha256:'+'b'*64,'Architecture':'arm64','Config':{'Labels':{'owasp-ai-goat.cache.kind':'system-restart-content','owasp-ai-goat.cache.source':source_digest,'owasp-ai-goat.cache.base':RESTART_BASE}}}
         executor.inspect=lambda kind,name:inspections.append((kind,name)) or image
         path=root/'manifest.json'
         if prior is not None:path.write_text(json.dumps(prior))
@@ -333,7 +333,7 @@ class RestartCacheAdmissionTests(unittest.TestCase):
 
     def test_unrelated_historical_tag_is_ignored_without_deletion(self):
         with tempfile.TemporaryDirectory() as d:
-            executor,commands,inspections,ns=self.actual_admission(Path(d),['dvaia-system-restart-content:unrelated'])
+            executor,commands,inspections,ns=self.actual_admission(Path(d),['owasp-ai-goat-system-restart-content:unrelated'])
             self.assertEqual(len(commands),1);self.assertEqual(commands[0][:2],['image','ls']);self.assertEqual(inspections,[])
             self.assertIsNone(ns['prior']);self.assertNotIn('contentCache',executor.state)
 
@@ -345,7 +345,7 @@ class RestartCacheAdmissionTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'Duplicate selected'):self.actual_admission(root,[tag,tag])
             with self.assertRaisesRegex(RuntimeError,'manifest missing'):self.actual_admission(root,[tag])
             prior={'version':1,'tag':tag,'imageId':'sha256:'+'b'*64,'sourceSha256':'a'*64,'base':RESTART_BASE}
-            _,commands,inspections,_=self.actual_admission(root,['dvaia-system-restart-content:unrelated',tag],prior)
+            _,commands,inspections,_=self.actual_admission(root,['owasp-ai-goat-system-restart-content:unrelated',tag],prior)
             self.assertEqual(len(commands),1);self.assertEqual(inspections,[('image',tag)])
             with self.assertRaisesRegex(RuntimeError,'inspection mismatch'):self.actual_admission(root,[tag],{**prior,'imageId':'sha256:'+'c'*64})
 
@@ -395,7 +395,7 @@ class VerifiedLocalChildBuildTests(unittest.TestCase):
         import ast,copy
         import system_config_owned_executor as module
         source_digest='a'*64;tag=module.RESTART_CACHE_PREFIX+'a'*32
-        cache={'Id':'sha256:'+'b'*64,'Architecture':'arm64','Config':{'Labels':{'dvaia.cache.kind':'system-restart-content','dvaia.cache.source':source_digest,'dvaia.cache.base':module.RESTART_BASE}}}
+        cache={'Id':'sha256:'+'b'*64,'Architecture':'arm64','Config':{'Labels':{'owasp-ai-goat.cache.kind':'system-restart-content','owasp-ai-goat.cache.source':source_digest,'owasp-ai-goat.cache.base':module.RESTART_BASE}}}
         prior={'version':1,'tag':tag,'imageId':cache['Id'],'sourceSha256':source_digest,'base':module.RESTART_BASE}
         executor=module.OwnedSystemRestartExecutor(root,root,['never-docker'],{},'owned',lambda:None,mode='upload-preview');context=root/'context';context.mkdir();events=[]
         executor.persist=lambda:events.append(('persist',copy.deepcopy(executor.state)))
@@ -403,7 +403,7 @@ class VerifiedLocalChildBuildTests(unittest.TestCase):
             self.assertEqual((kind,name),('image',tag));events.append(('inspect',name));return {**cache,'Id':'sha256:'+'c'*64} if changed else cache
         executor.inspect=inspect
         def popen(argv,**kw):
-            self.assertEqual((context/'owned-child/Dockerfile').read_text(),'FROM '+tag+'\nLABEL dvaia.test.owner="owned"\n')
+            self.assertEqual((context/'owned-child/Dockerfile').read_text(),'FROM '+tag+'\nLABEL owasp-ai-goat.test.owner="owned"\n')
             self.assertIn('--pull=false',argv);self.assertIn('--network=none',argv)
             self.assertEqual(executor.state['contentCache']['imageId'],cache['Id']);events.append(('build',argv));return SimpleNamespace(pid=111,wait=lambda **kw:code)
         tree=ast.parse(Path(__file__).with_name('system_config_owned_executor.py').read_text());cls=next(n for n in tree.body if isinstance(n,ast.ClassDef) and n.name=='OwnedSystemRestartExecutor');start=next(n for n in cls.body if isinstance(n,ast.FunctionDef) and n.name=='start')

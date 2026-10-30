@@ -112,10 +112,10 @@ async function siblingStateDigest({ identity, workshop, family, userId, workshop
 
 test('mounted ARIA/NOVA matrix uses actual model, tools, Judge, progress and reset',
   { skip: !enabled, timeout: 24120000 + (process.env.SQL_NOSQL_ROUTE_LIFECYCLE === '1' ? 600000 : 0) + (process.env.SQL_NOSQL_ROUTE_FIXED_SESSION === '1' ? 2400000 : 0) + (process.env.SQL_NOSQL_ROUTE_OBSERVATION_CONTROLS === '1' ? 900000 : 0) }, async t => {
-    assertOwnedUrl('IDENTITY_DATABASE_URL', 'dvaia_test_sql_nosql_route_identity');
-    assertOwnedUrl('SQL_WORKSHOP_DATABASE_URL', 'dvaia_test_sql_nosql_route_aria');
-    assertOwnedUrl('NOSQL_WORKSHOP_DATABASE_URL', 'dvaia_test_sql_nosql_route_nova');
-    assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
+    assertOwnedUrl('IDENTITY_DATABASE_URL', 'owasp_ai_goat_test_sql_nosql_route_identity');
+    assertOwnedUrl('SQL_WORKSHOP_DATABASE_URL', 'owasp_ai_goat_test_sql_nosql_route_aria');
+    assertOwnedUrl('NOSQL_WORKSHOP_DATABASE_URL', 'owasp_ai_goat_test_sql_nosql_route_nova');
+    assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
     assert.equal(process.env.SQL_NOSQL_ROUTE_BOOTSTRAPPED, '1', 'separate bootstrap must finish before model execution');
     assert.deepEqual(Object.keys(process.env).filter(key => /MIGRATION.*(?:URL|PASSWORD)/.test(key)), [],
       'model child must not receive migration credentials');

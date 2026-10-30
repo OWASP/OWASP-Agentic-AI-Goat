@@ -66,11 +66,11 @@ test('real isolated Mailpit preserves exact XSS mail and separates owner inboxes
     for (const owner of owners) {
       const payload = `<img src=x onerror="window.__mail_${owner}='& exact ✓'">`;
       const scope = ownerScope(owner);
-      const acceptedProof = await dispatch.send(scope, { recipient: `xss-${owner}@dvaia.invalid`, payload });
+      const acceptedProof = await dispatch.send(scope, { recipient: `xss-${owner}@owasp-ai-goat.invalid`, payload });
       const accepted = inspectXssMailProof(acceptedProof, proofScope(scope, 'accepted'));
       assert.ok(accepted, 'dispatch acceptance evidence should be opaque and bound to its owner execution');
-      assert.equal(accepted.recipient, `xss-${owner}@dvaia.invalid`);
-      assert.equal(accepted.sender, 'attacker@dvaia.invalid');
+      assert.equal(accepted.recipient, `xss-${owner}@owasp-ai-goat.invalid`);
+      assert.equal(accepted.sender, 'attacker@owasp-ai-goat.invalid');
       const mail = codec.buildXssMail({ marker: accepted.marker, payload });
       sent.push({ owner, scope, payload, mail, accepted, acceptedProof });
     }
@@ -79,7 +79,7 @@ test('real isolated Mailpit preserves exact XSS mail and separates owner inboxes
     for (let attempt = 0; attempt < 30 && observed.size < owners.length; attempt += 1) {
       for (const item of sent) {
         if (observed.has(item.owner)) continue;
-        const listing = await adapter.fetchEmails(`xss-${item.owner}@dvaia.invalid`, false);
+        const listing = await adapter.fetchEmails(`xss-${item.owner}@owasp-ai-goat.invalid`, false);
         const candidate = listing.emails.find(email => email.subject === item.mail.subject);
         if (candidate) observed.set(item.owner, { listing, candidate });
       }
@@ -92,15 +92,15 @@ test('real isolated Mailpit preserves exact XSS mail and separates owner inboxes
       const other = sent.find(entry => entry.owner !== item.owner);
       assert.equal(listing.emails.some(email => email.subject === other.mail.subject), false,
         'an exact owner query must not return the other owner message');
-      assert.equal(candidate.from, 'attacker@dvaia.invalid');
+      assert.equal(candidate.from, 'attacker@owasp-ai-goat.invalid');
       assert.notEqual(candidate.id, candidate.messageId, 'Mailpit internal ID is not the SMTP Message-ID');
       assert.equal(candidate.messageId, normalizeMessageId(item.accepted.providerMessageId),
         'Mailpit SMTP Message-ID must correspond to Nodemailer acceptance evidence');
 
-      const fetched = await adapter.fetchEmail(`xss-${item.owner}@dvaia.invalid`, candidate.id);
+      const fetched = await adapter.fetchEmail(`xss-${item.owner}@owasp-ai-goat.invalid`, candidate.id);
       assert.equal(fetched.email.id, candidate.id);
       assert.equal(fetched.email.messageId, candidate.messageId);
-      assert.equal(fetched.email.from, 'attacker@dvaia.invalid');
+      assert.equal(fetched.email.from, 'attacker@owasp-ai-goat.invalid');
       assert.equal(fetched.email.subject, item.mail.subject);
       assert.equal(fetched.email.htmlBody, item.mail.html, 'Mailpit must return the exact codec HTML bytes');
       assert.equal(fetched.email.body, item.mail.body);
@@ -112,14 +112,14 @@ test('real isolated Mailpit preserves exact XSS mail and separates owner inboxes
       assert.equal(decoded.valid, true);
       assert.equal(decoded.payload, item.payload);
 
-      const retrieved = await dispatch.retrieve(item.scope, { recipient: `xss-${item.owner}@dvaia.invalid` });
+      const retrieved = await dispatch.retrieve(item.scope, { recipient: `xss-${item.owner}@owasp-ai-goat.invalid` });
       assert.ok(retrieved.email);
       assert.equal(retrieved.email.body, item.mail.body);
       assert.ok(inspectXssMailProof(retrieved.email, proofScope(item.scope, 'retrieved')),
         'retrieval should return a real opaque proof bound to the same owner execution');
     }
 
-    const foreign = await dispatch.retrieve(sent[1].scope, { recipient: `xss-${sent[0].owner}@dvaia.invalid` });
+    const foreign = await dispatch.retrieve(sent[1].scope, { recipient: `xss-${sent[0].owner}@owasp-ai-goat.invalid` });
     assert.match(foreign.error, /no current accepted dispatch/i);
     assert.equal(inspectXssMailProof(sent[0].acceptedProof, proofScope(sent[1].scope, 'accepted')), null,
       'another owner cannot reuse the first owner opaque acceptance proof');

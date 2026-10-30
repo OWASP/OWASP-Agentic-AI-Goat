@@ -301,7 +301,7 @@ test('physical login admits the exact account route, saved HttpOnly buyer, then 
     },
     async cookies(url) {
       assert.equal(url, 'http://127.0.0.1:39117/api/secureshop/auth/session');
-      order.push('cookie'); return [{ name: 'dvaia_shop_session', httpOnly: true, value: 'synthetic-token' }];
+      order.push('cookie'); return [{ name: 'owasp_ai_goat_shop_session', httpOnly: true, value: 'synthetic-token' }];
     },
   };
   const frame = {};
@@ -329,7 +329,7 @@ test('unfinished navigation or missing authenticated buyer never admits an accou
   await assert.rejects(cases.admitAccountAfterPhysicalLogin({ ...input, page }),
     /completed shop login cookie required/);
   assert.deepEqual(order, []);
-  page.cookies = async () => [{ name: 'dvaia_shop_session', httpOnly: true, value: 'synthetic-token' }];
+  page.cookies = async () => [{ name: 'owasp_ai_goat_shop_session', httpOnly: true, value: 'synthetic-token' }];
   await assert.rejects(cases.admitAccountAfterPhysicalLogin({ ...input, page }),
     /authenticated exact buyer required/);
   assert.deepEqual(order, ['authenticate']);

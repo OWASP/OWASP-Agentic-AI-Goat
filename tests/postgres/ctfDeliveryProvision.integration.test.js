@@ -11,12 +11,12 @@ test('actual delivery provisioner authenticates generated credential and preserv
  const adminUrl=process.env.PG_ADMIN_DATABASE_URL;assert(adminUrl);
  const adminAddress=new URL(adminUrl);assert.equal(adminAddress.hostname,'127.0.0.1');assert(adminAddress.password);assert(!adminAddress.search&&!adminAddress.hash);
  const admin=new Client({connectionString:adminUrl,connectionTimeoutMillis:5000,statement_timeout:5000});await admin.connect();t.after(()=>admin.end());
- assert.equal((await admin.query("SELECT count(*)::int AS n FROM pg_roles WHERE rolname LIKE 'dvaia_%'")).rows[0].n,0,'fresh cluster only');
+ assert.equal((await admin.query("SELECT count(*)::int AS n FROM pg_roles WHERE rolname LIKE 'owasp_ai_goat_%'")).rows[0].n,0,'fresh cluster only');
  assert.equal((await admin.query("SELECT current_setting('password_encryption') AS value")).rows[0].value,'scram-sha-256');
  // Invalid password must fail before any provisioning; trust-auth fixtures are rejected.
  const wrongAdmin=new URL(adminUrl);wrongAdmin.password+='-wrong';const bad=new Client({connectionString:wrongAdmin.href,connectionTimeoutMillis:2000});
  try{await assert.rejects(bad.connect(),{code:'28P01'});}finally{await bad.end().catch(()=>{});}
- const dir=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-delivery-provision-'));await fs.chmod(dir,0o700);t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-delivery-provision-'));await fs.chmod(dir,0o700);t.after(()=>fs.rm(dir,{recursive:true,force:true}));
  const manifestPath=path.join(dir,'base.json'),outputPath=path.join(dir,'delivery.json');
  const base=await provisionApplication({adminUrl,manifestPath,env:{PG_TLS:'disable'}});assert.equal(base.status,'created');
  const baseBytes=await fs.readFile(manifestPath);assert.deepEqual(JSON.parse(baseBytes).plan,provisioningPlan());
@@ -38,7 +38,7 @@ test('actual delivery provisioner authenticates generated credential and preserv
  assert(JSON.stringify(JSON.parse(pending).configuration)===JSON.stringify(first.configuration),'pending credential preserved');
  const role=async()=>(await admin.query("SELECT oid::text,rolpassword,rolcanlogin,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls FROM pg_authid WHERE rolname='dvaia_ctf_delivery'")).rows[0];
  const originalRole=await role();assert(originalRole.rolpassword.startsWith('SCRAM-SHA-256$'));assert(originalRole.rolcanlogin);for(const key of ['rolsuper','rolcreatedb','rolcreaterole','rolreplication','rolbypassrls'])assert.equal(originalRole[key],false);
- const login=new Client({connectionString:first.configuration.CTF_DELIVERY_DATABASE_URL,connectionTimeoutMillis:2000});try{await login.connect();assert.deepEqual((await login.query('SELECT session_user AS login,current_database() AS database')).rows[0],{login:'dvaia_ctf_delivery',database:'dvaia_ctf'});}finally{await login.end();}
+ const login=new Client({connectionString:first.configuration.CTF_DELIVERY_DATABASE_URL,connectionTimeoutMillis:2000});try{await login.connect();assert.deepEqual((await login.query('SELECT session_user AS login,current_database() AS database')).rows[0],{login:'dvaia_ctf_delivery',database:'owasp_ai_goat_ctf'});}finally{await login.end();}
  const wrong=new URL(first.configuration.CTF_DELIVERY_DATABASE_URL);wrong.password+='-wrong';const rejected=new Client({connectionString:wrong.href,connectionTimeoutMillis:2000});try{await assert.rejects(rejected.connect(),{code:'28P01'});}finally{await rejected.end().catch(()=>{});}
  const again=await provisionCtfDelivery(options);assert.equal(again.status,'existing');assert(JSON.stringify(again.configuration)===JSON.stringify(first.configuration),'credential unchanged');
  await assert.rejects(provisionCtfDelivery({...options,outputPath:path.join(dir,'foreign.json')}),{code:'CTF_DELIVERY_ROLE_COLLISION'});

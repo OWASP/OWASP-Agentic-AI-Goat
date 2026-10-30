@@ -233,7 +233,7 @@ function createLangChainProvider(config, { modelFactory = buildModel } = {}) {
     let runnable;
     try {
       runnable = model.withStructuredOutput(FINAL_RESPONSE_SCHEMA, {
-        name: 'dvaia_final_response', method, includeRaw: true,
+        name: 'owasp_ai_goat_final_response', method, includeRaw: true,
         ...(provider === 'openai' ? { strict: true } : {}),
       });
     } catch (cause) {
@@ -292,7 +292,7 @@ function createLangChainProvider(config, { modelFactory = buildModel } = {}) {
         anyOf: structuredClone(WORKFLOW_ROUTE_SCHEMA.oneOf),
       } }, required: ['decision'], additionalProperties: false };
       runnable = model.withStructuredOutput(schema, {
-        name: 'dvaia_workflow_route', method: provider === 'bedrock' ? 'functionCalling' : 'jsonSchema',
+        name: 'owasp_ai_goat_workflow_route', method: provider === 'bedrock' ? 'functionCalling' : 'jsonSchema',
         includeRaw: true, ...(provider === 'openai' ? { strict: true } : {}),
       });
     } catch (cause) { throw unsupported(cause); }

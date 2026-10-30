@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os'),{createHash}=require('node:crypto');
 const {captureAssetBundle}=require('../db/postgres/asset-bundle');
 const {bindAndRestoreArchiveAssets,isArchiveAssetBindingProof}=require('../db/postgres/archive-asset-binding');
-async function fixture(fn){const root=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-binding-'));try{
+async function fixture(fn){const root=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-binding-'));try{
  const sourceRoot=path.join(root,'source');await fs.mkdir(sourceRoot);await fs.writeFile(path.join(sourceRoot,'opaque.svg'),'<svg onload="fixture()"/>');
  const bundle=await captureAssetBundle({sourceRoot,relativePaths:['opaque.svg'],destinationRoot:path.join(root,'bundle')});
  const ref={source:'secureshop.db',table:'product_images',key:'7',column:'path',path:'../../opaque-teaching.svg'};

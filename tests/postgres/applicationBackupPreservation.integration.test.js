@@ -13,7 +13,7 @@ const document=value=>({present:true,value});
 let pool,env;
 
 async function resetFixture(){
-  await pool.query('DROP SCHEMA IF EXISTS dvaia_qualification CASCADE; DROP SCHEMA IF EXISTS workshop_platform CASCADE; CREATE SCHEMA workshop_platform');
+  await pool.query('DROP SCHEMA IF EXISTS owasp_ai_goat_qualification CASCADE; DROP SCHEMA IF EXISTS workshop_platform CASCADE; CREATE SCHEMA workshop_platform');
   await pool.query(`CREATE TABLE workshop_platform.exercises(
     workshop_key text PRIMARY KEY,challenge_name text,challenge_description text,category text,difficulty text,route text,
     catalog_active boolean NOT NULL,ordinal integer NOT NULL,is_visible boolean NOT NULL,show_hints boolean NOT NULL,
@@ -60,13 +60,13 @@ async function backfillMissingProvenance(){
       (entity_kind,workshop_key,objective_id,field_name,provenance_state,source_version,source_hash,source_document,observed_document)
     SELECT entity_kind,workshop_key,objective_id,field_name,'legacy_unknown','v2','captured',
       jsonb_build_object('present',true,'value',target_value),jsonb_build_object('present',true,'value',target_value)
-    FROM dvaia_qualification.catalog_fields WHERE provenance IS NULL`);
+    FROM owasp_ai_goat_qualification.catalog_fields WHERE provenance IS NULL`);
 }
 
 test.before(async()=>{
   if(!enabled)return;
   const url=new URL(process.env.BACKUP_PRESERVATION_TEST_URL);
-  assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/dvaia_backup_preservation_[a-f0-9]+$/);
+  assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/owasp_ai_goat_backup_preservation_[a-f0-9]+$/);
   env=helper.connectionEnvironment(url.href);pool=new Pool({connectionString:url.href,max:2});
 });
 test.after(async()=>{await pool?.end();});
@@ -103,7 +103,7 @@ test('actual SQL baseline rejects a stable first-pass instructor clobber',{skip:
   await pool.query("UPDATE workshop_platform.objectives SET hint_content=$1 WHERE objective_id='custom'",[clobber]);
   await pool.query("UPDATE workshop_platform.catalog_field_defaults SET observed_document=$1 WHERE objective_id='custom' AND field_name='hint_content'",[document(clobber)]);
   await assert.rejects(helper.verifyPreservedRows(env),/Instructor-owned catalog field changed/);
-  await pool.query('DROP SCHEMA dvaia_qualification CASCADE');
+  await pool.query('DROP SCHEMA owasp_ai_goat_qualification CASCADE');
 });
 
 test('actual SQL baseline rejects learner counter mutation',{skip:!enabled},async()=>{
@@ -111,12 +111,12 @@ test('actual SQL baseline rejects learner counter mutation',{skip:!enabled},asyn
   await backfillMissingProvenance();
   await pool.query("UPDATE workshop_platform.activity_counters SET activity_count=10 WHERE user_id=17");
   await assert.rejects(helper.verifyPreservedRows(env),/Preexisting rows changed in workshop_platform.activity_counters/);
-  await pool.query('DROP SCHEMA dvaia_qualification CASCADE');
+  await pool.query('DROP SCHEMA owasp_ai_goat_qualification CASCADE');
 });
 
 test('exported snapshot binds dump-side logical reads to one view across a concurrent commit',
   {skip:!enabled},async()=>{
-    await pool.query(`DROP SCHEMA IF EXISTS dvaia_qualification CASCADE;
+    await pool.query(`DROP SCHEMA IF EXISTS owasp_ai_goat_qualification CASCADE;
       DROP SCHEMA IF EXISTS workshop_platform CASCADE;
       DROP SCHEMA IF EXISTS dvaia_migrations CASCADE;
       CREATE SCHEMA dvaia_migrations;
@@ -151,12 +151,12 @@ test('pre-provenance catalog schema preserves every existing instructor field an
     await pool.query("UPDATE workshop_platform.objectives SET solution_content=$1 WHERE objective_id='custom'",
       [{solution:'seed clobber'}]);
     await assert.rejects(helper.verifyPreservedRows(env),/Pre-provenance catalog field changed/);
-    await pool.query('DROP SCHEMA dvaia_qualification CASCADE');
+    await pool.query('DROP SCHEMA owasp_ai_goat_qualification CASCADE');
   });
 
 test('whole preservation verification supports a non-catalog store with no workshop schema',
   {skip:!enabled},async()=>{
-    await pool.query(`DROP SCHEMA IF EXISTS dvaia_qualification CASCADE;
+    await pool.query(`DROP SCHEMA IF EXISTS owasp_ai_goat_qualification CASCADE;
       DROP SCHEMA IF EXISTS workshop_platform CASCADE;
       DROP SCHEMA IF EXISTS aria CASCADE;
       CREATE SCHEMA aria;CREATE TABLE aria.probe(id integer PRIMARY KEY,value text NOT NULL);
@@ -171,7 +171,7 @@ test('whole preservation verification supports a non-catalog store with no works
 
 test('partial historical workshop catalog fails before managed fields can be ignored',
   {skip:!enabled},async()=>{
-    await pool.query(`DROP SCHEMA IF EXISTS dvaia_qualification CASCADE;
+    await pool.query(`DROP SCHEMA IF EXISTS owasp_ai_goat_qualification CASCADE;
       DROP SCHEMA IF EXISTS workshop_platform CASCADE;
       CREATE SCHEMA workshop_platform;
       CREATE TABLE workshop_platform.exercises(workshop_key text PRIMARY KEY,challenge_name text,
@@ -180,5 +180,5 @@ test('partial historical workshop catalog fails before managed fields can be ign
     await assert.rejects(helper.installPreservationBaseline(env,{
       'workshop_platform.exercises':{},
     }),/Partial workshop catalog schema/);
-    assert.equal((await pool.query("SELECT to_regnamespace('dvaia_qualification') AS value")).rows[0].value,null);
+    assert.equal((await pool.query("SELECT to_regnamespace('owasp_ai_goat_qualification') AS value")).rows[0].value,null);
   });

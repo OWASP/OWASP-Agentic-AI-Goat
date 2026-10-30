@@ -11,7 +11,7 @@ const clientRequire=createRequire(path.join(root,'client/package.json')),require
 const {build}=await import(pathToFileURL(clientRequire.resolve('vite')));
 const react=(await import(pathToFileURL(clientRequire.resolve('@vitejs/plugin-react')))).default;
 const puppeteer=require('puppeteer');
-const output=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-analytics-ui-'));
+const output=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-analytics-ui-'));
 const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const evidence={kind:'controlled-browser-only',actualModelCalls:0,actualDatabaseQueries:0,checks:[],screenshots:[]};
 let browser,server,packet=null,posts=0,recoveries=0;const packets=[];

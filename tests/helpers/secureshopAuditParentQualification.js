@@ -131,7 +131,7 @@ async function qualifyAuditParent({ identity, identityMigration, leases, agents,
   const result=httpQualification?.result || await runner.run(input);
   if(actualModel){
     const path=require('node:path');
-    const evidenceRoot=path.dirname(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+    const evidenceRoot=path.dirname(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
     await fs.writeFile(path.join(evidenceRoot,`audit-parent-${injected?'injected':'benign'}.json`),
       JSON.stringify({scope,sourceDescription:description,sourceEventId:sourceEvents[0].event_id,result},null,2),{mode:0o600});
   }

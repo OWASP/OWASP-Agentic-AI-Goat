@@ -188,7 +188,7 @@ def checked_command(response, code, state):
 def store_configuration(label,port,nonce):
     import re
     if label not in ('identity','secureshop','secureshop_agents','secureshop_review') or type(port) is not int or not 1<=port<=65535 or not re.fullmatch('[a-f0-9]{12}',nonce):raise ValueError('Closed store/port/nonce required')
-    migration='dvaia_'+label+'_migration';role='dvaia_'+label+'_runtime';database='dvaia_test_mail_browser_'+nonce+'_'+label
+    migration='dvaia_'+label+'_migration';role='dvaia_'+label+'_runtime';database='owasp_ai_goat_test_mail_browser_'+nonce+'_'+label
     sql=f'CREATE ROLE {migration} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE DATABASE {database} OWNER {migration}; REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{role};'
     prefix={'identity':'IDENTITY','secureshop':'COMMERCE','secureshop_agents':'AGENTS','secureshop_review':'REVIEW'}[label]
     return sql,{'MAIL_'+prefix+suffix:f'postgresql://{username}@127.0.0.1:{port}/{database}' for suffix,username in [('_MIGRATION_URL',migration),('_RUNTIME_URL',role)]}
@@ -209,15 +209,15 @@ def child_environment(clean,evidence,runtime,owner,args):
       'MAIL_BROWSER_CHROME':args.browser,'MAIL_BROWSER_CHROME_SHA256':args.browser_sha256,
       'ANALYTICS_BROWSER_EXECUTABLE':args.browser,'ANALYTICS_BROWSER_SHA256':args.browser_sha256,
       **({('MAIL_BROWSER_ANALYTICS_DISCLOSURE_CONTENT' if getattr(args,'analytics_disclosure_content',False) else 'MAIL_BROWSER_AUDIT_INSTRUCTION_CONTENT' if getattr(args,'audit_instruction_content',False) else 'MAIL_BROWSER_SSRF_CONTENT' if getattr(args,'ssrf_content',False) else 'MAIL_BROWSER_MCP_TRUST_CONTENT' if getattr(args,'mcp_trust_content',False) else 'MAIL_BROWSER_INBOX_CONTENT' if getattr(args,'inbox_content',False) else 'MAIL_BROWSER_STORED_BROWSER_CONTENT' if getattr(args,'stored_browser_content_lifecycle',False) else 'MAIL_BROWSER_PRICING_DISCLOSURE_CONTENT' if getattr(args,'pricing_disclosure_content',False) else 'MAIL_BROWSER_REVIEW_FOLLOWED_CONTENT' if getattr(args,'review_followed_content',False) else 'MAIL_BROWSER_REVIEW_PERSIST_CONTENT' if getattr(args,'review_persist_content',False) else 'MAIL_BROWSER_AUDIT_SQL_CONTENT' if getattr(args,'audit_sql_content',False) else 'MAIL_BROWSER_LOOP_CONTENT' if getattr(args,'loop_content_lifecycle',False) else 'MAIL_BROWSER_LISTINGS_CONTENT' if getattr(args,'listings_content',False) else 'MAIL_BROWSER_CONTENT_ONLY'):'1','AI_PROVIDER':'mock','JUDGE_PROVIDER':'mock','OLLAMA_BASE_URL':'http://127.0.0.1:1'} if content_mode(args) not in ('actual','standalone-disclosure-actual','inbox-actual','mcp-trust-actual','ssrf-actual','audit-instruction-actual','review-followed-actual','review-batch-actual') else {}),
-      **({'MAIL_BROWSER_STANDALONE_DISCLOSURE_ACTUAL':'1','AI_PROVIDER':'ollama','JUDGE_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b','SS_BOUND_PROMPT_POLICIES_ENABLED':'false','DVAIA_MAIL_BROWSER_BUILD_ROOT':str(Path(args.main_workspace)/'client/build')} if content_mode(args)=='standalone-disclosure-actual' else {}),
-      **({'AI_PROVIDER':'ollama','JUDGE_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b','SS_BOUND_PROMPT_POLICIES_ENABLED':'false','DVAIA_MAIL_BROWSER_BUILD_ROOT':str(Path(args.main_workspace)/'client/build')} if content_mode(args)=='actual' else {}),
+      **({'MAIL_BROWSER_STANDALONE_DISCLOSURE_ACTUAL':'1','AI_PROVIDER':'ollama','JUDGE_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b','SS_BOUND_PROMPT_POLICIES_ENABLED':'false','OWASP_AI_GOAT_MAIL_BROWSER_BUILD_ROOT':str(Path(args.main_workspace)/'client/build')} if content_mode(args)=='standalone-disclosure-actual' else {}),
+      **({'AI_PROVIDER':'ollama','JUDGE_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b','SS_BOUND_PROMPT_POLICIES_ENABLED':'false','OWASP_AI_GOAT_MAIL_BROWSER_BUILD_ROOT':str(Path(args.main_workspace)/'client/build')} if content_mode(args)=='actual' else {}),
       **({'MAIL_BROWSER_REVIEW_BATCH_ACTUAL':'1','AI_PROVIDER':'ollama','JUDGE_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b','SS_BOUND_PROMPT_POLICIES_ENABLED':'false'} if content_mode(args)=='review-batch-actual' else {}),
       **({'MAIL_BROWSER_REVIEW_FOLLOWED_ACTUAL':'1','AI_PROVIDER':'ollama','JUDGE_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b','SS_BOUND_PROMPT_POLICIES_ENABLED':'false'} if content_mode(args)=='review-followed-actual' else {}),
       **({'MAIL_BROWSER_AUDIT_INSTRUCTION_ACTUAL':'1','AI_PROVIDER':'ollama','JUDGE_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.3:70b' if getattr(args,'audit_70b',False) else 'llama3.1:8b','SS_BOUND_PROMPT_POLICIES_ENABLED':'false',**({'MAIL_BROWSER_AUDIT_70B':'1',**({'MAIL_BROWSER_AUDIT_CONTINUATION':'1'} if getattr(args,'audit_continuation',False) else {}),'SS_AUDIT_RUN_TIMEOUT_MS':'290000','SS_AUDIT_JUDGE_TIMEOUT_MS':'240000'} if getattr(args,'audit_70b',False) else {})} if content_mode(args)=='audit-instruction-actual' else {}),
       **({'MAIL_BROWSER_SSRF_ACTUAL':'1','AI_PROVIDER':'ollama','JUDGE_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b','SS_BOUND_PROMPT_POLICIES_ENABLED':'false'} if content_mode(args)=='ssrf-actual' else {}),
       **({'MAIL_BROWSER_MCP_TRUST_ACTUAL':'1','AI_PROVIDER':'ollama','JUDGE_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b','SS_BOUND_PROMPT_POLICIES_ENABLED':'false'} if content_mode(args)=='mcp-trust-actual' else {}),
       **({'MAIL_BROWSER_INBOX_ACTUAL':'1','AI_PROVIDER':'ollama','JUDGE_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b'} if content_mode(args)=='inbox-actual' else {}),
-      'DVAIA_APP_DATA_ROOT':str(runtime/'appdata'),
+      'OWASP_AI_GOAT_APP_DATA_ROOT':str(runtime/'appdata'),
       'AWS_EC2_METADATA_DISABLED':'true','LOGS_DIR':str(runtime/'logs'),'LEGACY_SENSITIVE_FILES_ROOT':str(runtime/'assets'),'PG_TLS':'disable'}
 
 def verify_browser_absence(runtime,state,rows):
@@ -296,7 +296,7 @@ def main_current(argv):
     evidence=Path(tempfile.mkdtemp(prefix='run-',dir=parent));runtime=evidence/'runtime';runtime.mkdir(mode=0o700)
     for name in ['home','tmp','logs','assets','appdata','downloads']:(runtime/name).mkdir(mode=0o700)
     clean={'PATH':str(Path(args.node).parent)+':'+str(Path(args.docker).parent)+':/usr/bin:/bin','HOME':str(runtime/'home'),'TMPDIR':str(runtime/'tmp'),'LANG':'C','DOCKER_HOST':args.docker_host}
-    owner=str(uuid.uuid4());name='dvaia-mail-browser-'+uuid.uuid4().hex[:12];labels={'dvaia.owner':owner,'dvaia.cohort':COHORT}
+    owner=str(uuid.uuid4());name='owasp-ai-goat-mail-browser-'+uuid.uuid4().hex[:12];labels={'owasp-ai-goat.owner':owner,'owasp-ai-goat.cohort':COHORT}
     state={'cohort':COHORT,'sourceRoot':str(source),'parentPid':os.getpid(),'owner':owner,'children':[],'nativeStarted':False,'audit70b':args.audit_70b,'auditContinuation':args.audit_continuation,'mode':content_mode(args),'manifestSha256':args.manifest_sha256,'containerName':name,'containerLabels':labels,'imageId':args.image_id,'dockerDaemon':args.docker_daemon,'creationAttempted':False,'scenario':'mail-browser','nonce':owner.replace('-','')[:12],'evidenceRoot':str(evidence),'browserSha256':args.browser_sha256}
     def record():publish(evidence/'ownership.json',state)
     deadline=time.monotonic()+work_seconds
@@ -350,7 +350,7 @@ def main_current(argv):
         check=checked_command(command(owned_psql_args(captured)+['-Atc',"SELECT count(*) FROM pg_database WHERE datname NOT IN ('postgres','template0','template1')"]),'EMPTY_CLUSTER_QUERY_FAILED',state)
         if check.returncode or check.stdout.strip()!='0':raise RuntimeError('Empty owned cluster required')
         env=child_environment(clean,evidence,runtime,owner,args)
-        if manifest.get('externalBuildRoot') is not None:env['DVAIA_MAIL_BROWSER_BUILD_ROOT']=manifest['externalBuildRoot']
+        if manifest.get('externalBuildRoot') is not None:env['OWASP_AI_GOAT_MAIL_BROWSER_BUILD_ROOT']=manifest['externalBuildRoot']
         for label in ['identity','secureshop','secureshop_agents','secureshop_review']:
             sql,urls=store_configuration(label,port,owner.replace('-','')[:12])
             phase('provision-'+label)

@@ -3,8 +3,8 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {randomUUID,createHash}=require('node:crypto');const {Pool}=require('pg');
 const enabled=process.env.WORKSHOP_RAG_ADMIN_NATIVE==='1';
 test('candidate durable RAG canonical admin reset and lease-bound deletion adapters',{skip:!enabled,timeout:180000},async()=>{
- assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
- const pools=[];const pool=role=>{const u=new URL(process.env['WORKSHOP_RAG_'+role.toUpperCase()+'_URL']);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_workshop_rag_[a-f0-9]+$/);assert.equal(u.username,'dvaia_identity_'+role);const p=new Pool({connectionString:u.href,max:8,statement_timeout:15000,lock_timeout:5000});pools.push(p);return p;};
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
+ const pools=[];const pool=role=>{const u=new URL(process.env['WORKSHOP_RAG_'+role.toUpperCase()+'_URL']);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/);assert.equal(u.username,'dvaia_identity_'+role);const p=new Pool({connectionString:u.href,max:8,statement_timeout:15000,lock_timeout:5000});pools.push(p);return p;};
  const migration=pool('migration'),runtime=pool('runtime'),leases=pool('runtime');let temporary;
  const evidence={scope:'Real identity/source/vector/run-ledger/reset-service and canonical deletion admission/lease with exact RAG/CSRF adapters; external email/CSRF continuations controlled; not complete sixteen-store deletion',modelCalled:false};
  try{

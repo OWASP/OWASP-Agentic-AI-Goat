@@ -24,13 +24,13 @@ args = parser.parse_args()
 if args.objective and (not args.live or args.ui): parser.error('--objective requires --live without --ui')
 
 source = Path(__file__).resolve().parents[2]
-root = Path(tempfile.mkdtemp(prefix='dvaia-ea-route-'))
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-ea-route-'))
 workspace = root / 'source'
 workspace.mkdir()
 os.chmod(root, 0o700)
 base_env = {key: os.environ[key] for key in ['PATH', 'HOME', 'TMPDIR'] if key in os.environ}
 docker = ['docker', '--host', args.docker_host]
-container = 'dvaia-ea-route-test-' + uuid.uuid4().hex[:12]
+container = 'owasp-ai-goat-ea-route-test-' + uuid.uuid4().hex[:12]
 container_started = False
 
 
@@ -147,7 +147,7 @@ try:
     env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes', EA_ROUTE_ISOLATED='1',
                EA_ROUTE_UI='1' if args.ui else '0',
                EA_ROUTE_LIVE='1' if args.live else '0', EA_ROUTE_OBJECTIVE=args.objective or '',
-               DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+               OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
                PLATFORM_DATABASE_ENGINE='postgres', WORKSHOP_DATABASE_ENGINE='postgres',
                AI_PROVIDER='ollama' if args.live else 'deterministic-fixture',
                JUDGE_PROVIDER='ollama' if args.live else 'deterministic-fixture',
@@ -161,11 +161,11 @@ try:
                MAILPIT_SMTP_HOST='127.0.0.1', MAILPIT_SMTP_PORT='1')
 
     databases = [
-        ('identity', 'dvaia_test_ea_route_identity'),
-        ('excessive_agency', 'dvaia_test_ea_route_lab'),
+        ('identity', 'owasp_ai_goat_test_ea_route_identity'),
+        ('excessive_agency', 'owasp_ai_goat_test_ea_route_lab'),
     ]
     if args.ui:
-        databases.append(('ctf', 'dvaia_test_ea_route_ctf'))
+        databases.append(('ctf', 'owasp_ai_goat_test_ea_route_ctf'))
     for family, database in databases:
         migration = f'dvaia_{family}_migration'
         runtime = f'dvaia_{family}_runtime'

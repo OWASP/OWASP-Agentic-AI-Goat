@@ -15,13 +15,13 @@ parser.add_argument('--docker-host', required=True)
 args = parser.parse_args()
 
 source = Path(__file__).resolve().parents[2]
-root = Path(tempfile.mkdtemp(prefix='dvaia-xss-profile-origin-'))
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-xss-profile-origin-'))
 workspace = root / 'source'
 workspace.mkdir()
 os.chmod(root, 0o700)
 base_env = {key: os.environ[key] for key in ('PATH', 'HOME', 'TMPDIR') if key in os.environ}
 docker = ['docker', '--host', args.docker_host]
-container = 'dvaia-xss-profile-origin-' + uuid.uuid4().hex[:12]
+container = 'owasp-ai-goat-xss-profile-origin-' + uuid.uuid4().hex[:12]
 started = False
 child = None
 child_pgid = None
@@ -108,13 +108,13 @@ try:
     for role in ('dvaia_xss_migration', 'dvaia_xss_runtime'):
         run(psql + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],
             stdout=subprocess.DEVNULL)
-    database = 'dvaia_test_xss_profile_origin'
+    database = 'owasp_ai_goat_test_xss_profile_origin'
     run(psql + ['-c', f'CREATE DATABASE {database} OWNER dvaia_xss_migration'], stdout=subprocess.DEVNULL)
     run(psql + ['-c', f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; '
           f'GRANT CONNECT ON DATABASE {database} TO dvaia_xss_migration,dvaia_xss_runtime'], stdout=subprocess.DEVNULL)
 
     env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes',
-        DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace), PLATFORM_DATABASE_ENGINE='postgres',
+        OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace), PLATFORM_DATABASE_ENGINE='postgres',
         WORKSHOP_DATABASE_ENGINE='postgres', AI_PROVIDER='mock', JUDGE_PROVIDER='mock',
         AWS_EC2_METADATA_DISABLED='true', MCP_WORKSHOP_AUTOSTART='false',
         MCP_SIDECARS_AUTOSTART='false', SS_ENABLE='false', HF_HUB_OFFLINE='1',

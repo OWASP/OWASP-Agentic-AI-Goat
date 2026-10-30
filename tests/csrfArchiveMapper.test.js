@@ -63,7 +63,7 @@ test('verified reader retains both CSRF and users_auth victim source bytes',asyn
    }
    const schemaFile=`schema-${number++}.json`,schema=await write(schemaFile,JSON.stringify(tables.map(table=>({type:'table',name:table.name}))));files.push({name,sourceSha256:'b'.repeat(64),schemaFile,schema,tables});
   }
-  await write('manifest.json',JSON.stringify({version:1,format:'dvaia-sqlite-archive-v1',complete:true,files}));
+  await write('manifest.json',JSON.stringify({version:1,format:'owasp-ai-goat-sqlite-archive-v1',complete:true,files}));
   const{readCsrfArchive}=require('../db/postgres/import-csrf-archive');const read=await readCsrfArchive({archive:directory,naiveTimestamps:'UTC'});read.review={...raw.review,archiveDigest:read.archiveDigest};assert.equal(mapCsrfArchive(read).snapshot.victim_state.length,1);
   await fs.appendFile(path.join(directory,files[1].tables[0].file),'tamper');await assert.rejects(readCsrfArchive({archive:directory}),{code:'ARCHIVE_HASH_MISMATCH'});
  }finally{await fs.rm(directory,{recursive:true,force:true});}

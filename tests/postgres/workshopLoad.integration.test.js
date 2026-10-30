@@ -37,7 +37,7 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes'
 function assertDisposableUrl(value, name) {
   const url = new URL(value);
   assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname), `${name} must be loopback-only`);
-  assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/, `${name} must name a disposable test database`);
+  assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/, `${name} must name a disposable test database`);
 }
 
 async function availablePort() {
@@ -67,7 +67,7 @@ function shouldCopy(source) {
 }
 
 async function copyApplication() {
-  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-pg-boot-'));
+  const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-pg-boot-'));
   const workspace = path.join(parent, 'workspace');
   await fs.cp(REPO, workspace, { recursive: true, filter: shouldCopy });
   await fs.symlink(path.join(REPO, 'node_modules'), path.join(workspace, 'node_modules'), 'dir');
@@ -132,7 +132,7 @@ for (const launcher of [false]) test(launcher ? 'owned launcher starts frontend 
   await fs.writeFile(guard, `'use strict';\n` +
     `const fs=require('node:fs');const Module=require('node:module');const load=Module._load;\n` +
     `const blocked=['sqlite3','better-sqlite3','mysql2'];\n` +
-    `Module._load=function(request,parent,isMain){const name=String(request);if(blocked.some(x=>name===x||name.startsWith(x+'/'))){const record={pid:process.pid,request:name,parent:parent&&parent.filename};try{fs.appendFileSync(process.env.DVAIA_FORBIDDEN_MODULE_LOG,JSON.stringify(record)+'\\n')}catch{}const error=new Error('FORBIDDEN_LEGACY_DATABASE_MODULE '+name+' from '+(record.parent||'<unknown>'));error.code='FORBIDDEN_LEGACY_DATABASE_MODULE';throw error}return load.apply(this,arguments)};\n`);
+    `Module._load=function(request,parent,isMain){const name=String(request);if(blocked.some(x=>name===x||name.startsWith(x+'/'))){const record={pid:process.pid,request:name,parent:parent&&parent.filename};try{fs.appendFileSync(process.env.OWASP_AI_GOAT_FORBIDDEN_MODULE_LOG,JSON.stringify(record)+'\\n')}catch{}const error=new Error('FORBIDDEN_LEGACY_DATABASE_MODULE '+name+' from '+(record.parent||'<unknown>'));error.code='FORBIDDEN_LEGACY_DATABASE_MODULE';throw error}return load.apply(this,arguments)};\n`);
 
   const databaseEnv = {};
   for (const [runtimePrefix, testPrefix] of Object.entries(DATABASES)) {
@@ -150,7 +150,7 @@ for (const launcher of [false]) test(launcher ? 'owned launcher starts frontend 
     ...inheritedEnv,
     ...databaseEnv,
     HOME: temporaryHome,
-    DVAIA_CLIENT_PORT: String(clientPort),
+    OWASP_AI_GOAT_CLIENT_PORT: String(clientPort),
     PLATFORM_DATABASE_ENGINE: 'postgres',
     WORKSHOP_DATABASE_ENGINE: 'postgres',
     PG_TEST_DISPOSABLE: 'yes',
@@ -173,7 +173,7 @@ for (const launcher of [false]) test(launcher ? 'owned launcher starts frontend 
     LANGSMITH_TRACING: 'false',
     OTEL_SDK_DISABLED: 'true',
     NO_PROXY: '127.0.0.1,localhost',
-    DVAIA_FORBIDDEN_MODULE_LOG: forbiddenLog,
+    OWASP_AI_GOAT_FORBIDDEN_MODULE_LOG: forbiddenLog,
     NODE_OPTIONS: `--require=${guard}`,
   };
   let stdout = '';
@@ -207,7 +207,7 @@ for (const launcher of [false]) test(launcher ? 'owned launcher starts frontend 
       assert.match(await (await fetch(`http://127.0.0.1:${clientPort}`)).text(),/<html/i);
       const canonical=await fs.realpath(workspace);
       const hash=require('node:crypto').createHash('sha256').update(canonical).digest('hex').slice(0,12);
-      await require('../../scripts/launcher-control').requestStop({workspace,stateFile:path.join(temporaryHome,'.dvaia',hash,'launcher.json')});
+      await require('../../scripts/launcher-control').requestStop({workspace,stateFile:path.join(temporaryHome,'.owasp-ai-goat',hash,'launcher.json')});
     }else child.kill('SIGTERM');
     const exited = await waitForExit(child, 15000);
     assert.equal(exited.code, 0, output());

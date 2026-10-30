@@ -18,7 +18,7 @@ parser.add_argument('--ui', action='store_true', help='Qualify the rendered appl
 parser.add_argument('--docker-host', help='Create a dedicated PostgreSQL container on this Docker socket')
 args = parser.parse_args()
 source = Path(__file__).resolve().parents[2]
-root = Path(tempfile.mkdtemp(prefix='dvaia-csrf-browser-route-'))
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-csrf-browser-route-'))
 workspace = root / 'source'
 workspace.mkdir()
 os.chmod(root, 0o700)
@@ -56,7 +56,7 @@ container = None
 docker = ['docker', '--host', args.docker_host] if args.docker_host else None
 try:
     if docker:
-        container = 'dvaia-csrf-route-test-' + uuid.uuid4().hex[:12]
+        container = 'owasp-ai-goat-csrf-route-test-' + uuid.uuid4().hex[:12]
         run(docker + ['run', '--detach', '--name', container, '--tmpfs', '/var/lib/postgresql:rw,size=268435456',
                      '-e', 'POSTGRES_USER=csrf_test_admin', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust',
                      '-e', 'POSTGRES_INITDB_ARGS=--wal-segsize=1', '-p', '127.0.0.1::5432',
@@ -86,7 +86,7 @@ try:
              f'-h 127.0.0.1 -p {port} -k {root} -c shared_buffers=16MB -c max_connections=40',
              '-w', 'start'], stdout=subprocess.DEVNULL)
     env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes',
-               DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+               OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
                PLATFORM_DATABASE_ENGINE='postgres', WORKSHOP_DATABASE_ENGINE='postgres',
                AI_PROVIDER='ollama' if args.live else 'mock',
                JUDGE_PROVIDER='ollama' if args.live else 'mock',
@@ -102,7 +102,7 @@ try:
             '-d', 'postgres', '-v', 'ON_ERROR_STOP=1']
     for family in ['identity', 'csrf'] + (['ctf'] if args.ui else []):
         migration, runtime = f'dvaia_{family}_migration', f'dvaia_{family}_runtime'
-        database = f'dvaia_test_csrf_browser_route_{family}'
+        database = f'owasp_ai_goat_test_csrf_browser_route_{family}'
         for role in [migration, runtime]:
             run(psql + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'], stdout=subprocess.DEVNULL)
         run(psql + ['-c', f'CREATE DATABASE {database} OWNER {migration}'], stdout=subprocess.DEVNULL)

@@ -53,14 +53,14 @@ test('learner receipt is exact and disclaims default gate, scoring and model qua
 
 test('disposable learner database names bind state, store and one nonce', () => {
   const n = '012345abcdef';
-  assert.equal(assertLearnerDatabaseName(`/dvaia_test_ctf_learner_entry_hint_f_i_${n}`,
+  assert.equal(assertLearnerDatabaseName(`/owasp_ai_goat_test_ctf_learner_entry_hint_f_i_${n}`,
     'FRESH', 'IDENTITY'), n);
-  assert.equal(assertLearnerDatabaseName(`/dvaia_test_ctf_learner_entry_hint_p_c_${n}`,
+  assert.equal(assertLearnerDatabaseName(`/owasp_ai_goat_test_ctf_learner_entry_hint_p_c_${n}`,
     'POPULATED', 'CTF', n), n);
-  for (const pathname of [`/dvaia_test_ctf_preview_f_i_${n}`,
-    `/dvaia_test_ctf_learner_entry_hint_p_i_${n}`])
+  for (const pathname of [`/owasp_ai_goat_test_ctf_preview_f_i_${n}`,
+    `/owasp_ai_goat_test_ctf_learner_entry_hint_p_i_${n}`])
     assert.throws(() => assertLearnerDatabaseName(pathname, 'FRESH', 'IDENTITY', n));
-  assert.throws(() => assertLearnerDatabaseName(`/dvaia_test_ctf_learner_entry_hint_f_c_${n}`,
+  assert.throws(() => assertLearnerDatabaseName(`/owasp_ai_goat_test_ctf_learner_entry_hint_f_c_${n}`,
     'FRESH', 'IDENTITY', n));
 });
 

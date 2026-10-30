@@ -13,7 +13,7 @@ const scope = Object.freeze({ launchId: randomUUID(), scenarioId: randomUUID(), 
   platformOwnerId: 7, platformSessionId: 8 });
 const personaSession = Object.freeze({ sessionId: randomUUID(), authorityVersion: '2' });
 const prefix = '/api/secureshop/customer/coupon-probe';
-const launchHeader = { 'x-dvaia-secureshop-launch': 'a'.repeat(43) };
+const launchHeader = { 'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43) };
 const completed = (replayed = false) => ({ status: 'completed', ...pair,
   text: 'The exact probe was not valid.', provider: 'ollama', model: 'local-model',
   stopReason: 'end_turn', probes: [{ code: '', valid: false, discount_percent: 0 }], replayed });
@@ -167,8 +167,8 @@ test('foreign role, duplicate launch header, conflicts and private failure stay 
   const duplicate = await new Promise((resolve, reject) => {
     const req = http.request({ hostname: '127.0.0.1', port: f.port, method: 'POST',
       path: `${prefix}/session`, headers: [
-        'X-DVAIA-SecureShop-Launch', 'a'.repeat(43),
-        'x-dvaia-secureshop-launch', 'a'.repeat(43),
+        'X-OWASP-AI-GOAT-SecureShop-Launch', 'a'.repeat(43),
+        'x-owasp-ai-goat-secureshop-launch', 'a'.repeat(43),
         'Content-Type', 'application/json', 'Content-Length', '2',
       ] }, res => { res.resume(); res.on('end', () => resolve(res.statusCode)); });
     req.on('error', reject); req.end('{}');

@@ -9,7 +9,7 @@ const os = require('node:os');
 // This is a real compiled UI / opaque-frame transport test with an owned HTTP
 // fixture. It does not claim native database effects or actual actor/Judge work.
 test('compiled workshop renders canonical help/progress and replaces its frame after reset', {
-  skip: process.env.DVAIA_VERIFY_BUILT_SHOP_FRAME !== '1', timeout: 45000,
+  skip: process.env.OWASP_AI_GOAT_VERIFY_BUILT_SHOP_FRAME !== '1', timeout: 45000,
 }, async t => {
   let server, browser, profile;
   t.after(async () => {
@@ -54,7 +54,7 @@ test('compiled workshop renders canonical help/progress and replaces its frame a
     return res.json({ cleanupComplete: true, resetId: '20000000-0000-4000-8000-000000000071', launch: launch() });
   });
   app.get('/api/secureshop/products', (req, res) => {
-    shopRequests.push({ bearer: req.get('x-dvaia-secureshop-launch'), cookie: req.get('cookie') });
+    shopRequests.push({ bearer: req.get('x-owasp-ai-goat-secureshop-launch'), cookie: req.get('cookie') });
     res.json({ products: [{ id: 1, name: 'Isolated browser fixture product', price: 10,
       category: 'Electronics', stock: 1 }], total: 1 });
   });
@@ -66,7 +66,7 @@ test('compiled workshop renders canonical help/progress and replaces its frame a
   app.get(/.*/, (_req, res) => res.sendFile('index.html', { root: clientBuild }));
   server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
   const origin = `http://127.0.0.1:${server.address().port}`;
-  profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-workshop-browser-profile-'));
+  profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-workshop-browser-profile-'));
   browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
     ...(process.env.PUPPETEER_EXECUTABLE_PATH ? { executablePath: process.env.PUPPETEER_EXECUTABLE_PATH } : {}) });
   const page = await browser.newPage(); await page.setViewport({ width: 1280, height: 900 });
@@ -104,7 +104,7 @@ test('compiled workshop renders canonical help/progress and replaces its frame a
   assert.ok(shopRequests.every(request => request.cookie === undefined));
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   assert.deepEqual(errors, []);
-  const artifacts = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-workshop-rendered-'));
+  const artifacts = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-workshop-rendered-'));
   await page.screenshot({ path: path.join(artifacts, 'workshop.png'), fullPage: true });
   t.diagnostic(`UI fixture screenshot: ${path.join(artifacts, 'workshop.png')}; no native/model effect claim`);
 });

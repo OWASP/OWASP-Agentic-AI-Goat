@@ -5,10 +5,10 @@ const { randomUUID, createHash } = require('node:crypto');
 const { Pool } = require('pg');
 (async () => {
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+  assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
   const input = JSON.parse(process.argv[2]);
   const url = new URL(process.env.WORKSHOP_RAG_RUNTIME_URL); assert.equal(url.hostname, '127.0.0.1');
-  assert.equal(url.username, 'dvaia_identity_runtime'); assert.match(url.pathname, /^\/dvaia_test_workshop_rag_[a-f0-9]+$/);
+  assert.equal(url.username, 'dvaia_identity_runtime'); assert.match(url.pathname, /^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/);
   const pool = new Pool({ connectionString: url.href, max: 2, statement_timeout: 10000 });
   try {
     const { createWorkshopRagStore, CHUNK_PIPELINE_FINGERPRINT } = require('../../server/services/workshopRagStore');

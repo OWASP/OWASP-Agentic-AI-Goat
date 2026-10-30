@@ -20,7 +20,7 @@ const {
 
 test('upload root requires an absolute configured path and retains the existing default', () => {
   assert.equal(getSecureShopUploadRoot({}), DEFAULT_UPLOAD_ROOT);
-  assert.equal(getSecureShopUploadRoot({ SECURESHOP_UPLOAD_ROOT: '/tmp/dvaia-assets/../active' }), '/tmp/active');
+  assert.equal(getSecureShopUploadRoot({ SECURESHOP_UPLOAD_ROOT: '/tmp/owasp-ai-goat-assets/../active' }), '/tmp/active');
   assert.throws(
     () => getSecureShopUploadRoot({ SECURESHOP_UPLOAD_ROOT: 'relative/uploads' }),
     (error) => error.code === 'INVALID_SECURESHOP_UPLOAD_ROOT',
@@ -28,7 +28,7 @@ test('upload root requires an absolute configured path and retains the existing 
 });
 
 test('only known upload references become runtime-relative paths and mounted URLs', () => {
-  const root = path.resolve('/private/dvaia-assets');
+  const root = path.resolve('/private/owasp-ai-goat-assets');
   assert.equal(
     toSecureShopAssetRelativePath('server/uploads/secureshop/product_images/7/a b.svg'),
     'product_images/7/a b.svg',
@@ -70,7 +70,7 @@ test('product DTO mapping is non-mutating and preserves unknown source paths', (
 });
 
 test('MCP upload/download and mounted HTTP serving share the configured temporary root', async (t) => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-secureshop-assets-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-secureshop-assets-'));
   const previous = process.env.SECURESHOP_UPLOAD_ROOT;
   process.env.SECURESHOP_UPLOAD_ROOT = root;
   t.after(async () => {

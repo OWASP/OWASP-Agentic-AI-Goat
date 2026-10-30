@@ -82,7 +82,7 @@ function createBoundOrderStatusRouter({ launches, authenticatePersona, applicati
   const router = express.Router(), launch = requireSecureShopLaunch({ launches });
   const select = (req, res, next) => {
     res.set('Cache-Control', 'no-store');
-    const count = headerCount(req, 'x-dvaia-secureshop-launch');
+    const count = headerCount(req, 'x-owasp-ai-goat-secureshop-launch');
     if (headerCount(req, 'authorization') > 1 || headerCount(req, 'content-type') > 1
         || count > 1) return invalid(res);
     return launch(req, res, next);

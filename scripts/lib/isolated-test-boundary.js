@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const TRAVERSAL_FIXTURE='server/sensitive_files/traversal-fixtures/config/secrets.env';
-const TRAVERSAL_FIXTURE_SHA256='58dc81956934ce9fae23e65af3674f27dc6d46f07326a54404c4a874e27d027a';
+const TRAVERSAL_FIXTURE_SHA256='26e275f4f01e5211b2e223ca9c0d944a8922d53e1c231029b20b18866e13b27a';
 function artifactEnvironment(directory) {
   const data=path.join(directory,'data');
   return {SECURESHOP_UPLOAD_ROOT:path.join(data,'uploads'),LOGS_DIR:path.join(data,'logs'),LEGACY_SENSITIVE_FILES_ROOT:path.join(data,'legacy-sensitive'),HOME:path.join(data,'home'),USERPROFILE:path.join(data,'home'),TMPDIR:path.join(data,'tmp'),TMP:path.join(data,'tmp'),TEMP:path.join(data,'tmp'),XDG_CONFIG_HOME:path.join(data,'config'),XDG_CACHE_HOME:path.join(data,'cache'),XDG_DATA_HOME:path.join(data,'share')};

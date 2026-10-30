@@ -2,10 +2,10 @@
 const test = require('node:test'), assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const { validateUrls, budget, validateRequest, validateResponse, validateTimedResponse, closeOwned, MODEL, DIGEST } = require('./postgres/secureshopLoopMainQualification');
-const makeUrls = () => Object.fromEntries([['IDENTITY','identity','identity'],['REVIEW','review','secureshop_review'],['AGENTS','agents','secureshop_agents']].flatMap(([key,label,store]) => ['MIGRATION','RUNTIME'].map(kind => [`PG_SECURESHOP_LOOP_ASSESSMENT_${key}_${kind}_URL`,`postgresql://dvaia_${store}_${kind.toLowerCase()}@127.0.0.1:6543/dvaia_test_secureshop_loop_${label}`])));
+const makeUrls = () => Object.fromEntries([['IDENTITY','identity','identity'],['REVIEW','review','secureshop_review'],['AGENTS','agents','secureshop_agents']].flatMap(([key,label,store]) => ['MIGRATION','RUNTIME'].map(kind => [`PG_SECURESHOP_LOOP_ASSESSMENT_${key}_${kind}_URL`,`postgresql://dvaia_${store}_${kind.toLowerCase()}@127.0.0.1:6543/owasp_ai_goat_test_secureshop_loop_${label}`])));
 test('six exact owned URLs reject installed endpoint, wrong role, aliases and URL options', () => {
   validateUrls(makeUrls(),6543);
-  for (const altered of ['postgresql://dvaia_identity_runtime@127.0.0.1:5432/dvaia_test_secureshop_loop_identity','postgresql://postgres@127.0.0.1:6543/dvaia_test_secureshop_loop_identity','postgresql://dvaia_identity_runtime@localhost:6543/dvaia_test_secureshop_loop_identity','postgresql://dvaia_identity_runtime@127.0.0.1:6543/dvaia_test_secureshop_loop_identity?sslmode=disable']) {
+  for (const altered of ['postgresql://dvaia_identity_runtime@127.0.0.1:5432/owasp_ai_goat_test_secureshop_loop_identity','postgresql://postgres@127.0.0.1:6543/owasp_ai_goat_test_secureshop_loop_identity','postgresql://dvaia_identity_runtime@localhost:6543/owasp_ai_goat_test_secureshop_loop_identity','postgresql://dvaia_identity_runtime@127.0.0.1:6543/owasp_ai_goat_test_secureshop_loop_identity?sslmode=disable']) {
     assert.throws(() => validateUrls({...makeUrls(),PG_SECURESHOP_LOOP_ASSESSMENT_IDENTITY_RUNTIME_URL:altered},6543));
   }
 });
@@ -92,7 +92,7 @@ test('registry identity initialization includes supported catalog seed before ag
 test('rendered profile alone requires exact fourth commerce URL pair',()=>{
  const env={...makeUrls(),PG_SECURESHOP_REGISTRY_RENDERED:'1'};
  assert.throws(()=>validateUrls(env,6543));
- for(const kind of ['RUNTIME','MIGRATION'])env['PG_SECURESHOP_LOOP_ASSESSMENT_COMMERCE_'+kind+'_URL']='postgresql://dvaia_secureshop_'+kind.toLowerCase()+'@127.0.0.1:6543/dvaia_test_secureshop_loop_commerce';
+ for(const kind of ['RUNTIME','MIGRATION'])env['PG_SECURESHOP_LOOP_ASSESSMENT_COMMERCE_'+kind+'_URL']='postgresql://dvaia_secureshop_'+kind.toLowerCase()+'@127.0.0.1:6543/owasp_ai_goat_test_secureshop_loop_commerce';
  validateUrls(env,6543);
  assert.throws(()=>validateUrls({...env,PG_SECURESHOP_LOOP_ASSESSMENT_COMMERCE_RUNTIME_URL:env.PG_SECURESHOP_LOOP_ASSESSMENT_IDENTITY_RUNTIME_URL},6543));
  validateUrls(makeUrls(),6543);
@@ -331,9 +331,9 @@ test('actual provider capture omits signal and serializes with the real bounded 
 test('populated upgrade URLs admit only extra owned database and canonical role pair',()=>{
  const env={...makeUrls(),PG_SECURESHOP_REGISTRY_INVOCATION_UPGRADE:'1'};
  assert.throws(()=>validateUrls(env,6543));
- for(const kind of ['RUNTIME','MIGRATION'])env['PG_SECURESHOP_LOOP_ASSESSMENT_UPGRADE_'+kind+'_URL']='postgresql://dvaia_secureshop_agents_'+kind.toLowerCase()+'@127.0.0.1:6543/dvaia_test_secureshop_loop_agents_upgrade';
+ for(const kind of ['RUNTIME','MIGRATION'])env['PG_SECURESHOP_LOOP_ASSESSMENT_UPGRADE_'+kind+'_URL']='postgresql://dvaia_secureshop_agents_'+kind.toLowerCase()+'@127.0.0.1:6543/owasp_ai_goat_test_secureshop_loop_agents_upgrade';
  validateUrls(env,6543);
- for(const value of ['postgresql://dvaia_secureshop_agents_runtime@127.0.0.1:6543/dvaia_test_secureshop_loop_agents','postgresql://dvaia_upgrade_runtime@127.0.0.1:6543/dvaia_test_secureshop_loop_agents_upgrade'])assert.throws(()=>validateUrls({...env,PG_SECURESHOP_LOOP_ASSESSMENT_UPGRADE_RUNTIME_URL:value},6543));
+ for(const value of ['postgresql://dvaia_secureshop_agents_runtime@127.0.0.1:6543/owasp_ai_goat_test_secureshop_loop_agents','postgresql://dvaia_upgrade_runtime@127.0.0.1:6543/owasp_ai_goat_test_secureshop_loop_agents_upgrade'])assert.throws(()=>validateUrls({...env,PG_SECURESHOP_LOOP_ASSESSMENT_UPGRADE_RUNTIME_URL:value},6543));
 });
 
 test('replacement publication changes only attested digest and preserves disabled configuration',()=>{

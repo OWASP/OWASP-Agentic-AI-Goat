@@ -230,7 +230,7 @@ function createCsrfBrowserExecutor({ puppeteer, attackerOrigin, victimOrigin,
       if (blockedRequests.length >= MAX_BLOCKED_REQUESTS) { blockedRequestsTruncated = true; return; }
       blockedRequests.push(Object.freeze({ url: request.url().slice(0, 500), method: request.method(), resourceType: request.resourceType() }));
     };
-    const documentUrl = new URL('/__dvaia_csrf_browser_attempt__', document).href;
+    const documentUrl = new URL('/__owasp_ai_goat_csrf_browser_attempt__', document).href;
     const closeOnAbort = () => {
       closePage(page).catch(() => {});
       closeContext(context).catch(() => {});

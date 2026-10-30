@@ -4,7 +4,7 @@ const {provisionApplication}=require('../../db/postgres/provision-application');
 // Requires a fresh disposable cluster: names are deliberately identical to installation names.
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&process.env.PG_PROVISION_FRESH_CLUSTER==='yes'&&!!process.env.PG_ADMIN_DATABASE_URL;
 test('fresh PostgreSQL provision, immutable replay, empty-only admin bootstrap',{skip:!enabled},async()=>{
- const dir=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-provision-integration-')),manifestPath=path.join(dir,'private.json');let runtime,migration;
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-provision-integration-')),manifestPath=path.join(dir,'private.json');let runtime,migration;
  try{
   const first=await provisionApplication({manifestPath});assert.equal(first.status,'created');
   const replay=await provisionApplication({manifestPath});assert.equal(replay.status,'existing');assert.deepEqual(replay.configuration,first.configuration);

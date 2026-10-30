@@ -3,16 +3,16 @@
 import argparse,hashlib,json,os,secrets,shlex,signal,subprocess,tempfile,time,uuid
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
-HOST='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-NODE=Path.home()/'.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node'
+HOST='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+NODE=Path.home()/'.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node'
 DOCKER='/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker'
 BASE='node:26.10.0-slim@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1'
 a=argparse.ArgumentParser();a.add_argument('--docker-host',required=True);args=a.parse_args()
 if args.docker_host!=HOST:raise SystemExit('reviewed daemon required')
-w=Path(tempfile.mkdtemp(prefix='dvaia-pricing-http-'));w.chmod(0o700);source=w/'source';nonce=uuid.uuid4().hex[:12]
-profile='dvaia-owned-pricing-http-'+nonce;container='dvaia-pricing-http-'+nonce;tag='dvaia-pricing-http:'+nonce
-owner=secrets.token_hex(32);remote='/tmp/'+profile;label='dvaia.pricing.owner'
-D=[DOCKER,'--host',HOST];sshconf=str(Path.home()/'.colima/_lima/colima-dvaia-pg-verify/ssh.config');sshhost='lima-colima-dvaia-pg-verify'
+w=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-pricing-http-'));w.chmod(0o700);source=w/'source';nonce=uuid.uuid4().hex[:12]
+profile='owasp-ai-goat-owned-pricing-http-'+nonce;container='owasp-ai-goat-pricing-http-'+nonce;tag='owasp-ai-goat-pricing-http:'+nonce
+owner=secrets.token_hex(32);remote='/tmp/'+profile;label='owasp-ai-goat.pricing.owner'
+D=[DOCKER,'--host',HOST];sshconf=str(Path.home()/'.colima/_lima/colima-owasp-ai-goat-pg-verify/ssh.config');sshhost='lima-colima-owasp-ai-goat-pg-verify'
 S=['/usr/bin/ssh','-F',sshconf,sshhost,'--']
 env={'HOME':str(Path.home()),'PATH':str(NODE.parent)+':/usr/bin:/bin:/usr/sbin:/sbin','TMPDIR':str(w)}
 state={'status':'preparing','evidence':str(w),'container':container,'imageTag':tag,'profile':profile,'owner':owner,'base':BASE,'cleanup':{},'actualModelCalls':0}
@@ -32,7 +32,7 @@ signal.alarm(480);save()
 try:
  if run([str(NODE),'--version']).stdout.strip()!='v26.10.0':raise RuntimeError('exact Node required')
  daemon=json.loads(run(D+['info','--format','{{json .}}']).stdout)
- if daemon['Name']!='colima-dvaia-pg-verify' or daemon['Architecture'] not in ['aarch64','arm64']:raise RuntimeError('wrong reviewed daemon/architecture')
+ if daemon['Name']!='colima-owasp-ai-goat-pg-verify' or daemon['Architecture'] not in ['aarch64','arm64']:raise RuntimeError('wrong reviewed daemon/architecture')
  base=json.loads(run(D+['image','inspect',BASE]).stdout)[0]
  if base['Architecture']!='arm64' or not any(x.endswith(BASE.split('@')[1]) for x in base.get('RepoDigests',[])):raise RuntimeError('reviewed immutable base unavailable; no pull')
  state['baseId']=base['Id'];state['baseRepoDigests']=base['RepoDigests'];save()

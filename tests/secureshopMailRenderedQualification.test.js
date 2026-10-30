@@ -66,12 +66,12 @@ test('rendered SecureShop reentry propagates each bearer and admits only the com
  const page={async goto(url,options){assert.equal(url,origin+'/workshop/secureshop');assert.equal(options.waitUntil,'domcontentloaded');navigations++;}};
  const responses=[{bearer:'first-owned-bearer',generation:1},{bearer:'second-owned-bearer',generation:1},{bearer:'post-reset-bearer',generation:2}].map(value=>({status:()=>200,json:async()=>({launch:{launchId,generation:value.generation},bearer:value.bearer})}));
  const waitResponse=(_page,predicate)=>{assert(predicate({url:()=>origin+'/api/auth/secureshop-launch/recover',request:()=>({method:()=> 'POST'})}));return Promise.resolve(responses.shift());};
- const enter=generation=>enterOwnedSecureShop({page,origin,ui:work=>work(),waitResponse,admittedSession:{...admittedSession,generation},onLaunchCredential:credential=>{headers['x-dvaia-secureshop-launch']=credential.bearer;}});
- await enter(1);assert.equal(headers['x-dvaia-secureshop-launch'],'first-owned-bearer');
- await enter(1);assert.equal(navigations,2);assert.equal(headers['x-dvaia-secureshop-launch'],'second-owned-bearer');
+ const enter=generation=>enterOwnedSecureShop({page,origin,ui:work=>work(),waitResponse,admittedSession:{...admittedSession,generation},onLaunchCredential:credential=>{headers['x-owasp-ai-goat-secureshop-launch']=credential.bearer;}});
+ await enter(1);assert.equal(headers['x-owasp-ai-goat-secureshop-launch'],'first-owned-bearer');
+ await enter(1);assert.equal(navigations,2);assert.equal(headers['x-owasp-ai-goat-secureshop-launch'],'second-owned-bearer');
  const reset={status:'committed',fromGeneration:1,toGeneration:2};assert.equal(nextResetGeneration(1,reset),2);
  assert.throws(()=>nextResetGeneration(1,{...reset,toGeneration:3}));assert.throws(()=>nextResetGeneration(1,{...reset,status:'pending'}));
- await enter(nextResetGeneration(1,reset));assert.equal(navigations,3);assert.equal(headers['x-dvaia-secureshop-launch'],'post-reset-bearer');
+ await enter(nextResetGeneration(1,reset));assert.equal(navigations,3);assert.equal(headers['x-owasp-ai-goat-secureshop-launch'],'post-reset-bearer');
 });
 const row=()=>({workshopKey:'secureshop_agent_security',name:'Owned shop',objectiveCount:2,completedObjectiveCount:1,timeSpentSeconds:47,objectives:[{id:'ss_mail_stored_browser_execution',completed:true,hintVisible:true,solutionVisible:false,text:'Saved mail'},{id:'other',completed:false}],exerciseGroups:[{objectives:[{id:'ss_mail_stored_browser_execution',completed:true,hintVisible:true,solutionVisible:false,text:'Saved mail'},{id:'other',completed:false}]}]});
 test('mail projection requires exact canonical objective outcome and independent gates',()=>{const r=row();assert.deepEqual(assertProjection([r],true),{title:'Saved mail',completed:true,total:2,done:1,hintVisible:true,solutionVisible:false});assert.throws(()=>assertProjection([r],false));assert.deepEqual(exerciseProjection([r]),{name:'Owned shop',done:1,total:2,time:47,hints:1,solutions:0});r.exerciseGroups[0].objectives.shift();assert.throws(()=>assertProjection([r],true));});

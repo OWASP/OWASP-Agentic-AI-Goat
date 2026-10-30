@@ -25,7 +25,7 @@ def run_elementary(args,source):
  if extraction:expected={'tasks/source-extraction18-inputs-2026-09-27.json':'fee5792544c18382e05cda6d5d5499830075452194fb494a322c7e96a9d9508e'}
  for name,pin in expected.items():
   if hashlib.sha256((source/name).read_bytes()).hexdigest()!=pin:raise ValueError('Sealed elementary artifact mismatch')
- root=Path(tempfile.mkdtemp(prefix='dvaia-elementary-judge-')).resolve();root.chmod(0o700)
+ root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-elementary-judge-')).resolve();root.chmod(0o700)
  workspace=root/'source';(root/'home').mkdir(mode=0o700)
  env={'PATH':str(node.parent)+':/usr/bin:/bin','HOME':str(root/'home'),'TMPDIR':str(root),'NODE_ENV':'test','AI_PROVIDER':'ollama','JUDGE_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b','JUDGE_MODEL':'llama3.1:8b','OLLAMA_BASE_URL':'http://127.0.0.1:11434','JUDGE_BASE_URL':'http://127.0.0.1:11434','HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1','AWS_EC2_METADATA_DISABLED':'true','LANGCHAIN_TRACING_V2':'false','LANGSMITH_TRACING':'false','PYTHONDONTWRITEBYTECODE':'1','OBJECTIVE_ELEMENTARY_ACTUAL':'1','OBJECTIVE_ELEMENTARY_RESULT':str(root/'result.json')}
 
@@ -167,7 +167,7 @@ def run_factored(args,source):
  node,donor,cache=work.run(lambda:validate(args,source))
  if donor!=source or cache!=source/'tests/fixtures/fullBackendModelCache':raise ValueError('Canonical frozen layout required')
  work.run(lambda:validate_package(source,args.manifest,args.manifest_sha256,node,args.node_sha256))
- root=Path(tempfile.mkdtemp(prefix='dvaia-factored-judge-')).resolve();root.chmod(0o700);workspace=root/'source';(root/'home').mkdir(mode=0o700)
+ root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-factored-judge-')).resolve();root.chmod(0o700);workspace=root/'source';(root/'home').mkdir(mode=0o700)
  env={'PATH':str(node.parent)+':/usr/bin:/bin','HOME':str(root/'home'),'TMPDIR':str(root),'NODE_ENV':'test','FACTORED_ACTUAL':'1','FACTORED_PHASE':args.factored_phase,'FACTORED_INPUT':spec['input'],'FACTORED_INPUT_SHA256':args.factored_input_sha256,'FACTORED_RESULT':str(root/'result.json'),**spec['gate']}
  state={'status':'preparing','phase':args.factored_phase,'semanticAccepted':None,'creditAuthorized':False,'bounds':spec|{'input':None,'gate':None},'children':[]};budget=work
  def persist():

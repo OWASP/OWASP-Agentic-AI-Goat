@@ -178,7 +178,7 @@ test('XSS tool observation and terminal decisions use PostgreSQL-supported trace
   const events = [];
   const replies = ['{"tool":"listEmails"}', 'Your inbox is empty.'];
   const result = await runXssWorkshopGraph({ exerciseId: 'email', message: 'list emails',
-    userKey: '7', clientCompleted: [], sharklaserEmail: 'xss-7@dvaia.invalid', systemPrompt: 'fixture' }, {
+    userKey: '7', clientCompleted: [], sharklaserEmail: 'xss-7@owasp-ai-goat.invalid', systemPrompt: 'fixture' }, {
     aiService: { chatWithMessages: async () => ({ response: replies.shift() }) },
     parseToolCall: value => { try { return JSON.parse(value); } catch { return null; } },
     executeXssTool: async () => ({ emails: [] }), detectXss: () => false,

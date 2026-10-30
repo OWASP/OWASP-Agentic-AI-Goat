@@ -54,8 +54,8 @@ test('0046 initialization invokes only the identity migration loader and never a
 test('0046 promotion qualifier detects private configuration drift without exposing bytes', () => {
   const bytes = Buffer.from('private fixture');
   const expected = crypto.createHash('sha256').update(bytes).digest('hex');
-  assert.doesNotThrow(() => q.assertPrivateConfigBytes({ DVAIA_EXPECTED_PRIVATE_CONFIG_SHA256: expected },
+  assert.doesNotThrow(() => q.assertPrivateConfigBytes({ OWASP_AI_GOAT_EXPECTED_PRIVATE_CONFIG_SHA256: expected },
     { readFile: () => bytes, configPath: '/owned/.env' }));
-  assert.throws(() => q.assertPrivateConfigBytes({ DVAIA_EXPECTED_PRIVATE_CONFIG_SHA256: '0'.repeat(64) },
+  assert.throws(() => q.assertPrivateConfigBytes({ OWASP_AI_GOAT_EXPECTED_PRIVATE_CONFIG_SHA256: '0'.repeat(64) },
     { readFile: () => bytes, configPath: '/owned/.env' }), { code: 'PRIVATE_CONFIG_CHANGED' });
 });

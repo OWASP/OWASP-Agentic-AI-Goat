@@ -16,13 +16,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--docker-host', required=True)
 args = parser.parse_args()
 source = Path(__file__).resolve().parents[2]
-root = Path(tempfile.mkdtemp(prefix='dvaia-target-reconciliation-'))
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-target-reconciliation-'))
 workspace = root / 'source'
 workspace.mkdir()
 os.chmod(root, 0o700)
 base_env = {key: os.environ[key] for key in ['PATH', 'HOME', 'TMPDIR'] if key in os.environ}
 docker = ['docker', '--host', args.docker_host]
-container = 'dvaia-target-reconciliation-' + uuid.uuid4().hex[:12]
+container = 'owasp-ai-goat-target-reconciliation-' + uuid.uuid4().hex[:12]
 started = False
 
 
@@ -85,8 +85,8 @@ try:
     runtime_role = 'dvaia_identity_runtime'
     review_migration_role = 'dvaia_secureshop_review_migration'
     review_runtime_role = 'dvaia_secureshop_review_runtime'
-    database = 'dvaia_test_target_reconciliation_identity'
-    review_database = 'dvaia_test_target_reconciliation_review'
+    database = 'owasp_ai_goat_test_target_reconciliation_identity'
+    review_database = 'owasp_ai_goat_test_target_reconciliation_review'
     for role in [migration_role, runtime_role, review_migration_role, review_runtime_role]:
         run(psql + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE '
                           'NOREPLICATION NOBYPASSRLS'], stdout=subprocess.DEVNULL)
@@ -99,7 +99,7 @@ try:
                       f'GRANT CONNECT ON DATABASE {review_database} TO {review_migration_role}, {review_runtime_role}'],
         stdout=subprocess.DEVNULL)
     env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes',
-               DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true',
+               OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true',
                PG_SECURESHOP_RECONCILIATION_TEST_MIGRATION_URL=
                f'postgresql://{quote(migration_role)}@127.0.0.1:{port}/{database}',
                PG_SECURESHOP_RECONCILIATION_TEST_RUNTIME_URL=

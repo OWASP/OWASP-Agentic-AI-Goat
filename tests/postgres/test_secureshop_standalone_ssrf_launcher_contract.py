@@ -226,7 +226,7 @@ const retained={normalizedCapture:{cases:[{}, {judgments:[{judge_observations:pr
         with self.assertRaises(RuntimeError): c.private_json(self.result_path, 4096)
 
     def stores(self):
-        return {key: {role: f'postgresql://dvaia_{name}_{role.lower()}@127.0.0.1:54321/dvaia_test_c32_{key.lower()}'
+        return {key: {role: f'postgresql://dvaia_{name}_{role.lower()}@127.0.0.1:54321/owasp_ai_goat_test_c32_{key.lower()}'
                       for role in ('RUNTIME', 'MIGRATION')} for key, name in c.STORES.items()}
 
     def test_environment_exact_four_store_no_copy_mapping(self):
@@ -235,10 +235,10 @@ const retained={normalizedCapture:{cases:[{}, {judgments:[{judge_observations:pr
         external = ROOT.parent / 'v27-external-contract-placeholder-no-write'
         env = c.child_environment(ROOT, external, self.stores())
         self.assertEqual(len(env), 13)
-        self.assertEqual(env['DVAIA_CURRENT_MAIN_WORKSPACE'], str(ROOT))
+        self.assertEqual(env['OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE'], str(ROOT))
         self.assertEqual(env['SECURESHOP_STANDALONE_SSRF_RENDERED_EVIDENCE_PATH'], str(external / 'result.json'))
         self.assertEqual(sum(key.startswith(c.PREFIX) for key in env), 8)
-        self.assertNotIn('DVAIA_ISOLATED_TEST_WORKSPACE', env)
+        self.assertNotIn('OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE', env)
 
     def test_environment_denies_missing_foreign_alias_or_credential_urls(self):
         cases = []

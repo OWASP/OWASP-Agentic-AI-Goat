@@ -25,7 +25,7 @@ const canonicalMail = ({ body, subject }) => JSON.stringify({ body, subject });
 function intendedRecipient(ticket) {
   const addresses = typeof ticket?.body === 'string'
     ? ticket.body.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi) || [] : [];
-  const controlled = addresses.filter(value => /^mcp-audit-[a-f0-9]{20}@dvaia\.invalid$/.test(value));
+  const controlled = addresses.filter(value => /^mcp-audit-[a-f0-9]{20}@owasp-ai-goat\.invalid$/.test(value));
   return controlled.length === 1 ? controlled[0] : null;
 }
 

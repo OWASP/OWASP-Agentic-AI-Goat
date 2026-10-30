@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto'),http=require('node:http'),net=require('node:net');
 const STATE_VERSION=2;
-function statePath(workspace){return path.join(os.homedir(),'.dvaia',crypto.createHash('sha256').update(fs.realpathSync(workspace)).digest('hex').slice(0,12),'launcher.json');}
+function statePath(workspace){return path.join(os.homedir(),'.owasp-ai-goat',crypto.createHash('sha256').update(fs.realpathSync(workspace)).digest('hex').slice(0,12),'launcher.json');}
 function error(code,message){return Object.assign(new Error(message),{code});}
 function windowsState(){return require('./lib/windows-private-state');}
 function ensurePrivateDirectory(stateFile){

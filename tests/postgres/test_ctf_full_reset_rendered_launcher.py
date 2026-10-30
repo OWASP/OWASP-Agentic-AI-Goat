@@ -81,7 +81,7 @@ class FullResetLauncherControls(unittest.TestCase):
             def poll():
                 return None
 
-        intent = {"name": "dvaia-ctf-stages-owned", "nonce": "b" * 12,
+        intent = {"name": "owasp-ai-goat-ctf-stages-owned", "nonce": "b" * 12,
             "owner": RUNNER.CONTAINER_OWNER_LABEL, "image": IMAGE,
             "creationAttempted": True, "containerId": "c" * 64}
         with tempfile.TemporaryDirectory(prefix="full-reset-cleanup-", dir=ROOT / "tasks/tmp") as name:

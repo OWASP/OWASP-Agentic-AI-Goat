@@ -66,7 +66,7 @@ test('only exact saved self-change can request sign-in after protected authority
     parent: { postMessage } };
   const before = storage.getItem(SHOP_USER_ADMIN_KEY);
   requestReauthenticationForUnresolvedSelfChange(self, 7, () => true, frame, storage);
-  expect(postMessage).toHaveBeenCalledWith({ channel: 'dvaia-secureshop-standalone-session-v1',
+  expect(postMessage).toHaveBeenCalledWith({ channel: 'owasp-ai-goat-secureshop-standalone-session-v1',
     type: 'auth-required', nonce }, 'https://shop.example');
   expect(storage.getItem(SHOP_USER_ADMIN_KEY)).toBe(before);
   postMessage.mockClear();

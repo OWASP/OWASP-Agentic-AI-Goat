@@ -23,7 +23,7 @@ async function revision(pool) { return Number((await pool.query('SELECT revision
 function stable(row) { const {updated_at,...rest}=row; return rest; }
 test('DPI guidance updates only six shipped defaults, preserves instructor fields, and replays idempotently', {skip:!enabled,timeout:60000}, async()=>{
   const pools=Object.fromEntries(kinds.map(k=>[k,Object.fromEntries(['MIGRATION','RUNTIME'].map(r=>[r,new Pool({connectionString:process.env[`PG_DPI_GUIDANCE_${k}_${r}_URL`],max:2})]))]));
-  const dir=await fs.mkdtemp(path.join(process.env.DVAIA_ISOLATED_TEST_WORKSPACE||os.tmpdir(),'dpi-guidance-'));
+  const dir=await fs.mkdtemp(path.join(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE||os.tmpdir(),'dpi-guidance-'));
   const baselineDir=path.join(dir,'baseline'),fullDir=path.join(dir,'full');
   await fs.mkdir(baselineDir);await fs.mkdir(fullDir);
   try {

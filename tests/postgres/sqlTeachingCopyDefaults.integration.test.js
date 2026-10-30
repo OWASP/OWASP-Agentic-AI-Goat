@@ -114,7 +114,7 @@ async function actualLedger(client) {
 test('production identity chain and 0069 preserve fresh, exact-old, edited, rollback, and replay paths',
   { skip: !enabled ? 'requires owned disposable PostgreSQL URL' : false, timeout: 90000 }, async () => {
     const database = decodeURIComponent(new URL(connectionString).pathname.slice(1));
-    assert.match(database, /^dvaia_sql_copy_[a-f0-9]{12}$/, 'owned disposable database required');
+    assert.match(database, /^owasp_ai_goat_sql_copy_[a-f0-9]{12}$/, 'owned disposable database required');
     const pool = new Pool({ connectionString, max: 2 });
     const client = await pool.connect();
     const canonical = await readMigrations(migrationDirectory);

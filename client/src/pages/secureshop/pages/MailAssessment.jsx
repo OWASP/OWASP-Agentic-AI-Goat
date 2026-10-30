@@ -28,7 +28,7 @@ function MailAssessmentState({mail,request,kind,reference}) {
       setStatus(result.judgment?.verdict === 'unavailable' ? (result.judgment.canRetry === true
         ? standalone ? `Grading unavailable. Your ${saved} remains saved. Open saved assessments to review retry eligibility.`
           : `Grading unavailable. Your ${saved} remains saved; use ${label} to recover or retry.`
-        : `Grading unavailable. Your ${saved} remains saved. No objective completion was confirmed. A Judge retry is not available; ask the ${standalone ? 'SecureShop' : 'workshop'} administrator to check the diagnostics.`)
+        : `Grading unavailable. Your ${saved} remains saved. No objective completion was confirmed. A Judge retry is not available; ask the ${standalone ? 'OWASP AI SecureShop' : 'workshop'} administrator to check the diagnostics.`)
         : result.status === 'disabled' ? `Grading is disabled. Your ${saved} remains saved.`
         : result.status === 'ineligible' ? `This saved ${saved} is not eligible for objective credit.`
         : result.completed === true ? 'Objective completed.' : 'The Judge did not award objective credit.');

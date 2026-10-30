@@ -47,14 +47,14 @@ test('both browser gates admit only the existing exact read-only revision poll q
 test('Fixed Practice owns a distinct exact four-store name and rejects cross-cohort names',()=>{
   const nonce='012345abcdef';
   for(const state of ['FRESH','POPULATED'])for(const kind of ['IDENTITY','CTF']){
-    const name=`/dvaia_test_ctf_fixed_practice_${state[0].toLowerCase()}_${kind[0].toLowerCase()}_${nonce}`;
+    const name=`/owasp_ai_goat_test_ctf_fixed_practice_${state[0].toLowerCase()}_${kind[0].toLowerCase()}_${nonce}`;
     assert.equal(integration.assertDatabaseName(name,state,kind,nonce),nonce);
     assert.throws(()=>integration.assertDatabaseName(name,state,kind,'ffffffffffff'));
     assert.throws(()=>integration.assertDatabaseName(name,state==='FRESH'?'POPULATED':'FRESH',kind));
   }
-  for(const bad of ['/dvaia_test_ctf_learner_attempt_gate_f_i_012345abcdef',
-    '/dvaia_test_ctf_fixed_practice_f_i_012345abcdef_extra',
-    '/dvaia_test_ctf_fixed_practice_f_i_012345ABCDEf'])
+  for(const bad of ['/owasp_ai_goat_test_ctf_learner_attempt_gate_f_i_012345abcdef',
+    '/owasp_ai_goat_test_ctf_fixed_practice_f_i_012345abcdef_extra',
+    '/owasp_ai_goat_test_ctf_fixed_practice_f_i_012345ABCDEf'])
     assert.throws(()=>integration.assertDatabaseName(bad,'FRESH','IDENTITY'));
 });
 

@@ -1698,9 +1698,9 @@ function syncDefaultChallengeMetadata() {
 
 function insertDefaultData() {
   // Always ensure the admin account exists (INSERT OR IGNORE is safe)
-  const adminPassword = bcrypt.hashSync('Abh1nav@DVAIA#2026', 10);
+  const adminPassword = bcrypt.hashSync('Abh1nav@OWASP-AI-GOAT#2026', 10);
   authDb.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level, email_verified)
-          VALUES ('Abhinav', 'abhinav@dvaia.local', ?, 'admin', 2, 1)`, [adminPassword], function(err) {
+          VALUES ('Abhinav', 'abhinav@owasp-ai-goat.local', ?, 'admin', 2, 1)`, [adminPassword], function(err) {
     if (!err && this.changes > 0) {
       console.log('   ✓ Created admin account: Abhinav');
       const permissions = [
@@ -1726,24 +1726,24 @@ function insertDefaultData() {
 
     const studentPassword = bcrypt.hashSync('student123', 10);
     authDb.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level) 
-            VALUES ('student', 'student@dvaia.local', ?, 'student', 0)`, [studentPassword], (err) => {
+            VALUES ('student', 'student@owasp-ai-goat.local', ?, 'student', 0)`, [studentPassword], (err) => {
       if (!err) console.log('   ✓ Created student account: student / student123');
     });
 
     authDb.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level) 
-            VALUES ('student123', 'student123@dvaia.local', ?, 'student', 0)`, [studentPassword], (err) => {
+            VALUES ('student123', 'student123@owasp-ai-goat.local', ?, 'student', 0)`, [studentPassword], (err) => {
       if (!err) console.log('   ✓ Created student account: student123 / student123');
     });
 
     const userPassword = bcrypt.hashSync('password', 10);
     authDb.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level) 
-            VALUES ('user', 'user@dvaia.local', ?, 'student', 0)`, [userPassword], (err) => {
+            VALUES ('user', 'user@owasp-ai-goat.local', ?, 'student', 0)`, [userPassword], (err) => {
       if (!err) console.log('   ✓ Created user account: user / password');
     });
 
     const testPassword = bcrypt.hashSync('test123', 10);
     authDb.run(`INSERT OR IGNORE INTO users (username, email, password, role, admin_level) 
-            VALUES ('Test User', 'test@dvaia.local', ?, 'student', 0)`, [testPassword], (err) => {
+            VALUES ('Test User', 'test@owasp-ai-goat.local', ?, 'student', 0)`, [testPassword], (err) => {
       if (!err) console.log('   ✓ Created test account: Test User / test123');
     });
 

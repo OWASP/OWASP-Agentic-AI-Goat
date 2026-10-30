@@ -3,7 +3,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 const {migrate}=require('../../db/postgres/migrate');
 (async()=>{
  assert.equal(process.env.INVENTORY_NATIVE,'1');assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');const pools=[],checks=[];
- const pool=(label,role)=>{const u=new URL(process.env[`LISTINGS_${label}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_listings_[a-f0-9]+_/);const p=new Pool({connectionString:u.href,max:5,statement_timeout:10000});p.on('error',()=>{});pools.push(p);return p;};
+ const pool=(label,role)=>{const u=new URL(process.env[`LISTINGS_${label}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_listings_[a-f0-9]+_/);const p=new Pool({connectionString:u.href,max:5,statement_timeout:10000});p.on('error',()=>{});pools.push(p);return p;};
  let reset,service,genuine,genuineResult;
  try{
  const identity=pool('IDENTITY','RUNTIME'),im=pool('IDENTITY','MIGRATION'),agents=pool('AGENTS','RUNTIME'),am=pool('AGENTS','MIGRATION'),commerce=pool('COMMERCE','RUNTIME'),cm=pool('COMMERCE','MIGRATION'),review=pool('REVIEW','RUNTIME'),rm=pool('REVIEW','MIGRATION'),leases=pool('IDENTITY','RUNTIME');

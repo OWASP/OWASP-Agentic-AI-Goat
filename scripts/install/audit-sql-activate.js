@@ -15,9 +15,9 @@ async function assertApplicationPrerequisites({root,environment,createPool=optio
  }finally{const result=await Promise.allSettled(pools.map(pool=>pool.end()));const errors=result.filter(row=>row.status==='rejected').map(row=>row.reason);if(errors.length)throw new AggregateError(errors,'Audit readiness pools failed to close');}
 }
 async function activateForSetup({root=path.resolve(__dirname,'../..'),homeDirectory=os.homedir(),environment=process.env,checkPrerequisites=assertApplicationPrerequisites,start=require('../../sidecars/audit-sql-target/main').start,createClient=require('../../server/services/secureshopOwnedAuditHttpClient').createOwnedAuditHttpClient}={}){
- const id=workspaceId(root),file=path.join(homeDirectory,'.dvaia',id,'audit-sql-target.json'),native=process.platform==='win32'?require('../lib/audit-sql-private-state'):null;
+ const id=workspaceId(root),file=path.join(homeDirectory,'.owasp-ai-goat',id,'audit-sql-target.json'),native=process.platform==='win32'?require('../lib/audit-sql-private-state'):null;
  let stat,before;if(native)before=native.read(file);else{stat=await fs.lstat(file);if(!stat.isFile()||stat.isSymbolicLink()||(stat.mode&0o077)||stat.uid!==process.getuid())throw Error('AUDIT_SQL_PRIVATE_CONFIGURATION_REQUIRED');before=await fs.readFile(file,'utf8');}const config=JSON.parse(before);
- if(config.workspace!==id||config.container!==`dvaia-audit-sql-${id}`||config.volume!==`dvaia-audit-sql-${id}-data`||config.database!==`dvaia_audit_control_${id}`||config.provisioned!==true||typeof config.enabled!=='boolean')throw Error('AUDIT_SQL_OWNERSHIP_CONFLICT');
+ if(config.workspace!==id||config.container!==`owasp-ai-goat-audit-sql-${id}`||config.volume!==`owasp-ai-goat-audit-sql-${id}-data`||config.database!==`owasp_ai_goat_audit_control_${id}`||config.provisioned!==true||typeof config.enabled!=='boolean')throw Error('AUDIT_SQL_OWNERSHIP_CONFLICT');
  // Old or explicitly disabled configurations are operator-owned preferences.
  if(config.activationPending!==true)return{activationEnabled:config.enabled&&config.agentEnabled===true,preserved:true};
  await checkPrerequisites({root,environment});const daemon=await start(file,{cleanupOnly:true});

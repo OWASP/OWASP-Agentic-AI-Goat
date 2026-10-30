@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {normalizePrivatePath}=require('../scripts/lib/windows-private-state');
 // Controlled Windows-shaped metadata/helper responses; no OS or sidecar runs.
 function fixture(kind){
- const root='C:\\Source with spaces',home='C:\\Users\\Learner',canonicalRoot=root,id=createHash('sha256').update(canonicalRoot).digest('hex').slice(0,12),directory=path.win32.join(home,'.dvaia',id),filename=path.win32.join(directory,kind==='Pricing'?'pricing-managed.json':'coupons-managed.json'),calls=[];
+ const root='C:\\Source with spaces',home='C:\\Users\\Learner',canonicalRoot=root,id=createHash('sha256').update(canonicalRoot).digest('hex').slice(0,12),directory=path.win32.join(home,'.owasp-ai-goat',id),filename=path.win32.join(directory,kind==='Pricing'?'pricing-managed.json':'coupons-managed.json'),calls=[];
  let present=false,metadataError,readError,parentError,type='file',replaced=false,inspections=0,bytes=Buffer.from(JSON.stringify({version:1,workspaceId:id,enabled:true})+'\n');
  const error=code=>Object.assign(Error('private secret diagnostic'),{code});
  const fileSystem={lstatSync(file){calls.push(['presence',file]);assert.equal(file,filename);if(metadataError)throw error(metadataError);if(!present)throw error('ENOENT');return{isFile:()=>type==='file',isSymbolicLink:()=>type==='symlink',mode:0o777};},openSync(){assert.fail('raw Windows open forbidden');}};

@@ -641,7 +641,7 @@ async function qualifyMailHeaderProduction({ page, frame, reacquireFrame, origin
   const personaSession = { sessionId: actor.sessionId, authorityVersion: actor.authorityVersion };
   assert.equal(persona.role, 'merchant');
   const headers = { authorization: credentials.authorization,
-    'x-dvaia-secureshop-launch': credentials.launch };
+    'x-owasp-ai-goat-secureshop-launch': credentials.launch };
   const ownerBase = systemAuthByLaunch.get(scope.launchId);
   assert(ownerBase, 'Original branded standalone merchant authority required');
   const principal = await auth.establishTenantContext(ownerBase);
@@ -689,7 +689,7 @@ async function qualifyMailHeaderProduction({ page, frame, reacquireFrame, origin
   const peerContext = { scope: peerScope, persona: peerPersona,
     personaSession: { sessionId: peerActor.sessionId, authorityVersion: peerActor.authorityVersion } };
   const peerHeaders = { authorization: `Bearer ${siblingBase.persona.token}`,
-    'x-dvaia-secureshop-launch': siblingBase.bearer };
+    'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer };
   const peerOuter = await scenes.readExisting(peerScope);
   assert.notEqual(peerOuter.targetId, outerTarget.targetId);
   const peerRows = async () => (await pools.REVIEW_RUNTIME.query(
@@ -740,7 +740,7 @@ async function qualifyMailHeaderProduction({ page, frame, reacquireFrame, origin
   const readSavedChat = async ({ request, body, response }) => {
     phase('saved-original-chat');
     const requestHeaders = request.headers();
-    assert.equal(requestHeaders['x-dvaia-secureshop-launch'], credentials.launch);
+    assert.equal(requestHeaders['x-owasp-ai-goat-secureshop-launch'], credentials.launch);
     const authActor = await composition.personaAuth.authenticateBoundToken({ scope,
       token: requestHeaders.authorization.slice(7) });
     assert.equal(authActor.user.id, persona.id); assert.equal(authActor.sessionId, personaSession.sessionId);
@@ -923,7 +923,7 @@ async function qualifyMailHeaderProduction({ page, frame, reacquireFrame, origin
       assert.equal((await http(path, headers)).status, 401); status.sessionDenied = true;
       const renewed = await bootstrap(ownerBase);
       assert.deepEqual(createLaunchScope(await composition.launches.resolveCapability(renewed.bearer)), scope);
-      const renewedHeaders = { authorization: `Bearer ${renewed.persona.token}`, 'x-dvaia-secureshop-launch': renewed.bearer };
+      const renewedHeaders = { authorization: `Bearer ${renewed.persona.token}`, 'x-owasp-ai-goat-secureshop-launch': renewed.bearer };
       const immediatePositive = await http('/email/readiness', renewedHeaders);
       assert.equal(immediatePositive.status, 200); assert.equal(immediatePositive.value.ready, true);
       const immutable = async () => ({

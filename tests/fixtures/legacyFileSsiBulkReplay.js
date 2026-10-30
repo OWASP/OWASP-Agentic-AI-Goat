@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{randomUUID}=require('node:crypto');
 async function qualifyLegacyFileSsiBulkReplay({pool,migration,finflow,identity,owner,owners,progress,resetComposition,runs,request}){
  // Qualify the registered migration directly without writing to the source checkout.
- assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
  await require('../../db/postgres/migrate').migrate(migration,path.resolve('db/postgres/identity-migrations'));
  assert.deepEqual(await require('../../db/postgres/migrate').migrate(migration,path.resolve('db/postgres/identity-migrations')),[]);
  const admin=await owner();await migration.query("UPDATE identity.users SET role='admin',admin_level=2 WHERE id=$1",[admin.user.id]);await identity.grantPermission({userId:admin.user.id,permission:'manage_progress',grantedBy:admin.user.id});

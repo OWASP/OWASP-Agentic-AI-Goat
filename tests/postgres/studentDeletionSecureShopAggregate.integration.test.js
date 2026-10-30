@@ -24,15 +24,15 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && KEYS.every(key => pr
 function url(key) {
   const value = new URL(process.env[PREFIX + key]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 
 test('student deletion recovers real bound conversations, reviews, and instance progress without reactivation', {
   skip: !enabled, timeout: 60000,
 }, async t => {
-  const workspace = path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-student-deletion-aggregate-/);
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-student-deletion-aggregate-/);
   const identityMigration = new Pool({ connectionString: url('IDENTITY_MIGRATION_URL'), max: 2 });
   const identity = new Pool({ connectionString: url('IDENTITY_RUNTIME_URL'), max: 10 });
   const leases = new Pool({ connectionString: url('IDENTITY_RUNTIME_URL'), max: 3 });

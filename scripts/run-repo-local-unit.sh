@@ -20,7 +20,7 @@ if [[ ! -x "$node_bin" ]]; then
 fi
 umask 077
 unit_runtime="$(mktemp -d "$repo_root/tasks/tmp/focused-unit.XXXXXXXX")"
-export DVAIA_REPO_LOCAL_UNIT_RUNTIME="$unit_runtime"
+export OWASP_AI_GOAT_REPO_LOCAL_UNIT_RUNTIME="$unit_runtime"
 export TMPDIR="$unit_runtime"
 export XDG_CACHE_HOME="$unit_runtime/cache"
 export npm_config_cache="$unit_runtime/npm-cache"

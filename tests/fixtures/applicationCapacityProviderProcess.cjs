@@ -1,6 +1,6 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http');const {createPolicy}=require('./applicationCapacityProvider');
-const root=fs.realpathSync(process.env.DVAIA_CAPACITY_ROOT);if(root!==process.env.DVAIA_CAPACITY_ROOT)throw Error('Owned capacity root required');
+const root=fs.realpathSync(process.env.OWASP_AI_GOAT_CAPACITY_ROOT);if(root!==process.env.OWASP_AI_GOAT_CAPACITY_ROOT)throw Error('Owned capacity root required');
 const policy=createPolicy(),held=new Set();let hold=false,holdTimer,active=0,peak=0,requests=0,closed=false,holdId=0,expired=false;
 function release(){hold=false;clearTimeout(holdTimer);for(const go of held)go();held.clear();}
 const server=http.createServer(async(req,res)=>{try{

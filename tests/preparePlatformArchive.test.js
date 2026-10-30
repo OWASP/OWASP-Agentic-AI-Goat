@@ -8,7 +8,7 @@ const { preparePlatformArchive } = require('../db/postgres/prepare-platform-arch
 const { planPlatformArchive, argumentsFor } = require('../db/postgres/plan-platform-archive');
 
 test('archive preparation exposes private inputs separately and blocks unmapped source apply', async () => {
-  const archive = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-prepare-archive-'));
+  const archive = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-prepare-archive-'));
   const write = async (file, bytes) => {
     await fs.writeFile(path.join(archive, file), bytes);
     return { bytes: Buffer.byteLength(bytes), sha256: crypto.createHash('sha256').update(bytes).digest('hex') };
@@ -23,7 +23,7 @@ test('archive preparation exposes private inputs separately and blocks unmapped 
       ...await write('custom.jsonl', JSON.stringify([{ type: 'text', value: 'private archived payload' }]) + '\n') });
     const schemaFile = 'schema.json';
     const schema = await write(schemaFile, JSON.stringify(tables.map(table => ({ type: 'table', name: table.name }))));
-    await write('manifest.json', JSON.stringify({ version: 1, format: 'dvaia-sqlite-archive-v1', complete: true,
+    await write('manifest.json', JSON.stringify({ version: 1, format: 'owasp-ai-goat-sqlite-archive-v1', complete: true,
       files: [{ name: 'users_auth.db', sourceSha256: 'b'.repeat(64), schemaFile, schema, tables }] }));
     const result = await preparePlatformArchive({ archive, identityMap: {} });
     assert.equal(result.report.readyToApply, false);

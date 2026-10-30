@@ -35,7 +35,7 @@ function qualifiedUrl(value, role) {
   assert.equal(url.password, '');
   assert.equal(decodeURIComponent(url.username), role);
   const database = decodeURIComponent(url.pathname.slice(1));
-  assert.match(database, /^dvaia_test_[a-z0-9_]+$/);
+  assert.match(database, /^owasp_ai_goat_test_[a-z0-9_]+$/);
   assert.equal(url.search, '');
   assert.equal(url.hash, '');
   return url.href;
@@ -590,7 +590,7 @@ test('identity qualification staging is bounded and fail-closed without a databa
     () => poolBudget({}, 'PG_RUNTIME_DATABASE_URL', 'identity-live-tail-runtime'),
     /Unknown PostgreSQL pool purpose/
   );
-  const temp = await fsp.mkdtemp(path.join(fs.realpathSync(os.tmpdir()), 'dvaia-identity-fixture-'));
+  const temp = await fsp.mkdtemp(path.join(fs.realpathSync(os.tmpdir()), 'owasp-ai-goat-identity-fixture-'));
   try {
     await fsp.writeFile(path.join(temp, '0001_valid.sql'), 'SELECT 1;');
     await fsp.writeFile(path.join(temp, 'bad.sql'), 'SELECT 2;');
@@ -637,8 +637,8 @@ test('identity qualification staging is bounded and fail-closed without a databa
   const prior = process.env.PG_TEST_DISPOSABLE;
   process.env.PG_TEST_DISPOSABLE = 'yes';
   try {
-    assert.throws(() => qualifiedUrl('postgresql://u@example.test/dvaia_test_bad', 'dvaia_identity_migration'), /127\.0\.0\.1/);
-    assert.throws(() => qualifiedUrl('postgresql://dvaia_identity_migration@127.0.0.1:5432/application', 'dvaia_identity_migration'), /dvaia_test_/);
+    assert.throws(() => qualifiedUrl('postgresql://u@example.test/owasp_ai_goat_test_bad', 'dvaia_identity_migration'), /127\.0\.0\.1/);
+    assert.throws(() => qualifiedUrl('postgresql://dvaia_identity_migration@127.0.0.1:5432/application', 'dvaia_identity_migration'), /owasp_ai_goat_test_/);
   } finally {
     if (prior === undefined) delete process.env.PG_TEST_DISPOSABLE;else process.env.PG_TEST_DISPOSABLE = prior;
   }
@@ -717,8 +717,8 @@ async function assertAuditCheckpointStorage(runtime, migration, noOp) {
 test('identity live tail qualifies exact 0058-to-current tail transactionally', {
   timeout: 120000
 }, async t => {
-  const urls = pair('DVAIA_IDENTITY_QUALIFICATION');
-  if (!urls) return t.skip('DVAIA_IDENTITY_QUALIFICATION_MIGRATION_URL/RUNTIME_URL are not set; no disposable database action performed');
+  const urls = pair('OWASP_AI_GOAT_IDENTITY_QUALIFICATION');
+  if (!urls) return t.skip('OWASP_AI_GOAT_IDENTITY_QUALIFICATION_MIGRATION_URL/RUNTIME_URL are not set; no disposable database action performed');
   const migration = createPool({
     PG_MIGRATION_DATABASE_URL: urls.migration
   }, 'PG_MIGRATION_DATABASE_URL', MIGRATION_POOL_OPTIONS);
@@ -874,8 +874,8 @@ test('identity live tail qualifies exact 0058-to-current tail transactionally', 
 test('identity live tail fresh exact ledger and replay', {
   timeout: 120000
 }, async t => {
-  const urls = pair('DVAIA_IDENTITY_FRESH');
-  if (!urls) return t.skip('DVAIA_IDENTITY_FRESH_MIGRATION_URL/RUNTIME_URL are not set; no disposable database action performed');
+  const urls = pair('OWASP_AI_GOAT_IDENTITY_FRESH');
+  if (!urls) return t.skip('OWASP_AI_GOAT_IDENTITY_FRESH_MIGRATION_URL/RUNTIME_URL are not set; no disposable database action performed');
   const migration = createPool({
     PG_MIGRATION_DATABASE_URL: urls.migration
   }, 'PG_MIGRATION_DATABASE_URL', MIGRATION_POOL_OPTIONS);

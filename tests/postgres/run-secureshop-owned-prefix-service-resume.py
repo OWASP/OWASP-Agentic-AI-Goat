@@ -4,13 +4,13 @@ import argparse, fcntl, hashlib, json, os, pathlib, signal, subprocess, tempfile
 from datetime import datetime, timezone
 
 ROOT=pathlib.Path(__file__).resolve().parents[2]; OWNER='/root/workshop_authenticity'
-PRIOR=pathlib.Path('/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-secureshop-owned-prefix-live-60fsfayr')
+PRIOR=pathlib.Path('/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-secureshop-owned-prefix-live-60fsfayr')
 EXPECTED_PRIVATE='f424c99efdcc3985588c841070dbeb6a2ca0c76d1776776a7fd9a3cddcadff2e'
 parser=argparse.ArgumentParser();parser.add_argument('--grant-file',required=True);parser.add_argument('--grant-id',required=True)
 parser.add_argument('--watcher-pid',type=int,required=True);parser.add_argument('--backend-pid',type=int,required=True);args=parser.parse_args()
 if (args.watcher_pid,args.backend_pid)!=(60889,93105):raise RuntimeError('exact held process pair is required')
 base={k:os.environ[k] for k in ('PATH','HOME','TMPDIR') if k in os.environ};os.umask(0o077)
-evidence=pathlib.Path(tempfile.mkdtemp(prefix='dvaia-secureshop-prefix-resume-'));ownership=evidence/'ownership.json'
+evidence=pathlib.Path(tempfile.mkdtemp(prefix='owasp-ai-goat-secureshop-prefix-resume-'));ownership=evidence/'ownership.json'
 state={'owner':OWNER,'grantId':args.grant_id,'launcherPid':os.getpid(),'ownerHandle':None,'evidence':str(evidence),'runStatus':'preparing','watcherPid':args.watcher_pid,'backendPid':args.backend_pid}
 def write():ownership.write_text(json.dumps(state,indent=2)+'\n');os.chmod(ownership,0o600)
 def ps(pid,field):return subprocess.run(['ps','-p',str(pid),'-o',field+'='],env=base,capture_output=True,text=True,check=True).stdout.strip()
@@ -35,7 +35,7 @@ def row_state(url,store,prior):
   if current!=value:changed.append(key)
  return changed
 def cache_from_dump(dump):
- with tempfile.TemporaryDirectory(prefix='dvaia-cache-diff-') as directory:
+ with tempfile.TemporaryDirectory(prefix='owasp-ai-goat-cache-diff-') as directory:
   target=pathlib.Path(directory)/'data.sql';subprocess.run(['pg_restore','--data-only','--table=mcp_tool_cache','--file',str(target),str(dump)],env=base,check=True)
   lines=target.read_text().splitlines();start=next(i for i,line in enumerate(lines) if line.startswith('COPY secureshop_agents.mcp_tool_cache '));head=lines[start]
   columns=head[head.index('(')+1:head.index(')')].split(', ');rows=[]

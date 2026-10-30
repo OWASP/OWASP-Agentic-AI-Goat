@@ -32,7 +32,7 @@ test('protected-history launcher is an inert exact one-use root-owned draft gate
 });
 
 test('protected-history launcher uses one fresh identity store and only its prefixed URLs', () => {
-  assert.match(source, /dvaia_test_legacy_ai_history_/);
+  assert.match(source, /owasp_ai_goat_test_legacy_ai_history_/);
   assert.match(source, /CREATE ROLE \{MIGRATION_ROLE\} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS/);
   assert.match(source, /CREATE ROLE \{RUNTIME_ROLE\} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS/);
   assert.match(source, /CREATE DATABASE \{database\} OWNER \{MIGRATION_ROLE\}/);
@@ -47,7 +47,7 @@ test('protected-history launcher pins runtime, image, immutable closure and exac
   assert.match(source, /POSTGRES_IMAGE_ID = 'sha256:[0-9a-f]{64}'/);
   assert.match(source, /DOCKER_DAEMON_ID = '2c9da9a7-1f8c-490b-af98-87bbf6bf83db'/);
   assert.match(source, /daemon_info\.get\('ID'\) != DOCKER_DAEMON_ID/);
-  assert.match(source, /daemon_info\.get\('Name'\) != 'colima-dvaia-pg-verify'/);
+  assert.match(source, /daemon_info\.get\('Name'\) != 'colima-owasp-ai-goat-pg-verify'/);
   assert.match(source, /--pull', 'never'/);
   assert.match(source, /'pg_isready', '-h', '127\.0\.0\.1'/);
   assert.match(source, /package_inventory\(package\)/);
@@ -97,7 +97,7 @@ test('launcher helper contract rejects malformed nonce and inexact Docker absenc
 import importlib.util,sys
 spec=importlib.util.spec_from_file_location('candidate',sys.argv[1])
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-assert m.database_name('012345abcdef')=='dvaia_test_legacy_ai_history_012345abcdef'
+assert m.database_name('012345abcdef')=='owasp_ai_goat_test_legacy_ai_history_012345abcdef'
 for value in ('ABCDEF012345','short','012345abcdef0'):
  try:m.database_name(value)
  except ValueError:pass
@@ -111,7 +111,7 @@ assert not m.docker_missing_exact_target('permission denied','exact-name')
 });
 
 test('immutable package inventory rejects writable source and nondependency symlinks', t => {
-  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-history-launcher-'));
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-history-launcher-'));
   t.after(() => fs.rmSync(temporary, { recursive: true, force: true }));
   const script = String.raw`
 import importlib.util,os,sys

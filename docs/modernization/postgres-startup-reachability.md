@@ -9,8 +9,8 @@ The originally identified startup paths below are now resolved in PostgreSQL sel
 | Selected entry | Reachable legacy operation | Required follow-up |
 | --- | --- | --- |
 | index → `sqliteTuning.installSqliteTuning()` | Imports and patches sqlite3; does not itself open a DB | Skip driver tuning in PostgreSQL mode |
-| index → `retireLegacyWebSocketConfigFile(dvaia.db)` | Opens an existing working SQLite file read/write and updates historical websocket configuration even in PostgreSQL mode | Gate legacy file maintenance by selected engine; preserve PostgreSQL retirement independently |
-| mounted `/api/ai`, `/api/ecommerce`, vulnerability routes → `database/init.js` | Unconditional SQLite `dvaia.db` construction and initialization | Resolved: native isolated legacy_challenge repository preserves SQL/HTML teaching semantics |
+| index → `retireLegacyWebSocketConfigFile(owasp-ai-goat.db)` | Opens an existing working SQLite file read/write and updates historical websocket configuration even in PostgreSQL mode | Gate legacy file maintenance by selected engine; preserve PostgreSQL retirement independently |
+| mounted `/api/ai`, `/api/ecommerce`, vulnerability routes → `database/init.js` | Unconditional SQLite `owasp-ai-goat.db` construction and initialization | Resolved: native isolated legacy_challenge repository preserves SQL/HTML teaching semantics |
 | AI route → `middleware/workshopMode.js` | Same unconditional init import and callback query for vulnerability settings | Resolved: native named legacy_challenge configuration access |
 | auth/admin/solutions/hints and middleware → `database/authDb.js` | Independent review found no reachable import under full PostgreSQL selection; these modules branch before SQLite bodies | Resolved inventory correction. Startup now makes PLATFORM postgres imply WORKSHOP postgres, including CSRF sandbox selection |
 | index → `mysqlSensitiveInfoDb.initialize()`; mounted `/api/sensitive-info/mysql` | Actual mysql2 pool and MySQL query methods | Resolved: isolated sensitive_lookup repository with explicit PostgreSQL dialect; compatibility endpoints retained |

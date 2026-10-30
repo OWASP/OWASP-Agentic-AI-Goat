@@ -255,6 +255,6 @@ def serve(mode,directory,uid,deadline):
 `;
 function guestProgram({runId,uid,mode,deadlineFromArgv}){
  if(!/^[a-f0-9]{32}$/.test(runId)||!Number.isSafeInteger(uid)||uid<=0||!['connector','adapter'].includes(mode)||deadlineFromArgv!==true)throw new Error('EGRESS_SPEC_INVALID');
- return program+`\nserve(${JSON.stringify(mode)},${JSON.stringify('/var/tmp/dvaia-v23-relay-'+runId)},${uid},deadline_from_argv(sys.argv))\n`;
+ return program+`\nserve(${JSON.stringify(mode)},${JSON.stringify('/var/tmp/owasp-ai-goat-v23-relay-'+runId)},${uid},deadline_from_argv(sys.argv))\n`;
 }
 module.exports={HOSTS,LIMITS,guestProgram,_internals:{program}};

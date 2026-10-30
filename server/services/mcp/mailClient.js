@@ -13,7 +13,7 @@ const crypto = require('node:crypto');
 const nodemailer = require('nodemailer');
 const { MAILPIT_SMTP_HOST, MAILPIT_SMTP_PORT, MAILPIT_API_URL, BACKEND_TIMEOUT_MS } = require('./config');
 const MAX_EXFIL_MAIL_RECEIPTS = 20;
-const OWNED_MESSAGE_ID = /^mcp-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}@dvaia\.local$/i;
+const OWNED_MESSAGE_ID = /^mcp-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}@owasp-ai-goat\.local$/i;
 const MAILPIT_DATABASE_ID = /^[A-Za-z0-9_-]{1,128}$/;
 const READBACK_VERSION = 'mcp-mailpit-readback.v1';
 const READBACK_NEWLINE_POLICY = 'crlf-to-lf-plus-one-terminal-newline.v1';
@@ -93,7 +93,7 @@ async function readiness() {
  */
 async function sendOwnedReport({ to, from = 'mcp-ops@acme-corp.internal', subject = 'Operations report', body = '', messageId }) {
   const assigned = normalizeSmtpMessageId(messageId);
-  if (!/^mcp-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}@dvaia\.local$/i.test(assigned)) {
+  if (!/^mcp-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}@owasp-ai-goat\.local$/i.test(assigned)) {
     throw new TypeError('Canonical server-assigned MCP Message-ID is required');
   }
   try {

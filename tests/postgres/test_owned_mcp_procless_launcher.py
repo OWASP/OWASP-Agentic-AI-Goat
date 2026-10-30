@@ -9,7 +9,7 @@ class Controls(unittest.TestCase):
    def command(argv):
     calls.append(argv);index=len(calls)-1
     if index==failure:return subprocess.CompletedProcess(argv,1,'','Cannot connect to daemon')
-    if index==collision:return subprocess.CompletedProcess(argv,0,json.dumps([{'Id':'a'*64,'Name':'/container','Image':'sha256:foreign','Config':{'Labels':{'dvaia.owner':'other'}}}]),'')
+    if index==collision:return subprocess.CompletedProcess(argv,0,json.dumps([{'Id':'a'*64,'Name':'/container','Image':'sha256:foreign','Config':{'Labels':{'owasp-ai-goat.owner':'other'}}}]),'')
     kind=['image','network','container'][index]
     return subprocess.CompletedProcess(argv,1,'','Error: No such '+kind+': '+kind)
    if failure is None and collision is None:M.admit_absent_resources(command,'image','network','container','owner');self.assertEqual(calls,expected)

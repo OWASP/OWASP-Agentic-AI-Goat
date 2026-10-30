@@ -18,7 +18,7 @@ function ownedUrls(env=process.env) {
   const urls={};let nonce,port;
   for(const [store,name]of Object.entries(STORES))for(const role of ['RUNTIME','MIGRATION']){
     const url=new URL(env[`PG_EXTERNAL_MAIL_${store}_${role}_URL`]);
-    const match=/^\/dvaia_test_extmail_auth_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
+    const match=/^\/owasp_ai_goat_test_extmail_auth_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
     assert.equal(url.protocol,'postgresql:');assert.equal(url.hostname,'127.0.0.1');
     assert.equal(url.username,`dvaia_${name}_${role.toLowerCase()}`);
     assert.equal(url.password,'');assert.equal(url.search,'');assert.equal(url.hash,'');
@@ -91,7 +91,7 @@ function assertEvidence(value) {
 }
 const ENABLED=process.env.PG_EXTERNAL_MAIL_AUTHORITY_NATIVE==='yes'&&process.env.PG_TEST_DISPOSABLE==='yes';
 if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},async t=>{
-  assert.equal(process.cwd(),ROOT);assert.equal(process.env.DVAIA_CURRENT_MAIN_WORKSPACE,ROOT);
+  assert.equal(process.cwd(),ROOT);assert.equal(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,ROOT);
   const evidencePath=process.env.PG_EXTERNAL_MAIL_AUTHORITY_EVIDENCE_PATH;
   assert.ok(typeof evidencePath==='string'&&evidencePath.startsWith(`${ROOT}/tasks/qualification/`));
   require('../fixtures/secureshopNativeEvidencePath').assertNativeEvidencePath(evidencePath,
@@ -165,8 +165,8 @@ if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},asy
     const suffix=randomUUID().slice(0,8),password='controlled-external-test';
     const boot=async active=>{
       const value=await bootstrap(active.context),scope=await composition.launches.resolveCapability(value.bearer);
-      const headers={cookie:`dvaia_shop_session=${active.token}`,authorization:`Bearer ${value.persona.token}`,
-        'x-dvaia-secureshop-launch':value.bearer};
+      const headers={cookie:`owasp_ai_goat_shop_session=${active.token}`,authorization:`Bearer ${value.persona.token}`,
+        'x-owasp-ai-goat-secureshop-launch':value.bearer};
       await request('/products?limit=1',{headers});
       return{active,boot:value,scope,headers,cookie:{cookie:headers.cookie}};
     };
@@ -194,7 +194,7 @@ if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},asy
     };
     stage='parent-only';const cancelled=await prepare(owner);
     await request(`${base}/confirm`,{headers:{authorization:owner.headers.authorization,
-      'x-dvaia-secureshop-launch':owner.boot.bearer},method:'POST',expected:401,
+      'x-owasp-ai-goat-secureshop-launch':owner.boot.bearer},method:'POST',expected:401,
       body:{version:1,operationId:cancelled.operationId,requestSha256:cancelled.requestSha256}});
     await read(foreign,cancelled,404);assert.equal(evidence.controlledSmtpCalls,0);evidence.parentOnly=true;
     assert.equal((await request(`${base}/cancel`,{headers:owner.headers,method:'POST',
@@ -303,7 +303,7 @@ if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},asy
     };
     evidence.quotaBeforeReset=await retainedQuota();
     const admin=await auth.login({username:'student_admin',password:'student123'});
-    const adminHeaders={cookie:`dvaia_shop_session=${admin.token}`};
+    const adminHeaders={cookie:`owasp_ai_goat_shop_session=${admin.token}`};
     const adminBoot=await request('/auth/bootstrap',{headers:adminHeaders,method:'POST',body:{}});
     const ready=await request('/auth/reset-readiness',{headers:adminHeaders});
     assert.equal(ready.available,true);assert.equal(ready.launchId,adminBoot.launch.launchId);

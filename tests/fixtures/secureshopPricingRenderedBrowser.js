@@ -727,7 +727,7 @@ async function qualifyV54PricingBrowser({origin,username,password,root,productId
     requests.push({method:request.method(),path:parsed.pathname});
     if(parsed.pathname==='/api/secureshop/merchant/pricing/run'&&request.method()==='POST'
      ){posts.push(JSON.parse(request.postData()));if(!originalHeaders)originalHeaders={authorization:request.headers().authorization,
-      'x-dvaia-secureshop-launch':request.headers()['x-dvaia-secureshop-launch']};}
+      'x-owasp-ai-goat-secureshop-launch':request.headers()['x-owasp-ai-goat-secureshop-launch']};}
    }});
   assert.equal((await page.goto(origin+'/secureshop/login?next=%2Fsecureshop%2Fmerchant%2Fpricing',
    {waitUntil:'domcontentloaded'})).status(),200);
@@ -769,7 +769,7 @@ async function qualifyV54PricingBrowser({origin,username,password,root,productId
   };
   const vulnerable=await run();
   assert.match(originalHeaders?.authorization||'',/^Bearer [A-Za-z0-9._-]+$/);
-  assert.ok(typeof originalHeaders['x-dvaia-secureshop-launch']==='string');
+  assert.ok(typeof originalHeaders['x-owasp-ai-goat-secureshop-launch']==='string');
   assert.equal(vulnerable.status,200,'genuine vulnerable Pricing run must finish');
   assert.equal(vulnerable.body.state,'completed');assert.equal(vulnerable.body.ok,true);
   const operationId=vulnerable.body.operationId;
@@ -863,7 +863,7 @@ async function assertV34ManualRenderedReceipt({visible,lookup,status,lookupReque
  assert.deepEqual([...url.searchParams.keys()].sort(),[...Object.keys(descriptor),'recoveryScopeKey'].sort());
  for(const[key,value]of Object.entries(descriptor))assert.equal(url.searchParams.get(key),value);
  const recoveryScopeKey=url.searchParams.get('recoveryScopeKey');assert.match(recoveryScopeKey,/^[a-f0-9]{64}$/);
- for(const key of ['authorization','x-dvaia-secureshop-launch'])
+ for(const key of ['authorization','x-owasp-ai-goat-secureshop-launch'])
   assert.equal(typeof posted.headers()[key]==='string'&&lookupRequest.headers()[key]===posted.headers()[key],true,'manual readback authority must match the physical POST');
  const {verifyProductManualLookup}=await import('../../client/src/pages/secureshop/utils/productManualPendingReference.mjs');
  const checked=verifyProductManualLookup(descriptor,lookup,{operationId:postBody.operationId,recoveryScopeKey});
@@ -908,8 +908,8 @@ async function uploadV34OwnedManual({page,frame,filePath,productId,source,readMa
  await frame.waitForFunction(node=>{const rect=node.getBoundingClientRect(),hit=document.elementFromPoint(rect.left+rect.width/2,rect.top+rect.height/2);return !node.disabled&&rect.width>0&&rect.height>0&&(hit===node||node.contains(hit));},{timeout:20000},button);
  await button.click();const posted=await requestPromise,httpResponse=await responsePromise;
  assert.strictEqual(httpResponse.request(),posted,'manual acknowledgement must belong to the observed physical POST');
- const headers=posted.headers(),request={method:posted.method(),path:new URL(posted.url()).pathname,headers:{authorization:headers.authorization,'x-dvaia-secureshop-launch':headers['x-dvaia-secureshop-launch']}};
- assert.match(request.headers.authorization||'',/^Bearer [A-Za-z0-9._-]+$/);assert.match(request.headers['x-dvaia-secureshop-launch']||'',/^[A-Za-z0-9_-]{43}$/);
+ const headers=posted.headers(),request={method:posted.method(),path:new URL(posted.url()).pathname,headers:{authorization:headers.authorization,'x-owasp-ai-goat-secureshop-launch':headers['x-owasp-ai-goat-secureshop-launch']}};
+ assert.match(request.headers.authorization||'',/^Bearer [A-Za-z0-9._-]+$/);assert.match(request.headers['x-owasp-ai-goat-secureshop-launch']||'',/^[A-Za-z0-9_-]{43}$/);
  const response={status:httpResponse.status(),body:await httpResponse.json()};assertV34ManualUploadResponse({...response,source,productId,controlled});
  const savedResponse=await savedPromise,lookup=await savedResponse.json();
  const rendered=await frame.waitForFunction(operationId=>{const text=document.querySelector('.ss-uploadzone pre')?.textContent;if(!text)return false;try{const body=JSON.parse(text);return body.operationId===operationId?body:false;}catch{return false;}},{timeout:30000},response.body.operationId);
@@ -1001,7 +1001,7 @@ function readV34RetainedAdmission({workspace,descriptorPath,evidence,env=process
  for(const dir of [root,path.join(root,'cohort'),g.directory,path.join(g.directory,'tmp')])privateV34Path(dir,{directory:true});
  assert.equal(g.descriptorPath,path.join(root,'cohort/private-executor.json'));assert.equal(g.descriptorPath,descriptorPath);
  assert.equal(g.evidencePath,path.join(g.directory,'merchant-pricing-v34-manual-experiment-browser.json'));assert.equal(g.evidencePath,evidence);
- assert.equal(g.profilePath,path.join(g.directory,'tmp/dvaia-pricing-chat-owned'));
+ assert.equal(g.profilePath,path.join(g.directory,'tmp/owasp-ai-goat-pricing-chat-owned'));
  for(const file of [evidence,g.profilePath,path.join(g.directory,'browser-birth.json'),path.join(g.directory,'browser-ack.json')])assert.equal(v34Exists(file),false);
  assert.equal(g.browser,env.PUPPETEER_EXECUTABLE_PATH);assert.equal(fs.realpathSync(g.browser),g.browser);
  assert.equal(require('node:crypto').createHash('sha256').update(readV34Private(descriptorPath)).digest('hex')===g.descriptorSha256,true,'V34 descriptor digest mismatch');

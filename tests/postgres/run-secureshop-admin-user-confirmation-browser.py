@@ -27,7 +27,7 @@ OWNERSHIP = 'tests/postgres/run-secureshop-audit-collection-browser.py'
 RECORD = 'admin-user-confirmation-browser-birth.json'
 ACK = 'admin-user-confirmation-browser-ack.json'
 KIND = 'admin_user_confirmation_browser'
-PROFILE = 'dvaia-role-admin-user-'
+PROFILE = 'owasp-ai-goat-role-admin-user-'
 PREFIX = 'SECURESHOP_ADMIN_USER_CONFIRMATION_'
 EVIDENCE_ENV = 'SECURESHOP_ADMIN_USER_CHAT_BROWSER_EVIDENCE_PATH'
 NATIVE_ENV = 'SECURESHOP_ADMIN_USER_CHAT_BROWSER_NATIVE'
@@ -113,7 +113,7 @@ def owned_environment(environment, parsed, before):
             or env.get('LAB_MODE') != 'vuln' \
             or evidence.name != RECEIPT or run.parent != ROOT / 'tasks/qualification' \
             or not run.name.startswith('run-') or env.get('TMPDIR') != str(run / 'runtime/tmp') \
-            or env.get('DVAIA_CURRENT_MAIN_WORKSPACE') != str(ROOT) \
+            or env.get('OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE') != str(ROOT) \
             or env.get('OLLAMA_BASE_URL') != 'http://127.0.0.1:11434' \
             or env.get('OLLAMA_MODEL') != 'llama3.1:8b' \
             or env.get('PUPPETEER_EXECUTABLE_PATH') != parsed.browser \

@@ -97,7 +97,7 @@ async function windowsInstall({plan,rendered,renderedSha256,session,root,command
     let guestArgs=args.slice(2);
     // Bundle paths change with reviewed source bytes. Compose resources belong
     // to the admitted workspace, so never derive their project from that path.
-    if(guestArgs[0]==='compose')guestArgs=['compose','--project-name','dvaia-'+plan.sessionBinding.workspaceId,'--env-file',envPath,...guestArgs.slice(1)];
+    if(guestArgs[0]==='compose')guestArgs=['compose','--project-name','owasp-ai-goat-'+plan.sessionBinding.workspaceId,'--env-file',envPath,...guestArgs.slice(1)];
     const stdout=await session.executeDocker(guestArgs,{scope:'provision',bundlePath,timeoutMs});
     return{exitCode:0,stdout:boundedText(stdout)};
   };
@@ -189,7 +189,7 @@ function boundRemoteCommand(command, expectedDaemonId) {
 async function darwinInstall({ plan, renderedFile, renderedSha256, run, nonce, expectedDaemonId }) {
   const suffix = `${renderedSha256.slice(0, 12)}-${nonce}`;
   if (!/^[a-f0-9]{12}-[a-f0-9]{12}$/.test(suffix)) throw failure('MCP_INSTALL_REMOTE_COMMAND_INVALID', 'profile-plan');
-  const remoteDir = `/tmp/dvaia-mcp-owned-${suffix}`;
+  const remoteDir = `/tmp/owasp-ai-goat-mcp-owned-${suffix}`;
   const remoteProfile = `${remoteDir}/profile`;
   const ssh = ['-F', plan.sshConfig, plan.sshHost];
   const originalRun=run;
@@ -258,7 +258,7 @@ async function darwinInstall({ plan, renderedFile, renderedSha256, run, nonce, e
 async function installProfileOnly({ plan, run, expectedDaemonId, nonce = crypto.randomBytes(6).toString('hex') }) {
   if (!['linux', 'darwin'].includes(plan?.platform) || typeof run !== 'function') throw failure('MCP_INSTALL_PROFILE_PLAN_INVALID', 'profile-plan');
   const rendered = renderMcpSandboxAppArmor(await readTemplate(plan.template), plan.profile || PROFILE);
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mcp-owned-profile-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mcp-owned-profile-'));
   const renderedFile = path.join(directory, 'profile');
   try {
     const handle = await fs.open(renderedFile, 'wx', 0o600);
@@ -277,7 +277,7 @@ async function provisionOwnedLocal({ platform = process.platform, root = path.re
   const dockerHost = assertDockerAuthority(commandEnv, plan);
   const template = await readTemplate(plan.template);
   const rendered = renderMcpSandboxAppArmor(template, PROFILE);
-  const directory = platform==='win32'?null:await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mcp-owned-profile-'));
+  const directory = platform==='win32'?null:await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mcp-owned-profile-'));
   const renderedFile = directory?path.join(directory, 'profile'):null;
   try {
     const renderedSha256 = digest(rendered);
@@ -394,7 +394,7 @@ async function startExisting({ root = path.resolve(__dirname, '../..'), home = o
     if (profile?.name !== PROFILE || profile.sha256 !== profileSha256 || profile.destination !== plan.destination
       || profile.bindingSha256 !== plan.sessionBinding.bindingSha256) throw Error();
 
-    const project = 'dvaia-' + plan.sessionBinding.workspaceId;
+    const project = 'owasp-ai-goat-' + plan.sessionBinding.workspaceId;
     const service = 'mcp-owned-sandbox';
     const containerName = project + '-' + service + '-1';
     const imageName = 'mcp-owned-sandbox-runner:dev';

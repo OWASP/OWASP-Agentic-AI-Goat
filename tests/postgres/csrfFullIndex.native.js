@@ -11,18 +11,18 @@ const key='csrf_workshop';
  let backend,transport;const result={status:'preparing',mode,scope:indirect?'Actual fixed six-case CSRF indirect HTTP chain; no rendered browser proof':postChain?'Actual POST p1/p2/p3 with blocked form and fetch; no seeded prerequisites':diagnostic?'Controlled full-index internal diagnostic; no genuine model credit':chain?'Actual enabled GET g1/g2/g3 chain; no seeded prerequisites':actual?'Current full-index g2 only; g1 disabled by instructor configuration':'Controlled twelve-row display only; zero actor/Judge calls',controlledDisplayProjection:!actual,controlledDiagnostic:diagnostic};
  const save=()=>fs.writeFileSync(process.env.OWNED_LISTING_RESULT,JSON.stringify(result,null,2),{mode:0o600});save();
  try{
-  assert.equal(source,fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');fs.mkdirSync(home,{mode:0o700});
+  assert.equal(source,fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');fs.mkdirSync(home,{mode:0o700});
   const reserve=http.createServer();reserve.listen(0,'127.0.0.1');await once(reserve,'listening');const port=reserve.address().port;await new Promise(r=>reserve.close(r));const origin='http://127.0.0.1:'+port;
   const env=require('../fixtures/dpiFullAppEnvironment').createDpiFullAppEnvironment({home,root:runtimeRoot,port,origin});
   if(profile.selected70b){
    assert.equal(process.env.CSRF_HTML_SUMMARY_TIMEOUT_MS,'55000','Closed CSRF summary stage limit required');
-   env.DVAIA_ISOLATED_TEST_WORKSPACE=source;
+   env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=source;
    env.CSRF_HTML_SUMMARY_TIMEOUT_MS='55000';
   }
   if(indirect){env.XENOVA_CACHE=path.join(source,'tests/fixtures/fullBackendModelCache');env.TRANSFORMERS_CACHE=env.XENOVA_CACHE;}
-  for(const row of require('../../db/postgres/initialize-application').requiredStoreManifest)for(const name of[row.runtimeVariable,row.migrationVariable]){const u=new URL(process.env[name]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,profile.selected70b?/^\/dvaia_test_csrf_browser_[a-f0-9]+_/:/^\/dvaia_test_listings_[a-f0-9]+_/);env[name]=u.href;}
+  for(const row of require('../../db/postgres/initialize-application').requiredStoreManifest)for(const name of[row.runtimeVariable,row.migrationVariable]){const u=new URL(process.env[name]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,profile.selected70b?/^\/owasp_ai_goat_test_csrf_browser_[a-f0-9]+_/:/^\/owasp_ai_goat_test_listings_[a-f0-9]+_/);env[name]=u.href;}
   if(profile.selected70b){const delivery=new URL(process.env.CTF_DELIVERY_DATABASE_URL),ctf=new URL(env.CTF_DATABASE_URL);assert.equal(delivery.host,ctf.host);assert.equal(delivery.pathname,ctf.pathname);assert.equal(decodeURIComponent(delivery.username),'dvaia_ctf_delivery');assert.equal(delivery.search+delivery.hash,'');env.CTF_DELIVERY_DATABASE_URL=delivery.href;}
-  for(const name of ['DVAIA_APP_DATA_ROOT','LOGS_DIR'])if(profile.selected70b)require('../fixtures/csrfMainProfile').ensureOwnedRuntimeDirectory(env[name],runtimeRoot);else fs.mkdirSync(env[name],{mode:0o700});
+  for(const name of ['OWASP_AI_GOAT_APP_DATA_ROOT','LOGS_DIR'])if(profile.selected70b)require('../fixtures/csrfMainProfile').ensureOwnedRuntimeDirectory(env[name],runtimeRoot);else fs.mkdirSync(env[name],{mode:0o700});
   const services=[];
   if(actual&&!diagnostic){transport=await require('../fixtures/csrfFullIndexTransport').createCsrfFullIndexTransport({maxHttpCalls:(chain||postChain||indirect)?18:8,selected70b:profile.selected70b,record:value=>fs.writeFileSync(path.join(root,'csrf-model-http.json'),JSON.stringify(value,null,2),{mode:0o600})});Object.assign(env,{AI_PROVIDER:'ollama',OLLAMA_MODEL:transport.model,OLLAMA_BASE_URL:transport.baseUrl,JUDGE_PROVIDER:'ollama',JUDGE_MODEL:transport.model});const endpoint=new URL(transport.baseUrl);services.push({name:'fixture_csrf_model',host:endpoint.hostname,port:Number(endpoint.port)});}
   const guard=path.join(root,'network-guard.cjs');fs.writeFileSync(guard,networkGuardSource({host:'127.0.0.1',port:Number(new URL(env.IDENTITY_DATABASE_URL).port)},{version:1,services}),{mode:0o600});env.NODE_OPTIONS=(profile.selected70b?'--require='+path.join(source,'tests/fixtures/dpiPostgresOnlyGuard.cjs')+' ':'')+'--require='+guard;

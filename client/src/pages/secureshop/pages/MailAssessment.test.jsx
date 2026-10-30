@@ -84,9 +84,9 @@ test('standalone retained evaluation opens trusted parent recovery without repea
   expect(assess).not.toHaveBeenCalled();
 });
 
-test('standalone unavailable grading directs the user to a SecureShop administrator', async () => {
+test('standalone unavailable grading directs the user to a OWASP AI SecureShop administrator', async () => {
   mockStandalone = true;
   await render(async () => ({ok:true,json:async()=>({ok:true,completed:false,judgment:{verdict:'unavailable',canRetry:false}})}));
-  expect(node.textContent).toContain('ask the SecureShop administrator to check the diagnostics');
+  expect(node.textContent).toContain('ask the OWASP AI SecureShop administrator to check the diagnostics');
   expect(node.textContent).not.toContain('workshop administrator');
 });

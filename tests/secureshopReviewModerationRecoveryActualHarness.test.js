@@ -8,7 +8,7 @@ const id='11111111-1111-4111-8111-111111111111',key='a'.repeat(64);
 function completeSnapshot(modelCalls=3){return {modelCalls,rows:Object.fromEntries(Object.values(fixture.SNAPSHOT_TABLES).flat()
   .map(name=>[name,{count:1,sha256:key}]))};}
 function urls(){return Object.fromEntries(Object.entries(fixture.STORES).flatMap(([store,name])=>['RUNTIME','MIGRATION'].map(role=>[
-  fixture.PREFIX+store+'_'+role+'_URL',`postgresql://dvaia_${name}_${role.toLowerCase()}@127.0.0.1:54321/dvaia_test_agent_host_abcdef123456_${name}`])));}
+  fixture.PREFIX+store+'_'+role+'_URL',`postgresql://dvaia_${name}_${role.toLowerCase()}@127.0.0.1:54321/owasp_ai_goat_test_agent_host_abcdef123456_${name}`])));}
 test('review actual contract is direct-source four-store, actor8/Judge0 without browser/embedding claims',()=>{
   assert.equal(Object.keys(fixture.disposableUrls(urls())).length,8);
   assert.equal(fixture.LIMITS.actorCalls,8);assert.equal(fixture.LIMITS.judgeCalls,0);

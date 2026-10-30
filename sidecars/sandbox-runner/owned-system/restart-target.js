@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),{spawn}=require('node:child_process'),{randomUUID,randomBytes,createHash}=require('node:crypto');
 const {normalizeRestartRequest,restartRequestDigest}=require('./restart-contract');
 const {restartWitness}=require('./restart-wire');
-const ROOT='/owned-restart',CHILD='/usr/local/libexec/dvaia-system-restart-child',UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const ROOT='/owned-restart',CHILD='/usr/local/libexec/owasp-ai-goat-system-restart-child',UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const hash=v=>createHash('sha256').update(v).digest('hex'),verifyChild=file=>{for(const name of [file,file+'.sha256']){const stat=fs.lstatSync(name);if(!stat.isFile()||stat.isSymbolicLink()||stat.uid!==0||stat.nlink!==1||(stat.mode&0o022))throw failure('RESTART_ASSET_INVALID');}if(hash(fs.readFileSync(file))!==fs.readFileSync(file+'.sha256','utf8').trim())throw failure('RESTART_ASSET_INVALID');},failure=code=>Object.assign(new Error('Owned restart unavailable'),{code});
 function createOwnedSystemRestartTarget({targetId,initialState,spawnImpl=spawn,executeOwnedCommand,fsImpl=fs,root=ROOT,childBinary=CHILD,deadlineMs=2000,onState=async()=>{},verifyChildAsset=verifyChild}={}){
  if(!UUID.test(targetId||'')||root!==ROOT+'/targets/'+targetId||typeof executeOwnedCommand!=='function'||typeof onState!=='function'||typeof verifyChildAsset!=='function'||!Number.isInteger(deadlineMs)||deadlineMs<100||deadlineMs>10000)throw new TypeError('Exact owned restart target required');

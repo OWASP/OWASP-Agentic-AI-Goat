@@ -8,7 +8,7 @@ const setupTools = require('../scripts/setup-application');
 const host = () => ({schemaVersion:1,component:'windows-hyperv-host-preflight',nonMutating:true,hostSupported:true,minimumBuild:19045,allowedSkus:[4,27,48,49,70,72,84,121,122,125,126,129,130,161,162,164,165],capabilityEvidence:'running-hypervisor',blockers:[]});
 const config = {IDENTITY_DATABASE_URL:'postgresql://runtime:synthetic@localhost/identity',IDENTITY_MIGRATION_DATABASE_URL:'postgresql://migration:synthetic@localhost/identity'};
 async function fixture(t) {
-  const container = await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-win-setup-lab-'));
+  const container = await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-win-setup-lab-'));
   t.after(()=>fs.rm(container,{recursive:true,force:true}));
   const root=path.join(container,'workspace'),homeDirectory=path.join(container,'home');
   await fs.mkdir(root);await fs.mkdir(homeDirectory);return {root:await fs.realpath(root),homeDirectory:await fs.realpath(homeDirectory)};
@@ -46,7 +46,7 @@ test('Windows parent closes owned forwards when local provisioning or phase fail
   }
 });
 async function phase(t,{failBase=false,failHttp=false}={}) {
-  const value=await fixture(t),order=[],id=setupTools.workspaceId(value.root),directory=path.join(value.homeDirectory,'.dvaia',id);
+  const value=await fixture(t),order=[],id=setupTools.workspaceId(value.root),directory=path.join(value.homeDirectory,'.owasp-ai-goat',id);
   await fs.mkdir(directory,{recursive:true,mode:0o700});
   const context={...value,directory,id,envPath:path.join(value.root,'.env'),platform:'win32',databaseAdminUrl:'postgresql://admin:synthetic@localhost/postgres',config,appDataRoot:directory,processEnvironment:{IPI_EMAIL_PROVIDER:'gmail'},runtime:{browser:{}},requestedEmailProvider:'gmail'};
   const request={kind:'fresh',context};
@@ -58,9 +58,9 @@ async function phase(t,{failBase=false,failHttp=false}={}) {
   let publication;
   const dependencies={prepareWindowsLabInstallation:async args=>{assert.equal(args.mode,'existing');assert.equal(args.root,value.root);order.push('child-lab');return {session,ownLabChild,close:async()=>order.push('child-close')};},
     provisionBaseLabServices:async args=>{assert.equal(args.session,session);assert.equal(args.ownLabChild,ownLabChild);assert.equal(args.mode,'fresh');order.push('base');if(failBase)throw Object.assign(Error('controlled base failure'),{code:'BASE_FAILED'});},
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),
     initializeApplication:async({maintenanceScope})=>{maintenanceScope.assertHeld();order.push('initialize');},runCommand:async()=>{},
-    provisionOwnedRunner:async args=>{assert.equal(args.ownedLabSession,session);order.push('runner');return {ok:true,profile:'dvaia-mcp-sandbox',activationEnabled:true,managedPath:args.managedPath};},
+    provisionOwnedRunner:async args=>{assert.equal(args.ownedLabSession,session);order.push('runner');return {ok:true,profile:'owasp-ai-goat-mcp-sandbox',activationEnabled:true,managedPath:args.managedPath};},
     provisionOwnedHttp:async args=>{assert.equal(args.ownedLabSession,session);order.push('http');if(failHttp)throw Error('controlled HTTP failure');return {available:true,activationEnabled:true};},
     provisionOwnedShadow:async args=>{assert.equal(args.ownedLabSession,session);order.push('shadow');return {available:true,activationEnabled:true};},
     provisionAuditSql:async args=>{assert.equal(args.ownedLabSession,session);assert.equal(args.ownLabChild,ownLabChild);order.push('audit');return {candidateOnly:true};},
@@ -87,7 +87,7 @@ test('Windows repair and additive upgrade admit only the retained guest and pres
     const value=await fixture(t),order=[],options=parentOptions(value,order);
     const plan=require('../db/postgres/provision-application').provisioningPlan();
     const configuration=Object.fromEntries(plan.flatMap(row=>[[row.runtimeVariable,`postgresql://${row.runtimeRole}:synthetic@localhost/${row.database}`],[row.migrationVariable,`postgresql://${row.migrationRole}:synthetic@localhost/${row.database}`]]));
-    const directory=path.join(value.homeDirectory,'.dvaia',setupTools.workspaceId(value.root));await fs.mkdir(directory,{recursive:true,mode:0o700});
+    const directory=path.join(value.homeDirectory,'.owasp-ai-goat',setupTools.workspaceId(value.root));await fs.mkdir(directory,{recursive:true,mode:0o700});
     const original=Buffer.from(setupTools.encodeEnv({...configuration,RETAINED_VALUE:'unchanged'}));await fs.writeFile(path.join(value.root,'.env'),original,{mode:0o600});
     await fs.writeFile(path.join(directory,'provisioning.json'),JSON.stringify({version:1,status:'complete',plan,configuration,created:[]}),{mode:0o600});
     options.setupLocalPostgres=async args=>{assert.equal(args.existingOnly,true);assert.equal(args.environment.RETAINED_VALUE,'unchanged');order.push('postgres-existing');return 'postgresql://admin:synthetic@localhost/postgres';};

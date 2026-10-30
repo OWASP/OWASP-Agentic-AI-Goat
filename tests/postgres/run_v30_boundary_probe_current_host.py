@@ -34,7 +34,7 @@ PROFILE = 'goat-q'
 DOCKER_HOST = 'unix://' + str(ROOT / '.qualification/goat-q/docker.sock')
 NODE = ROOT / host.NODE_RELATIVE
 DOCKER = ROOT / 'tasks/runtime/container/bin/docker'
-CONTAINER_PREFIX = 'dvaia-v30-original-disclosure-'
+CONTAINER_PREFIX = 'owasp-ai-goat-v30-original-disclosure-'
 WORK_SECONDS = 170
 PROBE_SECONDS = 55  # Probe work 30s + its 20s retirement + outer allowance.
 CLEANUP_SECONDS = 30
@@ -130,7 +130,7 @@ def provision_statements(nonce, store):
         raise RuntimeError('V30_PROBE_STORE')
     migration = f'dvaia_{store}_migration'
     runtime = f'dvaia_{store}_runtime'
-    database = f'dvaia_test_agent_host_{nonce}_{store}'
+    database = f'owasp_ai_goat_test_agent_host_{nonce}_{store}'
     return (
         f'CREATE ROLE {migration} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS',
         f'CREATE ROLE {runtime} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS',
@@ -221,14 +221,14 @@ def prepare_stores(command, container_id, port, nonce):
                 '-p', '5432', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1',
                 '-c', statement])
         urls[store] = (f'postgresql://dvaia_{store}_runtime@127.0.0.1:{port}/'
-                       f'dvaia_test_agent_host_{nonce}_{store}')
+                       f'owasp_ai_goat_test_agent_host_{nonce}_{store}')
     return urls
 
 
 def postgres_run_args(name, labels):
-    if not re.fullmatch(r'dvaia-v30-original-disclosure-[a-f0-9]{12}', name) \
-            or set(labels) != {'dvaia.owner', 'dvaia.cohort'} \
-            or not uuid.UUID(labels['dvaia.owner']) or labels['dvaia.cohort'] != host.COHORT:
+    if not re.fullmatch(r'owasp-ai-goat-v30-original-disclosure-[a-f0-9]{12}', name) \
+            or set(labels) != {'owasp-ai-goat.owner', 'owasp-ai-goat.cohort'} \
+            or not uuid.UUID(labels['owasp-ai-goat.owner']) or labels['owasp-ai-goat.cohort'] != host.COHORT:
         raise RuntimeError('V30_PROBE_CONTAINER_IDENTITY')
     label_args = [value for key, item in labels.items() for value in ('--label', key + '=' + item)]
     return ['run', '--detach', '--pull', 'never', '--name', name, *label_args,
@@ -346,7 +346,7 @@ def execute(repo=ROOT):
     beginning = time.monotonic()
     docker = Docker(admitted, runtime, beginning + WORK_SECONDS)
     name = CONTAINER_PREFIX + nonce
-    labels = {'dvaia.owner': owner, 'dvaia.cohort': host.COHORT}
+    labels = {'owasp-ai-goat.owner': owner, 'owasp-ai-goat.cohort': host.COHORT}
     captured_id = None; creation_attempted = False
     probe = None; probe_birth = None; probe_attempted = False
     probe_terminal = False; probe_report = False; probe_group_absent = False; sandbox_group_absent = False

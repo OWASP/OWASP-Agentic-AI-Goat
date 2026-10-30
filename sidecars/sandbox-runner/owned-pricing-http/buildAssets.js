@@ -7,10 +7,10 @@ const {
   ASSETS
 } = require('./executor');
 const root = '/usr/local/libexec/';
-const manifest = JSON.parse(fs.readFileSync(root + 'dvaia-owned-pricing-http-manifest.json'));
-fs.writeFileSync(root + 'dvaia-owned-pricing-http-hosts', manifest.listeners.map(x => `${x.address} ${x.hostname}`).join('\n') + '\n');
-fs.writeFileSync(root + 'dvaia-owned-pricing-http-nsswitch', 'hosts: files\n');
-fs.writeFileSync(root + 'dvaia-owned-pricing-http-resolv', '');
+const manifest = JSON.parse(fs.readFileSync(root + 'owasp-ai-goat-owned-pricing-http-manifest.json'));
+fs.writeFileSync(root + 'owasp-ai-goat-owned-pricing-http-hosts', manifest.listeners.map(x => `${x.address} ${x.hostname}`).join('\n') + '\n');
+fs.writeFileSync(root + 'owasp-ai-goat-owned-pricing-http-nsswitch', 'hosts: files\n');
+fs.writeFileSync(root + 'owasp-ai-goat-owned-pricing-http-resolv', '');
 for (const file of ASSETS) fs.chmodSync(file, file.endsWith('/node') || file.endsWith('/bwrap') || file.endsWith('-init') || file.endsWith('-supervisor') ? 0o555 : 0o444);
-fs.writeFileSync('/usr/share/dvaia/owned-pricing-http-assets.json', JSON.stringify(Object.fromEntries(ASSETS.map(file => [file, crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')]))));
-fs.chmodSync('/usr/share/dvaia/owned-pricing-http-assets.json', 0o444);
+fs.writeFileSync('/usr/share/owasp-ai-goat/owned-pricing-http-assets.json', JSON.stringify(Object.fromEntries(ASSETS.map(file => [file, crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')]))));
+fs.chmodSync('/usr/share/owasp-ai-goat/owned-pricing-http-assets.json', 0o444);

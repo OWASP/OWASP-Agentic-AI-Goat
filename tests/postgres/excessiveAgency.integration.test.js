@@ -5,7 +5,7 @@ const {createPool,closePostgresPools}=require('../../server/database/postgres');
 
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_EXCESSIVE_AGENCY_TEST_RUNTIME_URL;
 test('native Excessive Agency store preserves attendee isolation, intentional BOLA, sessions, all objectives and scoped reset',{skip:!enabled},async()=>{
-  assert.match(new URL(process.env.PG_EXCESSIVE_AGENCY_TEST_RUNTIME_URL).pathname,/^\/dvaia_test_excessive_agency$/);
+  assert.match(new URL(process.env.PG_EXCESSIVE_AGENCY_TEST_RUNTIME_URL).pathname,/^\/owasp_ai_goat_test_excessive_agency$/);
   const runtime=createPool(process.env,'PG_EXCESSIVE_AGENCY_TEST_RUNTIME_URL');
   const migration=createPool(process.env,'PG_EXCESSIVE_AGENCY_TEST_MIGRATION_URL');
   try{

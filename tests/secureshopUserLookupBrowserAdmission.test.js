@@ -18,10 +18,10 @@ test('combined lookup admission keeps default and rejects foreign authority, pro
   } });
   const run = path.join(ROOT, 'tasks/qualification/run-controlled'), tmp = path.join(run, 'runtime/tmp');
   const options = { workspace: ROOT, evidencePath: path.join(run, 'user-lookup-disclosure-browser.json'),
-    profile: path.join(tmp, 'dvaia-user-lookup-browser-controlled'), origin: 'http://127.0.0.1:12345' };
+    profile: path.join(tmp, 'owasp-ai-goat-user-lookup-browser-controlled'), origin: 'http://127.0.0.1:12345' };
   const env = { SECURESHOP_USER_LOOKUP_TEST_NO_SANDBOX: '1', SECURESHOP_USER_LOOKUP_DISCLOSURE_BROWSER_NATIVE: '1',
     SECURESHOP_ADMIN_USER_CHAT_BROWSER_NATIVE: '1', PG_TEST_DISPOSABLE: 'yes', LIVE_OLLAMA_TEST: '1', NODE_ENV: 'test',
-    DVAIA_CURRENT_MAIN_WORKSPACE: ROOT, TMPDIR: tmp,
+    OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: ROOT, TMPDIR: tmp,
     SECURESHOP_USER_LOOKUP_BROWSER_RECORD_PATH: path.join(run, 'user-lookup-browser.json'),
     SECURESHOP_USER_LOOKUP_BROWSER_ACK_PATH: path.join(run, 'user-lookup-browser-ack.json'),
     SECURESHOP_USER_LOOKUP_BROWSER_SHA256: 'a'.repeat(64),
@@ -42,7 +42,7 @@ test('combined lookup admission keeps default and rejects foreign authority, pro
   for (const patch of [{ SECURESHOP_USER_LOOKUP_TEST_NO_SANDBOX: 'true' },
     { SECURESHOP_USER_LOOKUP_DISCLOSURE_BROWSER_NATIVE: '0' }, { SECURESHOP_ADMIN_USER_CHAT_BROWSER_NATIVE: '0' },
     { PG_TEST_DISPOSABLE: 'no' }, { LIVE_OLLAMA_TEST: '0' }, { NODE_ENV: 'production' },
-    { DVAIA_CURRENT_MAIN_WORKSPACE: '/foreign' }, { TMPDIR: '/foreign' },
+    { OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: '/foreign' }, { TMPDIR: '/foreign' },
     { SECURESHOP_USER_LOOKUP_BROWSER_RECORD_PATH: '/foreign' }, { SECURESHOP_USER_LOOKUP_BROWSER_ACK_PATH: '/foreign' },
     { SECURESHOP_USER_LOOKUP_BROWSER_SHA256: 'bad' }]) {
     assert.throws(() => f.userLookupBrowserArgs({ ...env, ...patch }, options));
@@ -50,11 +50,11 @@ test('combined lookup admission keeps default and rejects foreign authority, pro
   }
   for (const origin of ['http://example.com:12345', 'https://127.0.0.1:12345', 'http://127.0.0.1:12345/path'])
     assert.throws(() => f.userLookupBrowserArgs(env, { ...options, origin }));
-  assert.throws(() => f.userLookupBrowserArgs(env, { ...options, profile: path.join(tmp, 'dvaia-v19-browser-other') }));
+  assert.throws(() => f.userLookupBrowserArgs(env, { ...options, profile: path.join(tmp, 'owasp-ai-goat-v19-browser-other') }));
   for (const changed of [
     { evidencePath: `${run}/../run-controlled/user-lookup-benign-browser.json` },
     { evidencePath: path.join(ROOT, 'tasks/tmp/user-lookup-benign-browser.json') },
-    { profile: path.join(tmp, 'dvaia-v19-browser-other') },
+    { profile: path.join(tmp, 'owasp-ai-goat-v19-browser-other') },
     { origin: 'http://example.com:12345' },
   ]) assert.throws(() => f.userLookupBrowserArgs(benignEnv, { ...benignOptions, ...changed }));
   mode = 0o755; assert.throws(() => f.userLookupBrowserArgs(env, options));

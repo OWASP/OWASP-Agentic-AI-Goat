@@ -3,10 +3,10 @@
 const fs=require('node:fs'),path=require('node:path');
 const windowsPrivateState=require('./windows-private-state');
 const unavailable=()=>Object.assign(new Error('Private administrator journal unavailable'),{code:'SETUP_ADMINISTRATOR_JOURNAL_INVALID'});
-const trainingCredentials=()=>({username:'admin',email:'admin@dvaia.local',password:'admin123'});
+const trainingCredentials=()=>({username:'admin',email:'admin@owasp-ai-goat.local',password:'admin123'});
 function validate(bytes){
  const value=JSON.parse(bytes.toString('utf8'));
- const trainingCredential=value?.username==='admin'&&value?.email==='admin@dvaia.local'&&value?.password==='admin123';
+ const trainingCredential=value?.username==='admin'&&value?.email==='admin@owasp-ai-goat.local'&&value?.password==='admin123';
  if(!value||Array.isArray(value)||Object.keys(value).sort().join(',')!=='email,password,username'||typeof value.username!=='string'||value.username.length<3||value.username.length>50||typeof value.email!=='string'||!value.email.includes('@')||typeof value.password!=='string'||(!trainingCredential&&value.password.length<12)||Buffer.byteLength(value.password)>72)throw unavailable();
  return Object.freeze({...value});
 }

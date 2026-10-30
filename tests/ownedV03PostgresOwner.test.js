@@ -6,9 +6,9 @@ function fixture(){
  let now=1000;const owner={binding:()=>({runId:'a'.repeat(32),planSha256:'b'.repeat(64)}),wrapperWindow:()=>({deadlineMs:1801000}),
   nowMs:()=>now,isRevoked:()=>false};
  const writes=[],calls=[],id='c'.repeat(64),image='sha256:'+'d'.repeat(64);let present=false,wrong=false,late=false;
- const name='dvaia-merchant-listing-image-optimize-v03-browser-'+crypto.createHash('sha256').update('a'.repeat(32)+':v03-postgres').digest('hex').slice(0,12);
- const row=()=>({Id:wrong?'f'.repeat(64):id,Name:'/'+name,Image:image,Config:{Labels:{'dvaia.owner':'a'.repeat(32),
-  'dvaia.cohort':'secureshop-merchant-listing-image-optimize-v03-browser-current-main-v1'}},Mounts:[],
+ const name='owasp-ai-goat-merchant-listing-image-optimize-v03-browser-'+crypto.createHash('sha256').update('a'.repeat(32)+':v03-postgres').digest('hex').slice(0,12);
+ const row=()=>({Id:wrong?'f'.repeat(64):id,Name:'/'+name,Image:image,Config:{Labels:{'owasp-ai-goat.owner':'a'.repeat(32),
+  'owasp-ai-goat.cohort':'secureshop-merchant-listing-image-optimize-v03-browser-current-main-v1'}},Mounts:[],
   HostConfig:{Tmpfs:{'/var/lib/postgresql':'rw,size=268435456'},Memory:536870912,NanoCpus:2000000000,PidsLimit:256},
   NetworkSettings:{Ports:{'5432/tcp':[{HostIp:'127.0.0.1',HostPort:'54321'}]}}});
  const commands={clean:()=>true,command:async(parts,timeout,end)=>{
@@ -27,7 +27,7 @@ function fixture(){
 test('durable parent intent precedes create acknowledgement and actual captured binding precedes effects',async()=>{
  const f=fixture();assert.throws(()=>f.pg.requireBound());
  const intent=await f.pg.createIntent();assert.equal(f.writes.at(-1).name,'pg-create-intent.json');
- assert.equal(intent.intent.labels['dvaia.owner'],'a'.repeat(32));assert.equal(f.pg.status().attempted,true);
+ assert.equal(intent.intent.labels['owasp-ai-goat.owner'],'a'.repeat(32));assert.equal(f.pg.status().attempted,true);
  f.create();await f.pg.bind(f.id);assert.equal(f.pg.requireBound(),true);
  assert.equal(f.writes.at(-1).name,'pg-captured-binding.json');
  await assert.rejects(f.pg.createIntent(),{code:'V03_PG_INTENT_ONCE'});

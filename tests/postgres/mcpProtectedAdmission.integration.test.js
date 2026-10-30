@@ -11,7 +11,7 @@ test('candidate graph/SDK admits immutable intent before real socket under curre
    assert.equal(url.protocol,'postgresql:');assert.equal(url.hostname,'127.0.0.1');assert.equal(url.password,'');assert.equal(url.search,'');assert.equal(url.hash,'');
    assert.ok(Number(url.port)>0&&Number(url.port)<=65535);if(port===undefined)port=url.port;else assert.equal(url.port,port);
    assert.equal(decodeURIComponent(url.username),`dvaia_${family}_${index===0?'runtime':'migration'}`);
-   const match=url.pathname.match(new RegExp(`^/dvaia_test_mcp_protected_${family==='identity'?'identity':'resource'}_([a-f0-9]{12})$`));assert.ok(match);
+   const match=url.pathname.match(new RegExp(`^/owasp_ai_goat_test_mcp_protected_${family==='identity'?'identity':'resource'}_([a-f0-9]{12})$`));assert.ok(match);
    if(nonce===undefined)nonce=match[1];else assert.equal(match[1],nonce);
    admitted.set(index===0?runtimeKey:migrationKey,url.href);
   }
@@ -39,7 +39,7 @@ test('candidate graph/SDK admits immutable intent before real socket under curre
  const pythonExecutable=process.env.MCP_PROTECTED_PYTHON_EXECUTABLE;
  assert.ok(typeof pythonExecutable==='string'&&path.isAbsolute(pythonExecutable)&&!/[\r\n]/.test(pythonExecutable),'Owned launcher must select an absolute Python executable');
  const f=await require('../helpers/mcpProtectedTargetFixture').fixture(t,{pythonExecutable,protectedState:{...realState,async rotateKeys(input){const v=await realState.rotateKeys(input);rotations++;return v;}}});
- const token=crypto.randomBytes(32).toString('base64url');const api=require('../../sidecars/sandbox-runner/ownedTargetApi').createOwnedTargetApi({token,store:{...f.store,checkReadiness:async()=>({ready:true})},expectedSupervisorProfile:'dvaia-mcp-sandbox',readSupervisorProfile:async()=> 'dvaia-mcp-sandbox (enforce)'});
+ const token=crypto.randomBytes(32).toString('base64url');const api=require('../../sidecars/sandbox-runner/ownedTargetApi').createOwnedTargetApi({token,store:{...f.store,checkReadiness:async()=>({ready:true})},expectedSupervisorProfile:'owasp-ai-goat-mcp-sandbox',readSupervisorProfile:async()=> 'owasp-ai-goat-mcp-sandbox (enforce)'});
  let serverFailure;
  const server=http.createServer(async(req,res)=>{try{let bytes='';for await(const c of req)bytes+=c;const body=bytes?JSON.parse(bytes):undefined;
   if(req.url==='/owned-targets/protected-operation'){

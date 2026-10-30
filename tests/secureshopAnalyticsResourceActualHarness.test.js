@@ -208,7 +208,7 @@ test('sibling, data restoration and owned host stop are mandatory',()=>{
 });
 test('closed disposable database URLs bind the same local run and exact runtime/migration roles',()=>{
   const env={};for(const [store,family]of [['COMMERCE','secureshop'],['AGENTS','secureshop_agents']])for(const role of ['RUNTIME','MIGRATION'])
-    env[`${h.PREFIX}${store}_${role}_URL`]=`postgresql://dvaia_${family}_${role.toLowerCase()}@127.0.0.1:5444/dvaia_test_agent_host_0123456789ab_${family}`;
+    env[`${h.PREFIX}${store}_${role}_URL`]=`postgresql://dvaia_${family}_${role.toLowerCase()}@127.0.0.1:5444/owasp_ai_goat_test_agent_host_0123456789ab_${family}`;
   assert.equal(Object.keys(h.disposableUrls(env)).length,4);
   for(const edit of [u=>u.replace('127.0.0.1','localhost'),u=>u.replace('0123456789ab','aaaaaaaaaaaa'),u=>u+'?options=x',u=>u.replace('_runtime@','_migration@')]){
     const changed={...env,[`${h.PREFIX}COMMERCE_RUNTIME_URL`]:edit(env[`${h.PREFIX}COMMERCE_RUNTIME_URL`])};assert.throws(()=>h.disposableUrls(changed));}

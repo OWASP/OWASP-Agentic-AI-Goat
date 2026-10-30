@@ -9,16 +9,16 @@ test('occupied backend is diagnosed without stopping or adopting its listener', 
   await new Promise(resolve => listener.listen(0, resolve));
   const port = listener.address().port;
   try {
-    await assert.rejects(assertApplicationPortsAvailable({ PORT: String(port), DVAIA_CLIENT_PORT: String(port === 3000 ? 3001 : 3000) }),
+    await assert.rejects(assertApplicationPortsAvailable({ PORT: String(port), OWASP_AI_GOAT_CLIENT_PORT: String(port === 3000 ? 3001 : 3000) }),
       error => error.code === 'APPLICATION_PORT_UNAVAILABLE' && error.message.includes(`backend port ${port}`));
     assert.equal(listener.listening, true);
   } finally { await new Promise(resolve => listener.close(resolve)); }
 });
 
 test('duplicate configured service ports fail before launch', async () => {
-  await assert.rejects(assertApplicationPortsAvailable({ PORT: '8081', DVAIA_CLIENT_PORT: '8081' }),
+  await assert.rejects(assertApplicationPortsAvailable({ PORT: '8081', OWASP_AI_GOAT_CLIENT_PORT: '8081' }),
     { code: 'APPLICATION_PORT_CONFLICT' });
-  await assert.rejects(assertApplicationPortsAvailable({ PORT: '8081', DVAIA_CLIENT_PORT: '3000', SS_ENABLE: 'true', SS_AGENT_HOST_PORT: '8081' }),
+  await assert.rejects(assertApplicationPortsAvailable({ PORT: '8081', OWASP_AI_GOAT_CLIENT_PORT: '3000', SS_ENABLE: 'true', SS_AGENT_HOST_PORT: '8081' }),
     { code: 'APPLICATION_PORT_CONFLICT' });
 });
 
@@ -40,7 +40,7 @@ test('enabled upload assets preflight their exact IPv6 listener without disturbi
     backend = await reserve(); frontend = await reserve();
   }
   const environment = {
-    PORT: String(backend), DVAIA_CLIENT_PORT: String(frontend),
+    PORT: String(backend), OWASP_AI_GOAT_CLIENT_PORT: String(frontend),
     SS_BOUND_UPLOAD_ASSETS_ENABLED: 'true', SS_UPLOAD_ASSET_HOST: '::1',
     SS_UPLOAD_ASSET_PORT: String(occupied), SS_UPLOAD_ASSET_PUBLIC_ORIGIN: `http://[::1]:${occupied}`,
     SS_UPLOAD_ASSET_CAPABILITY_SECRET: 'private-controlled-startup-secret-value',

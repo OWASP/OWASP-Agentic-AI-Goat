@@ -8,7 +8,7 @@ from sql_nosql_docker_ownership import verify_daemon, verify_image, inspect_owne
 
 CID='a'*64
 IMAGE='sha256:'+'b'*64
-LABELS={'dvaia.qualification.nonce':'fixture','dvaia.qualification.uid':'123'}
+LABELS={'owasp-ai-goat.qualification.nonce':'fixture','owasp-ai-goat.qualification.uid':'123'}
 
 def response(stdout='',stderr='',code=0):
     return SimpleNamespace(returncode=code,stdout=stdout,stderr=stderr)
@@ -38,7 +38,7 @@ class Contract(unittest.TestCase):
         row=container(); self.assertEqual(validate_container_layout(row),12345)
         self.assertEqual(inspect_owned(lambda args:response(json.dumps([row])),name='owned',labels=LABELS,image=IMAGE,captured_id=CID)['Id'],CID)
         mutations=[lambda r:r.update(Id='short'),lambda r:r.update(Image='sha256:'+'c'*64),
-                   lambda r:r.update(Name='/sibling'),lambda r:r['Config']['Labels'].update({'dvaia.qualification.nonce':'sibling'})]
+                   lambda r:r.update(Name='/sibling'),lambda r:r['Config']['Labels'].update({'owasp-ai-goat.qualification.nonce':'sibling'})]
         for mutate in mutations:
             row=container();mutate(row)
             with self.assertRaises(RuntimeError):inspect_owned(lambda args:response(json.dumps([row])),name='owned',labels=LABELS,image=IMAGE,captured_id=CID)

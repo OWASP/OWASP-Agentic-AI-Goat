@@ -318,7 +318,7 @@ test('pauses automatic renewal and warns before expiry when this administrator h
     await act(async () => recover.click());
     expect(h.container.textContent).toContain('Shared practice reset');
     sessionStorage.removeItem(REGISTERED_PASSWORD_RESET_KEY);
-    await act(async () => window.dispatchEvent(new Event('dvaia-secureshop-registered-password-reset-resolved-v1')));
+    await act(async () => window.dispatchEvent(new Event('owasp-ai-goat-secureshop-registered-password-reset-resolved-v1')));
     expect(h.renewMock).toHaveBeenCalledTimes(1);
     expect(h.container.textContent).not.toContain('Automatic session renewal is paused');
   } finally { await h.close(); jest.useRealTimers(); }
@@ -650,7 +650,7 @@ test('checkout intent resumes only after saved-cart receipt and bound cart readb
     await h.render();
     await act(async () => window.dispatchEvent(new MessageEvent('message', {
       source: h.getFrame().contentWindow, origin: 'null',
-      data: { channel: 'dvaia-secureshop-bound-route-v1', type: 'route',
+      data: { channel: 'owasp-ai-goat-secureshop-bound-route-v1', type: 'route',
         nonce: 'a'.repeat(64), route: '/secureshop/cart' },
     })));
     expect(h.container.querySelector('[data-testid="location"]')?.textContent).toBe('/secureshop/cart');
@@ -672,7 +672,7 @@ test('failed cart readback retains both guest references and retries the same im
     await h.render();
     await act(async () => window.dispatchEvent(new MessageEvent('message', {
       source: h.getFrame().contentWindow, origin: 'null',
-      data: { channel: 'dvaia-secureshop-bound-route-v1', type: 'route',
+      data: { channel: 'owasp-ai-goat-secureshop-bound-route-v1', type: 'route',
         nonce: 'a'.repeat(64), route: '/secureshop/cart' },
     })));
     const button = [...h.container.querySelectorAll('button')].find(value => value.textContent === 'Add saved items');

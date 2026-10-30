@@ -2,7 +2,7 @@
 const{test}=require('node:test'),assert=require('node:assert/strict');const{createPool}=require('../../server/database/postgres');const{initializeIdentityRepository}=require('../../server/database/postgres/identityRepository');
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_IMPORT_BATCHES_TEST_RUNTIME_URL;
 test('immutable import batch metadata is bounded, transactional and read-only at runtime',{skip:!enabled},async()=>{
- for(const key of ['PG_IMPORT_BATCHES_TEST_RUNTIME_URL','PG_IMPORT_BATCHES_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const key of ['PG_IMPORT_BATCHES_TEST_RUNTIME_URL','PG_IMPORT_BATCHES_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const runtime=createPool(process.env,'PG_IMPORT_BATCHES_TEST_RUNTIME_URL'),migration=createPool(process.env,'PG_IMPORT_BATCHES_TEST_MIGRATION_URL');
  try{await initializeIdentityRepository(runtime,migration);const sql="INSERT INTO identity.import_batches(archive_sha256,importer_version,plan_sha256,counts,coverage,review_decisions) VALUES($1,'combined-v1',$2,$3,$4,$5)";const args=['a'.repeat(64),'b'.repeat(64),{users:2,completions:1},{mappedTables:7,retainedTables:3},{exercises:'catalog_visibility_defaults_without_content',unknown_table:'retained_archive_only'}];
  const c=await migration.connect();try{await c.query('BEGIN');await c.query(sql,args);await c.query('ROLLBACK');}finally{c.release();}

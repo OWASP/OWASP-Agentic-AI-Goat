@@ -39,9 +39,9 @@ class AssessmentProgressLauncher(unittest.TestCase):
                            captured_id='owned', port=15432, nonce='a' * 12)
             exec(compile(ast.fix_missing_locations(ast.Module(body=[branch], type_ignores=[])), '<allocation>', 'exec'), context)
         self.assertEqual(len(sql), 5)
-        self.assertIn('CREATE DATABASE dvaia_test_agent_host_aaaaaaaaaaaa_identity OWNER dvaia_identity_migration', sql)
+        self.assertIn('CREATE DATABASE owasp_ai_goat_test_agent_host_aaaaaaaaaaaa_identity OWNER dvaia_identity_migration', sql)
         pair = context['identity']
-        self.assertEqual(pair['runtime'], 'postgresql://dvaia_identity_runtime@127.0.0.1:15432/dvaia_test_agent_host_aaaaaaaaaaaa_identity')
+        self.assertEqual(pair['runtime'], 'postgresql://dvaia_identity_runtime@127.0.0.1:15432/owasp_ai_goat_test_agent_host_aaaaaaaaaaaa_identity')
         self.assertEqual(pair['migration'], pair['runtime'].replace('_runtime@', '_migration@'))
         env_branch = next(n for n in ast.walk(tree) if isinstance(n, ast.If)
             and ast.unparse(n.test) == "args.cohort == 'assessment-progress'"
@@ -51,7 +51,7 @@ class AssessmentProgressLauncher(unittest.TestCase):
         exec(compile(ast.fix_missing_locations(ast.Module(body=env_branch.body, type_ignores=[])), '<environment>', 'exec'), context)
         self.assertEqual(context['env'], {
             'PG_TEST_DISPOSABLE': 'yes', 'SECURESHOP_ASSESSMENT_PROGRESS_NATIVE': '1',
-            'DVAIA_CURRENT_MAIN_WORKSPACE': str(ROOT),
+            'OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE': str(ROOT),
             'PG_SECURESHOP_ASSESSMENT_PROGRESS_RUNTIME_URL': pair['runtime'],
             'PG_SECURESHOP_ASSESSMENT_PROGRESS_MIGRATION_URL': pair['migration']})
         self.assertFalse(L.plan_requires_browser('assessment-progress'))

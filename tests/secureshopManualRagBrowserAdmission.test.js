@@ -19,10 +19,10 @@ test('V26 opt-in admits exact Fixed-only and diagnostic scopes with private prof
   realpathSync:p=>canonical?p:'/foreign'}});
  assert.deepEqual(f.manualRagBrowserArgs({},{}),[]);
  const run=path.join(ROOT,'tasks/qualification/run-controlled'),tmp=path.join(run,'runtime/tmp');
- const options={profile:path.join(tmp,'dvaia-manual-rag-browser-controlled'),origin:'http://127.0.0.1:12345'};
+ const options={profile:path.join(tmp,'owasp-ai-goat-manual-rag-browser-controlled'),origin:'http://127.0.0.1:12345'};
  const env={SECURESHOP_MANUAL_RAG_TEST_NO_SANDBOX:'1',SECURESHOP_MANUAL_RAG_BROWSER_NATIVE:'1',
-  NODE_ENV:'test',PG_TEST_DISPOSABLE:'yes',LIVE_OLLAMA_TEST:'1',DVAIA_CURRENT_MAIN_WORKSPACE:ROOT,
-  DVAIA_ISOLATED_TEST_WORKSPACE:run,TMPDIR:tmp,
+  NODE_ENV:'test',PG_TEST_DISPOSABLE:'yes',LIVE_OLLAMA_TEST:'1',OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:ROOT,
+  OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE:run,TMPDIR:tmp,
   SECURESHOP_BOUND_BROWSER_BIRTH_SCRIPT:path.join(ROOT,'tests/postgres/secureshop_darwin_browser_birth.py'),
   SECURESHOP_BOUND_BROWSER_BIRTH_PYTHON:'/controlled/python'};
  const args=f.manualRagBrowserArgs(env,options);
@@ -41,8 +41,8 @@ test('V26 opt-in admits exact Fixed-only and diagnostic scopes with private prof
   {SECURESHOP_MANUAL_RAG_BROWSER_NATIVE:'0'},{SECURESHOP_MANUAL_RAG_FIXED_ONLY:'true'},
   {SECURESHOP_MANUAL_RAG_FIXED_ONLY:'0'},
   {SECURESHOP_PRODUCT_SUMMARY_TEST_NO_SANDBOX:'1'},{NODE_ENV:'production'},
-  {PG_TEST_DISPOSABLE:'no'},{LIVE_OLLAMA_TEST:'0'},{DVAIA_CURRENT_MAIN_WORKSPACE:'/foreign'},
-  {DVAIA_ISOLATED_TEST_WORKSPACE:tmp},{TMPDIR:run},{SECURESHOP_BOUND_BROWSER_BIRTH_SCRIPT:'/foreign'}])
+  {PG_TEST_DISPOSABLE:'no'},{LIVE_OLLAMA_TEST:'0'},{OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:'/foreign'},
+  {OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE:tmp},{TMPDIR:run},{SECURESHOP_BOUND_BROWSER_BIRTH_SCRIPT:'/foreign'}])
   for(const selected of [env,fixed])
    assert.throws(()=>f.manualRagBrowserArgs({...selected,...patch},options));
  for(const origin of ['http://example.com:12345','https://127.0.0.1:12345','http://127.0.0.1:12345/path'])
@@ -50,7 +50,7 @@ test('V26 opt-in admits exact Fixed-only and diagnostic scopes with private prof
    assert.throws(()=>f.manualRagBrowserArgs(selected,{...options,origin}));
  const bothDenied=changed=>{for(const selected of [env,fixed])
   assert.throws(()=>f.manualRagBrowserArgs(selected,changed));};
- bothDenied({...options,profile:path.join(tmp,'dvaia-similar-browser-other')});
+ bothDenied({...options,profile:path.join(tmp,'owasp-ai-goat-similar-browser-other')});
  mode=0o755;bothDenied(options);
  mode=0o700;uid++;bothDenied(options);
  uid=process.getuid();symlink=true;bothDenied(options);

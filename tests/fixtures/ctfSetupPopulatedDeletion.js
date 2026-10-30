@@ -20,7 +20,7 @@ async function runPopulatedDeletion({activateAndStart,signal}){
  assert.equal(Object.hasOwn(process.env,'LEGACY_PLATFORM_LIFECYCLE_ENABLED'),false,'qualification must exercise the PostgreSQL default-on policy');
  assert.equal(require('../../server/services/platformDataLifecycleActivation').isPlatformDataLifecycleRequested(process.env),true);
  assert.equal(process.env.CTF_SETUP_APPLICATION_ISOLATED,'1');
- const fixtureBase=path.join(process.env.DVAIA_ISOLATED_TEST_WORKSPACE,'bound-feature-targets');
+ const fixtureBase=path.join(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE,'bound-feature-targets');
  const mcpFixtureRoot=path.join(fixtureBase,'mcp'),ssrfFixtureRoot=path.join(fixtureBase,'ssrf');
  await fs.mkdir(mcpFixtureRoot,{recursive:true,mode:0o700});await fs.mkdir(ssrfFixtureRoot,{recursive:true,mode:0o700});
  await fs.chmod(fixtureBase,0o700);await fs.chmod(mcpFixtureRoot,0o700);await fs.chmod(ssrfFixtureRoot,0o700);

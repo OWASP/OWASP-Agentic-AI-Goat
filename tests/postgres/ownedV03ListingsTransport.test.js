@@ -52,7 +52,7 @@ test('the selected system decoder executes only intact inert bytes under the clo
   const decoder = original.replace(oldGuard, "sys.argv[3]=='owned-system-build'");
   const script = 'printf v03-decoder-ok';
   const encoded = zlib.gzipSync(Buffer.from(script)).toString('base64');
-  const guest = `/var/tmp/dvaia-v23-build-${RUN_ID}`;
+  const guest = `/var/tmp/owasp-ai-goat-v23-build-${RUN_ID}`;
   const invoke = (payload, digest, tag) => spawnSync('/opt/homebrew/bin/python3',
     ['-I', '-S', '-B', '-c', decoder, payload, digest, tag, guest, RUN_ID],
     { env: { PATH: '/usr/bin:/bin', LC_ALL: 'C' }, timeout: 2000, maxBuffer: 65536 });

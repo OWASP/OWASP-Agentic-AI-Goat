@@ -265,7 +265,7 @@ test('rendered private-policy replay uses the exact bridge request and stale lau
  const responses=['public-policy','private-policy'].map(resource=>{
   const url='http://shop.invalid/api/secureshop/v2/controlled-ssrf/run';
   const request={url:()=>url,method:()=> 'POST',postData:()=>JSON.stringify({resource,request_id:requestId[resource==='public-policy'?'public':'private']}),
-   headers:()=>({authorization:'Bearer owned-shop-session','x-dvaia-secureshop-launch':'a'.repeat(43)})};
+   headers:()=>({authorization:'Bearer owned-shop-session','x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)})};
   return{url:()=>url,status:()=>200,frame:()=>parentFrame,request:()=>request,
    headers:()=>({'content-type':'application/json; charset=utf-8',
     'content-length':String(Buffer.byteLength(JSON.stringify(body(resource))))}),
@@ -332,7 +332,7 @@ test('a failed private response retains its exact post-public attempt before the
 async function withTapGlobals(run){
  const prior={fetch:Object.getOwnPropertyDescriptor(globalThis,'fetch'),document:Object.getOwnPropertyDescriptor(globalThis,'document')};
  try{return await run();}finally{
-  try{delete globalThis.__dvaiaRenderedSsrfResponseTap;}catch{}
+  try{delete globalThis.__owasp-ai-goatRenderedSsrfResponseTap;}catch{}
   for(const [key,descriptor] of Object.entries(prior)){
    if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key];
   }

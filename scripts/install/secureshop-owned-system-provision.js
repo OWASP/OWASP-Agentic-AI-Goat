@@ -101,11 +101,11 @@ function inspectContainer(found,{mode,p,value,image,network,labels,restartVolume
   const row=value[mode],hc=found?.HostConfig,c=found?.Config;
   const envPrefix=mode==='uploadPreview'?'SECURESHOP_UPLOAD_PREVIEW':'SECURESHOP_SYSTEM_'+mode.toUpperCase();
   const expectedEnv=[...(image.Config.Env||[]),`${envPrefix}_HTTP_ENABLED=true`,`${envPrefix}_TOKEN=${row.token}`,`${envPrefix}_HOST=0.0.0.0`,`${envPrefix}_PORT=8090`].sort();
-  const port=String(new URL(row.url).port),tmpfs=mode==='uploadPreview'?{'/tmp':'rw,nosuid,nodev,size=128m','/var/lib/dvaia-owned-upload-preview':'rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001'}:mode==='restart'?{'/tmp':'rw,nosuid,nodev,size=128m','/owned-restart':'rw,nosuid,nodev,size=8m,mode=0700,uid=10001,gid=10001'}:{'/tmp':'rw,nosuid,nodev,size=128m'};
+  const port=String(new URL(row.url).port),tmpfs=mode==='uploadPreview'?{'/tmp':'rw,nosuid,nodev,size=128m','/var/lib/owasp-ai-goat-owned-upload-preview':'rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001'}:mode==='restart'?{'/tmp':'rw,nosuid,nodev,size=128m','/owned-restart':'rw,nosuid,nodev,size=8m,mode=0700,uid=10001,gid=10001'}:{'/tmp':'rw,nosuid,nodev,size=128m'};
   if(!found||found.Name!=='/'+row.container||found.Image!==value.imageId||!hc||!c
-    ||Object.entries(labels).some(([k,v])=>c.Labels?.[k]!==v)||c.Labels?.['dvaia.system.mode']!==mode
-    ||c.User!=='10001:10001'||!equal(c.Entrypoint,['/usr/local/bin/node','/opt/dvaia-owned-system/local-listener-entry.js'])||!equal(c.Cmd,[mode==='uploadPreview'?'upload-preview':mode])
-    ||!equal([...(c.Env||[])].sort(),expectedEnv)||(mode==='restart'?!equal((found.Mounts||[]).map(m=>({Type:m.Type,Name:m.Name,Destination:m.Destination,RW:m.RW})),[{Type:'volume',Name:restartVolume,Destination:'/var/lib/dvaia-owned-restart',RW:true}]):(found.Mounts?.length!==0))||hc.Privileged!==false||hc.ReadonlyRootfs!==true
+    ||Object.entries(labels).some(([k,v])=>c.Labels?.[k]!==v)||c.Labels?.['owasp-ai-goat.system.mode']!==mode
+    ||c.User!=='10001:10001'||!equal(c.Entrypoint,['/usr/local/bin/node','/opt/owasp-ai-goat-owned-system/local-listener-entry.js'])||!equal(c.Cmd,[mode==='uploadPreview'?'upload-preview':mode])
+    ||!equal([...(c.Env||[])].sort(),expectedEnv)||(mode==='restart'?!equal((found.Mounts||[]).map(m=>({Type:m.Type,Name:m.Name,Destination:m.Destination,RW:m.RW})),[{Type:'volume',Name:restartVolume,Destination:'/var/lib/owasp-ai-goat-owned-restart',RW:true}]):(found.Mounts?.length!==0))||hc.Privileged!==false||hc.ReadonlyRootfs!==true
     ||hc.Memory!==536870912||hc.NanoCpus!==1000000000||hc.PidsLimit!==128
     ||!equalRecord(hc.Tmpfs,tmpfs)||hc.Binds?.length||hc.Devices?.length||hc.DeviceRequests?.length
     ||hc.PidMode||hc.IpcMode==='host'||hc.UsernsMode==='host'||hc.CapAdd?.length
@@ -133,11 +133,11 @@ async function provision(options={}) {
     return result.stdout;
   };
   const inspect=async(kind,name)=>{const raw=await docker([kind,'inspect',name],{allowMissing:true});if(raw===null)return null;try{const rows=JSON.parse(raw);if(!Array.isArray(rows)||rows.length!==1)throw Error();return rows[0];}catch{throw fail('SYSTEM_INSTALL_INSPECT_INVALID');}};
-  const labels={'dvaia.system.workspace':p.workspaceId,'dvaia.system.authority':p.dockerAuthoritySha256,'dvaia.system.source':p.source.sha256};
+  const labels={'owasp-ai-goat.system.workspace':p.workspaceId,'owasp-ai-goat.system.authority':p.dockerAuthoritySha256,'owasp-ai-goat.system.source':p.source.sha256};
   const labelArgs=Object.entries(labels).flatMap(([k,v])=>['--label',`${k}=${v}`]);
-  const temp=await fsp.mkdtemp(path.join(os.tmpdir(),'dvaia-system-install-'));await fsp.chmod(temp,0o700);const tempIdentity=await fsp.lstat(temp);const secrets=[];
+  const temp=await fsp.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-system-install-'));await fsp.chmod(temp,0o700);const tempIdentity=await fsp.lstat(temp);const secrets=[];
   try {
-    const existing=managed.load({filePath:p.managedPath});const tag=`dvaia-owned-system-${p.workspaceId}:local`;
+    const existing=managed.load({filePath:p.managedPath});const tag=`owasp-ai-goat-owned-system-${p.workspaceId}:local`;
     let image=await inspect('image',existing?.imageId||tag);
     if(!image&&existing)throw fail('SYSTEM_INSTALL_STAGED_IMAGE_MISSING');
     if(!image){
@@ -157,7 +157,7 @@ async function provision(options={}) {
     }
     if(!image||!/^sha256:[a-f0-9]{64}$/.test(image.Id)||image.Architecture!=='arm64'||image.Os!=='linux'
       ||Object.entries(labels).some(([k,v])=>image.Config?.Labels?.[k]!==v)||image.Config?.User!=='10001:10001'
-      ||!equal(image.Config.Entrypoint,['/usr/local/bin/node','/opt/dvaia-owned-system/local-listener-entry.js'])
+      ||!equal(image.Config.Entrypoint,['/usr/local/bin/node','/opt/owasp-ai-goat-owned-system/local-listener-entry.js'])
       ||image.Config.Cmd?.length||image.Config.Volumes&&Object.keys(image.Config.Volumes).length)throw fail('SYSTEM_INSTALL_IMAGE_CONFLICT');
     if(options.imageId&&options.imageId!==image.Id)throw fail('SYSTEM_INSTALL_IMAGE_CONFLICT');
     const value=existing||managed.validate({version:1,workspaceId:p.workspaceId,enabled:false,architecture:'arm64',dockerAuthoritySha256:p.dockerAuthoritySha256,
@@ -166,13 +166,13 @@ async function provision(options={}) {
       ...(p.uploadPreview?{uploadPreview:{...p.uploadPreview,token:crypto.randomBytes(48).toString('base64url')}}:{})});
     if(existing?.enabled && options.reconcileEnabled!==true)throw fail('SYSTEM_INSTALL_ALREADY_ACTIVE');
     if(!value.enabled)managed.stage({filePath:p.managedPath,value});
-    const resourceLabels={...labels,'dvaia.system.source':value.resourceSourceManifestSha256||value.sourceManifestSha256};
+    const resourceLabels={...labels,'owasp-ai-goat.system.source':value.resourceSourceManifestSha256||value.sourceManifestSha256};
     const resourceLabelArgs=Object.entries(resourceLabels).flatMap(([k,v])=>['--label',`${k}=${v}`]);
-    const network=`dvaia-owned-system-${p.workspaceId}-bridge`;
+    const network=`owasp-ai-goat-owned-system-${p.workspaceId}-bridge`;
     let net=await inspect('network',network);
     if(!net){try{await docker(['network','create',...resourceLabelArgs,network]);}catch{}net=await inspect('network',network);}
     if(!net||net.Name!==network||net.Driver!=='bridge'||net.Internal!==false||Object.entries(resourceLabels).some(([k,v])=>net.Labels?.[k]!==v))throw fail('SYSTEM_INSTALL_NETWORK_CONFLICT');
-    const restartVolume=`dvaia-owned-system-${p.workspaceId}-restart-state`;let volume=await inspect('volume',restartVolume);if(!volume){try{await docker(['volume','create',...resourceLabelArgs,'--label','dvaia.system.mode=restart-state',restartVolume]);}catch{}volume=await inspect('volume',restartVolume);}if(!volume||volume.Name!==restartVolume||Object.entries(resourceLabels).some(([k,v])=>volume.Labels?.[k]!==v)||volume.Labels?.['dvaia.system.mode']!=='restart-state')throw fail('SYSTEM_INSTALL_VOLUME_CONFLICT');
+    const restartVolume=`owasp-ai-goat-owned-system-${p.workspaceId}-restart-state`;let volume=await inspect('volume',restartVolume);if(!volume){try{await docker(['volume','create',...resourceLabelArgs,'--label','owasp-ai-goat.system.mode=restart-state',restartVolume]);}catch{}volume=await inspect('volume',restartVolume);}if(!volume||volume.Name!==restartVolume||Object.entries(resourceLabels).some(([k,v])=>volume.Labels?.[k]!==v)||volume.Labels?.['owasp-ai-goat.system.mode']!=='restart-state')throw fail('SYSTEM_INSTALL_VOLUME_CONFLICT');
     const readiness={};
     for(const mode of managed.modesFor(value)){
       let found=await inspect('container',value[mode].container);
@@ -180,8 +180,8 @@ async function provision(options={}) {
         const envFile=path.join(temp,mode+'.env'),prefix=mode==='uploadPreview'?'SECURESHOP_UPLOAD_PREVIEW':'SECURESHOP_SYSTEM_'+mode.toUpperCase();
         await fsp.writeFile(envFile,`${prefix}_HTTP_ENABLED=true\n${prefix}_TOKEN=${value[mode].token}\n${prefix}_HOST=0.0.0.0\n${prefix}_PORT=8090\n`,{mode:0o600,flag:'wx'});
         secrets.push({path:envFile,stat:await fsp.lstat(envFile)});
-        const modeTmpfs=mode==='uploadPreview'?['--tmpfs','/var/lib/dvaia-owned-upload-preview:rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001']:mode==='restart'?['--tmpfs','/owned-restart:rw,nosuid,nodev,size=8m,mode=0700,uid=10001,gid=10001','--mount',`type=volume,source=${restartVolume},target=/var/lib/dvaia-owned-restart`]:[];
-        try{await docker(['create','--name',value[mode].container,...labelArgs,'--label','dvaia.system.mode='+mode,
+        const modeTmpfs=mode==='uploadPreview'?['--tmpfs','/var/lib/owasp-ai-goat-owned-upload-preview:rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001']:mode==='restart'?['--tmpfs','/owned-restart:rw,nosuid,nodev,size=8m,mode=0700,uid=10001,gid=10001','--mount',`type=volume,source=${restartVolume},target=/var/lib/owasp-ai-goat-owned-restart`]:[];
+        try{await docker(['create','--name',value[mode].container,...labelArgs,'--label','owasp-ai-goat.system.mode='+mode,
           '--network',network,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128',
           '--tmpfs','/tmp:rw,nosuid,nodev,size=128m',...modeTmpfs,'--security-opt','seccomp=unconfined','--security-opt','apparmor='+p.profile.name,
           '--publish',`127.0.0.1:${new URL(value[mode].url).port}:8090`,'--env-file',envFile,image.Id,mode==='uploadPreview'?'upload-preview':mode]);}catch{}
@@ -246,19 +246,19 @@ async function startExisting(options={}) {
       throw fail('SYSTEM_START_STATE_CHANGED');
   };
   const image=await inspect('image',value.imageId);
-  const labels={'dvaia.system.workspace':p.workspaceId,'dvaia.system.authority':p.dockerAuthoritySha256,'dvaia.system.source':p.source.sha256};
+  const labels={'owasp-ai-goat.system.workspace':p.workspaceId,'owasp-ai-goat.system.authority':p.dockerAuthoritySha256,'owasp-ai-goat.system.source':p.source.sha256};
   if(image.Id!==value.imageId||image.Architecture!=='arm64'||image.Os!=='linux'
     ||Object.entries(labels).some(([key,expected])=>image.Config?.Labels?.[key]!==expected)
     ||image.Config?.User!=='10001:10001'
-    ||!equal(image.Config.Entrypoint,['/usr/local/bin/node','/opt/dvaia-owned-system/local-listener-entry.js'])
+    ||!equal(image.Config.Entrypoint,['/usr/local/bin/node','/opt/owasp-ai-goat-owned-system/local-listener-entry.js'])
     ||image.Config.Cmd?.length||image.Config.Volumes&&Object.keys(image.Config.Volumes).length)
     throw fail('SYSTEM_START_IMAGE_CONFLICT');
-  const resourceLabels={...labels,'dvaia.system.source':value.resourceSourceManifestSha256||value.sourceManifestSha256};
-  const network=`dvaia-owned-system-${p.workspaceId}-bridge`,net=await inspect('network',network);
+  const resourceLabels={...labels,'owasp-ai-goat.system.source':value.resourceSourceManifestSha256||value.sourceManifestSha256};
+  const network=`owasp-ai-goat-owned-system-${p.workspaceId}-bridge`,net=await inspect('network',network);
   if(net.Name!==network||net.Driver!=='bridge'||net.Internal!==false
     ||Object.entries(resourceLabels).some(([key,expected])=>net.Labels?.[key]!==expected))throw fail('SYSTEM_START_NETWORK_CONFLICT');
-  const restartVolume=`dvaia-owned-system-${p.workspaceId}-restart-state`,volume=await inspect('volume',restartVolume);
-  if(volume.Name!==restartVolume||volume.Labels?.['dvaia.system.mode']!=='restart-state'
+  const restartVolume=`owasp-ai-goat-owned-system-${p.workspaceId}-restart-state`,volume=await inspect('volume',restartVolume);
+  if(volume.Name!==restartVolume||volume.Labels?.['owasp-ai-goat.system.mode']!=='restart-state'
     ||Object.entries(resourceLabels).some(([key,expected])=>volume.Labels?.[key]!==expected))throw fail('SYSTEM_START_VOLUME_CONFLICT');
   const accepted=[];
   for(const mode of managed.modesFor(value)){

@@ -50,7 +50,7 @@ async function prepareSetupPrivateDirectory({ homeDirectory, directory, id,
   try {
     const { normalizePrivatePath } = require('./lib/windows-private-state');
     const home = normalizePrivatePath(homeDirectory);
-    const privateBase = normalizePrivatePath(path.win32.join(home, '.dvaia'));
+    const privateBase = normalizePrivatePath(path.win32.join(home, '.owasp-ai-goat'));
     if (!/^[a-f0-9]{12}$/.test(id) || normalizePrivatePath(directory) !== path.win32.join(privateBase, id)) throw Error();
     const native = privateState || require('./lib/windows-private-state');
     // Each call creates only its requested private leaf. Ordinary home parents
@@ -343,7 +343,7 @@ async function ensureReviewRenderer({ root, env = process.env, runCommand = run,
   if (platform === 'win32' && !admittedNpm) admittedNpm = await require('./lib/setup-npm-admission').admitSetupNpm({ environment: env, execute, platform });
   await runCommand(admittedNpm?.command || 'npm', [...(admittedNpm?.prefix || []), 'run', 'build:review-renderer'], path.join(root, 'client'), npmRuntimeEnvironment(admittedNpm, env, platform));
   const renderer = loadRenderer({ root: setupRendererRoot(root, env, 'SECURESHOP_REVIEW_RENDERER_ROOT', 'secureshop-review-renderer') });
-  const body = 'DVAIA installation renderer verification';
+  const body = 'OWASP-AI-GOAT installation renderer verification';
   const markup = await renderer.renderReviewCard({ id: 1, body, rating: 5,
     author_id: 1, product_id: 1, status: 'published', created_at: '2026-01-01T00:00:00Z' });
   if (typeof markup !== 'string' || !markup.includes(body)) {
@@ -365,7 +365,7 @@ async function ensureProductDescriptionRenderer({ root, env = process.env, runCo
       || typeof renderer.renderProductDescription !== 'function') {
     throw new SetupError('SecureShop product description renderer verification failed');
   }
-  const description = 'DVAIA installation product description verification';
+  const description = 'OWASP-AI-GOAT installation product description verification';
   const markup = await renderer.renderProductDescription({ id: 1, description_html: description });
   if (typeof markup !== 'string' || !markup.includes(description)) {
     throw new SetupError('SecureShop product description renderer verification failed');
@@ -486,7 +486,7 @@ function ownedRunnerOptions({ platform = process.platform, environment = process
   if (platform === 'darwin') {
     return Object.freeze({
       platform,
-      colimaProfile: environment.DVAIA_MCP_OWNED_COLIMA_PROFILE || 'colima-default',
+      colimaProfile: environment.OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE || 'colima-default',
     });
   }
   return Object.freeze({ platform, colimaProfile: undefined });
@@ -552,13 +552,13 @@ function validateLocalPostgresState(state, binding) {
   catch { throw new SetupError('Local PostgreSQL setup state does not match this workspace'); }
 }
 function assertOwnedPostgresVolume(volume, { id }) {
-  if (volume && volume.Labels?.['org.dvaia.workspace'] !== id) {
+  if (volume && volume.Labels?.['org.owasp-ai-goat.workspace'] !== id) {
     throw new SetupError('An unowned PostgreSQL volume already exists; nothing was changed');
   }
 }
 function assertOwnedPostgresContainer(container, state, { id, name }) {
   if (!container) return;
-  if (container.Config?.Labels?.['org.dvaia.workspace'] !== id) {
+  if (container.Config?.Labels?.['org.owasp-ai-goat.workspace'] !== id) {
     throw new SetupError(`Container ${name} already exists without matching setup ownership; nothing was changed`);
   }
   const mount = container.Mounts?.find(item => item.Destination === '/var/lib/postgresql');
@@ -609,7 +609,7 @@ async function localPostgres({ directory, id, execute = exec, existingOnly = fal
       throw new SetupError('Owned Windows PostgreSQL requires its matching lab and forwarding owner.');
     }
   }
-  const name = `dvaia-postgres-${id}`;
+  const name = `owasp-ai-goat-postgres-${id}`;
   const statePath = storagePath.join(directory, 'local-postgres.json');
   if(filesystemPlatform==='win32'){try{privateState.inspectPrivateDirectory(directory);}catch{throw storageFailure();}}
   else await assertPrivateDirectory(directory, { uid, platform:filesystemPlatform });
@@ -674,7 +674,7 @@ async function localPostgres({ directory, id, execute = exec, existingOnly = fal
     if (!volume && existingOnly) throw new SetupError('The owned PostgreSQL volume is unavailable; additive upgrade did not create a replacement');
     if (!volume) {
       await verifyDockerAuthority({ authority, execute, environment });
-      await docker(['volume', 'create', '--label', `org.dvaia.workspace=${id}`, name]);
+      await docker(['volume', 'create', '--label', `org.owasp-ai-goat.workspace=${id}`, name]);
     }
     // The env file keeps passwords out of subprocess arguments and logs.
     const envPath = storagePath.join(directory, 'postgres-container.env');
@@ -695,7 +695,7 @@ async function localPostgres({ directory, id, execute = exec, existingOnly = fal
       bytes: expectedPasswordBytes, sha256: createHash('sha256').update(expectedPasswordBytes).digest('hex'),
     }) : envPath;
     await verifyDockerAuthority({ authority, execute, environment });
-    await docker(['run', '--detach', '--restart', 'unless-stopped', '--name', name, '--label', `org.dvaia.workspace=${id}`,
+    await docker(['run', '--detach', '--restart', 'unless-stopped', '--name', name, '--label', `org.owasp-ai-goat.workspace=${id}`,
       '--env-file', dockerEnvPath, '--publish', `127.0.0.1:${state.port}:5432`,
       '--mount', `type=volume,src=${name},dst=/var/lib/postgresql`, 'postgres:18']);
   } else if (!existing.State.Running) {
@@ -755,7 +755,7 @@ async function setup({
   root = await fs.realpath(root);
   const envPath = path.join(root, '.env');
   const id = workspaceId(root);
-  const directory = path.join(homeDirectory, '.dvaia', id);
+  const directory = path.join(homeDirectory, '.owasp-ai-goat', id);
   const qualifiedState = upgrade
     ? require('../server/services/secureshopQualifiedManagedConfiguration').load({root,home:homeDirectory}) : {};
   const analyticsState = await require('../server/services/secureshopAnalyticsManagedConfiguration').readManagedAnalyticsConfiguration({root,homeDirectory});
@@ -947,7 +947,7 @@ function createSetupUpgradeEnvironmentAppender({ root, directory, id }, {
         const result = Buffer.concat([originalBytes, Buffer.from(separator + encodedAdditions)]);
         if (result.length > 1024 * 1024) throw Object.assign(new SetupError('Private upgrade publication unavailable'), { code: 'UPGRADE_PRIVATE_STATE_INVALID' });
         const digest = createHash('sha256').update(JSON.stringify([
-          'dvaia.setup.additive-environment.v1', root, directory, id, purpose,
+          'owasp-ai-goat.setup.additive-environment.v1', root, directory, id, purpose,
           createHash('sha256').update(originalBytes).digest('hex'), createHash('sha256').update(result).digest('hex'),
         ])).digest('hex');
         const operationId = `${digest.slice(0,8)}-${digest.slice(8,12)}-4${digest.slice(13,16)}-a${digest.slice(17,20)}-${digest.slice(20,32)}`;
@@ -1017,7 +1017,7 @@ async function executeSetupDatabasePhase(request, maintenanceScope, dependencies
     });
     Object.assign(reconciled.additions, delivery.additions);
     const mergedEnvironment = { ...processEnvironment, ...state.parsed, ...reconciled.additions,
-      DVAIA_APP_DATA_ROOT: appDataRoot };
+      OWASP_AI_GOAT_APP_DATA_ROOT: appDataRoot };
     setPhaseEnvironment(mergedEnvironment);
     // Existing stores also need pending forward-only migrations and default-only
     // seeds. Missing URL pairs describe provisioning additions, not schema age.
@@ -1099,7 +1099,7 @@ async function executeSetupDatabasePhase(request, maintenanceScope, dependencies
     GMAIL_USER: processEnvironment.GMAIL_USER || '',
     GMAIL_APP_PASSWORD: processEnvironment.GMAIL_APP_PASSWORD || '',
     IPI_EMAIL_PROVIDER: requestedEmailProvider === 'gmail' ? 'gmail' : 'mailpit',
-    IPI_MAIL_DOMAIN: 'dvaia.invalid', IPI_MAIL_FROM: 'indirectpromptinjection@dvaia.invalid',
+    IPI_MAIL_DOMAIN: 'owasp-ai-goat.invalid', IPI_MAIL_FROM: 'indirectpromptinjection@owasp-ai-goat.invalid',
     MAILPIT_SMTP_HOST: localMailpit?.smtpHost || '127.0.0.1',
     MAILPIT_SMTP_PORT: String(localMailpit?.smtpPort || 1025),
     MAILPIT_API_URL: localMailpit?.apiUrl || 'http://127.0.0.1:8025',
@@ -1109,7 +1109,7 @@ async function executeSetupDatabasePhase(request, maintenanceScope, dependencies
     environment: { ...processEnvironment, ...applicationEnv }, directory, execute: true,
   }, { platform });
   Object.assign(applicationEnv, uploadAssets.configuration);
-  if (platform === 'darwin') applicationEnv.DVAIA_MCP_OWNED_COLIMA_PROFILE = ownedRunnerOptions({ platform, environment: processEnvironment }).colimaProfile;
+  if (platform === 'darwin') applicationEnv.OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE = ownedRunnerOptions({ platform, environment: processEnvironment }).colimaProfile;
   const {policyRenderer,additions:policyRendererEnvironment} = await prepareOwnedPolicyRendererForSetup({requested:ownedPolicyRenderer,activate:enableOwnedPolicyRenderer,root,homeDirectory,platform,processEnvironment,provision:provisionOwnedPolicyRenderer});
   maintenanceScope.assertHeld();
   Object.assign(applicationEnv,policyRendererEnvironment);
@@ -1119,11 +1119,11 @@ async function executeSetupDatabasePhase(request, maintenanceScope, dependencies
     root, directory, id, envPath, environment: applicationEnv,
   });
   Object.assign(applicationEnv, environmentPublication.environment);
-  setPhaseEnvironment({ ...processEnvironment, ...applicationEnv, DVAIA_APP_DATA_ROOT: appDataRoot });
+  setPhaseEnvironment({ ...processEnvironment, ...applicationEnv, OWASP_AI_GOAT_APP_DATA_ROOT: appDataRoot });
   await initializeApplication({ maintenanceScope });
   // Missing generated teaching artifacts are an explicit fresh-install step.
   await runCommand(process.execPath, ['server/database/sensitiveInfoFiles.js', '--initialize-missing'], root,
-    { ...processEnvironment, ...applicationEnv, DVAIA_APP_DATA_ROOT: appDataRoot });
+    { ...processEnvironment, ...applicationEnv, OWASP_AI_GOAT_APP_DATA_ROOT: appDataRoot });
   maintenanceScope.assertHeld();
   const pool = require('../server/database/postgres').createPool(applicationEnv, 'IDENTITY_MIGRATION_DATABASE_URL');
   try { await require('../db/postgres/bootstrap-admin').bootstrapAdmin({ pool, ...administrator, initialTrainingProfile: true }); }
@@ -1242,7 +1242,7 @@ if (require.main === module) {
     if(args.includes('--repair')) console.log('Existing-install repair: verify the private environment and provisioning manifest, install locked application/client dependencies, install a missing Puppeteer browser, rebuild/verify renderers, verify LangChain/LangGraph, local llama3.1:8b generation and the embedding cache, then run the supported additive database phase. Preserve administrator credentials, environment values and learner data. Plan makes no changes.');
     console.log(args.includes('--upgrade') || args.includes('--repair')
       ? `Additive upgrade: require the existing private environment and provisioning manifest; bind local PostgreSQL and ordinary MCP sidecars to a verified local Docker daemon unless externally managed; preserve all credentials and settings; provision appended PostgreSQL stores and apply pending migrations/default-only seeds to every configured store; atomically append their configuration; validate the configured private password-reset recovery key or provision it once and append its path when absent. ${args.includes('--repair') ? 'Repair additionally prepares local dependencies, browser and model before this database phase.' : 'No packages, model, browser, administrator, AWS assets or existing data are changed.'}`
-      : 'Fresh setup: preserve existing .env; install locked application/client dependencies including LangChain and LangGraph; verify or pull llama3.1:8b from the platform-installed Ollama service; download/cache and verify the document embedding model with trusted TLS; verify a sandboxed browser; bind local PostgreSQL and ordinary MCP sidecars to a verified local Docker daemon; provision and readiness-check the pinned loopback Mailpit API/SMTP service unless IPI_EMAIL_PROVIDER=gmail is explicit; use explicit PG_ADMIN_DATABASE_URL or a dedicated local Docker PostgreSQL18; provision16 isolated databases; initialize schemas/seeds; create private .env; install and activate the separately bound owned MCP/CodeBot runner and owned HTTP service only after strict schema and local readiness passes (Linux locally; macOS uses DVAIA_MCP_OWNED_COLIMA_PROFILE or colima-default). No AWS assets or existing data are changed.');
+      : 'Fresh setup: preserve existing .env; install locked application/client dependencies including LangChain and LangGraph; verify or pull llama3.1:8b from the platform-installed Ollama service; download/cache and verify the document embedding model with trusted TLS; verify a sandboxed browser; bind local PostgreSQL and ordinary MCP sidecars to a verified local Docker daemon; provision and readiness-check the pinned loopback Mailpit API/SMTP service unless IPI_EMAIL_PROVIDER=gmail is explicit; use explicit PG_ADMIN_DATABASE_URL or a dedicated local Docker PostgreSQL18; provision16 isolated databases; initialize schemas/seeds; create private .env; install and activate the separately bound owned MCP/CodeBot runner and owned HTTP service only after strict schema and local readiness passes (Linux locally; macOS uses OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE or colima-default). No AWS assets or existing data are changed.');
     }
     } catch { console.error('Windows host preflight unavailable; setup plan made no changes.'); process.exitCode = 1; }
   } else setup({ ownedMcpRegistry:args.includes('--owned-mcp-registry'), enableOwnedMcpRegistry:args.includes('--enable-owned-mcp-registry'), ownedPolicyRenderer:args.includes('--owned-policy-renderer'), enableOwnedPolicyRenderer:args.includes('--enable-owned-policy-renderer'), ownedListingTemplate:args.includes('--owned-listing-template'), enableOwnedListingTemplate:args.includes('--enable-owned-listing-template'), install: !args.includes('--no-install'), upgrade: args.includes('--upgrade') || args.includes('--repair'), repair: args.includes('--repair'), ownedListings:args.includes('--owned-listings'), enableOwnedListings:args.includes('--enable-owned-listings'), ownedSystem:args.includes('--owned-system'), ownedPricing:args.includes('--owned-pricing'), ownedAnalytics:args.includes('--owned-analytics'), ownedCoupons:args.includes('--owned-coupons'), enableOwnedAnalytics:args.includes('--enable-owned-analytics'), qualifiedSecureShop:args.includes('--qualified-secureshop') }).catch(error => {

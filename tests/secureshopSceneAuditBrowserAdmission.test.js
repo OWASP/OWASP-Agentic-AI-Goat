@@ -13,11 +13,11 @@ function fixture(t){
  t.after(()=>fs.rmSync(run,{recursive:true,force:true}));
  const runtime=path.join(run,'runtime'),tmp=path.join(runtime,'tmp');
  fs.mkdirSync(tmp,{recursive:true,mode:0o700});
- const profile=fs.mkdtempSync(path.join(tmp,'dvaia-scene-audit-v15-'));
+ const profile=fs.mkdtempSync(path.join(tmp,'owasp-ai-goat-scene-audit-v15-'));
  const evidencePath=path.join(run,'scene-audit-v15-browser.json');
  const env={SECURESHOP_SCENE_AUDIT_TEST_NO_SANDBOX:'1',SECURESHOP_SCENE_AUDIT_BROWSER_NATIVE:'1',
   PG_TEST_DISPOSABLE:'yes',LIVE_OLLAMA_TEST:'1',NODE_ENV:'test',
-  DVAIA_CURRENT_MAIN_WORKSPACE:root,TMPDIR:tmp,
+  OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:root,TMPDIR:tmp,
   SECURESHOP_SCENE_AUDIT_BROWSER_RECORD_PATH:path.join(run,'scene-audit-v15-browser-birth.json'),
   SECURESHOP_SCENE_AUDIT_BROWSER_ACK_PATH:path.join(run,'scene-audit-v15-browser-ack.json'),
   SECURESHOP_SCENE_AUDIT_BROWSER_SHA256:'a'.repeat(64),
@@ -51,7 +51,7 @@ test('V15 physical browser birth is admitted before any page and keeps other coh
  const ack=source.indexOf('await sceneAdmission.acknowledgeSceneAuditBrowser',launch);
  const page=source.indexOf('await browser.newPage()',launch);
  assert(launch>0&&ack>launch&&page>ack);
- assert.match(source,/v15\s*\? 'dvaia-scene-audit-v15-' : 'dvaia-admin-audit-jobs-'/);
+ assert.match(source,/v15\s*\? 'owasp-ai-goat-scene-audit-v15-' : 'owasp-ai-goat-admin-audit-jobs-'/);
  assert.match(source,/v15 \? sceneAdmission\.sceneAuditBrowserArgs\(process\.env/);
  assert.match(source,/collection \? collectionBrowserArgs\(process\.env/);
  assert.match(source,/physicalButton\(frame, 'Save changes'\)[\s\S]*?physicalButton\(frame, 'Confirm edit'\)/);

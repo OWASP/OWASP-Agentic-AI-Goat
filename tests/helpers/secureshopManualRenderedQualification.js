@@ -189,8 +189,8 @@ async function runSecureShopManualRenderedQualification({ app, base, composition
   assert.equal(parsedBase.pathname, '/api/secureshop');
   assert.ok(['127.0.0.1', 'localhost'].includes(parsedBase.hostname));
   const origin = parsedBase.origin;
-  const workspace = fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-secureshop-bound-review-composition-/);
+  const workspace = fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-secureshop-bound-review-composition-/);
   const build = path.join(workspace, 'client/build');
   assert.ok(fs.statSync(path.join(build, 'index.html')).isFile(), 'frozen client build required');
   assert.ok(fs.statSync(path.join(build, 'secureshop-frame.html')).isFile(),

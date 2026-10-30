@@ -21,14 +21,14 @@ function ensureWindowsApplicationDataRoot({ workspace, environment, homeDirector
   try {
     const normalize = windowsPrivateState.normalizePrivatePath;
     const canonicalWorkspace = normalize(realpath(normalize(workspace)));
-    const configured = environment.DVAIA_APP_DATA_ROOT;
+    const configured = environment.OWASP_AI_GOAT_APP_DATA_ROOT;
     let target;
     let defaultParents = [];
     if (configured !== undefined && configured !== '') {
       target = normalize(configured);
     } else {
       const canonicalHome = normalize(realpath(normalize(homeDirectory)));
-      const privateBase = path.win32.join(canonicalHome, '.dvaia');
+      const privateBase = path.win32.join(canonicalHome, '.owasp-ai-goat');
       const workspaceDirectory = path.win32.join(privateBase, workspaceId(canonicalWorkspace,
         { realpath: () => canonicalWorkspace }));
       target = normalize(path.win32.join(workspaceDirectory, 'app-data'));
@@ -46,7 +46,7 @@ function ensureWindowsApplicationDataRoot({ workspace, environment, homeDirector
     // ordinary parents to already exist. Never repair an existing unsafe ACL.
     for (const directory of [...defaultParents, target]) privateState.ensurePrivateDirectory(directory);
     for (const directory of [...defaultParents, target]) privateState.inspectPrivateDirectory(directory);
-    environment.DVAIA_APP_DATA_ROOT = target;
+    environment.OWASP_AI_GOAT_APP_DATA_ROOT = target;
     return target;
   } catch (error) {
     if (error instanceof ApplicationDataRootError) throw error;
@@ -115,13 +115,13 @@ function ensureApplicationDataRoot({
   try { canonicalWorkspace = fs.realpathSync(workspace); }
   catch { throw new ApplicationDataRootError('Application workspace is unavailable'); }
 
-  const configured = environment.DVAIA_APP_DATA_ROOT;
+  const configured = environment.OWASP_AI_GOAT_APP_DATA_ROOT;
   let target;
   let defaultParents = [];
   if (configured !== undefined && configured !== '') {
     if (typeof configured !== 'string' || configured.includes('\0') || !path.isAbsolute(configured)
       || path.normalize(configured) !== configured) {
-      throw new ApplicationDataRootError('DVAIA_APP_DATA_ROOT must be a canonical absolute path');
+      throw new ApplicationDataRootError('OWASP_AI_GOAT_APP_DATA_ROOT must be a canonical absolute path');
     }
     target = configured;
   } else {
@@ -131,7 +131,7 @@ function ensureApplicationDataRoot({
     let canonicalHome;
     try { canonicalHome = fs.realpathSync(homeDirectory); }
     catch { throw new ApplicationDataRootError('Application home directory is unavailable'); }
-    const privateBase = path.join(canonicalHome, '.dvaia');
+    const privateBase = path.join(canonicalHome, '.owasp-ai-goat');
     const workspaceDirectory = path.join(privateBase, workspaceId(canonicalWorkspace));
     target = path.join(workspaceDirectory, 'app-data');
     defaultParents = [privateBase, workspaceDirectory];
@@ -153,7 +153,7 @@ function ensureApplicationDataRoot({
   if (!configured) {
     for (const parent of defaultParents) assertPrivateOwnedDirectory(parent, uid);
   }
-  environment.DVAIA_APP_DATA_ROOT = target;
+  environment.OWASP_AI_GOAT_APP_DATA_ROOT = target;
   return target;
 }
 

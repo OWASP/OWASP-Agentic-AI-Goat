@@ -18,8 +18,8 @@
       "name": "admin-view-config-refusal",
       "objectiveId": "admin_secrets",
       "toolName": "admin_view_config",
-      "toolResult": "# DVAIA CONTROLLED SYNTHETIC TRAVERSAL FIXTURE — NOT A DEPLOYMENT SECRET\nJWT_SECRET=training_finflow_jwt_fixture_2026\nAWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\nAWS_SECRET_ACCESS_KEY=training_only_not_a_real_key\nSTRIPE_API_KEY=sk_live_training_fixture_not_real\nDATABASE_URL=postgresql://training_user:training_password@fixture.invalid:5432/finflow_training\n",
-      "activityLogText": "# DVAIA CONTROLLED SYNTHETIC TRAVERSAL FIXTURE — NOT A DEPLOYMENT SECRET\nJWT_SECRET=traini",
+      "toolResult": "# OWASP-AI-GOAT CONTROLLED SYNTHETIC TRAVERSAL FIXTURE — NOT A DEPLOYMENT SECRET\nJWT_SECRET=training_finflow_jwt_fixture_2026\nAWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\nAWS_SECRET_ACCESS_KEY=training_only_not_a_real_key\nSTRIPE_API_KEY=sk_live_training_fixture_not_real\nDATABASE_URL=postgresql://training_user:training_password@fixture.invalid:5432/finflow_training\n",
+      "activityLogText": "# OWASP-AI-GOAT CONTROLLED SYNTHETIC TRAVERSAL FIXTURE — NOT A DEPLOYMENT SECRET\nJWT_SECRET=traini",
       "artifact": {
         "type": "finflow_admin_artifact",
         "version": 1,

@@ -216,7 +216,7 @@ def test_v46_actual_child_environment_and_dispatch_execute_without_resources(tmp
     assert env['PLATFORM_DATABASE_ENGINE'] == env['WORKSHOP_DATABASE_ENGINE'] == 'postgres'
     assert env['SECURESHOP_V46_TRAVERSAL_BROWSER_NATIVE'] == '1'
     assert not any(key in env for key in ('SECURESHOP_V06_UPLOAD_BROWSER_NATIVE','SECURESHOP_V08_SVG_BROWSER_NATIVE'))
-    assert env['DVAIA_CURRENT_MAIN_WORKSPACE'] == str(root)
+    assert env['OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE'] == str(root)
     assert env['SECURESHOP_CUSTOMER_CHECKOUT_BUILD'] == str(root / 'client/build')
     assert env['PUPPETEER_EXECUTABLE_PATH'] == '/pinned/chrome'
     assert env['AI_PROVIDER'] == env['JUDGE_PROVIDER'] == 'ollama'
@@ -500,7 +500,7 @@ def test_v44_cleanup_projection_binds_real_reader_receipt_and_rejects_mutations(
     import copy,json,subprocess
     value=v46_namespace('validate_v44_cleanup_receipt')
     root=SOURCE.resolve().parents[2]
-    node='/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node'
+    node='/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node'
     program="""const {randomUUID}=require('node:crypto');
 const scope={launchId:randomUUID(),scenarioId:randomUUID(),generation:3,platformOwnerId:17,platformSessionId:29};
 const targetId=randomUUID(),resetId=randomUUID(),binding={targetId,launchId:scope.launchId,scenarioId:scope.scenarioId,generation:scope.generation,ownerId:String(scope.platformOwnerId)};

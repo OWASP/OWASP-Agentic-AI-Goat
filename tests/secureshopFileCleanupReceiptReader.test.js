@@ -9,7 +9,7 @@ const { createSecureShopFiles } = require('../sidecars/sandbox-runner/secureshop
 const { createSecureShopFileCleanupReceiptReader } = require('../server/services/secureshopFileCleanupReceiptReader');
 
 async function fixture(t) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-file-receipt-adapter-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-file-receipt-adapter-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const scope = Object.freeze({ targetKind: 'files', targetId: randomUUID(), launchId: randomUUID(),
     scenarioId: randomUUID(), fromGeneration: 4, platformOwnerId: 17, platformSessionId: 29,

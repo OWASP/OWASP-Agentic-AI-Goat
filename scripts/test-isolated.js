@@ -15,7 +15,7 @@ const mode = process.argv[2] || 'unit';
 if (mode === 'native-operator') {
   if (process.platform !== 'darwin') throw new Error('Native operator qualification is supported only on Darwin');
   if (process.argv.length !== 3) throw new Error('Native operator qualification accepts no extra arguments');
-  const directory = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-native-operator-')));
+  const directory = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-native-operator-')));
   fs.chmodSync(directory, 0o700);
   const env = {PATH:path.dirname(process.execPath), HOME:directory, TMPDIR:directory, LOGS_DIR:directory,
     NODE_ENV:'test', AI_PROVIDER:'mock', AWS_EC2_METADATA_DISABLED:'true'};
@@ -69,7 +69,7 @@ const serverRequired = new Set(['api.test.js', 'ctfHintCost.smoke.test.js', 'pro
 if (focusedFiles?.some(filename => serverRequired.has(path.basename(filename)))) {
   throw new Error('Server-required tests need their separate owned integration harness');
 }
-const destination = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-regression-')));
+const destination = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-regression-')));
 fs.chmodSync(destination, 0o700);
 
 const env = Object.fromEntries(['PATH', 'HOME', 'USERPROFILE', 'SYSTEMROOT', 'COMSPEC', 'TEMP', 'TMP', 'TMPDIR', 'PUPPETEER_EXECUTABLE_PATH', 'PUPPETEER_CACHE_DIR'].filter(key => process.env[key]).map(key => [key, process.env[key]]));
@@ -83,7 +83,7 @@ Object.assign(env, { NODE_ENV: 'test', AI_PROVIDER: 'mock', OLLAMA_MODEL: 'llama
   SANDBOX_RUNNER_URL: 'http://127.0.0.1:1', SSRF_TARGET_URL: 'http://127.0.0.1:1',
   ROGUE_MCP_URL: 'http://127.0.0.1:1', MAILPIT_API_URL: 'http://127.0.0.1:1',
   MAILPIT_SMTP_HOST: '127.0.0.1', MAILPIT_SMTP_PORT: '1',
-  DVAIA_ISOLATED_TEST_WORKSPACE: source,
+  OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE: source,
   AWS_EC2_METADATA_DISABLED: 'true', MCP_WORKSHOP_AUTOSTART: 'false', MCP_SIDECARS_AUTOSTART: 'false', SS_ENABLE: 'false', HF_HUB_OFFLINE: '1' });
 
 Object.assign(env, artifactEnvironment(destination));

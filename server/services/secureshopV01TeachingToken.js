@@ -3,7 +3,7 @@
 const { createHmac, hkdfSync, timingSafeEqual } = require('node:crypto');
 const { createLaunchScope } = require('./secureshopConversationBinding');
 
-const ISSUER = 'dvaia-secureshop-v01-practice';
+const ISSUER = 'owasp-ai-goat-secureshop-v01-practice';
 const AUDIENCE = 'owned-checkout-audit-read';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const KEYS = ['iss','aud','sub','role','orderId','bindingTag'];
@@ -35,13 +35,13 @@ function createV01TeachingTokenAuthority({ secretMaterial } = {}) {
     const salt = Buffer.from(JSON.stringify([c.targetId,c.launchId,c.scenarioId,c.generation,
       c.platformOwnerId,c.platformSessionId]), 'utf8');
     return Buffer.from(hkdfSync('sha256', privateMaterial, salt,
-      Buffer.from('dvaia/secureshop/v01/checkout-audit-teaching-jwt/v1'), 32));
+      Buffer.from('owasp-ai-goat/secureshop/v01/checkout-audit-teaching-jwt/v1'), 32));
   }
   function claims(c, role) {
     // The public token only carries an opaque binding. Launch, owner, session,
     // generation and target coordinates stay private in the derived key.
     const bindingTag = createHmac('sha256', key(c))
-      .update('dvaia/secureshop/v01/public-binding-tag/v1').digest('base64url');
+      .update('owasp-ai-goat/secureshop/v01/public-binding-tag/v1').digest('base64url');
     return { iss: ISSUER, aud: AUDIENCE, sub: `shop-user:${c.shopUserId}`, role,
       orderId: c.orderId, bindingTag };
   }

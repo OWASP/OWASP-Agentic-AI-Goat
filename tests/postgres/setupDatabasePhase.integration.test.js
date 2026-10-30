@@ -76,15 +76,15 @@ test('real setup phase fresh/populated/no-op, lease exclusion and owned cancella
   const relativeEvidence=path.relative(sourceRoot,evidence);assert.equal(relativeEvidence==='..'||relativeEvidence.startsWith('..'+path.sep),true,'private installation must be outside source');
   assert.equal(process.env.SETUP_PHASE_SCENARIO,'fresh-interruption');
   assert.equal(await fs.realpath(process.cwd()),await fs.realpath(sourceRoot));
-  assert.equal(await fs.realpath(process.env.DVAIA_ISOLATED_TEST_WORKSPACE),await fs.realpath(sourceRoot));
+  assert.equal(await fs.realpath(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE),await fs.realpath(sourceRoot));
   assert.equal(path.dirname(root),evidence);assert.equal(path.basename(root),'installation');
   const info=await fs.lstat(privateInstall);assert.equal(info.isDirectory()&&!info.isSymbolicLink()&&info.uid===process.getuid()&&(info.mode&0o777)===0o700,true);
   assert.deepEqual(await fs.readdir(root),[]);
- }else{assert.equal(root,await fs.realpath(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));assert.equal(path.dirname(root),evidence);}
- assert.match(path.basename(evidence),/^dvaia-setup-phase-/);
+ }else{assert.equal(root,await fs.realpath(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));assert.equal(path.dirname(root),evidence);}
+ assert.match(path.basename(evidence),/^owasp-ai-goat-setup-phase-/);
  const adminUrl=new URL(process.env.PG_ADMIN_DATABASE_URL);assert.equal(adminUrl.hostname,'127.0.0.1');assert.equal(adminUrl.pathname,'/postgres');
  await assert.rejects(fs.lstat(path.join(root,'.env')),{code:'ENOENT'});
- const home=path.join(evidence,'home'),id=createHash('sha256').update(root).digest('hex').slice(0,12),directory=path.join(home,'.dvaia',id);
+ const home=path.join(evidence,'home'),id=createHash('sha256').update(root).digest('hex').slice(0,12),directory=path.join(home,'.owasp-ai-goat',id);
  await fs.mkdir(directory,{recursive:true,mode:0o700});
  const guard=path.join(evidence,'network-guard.cjs');await fs.writeFile(guard,networkGuardSource({host:'127.0.0.1',port:adminUrl.port}),{mode:0o600});
  const environment={PATH:process.env.PATH,HOME:home,NODE_ENV:'test',PG_TLS:'disable',PG_POOL_BUDGET:'78',MCP_SIDECARS_AUTOSTART:'false',MCP_WORKSHOP_AUTOSTART:'false',AWS_EC2_METADATA_DISABLED:'true',HF_HUB_OFFLINE:'1',TRANSFORMERS_OFFLINE:'1',LOGS_DIR:path.join(evidence,'logs'),LEGACY_SENSITIVE_FILES_ROOT:path.join(evidence,'teaching'),NODE_OPTIONS:`--require=${guard}`};
@@ -200,20 +200,20 @@ test('real setup phase fresh/populated/no-op, lease exclusion and owned cancella
 test('real missing-store upgrade preserves prior learner and credentials then repeats no-op',{skip:!enabled||!['additive','additive-success'].includes(process.env.SETUP_PHASE_SCENARIO),timeout:600000},async()=>{
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');
  const root=await fs.realpath(process.cwd()),evidence=await fs.realpath(process.env.SETUP_PHASE_EVIDENCE_ROOT);
- assert.equal(root,await fs.realpath(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));assert.equal(path.dirname(root),evidence);assert.match(path.basename(evidence),/^dvaia-setup-phase-/);
+ assert.equal(root,await fs.realpath(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));assert.equal(path.dirname(root),evidence);assert.match(path.basename(evidence),/^owasp-ai-goat-setup-phase-/);
  const adminUrl=new URL(process.env.PG_ADMIN_DATABASE_URL);assert.equal(adminUrl.hostname,'127.0.0.1');assert.equal(adminUrl.pathname,'/postgres');
- const home=path.join(evidence,'home'),id=createHash('sha256').update(root).digest('hex').slice(0,12),directory=path.join(home,'.dvaia',id),envPath=path.join(root,'.env'),manifestPath=path.join(directory,'provisioning.json');
+ const home=path.join(evidence,'home'),id=createHash('sha256').update(root).digest('hex').slice(0,12),directory=path.join(home,'.owasp-ai-goat',id),envPath=path.join(root,'.env'),manifestPath=path.join(directory,'provisioning.json');
  await fs.mkdir(directory,{recursive:true,mode:0o700});await assert.rejects(fs.lstat(envPath),{code:'ENOENT'});
- const environment={PATH:process.env.PATH,HOME:home,NODE_ENV:'test',PG_TLS:'disable',MCP_SIDECARS_AUTOSTART:'false',AWS_EC2_METADATA_DISABLED:'true',DVAIA_APP_DATA_ROOT:path.join(evidence,'app-data'),LOGS_DIR:path.join(evidence,'logs')};
- for(const folder of [environment.DVAIA_APP_DATA_ROOT,environment.LOGS_DIR])await fs.mkdir(folder,{recursive:true,mode:0o700});
+ const environment={PATH:process.env.PATH,HOME:home,NODE_ENV:'test',PG_TLS:'disable',MCP_SIDECARS_AUTOSTART:'false',AWS_EC2_METADATA_DISABLED:'true',OWASP_AI_GOAT_APP_DATA_ROOT:path.join(evidence,'app-data'),LOGS_DIR:path.join(evidence,'logs')};
+ for(const folder of [environment.OWASP_AI_GOAT_APP_DATA_ROOT,environment.LOGS_DIR])await fs.mkdir(folder,{recursive:true,mode:0o700});
  const guard=path.join(evidence,'network-guard.cjs');await fs.writeFile(guard,networkGuardSource({host:'127.0.0.1',port:adminUrl.port}),{mode:0o600});environment.NODE_OPTIONS=`--require=${guard}`;
  const admin=new Client({connectionString:adminUrl.href}),plan=provisioningPlan(),prior=plan.slice(0,-1),configuration={},clients=[admin];
- const quote=value=>{assert.match(value,/^dvaia_[a-z_]+$/);return '"'+value+'"';};
+ const quote=value=>{assert.match(value,/^owasp_ai_goat_[a-z_]+$/);return '"'+value+'"';};
  let child;const result={passed:false,scenario:'additive',actualModel:false};
  try{
   await admin.connect();
   const cluster=(await admin.query('SELECT system_identifier::text FROM pg_control_system()')).rows[0].system_identifier;
-  assert.equal((await admin.query("SELECT count(*)::int n FROM pg_database WHERE datname LIKE 'dvaia_%'")).rows[0].n,0);
+  assert.equal((await admin.query("SELECT count(*)::int n FROM pg_database WHERE datname LIKE 'owasp_ai_goat_%'")).rows[0].n,0);
   for(const row of prior){
    for(const kind of ['migration','runtime']){
     const password=require('node:crypto').randomBytes(32).toString('hex'),role=row[kind+'Role'];
@@ -240,7 +240,7 @@ test('real missing-store upgrade preserves prior learner and credentials then re
   const before=await snapshot();let previous=Buffer.from(initial),clean=await cleanCheckpoint(identity);result.maintenanceEpochs=[clean.epoch];result.priorInitializedStores=15;
   for(let iteration=0;iteration<2;iteration++){
    const state=await require('../../scripts/application-upgrade').inspectUpgradeState({envPath,manifestPath,currentPlan:plan});
-   const context={root,directory,homeDirectory:home,envPath,id,platform:process.platform,manifestPath,state,databaseAdminUrl:adminUrl.href,appDataRoot:environment.DVAIA_APP_DATA_ROOT,processEnvironment:environment,appDataEnvironment:{...environment,...state.parsed}};
+   const context={root,directory,homeDirectory:home,envPath,id,platform:process.platform,manifestPath,state,databaseAdminUrl:adminUrl.href,appDataRoot:environment.OWASP_AI_GOAT_APP_DATA_ROOT,processEnvironment:environment,appDataEnvironment:{...environment,...state.parsed}};
    const upgraded=await runSetupDatabasePhase({kind:'upgrade',context},{},{timeoutMs:180000,killGraceMs:5000,spawn:(file,args,opts)=>trackPhaseChild(spawn(file,args,opts))});
    clean=await cleanCheckpoint(identity,clean);result.maintenanceEpochs.push(clean.epoch);
    assert.deepEqual(upgraded.upgradedSchemas,iteration?[]:[plan.at(-1).schema]);

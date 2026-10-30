@@ -19,7 +19,7 @@ def private_handoff(value):
         raise ValueError('LISTINGS_PRIVATE_HANDOFF')
     row = json.loads(json.dumps(value))
     if (not isinstance(row['runId'], str) or not re.fullmatch('[a-f0-9]{32}', row['runId'])
-            or row['root'] != '/var/tmp/dvaia-v23-build-' + row['runId'] + '/fs'):
+            or row['root'] != '/var/tmp/owasp-ai-goat-v23-build-' + row['runId'] + '/fs'):
         raise ValueError('LISTINGS_PRIVATE_HANDOFF')
     for key in ('filesystemDevice', 'filesystemInode', 'namespaceInode', 'holderPid',
                 'holderStart', 'containerPid', 'containerStart'):
@@ -31,7 +31,7 @@ def private_handoff(value):
     if not isinstance(row['imageId'], str) or not re.fullmatch('sha256:[a-f0-9]{64}', row['imageId']):
         raise ValueError('LISTINGS_PRIVATE_HANDOFF')
     if (not isinstance(row['workspaceId'],str) or not re.fullmatch('[a-f0-9]{12}',row['workspaceId'])
-            or row['profileName']!='dvaia-owned-listings-'+row['workspaceId']
+            or row['profileName']!='owasp-ai-goat-owned-listings-'+row['workspaceId']
             or row['containerName']!=row['profileName']
             or row['privateDockerHost']!='unix://'+row['root']+'/docker.sock'
             or not isinstance(row['daemonId'],str) or not re.fullmatch('[a-f0-9-]{16,}',row['daemonId'])):
@@ -89,9 +89,9 @@ finally:
  finally:child.stdout.close();child.stderr.close()
 rows=json.loads(buffers[child.stdout]);need(isinstance(rows,list) and len(rows)==1);c=rows[0]
 need(c['Id']==H['containerId'] and c['Image']==H['imageId'] and c['State']['Running'] is True and c['State']['Pid']==H['containerPid'])
-labels=c['Config']['Labels'];need(labels.get('dvaia.test.owner')==H['runId'])
-need(labels.get('dvaia.listings.source')==H['sourceSha256'] and labels.get('dvaia.listings.runtime')==H['runtimeSha256'])
-profile=H['profileName'];volume='dvaia-listings-journal-'+H['runId']
+labels=c['Config']['Labels'];need(labels.get('owasp-ai-goat.test.owner')==H['runId'])
+need(labels.get('owasp-ai-goat.listings.source')==H['sourceSha256'] and labels.get('owasp-ai-goat.listings.runtime')==H['runtimeSha256'])
+profile=H['profileName'];volume='owasp-ai-goat-listings-journal-'+H['runId']
 need(c['Name']=='/'+H['containerName'])
 need(c['Config']['Entrypoint']==['node'] and c['Config']['Cmd']==['/app/sidecars/sandbox-runner/owned-listings/manager-entry.js'])
 need(c['Config']['User']=='10001:10001' and c['HostConfig']['NetworkMode']=='host')

@@ -43,7 +43,7 @@ test('mounted CodeBot HTTP wiring enforces replay, readiness, session and reset 
   assert.ok(['127.0.0.1', 'localhost', '[::1]'].includes(adminUrl.hostname));
   assert.equal(adminUrl.pathname, '/postgres');
   const admin = new Pool({ connectionString: adminUrl.href });
-  const name = `dvaia_test_codebot_http_${process.pid}`;
+  const name = `owasp_ai_goat_test_codebot_http_${process.pid}`;
   const supplyName = `${name}_supply`;
   const pools = [];
   let server;

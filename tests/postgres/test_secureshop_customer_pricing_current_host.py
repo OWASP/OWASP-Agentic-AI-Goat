@@ -20,7 +20,7 @@ spec.loader.exec_module(M)
 def descriptor():
     value = dict(version=1, ownerId='11111111-1111-4111-8111-111111111111', workspaceId='controlled',
         qualificationNonce='0123456789ab', containerId='a' * 64, imageId='sha256:' + 'b' * 64,
-        packageSha256='c' * 64, profile='dvaia-owned-pricing-http-0123456789ab',
+        packageSha256='c' * 64, profile='owasp-ai-goat-owned-pricing-http-0123456789ab',
         origin='http://127.0.0.1:41234', token='t' * 43)
     return value, {key: value[key] for key in M.IDENTITY_KEYS}
 
@@ -29,8 +29,8 @@ def inspect_row(identity):
     ports = {'8093/tcp': [{'HostIp': '127.0.0.1', 'HostPort': '41234'}]}
     return {'Id': identity['containerId'], 'Image': identity['imageId'], 'State': {'Running': True},
         'AppArmorProfile': identity['profile'], 'Config': {'User': '10001:10001', 'Labels': {
-            'dvaia.pricing.owner': identity['ownerId'], 'dvaia.pricing.workspace': identity['workspaceId'],
-            'dvaia.pricing.package': identity['packageSha256']}},
+            'owasp-ai-goat.pricing.owner': identity['ownerId'], 'owasp-ai-goat.pricing.workspace': identity['workspaceId'],
+            'owasp-ai-goat.pricing.package': identity['packageSha256']}},
         'HostConfig': {'PortBindings': ports, 'ReadonlyRootfs': True, 'Privileged': False,
             'CapDrop': ['ALL'], 'Memory': 536870912, 'NanoCpus': 1000000000, 'PidsLimit': 128},
         'NetworkSettings': {'Ports': ports}}

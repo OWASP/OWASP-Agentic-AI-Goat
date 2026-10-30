@@ -9,7 +9,7 @@ const path = require('node:path');
 const { waitForObservedCount } = require('./helpers/waitForObservedCount');
 
 test('built parent drives login, stored review retry and launch reset through the opaque frame', {
-  skip: process.env.DVAIA_VERIFY_BUILT_SHOP_FRAME !== '1', timeout: 45000,
+  skip: process.env.OWASP_AI_GOAT_VERIFY_BUILT_SHOP_FRAME !== '1', timeout: 45000,
 }, async t => {
   let server; let browser; let profile;
   t.after(async () => {
@@ -66,7 +66,7 @@ test('built parent drives login, stored review retry and launch reset through th
       resetId: '20000000-0000-4000-8000-000000000091', launch: launch() });
   });
   app.use('/api/secureshop', (req, res, next) => {
-    if (req.get('x-dvaia-secureshop-launch')
+    if (req.get('x-owasp-ai-goat-secureshop-launch')
       !== String.fromCharCode(96 + generation).repeat(43)) return res.sendStatus(401);
     next();
   });
@@ -110,7 +110,7 @@ test('built parent drives login, stored review retry and launch reset through th
     const value = app.listen(0, '127.0.0.1', () => resolve(value));
   });
   const origin = `http://127.0.0.1:${server.address().port}`;
-  profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-parent-review-frame-'));
+  profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-parent-review-frame-'));
   browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
     ...(process.env.PUPPETEER_EXECUTABLE_PATH
       ? { executablePath: process.env.PUPPETEER_EXECUTABLE_PATH } : {}) });

@@ -82,7 +82,7 @@ def main():
   if value.returncode:raise RuntimeError('Owned Docker operation failed')
   return value
  nonce=uuid.uuid4().hex
- resources={kind:dict(name='dvaia-mcp-owned-'+kind+'-'+nonce,image=image,labels={'dvaia.qualification':SCOPE,'dvaia.owner-uid':str(os.getuid()),'dvaia.run-nonce':nonce,'dvaia.resource':kind},intended=False,captured=None)
+ resources={kind:dict(name='owasp-ai-goat-mcp-owned-'+kind+'-'+nonce,image=image,labels={'owasp-ai-goat.qualification':SCOPE,'owasp-ai-goat.owner-uid':str(os.getuid()),'owasp-ai-goat.run-nonce':nonce,'owasp-ai-goat.resource':kind},intended=False,captured=None)
             for kind,image in [('postgres',args.postgres_image_id),('mailpit',args.mailpit_image_id)]}
  processes=OwnedProcesses(stop_group,lambda value:record('process-'+value['name']+'.json',value))
  failures=[];passed=False;processes.install()
@@ -117,12 +117,12 @@ def main():
   wait_mailpit(api_port)
   def sql(statement):run(['exec',pg,'psql','-U','mcp_owned_admin','-d','postgres','-v','ON_ERROR_STOP=1','-c',statement])
   for role in ['dvaia_mcp_migration','dvaia_mcp_runtime']:sql(f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS')
-  sql('CREATE DATABASE dvaia_test_mcp_owned_mailpit OWNER dvaia_mcp_migration')
-  sql('REVOKE CONNECT ON DATABASE dvaia_test_mcp_owned_mailpit FROM PUBLIC; GRANT CONNECT ON DATABASE dvaia_test_mcp_owned_mailpit TO dvaia_mcp_migration,dvaia_mcp_runtime')
-  env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',MCP_OWNED_RESOURCES_MAILPIT='yes',AWS_EC2_METADATA_DISABLED='true',DVAIA_ISOLATED_TEST_WORKSPACE=str(source),
+  sql('CREATE DATABASE owasp_ai_goat_test_mcp_owned_mailpit OWNER dvaia_mcp_migration')
+  sql('REVOKE CONNECT ON DATABASE owasp_ai_goat_test_mcp_owned_mailpit FROM PUBLIC; GRANT CONNECT ON DATABASE owasp_ai_goat_test_mcp_owned_mailpit TO dvaia_mcp_migration,dvaia_mcp_runtime')
+  env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',MCP_OWNED_RESOURCES_MAILPIT='yes',AWS_EC2_METADATA_DISABLED='true',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(source),
            MCP_OWNED_RESOURCES_SOURCE_ROOT=str(source),MCP_OWNED_RESOURCES_PG_PORT=str(pg_port),MCP_OWNED_RESOURCES_SMTP_PORT=str(smtp_port),MCP_OWNED_RESOURCES_API_PORT=str(api_port),
            MAILPIT_SMTP_HOST='127.0.0.1',MAILPIT_SMTP_PORT=str(smtp_port),MAILPIT_API_URL=f'http://127.0.0.1:{api_port}')
-  for kind,role in [('MIGRATION','dvaia_mcp_migration'),('RUNTIME','dvaia_mcp_runtime')]:env['PG_MCP_OWNED_RESOURCES_TEST_'+kind+'_URL']=f'postgresql://{role}@127.0.0.1:{pg_port}/dvaia_test_mcp_owned_mailpit'
+  for kind,role in [('MIGRATION','dvaia_mcp_migration'),('RUNTIME','dvaia_mcp_runtime')]:env['PG_MCP_OWNED_RESOURCES_TEST_'+kind+'_URL']=f'postgresql://{role}@127.0.0.1:{pg_port}/owasp_ai_goat_test_mcp_owned_mailpit'
   with (root/'result.log').open('w') as log:
    os.chmod(root/'result.log',0o600)
    child=processes.launch([args.node,'--test','--test-reporter=tap','tests/postgres/mcpOwnedResourcesMailpit.integration.test.js'],name='qualification',cwd=source,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)

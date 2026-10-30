@@ -29,7 +29,7 @@ class Populated(unittest.TestCase):
  def test_owned_home_and_no_disabled_features_override(self):
   with tempfile.TemporaryDirectory(dir=ROOT/'backups/private-recovery') as d:
    root=Path(d);st=root.stat();row={'path':d,'device':st.st_dev,'inode':st.st_ino,'uid':st.st_uid};a=SimpleNamespace(rehearsal_request='/request',rehearsal_request_sha256='a'*64,docker='/pinned/docker',docker_host='unix:///owned/daemon')
-   env=m.rehearsal_environment({'MCP_SIDECARS_AUTOSTART':'false','DVAIA_ISOLATED_TEST_WORKSPACE':'main','PG_TEST_DISPOSABLE':'yes'},row,a);self.assertEqual(env['DOCKER_HOST'],'unix:///owned/daemon');self.assertTrue(env['PATH'].startswith('/pinned:'));self.assertNotIn('MCP_SIDECARS_AUTOSTART',env);self.assertNotIn('DVAIA_ISOLATED_TEST_WORKSPACE',env);self.assertEqual(env['HOME'],str(root/'home'));self.assertEqual((root/'home').stat().st_mode&0o777,0o700)
+   env=m.rehearsal_environment({'MCP_SIDECARS_AUTOSTART':'false','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE':'main','PG_TEST_DISPOSABLE':'yes'},row,a);self.assertEqual(env['DOCKER_HOST'],'unix:///owned/daemon');self.assertTrue(env['PATH'].startswith('/pinned:'));self.assertNotIn('MCP_SIDECARS_AUTOSTART',env);self.assertNotIn('OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE',env);self.assertEqual(env['HOME'],str(root/'home'));self.assertEqual((root/'home').stat().st_mode&0o777,0o700)
  def test_success_requires_explicit_16store_result(self):
   with tempfile.TemporaryDirectory(dir=ROOT/'backups/private-recovery') as d:
    p=Path(d)/'result.json';row={'status':'passed','restoredStores':16,'sourceRoot':str(ROOT),'installedWrites':False};p.write_text(json.dumps(row));p.chmod(0o600);m.verify_rehearsal_result(Path(d),ROOT)

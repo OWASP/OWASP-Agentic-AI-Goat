@@ -60,7 +60,7 @@ async function fixture(t) {
 function headers() {
   return {
     authorization: 'Bearer admin-7',
-    'x-dvaia-secureshop-launch': launchBearer,
+    'x-owasp-ai-goat-secureshop-launch': launchBearer,
   };
 }
 

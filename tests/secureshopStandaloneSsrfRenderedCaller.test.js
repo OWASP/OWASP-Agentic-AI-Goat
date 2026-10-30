@@ -70,7 +70,7 @@ function environment() {
   const env = {
     [NATIVE]: '1',
     PG_TEST_DISPOSABLE: 'yes',
-    DVAIA_CURRENT_MAIN_WORKSPACE: ROOT,
+    OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: ROOT,
     [BUILD]: path.join(ROOT, 'client/build'),
     [EVIDENCE]: '/tmp/c32-controlled-contract/receipt.json'
   };
@@ -79,7 +79,7 @@ function environment() {
     AGENTS: 'secureshop_agents',
     COMMERCE: 'secureshop',
     REVIEW: 'secureshop_review'
-  })) for (const role of ['RUNTIME', 'MIGRATION']) env[PREFIX + key + '_' + role + '_URL'] = `postgresql://dvaia_${store}_${role.toLowerCase()}@127.0.0.1:5432/dvaia_test_${store}`;
+  })) for (const role of ['RUNTIME', 'MIGRATION']) env[PREFIX + key + '_' + role + '_URL'] = `postgresql://dvaia_${store}_${role.toLowerCase()}@127.0.0.1:5432/owasp_ai_goat_test_${store}`;
   return env;
 }
 function receipt() {
@@ -107,19 +107,19 @@ test('admission rejects inactive selector, application stores, credential leaks 
   const variants = {
     'missing opt-in': env => delete env[NATIVE],
     'not disposable': env => env.PG_TEST_DISPOSABLE = 'no',
-    'different checkout': env => env.DVAIA_CURRENT_MAIN_WORKSPACE = '/tmp/copied-source',
+    'different checkout': env => env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE = '/tmp/copied-source',
     'different build': env => env[BUILD] = '/tmp/copied-source/client/build',
     'source evidence': env => env[EVIDENCE] = path.join(ROOT, 'receipt.json'),
     'relative evidence': env => env[EVIDENCE] = 'receipt.json',
     'remote database': env => env[PREFIX + 'IDENTITY_RUNTIME_URL'] = env[PREFIX + 'IDENTITY_RUNTIME_URL'].replace('127.0.0.1', 'example.invalid'),
-    'application database': env => env[PREFIX + 'IDENTITY_RUNTIME_URL'] = env[PREFIX + 'IDENTITY_RUNTIME_URL'].replace('dvaia_test_identity', 'identity'),
+    'application database': env => env[PREFIX + 'IDENTITY_RUNTIME_URL'] = env[PREFIX + 'IDENTITY_RUNTIME_URL'].replace('owasp_ai_goat_test_identity', 'identity'),
     'wrong role': env => env[PREFIX + 'AGENTS_RUNTIME_URL'] = env[PREFIX + 'AGENTS_MIGRATION_URL'],
     'password in URL': env => env[PREFIX + 'IDENTITY_RUNTIME_URL'] = env[PREFIX + 'IDENTITY_RUNTIME_URL'].replace('@', ':private@'),
     'URL query': env => env[PREFIX + 'IDENTITY_RUNTIME_URL'] += '?sslmode=disable',
-    'different migration database': env => env[PREFIX + 'IDENTITY_MIGRATION_URL'] = env[PREFIX + 'IDENTITY_MIGRATION_URL'].replace('dvaia_test_identity', 'dvaia_test_other'),
+    'different migration database': env => env[PREFIX + 'IDENTITY_MIGRATION_URL'] = env[PREFIX + 'IDENTITY_MIGRATION_URL'].replace('owasp_ai_goat_test_identity', 'owasp_ai_goat_test_other'),
     'different migration port': env => env[PREFIX + 'IDENTITY_MIGRATION_URL'] = env[PREFIX + 'IDENTITY_MIGRATION_URL'].replace('5432', '5433'),
     'shared store database': env => {
-      for (const role of ['RUNTIME', 'MIGRATION']) env[PREFIX + 'REVIEW_' + role + '_URL'] = env[PREFIX + 'REVIEW_' + role + '_URL'].replace('dvaia_test_secureshop_review', 'dvaia_test_secureshop');
+      for (const role of ['RUNTIME', 'MIGRATION']) env[PREFIX + 'REVIEW_' + role + '_URL'] = env[PREFIX + 'REVIEW_' + role + '_URL'].replace('owasp_ai_goat_test_secureshop_review', 'owasp_ai_goat_test_secureshop');
     }
   };
   for (const [name, mutate] of Object.entries(variants)) await t.test(name, () => {

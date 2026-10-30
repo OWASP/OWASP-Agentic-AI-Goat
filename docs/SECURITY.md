@@ -2,11 +2,11 @@
 
 ## Do not deploy publicly
 
-**DVAIA is deliberately vulnerable.** It exists to teach exploitation and
+**OWASP Agentic AI GOAT is deliberately vulnerable.** It exists to teach exploitation and
 defense in a safe local environment. It is not hardened for production and
 must not be exposed to the public internet.
 
-If you deploy DVAIA on a machine that is reachable from the internet:
+If you deploy OWASP Agentic AI GOAT on a machine that is reachable from the internet:
 
 - Anyone on the internet can hit the intentionally vulnerable challenge
   routes (SQL injection, XSS, prompt injection, file reads, RCE via the
@@ -15,7 +15,7 @@ If you deploy DVAIA on a machine that is reachable from the internet:
 - The Event Gate middleware is off by default; even when on, its password
   is a single shared secret.
 
-Run DVAIA on `localhost`, in an isolated VM, or behind a private network
+Run OWASP Agentic AI GOAT on `localhost`, in an isolated VM, or behind a private network
 only.
 
 ## Teaching credentials and installation credentials
@@ -24,12 +24,12 @@ Challenge credentials are synthetic teaching data and are documented with the
 relevant exercise. Fresh PostgreSQL setup creates the documented local teaching accounts, including
 `admin` / `admin123` and `student` / `student 123` (one literal space). Private
 installation state records the administrator credential; upgrades do not reset
-existing users. Historical SQLite accounts are not runtime authority. Never reuse any DVAIA credential for a real
+existing users. Historical SQLite accounts are not runtime authority. Never reuse any OWASP Agentic AI GOAT credential for a real
 system.
 
 ## Responsible disclosure — real bugs vs. intentional bugs
 
-DVAIA is full of `@intentional-vulnerability <id>` annotations that mark
+OWASP Agentic AI GOAT is full of `@intentional-vulnerability <id>` annotations that mark
 teaching sinks. Those are not bugs.
 
 **A "real" bug is one of:**

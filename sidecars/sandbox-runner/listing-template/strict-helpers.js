@@ -6,8 +6,8 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
 const COMPILER_SHA256 = 'e6d212d621f5f38de578c929afb5d2ac835f0b95bcd3fd0d61511eab1c8112d2';
-const DEFAULT_SUPERVISOR = '/usr/local/libexec/dvaia-listing-template-supervisor';
-const DEFAULT_INIT = '/usr/local/libexec/dvaia-listing-template-init';
+const DEFAULT_SUPERVISOR = '/usr/local/libexec/owasp-ai-goat-listing-template-supervisor';
+const DEFAULT_INIT = '/usr/local/libexec/owasp-ai-goat-listing-template-init';
 const CLEAN_PATH = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin';
 const COMPILER_PATH = path.join(__dirname, '..', 'policy-render', 'assets', 'nunjucks-3.2.4.js');
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');

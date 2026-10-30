@@ -4,7 +4,7 @@ const {createBoundedClient,summarize}=require('./applicationCapacityClient');
 const {ACTIVITY_SQL,createTransactionObserver,drainTransactions,validateObserverUrl,qualifyIdleTimeout,authorizedCapacityPairs,metadataDiagnostic}=require('./applicationCapacityTransactionObserver.cjs');
 const {assertLiveHold}=require('./applicationCapacityProvider');
 const {selectInvalidationCohorts,physicalSampleFailure,assertResetOutcomes,settlePhysicalSampler}=require('./applicationCapacityCoordinatorObserver.cjs');
-const assertionSeam=process.env.DVAIA_CAPACITY_ASSERTIONS_TEST==='1',root=assertionSeam?null:fs.realpathSync(process.env.DVAIA_CAPACITY_ROOT),input=assertionSeam?null:JSON.parse(fs.readFileSync(path.join(root,'capacity-private.json')));
+const assertionSeam=process.env.OWASP_AI_GOAT_CAPACITY_ASSERTIONS_TEST==='1',root=assertionSeam?null:fs.realpathSync(process.env.OWASP_AI_GOAT_CAPACITY_ROOT),input=assertionSeam?null:JSON.parse(fs.readFileSync(path.join(root,'capacity-private.json')));
 const stop=new AbortController(),deadline=assertionSeam?null:setTimeout(()=>stop.abort(),960000),sessions=new Map();let count=0,phase='arrival';
 const report={passed:false,actualModel:false,pid:process.pid,phases:[],observations:[],limits:{requests:12000,owners:200},scope:'Instrumented full backend; controlled provider; no actual model credit',presentationProjection:{dto:0,ownerDetails:0,foreignDenied:0,selectedObservationGrading:'not_exercised_view_only'}};
 const save=()=>fs.writeFileSync(path.join(root,'capacity-result.json'),JSON.stringify(report,null,2),{mode:0o600});

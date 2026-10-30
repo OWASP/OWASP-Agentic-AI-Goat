@@ -40,7 +40,7 @@ const PYTHON = testPython();
 const DOCKER = '/usr/bin/true';
 const NATIVE_DOCKER = path.join(ROOT, 'tasks/runtime/container/bin/docker');
 const CURRENT_HOST = 'unix://' + path.join(ROOT, '.qualification/goat-q/docker.sock');
-const UNIT_TEMP_PARENT = process.env.TMPDIR || (process.env.DVAIA_ISOLATED_TEST_WORKSPACE
+const UNIT_TEMP_PARENT = process.env.TMPDIR || (process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE
   ? process.env.HOME : os.tmpdir());
 const UNIT_TEMP_ROOT = mkdtempSync(path.join(UNIT_TEMP_PARENT, 'secureshop-transport-launcher-'));
 const EMBEDDING_CACHE = path.join(UNIT_TEMP_ROOT, 'embedding-cache');
@@ -59,7 +59,7 @@ const base = () => [RUNNER, '--plan', '--main-workspace', ROOT, '--node', NODE,
 // The package-only cohort explicitly rejects current-host native authority.
 const packageBase = () => [RUNNER, '--plan', '--main-workspace', ROOT, '--node', NODE,
   '--docker', DOCKER, '--docker-sha256', sha(DOCKER),
-  '--docker-host', 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock',
+  '--docker-host', 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock',
   '--docker-daemon', '01234567-89ab-cdef-0123-456789abcdef'];
 const vulnBase = () => [...base(), '--cohort', 'vuln', '--browser', DOCKER,
   '--browser-sha256', sha(DOCKER), '--browser-root', path.dirname(DOCKER)];
@@ -372,8 +372,8 @@ with tempfile.TemporaryDirectory() as d:
  except RuntimeError:pass
  else:raise AssertionError('restart cache admitted a symlink')
  digest='c'*64;tag=m.RESTART_CACHE_PREFIX+digest[:32];image_id='sha256:'+'b'*64
- labels={'dvaia.cache.kind':'system-restart-content','dvaia.cache.source':digest,
-  'dvaia.cache.base':m.RESTART_BASE,'org.opencontainers.image.vendor':'upstream'}
+ labels={'owasp-ai-goat.cache.kind':'system-restart-content','owasp-ai-goat.cache.source':digest,
+  'owasp-ai-goat.cache.base':m.RESTART_BASE,'org.opencontainers.image.vendor':'upstream'}
  image={'Id':image_id,'Architecture':'arm64','Config':{'Labels':labels}}
  manifest={'version':1,'tag':tag,'imageId':image_id,'sourceSha256':digest,'base':m.RESTART_BASE}
  assert m.validate_restart_content_cache(manifest,image,tag,digest) is True
@@ -381,7 +381,7 @@ with tempfile.TemporaryDirectory() as d:
   ({**manifest,'imageId':'sha256:'+'d'*64},image),
   (manifest,{**image,'Id':'not-a-digest'}),
   (manifest,{**image,'Architecture':'amd64'}),
-  (manifest,{**image,'Config':{'Labels':{**labels,'dvaia.cache.source':'e'*64}}}),
+  (manifest,{**image,'Config':{'Labels':{**labels,'owasp-ai-goat.cache.source':'e'*64}}}),
   ({**manifest,'foreign':True},image),
  ]
  for value,actual in foreign:
@@ -483,10 +483,10 @@ assert len(calls) == 5
 sql = [args[-1] for args, kwargs in calls]
 assert sql[0] == 'CREATE ROLE dvaia_identity_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'
 assert sql[1] == 'CREATE ROLE dvaia_identity_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'
-assert sql[2] == 'CREATE DATABASE dvaia_test_agent_host_0123456789ab_identity OWNER dvaia_identity_migration'
-assert sql[3] == 'REVOKE CONNECT ON DATABASE dvaia_test_agent_host_0123456789ab_identity FROM PUBLIC'
-assert sql[4] == 'GRANT CONNECT ON DATABASE dvaia_test_agent_host_0123456789ab_identity TO dvaia_identity_migration,dvaia_identity_runtime'
-assert urls == {role: f'postgresql://dvaia_identity_{role}@127.0.0.1:15432/dvaia_test_agent_host_0123456789ab_identity' for role in ('runtime', 'migration')}
+assert sql[2] == 'CREATE DATABASE owasp_ai_goat_test_agent_host_0123456789ab_identity OWNER dvaia_identity_migration'
+assert sql[3] == 'REVOKE CONNECT ON DATABASE owasp_ai_goat_test_agent_host_0123456789ab_identity FROM PUBLIC'
+assert sql[4] == 'GRANT CONNECT ON DATABASE owasp_ai_goat_test_agent_host_0123456789ab_identity TO dvaia_identity_migration,dvaia_identity_runtime'
+assert urls == {role: f'postgresql://dvaia_identity_{role}@127.0.0.1:15432/owasp_ai_goat_test_agent_host_0123456789ab_identity' for role in ('runtime', 'migration')}
 for store, nonce in [('installed', '0123456789ab'), ('identity', 'not-a-nonce')]:
     try: m.create_store(None, {}, 'owned', 15432, nonce, store)
     except RuntimeError: pass
@@ -598,7 +598,7 @@ with tempfile.TemporaryDirectory(prefix='controlled-owner-reset-receipt-') as te
   assert.equal(result.status, 0, result.stderr);
   const source = readFileSync(RUNNER, 'utf8');
   assert.match(source, /SECURESHOP_OWNER_RESET_REPLAY_NATIVE='1'/);
-  assert.match(source, /DVAIA_CURRENT_MAIN_WORKSPACE=str\(source\)/);
+  assert.match(source, /OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str\(source\)/);
   assert.match(source, /WORKSHOP_RAG_EVIDENCE_PATH=str\(replay_path\)/);
   assert.match(source, /PG_STUDENT_DELETION_AGGREGATE_\{name\}_RUNTIME_URL/);
   assert.match(source, /PG_STUDENT_DELETION_AGGREGATE_\{name\}_MIGRATION_URL/);
@@ -645,7 +645,7 @@ assert len(calls) == 5
 calls.clear()
 populated = m.create_store(None, {}, 'owned', 15432, '0123456789ab', 'secureshop_review_populated')
 assert len(calls) == 3
-assert calls[0][0][-1] == 'CREATE DATABASE dvaia_test_agent_host_0123456789ab_secureshop_review_populated OWNER dvaia_secureshop_review_migration'
+assert calls[0][0][-1] == 'CREATE DATABASE owasp_ai_goat_test_agent_host_0123456789ab_secureshop_review_populated OWNER dvaia_secureshop_review_migration'
 for role in ('runtime', 'migration'):
     assert fresh[role] != populated[role]
     assert f'dvaia_secureshop_review_{role}@127.0.0.1:15432/' in populated[role]
@@ -669,7 +669,7 @@ for invalid in [tap.replace('# skipped 0', '# skipped 2'), tap.replace('# tests 
   assert.match(source, /prefix = 'PG_SECURESHOP_CONVERSATIONAL_COMMERCE' if args\.cohort == 'conversational-commerce' else 'PG_SECURESHOP_BOUND_MERCHANT_LISTINGS'/);
   assert.match(source, /env\[f'\{prefix\}_\{name\}_RUNTIME_URL'\] = pair\['runtime'\]/);
   assert.match(source, /env\[f'\{prefix\}_\{name\}_MIGRATION_URL'\] = pair\['migration'\]/);
-  assert.match(source, /DVAIA_ISOLATED_TEST_WORKSPACE=str\(runtime \/ 'tmp'\)/);
+  assert.match(source, /OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str\(runtime \/ 'tmp'\)/);
   assert.match(source, /selectedFixtures=\[BOUND_MERCHANT_LISTINGS_TEST\], effectTapCounts=effect_counts/);
 });
 
@@ -1410,7 +1410,7 @@ test('native test covers exact 17-path SDK discovery and independent client reti
   assert.match(source, /replacement = await connect/);
   assert.match(source, /new AgentHostSupervisor/);
   assert.match(source, /validateDisposableUrls\(process\.env\)/);
-  assert.match(source, /dvaia_test_agent_host_/);
+  assert.match(source, /owasp_ai_goat_test_agent_host_/);
   assert.match(source, /new AggregateError\(errors, 'agent-host fixture cleanup failed'\)/);
 });
 
@@ -1603,10 +1603,10 @@ with tempfile.TemporaryDirectory(prefix='browser-cleanup-contract-') as temporar
     commands = 'Chrome --user-data-dir=' + str(profiles) + '-sibling/puppeteer_dev_chrome_profile-other'
     assert m.standalone_browser_cleanup_state(runtime)['browserProcessesAbsent'] is True
     commands = 'Chrome --user-data-dir=/unrelated/browser-profile'
-    owned = profiles / 'dvaia-standalone-browser-owned'; owned.mkdir()
+    owned = profiles / 'owasp-ai-goat-standalone-browser-owned'; owned.mkdir()
     assert m.standalone_browser_cleanup_state(runtime) == {'browserProfilesAbsent': False, 'browserProcessesAbsent': True}
     owned.rmdir()
-    inventory = profiles / 'dvaia-standalone-inventory-owned'; inventory.mkdir()
+    inventory = profiles / 'owasp-ai-goat-standalone-inventory-owned'; inventory.mkdir()
     assert m.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'] is False
     inventory.rmdir()
     leaked = profiles / 'puppeteer_dev_chrome_profile-owned'; leaked.mkdir()
@@ -1904,7 +1904,7 @@ for cohort, flag in [('standalone-commerce-browser', 'SECURESHOP_STANDALONE_COMM
     env = {}
     exec(code, {'env': env, 'args': types.SimpleNamespace(cohort=cohort, browser='/controlled/browser'),
                 'SESSION_REVOKE_BROWSER': m.SESSION_REVOKE_BROWSER, 'source': root})
-    assert env == {flag: '1', 'DVAIA_CURRENT_MAIN_WORKSPACE': str(root),
+    assert env == {flag: '1', 'OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE': str(root),
                    'SECURESHOP_STANDALONE_COMMERCE_BUILD': str(root / 'client/build'),
                    'PUPPETEER_EXECUTABLE_PATH': '/controlled/browser'}
 with tempfile.TemporaryDirectory(prefix='controlled-commerce-browser-') as temporary:
@@ -2003,7 +2003,7 @@ with tempfile.TemporaryDirectory(prefix='controlled-commerce-receipt-') as tempo
     import darwin_process_inventory
     darwin_process_inventory.process_records = lambda include_arguments: []
     runtime = pathlib.Path(temporary); (runtime / 'tmp').mkdir()
-    owned_profile = runtime / 'tmp/dvaia-standalone-commerce-owned'; owned_profile.mkdir()
+    owned_profile = runtime / 'tmp/owasp-ai-goat-standalone-commerce-owned'; owned_profile.mkdir()
     assert m.standalone_browser_cleanup_state(runtime)['browserProfilesAbsent'] is False
     owned_profile.rmdir(); assert all(m.standalone_browser_cleanup_state(runtime).values())
 tap = '# Subtest: ' + m.STANDALONE_COMMERCE_ASSERTION + '\\nok 1 - ' + m.STANDALONE_COMMERCE_ASSERTION + '\\n# tests 1\\n# pass 1\\n# fail 0\\n# skipped 0\\n# cancelled 0\\n'
@@ -2398,15 +2398,15 @@ test('D22 launcher closes the audit-control cluster over exact ownership and sou
   const source = readFileSync(RUNNER, 'utf8');
   for (const token of [
     "audit_container = f'{container}-audit-control'",
-    "'dvaia.role': 'audit-control'",
-    "audit_database = f'dvaia_audit_control_{nonce}'",
+    "'owasp-ai-goat.role': 'audit-control'",
+    "audit_database = f'owasp_ai_goat_audit_control_{nonce}'",
     "REVOKE CONNECT ON DATABASE {audit_database} FROM PUBLIC",
     "audit_candidate_id = created_audit.stdout.strip()",
     "audit_captured_id = audit_candidate_id",
     "recovered_audit = inspect_owned(ownership_command, name=audit_container, labels=audit_labels, image=args.image_id)",
     "cleanup['auditControlContainerNameAbsent'] = docker_absent(args, clean, audit_container)",
     "cleanup['auditControlContainerIdAbsent'] = docker_absent(args, clean, audit_captured_id)",
-    "'dvaia-standalone-d22-*'",
+    "'owasp-ai-goat-standalone-d22-*'",
     "'sidecars/audit-sql-target'",
   ]) assert.ok(source.includes(token), token);
   const v23 = invoke(['--v23-request-variant', 'json-data-completion-v4'], {}, v23Base());
@@ -2682,7 +2682,7 @@ with tempfile.TemporaryDirectory() as directory:
     else:raise AssertionError('nonprivate browser receipt admitted')
     import darwin_process_inventory
     darwin_process_inventory.process_records = lambda include_arguments: []
-    profile=pathlib.Path(directory)/'tmp';profile.mkdir();(profile/'dvaia-role-inventory-owned').mkdir()
+    profile=pathlib.Path(directory)/'tmp';profile.mkdir();(profile/'owasp-ai-goat-role-inventory-owned').mkdir()
     assert not m.standalone_browser_cleanup_state(pathlib.Path(directory))['browserProfilesAbsent']
 `;
   const checked = spawnSync(PYTHON, ['-c', script, ROOT, RUNNER, NODE], {

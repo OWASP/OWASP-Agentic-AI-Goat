@@ -30,17 +30,17 @@ function createExecutor({launch=require('node:child_process').spawn,now=()=>Numb
     Promise.resolve().then(()=>fn(bytes)).catch(stop).finally(()=>{ioPending--;if(!closed&&!failure)stream.resume();done();});
    };
    const line=(value,terminated=true)=>{
-    const prefix='DVAIA_PRICING_DONE:'+token+':';
+    const prefix='OWASP_AI_GOAT_PRICING_DONE:'+token+':';
     if(value.startsWith(prefix)){
      const code=value.slice(prefix.length);
      if(ack!==null||!/^\d{1,3}$/.test(code)||Number(code)>255){stop(fail('PRICING_REMOTE_ACK'));return;}
      ack=Number(code);return;
     }
-    if(value.startsWith('DVAIA_PRICING_DONE:')){stop(fail('PRICING_REMOTE_ACK'));return;}
+    if(value.startsWith('OWASP_AI_GOAT_PRICING_DONE:')){stop(fail('PRICING_REMOTE_ACK'));return;}
     diagnostics.push(Buffer.from(value+(terminated?'\n':'')));
    };
    try{
-    const wrapper='timeout --signal=TERM --kill-after=10 "$1" /bin/sh -c "$2" owned-pricing-build "$3" "$4" "$5"; code=$?; printf "\\nDVAIA_PRICING_DONE:%s:%s\\n" "$6" "$code" >&2; exit "$code"';
+    const wrapper='timeout --signal=TERM --kill-after=10 "$1" /bin/sh -c "$2" owned-pricing-build "$3" "$4" "$5"; code=$?; printf "\\nOWASP_AI_GOAT_PRICING_DONE:%s:%s\\n" "$6" "$code" >&2; exit "$code"';
     child=launch(spec.lima,['shell','--workdir','/','colima-goat-q','sudo','-n','/bin/sh','-c',wrapper,'owned-pricing-envelope',String(seconds),plan.commands[name],spec.guest,spec.runId,name==='metadataFetch'?plan.binding.base:'',token],
      {cwd:spec.root,detached:true,stdio:['pipe','pipe','pipe'],env:{PATH:'/usr/bin:/bin',HOME:path.join(spec.root,'tasks/runtime/home'),TMPDIR:path.join(spec.root,'tasks/tmp'),LIMA_HOME:spec.limaHome}});
     child.on('error',stop);child.stdin.on('error',stop);

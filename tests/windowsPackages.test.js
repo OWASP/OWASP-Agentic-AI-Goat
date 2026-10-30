@@ -18,7 +18,7 @@ $env:ProgramFiles = [IO.Path]::GetTempPath(); $env:SystemRoot = [IO.Path]::GetTe
 $script:signature = $true; $script:driver = 'hyperv'; $script:exitCode = 0
 $script:version = "multipass 1.16.4+win\`nmultipassd 1.16.4+win"
 function Test-Path { param($LiteralPath,$PathType) return $true }
-function Test-DvaiaPackageSignature { param($File,$Publisher) return $script:signature }
+function Test-OwaspAiGoatPackageSignature { param($File,$Publisher) return $script:signature }
 $script:events = New-Object 'System.Collections.Generic.List[string]'
 $runner = { param($Request)
  if ($Request.timeoutMs -ne 10000 -or -not [IO.Path]::IsPathRooted($Request.executable)) { throw 'UNSAFE_PROBE' }
@@ -27,7 +27,7 @@ $runner = { param($Request)
  return @{ exitCode = $script:exitCode; output = $script:version }
 }
 ${steer}
-try { $result = Get-DvaiaNativePackageProbe -Id ${quote(id)} -Runner $runner; @{ result = $result; events = @($script:events) } | ConvertTo-Json -Depth 5 -Compress }
+try { $result = Get-OwaspAiGoatNativePackageProbe -Id ${quote(id)} -Runner $runner; @{ result = $result; events = @($script:events) } | ConvertTo-Json -Depth 5 -Compress }
 catch { @{ code = $_.Exception.Message; events = @($script:events) } | ConvertTo-Json -Compress }
 `;
   const run = spawnSync(interpreter, ['-NoProfile', '-NonInteractive', '-Command', program], { encoding: 'utf8', timeout: 10000 });
@@ -113,8 +113,8 @@ $exists = { param($File) if ($File -match 'windows-package-restart.json$') { ret
 $bootObservation = { param($Runner,$PowerShell,$Root) $script:events.Add('boot'); [pscustomobject]@{ hostSha256 = $script:hostHash; bootFileTime = $script:boot; currentSid = 'S-1-5-21-1-2-3-1000' } }
 ${override}
 $params = @{ ExecuteMode = $${execute}; RepoRoot = ${quote(root)}; UserProfile = [IO.Path]::GetTempPath(); SystemRoot = [IO.Path]::GetTempPath(); Runner = $runner; Probe = $probe; Exists = $exists; HostSupported = { $true }; IsElevated = { $false }; Pause = {}; BootObservation = $bootObservation }
-$result = Invoke-DvaiaWindowsPackages @params
-${second ? secondOverride + '\n$second = Invoke-DvaiaWindowsPackages @params' : '$second = $null'}
+$result = Invoke-OwaspAiGoatWindowsPackages @params
+${second ? secondOverride + '\n$second = Invoke-OwaspAiGoatWindowsPackages @params' : '$second = $null'}
 @{ result = $result; second = $second; events = @($script:events); marker = $script:marker; receipt = $script:receipt } | ConvertTo-Json -Depth 10 -Compress
 `;
   const run = spawnSync(interpreter, ['-NoProfile', '-NonInteractive', '-Command', program], { encoding: 'utf8', timeout: 15000 });
@@ -124,7 +124,7 @@ ${second ? secondOverride + '\n$second = Invoke-DvaiaWindowsPackages @params' : 
 }
 
 test('package Plan returns before any probes or process/helper launch', () => {
-  const body = source.slice(source.indexOf('function Invoke-DvaiaWindowsPackages'));
+  const body = source.slice(source.indexOf('function Invoke-OwaspAiGoatWindowsPackages'));
   const gate = body.indexOf('if (-not $ExecuteMode)');
   assert.ok(gate > 0);
   assert.ok(gate < body.indexOf('& $HostSupported'));
@@ -163,10 +163,10 @@ test('mutation journal and restart receipt bind identity and bytes without blind
 });
 
 test('trusted UAC is limited to exact additive VS and OpenSSH client actions; normal bounded runner is reused', () => {
-  assert.match(source, /Invoke-DvaiaPrerequisiteProcess \$Request/);
+  assert.match(source, /Invoke-OwaspAiGoatPrerequisiteProcess \$Request/);
   assert.match(source, /WINDOWS_VS_ARGUMENTS_DENIED/);
   assert.match(source, /WINDOWS_VS_INSTALL_PATH_DENIED/);
-  assert.match(source, /Test-DvaiaPackageSignature \$expected/);
+  assert.match(source, /Test-OwaspAiGoatPackageSignature \$expected/);
   assert.match(source, /WaitForExit\(\$Request\.timeoutMs\)/);
   assert.doesNotMatch(source, /ReadToEnd|\.Result\b|--remove|includeRecommended|NativeDesktop/);
 });
@@ -175,7 +175,7 @@ test('released Multipass Hyper-V and client-only OpenSSH are explicit preserved 
   assert.match(source, /Canonical\.Multipass.*version = '1\.16\.4'/);
   assert.match(source, /--version','1\.16\.4','--no-upgrade/);
   assert.match(source, /\/qn \/norestart DRIVER=hyperv REMOVE_DATA=no/);
-  assert.match(source, /Test-DvaiaMultipassExistingFootprint/);
+  assert.match(source, /Test-OwaspAiGoatMultipassExistingFootprint/);
   assert.match(source, /GetEnvironmentVariable\('MULTIPASS_STORAGE','Machine'\)/);
   assert.match(source, /WINDOWS_MULTIPASS_EXISTING_INSTALLATION_UNSUPPORTED/);
   assert.match(source, /probeMultipassDriver.*arguments = @\('get','local.driver'\)/);

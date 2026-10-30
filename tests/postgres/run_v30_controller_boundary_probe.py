@@ -276,7 +276,7 @@ def checked_ready(value, grant, pid):
         raise RuntimeError('V30_PROBE_READY')
     for field, store in (('commerce', 'secureshop'), ('agents', 'secureshop_agents')):
         host.exact(value[field], ('database', 'role'))
-        if value[field] != {'database': f"dvaia_test_agent_host_{grant['pgNonce']}_{store}",
+        if value[field] != {'database': f"owasp_ai_goat_test_agent_host_{grant['pgNonce']}_{store}",
                             'role': f'dvaia_{store}_runtime'}:
             raise RuntimeError('V30_PROBE_DATABASE_IDENTITY')
 

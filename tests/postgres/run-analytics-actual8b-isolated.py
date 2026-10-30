@@ -4,9 +4,9 @@ import argparse,hashlib,json,os,signal,subprocess,tempfile,time,uuid
 from pathlib import Path
 from datetime import datetime,timezone
 from sensitive_info_recovery_safety import SignalGate
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 DOCKER='/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker'
-HOST='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+HOST='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 IMAGE='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 SOURCE=Path(__file__).resolve().parents[2]
 STANDALONE_DISCLOSURE_NATIVE='tests/postgres/secureshopAnalyticsActual8b.integration.test.js'
@@ -61,8 +61,8 @@ if browser_cohort:
   print(json.dumps({'cohort':'standalone-analytics-disclosure-browser' if args.standalone_disclosure_browser else 'merchant-analytics-history-browser','workspace':str(SOURCE),'sourceCopy':False,'stores':['identity','secureshop_agents','secureshop','secureshop_review'],'ownedSqlTarget':True,'browser':True,'actorBudget':[7,14] if args.standalone_disclosure_browser else [4,12],'judgeBudget':[1,6] if args.standalone_disclosure_browser else [0,6],'queryPosts':5 if args.standalone_disclosure_browser else 2,'sqlAttempts':4 if args.standalone_disclosure_browser else 2,'modelCallsMax':19 if args.standalone_disclosure_browser else 17,'sourcePins':({'native':STANDALONE_DISCLOSURE_NATIVE_SHA256,'browser':STANDALONE_DISCLOSURE_BROWSER_SHA256,'contract':STANDALONE_DISCLOSURE_CONTRACT_SHA256} if args.standalone_disclosure_browser else None),'allocationStarted':False}));raise SystemExit(0)
 elif args.plan:raise SystemExit('Plan requires standalone Analytics browser opt-in')
 elif any([args.node,args.node_sha256,args.browser,args.browser_sha256,args.browser_root,args.build,args.build_sha256,args.ollama_model_sha256]):raise SystemExit('Browser pins require standalone Analytics browser opt-in')
-owner=uuid.uuid4().hex;nonce=owner[:12];root=Path(tempfile.mkdtemp(prefix='dvaia-analytics-model-'));os.chmod(root,0o700);workspace=SOURCE if args.main_source else root/'source'
-containers={kind:f'dvaia-analytics-model-{nonce}-{kind}' for kind in ['target','state']};attempted=[]
+owner=uuid.uuid4().hex;nonce=owner[:12];root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-analytics-model-'));os.chmod(root,0o700);workspace=SOURCE if args.main_source else root/'source'
+containers={kind:f'owasp-ai-goat-analytics-model-{nonce}-{kind}' for kind in ['target','state']};attempted=[]
 docker=[DOCKER,'--host',HOST];env={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(root)}
 state={'owner':owner,'containers':containers,'image':IMAGE,'evidence':str(root),'runStatus':'preparing','child':None,'cleanup':None,'launcherPid':os.getpid(),'createdAt':datetime.now(timezone.utc).isoformat()}
 log=root/'tests.log';log.touch(mode=0o600);child=None;gate=SignalGate();signal.signal(signal.SIGTERM,gate.handler);signal.signal(signal.SIGINT,gate.handler)
@@ -91,7 +91,7 @@ def stop_child():
 persist()
 try:
  assert run([str(NODE),'--version'],stdout=subprocess.PIPE,text=True).stdout.strip()==('v26.10.0' if browser_cohort else 'v26.9.0')
- assert run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()=='colima-dvaia-pg-verify'
+ assert run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()=='colima-owasp-ai-goat-pg-verify'
  assert run(docker+['image','inspect','--format','{{.Id}}',IMAGE],stdout=subprocess.PIPE,text=True).stdout.strip()==IMAGE
  for name in containers.values():assert absent(name)
  if not args.main_source:
@@ -117,10 +117,10 @@ try:
  ports={};container_ids={}
  for kind,name in containers.items():
   attempted.append(name);state['creationAttempted']=attempted;persist()
-  run(docker+['run','--detach','--pull','never','--name',name,'--label','dvaia.test.owner='+owner,'--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=50','-c','max_wal_size=16MB','-c','min_wal_size=4MB','-c','cluster_name='+('dvaia-owned-analytics-'+nonce if kind=='target' else 'dvaia-analytics-state-'+nonce)],stdout=subprocess.DEVNULL)
+  run(docker+['run','--detach','--pull','never','--name',name,'--label','owasp-ai-goat.test.owner='+owner,'--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=50','-c','max_wal_size=16MB','-c','min_wal_size=4MB','-c','cluster_name='+('owasp-ai-goat-owned-analytics-'+nonce if kind=='target' else 'owasp-ai-goat-analytics-state-'+nonce)],stdout=subprocess.DEVNULL)
   info=json.loads(run(docker+['inspect',name],stdout=subprocess.PIPE,text=True).stdout)[0]
   container_ids[name]=info['Id']
-  assert not info.get('Mounts') and info['Config']['Labels'].get('dvaia.test.owner')==owner
+  assert not info.get('Mounts') and info['Config']['Labels'].get('owasp-ai-goat.test.owner')==owner
   for _ in range(100):
    ready=subprocess.run(docker+['exec',name,'pg_isready','-h','127.0.0.1','-U','postgres'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=2)
    if ready.returncode==0:break
@@ -128,18 +128,18 @@ try:
   else:raise RuntimeError('Owned PostgreSQL unavailable')
   ports[kind]=int(run(docker+['port',name,'5432/tcp'],stdout=subprocess.PIPE,text=True).stdout.strip().rsplit(':',1)[1])
  def sql(kind,text):run(docker+['exec',containers[kind],'psql','-U','postgres','-d','postgres','-v','ON_ERROR_STOP=1','-c',text],stdout=subprocess.DEVNULL)
- control='dvaia_analytics_control_'+nonce;sql('target',f'CREATE DATABASE {control}')
+ control='owasp_ai_goat_analytics_control_'+nonce;sql('target',f'CREATE DATABASE {control}')
  for name in ['postgres','template0','template1',control]:sql('target',f'REVOKE CONNECT ON DATABASE {name} FROM PUBLIC')
  for label,prefix in [('identity','identity'),('agents','secureshop_agents'),('commerce','secureshop')]+([('review','secureshop_review')] if args.mounted_only or browser_cohort else []):
   migration='dvaia_'+prefix+'_migration';runtime='dvaia_'+prefix+'_runtime'
   for role in [migration,runtime]:sql('state',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS')
-  database=f'dvaia_test_analytics_model_{nonce}_{label}';sql('state',f'CREATE DATABASE {database} OWNER {migration}');sql('state',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}')
+  database=f'owasp_ai_goat_test_analytics_model_{nonce}_{label}';sql('state',f'CREATE DATABASE {database} OWNER {migration}');sql('state',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}')
   for key,role in [('MIGRATION',migration),('RUNTIME',runtime)]:env[f'ANALYTICS_ACTUAL_{label.upper()}_{key}_URL']=f'postgresql://{role}@127.0.0.1:{ports["state"]}/{database}'
  if args.admission_only or args.mounted_only:
-  database=f'dvaia_test_analytics_model_{nonce}_fresh';sql('state',f'CREATE DATABASE {database} OWNER dvaia_secureshop_agents_migration');sql('state',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO dvaia_secureshop_agents_migration,dvaia_secureshop_agents_runtime')
+  database=f'owasp_ai_goat_test_analytics_model_{nonce}_fresh';sql('state',f'CREATE DATABASE {database} OWNER dvaia_secureshop_agents_migration');sql('state',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO dvaia_secureshop_agents_migration,dvaia_secureshop_agents_runtime')
   for key,role in [('MIGRATION','dvaia_secureshop_agents_migration'),('RUNTIME','dvaia_secureshop_agents_runtime')]:env[f'ANALYTICS_ACTUAL_FRESH_{key}_URL']=f'postgresql://{role}@127.0.0.1:{ports["state"]}/{database}'
   env['ANALYTICS_ADMISSION_ONLY']='1'
- env.update(ANALYTICS_FIXED_MODE='1' if args.fixed_mode else '0',ANALYTICS_ACTUAL8B='1',ANALYTICS_ACTUAL_OWNER=nonce,ANALYTICS_ACTUAL_TARGET_PORT=str(ports['target']),ANALYTICS_ACTUAL_EVIDENCE=str(root/'actual-evidence.json'),NODE_ENV='test',PG_TEST_DISPOSABLE='yes',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',AI_PROVIDER='ollama',OLLAMA_MODEL='llama3.1:8b',OLLAMA_BASE_URL='http://127.0.0.1:11434',AWS_EC2_METADATA_DISABLED='true',MCP_WORKSHOP_AUTOSTART='false',MCP_SIDECARS_AUTOSTART='false',SS_ENABLE='false',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',JWT_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,SESSION_SECRET=uuid.uuid4().hex+uuid.uuid4().hex)
+ env.update(ANALYTICS_FIXED_MODE='1' if args.fixed_mode else '0',ANALYTICS_ACTUAL8B='1',ANALYTICS_ACTUAL_OWNER=nonce,ANALYTICS_ACTUAL_TARGET_PORT=str(ports['target']),ANALYTICS_ACTUAL_EVIDENCE=str(root/'actual-evidence.json'),NODE_ENV='test',PG_TEST_DISPOSABLE='yes',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',AI_PROVIDER='ollama',OLLAMA_MODEL='llama3.1:8b',OLLAMA_BASE_URL='http://127.0.0.1:11434',AWS_EC2_METADATA_DISABLED='true',MCP_WORKSHOP_AUTOSTART='false',MCP_SIDECARS_AUTOSTART='false',SS_ENABLE='false',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1',JWT_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,SESSION_SECRET=uuid.uuid4().hex+uuid.uuid4().hex)
  if args.catalog_only:env['ANALYTICS_CATALOG_ONLY']='1'
  if args.mounted_only:env['ANALYTICS_MOUNTED_ONLY']='1'
  if args.effect_only:env['ANALYTICS_EFFECT_ONLY']='1'
@@ -167,7 +167,7 @@ finally:
   try:
    if not absent(name):
     info=json.loads(run(docker+['inspect',name],stdout=subprocess.PIPE,text=True).stdout)[0]
-    if info['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('Refusing foreign container cleanup')
+    if info['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('Refusing foreign container cleanup')
     if browser_cohort and (info['Id']!=container_ids.get(name) or info['Image']!=IMAGE):raise RuntimeError('Owned container identity changed')
     run(docker+['rm','-f','-v',name],stdout=subprocess.DEVNULL)
    absence[name]=absent(name)

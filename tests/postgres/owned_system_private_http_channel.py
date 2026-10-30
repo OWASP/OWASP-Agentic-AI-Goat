@@ -67,7 +67,7 @@ def fixed_binding(value):
             and re.fullmatch('sha256:[a-f0-9]{64}', value['imageId'])
             and re.fullmatch('[a-f0-9]{64}', value['inputSha256'])
             and re.fullmatch('[a-zA-Z0-9:-]{20,128}', value['daemonId']), 'SYSTEM_BINDING')
-    root = '/var/tmp/dvaia-v23-build-' + value['runId'] + '/fs'
+    root = '/var/tmp/owasp-ai-goat-v23-build-' + value['runId'] + '/fs'
     physical = value['physical']
     require(type(physical) is dict and set(physical) == {'privateDockerHost', 'namespaceInode',
             'filesystemIdentity', 'daemonProcess', 'namespaceHolder'}
@@ -176,7 +176,7 @@ class GuestRuntime:
         self.policy = binding['target'] == 'original-v24-policy'
         self.diagnostic = binding['target'] == 'original-v03-diagnostic'
         self.slot = 'diagnostic' if self.diagnostic else 'policy' if self.policy else 'system'
-        self.name = 'dvaia-'+self.slot+'-runtime-' + binding['runId']
+        self.name = 'owasp-ai-goat-'+self.slot+'-runtime-' + binding['runId']
         self.profile = self.name
         self.entrypoint = ['/usr/local/bin/node', '/qualification/diagnostic-listener-entry.js' if self.diagnostic else '/app/policy-render/listener.js' if self.policy else '/qualification/owned-system/http-listener.js']
 
@@ -296,8 +296,8 @@ class GuestRuntime:
         require(image['Id'] == self.binding['imageId'] and image['Architecture'] == 'arm64'
                 and image['Os'] == 'linux' and image['Config']['User'] == '10001:10001'
                 and image['Config']['Entrypoint'] == self.entrypoint
-                and image['Config']['Labels'].get('dvaia.'+self.slot+'.inputs') == self.binding['inputSha256']
-                and image['Config']['Labels'].get('dvaia.build-run') == self.binding['runId'], 'SYSTEM_IMAGE')
+                and image['Config']['Labels'].get('owasp-ai-goat.'+self.slot+'.inputs') == self.binding['inputSha256']
+                and image['Config']['Labels'].get('owasp-ai-goat.build-run') == self.binding['runId'], 'SYSTEM_IMAGE')
 
     def profile_names(self):
         with open('/sys/kernel/security/apparmor/profiles', encoding='ascii') as source:
@@ -419,7 +419,7 @@ class GuestRuntime:
         require(self.profile in self.profile_names() and self.profile+'//bwrap' in self.profile_names(), 'SYSTEM_PROFILE_LOAD')
         self.guard()
         self.write_new('system-runtime-create-attempt.json', b'{"attempted":true}')
-        raw_id = self.docker('create', '--pull', 'never', '--name', self.name, '--label', 'dvaia.'+self.slot+'.runtime='+self.binding['runId'],
+        raw_id = self.docker('create', '--pull', 'never', '--name', self.name, '--label', 'owasp-ai-goat.'+self.slot+'.runtime='+self.binding['runId'],
                     '--network', 'none' if self.policy else 'host', '--read-only', '--user', '10001:10001', '--memory', '512m', '--cpus', '1',
                     '--pids-limit', '128', *(['--cap-drop','ALL'] if self.policy else []),
                     '--tmpfs', '/tmp:rw,nosuid,nodev,noexec,mode=1777,size=128m' if self.policy else '/tmp:rw,nosuid,nodev,size=128m', '--security-opt', 'seccomp=unconfined',
@@ -492,7 +492,7 @@ while True:
         row = rows[0]
         config, host = row['Config'], row['HostConfig']
         require(re.fullmatch('[a-f0-9]{64}', row['Id']) and row['Image'] == self.binding['imageId']
-                and row['Name'] == '/'+self.name and config['Labels'].get('dvaia.'+self.slot+'.runtime') == self.binding['runId']
+                and row['Name'] == '/'+self.name and config['Labels'].get('owasp-ai-goat.'+self.slot+'.runtime') == self.binding['runId']
                 and config['User'] == '10001:10001' and config['Entrypoint'] == self.entrypoint
                 and host['NetworkMode'] == ('none' if self.policy else 'host') and not host.get('PortBindings') and not row.get('Mounts')
                 and host['ReadonlyRootfs'] is True and host['Memory'] == 536870912 and host['NanoCpus'] == 1000000000
@@ -581,7 +581,7 @@ while True:
             rows = json.loads(self.docker('container', 'inspect', self.name))
             require(len(rows) == 1 and rows[0]['Image'] == self.binding['imageId']
                     and rows[0]['Name'] == '/'+self.name and re.fullmatch('[a-f0-9]{64}', rows[0]['Id'])
-                    and rows[0]['Config']['Labels'].get('dvaia.'+self.slot+'.runtime') == self.binding['runId'], 'SYSTEM_CLEANUP_OWNER')
+                    and rows[0]['Config']['Labels'].get('owasp-ai-goat.'+self.slot+'.runtime') == self.binding['runId'], 'SYSTEM_CLEANUP_OWNER')
             require(known_id is None or rows[0]['Id'] == known_id, 'SYSTEM_CLEANUP_CONTAINER_CHANGED')
             self.docker('rm', '-f', rows[0]['Id'])
         require(not self.docker('ps', '-a', '--filter', 'name=^/'+self.name+'$', '--format', '{{.ID}}').strip(), 'SYSTEM_CONTAINER_REMAINS')
@@ -600,7 +600,7 @@ while True:
 
 def diagnostic_readiness_program(environment_path, namespace, deadline):
     require(type(environment_path) is str and re.fullmatch(
-        '/var/tmp/dvaia-v23-build-[a-f0-9]{32}/fs/diagnostic-runtime.env', environment_path), 'DIAGNOSTIC_READINESS_PATH')
+        '/var/tmp/owasp-ai-goat-v23-build-[a-f0-9]{32}/fs/diagnostic-runtime.env', environment_path), 'DIAGNOSTIC_READINESS_PATH')
     require(type(namespace) is int and namespace > 0 and type(deadline) in (int,float)
             and math.isfinite(deadline), 'DIAGNOSTIC_READINESS_INPUT')
     return 'ENV_PATH='+repr(environment_path)+'\nEXPECTED_NAMESPACE='+repr(namespace)+'\nDEADLINE='+repr(deadline)+'\n'+r'''

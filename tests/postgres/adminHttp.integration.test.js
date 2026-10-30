@@ -54,7 +54,7 @@ async function waitForBarrier(promise,label) {
 }
 const observe=promise=>promise.then(value=>({status:'fulfilled',value}),reason=>({status:'rejected',reason}));
 test('real PG18 admin HTTP preserves RBAC, identity, visibility parity, and reset truthfulness',{skip:!enabled},async()=>{
- for(const key of ['PG_ADMIN_TEST_MIGRATION_URL','PG_ADMIN_TEST_RUNTIME_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const key of ['PG_ADMIN_TEST_MIGRATION_URL','PG_ADMIN_TEST_RUNTIME_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const migration=createPool(process.env,'PG_ADMIN_TEST_MIGRATION_URL'),pool=createPool(process.env,'PG_ADMIN_TEST_RUNTIME_URL');let server,authRouter;
  try{
   await initializeIdentityRepository(pool,migration);await seedWorkshopPlatform(migration);

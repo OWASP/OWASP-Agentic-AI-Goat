@@ -38,7 +38,7 @@ function input(password){
  return{identity:{users:[{id:71,username:'preserved-admin',email:'preserved@example.invalid',password,role:'admin',admin_level:1,created_at:stamp}],permissions:[{id:1,admin_id:71,permission_name:'user_management',granted_at:stamp}]},platform};
 }
 test('combined import checks constraints atomically and preserves historical platform state',{skip:!enabled},async()=>{
- for(const key of ['PG_PLATFORM_IDENTITY_TEST_RUNTIME_URL','PG_PLATFORM_IDENTITY_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const key of ['PG_PLATFORM_IDENTITY_TEST_RUNTIME_URL','PG_PLATFORM_IDENTITY_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const runtime=createPool(process.env,'PG_PLATFORM_IDENTITY_TEST_RUNTIME_URL'),migration=createPool(process.env,'PG_PLATFORM_IDENTITY_TEST_MIGRATION_URL');
  try{
   await initializeIdentityRepository(runtime,migration);const password=await require('bcryptjs').hash('fixture-only',4),data=input(password);data.solutions=solutionsFixture();data.solutions.archiveDigest=data.platform.archiveDigest;

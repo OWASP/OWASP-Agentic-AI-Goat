@@ -18,13 +18,13 @@ def admit_absent_resources(command,tag,network,name,owner):
   if M.inspect_resource(command,kind,identifier) is not None:raise RuntimeError('Owned resource collision')
  # No image has been created yet: any existing container is a collision,
  # including one whose ownership or image cannot be established.
- if inspect_owned(command,name=name,labels={'dvaia.owner':owner},image=None) is not None:raise RuntimeError('Owned container collision')
+ if inspect_owned(command,name=name,labels={'owasp-ai-goat.owner':owner},image=None) is not None:raise RuntimeError('Owned container collision')
 
 def main():
  p=argparse.ArgumentParser();p.add_argument('--run',action='store_true');p.add_argument('--docker-host',required=True);p.add_argument('--source-sha256',required=True);p.add_argument('--dependency-sha256',required=True);a=p.parse_args()
  if not a.run or a.docker_host!=M.HOST:raise ValueError('Explicit reviewed frozen qualification required')
  reviewed=verify(SOURCE,a.source_sha256,a.dependency_sha256)
- root=Path(tempfile.mkdtemp(prefix='dvaia-mcp-procless-'));root.chmod(0o700);owner=uuid.uuid4().hex;name='dvaia-mcp-procless-'+owner[:12];tag=name+':owned';network=name+'-net';remote='/tmp/'+name;docker=[M.DOCKER,'--host',M.HOST]
+ root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-procless-'));root.chmod(0o700);owner=uuid.uuid4().hex;name='owasp-ai-goat-mcp-procless-'+owner[:12];tag=name+':owned';network=name+'-net';remote='/tmp/'+name;docker=[M.DOCKER,'--host',M.HOST]
  state={'status':'preparing','stage':'admission','diagnosticOnly':True,'owner':owner,'root':str(root),'bounds':BOUNDS,'reviewed':reviewed,'launcherPid':os.getpid(),'artifacts':[],'cleanup':{}}
  started=time.monotonic();image=None;container_id=None;remote_owned=False;ca=root/'build-ca.pem'
  def persist():(root/'ownership.json').write_text(json.dumps(state,indent=2)+'\n')
@@ -51,30 +51,30 @@ def main():
   if '-----BEGIN CERTIFICATE-----' not in cert:raise RuntimeError('Build CA unavailable')
   fd=os.open(ca,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
   with os.fdopen(fd,'w') as stream:stream.write(cert)
-  attempt,_=capture('linuxCompilation',docker+['build','--platform','linux/arm64','--label','dvaia.owner='+owner,'--secret','id=npm_ca,src='+str(ca),'--tag',tag,'--file',str(SOURCE/'sidecars/sandbox-runner/owned-mcp-registry/Dockerfile.procless-feasibility'),str(SOURCE)],300,1048576)
+  attempt,_=capture('linuxCompilation',docker+['build','--platform','linux/arm64','--label','owasp-ai-goat.owner='+owner,'--secret','id=npm_ca,src='+str(ca),'--tag',tag,'--file',str(SOURCE/'sidecars/sandbox-runner/owned-mcp-registry/Dockerfile.procless-feasibility'),str(SOURCE)],300,1048576)
   if attempt['returncode'] or attempt['timedOut'] or attempt['truncated']:raise RuntimeError('Linux compilation failed; private artifacts retained')
   row=M.inspect_resource(command,'image',tag)
-  if not row or row.get('Config',{}).get('Labels',{}).get('dvaia.owner')!=owner:raise RuntimeError('Image ownership mismatch')
+  if not row or row.get('Config',{}).get('Labels',{}).get('owasp-ai-goat.owner')!=owner:raise RuntimeError('Image ownership mismatch')
   image=row['Id'];state['imageId']=image
   policy=(SOURCE/'sidecars/sandbox-runner/owned-mcp-registry/profile.apparmor.in').read_text().replace('@@SUPERVISOR_PROFILE@@',name)
   labels=ssh(['sudo','cat','/sys/kernel/security/apparmor/profiles']).stdout.splitlines()
   if any(x.startswith(name+' ') or x.startswith(name+'//') for x in labels):raise RuntimeError('Profile collision')
   remote_owned=I.create_remote_root(ssh,remote,owner,state,persist);ssh(['tee',remote+'/policy'],input=policy);ssh(['sudo','apparmor_parser','--skip-kernel-load',remote+'/policy']);ssh(['sudo','apparmor_parser','-r',remote+'/policy'])
-  if command(['network','create','--internal','--label','dvaia.owner='+owner,network]).returncode:raise RuntimeError('Network creation failed')
-  argv=['create','--name',name,'--label','dvaia.owner='+owner,'--network',network,'--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--tmpfs','/run/dvaia-invocation:rw,nosuid,nodev,noexec,size=1m,mode=0700,uid=10001,gid=10001','--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--security-opt','apparmor='+name,'--security-opt','seccomp=unconfined','--user','10001:10001',image]
+  if command(['network','create','--internal','--label','owasp-ai-goat.owner='+owner,network]).returncode:raise RuntimeError('Network creation failed')
+  argv=['create','--name',name,'--label','owasp-ai-goat.owner='+owner,'--network',network,'--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--tmpfs','/run/owasp-ai-goat-invocation:rw,nosuid,nodev,noexec,size=1m,mode=0700,uid=10001,gid=10001','--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--security-opt','apparmor='+name,'--security-opt','seccomp=unconfined','--user','10001:10001',image]
   if command(argv).returncode:raise RuntimeError('Probe container creation failed')
-  info=inspect_owned(command,name=name,labels={'dvaia.owner':owner},image=image);container_id=info['Id'];state['containerId']=container_id;persist()
+  info=inspect_owned(command,name=name,labels={'owasp-ai-goat.owner':owner},image=image);container_id=info['Id'];state['containerId']=container_id;persist()
   # Immutable compiled helper/filter evidence is copied before start, never executed outside container.
   destination=root/'compiled-helper.sha256'
-  if command(['cp',container_id+':/usr/share/dvaia/procless-feasibility.sha256',str(destination)]).returncode:raise RuntimeError('Helper manifest unavailable')
+  if command(['cp',container_id+':/usr/share/owasp-ai-goat/procless-feasibility.sha256',str(destination)]).returncode:raise RuntimeError('Helper manifest unavailable')
   destination.chmod(0o600);state['artifacts'].append({'name':destination.name,'sha256':sha(destination),'bytes':destination.stat().st_size,'mode':'0600'})
   net=M.inspect_resource(command,'network',network)
-  if not net or not net.get('Internal') or net.get('Driver')!='bridge' or net.get('Labels',{}).get('dvaia.owner')!=owner or set(info.get('NetworkSettings',{}).get('Networks',{}))!={network} or info['HostConfig'].get('NetworkMode')!=network:raise RuntimeError('Internal network mismatch')
+  if not net or not net.get('Internal') or net.get('Driver')!='bridge' or net.get('Labels',{}).get('owasp-ai-goat.owner')!=owner or set(info.get('NetworkSettings',{}).get('Networks',{}))!={network} or info['HostConfig'].get('NetworkMode')!=network:raise RuntimeError('Internal network mismatch')
   host=info['HostConfig']
   if host.get('Memory')!=536870912 or host.get('NanoCpus')!=1000000000 or host.get('PidsLimit')!=128 or host.get('CapDrop')!=['ALL'] or not host.get('ReadonlyRootfs') or host.get('Privileged') or host.get('PortBindings') or info['Config'].get('User')!='10001:10001' or set(host.get('SecurityOpt',[]))!={'apparmor='+name,'seccomp=unconfined'}:raise RuntimeError('Runtime isolation mismatch')
   state['isolation']={k:host.get(k) for k in ['Memory','NanoCpus','PidsLimit','CapDrop','SecurityOpt','MaskedPaths','ReadonlyPaths','ReadonlyRootfs','PidMode','UsernsMode']};persist()
   attempt,directory=capture('helperFeasibility',docker+['start','--attach',container_id],20,65536)
-  info=inspect_owned(command,name=name,labels={'dvaia.owner':owner},image=image,captured_id=container_id);state['containerExit']=info['State'].get('ExitCode')
+  info=inspect_owned(command,name=name,labels={'owasp-ai-goat.owner':owner},image=image,captured_id=container_id);state['containerExit']=info['State'].get('ExitCode')
   if attempt['returncode'] or attempt['timedOut'] or attempt['truncated'] or info['State'].get('Running') or state['containerExit']!=0:raise RuntimeError('Helper feasibility failed; private artifacts retained')
   result=result_contract((directory/'bootstrap-metadata.stdout').read_text());state['result']=result
   if result!={'diagnosticOnly':True,'phase':7,'passed':True,'drained':True}:raise RuntimeError('Helper proof incomplete')
@@ -89,8 +89,8 @@ def main():
    r=I.subprocess.run(M.SSH+[shlex.join(argv)],capture_output=True,text=True,timeout=M.remaining(deadline,10),check=True);return r
   containers_clean=False
   try:
-   state['cleanup']['container']=cleanup_owned(clean_command,daemon_id=M.DAEMON_ID,name=name,labels={'dvaia.owner':owner},image=image,captured_id=container_id)
-   if container_id and inspect_owned(clean_command,name=container_id,labels={'dvaia.owner':owner},image=image) is not None:raise RuntimeError('Container remains')
+   state['cleanup']['container']=cleanup_owned(clean_command,daemon_id=M.DAEMON_ID,name=name,labels={'owasp-ai-goat.owner':owner},image=image,captured_id=container_id)
+   if container_id and inspect_owned(clean_command,name=container_id,labels={'owasp-ai-goat.owner':owner},image=image) is not None:raise RuntimeError('Container remains')
    containers_clean=True
   except Exception:errors.append('container-cleanup-failed')
   try:
@@ -106,7 +106,7 @@ def main():
   try:
    net=M.inspect_resource(clean_command,'network',network)
    if net:
-    if net.get('Labels',{}).get('dvaia.owner')!=owner or clean_command(['network','rm',network]).returncode:raise RuntimeError('Network cleanup failed')
+    if net.get('Labels',{}).get('owasp-ai-goat.owner')!=owner or clean_command(['network','rm',network]).returncode:raise RuntimeError('Network cleanup failed')
    if M.inspect_resource(clean_command,'network',network):raise RuntimeError('Network remains')
    state['cleanup']['networkAbsent']=True;state['cleanup']['image']=I.cleanup_image(clean_command,tag,owner,image)
   except Exception:errors.append('network-image-cleanup-failed')

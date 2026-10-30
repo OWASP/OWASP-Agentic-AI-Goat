@@ -13,7 +13,7 @@ const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
 
 function manifest(outDir) {
   return {
-    name: 'dvaia-secureshop-product-description-renderer-manifest',
+    name: 'owasp-ai-goat-secureshop-product-description-renderer-manifest',
     async closeBundle() {
       const [sourceBytes, artifactBytes] = await Promise.all([
         fs.readFile(source), fs.readFile(path.join(outDir, artifact)),

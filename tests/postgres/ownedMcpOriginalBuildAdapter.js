@@ -115,7 +115,7 @@ function limaArgvEnvelope(argv) {
 const PHASE_DECODER = String.raw`import sys,base64,zlib,hashlib,os,re
 assert len(sys.argv) in (6,7) and 0<len(sys.argv[1])<=32768
 assert re.fullmatch('[0-9a-f]{64}',sys.argv[2]) and sys.argv[3]=='owned-original-build'
-assert re.fullmatch('[0-9a-f]{32}',sys.argv[5]) and sys.argv[4]=='/var/tmp/dvaia-v23-build-'+sys.argv[5]
+assert re.fullmatch('[0-9a-f]{32}',sys.argv[5]) and sys.argv[4]=='/var/tmp/owasp-ai-goat-v23-build-'+sys.argv[5]
 if len(sys.argv)==7:assert re.fullmatch('sha256:[0-9a-f]{64}',sys.argv[6])
 packed=base64.b64decode(sys.argv[1],validate=True)
 d=zlib.decompressobj(31);b=d.decompress(packed,131072)
@@ -216,8 +216,8 @@ async function guestMain(load, binding, npmLockBase64, budgetProfile) {
   const hash = data => crypto.createHash('sha256').update(data).digest('hex');
   const error = code => Object.assign(new Error(code), { code });
   const now = () => Number(process.hrtime.bigint()) / 1000000;
-  const deadline = Number(process.env.DVAIA_ARTIFACT_DEADLINE_SECONDS) * 1000;
-  const port = Number(process.env.DVAIA_ARTIFACT_PROXY_PORT);
+  const deadline = Number(process.env.OWASP_AI_GOAT_ARTIFACT_DEADLINE_SECONDS) * 1000;
+  const port = Number(process.env.OWASP_AI_GOAT_ARTIFACT_PROXY_PORT);
   if (!Number.isFinite(deadline) || deadline <= now() || deadline - now() > 300000
     || !Number.isInteger(port) || port < 1 || port > 65535) throw error('ORIGINAL_BUILD_GUEST_AUTHORITY');
   const controller = new AbortController(), children = new Set(); let commandBytes = 0, expandedBytes = 0;
@@ -426,24 +426,24 @@ async function registryConsumerPlan(root, spec, guard) {
   const runtime = require('./ownedMcpRuntimeQualification')._internals;
   const template = await fs.readFile(path.join(root, runtime.TEMPLATE));
   if (sha(template) !== runtime.TEMPLATE_SHA) throw fail('ORIGINAL_BUILD_RUNTIME_PROFILE_CHANGED');
-  const nonce = spec.runId.slice(0, 12), name = 'dvaia-owned-mcp-registry-' + nonce;
+  const nonce = spec.runId.slice(0, 12), name = 'owasp-ai-goat-owned-mcp-registry-' + nonce;
   const profile = template.toString().replaceAll('@@SUPERVISOR_PROFILE@@', name);
-  if (!profile.endsWith('\n') || profile.split('\n').includes('DVAIA_ORIGINAL_REGISTRY_PROFILE'))
+  if (!profile.endsWith('\n') || profile.split('\n').includes('OWASP_AI_GOAT_ORIGINAL_REGISTRY_PROFILE'))
     throw fail('ORIGINAL_BUILD_RUNTIME_PROFILE_DELIVERY');
-  const profileRoot = '/var/tmp/dvaia-v23-runtime-' + nonce;
+  const profileRoot = '/var/tmp/owasp-ai-goat-v23-runtime-' + nonce;
   const policy = action => guard + `\ncheck_mount; check_runtime\n/bin/sh -c ${quote(runtime.scripts[action])} original-registry-profile '${profileRoot}' '${nonce}' '${name}' '${sha(profile)}'` +
-    (action === 'install' ? ` <<'DVAIA_ORIGINAL_REGISTRY_PROFILE'\n${profile}DVAIA_ORIGINAL_REGISTRY_PROFILE\n` : '\n');
+    (action === 'install' ? ` <<'OWASP_AI_GOAT_ORIGINAL_REGISTRY_PROFILE'\n${profile}OWASP_AI_GOAT_ORIGINAL_REGISTRY_PROFILE\n` : '\n');
   const identity = String.raw`
 registry_identity() {
  [ -f "$root/fs/registry.cid" ] && [ ! -L "$root/fs/registry.cid" ]
  registry_cid=$(cat "$root/fs/registry.cid")
  [ "$(printf '%s' "$registry_cid" | wc -c | tr -d ' ')" = 64 ]; case "$registry_cid" in *[!a-f0-9]*) return 97;; esac
  [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Id}}' "$registry_cid")" = "$registry_cid" ]
- [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "dvaia.original.registry"}}' "$registry_cid")" = "$nonce" ]
- [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Image}}' "$registry_cid")" = "$(docker --host "unix://$root/fs/docker.sock" image inspect --format '{{.Id}}' "dvaia-v23-build:$nonce")" ]
+ [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "owasp-ai-goat.original.registry"}}' "$registry_cid")" = "$nonce" ]
+ [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Image}}' "$registry_cid")" = "$(docker --host "unix://$root/fs/docker.sock" image inspect --format '{{.Id}}' "owasp-ai-goat-v23-build:$nonce")" ]
 }
 registry_process_absent() {
- /usr/bin/python3 -I -S -B - "$root/fs" <<'DVAIA_REGISTRY_ABSENCE'
+ /usr/bin/python3 -I -S -B - "$root/fs" <<'OWASP_AI_GOAT_REGISTRY_ABSENCE'
 import sys,os,json,stat
 root=sys.argv[1]
 if not os.path.lexists(root+'/registry.started'):sys.exit(0)
@@ -456,13 +456,13 @@ try:
  with open('/proc/'+str(row['pid'])+'/stat') as f: fields=f.read().rsplit(')',1)[1].split()
  assert fields[19]!=row['startTicks']
 except FileNotFoundError:pass
-DVAIA_REGISTRY_ABSENCE
+OWASP_AI_GOAT_REGISTRY_ABSENCE
 }
 `;
   const create = guard + `\ncheck_mount; check_runtime; check_network
 [ ! -e "$root/fs/registry.cid" ] && [ ! -L "$root/fs/registry.cid" ]
-image=$(docker --host "unix://$root/fs/docker.sock" image inspect --format '{{.Id}}' "dvaia-v23-build:$nonce")
-docker --host "unix://$root/fs/docker.sock" create --cidfile "$root/fs/registry.cid" --name '${name}' --label "dvaia.original.registry=$nonce" --pull never --network none --read-only --tmpfs /tmp:rw,nosuid,nodev,noexec,size=16m --memory 512m --cpus 1 --pids-limit 128 --log-driver none --cap-drop ALL --security-opt 'apparmor=${name}' --security-opt seccomp=unconfined --user 10001:10001 --env 'SECURESHOP_MCP_REGISTRY_PROFILE=${name}' --entrypoint node -i "$image" - >/dev/null
+image=$(docker --host "unix://$root/fs/docker.sock" image inspect --format '{{.Id}}' "owasp-ai-goat-v23-build:$nonce")
+docker --host "unix://$root/fs/docker.sock" create --cidfile "$root/fs/registry.cid" --name '${name}' --label "owasp-ai-goat.original.registry=$nonce" --pull never --network none --read-only --tmpfs /tmp:rw,nosuid,nodev,noexec,size=16m --memory 512m --cpus 1 --pids-limit 128 --log-driver none --cap-drop ALL --security-opt 'apparmor=${name}' --security-opt seccomp=unconfined --user 10001:10001 --env 'SECURESHOP_MCP_REGISTRY_PROFILE=${name}' --entrypoint node -i "$image" - >/dev/null
 cid=$(cat "$root/fs/registry.cid")
 docker --host "unix://$root/fs/docker.sock" inspect "$cid"
 `;
@@ -470,7 +470,7 @@ docker --host "unix://$root/fs/docker.sock" inspect "$cid"
 /usr/bin/python3 -I -S -B -c 'import os,sys;fd=os.open(sys.argv[1],os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o400);os.write(fd,b"started");os.fsync(fd);os.close(fd);fd=os.open(os.path.dirname(sys.argv[1]),os.O_RDONLY);os.fsync(fd);os.close(fd)' "$root/fs/registry.started"
 docker --host "unix://$root/fs/docker.sock" start "$registry_cid" >/dev/null
 pid=$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.State.Pid}}' "$registry_cid")
-/usr/bin/python3 -I -S -B - "$root/fs" "$pid" <<'DVAIA_REGISTRY_BIRTH'
+/usr/bin/python3 -I -S -B - "$root/fs" "$pid" <<'OWASP_AI_GOAT_REGISTRY_BIRTH'
 import os,sys,json
 root,pid=sys.argv[1:];assert pid.isdecimal() and int(pid)>1
 with open('/proc/'+pid+'/stat') as f:start=f.read().rsplit(')',1)[1].split()[19]
@@ -483,7 +483,7 @@ finally:os.close(fd)
 fd=os.open(root,os.O_RDONLY)
 try:os.fsync(fd)
 finally:os.close(fd)
-DVAIA_REGISTRY_BIRTH
+OWASP_AI_GOAT_REGISTRY_BIRTH
 docker --host "unix://$root/fs/docker.sock" attach --sig-proxy=false "$registry_cid"
 registry_identity
 [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.State.Running}}' "$registry_cid")" = false ]
@@ -523,32 +523,32 @@ async function listingsConsumerPlan(root,spec,guard,captured=null,mode='package'
   const runtime=require('./ownedMcpRuntimeQualification')._internals;
   const templatePath='sidecars/sandbox-runner/owned-listings/profile.apparmor.in';
   const template=await fs.readFile(path.join(root,templatePath));
-  const nonce=mode==='manager'?require('../../scripts/application-data-root').workspaceId(root):spec.runId.slice(0,12),name='dvaia-owned-listings-'+nonce;
+  const nonce=mode==='manager'?require('../../scripts/application-data-root').workspaceId(root):spec.runId.slice(0,12),name='owasp-ai-goat-owned-listings-'+nonce;
   const profile=template.toString().replaceAll('@@SUPERVISOR_PROFILE@@',name);
-  if(!profile.endsWith('\n')||profile.includes('\nDVAIA_LISTINGS_PROFILE\n'))throw fail('LISTINGS_PROFILE_DELIVERY');
+  if(!profile.endsWith('\n')||profile.includes('\nOWASP_AI_GOAT_LISTINGS_PROFILE\n'))throw fail('LISTINGS_PROFILE_DELIVERY');
   const profileRoot=spec.mount+'/listings-profile';
   const policy=action=>{
-    let script=replaceOnce(runtime.scripts[action],'[ "$root" = "/var/tmp/dvaia-v23-runtime-$nonce" ]',`[ "$root" = '${profileRoot}' ]`);
-    script=replaceOnce(script,'[ "$profile" = "dvaia-owned-mcp-registry-$nonce" ]','[ "$profile" = "dvaia-owned-listings-$nonce" ]');
+    let script=replaceOnce(runtime.scripts[action],'[ "$root" = "/var/tmp/owasp-ai-goat-v23-runtime-$nonce" ]',`[ "$root" = '${profileRoot}' ]`);
+    script=replaceOnce(script,'[ "$profile" = "owasp-ai-goat-owned-mcp-registry-$nonce" ]','[ "$profile" = "owasp-ai-goat-owned-listings-$nonce" ]');
     return guard+'\ncheck_mount; check_runtime\n/bin/sh -c '+quote(script)+' listings-profile '+quote(profileRoot)+' '+quote(nonce)+' '+quote(name)+' '+quote(sha(profile))+
-      (action==='install'?" <<'DVAIA_LISTINGS_PROFILE'\n"+profile+'DVAIA_LISTINGS_PROFILE\n':'\n');
+      (action==='install'?" <<'OWASP_AI_GOAT_LISTINGS_PROFILE'\n"+profile+'OWASP_AI_GOAT_LISTINGS_PROFILE\n':'\n');
   };
   const identity=String.raw`
 listings_identity() {
  [ -f "$root/fs/listings.cid" ] && [ ! -L "$root/fs/listings.cid" ]
  cid=$(cat "$root/fs/listings.cid"); [ "${'${#cid}'}" = 64 ]; case "$cid" in *[!a-f0-9]*) return 97;; esac
  [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Id}}' "$cid")" = "$cid" ]
- [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "dvaia.listings.owner"}}' "$cid")" = "$nonce" ]
- [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Image}}' "$cid")" = "$(docker --host "unix://$root/fs/docker.sock" image inspect --format '{{.Id}}' "dvaia-v23-build:$nonce")" ]
+ [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "owasp-ai-goat.listings.owner"}}' "$cid")" = "$nonce" ]
+ [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Image}}' "$cid")" = "$(docker --host "unix://$root/fs/docker.sock" image inspect --format '{{.Id}}' "owasp-ai-goat-v23-build:$nonce")" ]
 }
 `;
   const prefix=guard+identity+'\ncheck_mount; check_runtime\n';
-  const volume='dvaia-listings-journal-'+spec.runId;
+  const volume='owasp-ai-goat-listings-journal-'+spec.runId;
   const create=prefix+`
 [ ! -e "$root/fs/listings.cid" ] && [ ! -L "$root/fs/listings.cid" ]
 [ -z "$(docker --host "unix://$root/fs/docker.sock" volume ls -q --filter name=^${volume}$)" ]
-docker --host "unix://$root/fs/docker.sock" volume create --label "dvaia.listings.owner=$nonce" '${volume}' >/dev/null
-docker --host "unix://$root/fs/docker.sock" create --cidfile "$root/fs/listings.cid" --name '${name}' --label "dvaia.listings.owner=$nonce" --pull never --network none --read-only --user 10001:10001 --memory 512m --cpus 1 --pids-limit 128 --cap-drop ALL --tmpfs /tmp:rw,nosuid,nodev,noexec,size=16m --security-opt 'apparmor=${name}' --security-opt seccomp=unconfined --log-driver local --log-opt max-size=1m --log-opt max-file=1 --log-opt compress=false --mount type=volume,source=${volume},target=/journal --env 'LISTINGS_PROFILE=${name}' --entrypoint node "dvaia-v23-build:$nonce" /app/tests/fixtures/secureshopOwnedListingsPackaged.native.cjs >/dev/null
+docker --host "unix://$root/fs/docker.sock" volume create --label "owasp-ai-goat.listings.owner=$nonce" '${volume}' >/dev/null
+docker --host "unix://$root/fs/docker.sock" create --cidfile "$root/fs/listings.cid" --name '${name}' --label "owasp-ai-goat.listings.owner=$nonce" --pull never --network none --read-only --user 10001:10001 --memory 512m --cpus 1 --pids-limit 128 --cap-drop ALL --tmpfs /tmp:rw,nosuid,nodev,noexec,size=16m --security-opt 'apparmor=${name}' --security-opt seccomp=unconfined --log-driver local --log-opt max-size=1m --log-opt max-file=1 --log-opt compress=false --mount type=volume,source=${volume},target=/journal --env 'LISTINGS_PROFILE=${name}' --entrypoint node "owasp-ai-goat-v23-build:$nonce" /app/tests/fixtures/secureshopOwnedListingsPackaged.native.cjs >/dev/null
 listings_identity
 `;
   const start=state=>prefix+`listings_identity
@@ -564,7 +564,7 @@ docker --host "unix://$root/fs/docker.sock" stop --time 5 "$cid" >/dev/null
 docker --host "unix://$root/fs/docker.sock" rm "$cid" >/dev/null
 ids=$(docker --host "unix://$root/fs/docker.sock" ps -aq --no-trunc)
 for id in $ids; do [ "$id" != "$cid" ]; done
-[ "$(docker --host "unix://$root/fs/docker.sock" volume inspect --format '{{index .Labels "dvaia.listings.owner"}}' '${volume}')" = "$nonce" ]
+[ "$(docker --host "unix://$root/fs/docker.sock" volume inspect --format '{{index .Labels "owasp-ai-goat.listings.owner"}}' '${volume}')" = "$nonce" ]
 docker --host "unix://$root/fs/docker.sock" volume rm '${volume}' >/dev/null
 [ -z "$(docker --host "unix://$root/fs/docker.sock" volume ls -q --filter name=^${volume}$)" ]
 printf 'absent\\n'
@@ -640,8 +640,8 @@ if OP=='create':
   os.fsync(fd)
  finally:os.close(fd)
  assert not docker('ps','-aq','--filter','name=^/'+NAME+'$') and not docker('volume','ls','-q','--filter','name=^'+VOLUME+'$')
- docker('volume','create','--label','dvaia.listings.owner='+RUN,VOLUME)
- cid=docker('create','--cidfile',ROOT+'/listings.cid','--name',NAME,'--label','dvaia.listings.owner='+RUN,'--label','dvaia.test.owner='+RUN,'--label','dvaia.listings.source='+SOURCE,'--label','dvaia.listings.runtime='+RUNTIME,'--pull','never','--network','host','--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--security-opt','apparmor='+NAME,'--security-opt','seccomp=unconfined','--log-driver','local','--log-opt','max-size=1m','--log-opt','max-file=1','--log-opt','compress=false','--mount','type=volume,source='+VOLUME+',target=/journal','--env-file',ROOT+'/listings-manager.env','--entrypoint','node','dvaia-v23-build:'+RUN,'/app/sidecars/sandbox-runner/owned-listings/manager-entry.js')
+ docker('volume','create','--label','owasp-ai-goat.listings.owner='+RUN,VOLUME)
+ cid=docker('create','--cidfile',ROOT+'/listings.cid','--name',NAME,'--label','owasp-ai-goat.listings.owner='+RUN,'--label','owasp-ai-goat.test.owner='+RUN,'--label','owasp-ai-goat.listings.source='+SOURCE,'--label','owasp-ai-goat.listings.runtime='+RUNTIME,'--pull','never','--network','host','--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--security-opt','apparmor='+NAME,'--security-opt','seccomp=unconfined','--log-driver','local','--log-opt','max-size=1m','--log-opt','max-file=1','--log-opt','compress=false','--mount','type=volume,source='+VOLUME+',target=/journal','--env-file',ROOT+'/listings-manager.env','--entrypoint','node','owasp-ai-goat-v23-build:'+RUN,'/app/sidecars/sandbox-runner/owned-listings/manager-entry.js')
  assert re.fullmatch('[a-f0-9]{64}',cid)
  save('listings-manager-created.json',dict(containerId=cid,publicOrigin=data['origin'],environmentSha256=hashlib.sha256('\\n'.join(sorted(env)).encode()).hexdigest()))
  print('created')
@@ -649,7 +649,7 @@ elif OP=='start':
  created=read('listings-manager-created.json');cid=created['containerId']
  daemon=docker('info','--format','{{.ID}}');assert re.fullmatch('[a-f0-9-]{16,}',daemon)
  docker('start',cid);rows=json.loads(docker('inspect',cid));assert len(rows)==1
- row=rows[0];assert row['Image']==docker('image','inspect','--format','{{.Id}}','dvaia-v23-build:'+RUN)
+ row=rows[0];assert row['Image']==docker('image','inspect','--format','{{.Id}}','owasp-ai-goat-v23-build:'+RUN)
  pid=row['State']['Pid'];holder=int((root/'namespace.pid').read_text());s=root.stat()
  def birth(p):return int(Path('/proc/'+str(p)+'/stat').read_text().rsplit(')',1)[1].split()[19])
  assert birth(holder)==int((root/'namespace.start').read_text())
@@ -703,14 +703,14 @@ closure_identity() {
  cid=$(cat "$root/fs/closure.cid")
  [ "$(printf '%s' "$cid" | wc -c | tr -d ' ')" = 64 ]; case "$cid" in *[!a-f0-9]*) return 97;; esac
  [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Id}}' "$cid")" = "$cid" ]
- [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "dvaia.closure.owner"}}' "$cid")" = "$nonce" ]
+ [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{index .Config.Labels "owasp-ai-goat.closure.owner"}}' "$cid")" = "$nonce" ]
  [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.Image}}' "$cid")" = "$(docker --host "unix://$root/fs/docker.sock" image inspect --format '{{.Id}}' 'node@sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1')" ]
 }
 check_replay_exit() {
  if [ ! -e "$root/fs/closure/replay-intent.json" ] && [ ! -L "$root/fs/closure/replay-intent.json" ]; then return 0; fi
  replay_exit=$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.State.ExitCode}}' "$cid")
  [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.State.OOMKilled}}' "$cid")" = false ]
- /usr/bin/python3 -I -S -B - "$root/fs/closure" "$nonce" "$replay_exit" <<'DVAIA_REPLAY_EXIT'
+ /usr/bin/python3 -I -S -B - "$root/fs/closure" "$nonce" "$replay_exit" <<'OWASP_AI_GOAT_REPLAY_EXIT'
 import sys,os,stat,json
 root,run,code=sys.argv[1:];assert code in ('0','1') and os.path.realpath(root)==root
 fd=os.open(root+'/replay-terminal.json',os.O_RDONLY|os.O_NOFOLLOW)
@@ -721,7 +721,7 @@ r=json.loads(data);assert r['version']==1 and r['binding']['runId']==run and r['
 assert r['closed'] is True and r['active']==0 and r['admission']['pending']==0 and r['absenceVerified'] is True and r['publicationErrors']==[]
 assert r['tlsRetirement']['pendingHandshakes']==0 and r['tlsRetirement']['establishedSockets']==0 and r['tlsRetirement']['unjoinedTlsSockets']==0 and r['tlsRetirement']['callbackDebt']==0 and r['tlsRetirement']['ownerIntents']==r['tlsRetirement']['ownerErrors']
 assert int(code)==(0 if r['failure'] is None else 1)
-DVAIA_REPLAY_EXIT
+OWASP_AI_GOAT_REPLAY_EXIT
 }
 `;
   const install = guard + ownedContainer + `
@@ -732,7 +732,7 @@ mkdir -m 0700 "$root/fs/closure"
 proxy_port=$(relay_control authority)
 deadline=$(cat "$root/acquisition.deadline")
 printf '%s' "$nonce" > "$root/fs/closure.intent"
-docker --host "unix://$root/fs/docker.sock" create --cidfile "$root/fs/closure.cid" --name "dvaia-v23-closure-$nonce" --label "dvaia.closure.owner=$nonce" --pull never --network host --read-only --memory 768m --cpus 1 --pids-limit 64 --cap-drop ALL --security-opt no-new-privileges --log-driver local --log-opt max-size=1m --log-opt max-file=1 --log-opt compress=false --mount "type=bind,source=$root/fs/metadata-retained,target=/metadata-retained,readonly" --mount "type=bind,source=$root/fs/closure,target=/closure" --mount "type=bind,source=$root/fs/closure-guest.js,target=/closure-guest.js,readonly" --tmpfs /metadata:rw,nosuid,nodev,noexec,size=512m --tmpfs /tmp:rw,nosuid,nodev,noexec,size=16m --env "DVAIA_ARTIFACT_DEADLINE_SECONDS=$deadline" --env "DVAIA_ARTIFACT_PROXY_PORT=$proxy_port" --entrypoint /usr/local/bin/node 'node@${closure.BASE}' /closure-guest.js >/dev/null
+docker --host "unix://$root/fs/docker.sock" create --cidfile "$root/fs/closure.cid" --name "owasp-ai-goat-v23-closure-$nonce" --label "owasp-ai-goat.closure.owner=$nonce" --pull never --network host --read-only --memory 768m --cpus 1 --pids-limit 64 --cap-drop ALL --security-opt no-new-privileges --log-driver local --log-opt max-size=1m --log-opt max-file=1 --log-opt compress=false --mount "type=bind,source=$root/fs/metadata-retained,target=/metadata-retained,readonly" --mount "type=bind,source=$root/fs/closure,target=/closure" --mount "type=bind,source=$root/fs/closure-guest.js,target=/closure-guest.js,readonly" --tmpfs /metadata:rw,nosuid,nodev,noexec,size=512m --tmpfs /tmp:rw,nosuid,nodev,noexec,size=16m --env "OWASP_AI_GOAT_ARTIFACT_DEADLINE_SECONDS=$deadline" --env "OWASP_AI_GOAT_ARTIFACT_PROXY_PORT=$proxy_port" --entrypoint /usr/local/bin/node 'node@${closure.BASE}' /closure-guest.js >/dev/null
 closure_identity
 docker --host "unix://$root/fs/docker.sock" start "$cid" >/dev/null
 attempt=0
@@ -745,7 +745,7 @@ cat "$root/fs/closure/ready.json"
 `;
   const ready = String.raw`
 read_ready() {
- /usr/bin/python3 -I -S -B - "$root/fs/closure" "$nonce" <<'DVAIA_CLOSURE_READY'
+ /usr/bin/python3 -I -S -B - "$root/fs/closure" "$nonce" <<'OWASP_AI_GOAT_CLOSURE_READY'
 import sys,os,stat,json,hashlib
 root,run=sys.argv[1:]
 assert os.path.realpath(root)==root
@@ -762,7 +762,7 @@ assert r['binding']=={'runId':run,'target':${JSON.stringify(metadataPlan.binding
 assert set(r['authority'])=={'host','port'} and r['authority']['host']=='127.0.0.1' and type(r['authority']['port']) is int and 1<=r['authority']['port']<=65535
 assert hashlib.sha256(read('closure.json')).hexdigest()==r['closureSha256'] and hashlib.sha256(read('npm-ca.pem')).hexdigest()==r['npmCaSha256']
 print(r['authority']['port'])
-DVAIA_CLOSURE_READY
+OWASP_AI_GOAT_CLOSURE_READY
 }
 `;
   const build = guard + ownedContainer + ready + `
@@ -771,7 +771,7 @@ check_mount; check_runtime; closure_identity
 port=$(read_ready)
 stop_private_relay
 proxy="http://127.0.0.1:$port"
-timeout --signal=TERM --kill-after=10 300 docker --host "unix://$root/fs/docker.sock" build --pull=false --network=host --platform linux/arm64 --build-arg "HTTP_PROXY=$proxy" --build-arg "HTTPS_PROXY=$proxy" --build-arg "http_proxy=$proxy" --build-arg "https_proxy=$proxy" --build-arg NO_PROXY= --build-arg no_proxy= --secret "id=npm_ca,src=$root/fs/closure/npm-ca.pem" --label '${listings?'dvaia.listings.source':'dvaia.registry.package'}=${listings?listings.digest:source.packageDigest()}' --label "dvaia.build-run=$nonce" -f '${listings?listings.dockerfile:manifest.dockerfile}' -t "dvaia-v23-build:$nonce" -
+timeout --signal=TERM --kill-after=10 300 docker --host "unix://$root/fs/docker.sock" build --pull=false --network=host --platform linux/arm64 --build-arg "HTTP_PROXY=$proxy" --build-arg "HTTPS_PROXY=$proxy" --build-arg "http_proxy=$proxy" --build-arg "https_proxy=$proxy" --build-arg NO_PROXY= --build-arg no_proxy= --secret "id=npm_ca,src=$root/fs/closure/npm-ca.pem" --label '${listings?'owasp-ai-goat.listings.source':'owasp-ai-goat.registry.package'}=${listings?listings.digest:source.packageDigest()}' --label "owasp-ai-goat.build-run=$nonce" -f '${listings?listings.dockerfile:manifest.dockerfile}' -t "owasp-ai-goat-v23-build:$nonce" -
 closure_identity
 [ "$(docker --host "unix://$root/fs/docker.sock" inspect --format '{{.State.Running}}' "$cid")" = true ]
 `;
@@ -789,10 +789,10 @@ for remaining_cid in $remaining; do
 done
 printf 'absent\\n'
 `;
-  const image = guard + '\ncheck_mount; check_runtime\ndocker --host "unix://$root/fs/docker.sock" image inspect "dvaia-v23-build:$nonce"\n';
+  const image = guard + '\ncheck_mount; check_runtime\ndocker --host "unix://$root/fs/docker.sock" image inspect "owasp-ai-goat-v23-build:$nonce"\n';
   const closureEvidence = guard + String.raw`
 check_mount
-/usr/bin/python3 -I -S -B - "$root/fs/closure" <<'DVAIA_CLOSURE_EVIDENCE'
+/usr/bin/python3 -I -S -B - "$root/fs/closure" <<'OWASP_AI_GOAT_CLOSURE_EVIDENCE'
 import sys,os,stat,json
 root=sys.argv[1];assert os.path.realpath(root)==root
 result={}
@@ -807,11 +807,11 @@ for name in ('ready.json','closure.json','replay-intent.json','replay-failure.js
   result[name]=data.decode('utf-8')
 encoded=json.dumps(result);assert len(encoded.encode())<=2097152
 print(encoded)
-DVAIA_CLOSURE_EVIDENCE
+OWASP_AI_GOAT_CLOSURE_EVIDENCE
 `;
   const handoff = guard + String.raw`
 check_mount; check_runtime; check_network
-/usr/bin/python3 -I -S -B - "$root" "$nonce" <<'DVAIA_PRIVATE_HANDOFF'
+/usr/bin/python3 -I -S -B - "$root" "$nonce" <<'OWASP_AI_GOAT_PRIVATE_HANDOFF'
 import sys,os,json
 root,run=sys.argv[1:]
 def text(name):
@@ -826,7 +826,7 @@ namespace=text('namespace.inode');assert namespace!=text('shared.inode') and nam
 st=os.stat(root+'/fs')
 print(json.dumps(dict(version=1,target='original-v23-registry',runId=run,privateDockerHost='unix://'+root+'/fs/docker.sock',namespaceInode=namespace,
  filesystemIdentity=dict(device=st.st_dev,inode=st.st_ino),daemonProcess=process('daemon','/usr/bin/dockerd'),namespaceHolder=process('namespace','/usr/bin/sleep'))))
-DVAIA_PRIVATE_HANDOFF
+OWASP_AI_GOAT_PRIVATE_HANDOFF
 `;
   const helperHashes = { ...guest.hashes, ...registry.helperHashes };
   if (leaseMode) for (const file of ['ownedMcpOriginalService', 'ownedMcpOriginalServiceLease', 'ownedMcpOriginalServiceDerivation', 'ownedMcpOriginalServiceProducer', 'ownedMcpRegistryService']) {
@@ -861,11 +861,11 @@ DVAIA_PRIVATE_HANDOFF
     buildApproved: false, qualificationComplete: false };
   if(listings){
     plan.target=target;plan.kind='original-listings-build-closed-artifact-replay';
-    plan.imageContract={entrypoint:listings.entrypoint,user:listings.user,label:'dvaia.listings.source',runtimeDigest:listings.runtimeDigest};
+    plan.imageContract={entrypoint:listings.entrypoint,user:listings.user,label:'owasp-ai-goat.listings.source',runtimeDigest:listings.runtimeDigest};
     plan.consumerIntegrationComplete=false;plan.sharedImageLoadAllowed=false;
     plan.helperHashes['scripts/install/secureshop-owned-listings.js']=sha(await fs.readFile(path.join(root,'scripts/install/secureshop-owned-listings.js')));
     for(const file of ['scripts/install/secureshop-owned-listings-qualified-candidate.js','scripts/install/manifests/owned-listings-arm64.candidate.json','scripts/install/qualification/secureshop-listings-package-2026-10-17.json'])plan.helperHashes[file]=sha(await fs.readFile(path.join(root,file)));
-    plan.commands.build=replaceOnce(plan.commands.build,'--label "dvaia.build-run=$nonce"',`--label "dvaia.build-run=$nonce" --label 'dvaia.listings.runtime=${listings.runtimeDigest}'`);
+    plan.commands.build=replaceOnce(plan.commands.build,'--label "owasp-ai-goat.build-run=$nonce"',`--label "owasp-ai-goat.build-run=$nonce" --label 'owasp-ai-goat.listings.runtime=${listings.runtimeDigest}'`);
     delete plan.registryConsumer;
     plan.listingsConsumer={name:registry.name,mode:registry.mode};
     plan.commands.handoff=replaceOnce(plan.commands.handoff,"target='original-v23-registry'","target='original-listings-package'");
@@ -1418,9 +1418,9 @@ async function withPrivateBuiltImage({ root, runId, expectedPlanSha256, consumer
     await step('build', { input: source.contextStream(target==='listings-package'?(await captureListings(root)).files:await source.capture(root)) });
     const images = JSON.parse(await step('image')), image = images?.[0];
     if (images.length !== 1 || !/^sha256:[a-f0-9]{64}$/.test(image?.Id) || image.Architecture !== 'arm64' || image.Os !== 'linux'
-      || image.Config?.Labels?.[plan.imageContract?.label||'dvaia.registry.package'] !== plan.packageDigest || image.Config?.Labels?.['dvaia.build-run'] !== runId
+      || image.Config?.Labels?.[plan.imageContract?.label||'owasp-ai-goat.registry.package'] !== plan.packageDigest || image.Config?.Labels?.['owasp-ai-goat.build-run'] !== runId
       || plan.imageContract&&(image.Config?.User!==plan.imageContract.user||JSON.stringify(image.Config?.Entrypoint)!==JSON.stringify(plan.imageContract.entrypoint)
-        ||image.Config?.Labels?.['dvaia.listings.runtime']!==plan.imageContract.runtimeDigest)) throw fail('ORIGINAL_BUILD_IMAGE');
+        ||image.Config?.Labels?.['owasp-ai-goat.listings.runtime']!==plan.imageContract.runtimeDigest)) throw fail('ORIGINAL_BUILD_IMAGE');
     if (bounded._internals.checkDaemon(JSON.parse(await step('inspect')), plan.spec) !== daemon) throw fail('ORIGINAL_BUILD_DAEMON_CHANGED');
     // No replay/acquisition authority survives into the consumer's lifetime.
     if (leaseMode) await step('serviceLeasesettlement');
@@ -1528,7 +1528,7 @@ async function originalRegistryConsumer(handoff, lifetime) {
     containerIntended = true;
     const rows = JSON.parse(await phase('registryCreate')), row = rows?.[0];
     if (!Array.isArray(rows) || rows.length !== 1 || !/^[a-f0-9]{64}$/.test(row?.Id) || row.Image !== handoff.imageId
-      || row.Name !== '/' + lifetime.registryName || row.Config?.Labels?.['dvaia.original.registry'] !== handoff.runId) throw fail('ORIGINAL_BUILD_REGISTRY_IDENTITY');
+      || row.Name !== '/' + lifetime.registryName || row.Config?.Labels?.['owasp-ai-goat.original.registry'] !== handoff.runId) throw fail('ORIGINAL_BUILD_REGISTRY_IDENTITY');
     require('./ownedMcpRuntimeQualification')._internals.verifyBoundary({ profile: lifetime.registryName }, row);
     result = JSON.parse((await phase('registryStart')).trim());
     if (result?.status !== 'passed' || result.modelCalls !== 0 || result.qualificationComplete !== false

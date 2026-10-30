@@ -264,7 +264,7 @@ test('persona middleware marks only trusted launch invalidation, never shop toke
       auth.authenticatePersona(req, res, reject);
     });
     assert.equal(res.statusCode, 401);
-    assert.equal(res.headers['X-DVAIA-SecureShop-Launch-State'], marked ? 'unavailable' : undefined);
+    assert.equal(res.headers['X-OWASP-AI-GOAT-SecureShop-Launch-State'], marked ? 'unavailable' : undefined);
   }
 });
 

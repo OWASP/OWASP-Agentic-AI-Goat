@@ -1,6 +1,6 @@
-# DVAIA Documentation
+# OWASP Agentic AI GOAT Documentation
 
-**Damn Vulnerable AI Application** is an educational security platform for
+**OWASP Agentic AI GOAT** is an educational security platform for
 learning AI security, web vulnerabilities, and safe LLM application design.
 It has a deliberate split architecture: a hardened platform layer (auth,
 session management, audit logging) alongside intentionally vulnerable
@@ -36,7 +36,7 @@ Top 10, and classic OWASP Web Top 10 attack surfaces.
 - [Excessive Agency + BOLA](workshops/EXCESSIVE_AGENCY.md)
 - [SQL / NoSQL payloads reference](workshops/PAYLOADS_REFERENCE.md)
 
-## SecureShop v2
+## OWASP AI SecureShop v2
 
 The flagship end-to-end LLM-driven target that ties LLM, MCP, and Web Top 10
 categories together.

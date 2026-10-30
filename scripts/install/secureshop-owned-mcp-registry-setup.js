@@ -189,7 +189,7 @@ async function preflightOwnedMcpRegistryArchitecture({
 } = {}) {
   root = path.resolve(root);
   const location = localProfilePlan({root, home:homeDirectory, platform,
-    colimaProfile:colimaProfile || environment.DVAIA_MCP_OWNED_COLIMA_PROFILE});
+    colimaProfile:colimaProfile || environment.OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE});
   _internals.assertDockerAuthority(environment, location);
   if (dockerAuthority?.host && dockerAuthority.host !== location.dockerHost) {
     throw fail('REGISTRY_BUILD_DOCKER_AUTHORITY_MISMATCH');
@@ -237,7 +237,7 @@ async function setupOwnedMcpRegistry({
     root,
     home: homeDirectory,
     platform,
-    colimaProfile: colimaProfile || environment.DVAIA_MCP_OWNED_COLIMA_PROFILE
+    colimaProfile: colimaProfile || environment.OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE
   });
   _internals.assertDockerAuthority(environment, location);
   run ||= createCommandRunner({
@@ -256,7 +256,7 @@ async function setupOwnedMcpRegistry({
   const selectedDaemon = await preflightOwnedMcpRegistryArchitecture({root,homeDirectory,platform,environment,colimaProfile,run});
   const files = await capture(root),
     digest = packageDigest();
-  const directory = path.join(homeDirectory, '.dvaia', workspaceId(root));
+  const directory = path.join(homeDirectory, '.owasp-ai-goat', workspaceId(root));
   await fs.mkdir(directory, {
     recursive: true,
     mode: 0o700
@@ -290,7 +290,7 @@ async function setupOwnedMcpRegistry({
       if (ca.buildCaFile) {
         const bytes = await fs.readFile(ca.buildCaFile);
         if (sha(bytes) !== ca.buildCaSha256) throw fail('REGISTRY_BUILD_CA_CHANGED');
-        temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-registry-ca-'));
+        temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-registry-ca-'));
         await fs.chmod(temporary, 0o700);
         const file = path.join(temporary, 'npm-ca.pem');
         await fs.writeFile(file, bytes, {
@@ -299,19 +299,19 @@ async function setupOwnedMcpRegistry({
         });
         secrets.push('--secret', 'id=npm_ca,src=' + file);
       }
-      const tag = 'dvaia-owned-mcp-registry-' + workspaceId(root) + ':build-' + crypto.randomBytes(6).toString('hex');
+      const tag = 'owasp-ai-goat-owned-mcp-registry-' + workspaceId(root) + ':build-' + crypto.randomBytes(6).toString('hex');
       await preflightOwnedMcpRegistryArchitecture({root,homeDirectory,platform,environment,colimaProfile,run,
         dockerAuthority:{host:selectedDaemon.dockerHost,daemonId:selectedDaemon.daemonId}});
       await build({
         root,
         environment,
         files,
-        args: ['--host', location.dockerHost, 'build', '--pull=false', '--platform', 'linux/arm64', '--label', 'dvaia.registry.package=' + digest, ...secrets, '-f', authority.dockerfile, '-t', tag, '-']
+        args: ['--host', location.dockerHost, 'build', '--pull=false', '--platform', 'linux/arm64', '--label', 'owasp-ai-goat.registry.package=' + digest, ...secrets, '-f', authority.dockerfile, '-t', tag, '-']
       });
       if (replacing) require('../lib/application-maintenance-scope').assertApplicationMaintenanceScope(maintenanceScope, applicationEnvironment);
       await capture(root);
       const images = JSON.parse(await command(['image', 'inspect', tag]));
-      if (images.length !== 1 || !/^sha256:[a-f0-9]{64}$/.test(images[0].Id) || images[0].Architecture !== 'arm64' || images[0].Os !== 'linux' || images[0].Config?.Labels?.['dvaia.registry.package'] !== digest) throw fail('REGISTRY_BUILD_IMAGE_INVALID');
+      if (images.length !== 1 || !/^sha256:[a-f0-9]{64}$/.test(images[0].Id) || images[0].Architecture !== 'arm64' || images[0].Os !== 'linux' || images[0].Config?.Labels?.['owasp-ai-goat.registry.package'] !== digest) throw fail('REGISTRY_BUILD_IMAGE_INVALID');
       imageId = images[0].Id;
       if (!replacing) await installer._internals.writePrivate(buildFile, {
         version: 1,
@@ -321,7 +321,7 @@ async function setupOwnedMcpRegistry({
       }, null);
     } else {
       const images = JSON.parse(await command(['image', 'inspect', imageId]));
-      if (images.length !== 1 || images[0].Id !== imageId || images[0].Architecture !== 'arm64' || images[0].Os !== 'linux' || images[0].Config?.Labels?.['dvaia.registry.package'] !== undefined && images[0].Config.Labels['dvaia.registry.package'] !== digest) throw fail('REGISTRY_BUILD_IMAGE_CONFLICT');
+      if (images.length !== 1 || images[0].Id !== imageId || images[0].Architecture !== 'arm64' || images[0].Os !== 'linux' || images[0].Config?.Labels?.['owasp-ai-goat.registry.package'] !== undefined && images[0].Config.Labels['owasp-ai-goat.registry.package'] !== digest) throw fail('REGISTRY_BUILD_IMAGE_CONFLICT');
     }
     const result = replacing ? await installer.replace({
       root, home:homeDirectory, platform, colimaProfile:location.colimaProfile, environment, imageId, run,

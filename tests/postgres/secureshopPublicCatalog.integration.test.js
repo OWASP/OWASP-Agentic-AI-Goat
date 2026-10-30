@@ -21,7 +21,7 @@ function admitDisposableCommerce() {
     assert.ok(['postgres:', 'postgresql:'].includes(url.protocol));
     assert.equal(url.hostname, '127.0.0.1', 'Only explicit loopback disposable commerce admitted');
     assert.match(url.port, /^[0-9]+$/); assert.ok(Number(url.port) > 0 && Number(url.port) <= 65535);
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
     assert.equal(url.search, ''); assert.equal(url.hash, '');
     assert.equal(url.username, `dvaia_secureshop_${kind.toLowerCase()}`);
     return url;

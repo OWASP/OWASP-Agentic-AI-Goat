@@ -258,7 +258,7 @@ function createMcpOwnedTargetClient({ baseURL, token, timeoutMs = BACKEND_TIMEOU
         && value.ticketReadCapability === TICKET_READ_CAPABILITY;
       const valid = (legacyShape || protectedShape || observedActionShape || packageShape || ticketShape) && value.ready === true
         && value.version === VERSION && value.isolation === 'bwrap-seccomp-v1'
-        && /^dvaia-mcp-sandbox(?:-[a-f0-9]{12})? \(enforce\)$/.test(value.supervisorProfile || '');
+        && /^owasp-ai-goat-mcp-sandbox(?:-[a-f0-9]{12})? \(enforce\)$/.test(value.supervisorProfile || '');
       if (!valid) fail('MCP_OWNED_TARGET_UNAVAILABLE', 'Owned target readiness receipt is invalid');
       protectedJournalReady=protectedJournalCapability===PROTECTED_JOURNAL_CAPABILITY && ticketShape;
       protectedReadbackReady=protectedJournalReady&&protectedReadbackCapability===PROTECTED_READBACK_CAPABILITY;

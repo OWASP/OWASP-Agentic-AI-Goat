@@ -1,6 +1,6 @@
 import {runAdminBulkReset} from './adminBulkReset';
 const ID = '11111111-1111-4111-8111-111111111111';
-const key = 'dvaia:admin-reset:7:workshop:csrf_workshop';
+const key = 'owasp-ai-goat:admin-reset:7:workshop:csrf_workshop';
 function fixture() {
   return {api: {get: jest.fn().mockResolvedValue({data: {success: true, operations: []}}),
     post: jest.fn().mockResolvedValue({data: {success: true}})}, actorId: 7, token: 'controlled',

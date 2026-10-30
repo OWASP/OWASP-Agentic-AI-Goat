@@ -51,7 +51,7 @@ async function appServer(t, auditSummary, role='admin', options) {
 }
 
 function headers() {
-  return { authorization: 'Bearer admin-7', 'x-dvaia-secureshop-launch': 'g'.repeat(43) };
+  return { authorization: 'Bearer admin-7', 'x-owasp-ai-goat-secureshop-launch': 'g'.repeat(43) };
 }
 
 test('bound audit capabilities report each composed admission without claiming model-agent readiness from method presence', async t => {

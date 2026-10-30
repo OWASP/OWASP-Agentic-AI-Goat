@@ -21,7 +21,7 @@ class LauncherContract(unittest.TestCase):
         value = json.loads(output.getvalue())
         self.assertEqual(value['fixture'], launcher.FIXTURE)
         self.assertEqual(value['cases'], ['clean-grounding', 'poison-defense', 'poison-redirection'])
-        self.assertEqual(value['databasePatterns'], ['dvaia_test_workshop_rag_<nonce>'])
+        self.assertEqual(value['databasePatterns'], ['owasp_ai_goat_test_workshop_rag_<nonce>'])
         self.assertEqual((value['sourceCopies'], value['actualModel'], value['maxModelCalls']), (False, True, 18))
 
     def test_closed_flags_and_model_pin(self):

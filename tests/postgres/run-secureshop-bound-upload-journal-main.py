@@ -5,11 +5,11 @@ sys.dont_write_bytecode = True
 import argparse, hashlib, importlib.util, json, os, pathlib, re, signal, stat, subprocess, tempfile, time, uuid
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-NODE = pathlib.Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+NODE = pathlib.Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 NODE_SHA = '56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 DOCKER_BINARY = pathlib.Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 DOCKER_SHA = '95fab203ab36bd2b4f3cd8a1d0dc6d084252f2ec224dc76bfbaebe1540cdd15e'
-HOST = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+HOST = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 DAEMON = '2c9da9a7-1f8c-490b-af98-87bbf6bf83db'
 IMAGE = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 DOCKER = [str(DOCKER_BINARY), '--host', HOST]
@@ -142,8 +142,8 @@ SUITES = {
         'fixture': 'tests/postgres/secureshopV19FileSummaryNative.integration.test.js',
         'prefix': 'PG_SECURESHOP_V19_',
         'stores': [('AGENTS_FRESH', 'agents'), ('AGENTS_POPULATED', 'agents'), ('IDENTITY_GRAPH', 'identity')],
-        'database_stem': 'dvaia_test_v19_',
-        'container_stem': 'dvaia-v19-',
+        'database_stem': 'owasp_ai_goat_test_v19_',
+        'container_stem': 'owasp-ai-goat-v19-',
         'gate': 'SECURESHOP_V19_NATIVE',
         'graph': True,
         'ownedFileEffect': True,
@@ -187,8 +187,8 @@ SUITES = {
         'prefix': 'PG_SECURESHOP_UPLOAD_ASSESSMENT_',
         'stores': [('IDENTITY_FRESH', 'identity'), ('IDENTITY_POPULATED', 'identity'),
                    ('IDENTITY_ASSESSMENT', 'identity'), ('AGENTS', 'agents'), ('REVIEW', 'review')],
-        'database_stem': 'dvaia_test_upload_assessment_',
-        'container_stem': 'dvaia-upload-assessment-',
+        'database_stem': 'owasp_ai_goat_test_upload_assessment_',
+        'container_stem': 'owasp-ai-goat-upload-assessment-',
         'gate': 'SECURESHOP_UPLOAD_ASSESSMENT_NATIVE',
         'qualification': ('V06 disposable PostgreSQL platform/standalone seed provenance and canonical '
                           'qualified/default-disabled exact pending promotion, instructor/tenant/sibling/nonempty history/no-op preservation and '
@@ -213,8 +213,8 @@ SUITES = {
         'prefix': 'PG_SECURESHOP_V03_OPTIMIZE_',
         'stores': [('AGENTS_FRESH', 'agents'), ('AGENTS_POPULATED', 'agents'),
                    ('REVIEW_FRESH', 'review'), ('REVIEW_POPULATED', 'review')],
-        'database_stem': 'dvaia_test_v03_optimize_',
-        'container_stem': 'dvaia-v03-optimize-',
+        'database_stem': 'owasp_ai_goat_test_v03_optimize_',
+        'container_stem': 'owasp-ai-goat-v03-optimize-',
         'gate': 'SECURESHOP_V03_OPTIMIZE_NATIVE',
         'qualification': ('V03 disposable PostgreSQL REVIEW0054 and AGENTS0105-0106 migration, registry and '
                           'journal lifecycle only; controlled diagnostic receipt, no external command/network effect, '
@@ -241,8 +241,8 @@ SUITES = {
         'fixture': 'tests/postgres/secureshopBoundUploadJournal.integration.test.js',
         'prefix': 'PG_SECURESHOP_BOUND_UPLOAD_',
         'stores': [('FRESH', 'review'), ('POPULATED', 'review')],
-        'database_stem': 'dvaia_test_bound_upload_',
-        'container_stem': 'dvaia-bound-upload-',
+        'database_stem': 'owasp_ai_goat_test_bound_upload_',
+        'container_stem': 'owasp-ai-goat-bound-upload-',
         'gate': 'SECURESHOP_BOUND_UPLOAD_NATIVE',
         'qualification': ('V06 disposable PostgreSQL migration/repository journal only; '
                           'no physical upload/file, graph, model, browser, Judge or credit claim'),
@@ -255,8 +255,8 @@ SUITES = {
         'fixture': 'tests/postgres/secureshopUploadSuccessor.integration.test.js',
         'prefix': 'PG_SECURESHOP_UPLOAD_SUCCESSOR_',
         'stores': [('AGENTS_FRESH', 'agents'), ('AGENTS_POPULATED', 'agents'), ('REVIEW', 'review')],
-        'database_stem': 'dvaia_test_upload_successor_',
-        'container_stem': 'dvaia-upload-successor-',
+        'database_stem': 'owasp_ai_goat_test_upload_successor_',
+        'container_stem': 'owasp-ai-goat-upload-successor-',
         'gate': 'SECURESHOP_UPLOAD_SUCCESSOR_NATIVE',
         'qualification': ('V06 disposable PostgreSQL 0102-0104 and repository/reset-adapter joins only; '
                           'controlled storage callbacks, no physical upload/file, graph, model, browser, Judge or credit claim'),
@@ -318,7 +318,7 @@ def load(name, path):
     return module
 
 def database_role(role_base, role):
-    prefix = 'dvaia_identity' if role_base == 'identity' else 'dvaia_secureshop_' + role_base
+    prefix = 'owasp_ai_goat_identity' if role_base == 'identity' else 'dvaia_secureshop_' + role_base
     return prefix + '_' + role
 
 def main(argv=None):
@@ -414,7 +414,7 @@ def main(argv=None):
             'argvSha256': canonical_digest(v03_admission_argv(command))}
         v03_packet(args.v03_admission, args.v03_admission_sha256, binding)
         lease = V03Lease()
-    evidence = pathlib.Path(tempfile.mkdtemp(prefix='dvaia-' + args.suite + '-main-',
+    evidence = pathlib.Path(tempfile.mkdtemp(prefix='owasp-ai-goat-' + args.suite + '-main-',
         **({'dir': admitted_parent} if admitted_parent is not None else {}))).resolve()
     evidence.chmod(0o700)
     if admitted_parent is None and evidence.is_relative_to(ROOT):
@@ -425,7 +425,7 @@ def main(argv=None):
     runtime = evidence / 'runtime' / 'workspace'
     runtime.mkdir(mode=0o700)
     env.update(NODE_ENV='test', PG_TEST_DISPOSABLE='yes',
-        DVAIA_ISOLATED_TEST_WORKSPACE=str(runtime), PLATFORM_DATABASE_ENGINE='postgres',
+        OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(runtime), PLATFORM_DATABASE_ENGINE='postgres',
         WORKSHOP_DATABASE_ENGINE='postgres', AI_PROVIDER='mock', AWS_EC2_METADATA_DISABLED='true',
         HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1', MCP_WORKSHOP_AUTOSTART='false',
         MCP_SIDECARS_AUTOSTART='false', SS_ENABLE='false')
@@ -614,7 +614,7 @@ def main(argv=None):
         labels = row.get('Config', {}).get('Labels') or {}
         host = row.get('HostConfig', {})
         if (row.get('Id') != ids[0] or row.get('Name') != '/' + name or row.get('Image') != IMAGE
-                or labels.get('dvaia.test.owner') != owner or (container_id and row.get('Id') != container_id)
+                or labels.get('owasp-ai-goat.test.owner') != owner or (container_id and row.get('Id') != container_id)
                 or len(ports) != 1 or ports[0].get('HostIp') != '127.0.0.1'
                 or host.get('Memory') != 536870912 or host.get('NanoCpus') != 2000000000
                 or host.get('PidsLimit') != 256
@@ -643,7 +643,7 @@ def main(argv=None):
             raise RuntimeError('Owned container namespace already occupied')
         attempted = True
         run(DOCKER + ['run', '-d', '--pull', 'never', '--name', name,
-            '--label', 'dvaia.test.owner=' + owner, '--memory', '512m', '--cpus', '2',
+            '--label', 'owasp-ai-goat.test.owner=' + owner, '--memory', '512m', '--cpus', '2',
             '--pids-limit', '256', '--tmpfs', '/var/lib/postgresql:rw,size=536870912',
             '-e', 'POSTGRES_USER=bound_upload_admin', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust',
             '-e', 'POSTGRES_INITDB_ARGS=--wal-segsize=1', '-p', '127.0.0.1::5432', IMAGE,

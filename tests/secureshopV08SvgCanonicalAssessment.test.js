@@ -76,7 +76,7 @@ async function fixture({
     withLease: work => work()
   });
   const attachment = {
-    bytes: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg"><script>console.log('dvaia-v08-0123456789abcdef0123456789abcdef')</script></svg>`),
+    bytes: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg"><script>console.log('owasp-ai-goat-v08-0123456789abcdef0123456789abcdef')</script></svg>`),
     filename: 'avatar.svg',
     mime: 'image/svg+xml',
     public: true
@@ -540,7 +540,7 @@ async function fixture({
       return Object.freeze(browserEdit({version:1,executed:true,reason:'svg_script_coverage_and_console_effect',
         asset:Object.freeze({status:200,contentType:'image/svg+xml',contentSecurityPolicy:'sandbox allow-scripts',
           byteCount:attachment.bytes.length,bodySha256:sha(attachment.bytes)}),
-        script:Object.freeze({sourceSha256:sha("console.log('dvaia-v08-0123456789abcdef0123456789abcdef')"),
+        script:Object.freeze({sourceSha256:sha("console.log('owasp-ai-goat-v08-0123456789abcdef0123456789abcdef')"),
           markerSha256:sha(input.expected.marker),executionContextId:7,preciseCoverage:true,markerObserved:true,consoleStackJoined:true}),
         isolatedContext:true,blockedRequests:Object.freeze([])})); } },
     async judge(input) {

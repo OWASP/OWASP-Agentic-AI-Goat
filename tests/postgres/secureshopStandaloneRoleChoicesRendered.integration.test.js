@@ -29,7 +29,7 @@ function assertPolicyInstructionRepositoryEvidencePath(workspace, evidencePath, 
   assert.equal(env.SECURESHOP_POLICY_INSTRUCTION_BROWSER_NATIVE, '1');
   assert.equal(env.SECURESHOP_POLICY_INSTRUCTION_BROWSER_TEST_NO_SANDBOX, '1');
   assert.equal(env.PG_TEST_DISPOSABLE, 'yes'); assert.equal(env.NODE_ENV, 'test');
-  assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, workspace);
+  assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, workspace);
   assert.equal(workspace, process.cwd()); assert.equal(path.resolve(workspace), workspace);
   assert.equal(fsSync.realpathSync(workspace), workspace);
   const runId = env.SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_RUN_ID;
@@ -64,7 +64,7 @@ function assertPolicyInstructionSandboxSelector(env, selected) {
 
 function policyInstructionBrowserArgs(admission, profile, origin) {
   assert.equal(path.dirname(profile), admission.temporary);
-  assert.match(path.basename(profile), /^dvaia-role-policy-instruction-[A-Za-z0-9_-]+$/);
+  assert.match(path.basename(profile), /^owasp-ai-goat-role-policy-instruction-[A-Za-z0-9_-]+$/);
   const info = fsSync.lstatSync(profile);
   assert(info.isDirectory() && !info.isSymbolicLink());
   assert.equal(info.uid, process.getuid()); assert.equal(info.mode & 0o777, 0o700);
@@ -93,7 +93,7 @@ async function acknowledgePolicyInstructionBrowser(admission, browser, profile) 
   const browserPid = browser.process()?.pid;
   assert(Number.isSafeInteger(browserPid) && browserPid > 1);
   assert.equal(path.dirname(profile), admission.temporary);
-  assert.match(path.basename(profile), /^dvaia-role-policy-instruction-[A-Za-z0-9_-]+$/);
+  assert.match(path.basename(profile), /^owasp-ai-goat-role-policy-instruction-[A-Za-z0-9_-]+$/);
   const info = await fs.lstat(profile);
   assert(info.isDirectory() && !info.isSymbolicLink());
   assert.equal(info.uid, process.getuid()); assert.equal(info.mode & 0o777, 0o700);
@@ -331,7 +331,7 @@ function v03ListingsManagerConfiguration(root) {
   assert.equal(authority,process.env.SECURESHOP_LISTINGS_TEST_MANAGER_DOCKER_AUTHORITY_SHA256);
   const url=new URL(process.env.SECURESHOP_LISTINGS_TEST_MANAGER_ORIGIN||''),token=process.env.SECURESHOP_LISTINGS_TEST_MANAGER_TOKEN||'';
   assert.equal(url.protocol,'http:');assert.equal(url.hostname,'127.0.0.1');assert.match(url.port,/^[1-9][0-9]{3,4}$/);assert.match(token,/^[A-Za-z0-9_-]{43,128}$/);
-  const profileName=`dvaia-owned-listings-${workspaceId}`,profileSource=fsSync.readFileSync(path.join(root,'sidecars/sandbox-runner/owned-listings/profile.apparmor.in'),'utf8');
+  const profileName=`owasp-ai-goat-owned-listings-${workspaceId}`,profileSource=fsSync.readFileSync(path.join(root,'sidecars/sandbox-runner/owned-listings/profile.apparmor.in'),'utf8');
   return require('../../server/services/secureshopListingsManagedConfiguration').validate({version:1,workspaceId,enabled:true,architecture:'arm64',dockerAuthoritySha256:authority,imageId:process.env.SECURESHOP_LISTINGS_TEST_MANAGER_IMAGE_ID,sourceManifestSha256:source.sha256,runtimeDigest:process.env.SECURESHOP_LISTINGS_TEST_MANAGER_RUNTIME_DIGEST,profile:{name:profileName,sha256:createHash('sha256').update(profileSource.replaceAll('@@SUPERVISOR_PROFILE@@',profileName)).digest('hex')},manager:{container:profileName,url:url.origin,token}});
 }
 const ASSERTION = 'standalone merchant and administrator select exact bound role cards with real local llama3.1:8b turns';
@@ -673,7 +673,7 @@ function urlsFromEnvironment() {
       assert.equal(value.protocol, 'postgresql:'); assert.equal(value.hostname, '127.0.0.1');
       assert.equal(value.password, ''); assert.equal(value.search, ''); assert.equal(value.hash, '');
       assert.equal(value.username, `dvaia_${STORE_NAMES[store]}_${kind.toLowerCase()}`);
-      const match = new RegExp(`^/dvaia_test_agent_host_([0-9a-f]{12})_${STORE_NAMES[store]}$`).exec(value.pathname);
+      const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([0-9a-f]{12})_${STORE_NAMES[store]}$`).exec(value.pathname);
       assert.ok(match, `closed disposable database name required for ${key}`);
       nonce ??= match[1]; port ??= value.port;
       assert.equal(match[1], nonce); assert.equal(value.port, port);
@@ -1346,7 +1346,7 @@ async function qualifyMerchantMail({ page, frame, origin, seed, composition, res
   // A sibling's signed persona cannot hydrate the saved source.
   const siblingRead = await fetch(`${origin}/api/secureshop/agents/merchant/assistant/operations/${detail.body.sessionId}/${detail.body.requestId}`,
     { headers: { authorization: `Bearer ${siblingBase.persona.token}`,
-      'x-dvaia-secureshop-launch': siblingBase.bearer } });
+      'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer } });
   assert.notEqual(siblingRead.status, 200);
   const ownChat = chats()[3];
   assert.equal(getDispatches(), callsBeforeReload);
@@ -1466,7 +1466,7 @@ async function qualifyMerchantMail({ page, frame, origin, seed, composition, res
   const fixedChat = chats()[5];
   const fixedPath = `${origin}/api/secureshop/agents/merchant/assistant/operations/${fixedChat.body.sessionId}/${fixedChat.body.requestId}`;
   const fixedHeaders = { authorization: fixedChat.authorization,
-    'x-dvaia-secureshop-launch': fixedChat.launch };
+    'x-owasp-ai-goat-secureshop-launch': fixedChat.launch };
   const beforeReset = await fetch(fixedPath, { headers: fixedHeaders });
   assert.equal(beforeReset.status, 200);
   assert.deepEqual(await beforeReset.json(), fixedSaved);
@@ -1496,7 +1496,7 @@ async function qualifyMerchantMail({ page, frame, origin, seed, composition, res
   assert.equal(wrongSession.status, 'unconfirmed');
   const crossSession = await fetch(fixedPath, { headers: {
     authorization: `Bearer ${secondBase.persona.token}`,
-    'x-dvaia-secureshop-launch': secondBase.bearer } });
+    'x-owasp-ai-goat-secureshop-launch': secondBase.bearer } });
   assert.equal(crossSession.status, 401);
   assert.deepEqual(await crossSession.json(), { error: 'Shop session unavailable' });
   const stillCurrent = await fetch(fixedPath, { headers: fixedHeaders });
@@ -1782,7 +1782,7 @@ async function qualifyMerchantMailActions({ page, frame, origin, seed, compositi
     await handle.asElement().click();
   };
   const currentHeaders = chat => ({ authorization: chat.authorization,
-    'x-dvaia-secureshop-launch': chat.launch });
+    'x-owasp-ai-goat-secureshop-launch': chat.launch });
   const operationPath = (turn, proposal) => `${origin}/api/secureshop/agents/merchant/assistant/mail/operations/${turn.body.sessionId}/${turn.body.requestId}/${proposal.proposalId}`;
   const recoverAfterFault = async (turn, proposal, beforeCalls, beforeSends) => {
     const recoveryStarted = Date.now();
@@ -2014,7 +2014,7 @@ async function qualifyMerchantMailActions({ page, frame, origin, seed, compositi
   const replyPath = operationPath(preparedReply, replyProposal);
   const replyChat = chats()[4];
   const sibling = await fetch(replyPath, { headers: { authorization: `Bearer ${siblingBase.persona.token}`,
-    'x-dvaia-secureshop-launch': siblingBase.bearer } });
+    'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer } });
   assert.equal(sibling.status, 401);
   status.siblingDenied = true;
   const currentScope = await composition.launches.resolveCapability(replyChat.launch);
@@ -2022,7 +2022,7 @@ async function qualifyMerchantMailActions({ page, frame, origin, seed, compositi
   const secondLogin = await auth.login({ username: seed.sender.username, password });
   const secondBase = await bootstrap(secondLogin.context);
   const secondSession = await fetch(replyPath, { headers: { authorization: `Bearer ${secondBase.persona.token}`,
-    'x-dvaia-secureshop-launch': secondBase.bearer } });
+    'x-owasp-ai-goat-secureshop-launch': secondBase.bearer } });
   assert.equal(secondSession.status, 401);
   const originalBeforeReset = await fetch(replyPath, { headers: currentHeaders(replyChat) });
   assert.equal(originalBeforeReset.status, 200);
@@ -2815,7 +2815,7 @@ async function qualifyCatalogPages({ pages, frames, seed, target, siblingBase, o
   status.inactiveReadOnlyDetail = true;
   const customerPublic = await fetch(`${origin}/api/secureshop/products?search=${encodeURIComponent(seed.inactive.search)}`,
     { headers: { authorization: customerFirst.sent.authorization,
-      'x-dvaia-secureshop-launch': customerFirst.sent.launch }, signal: AbortSignal.timeout(30000) });
+      'x-owasp-ai-goat-secureshop-launch': customerFirst.sent.launch }, signal: AbortSignal.timeout(30000) });
   assert.equal(customerPublic.status, 200);
   const customerPublicBody = await customerPublic.json();
   assert.ok(Array.isArray(customerPublicBody.products));
@@ -2842,7 +2842,7 @@ async function qualifyCatalogPages({ pages, frames, seed, target, siblingBase, o
   const replayWireBefore = getWireCalls(), replayEffectsBefore = await effectCounts();
   const inactiveSavedPath = `${origin}/api/secureshop/agents/merchant/assistant/operations/${inactiveSearch.sent.body.sessionId}/${inactiveSearch.sent.body.requestId}`;
   const merchantHeaders = { authorization: inactiveSearch.sent.authorization,
-    'x-dvaia-secureshop-launch': inactiveSearch.sent.launch };
+    'x-owasp-ai-goat-secureshop-launch': inactiveSearch.sent.launch };
   const savedBeforeResponse = await fetch(inactiveSavedPath,
     { headers: merchantHeaders, signal: AbortSignal.timeout(30000) });
   assert.equal(savedBeforeResponse.status, 200);
@@ -2861,7 +2861,7 @@ async function qualifyCatalogPages({ pages, frames, seed, target, siblingBase, o
   assert.equal(savedAfterResponse.status, 200);
   const savedAfter = await savedAfterResponse.json();
   const siblingHeaders = { authorization: `Bearer ${siblingBase.persona.token}`,
-    'x-dvaia-secureshop-launch': siblingBase.bearer };
+    'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer };
   const siblingDiscovery = await fetch(inactiveSavedPath,
     { headers: siblingHeaders, signal: AbortSignal.timeout(30000) });
   const siblingDetail = await fetch(`${origin}/api/secureshop/agents/merchant/assistant/operations/${inactiveDetail.sent.body.sessionId}/${inactiveDetail.sent.body.requestId}`,
@@ -2894,7 +2894,7 @@ async function qualifyCatalogPages({ pages, frames, seed, target, siblingBase, o
     const beforeModel = modelCalls.length, beforeWire = getWireCalls();
     const path = `${origin}/api/secureshop${second.sent.path}`;
     const headers = { authorization: second.sent.authorization,
-      'x-dvaia-secureshop-launch': second.sent.launch,
+      'x-owasp-ai-goat-secureshop-launch': second.sent.launch,
       'content-type': 'application/json' };
     const submit = async body => {
       const response = await fetch(path, { method: 'POST', headers,
@@ -2913,7 +2913,7 @@ async function qualifyCatalogPages({ pages, frames, seed, target, siblingBase, o
     const replaySaved = await fetch(`${origin}/api/secureshop/agents/${role === 'customer'
       ? 'customer' : 'merchant/assistant'}/operations/${second.sent.body.sessionId}/${second.sent.body.requestId}`,
     { headers: { authorization: second.sent.authorization,
-      'x-dvaia-secureshop-launch': second.sent.launch }, signal: AbortSignal.timeout(30000) });
+      'x-owasp-ai-goat-secureshop-launch': second.sent.launch }, signal: AbortSignal.timeout(30000) });
     assert.equal(replaySaved.status, 200);
     assert.deepEqual(await replaySaved.json(), second.receipt,
       `${role} same-ID replay retains the exact saved page`);
@@ -2941,7 +2941,7 @@ async function qualifyCatalogPages({ pages, frames, seed, target, siblingBase, o
     const sibling = await fetch(`${origin}/api/secureshop/agents/${role === 'customer'
       ? 'customer' : 'merchant/assistant'}/operations/${turns[1].sent.body.sessionId}/${turns[1].sent.body.requestId}`,
     { headers: { authorization: `Bearer ${siblingBase.persona.token}`,
-      'x-dvaia-secureshop-launch': siblingBase.bearer } });
+      'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer } });
     assert.ok([401, 403].includes(sibling.status));
   }
   status.siblingExcluded = true;
@@ -3284,7 +3284,7 @@ function assertReviewRequestAuthority(original, physicalRequest, expected) {
   assert.ok(!original.authorityCaptureFailure, 'original request authentication capture failed');
   const headers = physicalRequest.headers();
   assert.ok(typeof original.launch === 'string' && typeof original.authorization === 'string'
-    && headers['x-dvaia-secureshop-launch'] === original.launch
+    && headers['x-owasp-ai-goat-secureshop-launch'] === original.launch
     && headers.authorization === original.authorization,
   'the original browser headers must match the server request');
   // Token signatures/iat may change when the same persona session is restored.
@@ -3330,7 +3330,7 @@ async function qualifyReviewInjection({ page, frame, origin, product, siblingPro
   capture.subject = { scope, persona, ...subject }; saveCapture();
   status.registeredMerchantAuthority = true;
   const headers = { authorization: browserCredentials.authorization,
-    'x-dvaia-secureshop-launch': browserCredentials.launch };
+    'x-owasp-ai-goat-secureshop-launch': browserCredentials.launch };
   const siblingScope = createLaunchScope(await composition.launches.resolveCapability(siblingBase.bearer));
   assert.notEqual(siblingScope.platformOwnerId, scope.platformOwnerId);
   assert.notEqual(siblingScope.launchId, scope.launchId);
@@ -3345,7 +3345,7 @@ async function qualifyReviewInjection({ page, frame, origin, product, siblingPro
     submissionId: randomUUID(), productId: siblingProduct.productId,
     authorId: siblingPersona.id, body: 'Independent peer product feedback', rating: 4 });
   const siblingHeaders = { authorization: `Bearer ${siblingBase.persona.token}`,
-    'x-dvaia-secureshop-launch': siblingBase.bearer };
+    'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer };
   const siblingPositive = async () => {
     const response = await fetch(`${origin}/api/secureshop/merchant/reviews?status=pending&per_page=1`,
       { headers: siblingHeaders });
@@ -3690,9 +3690,9 @@ async function qualifyReviewInjection({ page, frame, origin, product, siblingPro
   const secondBase = await bootstrap(secondLogin.context);
   const deniedSession = await http(moderationPath,
     { authorization: `Bearer ${secondBase.persona.token}`,
-      'x-dvaia-secureshop-launch': browserCredentials.launch },
+      'x-owasp-ai-goat-secureshop-launch': browserCredentials.launch },
     { method: 'POST', headers: { authorization: `Bearer ${secondBase.persona.token}`,
-      'x-dvaia-secureshop-launch': browserCredentials.launch,
+      'x-owasp-ai-goat-secureshop-launch': browserCredentials.launch,
       'content-type': 'application/json' }, body: JSON.stringify(moderated.original.body) });
   assert.equal(deniedSession.status, 401);
   status.sessionDenied = true;
@@ -4394,7 +4394,7 @@ async function qualifyMerchantInventory({ page, frame, origin, product, siblingP
   assert.equal(await operationCount(), beforeOperations + 1); status.exactGetRecoveryNoReplay = true;
 
   const siblingHeaders = { 'content-type': 'application/json',
-    'x-dvaia-secureshop-launch': siblingBase.bearer,
+    'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer,
     authorization: `Bearer ${siblingBase.persona.token}` };
   const siblingRead = await fetch(`${origin}/api/secureshop/merchant/inventory/operations/${proposal.proposalId}`,
     { headers: siblingHeaders });
@@ -4414,7 +4414,7 @@ async function qualifyMerchantInventory({ page, frame, origin, product, siblingP
     platformSessionId: currentScope.platformSessionId, platformOwnerId: currentScope.platformOwnerId,
     expectedGeneration: currentScope.generation, idempotencyKey: `role-inventory-retire-${randomUUID()}` });
   const staleRead = await fetch(`${origin}/api/secureshop/merchant/inventory/operations/${proposal.proposalId}`,
-    { headers: { ...siblingHeaders, 'x-dvaia-secureshop-launch': confirmPosts[0].launch,
+    { headers: { ...siblingHeaders, 'x-owasp-ai-goat-secureshop-launch': confirmPosts[0].launch,
       authorization: confirmPosts[0].authorization } });
   assert.notEqual(staleRead.status, 200); assert.equal(getDispatches(), calls);
   status.resetFenced = true;
@@ -4648,7 +4648,7 @@ async function qualifyMerchantListingEdit({ page, frame, origin, product, suffix
   status.exactGetRecoveryNoReplay = true;
 
   const siblingHeaders = { 'content-type': 'application/json',
-    'x-dvaia-secureshop-launch': siblingBase.bearer,
+    'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer,
     authorization: `Bearer ${siblingBase.persona.token}` };
   const siblingRead = await fetch(`${origin}${operationPath}`, { headers: siblingHeaders });
   assert.equal(siblingRead.status, 200);
@@ -4665,7 +4665,7 @@ async function qualifyMerchantListingEdit({ page, frame, origin, product, suffix
     platformSessionId: currentScope.platformSessionId, platformOwnerId: currentScope.platformOwnerId,
     expectedGeneration: currentScope.generation, idempotencyKey: `role-listing-edit-retire-${randomUUID()}` });
   const staleRead = await fetch(`${origin}${operationPath}`, { headers: { ...siblingHeaders,
-    'x-dvaia-secureshop-launch': confirms[0].launch, authorization: confirms[0].authorization } });
+    'x-owasp-ai-goat-secureshop-launch': confirms[0].launch, authorization: confirms[0].authorization } });
   assert.notEqual(staleRead.status, 200); assert.equal(getDispatches(), calls);
   status.resetFenced = true;
   assert.deepEqual(pageErrors, []);
@@ -4726,7 +4726,7 @@ async function qualifyMerchantListingRawBrowser({ page, frame, origin, suffix, c
     'secureshop_agent_security', scope);
   assert.equal(fixedPublication.mode, 'fixed');
   const headers = { authorization: browserCredential.authorization,
-    'x-dvaia-secureshop-launch': browserCredential.launch };
+    'x-owasp-ai-goat-secureshop-launch': browserCredential.launch };
   const chatRows = () => requestLog.filter(row => row.method === 'POST'
     && row.path === '/agents/merchant/assistant/chat');
   const confirmRows = () => requestLog.filter(row => row.method === 'POST'
@@ -5029,7 +5029,7 @@ async function qualifyMerchantListingRawBrowser({ page, frame, origin, suffix, c
   assert.deepEqual(afterSavedReads, original.after);
   status.savedGetNoReplay = true;
   const siblingHeaders = { authorization: `Bearer ${siblingBase.persona.token}`,
-    'x-dvaia-secureshop-launch': siblingBase.bearer };
+    'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer };
   const siblingScope = createLaunchScope(await composition.launches.resolveCapability(siblingBase.bearer));
   assert.notEqual(siblingScope.platformOwnerId, scope.platformOwnerId);
   assert.notEqual(siblingScope.launchId, scope.launchId);
@@ -5079,7 +5079,7 @@ async function qualifyMerchantListingRawBrowser({ page, frame, origin, suffix, c
   assert.equal(renewedScope.launchId, scope.launchId);
   assert.equal(renewedScope.generation, scope.generation + 1);
   const renewedHeaders = { authorization: `Bearer ${renewed.persona.token}`,
-    'x-dvaia-secureshop-launch': renewed.bearer };
+    'x-owasp-ai-goat-secureshop-launch': renewed.bearer };
   const renewedSource = await get(original.operationPath, renewedHeaders);
   const renewedAssessment = await get(original.assessmentPath, renewedHeaders);
   stage('renewed-authority-readback', { renewedReadback: { renewedSource, renewedAssessment } });
@@ -5467,14 +5467,14 @@ async function qualifyMerchantListingCreate({ browser, page, frame, origin, suff
       'anonymous product view must not redirect to login');
     assert.ok(publicRequests.some(request => request.method === 'GET'
       && !request.headers.cookie && !request.headers.authorization
-      && !request.headers['x-dvaia-secureshop-launch']),
+      && !request.headers['x-owasp-ai-goat-secureshop-launch']),
     'guest product must use the public read without a shop or platform credential');
   } finally { await guestContext?.close(); }
   assert.equal(getDispatches(), calls); assert.equal(getJudgeCalls(), judges);
   status.publicReadback = true;
 
   const siblingHeaders = { 'content-type': 'application/json',
-    'x-dvaia-secureshop-launch': siblingBase.bearer,
+    'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer,
     authorization: `Bearer ${siblingBase.persona.token}` };
   const siblingRead = await fetch(`${origin}${operationPath}`, { headers: siblingHeaders });
   assert.equal(siblingRead.status, 200);
@@ -5489,7 +5489,7 @@ async function qualifyMerchantListingCreate({ browser, page, frame, origin, suff
     platformSessionId: currentScope.platformSessionId, platformOwnerId: currentScope.platformOwnerId,
     expectedGeneration: currentScope.generation, idempotencyKey: `role-listing-create-retire-${randomUUID()}` });
   const staleRead = await fetch(`${origin}${operationPath}`, { headers: { ...siblingHeaders,
-    'x-dvaia-secureshop-launch': confirms[0].launch, authorization: confirms[0].authorization } });
+    'x-owasp-ai-goat-secureshop-launch': confirms[0].launch, authorization: confirms[0].authorization } });
   assert.notEqual(staleRead.status, 200); assert.equal(getDispatches(), calls);
   status.resetFenced = true;
   assert.deepEqual(pageErrors, []);
@@ -5953,7 +5953,7 @@ async function qualifyAdminPolicyChat({ page, frame, origin, suffix, adminBase, 
   assert.deepEqual(await policyRows(priorScope.launchId), siblingBefore,
     'same principal in a separate launch retains its policy state');
   const other = await fetch(`${origin}/api/secureshop/admin/policies/operations/${deleteProposal.proposalId}`,
-    { headers: { 'x-dvaia-secureshop-launch': siblingBase.bearer,
+    { headers: { 'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer,
       authorization: `Bearer ${siblingBase.persona.token}` } });
   assert.notEqual(other.status, 200, 'a merchant actor cannot read the admin policy operation');
   status.siblingDenied = true;
@@ -5968,7 +5968,7 @@ async function qualifyAdminPolicyChat({ page, frame, origin, suffix, adminBase, 
     platformSessionId: scope.platformSessionId, platformOwnerId: scope.platformOwnerId,
     expectedGeneration: scope.generation, idempotencyKey: `role-policy-retire-${randomUUID()}` });
   const retired = await fetch(`${origin}/api/secureshop/admin/policies/operations/${deleteProposal.proposalId}`,
-    { headers: { 'x-dvaia-secureshop-launch': source.launch,
+    { headers: { 'x-owasp-ai-goat-secureshop-launch': source.launch,
       authorization: source.authorization } });
   assert.notEqual(retired.status, 200);
   status.resetFenced = true;
@@ -6017,7 +6017,7 @@ async function qualifyChatStopWatching({pages,frames,suffix,product,pools,provid
   };
   const references=(page,role,request)=>page.evaluate(({role,request})=>{
     const field=role==='customer'?'secureshop.customer-chat.pending.v1':'secureshop.role-assistant.pending.v1',found=[];
-    for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!/^dvaia:secureshop:/.test(key||''))continue;
+    for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!/^owasp-ai-goat:secureshop:/.test(key||''))continue;
       const snapshot=JSON.parse(localStorage.getItem(key));if(typeof snapshot[field]!=='string')continue;
       const value=JSON.parse(snapshot[field]);for(const ref of value.references||[])if(ref.sessionId===request.sessionId&&ref.requestId===request.requestId)found.push({key,field,reference:ref});
     }return found;
@@ -7112,7 +7112,7 @@ async function qualifyAdminPasswordResetChat({ page, frame, origin, suffix, regi
         'secret cannot enter child native storage');
       else assert.deepEqual(childStorage, { available: false, name: 'SecurityError', opaqueOrigin: true },
         'only the expected opaque-frame storage denial is accepted');
-      assert.ok(portMessages.flat().some(value => value.includes('dvaia-shop-state-v1')),
+      assert.ok(portMessages.flat().some(value => value.includes('owasp-ai-goat-shop-state-v1')),
         'the actual virtual child storage channel must be observed');
       const acknowledgePath = `${prefix}/admin/users/${id}/password-resets/${op}/acknowledge`;
       const acknowledgeResponse = page.waitForResponse(response => response.request().method() === 'POST'
@@ -7127,7 +7127,7 @@ async function qualifyAdminPasswordResetChat({ page, frame, origin, suffix, regi
       await page.waitForFunction(() => document.querySelector(
         'section[aria-label="Protected password reset"] output[aria-label="Temporary password"]') === null,
       { timeout: 20000 });
-      await page.waitForFunction(() => sessionStorage.getItem('dvaia.secureshop.admin-password-reset.v1') === null,
+      await page.waitForFunction(() => sessionStorage.getItem('owasp-ai-goat.secureshop.admin-password-reset.v1') === null,
       { timeout: 20000 });
       const recovery = channel === 'protected_account'
         ? await identity.query(`SELECT envelope_json FROM secureshop_auth.registered_admin_reset_recovery
@@ -7181,7 +7181,7 @@ async function qualifyAdminPasswordResetChat({ page, frame, origin, suffix, regi
     // remain bound to the original administrator's exact context.
     const siblingRead = await fetch(`${origin}/api/secureshop/admin/users/${teachingId}/password-resets/${teachingCommit.op}`,
       { headers: { authorization: `Bearer ${siblingBase.persona.token}`,
-        'x-dvaia-secureshop-launch': siblingBase.bearer } });
+        'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer } });
     assert.notEqual(siblingRead.status, 200);
     status.siblingPreserved = true;
     assert.equal(chatPosts().length, 4);
@@ -7211,7 +7211,7 @@ async function qualifyAdminPasswordResetChat({ page, frame, origin, suffix, regi
       expectedGeneration: scope.generation, idempotencyKey: `role-admin-reset-retire-${randomUUID()}` });
     const stale = await fetch(`${origin}/api/secureshop/agents/admin/assistant/operations/${teachingSetup.selected.posted.sessionId}/${teachingSetup.selected.posted.requestId}`,
       { headers: { authorization: recentChat.authorization,
-        'x-dvaia-secureshop-launch': recentChat.launch } });
+        'x-owasp-ai-goat-secureshop-launch': recentChat.launch } });
     assert.notEqual(stale.status, 200); assert.equal(getDispatches(), beforeRetire);
     status.resetFenced = true;
     status.privateParentRevealAcknowledge = true; status.secretExcludedFromChildModelStorage = true;
@@ -7535,7 +7535,7 @@ async function qualifySystemConfigTraversal({ page, frame, origin, composition, 
   };
 
   saveCapture(); status.registeredAdminAuthority = true;
-  const headers = { authorization: credentials.authorization, 'x-dvaia-secureshop-launch': credentials.launch };
+  const headers = { authorization: credentials.authorization, 'x-owasp-ai-goat-secureshop-launch': credentials.launch };
   const http = async (path, authority = headers) => {
     const response = await fetch(`${origin}/api/secureshop${path}`, { headers: authority });
     return { status: response.status, body: await response.json() };
@@ -7547,7 +7547,7 @@ async function qualifySystemConfigTraversal({ page, frame, origin, composition, 
   assert.notEqual(siblingScope.platformOwnerId, scope.platformOwnerId);
   assert.notEqual(siblingScope.launchId, scope.launchId);
   const siblingHeaders = { authorization: `Bearer ${siblingBase.persona.token}`,
-    'x-dvaia-secureshop-launch': siblingBase.bearer };
+    'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer };
   const siblingPositiveBefore = await http(SYSTEM_CONFIG_SIBLING_PROFILE, siblingHeaders);
   assert.equal(siblingPositiveBefore.status, 200);
   const siblingTarget = await scenes.readExisting(siblingScope);
@@ -7841,7 +7841,7 @@ async function qualifySystemConfigTraversal({ page, frame, origin, composition, 
     assert.equal((await http(path, headers)).status, 401); status.sessionDenied = true;
     const renewed = await bootstrap(ownerBase);
     assert.deepEqual(createLaunchScope(await composition.launches.resolveCapability(renewed.bearer)), scope);
-    const renewedHeaders = { authorization: `Bearer ${renewed.persona.token}`, 'x-dvaia-secureshop-launch': renewed.bearer };
+    const renewedHeaders = { authorization: `Bearer ${renewed.persona.token}`, 'x-owasp-ai-goat-secureshop-launch': renewed.bearer };
     const immediatePreReset = await readiness(renewedHeaders); assert.equal(immediatePreReset.status, 200);
     const resetResult = await reset.launchResetCoordinator.reset({ ...scope, expectedGeneration: scope.generation, idempotencyKey: randomUUID() });
     assert.equal(resetResult.status, 'committed'); assert.equal(resetResult.toGeneration, scope.generation + 1);
@@ -7987,7 +7987,7 @@ async function qualifyPolicyInstruction({ page, frame, origin, suffix, compositi
   const principal = await auth.establishTenantContext(ownerBase);
   assert.equal(principal.shopUserId, persona.id);
   const headers = { authorization: currentBootstrap.authorization,
-    'x-dvaia-secureshop-launch': currentBootstrap.launch };
+    'x-owasp-ai-goat-secureshop-launch': currentBootstrap.launch };
   const get = async (path, authority = headers) => {
     const response = await fetch(`${origin}/api/secureshop${path}`, { headers: authority });
     return { status: response.status, value: await response.json() };
@@ -8321,7 +8321,7 @@ async function qualifyPolicyInstruction({ page, frame, origin, suffix, compositi
     },
   };
   const siblingHeaders = { authorization: `Bearer ${peerAdminBase.persona.token}`,
-    'x-dvaia-secureshop-launch': peerAdminBase.bearer };
+    'x-owasp-ai-goat-secureshop-launch': peerAdminBase.bearer };
   const guards = {
     async sameIdReplay({ chat, assessment }) {
       const original = posts(chatPath).find(row => row.body.requestId === chat.body.requestId);
@@ -8383,7 +8383,7 @@ async function qualifyPolicyInstruction({ page, frame, origin, suffix, compositi
       const renewed = await bootstrap(ownerBase);
       const newAuthorityOldRead = await get(originalPath(chat), {
         authorization: `Bearer ${renewed.persona.token}`,
-        'x-dvaia-secureshop-launch': renewed.bearer });
+        'x-owasp-ai-goat-secureshop-launch': renewed.bearer });
       assert.equal(newAuthorityOldRead.status, 401);
       assert.deepEqual(newAuthorityOldRead.value, { error: 'Shop session unavailable' });
       const cleanup = (await pools.IDENTITY_RUNTIME.query(
@@ -8593,7 +8593,7 @@ async function qualifyAdminReadChat({ page, frame, origin, suffix, composition, 
       const kind = turn.saved.auditSearch ? 'audit' : 'system/config';
       const url = `${origin}/api/secureshop/agents/admin/assistant/${kind}/operations/${turn.posted.body.sessionId}/${turn.posted.body.requestId}/${operationId}`;
       const response = await fetch(url, { headers: { authorization: `Bearer ${siblingBase.persona.token}`,
-        'x-dvaia-secureshop-launch': siblingBase.bearer } });
+        'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer } });
       assert.notEqual(response.status, 200, 'sibling cannot read chat-scoped saved operation');
     }
     status.siblingDenied = true;
@@ -8602,7 +8602,7 @@ async function qualifyAdminReadChat({ page, frame, origin, suffix, composition, 
     assert.equal(resetResult.status, 'committed');
     const old = await fetch(`${origin}/api/secureshop/agents/admin/assistant/audit/operations/${sql.posted.body.sessionId}/${sql.posted.body.requestId}/${sql.saved.auditSearch.operationId}`,
       { headers: { authorization: config.posted.authorization,
-        'x-dvaia-secureshop-launch': config.posted.launch } });
+        'x-owasp-ai-goat-secureshop-launch': config.posted.launch } });
     assert.notEqual(old.status, 200, 'retired browser authority cannot recover prior operation');
     status.resetFenced = true;
     assert.equal(getJudgeCalls(), 0);
@@ -8724,7 +8724,7 @@ async function qualifyUserLookupDisclosure({page,frame,origin,composition,reset,
   status.registeredAdminAuthority=true;
   status.catalogAdmission=await admitUserLookupDisposableCandidate({migration:pools.IDENTITY_MIGRATION,catalog:assessmentCatalog,administratorContext:ownerBase,curriculum:require('../../server/config/secureshopCurriculum')});
   status.candidateCatalogAdmitted=true;capture.catalogAdmission=status.catalogAdmission;saveCapture();
-  const headers={authorization:credential.authorization,'x-dvaia-secureshop-launch':credential.launch};
+  const headers={authorization:credential.authorization,'x-owasp-ai-goat-secureshop-launch':credential.launch};
   const http=async(path,selected=headers)=>{const response=await fetch(`${origin}/api/secureshop${path}`,{headers:selected});return{status:response.status,body:await response.json()};};
   const paths=ref=>({run:`/agents/admin/assistant/operations/${ref.sessionId}/${ref.requestId}`,
     assessment:`/agents/admin/assistant/sessions/${ref.sessionId}/requests/${ref.requestId}/user-lookup/assessment`});
@@ -8889,7 +8889,7 @@ async function qualifyUserLookupDisclosure({page,frame,origin,composition,reset,
   await frame.locator(`form:has(${lookupInput}) button[type="submit"]`).click();const manualResponse=await manualHttp,manual=await manualResponse.json();capture.manualFixed={status:manualResponse.status(),body:manual};saveCapture();
   assert.equal(manualResponse.status(),200);assert.deepEqual(manual,{ok:true,synthetic:true,user:fixed.lookup.user});
   await frame.waitForFunction(expected=>[...document.querySelectorAll('pre')].some(node=>node.getClientRects().length&&JSON.stringify(JSON.parse(node.textContent))===JSON.stringify(expected)),{timeout:30000},manual);status.fixedManualSafe=true;
-  const siblingHeaders={authorization:`Bearer ${siblingBase.persona.token}`,'x-dvaia-secureshop-launch':siblingBase.bearer};
+  const siblingHeaders={authorization:`Bearer ${siblingBase.persona.token}`,'x-owasp-ai-goat-secureshop-launch':siblingBase.bearer};
   const siblingScope=createLaunchScope(await composition.launches.resolveCapability(siblingBase.bearer));assert.notEqual(siblingScope.platformOwnerId,scope.platformOwnerId);
   const siblingRows=async()=>(await pools.REVIEW_RUNTIME.query('SELECT * FROM secureshop_review.product_target_products WHERE target_id=$1 ORDER BY product_id',[(await scenes.readExisting(siblingScope)).targetId])).rows;
   const siblingBefore=await siblingRows(),siblingPositive=await http(SYSTEM_CONFIG_SIBLING_PROFILE,siblingHeaders);assert.equal(siblingPositive.status,200);
@@ -8900,7 +8900,7 @@ async function qualifyUserLookupDisclosure({page,frame,origin,composition,reset,
   await composition.personaAuth.revokeOwnedSession({scope,shopPersona:persona,currentSessionId:personaSession.sessionId,authorityVersion:personaSession.authorityVersion,sessionId:personaSession.sessionId});
   const revoked=await http(paths(ref).run);assert.equal(revoked.status,401);status.sessionDenied=true;
   const renewed=await bootstrap(ownerBase),renewedScope=createLaunchScope(await composition.launches.resolveCapability(renewed.bearer));assert.deepEqual(renewedScope,scope);
-  const renewedHeaders={authorization:`Bearer ${renewed.persona.token}`,'x-dvaia-secureshop-launch':renewed.bearer};
+  const renewedHeaders={authorization:`Bearer ${renewed.persona.token}`,'x-owasp-ai-goat-secureshop-launch':renewed.bearer};
   const resetResult=await reset.launchResetCoordinator.reset({...scope,expectedGeneration:scope.generation,idempotencyKey:randomUUID()});
   capture.lifecycle={beforeReset,revoked,resetResult};saveCapture();assert.equal(resetResult.status,'committed');assert.equal(resetResult.fromGeneration,scope.generation);assert.equal(resetResult.toGeneration,scope.generation+1);
   const staleSource=await http(paths(ref).run,renewedHeaders),staleAssessment=await http(paths(ref).assessment,renewedHeaders);
@@ -9350,7 +9350,7 @@ async function qualifyAdminUserChat({ page, frame, origin, suffix, target, sibli
   // Controlled authority negatives use the real current services and do not
   // dispatch a provider decision or claim a rendered model denial.
   const siblingHeaders = { authorization: `Bearer ${siblingBase.persona.token}`,
-    'x-dvaia-secureshop-launch': siblingBase.bearer };
+    'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer };
   const siblingRead = await fetch(`${origin}${operationPath}`, { headers: siblingHeaders });
   assert.notEqual(siblingRead.status, 200, 'sibling cannot read the saved administrator operation');
   const adminScope = await composition.launches.resolveCapability(adminBase.bearer);
@@ -9437,7 +9437,7 @@ test(MAIL_KEEP_UNRESOLVED_Q05 ? MAIL_KEEP_UNRESOLVED_Q05_ASSERTION : Q05_REVIEW_
     assert.equal(process.env.OLLAMA_MODEL, MODEL); assert.equal(process.env.AI_PROVIDER, 'ollama');
   }
   assert.equal(process.env.LAB_MODE, 'vuln');
-  const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '');
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '');
   assert.equal(workspace, process.cwd(), 'current checkout required; no source copy');
   const build = path.resolve(process.env[Q05_REVIEW_BROWSER ? 'SECURESHOP_Q05_REVIEW_MODERATION_BROWSER_BUILD' : V03_BROWSER ? 'SECURESHOP_LISTING_IMAGE_OPTIMIZE_V03_BROWSER_BUILD' : LISTING_RAW_BROWSER ? 'SECURESHOP_LISTING_RAW_BROWSER_BUILD' : REVIEW_INJECTION_BROWSER ? 'SECURESHOP_REVIEW_INJECTION_BROWSER_BUILD' : MAIL_HTML_BROWSER ? 'SECURESHOP_MERCHANT_MAIL_HTML_BROWSER_BUILD' : MAIL_HEADER_BROWSER ? 'SECURESHOP_MERCHANT_MAIL_HEADER_BROWSER_BUILD' : POLICY_INSTRUCTION_BROWSER ? 'SECURESHOP_POLICY_INSTRUCTION_BROWSER_BUILD' : SYSTEM_CONFIG_BROWSER ? 'SECURESHOP_SYSTEM_CONFIG_TRAVERSAL_BROWSER_BUILD' : CHAT_STOP_WATCHING_BROWSER ? 'SECURESHOP_CHAT_STOP_WATCHING_BROWSER_BUILD' : INVENTORY_BROWSER ? 'SECURESHOP_MERCHANT_INVENTORY_CHAT_BROWSER_BUILD'
     : LISTING_EDIT_BROWSER ? 'SECURESHOP_MERCHANT_LISTING_EDIT_BROWSER_BUILD'
@@ -9529,7 +9529,7 @@ test(MAIL_KEEP_UNRESOLVED_Q05 ? MAIL_KEEP_UNRESOLVED_Q05_ASSERTION : Q05_REVIEW_
   if (ADMIN_READ_BROWSER) {
     assert.equal(auditControlURL.protocol, 'postgresql:');
     assert.equal(auditControlURL.hostname, '127.0.0.1');
-    assert.match(auditControlURL.pathname, /^\/dvaia_audit_control_[0-9a-f]{12}$/);
+    assert.match(auditControlURL.pathname, /^\/owasp_ai_goat_audit_control_[0-9a-f]{12}$/);
     assert.notEqual(auditControlURL.port, new URL(urls.IDENTITY_RUNTIME).port);
   }
   if (SYSTEM_READ_BROWSER) {
@@ -9998,7 +9998,7 @@ test(MAIL_KEEP_UNRESOLVED_Q05 ? MAIL_KEEP_UNRESOLVED_Q05_ASSERTION : Q05_REVIEW_
       throw new Error('Role choices must not invoke a Judge');
     };
     if (ADMIN_RESET_BROWSER) {
-      resetKeyDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-role-admin-reset-key-'));
+      resetKeyDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-role-admin-reset-key-'));
       await fs.chmod(resetKeyDirectory, 0o700);
       await fs.writeFile(path.join(resetKeyDirectory, 'keys.json'), JSON.stringify({ version: 1,
         activeKeyId: 'native', keys: { native: randomBytes(32).toString('base64url') } }),
@@ -10544,7 +10544,7 @@ test(MAIL_KEEP_UNRESOLVED_Q05 ? MAIL_KEEP_UNRESOLVED_Q05_ASSERTION : Q05_REVIEW_
           || request.path === '/merchant/reviews/moderate-all')) {
         const entry = { path: request.path, method: request.method,
           body: structuredClone(request.body), status: null, value: null,
-          launch: request.get('x-dvaia-secureshop-launch') || null,
+          launch: request.get('x-owasp-ai-goat-secureshop-launch') || null,
           authorization: request.get('authorization') || null };
         (request.path === '/merchant/reviews/moderate-all'
           ? reviewInjectionCaptures.moderations : reviewInjectionCaptures.submissions).push(entry);
@@ -10732,7 +10732,7 @@ test(MAIL_KEEP_UNRESOLVED_Q05 ? MAIL_KEEP_UNRESOLVED_Q05_ASSERTION : Q05_REVIEW_
           && request.path === '/merchant/listings/optimize-images'
         || (CHAT_PRESENTATION_BROWSER || CHAT_STOP_WATCHING_BROWSER) && /\/agents\/customer\/(chat|operations\/)/.test(request.path)) {
         const entry = { method: request.method, path: request.path,
-          launch: request.get('x-dvaia-secureshop-launch') || null,
+          launch: request.get('x-owasp-ai-goat-secureshop-launch') || null,
           authorization: request.get('authorization') || null,
           ...(request.method === 'POST' ? { body: request.body } : {}) };
         requestLog.push(entry);
@@ -10810,25 +10810,25 @@ test(MAIL_KEEP_UNRESOLVED_Q05 ? MAIL_KEEP_UNRESOLVED_Q05_ASSERTION : Q05_REVIEW_
     app.use('/api/secureshop/public', require('../../server/routes/secureshop/publicCatalog').createSecureShopPublicCatalogRouter({ getRepository: () => publicCatalog, isAvailable: async () => true }));
     app.use(express.static(build, { setHeaders: response => response.set('Access-Control-Allow-Origin', '*') })); app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
 
-    profile = await fs.mkdtemp(path.join(os.tmpdir(), Q05_REVIEW_BROWSER ? 'dvaia-q05-review-' : INVENTORY_BROWSER
-      ? 'dvaia-role-inventory-' : LISTING_EDIT_BROWSER ? 'dvaia-role-listing-edit-'
-      : LISTING_RAW_BROWSER ? 'dvaia-role-listing-raw-browser-'
-      : LISTING_CREATE_BROWSER ? 'dvaia-role-listing-create-'
-          : MERCHANT_ORDER_BROWSER ? 'dvaia-role-order-'
-            : NAMED_ORDER_FILTER_BROWSER ? 'dvaia-role-named-order-'
-            : CATALOG_PAGE_BROWSER ? 'dvaia-role-catalog-page-'
-            : MERCHANT_REVIEW_BROWSER ? 'dvaia-role-review-'
-              : mailActionsAdmission ? 'dvaia-role-mail-actions-'
-              : MAIL_BROWSER ? 'dvaia-role-mail-'
-            : USER_LOOKUP_BROWSER ? 'dvaia-user-lookup-browser-'
-            : ADMIN_USER_BROWSER ? 'dvaia-role-admin-user-'
-            : ADMIN_AUDIT_BROWSER ? 'dvaia-role-admin-audit-'
-            : POLICY_INSTRUCTION_BROWSER ? 'dvaia-role-policy-instruction-'
-            : SYSTEM_CONFIG_BROWSER ? 'dvaia-role-system-config-'
-            : ADMIN_READ_BROWSER ? 'dvaia-role-admin-read-'
-            : ADMIN_RESET_BROWSER ? 'dvaia-role-admin-reset-'
-            : ADMIN_POLICY_BROWSER ? 'dvaia-role-admin-policy-'
-            : CHAT_PRESENTATION_BROWSER ? 'dvaia-chat-presentation-' : 'dvaia-role-choices-'));
+    profile = await fs.mkdtemp(path.join(os.tmpdir(), Q05_REVIEW_BROWSER ? 'owasp-ai-goat-q05-review-' : INVENTORY_BROWSER
+      ? 'owasp-ai-goat-role-inventory-' : LISTING_EDIT_BROWSER ? 'owasp-ai-goat-role-listing-edit-'
+      : LISTING_RAW_BROWSER ? 'owasp-ai-goat-role-listing-raw-browser-'
+      : LISTING_CREATE_BROWSER ? 'owasp-ai-goat-role-listing-create-'
+          : MERCHANT_ORDER_BROWSER ? 'owasp-ai-goat-role-order-'
+            : NAMED_ORDER_FILTER_BROWSER ? 'owasp-ai-goat-role-named-order-'
+            : CATALOG_PAGE_BROWSER ? 'owasp-ai-goat-role-catalog-page-'
+            : MERCHANT_REVIEW_BROWSER ? 'owasp-ai-goat-role-review-'
+              : mailActionsAdmission ? 'owasp-ai-goat-role-mail-actions-'
+              : MAIL_BROWSER ? 'owasp-ai-goat-role-mail-'
+            : USER_LOOKUP_BROWSER ? 'owasp-ai-goat-user-lookup-browser-'
+            : ADMIN_USER_BROWSER ? 'owasp-ai-goat-role-admin-user-'
+            : ADMIN_AUDIT_BROWSER ? 'owasp-ai-goat-role-admin-audit-'
+            : POLICY_INSTRUCTION_BROWSER ? 'owasp-ai-goat-role-policy-instruction-'
+            : SYSTEM_CONFIG_BROWSER ? 'owasp-ai-goat-role-system-config-'
+            : ADMIN_READ_BROWSER ? 'owasp-ai-goat-role-admin-read-'
+            : ADMIN_RESET_BROWSER ? 'owasp-ai-goat-role-admin-reset-'
+            : ADMIN_POLICY_BROWSER ? 'owasp-ai-goat-role-admin-policy-'
+            : CHAT_PRESENTATION_BROWSER ? 'owasp-ai-goat-chat-presentation-' : 'owasp-ai-goat-role-choices-'));
     const userLookupBrowserAdmission = USER_LOOKUP_BROWSER
       ? require('../fixtures/secureshopUserLookupBrowserAdmission') : null;
     const adminOwnedBrowserScope = ADMIN_POLICY_BROWSER && !POLICY_TEMPLATE_BROWSER ? 'admin-policy-chat-browser'
@@ -11008,7 +11008,7 @@ test(MAIL_KEEP_UNRESOLVED_Q05 ? MAIL_KEEP_UNRESOLVED_Q05_ASSERTION : Q05_REVIEW_
         'target_id=$1', [mailActionSeed.target.targetId]);
       const readiness = await fetch(`${origin}/api/secureshop/email/readiness`, { headers: {
         authorization: currentMerchant.authorization,
-        'x-dvaia-secureshop-launch': currentMerchant.launch } });
+        'x-owasp-ai-goat-secureshop-launch': currentMerchant.launch } });
       assert.equal(readiness.status, 200, 'the real bound mail readiness route must be mounted');
       const body = await readiness.json();
       assert.equal(body.ready, true);

@@ -20,6 +20,7 @@ test('platform signing configuration accepts only a configured private secret', 
     { JWT_SECRET: ' '.repeat(32) },
     { JWT_SECRET: 'too-short' },
     { JWT_SECRET: 'dvaia-secret-key-2024' },
+    { JWT_SECRET: 'owasp-ai-goat-secret-key-2024' },
     { JWT_SECRET: 'change_me_to_a_long_random_string' },
   ]) {
     assert.throws(() => helper.assertPlatformSigningConfiguration(env), error =>
@@ -29,7 +30,7 @@ test('platform signing configuration accepts only a configured private secret', 
 
 test('supported entrypoint rejects missing signing configuration before application imports', () => {
   const indexPath = path.join(repoRoot, 'server', 'index.js');
-  const isolatedCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-signing-entrypoint-'));
+  const isolatedCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-signing-entrypoint-'));
   const script = `
     const Module = require('node:module');
     const originalLoad = Module._load;
@@ -88,7 +89,7 @@ test('every supported local launcher delegates to the same signing guard', () =>
   assert.match(preflightSource, /platformSigningConfiguration[^\n]+assertPlatformSigningConfiguration/);
 
   const launcherPath = path.join(repoRoot, 'scripts', 'start-application.js');
-  const launcherEnvRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-signing-launcher-'));
+  const launcherEnvRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-signing-launcher-'));
   try { for (const args of [[], ['--init-db']]) {
     const script = `
       const Module = require('node:module');
@@ -150,7 +151,7 @@ test('canonical PostgreSQL identity adapter has no public signing fallback', () 
       process.stdout.write('adapter guard passed\\n');
     }
   `;
-  const adapterEnvRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-signing-adapter-'));
+  const adapterEnvRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-signing-adapter-'));
   try {
     const result = spawnSync(process.execPath, ['-e', script], {
       cwd: repoRoot, encoding: 'utf8', timeout: 5000,

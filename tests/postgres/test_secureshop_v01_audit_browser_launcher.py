@@ -82,7 +82,7 @@ class V01AuditBrowserLauncher(unittest.TestCase):
   self.assertIn("assertAssessmentControls(frame,{acknowledged:false})",helper)
   self.assertIn("assertAssessmentControls(frame,{acknowledged:true})",helper)
   self.assertIn("assert.notEqual(target.scene.sceneId,actor.scope.scenarioId)",source)
-  self.assertIn("const v01ParentStorageBase=`dvaia:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`",source)
+  self.assertIn("const v01ParentStorageBase=`owasp-ai-goat:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`",source)
   self.assertIn("const storageKey=marker===null?baseKey:`${baseKey}:scene:${sceneId}`",source)
   self.assertIn("referenceKey:'secureshop.customer-checkout-audit.assessment.v1'",source)
   recovery_start=source.index("const recoveryJudge=status.judgeCalls")

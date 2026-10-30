@@ -13,7 +13,7 @@ const RUNTIME='PG_XSS_JUDGMENT_TEST_RUNTIME_URL',MIGRATION='PG_XSS_JUDGMENT_TEST
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&Boolean(process.env[RUNTIME])&&Boolean(process.env[MIGRATION]);
 const password='$2b$12$000000000000000000000uG3W0Jp6IPhhD1TRqN8Yc2zJQG3vVnSA';
 function owned(value,role){const url=new URL(value);assert.equal(url.hostname,'127.0.0.1');
- assert.match(url.pathname,/^\/dvaia_test_xss_judgment_test_[a-z0-9]+$/);assert.equal(decodeURIComponent(url.username),role);}
+ assert.match(url.pathname,/^\/owasp_ai_goat_test_xss_judgment_test_[a-z0-9]+$/);assert.equal(decodeURIComponent(url.username),role);}
 function result(input,overrides={}){return{family:input.family,scenario:input.scenario,objectiveId:input.objectiveId,
  rubricVersion:input.rubricVersion,evidenceDigest:input.evidenceDigest,runId:input.runId,mode:input.mode,
  verdict:'pass',criteria:[{id:'observed',satisfied:true,evidenceRefs:['receipt']}],explanation:'Observed.',
@@ -33,7 +33,7 @@ test('native 0073 binds XSS Judge begin, award and retry to exact current child 
  {skip:!enabled},async()=>{
   owned(process.env[RUNTIME],'dvaia_identity_runtime');owned(process.env[MIGRATION],'dvaia_identity_migration');
   const runtime=createPool(process.env,RUNTIME),migration=createPool(process.env,MIGRATION),observer=createPool(process.env,RUNTIME);
-  const prefix=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-xss-judgment-0072-'));
+  const prefix=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-xss-judgment-0072-'));
   try{
    const source=path.join(__dirname,'../../db/postgres/identity-migrations');
    const names=(await fs.readdir(source)).filter(name=>/^\d{4}_.*\.sql$/.test(name)&&Number(name.slice(0,4))<=72).sort();

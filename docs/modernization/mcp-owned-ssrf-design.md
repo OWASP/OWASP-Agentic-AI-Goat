@@ -54,7 +54,7 @@ The existing owned target is a useful isolation foundation:
 - `sidecars/sandbox-runner/mcpTargets.js:455-468` creates new user, network, PID,
   UTS, and IPC namespaces for each Bubblewrap execution. It exposes a minimal
   root, fixed environment, and the verified final-process seccomp descriptor.
-- `sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in:51-83` admits
+- `sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in:51-83` admits
   namespace setup only after the packaged Bubblewrap transition. The child
   profile currently permits namespaced `net_admin`; the parent supervisor has
   no `userns` rule.
@@ -127,7 +127,7 @@ The test-only gate, Perl initializer and Perl worker are under
 `tests/fixtures/mcpOwnedSsrf*`. They are not installed application components.
 
 The owned disposable container used the existing runner image, packaged
-Bubblewrap 0.12.0, enforcing `dvaia-mcp-sandbox`/`bwrap` profiles and packaged
+Bubblewrap 0.12.0, enforcing `owasp-ai-goat-mcp-sandbox`/`bwrap` profiles and packaged
 inner seccomp filter. The installed AppArmor source file matched the rendered
 repository template exactly, SHA256
 `c3cd8e253e789d459705ab7d31d822cbd6b6d12cbd0a02d562d9af22645ba2d0`.
@@ -240,7 +240,7 @@ The minimal sidecar-specific implementation surfaces are:
 | `sidecars/sandbox-runner/mcpTargets.js` | Separate HTTP argv/operation under existing owner lock; leave ordinary CLI argv unchanged. |
 | `sidecars/sandbox-runner/ownedTargetApi.js` | Exact private HTTP-operation request contract. |
 | `sidecars/sandbox-runner/Dockerfile` | Future sidecar-only compile/install/hash packaging after review. |
-| `sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in` | Only if separately qualified port-80 setup needs an additional namespaced permission. |
+| `sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in` | Only if separately qualified port-80 setup needs an additional namespaced permission. |
 
 The last two entries are proposed future work, not changes made by this design.
 No root Dockerfile, Compose, AWS asset or host-wide profile change is required by

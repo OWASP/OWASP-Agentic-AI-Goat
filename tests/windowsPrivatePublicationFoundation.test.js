@@ -11,7 +11,7 @@ const targetPath = 'C:\\workspace\\.env';
 const intentPath = 'C:\\Users\\learner\\private\\publication.json';
 const operationId = '11111111-2222-4333-8444-555555555555';
 const base = { targetPath, intentPath, operationId };
-const stagePath = `${targetPath}.dvaia-${operationId}.stage`;
+const stagePath = `${targetPath}.owasp-ai-goat-${operationId}.stage`;
 const denied = { code: 'WINDOWS_PRIVATE_PUBLICATION_DENIED', message: 'Windows private publication denied.' };
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -32,7 +32,7 @@ function controlled(initial) {
     locked = true;
     try {
       const request = JSON.parse(options.input), prepare = request.operation === 'preparePrivatePublication';
-      const stageName = `${request.targetPath}.dvaia-${request.operationId}.stage`, originalName = `${request.intentPath}.original`, resultName = `${request.intentPath}.result`;
+      const stageName = `${request.targetPath}.owasp-ai-goat-${request.operationId}.stage`, originalName = `${request.intentPath}.original`, resultName = `${request.intentPath}.result`;
       let intentFile = read(request.intentPath), intent, current = read(request.targetPath), stage = read(stageName), original = read(originalName), proposed = read(resultName);
       const expectedOriginal = request.originalBytesBase64 === null ? null : prepare ? Buffer.from(request.originalBytesBase64, 'base64') : null;
       const expectedResult = prepare ? Buffer.from(request.resultBytesBase64, 'base64') : null;
@@ -198,7 +198,7 @@ test('adapter rejects wrong response binding, secret/extra fields, invalid ident
 
 test('native source contracts retain cross-session lock, private artifacts and exact byte/identity recovery', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '../scripts/windows/windows-private-publication.cs'), 'utf8');
-  assert(source.includes('Global\\\\Dvaia.PrivatePublication.')); assert(!source.includes('Local\\\\Dvaia.PrivatePublication.'));
+  assert(source.includes('Global\\\\OwaspAiGoat.PrivatePublication.')); assert(!source.includes('Local\\\\OwaspAiGoat.PrivatePublication.'));
   assert(source.includes('security.SetOwner(owner);security.SetAccessRuleProtection(true,false)'));
   assert(source.includes('actual.AreAccessRulesProtected')); assert(source.includes('mutex.WaitOne(5000)'));
   assert(source.includes('catch(AbandonedMutexException){held=true;}')); assert(source.includes('finally {mutex.ReleaseMutex();}'));
@@ -230,7 +230,7 @@ test('PowerShell source bounds wire data and avoids argument interpolation and d
   const source = fs.readFileSync(path.resolve(__dirname, '../scripts/windows/windows-private-publication.ps1'), 'utf8');
   assert(source.includes('$limit = 3000000')); assert(source.includes('[Console]::In.Read('));
   assert(source.includes('GetByteCount($wire) -gt $limit')); assert(source.includes('GetByteCount($json) -gt 4096'));
-  assert(source.includes('System.Web.Extensions.dll')); assert(source.includes('[Dvaia.WindowsPrivatePublication]::Invoke('));
+  assert(source.includes('System.Web.Extensions.dll')); assert(source.includes('[OwaspAiGoat.WindowsPrivatePublication]::Invoke('));
   assert(source.includes('"code":"WINDOWS_PRIVATE_PUBLICATION_DENIED"'));
   assert(!/Invoke-Expression|Write-Error|Write-Host|Write-Verbose|Out-File|\.ReadToEnd\(|-Command/.test(source));
 });

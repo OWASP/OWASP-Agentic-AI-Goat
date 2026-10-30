@@ -8,7 +8,7 @@ async function seed(client){
  const {products,comments}=require('../../data/legacyChallengeSeeds');
  const bcrypt=require('bcryptjs');
  if(!(await client.query('SELECT 1 FROM legacy_challenge.users LIMIT 1')).rowCount){
-  for(const [username,email,password] of [['student','student@dvaia.local','student123'],['student123','student123@dvaia.local','student123'],['user','user@dvaia.local','password'],['Test User','test@dvaia.local','test123']])
+  for(const [username,email,password] of [['student','student@owasp-ai-goat.local','student123'],['student123','student123@owasp-ai-goat.local','student123'],['user','user@owasp-ai-goat.local','password'],['Test User','test@owasp-ai-goat.local','test123']])
    await client.query('INSERT INTO legacy_challenge.users(username,email,password,role) VALUES($1,$2,$3,\'student\')',[username,email,await bcrypt.hash(password,10)]);
  }
  if(!(await client.query('SELECT 1 FROM legacy_challenge.products LIMIT 1')).rowCount)

@@ -59,7 +59,7 @@ function urlsFromEnvironment() {
       assert.equal(value.protocol, 'postgresql:'); assert.equal(value.hostname, '127.0.0.1');
       assert.equal(value.password, ''); assert.equal(value.search, ''); assert.equal(value.hash, '');
       assert.equal(value.username, `dvaia_${STORE_NAMES[store]}_${role.toLowerCase()}`);
-      const match = new RegExp(`^/dvaia_test_agent_host_([0-9a-f]{12})_${STORE_NAMES[store]}$`)
+      const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([0-9a-f]{12})_${STORE_NAMES[store]}$`)
         .exec(value.pathname);
       assert.ok(match, `closed disposable database name required for ${key}`);
       nonce ??= match[1]; port ??= value.port;
@@ -195,7 +195,7 @@ async function logoutShop(frame, page, origin) {
 }
 
 test(ASSERTION, { skip: !ENABLED, timeout: 600000 }, async t => {
-  const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '');
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '');
   assert.equal(workspace, process.cwd(), 'current checkout required; no source copy');
   const build = path.resolve(process.env.SECURESHOP_ADMIN_RESTART_CHAT_BROWSER_BUILD || '');
   assert.equal(build, path.join(workspace, 'client/build'));
@@ -374,7 +374,7 @@ test(ASSERTION, { skip: !ENABLED, timeout: 600000 }, async t => {
         allowedOrigins: [origin], secureCookies: false }));
     app.use('/api/secureshop', (request, response, next) => {
       const entry = { method: request.method, path: request.path,
-        launch: request.get('x-dvaia-secureshop-launch') || null,
+        launch: request.get('x-owasp-ai-goat-secureshop-launch') || null,
         authorization: request.get('authorization') || null,
         ...(request.method === 'POST' ? { body: structuredClone(request.body) } : {}) };
       if (/assistant|restart/.test(request.path)) {
@@ -425,7 +425,7 @@ test(ASSERTION, { skip: !ENABLED, timeout: 600000 }, async t => {
       response.set('Access-Control-Allow-Origin', '*') }));
     app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
 
-    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-admin-restart-chat-'));
+    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-admin-restart-chat-'));
     browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
       executablePath, args: ['--disable-background-networking'] });
     page = await browser.newPage(); await page.setViewport({ width: 1280, height: 900 });
@@ -567,7 +567,7 @@ test(ASSERTION, { skip: !ENABLED, timeout: 600000 }, async t => {
     assert.equal((await review.query('SELECT count(*)::int n FROM secureshop_review.bound_system_restart_operations')).rows[0].n, 1);
     status.lostAckExactGetRecovery = true; status.noDuplicateRestart = true;
     const foreign = await fetch(`${origin}/api/secureshop/admin/system/restart-operations/${operation[0].operation_id}`,
-      { headers: { 'x-dvaia-secureshop-launch': siblingBase.bearer,
+      { headers: { 'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer,
         authorization: `Bearer ${siblingBase.persona.token}` } });
     assert.notEqual(foreign.status, 200); status.siblingOperationDenied = true;
     const auditRows = (await review.query(`SELECT actor,action,target,outcome,source_kind,source_id,params_json
@@ -594,7 +594,7 @@ test(ASSERTION, { skip: !ENABLED, timeout: 600000 }, async t => {
       platformSessionId: actorScope.platformSessionId, platformOwnerId: actorScope.platformOwnerId,
       expectedGeneration: actorScope.generation, idempotencyKey: `restart-chat-reset-${randomUUID()}` });
     const retired = await fetch(`${origin}/api/secureshop/admin/system/restart-operations/${operation[0].operation_id}`,
-      { headers: { 'x-dvaia-secureshop-launch': actor.launch,
+      { headers: { 'x-owasp-ai-goat-secureshop-launch': actor.launch,
         authorization: actor.authorization } });
     assert.notEqual(retired.status, 200); status.resetSessionDenied = true;
     assert.deepEqual((await identity.query(
@@ -630,7 +630,7 @@ test(ASSERTION, { skip: !ENABLED, timeout: 600000 }, async t => {
       restartTransport: restartTransport.slice(-16),
       sidecarLogArtifact: 'restart-executor.log',
       sessionCookiePresent: page ? (await page.cookies().catch(() => []))
-        .some(cookie => cookie.name === 'dvaia_shop_session') : false };
+        .some(cookie => cookie.name === 'owasp_ai_goat_shop_session') : false };
     t.diagnostic(JSON.stringify(diagnostic));
     if (page) await page.screenshot({ path: path.join(path.dirname(evidencePath),
       'admin-system-restart-failure.png') }).catch(() => {});

@@ -14,7 +14,7 @@ async function acquireApplicationMaintenanceLease({mode,env=process.env,signal,t
  signal?.throwIfAborted();
  const config=poolConfig({...env,PG_POOL_MAX_LEASE:'1'},mode==='application'?'IDENTITY_DATABASE_URL':'IDENTITY_MIGRATION_DATABASE_URL',{purpose:'lease'});
  const releaseBudget=reserveDedicatedConnection(env);
- let client;try{client=clientFactory({...config,connectionTimeoutMillis:timeoutMs,query_timeout:timeoutMs,statement_timeout:timeoutMs,application_name:'dvaia-maintenance-lease'});}catch(error){releaseBudget();throw failure('APPLICATION_LEASE_CLIENT_FAILED');}
+ let client;try{client=clientFactory({...config,connectionTimeoutMillis:timeoutMs,query_timeout:timeoutMs,statement_timeout:timeoutMs,application_name:'owasp-ai-goat-maintenance-lease'});}catch(error){releaseBudget();throw failure('APPLICATION_LEASE_CLIENT_FAILED');}
  const abort=new AbortController();let state='acquiring',closing,probe;
  const lose=()=>{if(state!=='closed'&&state!=='closing'){state='lost';abort.abort(failure('APPLICATION_LEASE_LOST'));void close().catch(()=>{});}};
  const bound=(work,ms,code,withAbort=true)=>new Promise((resolve,reject)=>{

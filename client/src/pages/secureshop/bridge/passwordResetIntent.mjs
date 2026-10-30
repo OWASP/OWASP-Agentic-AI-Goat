@@ -1,6 +1,6 @@
 import { isStandaloneShopFrame } from './assessmentPanelIntent.mjs';
 
-export const PASSWORD_RESET_PANEL_CHANNEL = 'dvaia-secureshop-password-reset-panel-v1';
+export const PASSWORD_RESET_PANEL_CHANNEL = 'owasp-ai-goat-secureshop-password-reset-panel-v1';
 
 export function openStandalonePasswordReset(targetId, frameWindow = globalThis.window) {
   const nonce = frameWindow.location.hash.slice(1);

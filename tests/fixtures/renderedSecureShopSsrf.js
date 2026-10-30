@@ -83,7 +83,7 @@ function successfulRecoveryClassification({traces,successIndex,successCall,issue
 // These functions are intentionally self-contained: Puppeteer serializes them
 // into the opaque shop frame, where module bindings are unavailable.
 function clickWithBridgeResponseTap({label,origin,token,maxBytes,deadlineMs}){
-  const key='__dvaiaRenderedSsrfResponseTap';
+  const key='__owasp-ai-goatRenderedSsrfResponseTap';
   if(typeof token!=='string'||!/^[a-f0-9-]{36}$/.test(token)||typeof origin!=='string'
     ||!Number.isSafeInteger(maxBytes)||maxBytes<1||!Number.isSafeInteger(deadlineMs)||deadlineMs<1)throw Error('Invalid response tap');
   if(Object.prototype.hasOwnProperty.call(globalThis,key)||typeof globalThis.fetch!=='function')throw Error('Response tap unavailable');
@@ -155,12 +155,12 @@ function clickWithBridgeResponseTap({label,origin,token,maxBytes,deadlineMs}){
   return true;
 }
 async function readBridgeResponseTap({token}){
-  const state=globalThis.__dvaiaRenderedSsrfResponseTap;
+  const state=globalThis.__owasp-ai-goatRenderedSsrfResponseTap;
   if(!state||state.token!==token||!state.matched||!state.capture)throw Error('Response tap unavailable');
   return state.capture;
 }
 function closeBridgeResponseTap({token}){
-  const key='__dvaiaRenderedSsrfResponseTap',state=globalThis[key];
+  const key='__owasp-ai-goatRenderedSsrfResponseTap',state=globalThis[key];
   if(!state||state.token!==token)return Object.freeze({closed:false,replaced:false});
   let replaced=false;
   if(globalThis.fetch===state.wrapper)globalThis.fetch=state.original;
@@ -442,7 +442,7 @@ async function runRenderedControlledSsrf({page,frame,origin,evidence,timeoutMs=4
       results.push(result);
       if(resource==='private-policy'){
         const requestHeaders=response.request().headers();const authorization=requestHeaders.authorization;
-        const launchBearer=requestHeaders['x-dvaia-secureshop-launch'];
+        const launchBearer=requestHeaders['x-owasp-ai-goat-secureshop-launch'];
         assert.match(authorization||'',/^Bearer [^\s]+$/);assert.match(launchBearer||'',/^[A-Za-z0-9_-]{43}$/);
         replayAuthorities.set(result,Object.freeze({authorization,launchBearer}));
       }
@@ -476,7 +476,7 @@ async function verifyStaleRenderedSsrfDenied({page,origin,result}){
   const value=await page.evaluate(async ({origin,requestId,authorization,launchBearer})=>{
     const response=await fetch(`${origin}/api/secureshop/v2/controlled-ssrf/run`,{method:'POST',redirect:'error',
       credentials:'omit',headers:{accept:'application/json','content-type':'application/json',authorization,
-        'x-dvaia-secureshop-launch':launchBearer},
+        'x-owasp-ai-goat-secureshop-launch':launchBearer},
       body:JSON.stringify({resource:'private-policy',request_id:requestId})});
     return{status:response.status};
   },{origin,requestId:receipt.requestId,...authority});

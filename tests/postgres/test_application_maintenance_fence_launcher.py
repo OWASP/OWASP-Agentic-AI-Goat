@@ -32,7 +32,7 @@ class FenceLauncher(unittest.TestCase):
   env=m.database_environment('abcdef012345',54321)
   self.assertEqual(len(env),22)
   self.assertEqual(len({v.split('/')[-1] for v in env.values()}),11)
-  self.assertTrue(all('@127.0.0.1:54321/dvaia_test_fence_' in v for v in env.values()))
+  self.assertTrue(all('@127.0.0.1:54321/owasp_ai_goat_test_fence_' in v for v in env.values()))
   for owner,port in [('bad',5432),('abcdef012345',0),('abcdef012345','x')]:
    with self.assertRaises(ValueError):m.database_environment(owner,port)
  def test_inventory_rejects_external_link(self):
@@ -54,7 +54,7 @@ class FenceLauncher(unittest.TestCase):
   self.assertEqual(len(env),8)
   self.assertEqual(len({v.split('/')[-1] for v in env.values()}),4)
   self.assertTrue(all(k.startswith('PG_MAINTENANCE_V2_') for k in env))
-  self.assertTrue(all('@127.0.0.1:54321/dvaia_test_maintenance_v2_' in v for v in env.values()))
+  self.assertTrue(all('@127.0.0.1:54321/owasp_ai_goat_test_maintenance_v2_' in v for v in env.values()))
   self.assertTrue(all(len(v.split('/')[-1].encode())<=63 for v in env.values()))
   self.assertEqual(m.selection(True)['gate'],'APPLICATION_MAINTENANCE_V2_ISOLATED')
   self.assertNotEqual(m.selection(True)['fixture'],m.selection(False)['fixture'])
@@ -94,7 +94,7 @@ class FenceLauncher(unittest.TestCase):
   env=m.database_environment('abcdef012345',54321,False,False,True)
   self.assertEqual(len(env),6)
   self.assertEqual(m.selection(False,False,True)['cases'],('fresh','populated','concurrency'))
-  self.assertTrue(all(k.startswith('PG_MAINTENANCE_V4_') and '@127.0.0.1:54321/dvaia_test_maintenance_v4_abcdef012345_' in v for k,v in env.items()))
+  self.assertTrue(all(k.startswith('PG_MAINTENANCE_V4_') and '@127.0.0.1:54321/owasp_ai_goat_test_maintenance_v4_abcdef012345_' in v for k,v in env.items()))
   self.assertTrue(all(len(v.split('/')[-1])<=63 for v in env.values()))
   for args in [(True,False,True),(False,True,True),(False,False,'true')]:
    with self.assertRaises(ValueError):m.selection(*args)

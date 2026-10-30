@@ -17,13 +17,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--docker-host', required=True)
 args = parser.parse_args()
 source = Path(__file__).resolve().parents[2]
-root = Path(tempfile.mkdtemp(prefix='dvaia-session-disclosure-'))
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-session-disclosure-'))
 workspace = root / 'source'
 workspace.mkdir()
 os.chmod(root, 0o700)
 base_env = {key: os.environ[key] for key in ['PATH', 'HOME', 'TMPDIR'] if key in os.environ}
 docker = ['docker', '--host', args.docker_host]
-container = 'dvaia-session-disclosure-' + uuid.uuid4().hex[:12]
+container = 'owasp-ai-goat-session-disclosure-' + uuid.uuid4().hex[:12]
 started = False
 PROMOTED_MIGRATION_SHA256 = '532b3f33afead775cd02322d04cb8a6aeb3bc179bcade5f7fe862661612f6d80'
 
@@ -90,15 +90,15 @@ try:
     psql = ['psql', '-h', '127.0.0.1', '-p', str(port), '-U', 'session_test_admin',
             '-d', 'postgres', '-v', 'ON_ERROR_STOP=1']
     env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes',
-               SESSION_DISCLOSURE_ISOLATED='1', DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+               SESSION_DISCLOSURE_ISOLATED='1', OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
                PLATFORM_DATABASE_ENGINE='postgres', WORKSHOP_DATABASE_ENGINE='postgres',
                JWT_SECRET='owned-session-disclosure-test-secret',
                SESSION_DISCLOSURE_TEST_MIGRATION_DIR=str(migration_dir),
                MCP_WORKSHOP_AUTOSTART='false', MCP_SIDECARS_AUTOSTART='false',
                SS_ENABLE='false', AWS_EC2_METADATA_DISABLED='true')
     for schema, prefix, database in [
-        ('identity', 'IDENTITY', 'dvaia_test_session_identity'),
-        ('session_disclosure', 'SESSION_DISCLOSURE', 'dvaia_test_session_disclosure')]:
+        ('identity', 'IDENTITY', 'owasp_ai_goat_test_session_identity'),
+        ('session_disclosure', 'SESSION_DISCLOSURE', 'owasp_ai_goat_test_session_disclosure')]:
         migration = f'dvaia_{schema}_migration'
         runtime = f'dvaia_{schema}_runtime'
         for role in [migration, runtime]:

@@ -42,7 +42,7 @@ test('general registry reads survive only explicit trust-disabled status, not ar
 test('absent private configuration disables; malformed present configuration fails even before activation',async t=>{
  const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');const home=await fs.mkdtemp(path.join(os.tmpdir(),'owned-mcp-config-'));t.after(()=>fs.rm(home,{recursive:true,force:true}));
  assert.equal(await production.readConfiguration({home}),null);
- const dir=path.join(home,'.dvaia',workspaceId(process.cwd()));await fs.mkdir(dir,{recursive:true});const file=path.join(dir,'secureshop-owned-mcp-registry.json');
+ const dir=path.join(home,'.owasp-ai-goat',workspaceId(process.cwd()));await fs.mkdir(dir,{recursive:true});const file=path.join(dir,'secureshop-owned-mcp-registry.json');
  await fs.writeFile(file,'{}',{mode:0o600});await assert.rejects(production.readConfiguration({home}),{code:'MCP_REGISTRY_NOT_READY'});
  await fs.writeFile(file,JSON.stringify({...config(),enabled:false}));assert.equal((await production.readConfiguration({home})).enabled,false);
  await fs.chmod(file,0o644);await assert.rejects(production.readConfiguration({home}),{code:'MCP_REGISTRY_NOT_READY'});

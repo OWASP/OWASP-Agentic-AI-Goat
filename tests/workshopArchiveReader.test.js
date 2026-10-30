@@ -15,7 +15,7 @@ async function fixture(family='nova'){
   const file=name+'.jsonl',text=rows.map(row=>JSON.stringify(row)+'\n').join('');tables.push({name,columns,file,rows:rows.length,...await write(file,text)});
  }
  const schemaFile='schema.json',schema=await write(schemaFile,JSON.stringify(tables.map(t=>({type:'table',name:t.name}))));
- const manifest={version:1,format:'dvaia-sqlite-archive-v1',complete:true,files:[{name:family==='nova'?'nosql_workshop.db':'sql_workshop.db',schemaFile,schema,tables}]};
+ const manifest={version:1,format:'owasp-ai-goat-sqlite-archive-v1',complete:true,files:[{name:family==='nova'?'nosql_workshop.db':'sql_workshop.db',schemaFile,schema,tables}]};
  await fs.writeFile(path.join(root,'manifest.json'),JSON.stringify(manifest));return{root,manifest};
 }
 test('archive mapper preserves text and exact large integer owner keys',async()=>{const{root}=await fixture();try{const result=await readWorkshopArchive({archive:root,family:'nova'});assert.equal(result.snapshot.tables.chat_history[0].user_id,'9007199254740993');assert.equal(result.snapshot.tables.chat_history[0].message,'  { raw JSON }  ');assert.equal(result.report.normalizations.integerOwnerKeys,1);}finally{await fs.rm(root,{recursive:true,force:true});}});

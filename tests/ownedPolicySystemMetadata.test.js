@@ -653,7 +653,7 @@ test('serialized guest runs the fixed apt flow and cancels a stalled child witho
     if(text)child.stdout.emit('data',Buffer.from(text));queueMicrotask(()=>child.emit('close',0));
    });return child;
   }};
-  const processDouble={env:{DVAIA_METADATA_PROXY_PORT:scenario==='invalid-proxy'?'23456x':'23456'},stdout:{write:value=>{output+=value;}},stderr:{write(){}},exitCode:0};
+  const processDouble={env:{OWASP_AI_GOAT_METADATA_PROXY_PORT:scenario==='invalid-proxy'?'23456x':'23456'},stdout:{write:value=>{output+=value;}},stderr:{write(){}},exitCode:0};
   await vm.runInNewContext(guestMetadataSource(currentBinding,retained?{retention:renderer?'v24-policy-metadata-retention-v1':pricing?'v33-pricing-metadata-retention-v1':system?'v24-system-metadata-retention-v1':'v23-metadata-retention-v1'}:{}),{require:name=>({'node:fs':fakeFs,'node:http':http,'node:tls':tls,'node:events':{EventEmitter},'node:child_process':cp,'node:crypto':crypto}[name]),
    Buffer,URL,AbortController,Date:class extends Date{static now(){return policyNow;}},process:processDouble,setTimeout:callback=>{deadline=callback;return 1;},clearTimeout(){}});
   if(scenario==='invalid-proxy'){
@@ -751,7 +751,7 @@ test('metadata acquisition uses owned lifecycle and cleans private resources on 
     assert.deepEqual(options.args,[require('./postgres/ownedPolicySystemBuild').TARGETS['v24-policy'].base]);
     let source='';for await(const chunk of options.input)source+=chunk;assert.match(source,/guestMetadataMain/);
     const diagnostic=build._internals.metadataDiagnostics();
-    diagnostic.push(Buffer.from('DVAIA_METADATA_STAGE=apt-update\n'));
+    diagnostic.push(Buffer.from('OWASP_AI_GOAT_METADATA_STAGE=apt-update\n'));
     options.onDiagnostics(diagnostic.finish({code:failed&&scenario!=='semantic-failed'?1:0,signal:null,stdoutBytes:0}));
     if(failed&&scenario!=='semantic-failed')throw Object.assign(Error('controlled'),{code:'CONTROLLED_TIMEOUT'});
     const result=envelope(scenario!=='semantic-failed',runId);
@@ -760,7 +760,7 @@ test('metadata acquisition uses owned lifecycle and cleans private resources on 
    }
    if(op==='metadata-cleanup'){
     const diagnostic=build._internals.metadataDiagnostics();
-    diagnostic.push(Buffer.from('DVAIA_METADATA_STAGE=cleanup-mounts\n'));
+    diagnostic.push(Buffer.from('OWASP_AI_GOAT_METADATA_STAGE=cleanup-mounts\n'));
     options.onDiagnostics(diagnostic.finish({code:cleanupFailed?93:0,signal:null,stdoutBytes:0}));
     if(cleanupFailed)throw Object.assign(Error('controlled cleanup'),{code:'CONTROLLED_CLEANUP_FAILED'});
     return 'absent';

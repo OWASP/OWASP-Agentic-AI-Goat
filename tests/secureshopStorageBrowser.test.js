@@ -37,7 +37,7 @@ test('actual opaque Chromium frames keep shop state separate while Web Storage i
   });
   await bounded(new Promise((resolve, reject) => { server.once('error', reject);server.listen(0, '127.0.0.1', resolve); }),10000);
   const origin = `http://127.0.0.1:${server.address().port}`;
-  profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-shop-storage-browser-'));
+  profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-shop-storage-browser-'));
   const puppeteer = require('puppeteer');
   browser = await puppeteer.launch({ headless: true, timeout: 15000, protocolTimeout: 15000, userDataDir: profile, ...(process.env.PUPPETEER_EXECUTABLE_PATH ? { executablePath: process.env.PUPPETEER_EXECUTABLE_PATH } : {}) });
   const page = await browser.newPage();

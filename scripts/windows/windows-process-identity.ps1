@@ -30,9 +30,9 @@ try {
         default { throw 'denied' }
     }
     Add-Type -Path (Join-Path $PSScriptRoot 'windows-process-identity.cs') -ReferencedAssemblies 'System.dll','System.Core.dll','System.Management.dll','System.Security.dll'
-    if ($request.operation -ceq 'capture') { $data = [DvaiaWindowsProcessIdentity]::Capture([uint32]$request.pid) }
+    if ($request.operation -ceq 'capture') { $data = [OwaspAiGoatWindowsProcessIdentity]::Capture([uint32]$request.pid) }
     else {
-        $data = [DvaiaWindowsProcessIdentity]::ObserveAbsence([uint32]$request.pid,
+        $data = [OwaspAiGoatWindowsProcessIdentity]::ObserveAbsence([uint32]$request.pid,
             $request.binding.hostSha256, $request.binding.bootFileTime, $request.binding.currentSid,
             [uint32[]]$request.recordedPids)
     }

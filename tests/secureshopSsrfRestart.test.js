@@ -9,7 +9,7 @@ const { createSecureShopSsrfOwnedTarget } = require('../server/services/securesh
 const { createSecureShopSsrfTargetPool } = require('../server/services/secureshopSsrfTargetPool');
 
 test('disconnect preserves exact fixtures; restart accepts a new request and reset removes them', async t => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-ssrf-restart-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ssrf-restart-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const targetId = uuid(), first = await createSecureShopSsrfOwnedTarget({ root, targetId });
   t.after(() => first.disconnect());
@@ -31,7 +31,7 @@ test('disconnect preserves exact fixtures; restart accepts a new request and res
 });
 
 test('recovery rejects changed or linked files without overwriting or deleting them', async t => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-ssrf-recovery-negative-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ssrf-recovery-negative-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const targetId = uuid(), target = await createSecureShopSsrfOwnedTarget({ root, targetId });
   await target.disconnect();

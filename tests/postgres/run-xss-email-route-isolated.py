@@ -20,7 +20,7 @@ parser.add_argument('--scenario', choices=['email', 'reflected', 'stored_user', 
 args = parser.parse_args()
 if args.builder and (args.ui or not args.live):
     parser.error('--builder requires --live and cannot be combined with --ui')
-EXPECTED_DOCKER_HOST = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+EXPECTED_DOCKER_HOST = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 EXPECTED_DOCKER_DAEMON_ID = '2c9da9a7-1f8c-490b-af98-87bbf6bf83db'
 if args.docker_host != EXPECTED_DOCKER_HOST:
     raise RuntimeError('Exact owned Colima verification Docker host is required')
@@ -39,7 +39,7 @@ test_file = ('tests/postgres/xssEmailBuilderRoute.integration.test.js' if args.b
              else 'tests/postgres/xssEmailRoute.integration.test.js')
 if not (source / test_file).is_file() or (source / test_file).is_symlink():
     raise RuntimeError(f'Selected XSS test is absent from the immutable package: {test_file}')
-root = Path(tempfile.mkdtemp(prefix='dvaia-xss-email-route-')).resolve()
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-xss-email-route-')).resolve()
 workspace = root / 'source'; workspace.mkdir(); os.chmod(root, 0o700)
 runtime_root = root / 'runtime'; runtime_root.mkdir(mode=0o700)
 for runtime_dir in (runtime_root / 'logs', runtime_root / 'artifacts', runtime_root / 'vite-cache'):
@@ -58,15 +58,15 @@ if not DOCKER_CLI.is_file() or DOCKER_CLI.is_symlink() \
 docker = [str(DOCKER_CLI), '--host', args.docker_host]
 MODEL = 'llama3.1:8b'
 MODEL_DIGEST = '46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e'
-NODE = Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+NODE = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 NODE_VERSION = 'v26.9.0'
 NODE_SHA256 = '8bebc3d846767864093af8619b1a6dc2ff01dea4f643b8bdb5e8cbd51bf6756d'
 POSTGRES_IMAGE = 'postgres:18'
 POSTGRES_IMAGE_ID = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 MAILPIT_IMAGE = 'axllent/mailpit:latest'
 MAILPIT_IMAGE_ID = 'sha256:98b916bd3c8d61f7633a52d3ea2f58d00620cb01ca57ab59edde68c347a95365'
-postgres_name = 'dvaia-xss-email-route-pg-' + uuid.uuid4().hex[:12]
-mailpit_name = 'dvaia-xss-email-route-mail-' + uuid.uuid4().hex[:12]
+postgres_name = 'owasp-ai-goat-xss-email-route-pg-' + uuid.uuid4().hex[:12]
+mailpit_name = 'owasp-ai-goat-xss-email-route-mail-' + uuid.uuid4().hex[:12]
 run_nonce = uuid.uuid4().hex
 started = []
 container_ids = {}
@@ -137,8 +137,8 @@ def verify_container(name, image_id, expected_id=None):
         row = json.loads(result.stdout)[0]
         labels = row['Config']['Labels'] or {}
         if result.returncode or (expected_id and row['Id'] != expected_id) or row['Image'] != image_id \
-                or labels.get('dvaia.scope') != 'xss-reflected' \
-                or labels.get('dvaia.owner') != str(os.getuid()) or labels.get('dvaia.run-nonce') != run_nonce:
+                or labels.get('owasp-ai-goat.scope') != 'xss-reflected' \
+                or labels.get('owasp-ai-goat.owner') != str(os.getuid()) or labels.get('owasp-ai-goat.run-nonce') != run_nonce:
             raise ValueError()
         return row['Id']
     except (ValueError, IndexError, KeyError, TypeError, json.JSONDecodeError):
@@ -238,7 +238,7 @@ daemon = run(docker + ['info', '--format', '{{json .}}'], capture_output=True, t
 try: daemon_info = json.loads(daemon.stdout)
 except (TypeError, ValueError): daemon_info = None
 if daemon.returncode or not daemon_info or daemon_info.get('ID') != EXPECTED_DOCKER_DAEMON_ID \
-        or daemon_info.get('Name') != 'colima-dvaia-pg-verify' or daemon_info.get('Architecture') != 'aarch64':
+        or daemon_info.get('Name') != 'colima-owasp-ai-goat-pg-verify' or daemon_info.get('Architecture') != 'aarch64':
     raise RuntimeError('Exact Colima verification daemon required')
 postgres_image_id = verify_image(POSTGRES_IMAGE, POSTGRES_IMAGE_ID)
 mailpit_image_id = verify_image(MAILPIT_IMAGE, MAILPIT_IMAGE_ID)
@@ -253,7 +253,7 @@ model_identity = verify_ollama() if args.live else None
 try:
     started.extend([postgres_name, mailpit_name])
     created = run(docker + ['run', '--detach', '--pull', 'never', '--name', postgres_name,
-        '--label', 'dvaia.scope=xss-reflected', '--label', f'dvaia.owner={os.getuid()}', '--label', f'dvaia.run-nonce={run_nonce}',
+        '--label', 'owasp-ai-goat.scope=xss-reflected', '--label', f'owasp-ai-goat.owner={os.getuid()}', '--label', f'owasp-ai-goat.run-nonce={run_nonce}',
         '--tmpfs', '/var/lib/postgresql:rw,size=268435456', '-e', 'POSTGRES_USER=xss_email_route_admin',
         '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', '-e', 'POSTGRES_INITDB_ARGS=--wal-segsize=1',
         '-p', '127.0.0.1::5432', postgres_image_id, '-c', 'shared_buffers=16MB', '-c', 'max_connections=50',
@@ -261,7 +261,7 @@ try:
     container_ids[postgres_name] = verify_container(postgres_name, postgres_image_id); wait_postgres()
     pg_port = published_port(postgres_name, '5432/tcp')
     run(docker + ['run', '--detach', '--pull', 'never', '--name', mailpit_name,
-        '--label', 'dvaia.scope=xss-reflected', '--label', f'dvaia.owner={os.getuid()}', '--label', f'dvaia.run-nonce={run_nonce}', '--read-only',
+        '--label', 'owasp-ai-goat.scope=xss-reflected', '--label', f'owasp-ai-goat.owner={os.getuid()}', '--label', f'owasp-ai-goat.run-nonce={run_nonce}', '--read-only',
         '--tmpfs', '/tmp:rw,noexec,nosuid,size=16777216', '-p', '127.0.0.1::1025',
         '-p', '127.0.0.1::8025', mailpit_image_id], stdout=subprocess.DEVNULL)
     container_ids[mailpit_name] = verify_container(mailpit_name, mailpit_image_id)
@@ -275,9 +275,9 @@ try:
     for role in roles:
         run(psql + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],
             stdout=subprocess.DEVNULL)
-    databases = [('dvaia_test_xss_email_route_identity', roles[0], roles[1]),
-                 ('dvaia_test_xss_email_route_xss', roles[2], roles[3])]
-    if args.ui: databases.append(('dvaia_test_xss_email_route_ctf', roles[4], roles[5]))
+    databases = [('owasp_ai_goat_test_xss_email_route_identity', roles[0], roles[1]),
+                 ('owasp_ai_goat_test_xss_email_route_xss', roles[2], roles[3])]
+    if args.ui: databases.append(('owasp_ai_goat_test_xss_email_route_ctf', roles[4], roles[5]))
     for database, migration, runtime in databases:
         run(psql + ['-c', f'CREATE DATABASE {database} OWNER {migration}'], stdout=subprocess.DEVNULL)
         run(psql + ['-c', f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; '
@@ -290,7 +290,7 @@ try:
         XSS_REFLECTED_ROUTE_UI='yes' if args.ui and args.scenario == 'reflected' else 'no',
         XSS_STORED_USER_ROUTE_UI='yes' if args.ui and args.scenario == 'stored_user' else 'no',
         XSS_STORED_LLM_ROUTE_UI='yes' if args.ui and args.scenario == 'stored_llm' else 'no',
-        DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace), DVAIA_XSS_RENDERED_RUNTIME_ROOT=str(runtime_root),
+        OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace), OWASP_AI_GOAT_XSS_RENDERED_RUNTIME_ROOT=str(runtime_root),
         LOGS_DIR=str(runtime_root / 'logs'),
         PLATFORM_DATABASE_ENGINE='postgres',
         WORKSHOP_DATABASE_ENGINE='postgres', XSS_MAIL_PROVIDER='mailpit', MAILPIT_SMTP_HOST='127.0.0.1',

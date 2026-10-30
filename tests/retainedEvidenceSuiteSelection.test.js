@@ -7,5 +7,5 @@ test('default unit classifier excludes exactly three named retained diagnostics 
  assert.equal(isDefaultUnitSuite('secureshopMailReplyAuthorityConsistency.test.js',server),true);assert.equal(isDefaultUnitSuite('secureshopMailEvidence.test.js',server),true);assert.equal(isDefaultUnitSuite('api.test.js',server),false);
 });
 test('direct retained qualification without opt-in fails before reading retained inputs',()=>{
- for(const name of retainedEvidenceSuites){const env={...process.env};delete env.DVAIA_RETAINED_EVIDENCE_TESTS;const r=spawnSync(process.execPath,[`tests/${name}`],{env,encoding:'utf8'});assert.notEqual(r.status,0);assert.match(r.stderr,/requires DVAIA_RETAINED_EVIDENCE_TESTS=1/);assert(!r.stderr.includes('ENOENT'));}
+ for(const name of retainedEvidenceSuites){const env={...process.env};delete env.OWASP_AI_GOAT_RETAINED_EVIDENCE_TESTS;const r=spawnSync(process.execPath,[`tests/${name}`],{env,encoding:'utf8'});assert.notEqual(r.status,0);assert.match(r.stderr,/requires OWASP_AI_GOAT_RETAINED_EVIDENCE_TESTS=1/);assert(!r.stderr.includes('ENOENT'));}
 });

@@ -40,7 +40,7 @@ function nativeConfiguration(env = process.env) {
   assert.equal(env[GATE], '1');
   assert.equal(env.PG_TEST_DISPOSABLE, 'yes');
   assert.equal(env.LIVE_OLLAMA_TEST, '1');
-  assert.equal(path.resolve(env.DVAIA_CURRENT_MAIN_WORKSPACE || ''), ROOT);
+  assert.equal(path.resolve(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || ''), ROOT);
   assert.equal(process.cwd(), ROOT);
   assert.equal(path.resolve(env.SECURESHOP_MAIL_INLINE_SUMMARY_BROWSER_BUILD || ''),
     path.join(ROOT, 'client/build'));
@@ -59,7 +59,7 @@ function nativeConfiguration(env = process.env) {
       assert.equal(url.protocol, 'postgresql:'); assert.equal(url.hostname, '127.0.0.1');
       assert.equal(url.username, `dvaia_${name}_${role.toLowerCase()}`);
       assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-      const match = /^\/dvaia_test_agent_host_([0-9a-f]{12})_([a-z_]+)$/.exec(url.pathname);
+      const match = /^\/owasp_ai_goat_test_agent_host_([0-9a-f]{12})_([a-z_]+)$/.exec(url.pathname);
       assert.ok(match && match[2] === name, `${key} must use its owned disposable store`);
       nonce ??= match[1]; port ??= url.port;
       assert.equal(match[1], nonce); assert.equal(url.port, port);
@@ -346,11 +346,11 @@ test('duplicate visible mail names resolve only through protected source and car
   const first = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   const second = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
   const saved = { mailRead: { result: { kind: 'recipients', recipients: [
-    { id: 12, username: 'student_merchant', email: 'student_merchant@dvaia.local', role: 'merchant' },
+    { id: 12, username: 'student_merchant', email: 'student_merchant@owasp-ai-goat.local', role: 'merchant' },
     { id: 1000000001, username: 'student_merchant', email: 'student_merchant@secureshop.local', role: 'merchant' },
   ] } }, cards: [
     { kind: 'merchant_mail_recipient', choiceId: first, title: 'student_merchant',
-      detail: 'student_merchant@dvaia.local · merchant' },
+      detail: 'student_merchant@owasp-ai-goat.local · merchant' },
     { kind: 'merchant_mail_recipient', choiceId: second, title: 'student_merchant',
       detail: 'student_merchant@secureshop.local · merchant' },
   ] };
@@ -550,7 +550,7 @@ test(TITLE, { skip: process.env[GATE] !== '1', timeout: 600000 }, async () => {
         allowedOrigins: [origin], secureCookies: false }));
     app.use('/api/secureshop', (request, response, next) => {
       const row = { method: request.method, path: request.path,
-        launch: request.get('x-dvaia-secureshop-launch') || null,
+        launch: request.get('x-owasp-ai-goat-secureshop-launch') || null,
         authorization: request.get('authorization') || null,
         ...(request.method === 'POST' ? { body: structuredClone(request.body) } : {}) };
       if (/\/email\/inline\/|\/agents\/merchant\/assistant\//.test(request.path)) {
@@ -576,7 +576,7 @@ test(TITLE, { skip: process.env[GATE] !== '1', timeout: 600000 }, async () => {
       response.set('Access-Control-Allow-Origin', '*') }));
     app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: config.build }));
     stage = 'physical-browser';
-    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-inline-mail-'));
+    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-inline-mail-'));
     browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
       executablePath: config.browser, args: ['--disable-background-networking'] });
     await recordBrowser(browser, config.recordPath, config.browser,
@@ -1005,7 +1005,7 @@ test(TITLE, { skip: process.env[GATE] !== '1', timeout: 600000 }, async () => {
     assert.equal(fixedOutcome.status, 403);
     assert.deepEqual(fixedOutcome.body, { ok: false, code: 'MAIL_INLINE_FIXED_DENIED',
       error: 'Inline image fetch blocked in fixed mode' });
-    const ownerHeaders = { 'x-dvaia-secureshop-launch': ownerRequest.launch,
+    const ownerHeaders = { 'x-owasp-ai-goat-secureshop-launch': ownerRequest.launch,
       authorization: ownerRequest.authorization, 'content-type': 'application/json' };
     assert.equal(originalHttp.length, 1); assert.equal(judgeInvocations, 1);
     assert.equal((await agents.query(`SELECT count(*)::int AS n FROM secureshop_agents.turn_requests
@@ -1047,7 +1047,7 @@ test(TITLE, { skip: process.env[GATE] !== '1', timeout: 600000 }, async () => {
     const siblingBase = await siblingBootstrap(siblingLogin.context);
     assert.equal(siblingBase.persona.user.role, 'merchant');
     assert.notEqual(siblingRow.owner_id, scope.platformOwnerId);
-    const siblingHeaders = { 'x-dvaia-secureshop-launch': siblingBase.bearer,
+    const siblingHeaders = { 'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer,
       authorization: `Bearer ${siblingBase.persona.token}` };
     const siblingInbox = await fetch(`${origin}/api/secureshop/email/inbox/${siblingBase.persona.user.id}?requestId=${randomUUID()}`,
       { headers: siblingHeaders });

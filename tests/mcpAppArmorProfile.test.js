@@ -6,10 +6,10 @@ const path = require('node:path');
 const test = require('node:test');
 const { renderMcpSandboxAppArmor } = require('../scripts/render-mcp-sandbox-apparmor');
 
-const template = fs.readFileSync(path.join(__dirname, '..', 'sidecars', 'sandbox-runner', 'apparmor', 'dvaia-mcp-sandbox.apparmor.in'), 'utf8');
+const template = fs.readFileSync(path.join(__dirname, '..', 'sidecars', 'sandbox-runner', 'apparmor', 'owasp-ai-goat-mcp-sandbox.apparmor.in'), 'utf8');
 
 test('renders a unique owned ABI 4 supervisor and local bubblewrap transition', () => {
-  const name = 'dvaia-mcp-sandbox-012345abcdef';
+  const name = 'owasp-ai-goat-mcp-sandbox-012345abcdef';
   const policy = renderMcpSandboxAppArmor(template, name);
   const childStart = policy.indexOf('profile bwrap');
   assert.ok(childStart > 0);
@@ -33,6 +33,6 @@ test('renders a unique owned ABI 4 supervisor and local bubblewrap transition', 
 });
 
 test('rejects profile injection and unresolved templates', () => {
-  assert.throws(() => renderMcpSandboxAppArmor(template, 'dvaia-mcp-sandbox; userns,'), /PROFILE_NAME_INVALID/);
-  assert.throws(() => renderMcpSandboxAppArmor('profile fixed {}', 'dvaia-mcp-sandbox'), /TEMPLATE_INVALID/);
+  assert.throws(() => renderMcpSandboxAppArmor(template, 'owasp-ai-goat-mcp-sandbox; userns,'), /PROFILE_NAME_INVALID/);
+  assert.throws(() => renderMcpSandboxAppArmor('profile fixed {}', 'owasp-ai-goat-mcp-sandbox'), /TEMPLATE_INVALID/);
 });

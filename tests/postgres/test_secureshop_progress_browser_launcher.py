@@ -73,7 +73,7 @@ class ProgressBrowserLauncher(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder, patch.object(L.subprocess, 'run', return_value=SimpleNamespace(stdout='')):
             root = Path(folder); (root / 'tmp').mkdir()
             self.assertTrue(all(L.standalone_browser_cleanup_state(root).values()))
-            (root / 'tmp' / 'dvaia-progress-rendered-owned').mkdir()
+            (root / 'tmp' / 'owasp-ai-goat-progress-rendered-owned').mkdir()
             self.assertFalse(L.standalone_browser_cleanup_state(root)['browserProfilesAbsent'])
 
 if __name__ == '__main__': unittest.main()

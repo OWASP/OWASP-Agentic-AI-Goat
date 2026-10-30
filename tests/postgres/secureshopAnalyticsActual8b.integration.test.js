@@ -8,8 +8,8 @@ test('actual Analytics graph and canonical loop/disclosure Judge on owned Postgr
  const save=()=>fs.writeFileSync(evidencePath,JSON.stringify(evidence,null,2)+'\n',{mode:0o600});save();
  const pools=[],targets=[];const createPool=config=>{const p=new Pool(config);p.on('error',()=>{});return p;};
  const nonce=process.env.ANALYTICS_ACTUAL_OWNER;assert.match(nonce,/^[a-f0-9]{12}$/);
- const state={};for(const store of ['IDENTITY','AGENTS','COMMERCE'])for(const role of ['MIGRATION','RUNTIME']){const url=new URL(process.env[`ANALYTICS_ACTUAL_${store}_${role}_URL`]);assert.equal(url.hostname,'127.0.0.1');assert.equal(url.pathname,`/dvaia_test_analytics_model_${nonce}_${store.toLowerCase()}`);const p=createPool({connectionString:url.href,max:role==='MIGRATION'?2:8,connectionTimeoutMillis:1500,query_timeout:10000});pools.push(p);state[`${store}_${role}`]=p;}
- const port=Number(process.env.ANALYTICS_ACTUAL_TARGET_PORT),controlDatabase=`dvaia_analytics_control_${nonce}`;assert.ok(port>1024&&port<65536);
+ const state={};for(const store of ['IDENTITY','AGENTS','COMMERCE'])for(const role of ['MIGRATION','RUNTIME']){const url=new URL(process.env[`ANALYTICS_ACTUAL_${store}_${role}_URL`]);assert.equal(url.hostname,'127.0.0.1');assert.equal(url.pathname,`/owasp_ai_goat_test_analytics_model_${nonce}_${store.toLowerCase()}`);const p=createPool({connectionString:url.href,max:role==='MIGRATION'?2:8,connectionTimeoutMillis:1500,query_timeout:10000});pools.push(p);state[`${store}_${role}`]=p;}
+ const port=Number(process.env.ANALYTICS_ACTUAL_TARGET_PORT),controlDatabase=`owasp_ai_goat_analytics_control_${nonce}`;assert.ok(port>1024&&port<65536);
  const targetConnection={host:'127.0.0.1',port,user:'postgres',database:controlDatabase,connectionTimeoutMillis:1500,query_timeout:4000};
  const control=createPool({...targetConnection,max:5});pools.push(control);
  const nativeFetch=globalThis.fetch;let phase='none',caseId='none',phaseCalls=0;const lifetime=new AbortController();const timer=setTimeout(()=>lifetime.abort(Error('Actual gate deadline')),830000);
@@ -30,7 +30,7 @@ test('actual Analytics graph and canonical loop/disclosure Judge on owned Postgr
  try{
   const {migrate}=req('db/postgres/migrate');await migrate(state.IDENTITY_MIGRATION,'db/postgres/identity-migrations');await migrate(state.AGENTS_MIGRATION,'db/postgres/workshop-migrations/secureshop_agents');await migrate(state.COMMERCE_MIGRATION,'db/postgres/workshop-migrations/secureshop');await req('server/database/postgres/secureshopSeed').seedSecureShop(state.COMMERCE_MIGRATION);
   const systemIdentifier=(await control.query('SELECT system_identifier::text FROM pg_control_system()')).rows[0].system_identifier;
-  const controlIdentity={systemIdentifier,controlDatabase,clusterName:`dvaia-owned-analytics-${nonce}`};await req('sidecars/analytics-sql-target/bootstrap').initializeControl({pool:control,identity:controlIdentity,requiredVersion:2});
+  const controlIdentity={systemIdentifier,controlDatabase,clusterName:`owasp-ai-goat-owned-analytics-${nonce}`};await req('sidecars/analytics-sql-target/bootstrap').initializeControl({pool:control,identity:controlIdentity,requiredVersion:2});
   targetService=req('sidecars/analytics-sql-target/service').createOwnedAnalyticsService({controlPool:control,identity:controlIdentity,createPool,connection:targetConnection,fixedCapabilities:true});
   const concreteTarget=targetService;targetService=Object.freeze({...concreteTarget,async execute(request,options){const observation={caseId,sql:request.sql,mode:request.mode?.mode,operationId:request.operationId};evidence.nativeAttempts.push(observation);try{const value=await concreteTarget.execute(request,options);observation.completed=true;observation.denial=value.denial||null;return value;}catch(error){observation.errorCode=error.code;throw error;}finally{save();}}});
   const identity=state.IDENTITY_RUNTIME,agents=state.AGENTS_RUNTIME;
@@ -38,7 +38,7 @@ test('actual Analytics graph and canonical loop/disclosure Judge on owned Postgr
   await state.IDENTITY_MIGRATION.query("INSERT INTO workshop_platform.objectives(workshop_key,objective_id,label,ordinal,catalog_active,is_enabled) VALUES('secureshop_agent_security','ss_loop_observation','Observe the real decision loop',1,true,true)");
   const launches=req('server/database/postgres/secureshopLaunchRepository').createSecureShopLaunchRepository(identity);
   const progress=req('server/database/postgres/workshopProgressRepository').createWorkshopProgressRepository(identity);
-  const bootstrap=await req('server/services/secureshopGradingBootstrap').createSecureShopGradingBootstrap({identityPool:identity,agentsPool:agents,progress,resetComposition:{launches},expectedIdentityDatabase:`dvaia_test_analytics_model_${nonce}_identity`,expectedAgentsDatabase:`dvaia_test_analytics_model_${nonce}_agents`});
+  const bootstrap=await req('server/services/secureshopGradingBootstrap').createSecureShopGradingBootstrap({identityPool:identity,agentsPool:agents,progress,resetComposition:{launches},expectedIdentityDatabase:`owasp_ai_goat_test_analytics_model_${nonce}_identity`,expectedAgentsDatabase:`owasp_ai_goat_test_analytics_model_${nonce}_agents`});
   const authority=bootstrap.personaAuthority,audit=req('server/database/postgres/secureshopBoundAuditRepository').createBoundAuditStore({store:'agents',pool:agents});
   const personas=req('server/database/postgres/secureshopBoundPersonaRepository').createSecureShopBoundPersonaRepository({commercePool:state.COMMERCE_RUNTIME,agentsPool:agents,personaAuthority:authority,auditStore:audit});await personas.ensureTemplates();
   const auth=req('server/services/secureshopBoundPersonaAuth').createSecureShopBoundPersonaAuth({repository:personas,personaAuthority:authority,launches,jwtSecret:'owned-analytics-actual-fixture-secret-at-least-32-bytes'});
@@ -106,7 +106,7 @@ test(standaloneNlSql?'standalone Analytics NL-to-SQL has original model-selected
  {skip:!standaloneHistory&&!standaloneAssessment,timeout:840000},async()=>{
  assert.equal([standaloneHistory,standaloneDisclosure,standaloneNlSql].filter(Boolean).length,1,'standalone Analytics browser cohorts are distinct');
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');
- assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
+ assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
  const evidenceRoot=process.env.ANALYTICS_BROWSER_EVIDENCE_ROOT,evidencePath=process.env.ANALYTICS_ACTUAL_EVIDENCE;
  assert.ok(path.isAbsolute(evidenceRoot||'')&&!evidenceRoot.startsWith(process.cwd()+path.sep));
  const evidence={scope:standaloneNlSql?'current main standalone registered merchant tenant; distinct V51 natural-language generated SQL, original wire/owned effect/committed response and canonical Judge; ordinary negatives, fixed denial, saved GET/replay and sibling/reset history' :standaloneDisclosure
@@ -122,11 +122,11 @@ test(standaloneNlSql?'standalone Analytics NL-to-SQL has original model-selected
  const stores={IDENTITY:'identity',AGENTS:'secureshop_agents',COMMERCE:'secureshop',REVIEW:'secureshop_review'};
  for(const store of Object.keys(stores))for(const role of ['MIGRATION','RUNTIME']){
   const url=new URL(process.env[`ANALYTICS_ACTUAL_${store}_${role}_URL`]);
-  assert.equal(url.hostname,'127.0.0.1');assert.equal(url.pathname,`/dvaia_test_analytics_model_${nonce}_${store.toLowerCase()}`);
+  assert.equal(url.hostname,'127.0.0.1');assert.equal(url.pathname,`/owasp_ai_goat_test_analytics_model_${nonce}_${store.toLowerCase()}`);
   assert.equal(url.username,`dvaia_${stores[store]}_${role.toLowerCase()}`);assert.equal(url.password,'');
   state[`${store}_${role}`]=ownPool({connectionString:url.href,max:role==='MIGRATION'?2:10,connectionTimeoutMillis:5000,statement_timeout:15000});
  }
- const port=Number(process.env.ANALYTICS_ACTUAL_TARGET_PORT),controlDatabase=`dvaia_analytics_control_${nonce}`;
+ const port=Number(process.env.ANALYTICS_ACTUAL_TARGET_PORT),controlDatabase=`owasp_ai_goat_analytics_control_${nonce}`;
  assert.ok(port>1024&&port<65536);
  const connection={host:'127.0.0.1',port,user:'postgres',database:controlDatabase,connectionTimeoutMillis:5000,statement_timeout:10000};
  const control=ownPool({...connection,max:5}),nativeFetch=globalThis.fetch,lifetime=new AbortController();
@@ -160,7 +160,7 @@ test(standaloneNlSql?'standalone Analytics NL-to-SQL has original model-selected
    const model=(await response.json()).models.find(row=>row.name===MODEL);assert.equal(model?.digest,DIGEST);return{model:MODEL,digest:model.digest};};
   evidence.modelBefore=await identify();save();
   const systemIdentifier=(await control.query('SELECT system_identifier::text FROM pg_control_system()')).rows[0].system_identifier;
-  const controlIdentity={systemIdentifier,controlDatabase,clusterName:`dvaia-owned-analytics-${nonce}`};
+  const controlIdentity={systemIdentifier,controlDatabase,clusterName:`owasp-ai-goat-owned-analytics-${nonce}`};
   await req('sidecars/analytics-sql-target/bootstrap').initializeControl({pool:control,identity:controlIdentity,requiredVersion:2});
   const target=req('sidecars/analytics-sql-target/service').createOwnedAnalyticsService({controlPool:control,
    identity:controlIdentity,createPool,connection,fixedCapabilities:true});
@@ -184,7 +184,7 @@ test(standaloneNlSql?'standalone Analytics NL-to-SQL has original model-selected
    agentsPool:agents,reviewPool:review,leasePool:leases,launches,cleanupAuthority,audit,analyticsRuntime:runtime,analyticsLifecycle});
   const progress=req('server/database/postgres/workshopProgressRepository').createWorkshopProgressRepository(identity);
   const grading=await req('server/services/secureshopGradingBootstrap').createSecureShopGradingBootstrap({identityPool:identity,agentsPool:agents,
-   progress,resetComposition:reset,expectedIdentityDatabase:`dvaia_test_analytics_model_${nonce}_identity`,expectedAgentsDatabase:`dvaia_test_analytics_model_${nonce}_agents`});
+   progress,resetComposition:reset,expectedIdentityDatabase:`owasp_ai_goat_test_analytics_model_${nonce}_identity`,expectedAgentsDatabase:`owasp_ai_goat_test_analytics_model_${nonce}_agents`});
   const actor=new (req('server/services/secureshop/providers/ollamaProvider').OllamaProvider)({baseUrl:'http://127.0.0.1:11434',model:MODEL});
   for(const method of ['chat','finalResponse']){const invoke=actor[method].bind(actor);actor[method]=async input=>{
    phase='actor';const value=await invoke(input);assert.equal(value.provider,'ollama');assert.equal(value.model,MODEL);
@@ -263,7 +263,7 @@ test(standaloneNlSql?'standalone Analytics NL-to-SQL has original model-selected
    .createLaunchScope(await launches.resolveCapability(ready.bearer));
    retainedScopes.push(scope);const actor=await core.personaAuth.authenticateBoundToken({scope,token:ready.persona.token});return{ready,scope,actor};};
   const request=async(ready,suffix,{method='GET',body}={})=>{const response=await nativeFetch(origin+'/api/secureshop/merchant/analytics'+suffix,{method,headers:{
-   'x-dvaia-secureshop-launch':ready.bearer,authorization:'Bearer '+ready.persona.token,...(body?{'content-type':'application/json'}:{})},
+   'x-owasp-ai-goat-secureshop-launch':ready.bearer,authorization:'Bearer '+ready.persona.token,...(body?{'content-type':'application/json'}:{})},
    ...(body?{body:JSON.stringify(body)}:{}),signal:AbortSignal.timeout(30000)});
    return{status:response.status,body:await response.json()};};
   const read=(ready,suffix)=>request(ready,suffix);

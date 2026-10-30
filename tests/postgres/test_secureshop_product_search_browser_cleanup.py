@@ -34,7 +34,7 @@ class ProductSearchBrowserCleanup(unittest.TestCase):
             with patch.object(LAUNCHER.subprocess, 'run', return_value=SimpleNamespace(stdout='')):
                 self.assertEqual(LAUNCHER.standalone_browser_cleanup_state(runtime),
                                  {'browserProfilesAbsent': True, 'browserProcessesAbsent': True})
-                residual = temporary / 'dvaia-product-search-browser-residual'
+                residual = temporary / 'owasp-ai-goat-product-search-browser-residual'
                 residual.mkdir()
                 self.assertEqual(LAUNCHER.standalone_browser_cleanup_state(runtime),
                                  {'browserProfilesAbsent': False, 'browserProcessesAbsent': True})

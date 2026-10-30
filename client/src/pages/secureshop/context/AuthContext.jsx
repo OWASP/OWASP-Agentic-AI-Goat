@@ -89,7 +89,7 @@ export function AuthProvider({ children }) {
           // A transient readiness/network failure must not erase the identity
           // just accepted by login. The next owned request will still enforce
           // the server-side session boundary.
-          setError('Unable to verify the shop session right now. Retry when SecureShop is ready.');
+          setError('Unable to verify the shop session right now. Retry when OWASP AI SecureShop is ready.');
         }
       } finally {
         if (current()) setLoading(false);

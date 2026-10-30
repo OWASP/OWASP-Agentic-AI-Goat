@@ -93,12 +93,12 @@ test('actual emitted bridge and Node parser reach only constructor boundary for 
  }}finally{await fs.rm(directory,{recursive:true,force:true});}
 });
 function binding(){return {version:1,target:'original-v24-system',runId:'a'.repeat(32),imageId:'sha256:'+'b'.repeat(64),
- inputSha256:'c'.repeat(64),daemonId:'d'.repeat(36),physical:{privateDockerHost:'unix:///var/tmp/dvaia-v23-build-'+'a'.repeat(32)+'/fs/docker.sock',
+ inputSha256:'c'.repeat(64),daemonId:'d'.repeat(36),physical:{privateDockerHost:'unix:///var/tmp/owasp-ai-goat-v23-build-'+'a'.repeat(32)+'/fs/docker.sock',
  namespaceInode:'net:[12345]',filesystemIdentity:{device:1,inode:2},daemonProcess:{pid:101,startTicks:'100',exe:'/usr/bin/dockerd'},
  namespaceHolder:{pid:102,startTicks:'101',exe:'/usr/bin/sleep'}}};}
 const authority={config:'/repo/ssh_config',socket:'/repo/ssh.sock',configSha256:'a'.repeat(64),limaConfigSha256:'b'.repeat(64),
  socketDevice:1,socketInode:2,masterPid:33,masterBirth:[1,2]};
-const plan=()=>({runId:binding().runId,spec:{root,guest:'/var/tmp/dvaia-v23-build-'+binding().runId},captured:{inputSha256:binding().inputSha256},
+const plan=()=>({runId:binding().runId,spec:{root,guest:'/var/tmp/owasp-ai-goat-v23-build-'+binding().runId},captured:{inputSha256:binding().inputSha256},
  helperHashes:{'tests/postgres/owned_system_private_http_channel.py':helperSha}});
 test('fixed runtime templates preserve exact source/binding and secrets only in private stdin',()=>{
  const token='z'.repeat(43),op=transport.operation(plan(),binding(),'start',token);
@@ -160,7 +160,7 @@ test('all actual System/renderer operation commands fit the unchanged SSH shell 
   const b={...binding(),target},p={...plan(),target:'original-v24-system-and-policy',slots:{policy:{captured:{inputSha256:b.inputSha256}}}};
   for(const kind of ['start','inspect','stop'])commands.push(transport.operation(p,b,kind,kind==='start'&&target==='original-v24-system'?'z'.repeat(43):undefined).command);
  }
- const code=`import sys,json,shlex\ncommands=json.load(sys.stdin)\nlengths=[len(shlex.join(['sudo','-n','timeout','--signal=TERM','--kill-after=10','150','/bin/sh','-c',command,'owned-system-build','/var/tmp/dvaia-v23-build-'+('a'*32),'a'*32]).encode())+1 for command in commands]\nassert max(lengths)<131072,lengths\nprint(json.dumps(lengths))`;
+ const code=`import sys,json,shlex\ncommands=json.load(sys.stdin)\nlengths=[len(shlex.join(['sudo','-n','timeout','--signal=TERM','--kill-after=10','150','/bin/sh','-c',command,'owned-system-build','/var/tmp/owasp-ai-goat-v23-build-'+('a'*32),'a'*32]).encode())+1 for command in commands]\nassert max(lengths)<131072,lengths\nprint(json.dumps(lengths))`;
  const result=spawnSync('/opt/homebrew/bin/python3',['-I','-S','-B','-c',code],{input:JSON.stringify(commands),encoding:'utf8',timeout:5000,maxBuffer:8192});
  assert.equal(result.status,0,result.stderr);assert.equal(JSON.parse(result.stdout).length,6);
 });

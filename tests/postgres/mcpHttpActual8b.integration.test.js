@@ -3,10 +3,10 @@ process.env.EXPORT_INTERNALS='1';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto');
 const {Pool}=require('pg');const id=()=>crypto.randomUUID(),sha=x=>crypto.createHash('sha256').update(x).digest('hex');
 test('actual MCP model-selected owned HTTP socket, SDK receipt and canonical Judge',{skip:process.env.MCP_HTTP_ACTUAL8B!=='1',timeout:900000},async()=>{
- assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
  const out=process.env.MCP_HTTP_EVIDENCE_PATH;assert.ok(path.isAbsolute(out)&&!out.startsWith(process.cwd()+path.sep));
  const evidence={status:'running',calls:[],cases:[]};const save=()=>fs.writeFileSync(out,JSON.stringify(evidence,null,2)+'\n',{mode:0o600});save();
- const pools=[];const pool=role=>{const u=new URL(process.env['WORKSHOP_RAG_'+role.toUpperCase()+'_URL']);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_workshop_rag_[a-f0-9]+$/);assert.equal(u.username,'dvaia_identity_'+role);const p=new Pool({connectionString:u.href,max:8});pools.push(p);return p;};
+ const pools=[];const pool=role=>{const u=new URL(process.env['WORKSHOP_RAG_'+role.toUpperCase()+'_URL']);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/);assert.equal(u.username,'dvaia_identity_'+role);const p=new Pool({connectionString:u.href,max:8});pools.push(p);return p;};
  const runtime=pool('runtime'),migration=pool('migration');const targets=[],managers=[];let temporary;
  const http=require('../../server/services/mcp/ownedHttpServiceClient').createOwnedHttpServiceClient({baseUrl:process.env.MCP_HTTP_TEST_BASE_URL,token:process.env.MCP_HTTP_TEST_TOKEN});
  try{

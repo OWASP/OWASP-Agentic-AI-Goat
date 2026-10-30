@@ -30,9 +30,9 @@ function configuration(sourceManifestSha256, runtimeDigest) {
     imageId: 'sha256:' + 'b'.repeat(64),
     sourceManifestSha256,
     runtimeDigest,
-    profile: { name: 'dvaia-owned-listings-' + id, sha256: 'c'.repeat(64) },
+    profile: { name: 'owasp-ai-goat-owned-listings-' + id, sha256: 'c'.repeat(64) },
     manager: {
-      container: 'dvaia-owned-listings-' + id,
+      container: 'owasp-ai-goat-owned-listings-' + id,
       url: 'http://127.0.0.1:8099',
       token: 'T'.repeat(43)
     }
@@ -69,7 +69,7 @@ test('historical admission requires exact managed workspace, source and runtime 
     { sourceManifestSha256: 'd'.repeat(64) },
     { runtimeDigest: 'e'.repeat(64) },
     { sourceManifestSha256: candidate.qualifiedPackage({ root: ROOT, architecture: ARCHITECTURE }).qualifiedSourceSha256 },
-    { workspaceId: 'f'.repeat(12), profile: { name: 'dvaia-owned-listings-' + 'f'.repeat(12), sha256: oldConfig.profile.sha256 }, manager: { ...oldConfig.manager, container: 'dvaia-owned-listings-' + 'f'.repeat(12) } }
+    { workspaceId: 'f'.repeat(12), profile: { name: 'owasp-ai-goat-owned-listings-' + 'f'.repeat(12), sha256: oldConfig.profile.sha256 }, manager: { ...oldConfig.manager, container: 'owasp-ai-goat-owned-listings-' + 'f'.repeat(12) } }
   ]) {
     assert.throws(
       () => candidate.qualifiedInstalledPackage({ root: ROOT, architecture: ARCHITECTURE, configuration: managed.validate({ ...oldConfig, ...changed }) }),
@@ -122,7 +122,7 @@ test('predecessor admission rejects changed retained report and current source d
 test('fresh planning cannot use the historical installed qualification', async t => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'listings-installed-qualification-'));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
-  fs.mkdirSync(path.join(home, '.dvaia', workspaceId(ROOT)), { recursive: true, mode: 0o700 });
+  fs.mkdirSync(path.join(home, '.owasp-ai-goat', workspaceId(ROOT)), { recursive: true, mode: 0o700 });
   assert.throws(() => candidate.qualifiedPackage({ root: ROOT, architecture: 'x64' }), { code: 'LISTINGS_INSTALL_PLATFORM_UNQUALIFIED' });
   await assert.rejects(
     planner.plan({ root: ROOT, home, platform: 'darwin', architecture: ARCHITECTURE,
@@ -135,7 +135,7 @@ test('fresh planning cannot use the historical installed qualification', async t
 test('runtime loader retains the exact predecessor without changing its private bytes', t => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'listings-installed-runtime-'));
   t.after(() => fs.rmSync(home, { recursive: true, force: true }));
-  const directory = path.join(home, '.dvaia', workspaceId(ROOT));
+  const directory = path.join(home, '.owasp-ai-goat', workspaceId(ROOT));
   fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
   const file = path.join(directory, managed.FILE);
   const oldConfig = configuration(PREDECESSOR.source, PREDECESSOR.runtime);
@@ -185,7 +185,7 @@ for (const generation of RETAINED_GENERATIONS) {
     assert.throws(() => candidate.installedSourceFor({ ...qualified }, config), { code: 'LISTINGS_INSTALL_CONFIGURATION_CHANGED' });
     const home = fs.mkdtempSync(path.join(os.tmpdir(), 'listings-retained-generation-'));
     t.after(() => fs.rmSync(home, { recursive: true, force: true }));
-    const directory = path.join(home, '.dvaia', workspaceId(ROOT));
+    const directory = path.join(home, '.owasp-ai-goat', workspaceId(ROOT));
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
     const file = path.join(directory, managed.FILE), bytes = managed.encode(config);
     fs.writeFileSync(file, bytes, { mode: 0o600 });

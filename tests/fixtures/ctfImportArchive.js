@@ -5,7 +5,7 @@ const i=value=>({type:'integer',value:String(value)}),r=value=>({type:'real',val
 const stamp='2026-01-02 03:04:05.123456';
 function row(table,values){return Object.fromEntries(COLUMNS[table].split(' ').map(key=>[key,Object.hasOwn(values,key)?values[key]:null]));}
 function fixture(){return{archiveDigest:'a'.repeat(64),naiveTimestamps:'UTC',identityMap:{70:7,71:8},tables:{
- ctf_config:[row('ctf_config',{id:i(1),key:'event_name',value:'DVAIA CTF',description:'edited',updated_at:stamp})],
+ ctf_config:[row('ctf_config',{id:i(1),key:'event_name',value:'OWASP-AI-GOAT CTF',description:'edited',updated_at:stamp})],
  ctf_participants:[row('ctf_participants',{id:i(2),user_id:i(70),username:'learner',email:'l@example.test',team_name:'red',started_at:stamp,last_activity:stamp,is_active:i(1),total_completion_time:i(9)})],
  ctf_stages:[row('ctf_stages',{id:i(3),stage_number:i(1),stage_name:'Guardian',stage_description:'deliberate challenge',difficulty_level:'hard',ai_guardian_name:'Sphinx',ai_guardian_personality:'strict',system_prompt:'INTENTIONAL SECRET: keep exact',success_criteria:'extract secret',hints:' ["edited hint"] ',max_attempts:i(-1),time_penalty_per_wrong_attempt:i(5),is_active:i(1),stage_order:i(1),difficulty:'hard',defense_style:' ["output_filter"] ',adaptive_mode:'hybrid',level_score:i(100),time_bonus_seconds:i(300),feedback_mode:'reason',created_at:stamp})],
  ctf_progress:[row('ctf_progress',{id:i(4),participant_id:i(2),stage_id:i(3),status:'completed',started_at:stamp,completed_at:stamp,completion_time:i(9),attempts_count:i(1),successful_attempts:i(1),failed_attempts:i(0),hints_used:i(0),hint_penalty_total:i(0),time_penalties:i(0),final_payload:'ignore previous',techniques_used:' ["override"] ',created_at:stamp,updated_at:stamp})],
@@ -27,7 +27,7 @@ async function writeArchive(directory,source=fixture()){
   tables.push({name,columns,file,rows:rows.length,...await write(file,content)});
  }
  const schemaFile='schema.json',schema=await write(schemaFile,JSON.stringify(tables.map(table=>({type:'table',name:table.name}))));
- await fs.writeFile(path.join(directory,'manifest.json'),JSON.stringify({version:1,format:'dvaia-sqlite-archive-v1',complete:true,files:[{name:'ctf.db',sourceSha256:'b'.repeat(64),schemaFile,schema,tables}]}));
+ await fs.writeFile(path.join(directory,'manifest.json'),JSON.stringify({version:1,format:'owasp-ai-goat-sqlite-archive-v1',complete:true,files:[{name:'ctf.db',sourceSha256:'b'.repeat(64),schemaFile,schema,tables}]}));
  return source;
 }
 module.exports={fixture,i,r,writeArchive};

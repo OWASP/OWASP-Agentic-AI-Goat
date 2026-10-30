@@ -3,11 +3,11 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const plan=require('../db/postgres/provision-application').provisioningPlan();
 const source=require.resolve('../scripts/lib/application-maintenance-plan-configuration');
 function harness(){
- const root='C:\\workspace',homeDirectory='C:\\Users\\learner',id=createHash('sha256').update(root).digest('hex').slice(0,12),directory=path.win32.join(homeDirectory,'.dvaia',id),calls=[],files=new Map(),denied=new Set(),metadata=new Map();
+ const root='C:\\workspace',homeDirectory='C:\\Users\\learner',id=createHash('sha256').update(root).digest('hex').slice(0,12),directory=path.win32.join(homeDirectory,'.owasp-ai-goat',id),calls=[],files=new Map(),denied=new Set(),metadata=new Map();
  const text=plan.flatMap(r=>[r.runtimeVariable,r.migrationVariable]).map(k=>`${k}=postgresql://role:private@localhost/database`).join('\n');
  files.set(path.win32.join(directory,'provisioning.json'),Buffer.from('{}'));
  files.set(path.win32.join(root,'.env'),Buffer.from(text));
- files.set(path.win32.join(directory,'local-postgres.json'),Buffer.from(JSON.stringify({version:1,id,name:`dvaia-postgres-${id}`,port:15432,password:'a'.repeat(64)})));
+ files.set(path.win32.join(directory,'local-postgres.json'),Buffer.from(JSON.stringify({version:1,id,name:`owasp-ai-goat-postgres-${id}`,port:15432,password:'a'.repeat(64)})));
  const error=code=>Object.assign(Error('private secret diagnostic'),{code});
  const read=(operation,file)=>{calls.push([operation,file]);if(denied.has(file)||!files.has(file))throw error('WINDOWS_PRIVATE_STATE_DENIED');return files.get(file);};
  const native={inspectPrivateDirectory(file){calls.push(['inspect',file]);if(denied.has(file))throw error('WINDOWS_PRIVATE_STATE_DENIED');assert.equal(file,directory);return{path:file,size:null,identity:{volumeSerial:1,fileId:'0000000000000001'}};},readPrivateFile:file=>read('private',file),readPrivateWorkspaceFile:file=>read('workspace',file)};

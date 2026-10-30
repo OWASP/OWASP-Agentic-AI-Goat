@@ -5,7 +5,7 @@ let retained;
 // The application bootstrap validates this private data root. The file primitive
 // validates its own root and filesystem components lazily before any effect.
 function getSecureShopOwnedFiles(env = process.env) {
-  const root = env.DVAIA_APP_DATA_ROOT;
+  const root = env.OWASP_AI_GOAT_APP_DATA_ROOT;
   if (!root) {
     if (retained) throw new Error('Owned SecureShop files already configured');
     return undefined;

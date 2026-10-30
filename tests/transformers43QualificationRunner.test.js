@@ -25,7 +25,7 @@ async function waitForFile(file, timeoutMs = 2000) {
 }
 
 async function fixture(t, source, { maxOutputBytes = 1024 * 1024 } = {}) {
-  const prefix = await fsp.mkdtemp(path.join(os.tmpdir(), 'dvaia-43-runner-'));
+  const prefix = await fsp.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-43-runner-'));
   t.after(async () => { await fsp.rm(prefix, { recursive: true, force: true }); });
   const packages = { lockfileVersion: 3, packages: {} };
   for (const [name, version] of Object.entries(REQUIRED)) {
@@ -64,7 +64,7 @@ test('offline environment is minimal and forces both model flags plus network de
 });
 
 test('owned prefix and child directories reject workspace, wrong types, and symlink escapes', async t => {
-  const outside = await fsp.mkdtemp(path.join(os.tmpdir(), 'dvaia-43-path-'));
+  const outside = await fsp.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-43-path-'));
   t.after(() => fsp.rm(outside, { recursive: true, force: true }));
   assert.throws(() => assertOwnedPrefix(process.cwd(), process.cwd()), /outside the workspace/);
   assert.equal(assertOwnedPrefix(outside, process.cwd()), fs.realpathSync(outside));
@@ -76,7 +76,7 @@ test('owned prefix and child directories reject workspace, wrong types, and syml
   t.after(() => fsp.rm(link, { force: true }));
   assert.throws(() => assertOwnedPrefix(link, process.cwd()), /symlink/);
   const setup = await fixture(t, 'process.exit(0);');
-  const external = await fsp.mkdtemp(path.join(os.tmpdir(), 'dvaia-43-external-'));
+  const external = await fsp.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-43-external-'));
   t.after(() => fsp.rm(external, { recursive: true, force: true }));
   await assert.rejects(runVerifier({ ...setup, cache: external, timeoutMs: 100 }), /cache must be inside prefix/);
   const cacheFile = path.join(setup.prefix, 'cache-file');
@@ -94,7 +94,7 @@ test('owned prefix and child directories reject workspace, wrong types, and syml
 });
 
 test('exported runner refuses absent or changed installed-file pins before spawning', async t => {
-  const marker = path.join(os.tmpdir(), `dvaia-43-marker-${process.pid}-${Date.now()}`);
+  const marker = path.join(os.tmpdir(), `owasp-ai-goat-43-marker-${process.pid}-${Date.now()}`);
   t.after(() => fsp.rm(marker, { force: true }));
   const setup = await fixture(t, `require('node:fs').writeFileSync(${JSON.stringify(marker)}, 'ran');`);
   await assert.rejects(runVerifier({ ...setup, prefix: process.cwd(), workspace: setup.prefix,

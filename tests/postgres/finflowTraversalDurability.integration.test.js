@@ -26,7 +26,7 @@ function ownedUrl(name, database) {
 function pool(url, max = 4) {
   return new Pool({ connectionString: url, max, connectionTimeoutMillis: 5000,
     statement_timeout: 30000, lock_timeout: 5000,
-    application_name: 'dvaia-finflow-traversal-durability' });
+    application_name: 'owasp-ai-goat-finflow-traversal-durability' });
 }
 async function rejectedCode(work, code) {
   await assert.rejects(work, error => error?.code === code);
@@ -67,17 +67,17 @@ function runWorker(env) {
 test('owned PostgreSQL proves readiness negatives, immutable lifecycle, process concurrency, and factory retirement adapter',
   { skip: !enabled, timeout: 120000 }, async t => {
     const identityRuntimeUrl = ownedUrl('IDENTITY_DATABASE_URL',
-      'dvaia_test_finflow_traversal_identity');
+      'owasp_ai_goat_test_finflow_traversal_identity');
     const identityMigrationUrl = ownedUrl('IDENTITY_MIGRATION_DATABASE_URL',
-      'dvaia_test_finflow_traversal_identity');
+      'owasp_ai_goat_test_finflow_traversal_identity');
     const finflowRuntimeUrl = ownedUrl('FINFLOW_WORKSHOP_DATABASE_URL',
-      'dvaia_test_finflow_traversal_store');
+      'owasp_ai_goat_test_finflow_traversal_store');
     const finflowMigrationUrl = ownedUrl('FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL',
-      'dvaia_test_finflow_traversal_store');
+      'owasp_ai_goat_test_finflow_traversal_store');
     const probeRuntimeUrl = ownedUrl('FINFLOW_TRAVERSAL_PROBE_DATABASE_URL',
-      'dvaia_test_finflow_traversal_probe');
+      'owasp_ai_goat_test_finflow_traversal_probe');
     const probeMigrationUrl = ownedUrl('FINFLOW_TRAVERSAL_PROBE_MIGRATION_DATABASE_URL',
-      'dvaia_test_finflow_traversal_probe');
+      'owasp_ai_goat_test_finflow_traversal_probe');
     const pools = [pool(identityRuntimeUrl), pool(identityMigrationUrl), pool(finflowRuntimeUrl, 1),
       pool(finflowMigrationUrl), pool(probeRuntimeUrl, 1), pool(probeMigrationUrl)];
     const [identityRuntime, identityMigration, finflowRuntime, finflowMigration,

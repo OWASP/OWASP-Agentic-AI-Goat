@@ -7,7 +7,7 @@ const { OBJECTIVE, RUBRIC, buildV08SvgCandidate, buildRetainedV08SvgCandidate }
   = require('../../../../server/services/secureshopV08SvgEvidence');
 const { createObjectiveJudge } = require('../../../../server/agent-runtime/objectiveJudge');
 const hash = value => createHash('sha256').update(value).digest('hex');
-const marker = 'dvaia-v08-0123456789abcdef0123456789abcdef';
+const marker = 'owasp-ai-goat-v08-0123456789abcdef0123456789abcdef';
 const proof = Object.freeze({ sessionId:randomUUID(), requestId:randomUUID(), operationId:randomUUID(),
   effectId:randomUUID(), originalEnvelopeSha256:hash('envelope'), requestHash:hash('request'),
   bindingSha256:hash('binding'), uploadRequestSha256:hash('upload'),

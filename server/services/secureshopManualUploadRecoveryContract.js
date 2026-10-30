@@ -30,7 +30,7 @@ function operationId(scope, merchantId, value) {
   if (!Number.isSafeInteger(merchantId) || merchantId < 1 || merchantId > 2147483647) throw invalid();
   // Keep the original v1 identity byte-for-byte. Size is checked against the
   // receipt, not added to the historical operation identity.
-  const hash = createHash('sha256').update(JSON.stringify(['dvaia-manual-v1', createLaunchScope(scope),
+  const hash = createHash('sha256').update(JSON.stringify(['owasp-ai-goat-manual-v1', createLaunchScope(scope),
     merchantId, source.productId, source.sha256, source.filename, source.mime, source.isPublic])).digest('hex');
   return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
 }
@@ -39,7 +39,7 @@ function scopeKey(binding, merchantId, session) {
       || !UUID.test(session?.sessionId || '') || typeof session?.authorityVersion !== 'string'
       || !/^[1-9][0-9]*$/.test(session.authorityVersion)) throw invalid();
   const scope = createLaunchScope(executionScope(binding));
-  return createHash('sha256').update(JSON.stringify(['dvaia-manual-recovery-v1', scope,
+  return createHash('sha256').update(JSON.stringify(['owasp-ai-goat-manual-recovery-v1', scope,
     binding.targetId, binding.scene ? [binding.scene.sceneId, binding.scene.sceneGeneration, binding.scene.grantId] : null,
     merchantId, session.sessionId.toLowerCase(), session.authorityVersion])).digest('hex');
 }

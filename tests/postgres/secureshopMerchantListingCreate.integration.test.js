@@ -24,7 +24,7 @@ function urls() {
     assert.equal(value.protocol, 'postgresql:'); assert.equal(value.hostname, '127.0.0.1');
     assert.equal(value.username, 'dvaia_' + FAMILIES[store] + '_' + role.toLowerCase());
     assert.equal(value.password, ''); assert.equal(value.search, ''); assert.equal(value.hash, '');
-    const match = new RegExp('^/dvaia_test_agent_host_([a-f0-9]{12})_' + FAMILIES[store] + '$').exec(value.pathname);
+    const match = new RegExp('^/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_' + FAMILIES[store] + '$').exec(value.pathname);
     assert.ok(match); nonce ??= match[1]; port ??= value.port;
     assert.equal(match[1], nonce); assert.equal(value.port, port); result[key] = value.href;
   }
@@ -59,7 +59,7 @@ async function retainedRows(pool) {
 
 test('merchant listing create preserves populated history, previews without effects, commits one owned listing, and fences replay conflicts or retired authority',
   { skip: !enabled, timeout: 120000 }, async () => {
-    const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
+    const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/');
     assert.equal(workspace, process.cwd(), 'current checkout only; no source copy');
     const connections = urls();
     const pools = Object.fromEntries(Object.entries(connections).map(([key, connectionString]) =>

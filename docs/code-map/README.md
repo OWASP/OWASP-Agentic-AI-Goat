@@ -1,6 +1,6 @@
-# DVAIA Code Map
+# OWASP Agentic AI GOAT Code Map
 
-This directory is the load-on-demand engineering map for DVAIA. It describes
+This directory is the load-on-demand engineering map for OWASP Agentic AI GOAT. It describes
 the executable architecture through commit
 `433296a73f4e251944ff1469591c34c8db63c9c1` (`main`, fetched 2026-08-07), not
 just the intended architecture in older docs. Load
@@ -8,6 +8,19 @@ just the intended architecture in older docs. Load
 boundaries introduced after the original line-oriented review.
 
 Use this file first. Load only the linked module file needed for a change.
+
+Current storefront recovery: `client/src/pages/secureshop/bridge/handshake.mjs`
+notifies the guest host when a frame reload closes its connection. The host
+offers Retry with a fresh frame. `launchHeaders.mjs` keeps launch-header names
+compatible with a backend started before the branding rename. See the
+[shop guide](../secureshop/README.md) and the handshake, standalone-client, and
+guest-landing tests for these contracts.
+
+`SecureShopStandaloneController.mjs` handles signed-in disconnections with
+current-frame/epoch fences. Its normal startup may replace a frame once after
+`SHOP_FRAME_LOAD_TIMEOUT`, which the handshake emits only before port transfer.
+It reuses the existing launch and scene; other failures and mutations are not
+replayed. The controller tests cover the retry limit and cancellation fences.
 
 ## Analysis coverage
 
@@ -31,7 +44,7 @@ the repository instructions before using its module relationships.
 
 ```text
 Browser / React :3000
-  ├─ DVAIA workshop SPA
+  ├─ OWASP Agentic AI GOAT workshop SPA
   │    └─ REST + scoped polling → Express :8081
   └─ SecureShop SPA (/secureshop/*)
        ├─ REST/SSE → Express :8081

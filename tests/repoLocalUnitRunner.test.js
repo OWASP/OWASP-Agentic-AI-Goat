@@ -21,7 +21,7 @@ test('repo-local child has a single writable runtime and no inherited database c
   const root = path.resolve(__dirname, '..');
   const directory = path.join(root, 'tasks/tmp/focused-unit.contract');
   const env = childEnvironment(directory);
-  assert.equal(env.DVAIA_ISOLATED_TEST_WORKSPACE, root);
+  assert.equal(env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE, root);
   assert.equal(env.AI_PROVIDER, 'mock');
   assert.equal(env.DATABASE_URL, undefined);
   assert.equal(env.PGPASSWORD, undefined);

@@ -10,7 +10,7 @@ function userLookupBrowserArgs(env, { workspace, evidencePath, profile, origin }
   assert.equal(env.PG_TEST_DISPOSABLE, 'yes');
   assert.equal(env.LIVE_OLLAMA_TEST, '1');
   assert.equal(env.NODE_ENV, 'test');
-  assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, workspace);
+  assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, workspace);
   assert.equal(workspace, process.cwd());
   const run = path.dirname(evidencePath);
   const variant = env.SECURESHOP_USER_LOOKUP_BENIGN_CAPTURE;
@@ -21,7 +21,7 @@ function userLookupBrowserArgs(env, { workspace, evidencePath, profile, origin }
   assert.match(path.basename(run), /^run-[A-Za-z0-9_-]+$/);
   assert.equal(env.TMPDIR, path.join(run, 'runtime/tmp'));
   assert.equal(path.dirname(profile), env.TMPDIR);
-  assert.match(path.basename(profile), /^dvaia-user-lookup-browser-[A-Za-z0-9_-]+$/);
+  assert.match(path.basename(profile), /^owasp-ai-goat-user-lookup-browser-[A-Za-z0-9_-]+$/);
   assert.equal(env.SECURESHOP_USER_LOOKUP_BROWSER_RECORD_PATH, path.join(run, 'user-lookup-browser.json'));
   assert.equal(env.SECURESHOP_USER_LOOKUP_BROWSER_ACK_PATH, path.join(run, 'user-lookup-browser-ack.json'));
   assert.match(env.SECURESHOP_USER_LOOKUP_BROWSER_SHA256, /^[a-f0-9]{64}$/);

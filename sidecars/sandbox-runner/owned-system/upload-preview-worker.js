@@ -6,7 +6,7 @@ const runtime=()=>({nodeVersion:process.version,platform:process.platform,arch:p
 const PREVIEW_ATTESTATION='upload-preview-init-v1';
 function assertNamespace(){
  if(process.platform!=='linux'||process.getuid?.()!==10001||process.getgid?.()!==10001
-  ||process.env.DVAIA_UPLOAD_PREVIEW_ATTESTED!==PREVIEW_ATTESTATION)throw Error('Upload preview requires its attested namespace');
+  ||process.env.OWASP_AI_GOAT_UPLOAD_PREVIEW_ATTESTED!==PREVIEW_ATTESTATION)throw Error('Upload preview requires its attested namespace');
 }
 async function decodeGif(bytes,sharp=require('sharp')){
  if(bytes.length<13||bytes.length>C.MAX_INPUT_BYTES||!['GIF87a','GIF89a'].includes(bytes.subarray(0,6).toString('ascii')))throw Error('Bounded GIF required');

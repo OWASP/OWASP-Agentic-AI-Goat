@@ -31,11 +31,11 @@ test('npm install children opt into system CA only when no explicit CA control e
 test('setup command preserves success, nonzero exit, and spawn failures', async () => {
   await runSetupCommand(process.execPath, ['-e', 'process.exit(0)'], process.cwd(), process.env);
   await assert.rejects(runSetupCommand(process.execPath, ['-e', 'process.exit(7)'], process.cwd(), process.env), /failed \(7\)/);
-  await assert.rejects(runSetupCommand('/nonexistent/dvaia-setup-command', [], process.cwd(), process.env), { code: 'ENOENT' });
+  await assert.rejects(runSetupCommand('/nonexistent/owasp-ai-goat-setup-command', [], process.cwd(), process.env), { code: 'ENOENT' });
 });
 
 test('timed out setup waits for a SIGTERM-resistant command to be killed', { skip: process.platform === 'win32' }, async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-setup-stop-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-setup-stop-'));
   const pidFile = path.join(dir, 'pid');
   try {
     await assert.rejects(runSetupCommand(process.execPath, ['-e',
@@ -47,7 +47,7 @@ test('timed out setup waits for a SIGTERM-resistant command to be killed', { ski
 });
 
 test('setup timeout also stops a resistant descendant after its parent exits', { skip: process.platform === 'win32' }, async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-setup-tree-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-setup-tree-'));
   const childFile = path.join(dir, 'child');
   const parentFile = path.join(dir, 'parent');
   const descendant = "require('fs').writeFileSync(process.argv[1],String(process.pid));process.on('SIGTERM',()=>{});setInterval(()=>{},1000)";

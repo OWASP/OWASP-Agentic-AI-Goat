@@ -27,7 +27,7 @@ async function main() {
       || outerGid?.length !== 4 || outerGid.some(value => value !== 10001)
       || ['CapEff','CapPrm','CapInh','CapAmb'].some(name => !outerCapabilities[name] || !/^0+$/.test(outerCapabilities[name]))
       || outerCapabilities.CapBnd !== EXPECTED_OUTER_BOUNDING
-      || outerAppArmor !== 'dvaia-mcp-sandbox (enforce)') {
+      || outerAppArmor !== 'owasp-ai-goat-mcp-sandbox (enforce)') {
     throw new Error('Qualification process bootstrap identity mismatch');
   }
   const probe = spawnSync('bwrap', buildProbeArgv(), {

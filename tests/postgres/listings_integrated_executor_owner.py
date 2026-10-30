@@ -55,7 +55,7 @@ class PrivateExecutorOwner:
   if handoff['runId']!=self.run_id or handoff['publicOrigin']!=origin:
    raise RuntimeError('LISTINGS_PRIVATE_MANAGER_BINDING')
   workspace_id=hashlib.sha256(str(self.workspace.resolve()).encode()).hexdigest()[:12]
-  profile='dvaia-owned-listings-'+workspace_id
+  profile='owasp-ai-goat-owned-listings-'+workspace_id
   policy=(self.workspace/'sidecars/sandbox-runner/owned-listings/profile.apparmor.in').read_text().replace('@@SUPERVISOR_PROFILE@@',profile)
   if (handoff['workspaceId']!=workspace_id or handoff['profileName']!=profile
       or handoff['containerName']!=profile or handoff['profileSha256']!=hashlib.sha256(policy.encode()).hexdigest()):
@@ -141,8 +141,8 @@ def inspected_absent(result,kind,name):
 class ExecutorOwner:
  def __init__(self,workspace,root,docker,owner,env,state,persist,*,private_owner=None,private_cleanup_deadline=None):
   self.workspace,self.root,self.docker,self.owner,self.env,self.state,self.persist=workspace,root,docker,owner,env,state,persist
-  self.name='dvaia-owned-listings-'+owner[:12];self.profile=self.name;self.remote='/tmp/'+self.name;self.tag=self.name+':candidate';self.volume=self.name+'-journal';self.network=self.name+'-network';self.image=None;self.child=None
-  self.ssh=['/usr/bin/ssh','-F',str(pathlib.Path.home()/'.colima/_lima/colima-dvaia-pg-verify/ssh.config'),'lima-colima-dvaia-pg-verify']
+  self.name='owasp-ai-goat-owned-listings-'+owner[:12];self.profile=self.name;self.remote='/tmp/'+self.name;self.tag=self.name+':candidate';self.volume=self.name+'-journal';self.network=self.name+'-network';self.image=None;self.child=None
+  self.ssh=['/usr/bin/ssh','-F',str(pathlib.Path.home()/'.colima/_lima/colima-owasp-ai-goat-pg-verify/ssh.config'),'lima-colima-owasp-ai-goat-pg-verify']
   self.created=set();state['executor']={'name':self.name,'profile':self.profile,'volume':self.volume,'network':self.network};persist()
   self.private_owner,self.private_cleanup_deadline=private_owner,private_cleanup_deadline
   if private_owner is not None and (type(private_owner) is not PrivateExecutorOwner or type(private_cleanup_deadline) not in (int,float)):
@@ -159,7 +159,7 @@ class ExecutorOwner:
    return self.private_owner.start()
   import secrets,shutil,socket
   if shared_manager:
-   self.name='dvaia-owned-listings-'+hashlib.sha256(str(self.workspace.resolve()).encode()).hexdigest()[:12];self.profile=self.name;self.remote='/tmp/'+self.name;self.tag=self.name+':candidate';self.volume=self.name+'-journal';self.network=self.name+'-network';self.state['executor'].update(name=self.name,profile=self.profile,volume=self.volume,network=self.network)
+   self.name='owasp-ai-goat-owned-listings-'+hashlib.sha256(str(self.workspace.resolve()).encode()).hexdigest()[:12];self.profile=self.name;self.remote='/tmp/'+self.name;self.tag=self.name+':candidate';self.volume=self.name+'-journal';self.network=self.name+'-network';self.state['executor'].update(name=self.name,profile=self.profile,volume=self.volume,network=self.network)
   assert not self.checked(self.docker+['ps','-aq','--filter','name=^/'+self.name+'$']).strip()
   self.remote_run(['test','!','-e',self.remote]);self.remote_run(['mkdir','-m','0700',self.remote]);self.created.add('remote')
   self.remote_run(['tee',self.remote+'/owner'],input=self.owner+'\n')
@@ -176,9 +176,9 @@ class ExecutorOwner:
   for kind,name in [('volume',self.volume),('network',self.network)]:
    absent=self.run(self.docker+[kind,'inspect',name])
    if not inspected_absent(absent,kind,name):raise RuntimeError('Owned '+kind+' already exists')
-   self.checked(self.docker+[kind,'create','--label','dvaia.test.owner='+self.owner]+[]+[name]);self.created.add(kind)
+   self.checked(self.docker+[kind,'create','--label','owasp-ai-goat.test.owner='+self.owner]+[]+[name]);self.created.add(kind)
   tokens={label:secrets.token_urlsafe(32)for label in ['A','B']};identities={label:secrets.token_hex(32)for label in ['A','B']}
-  command=self.docker+['run','-d','--name',self.name,'--label','dvaia.test.owner='+self.owner,'--network',self.network,'--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--security-opt','apparmor='+self.profile,'--security-opt','seccomp=unconfined','--user','10001:10001','-e','LISTINGS_PROFILE='+self.profile,'--mount','type=volume,src='+self.volume+',dst=/journal','-p','127.0.0.1::8095','-p','127.0.0.1::8096']
+  command=self.docker+['run','-d','--name',self.name,'--label','owasp-ai-goat.test.owner='+self.owner,'--network',self.network,'--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--memory','512m','--cpus','1','--pids-limit','128','--cap-drop','ALL','--security-opt','apparmor='+self.profile,'--security-opt','seccomp=unconfined','--user','10001:10001','-e','LISTINGS_PROFILE='+self.profile,'--mount','type=volume,src='+self.volume+',dst=/journal','-p','127.0.0.1::8095','-p','127.0.0.1::8096']
   if shared_manager:
    with socket.socket()as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
    token=secrets.token_urlsafe(48);origin='http://127.0.0.1:'+str(port)
@@ -218,7 +218,7 @@ class ExecutorOwner:
    args=['inspect',name]if kind=='container'else[kind,'inspect',name]
    q=self.run(self.docker+args)
    if q.returncode==0:
-    info=json.loads(q.stdout)[0];labels=info['Config']['Labels']if kind=='container'else info['Labels'];assert labels.get('dvaia.test.owner')==self.owner
+    info=json.loads(q.stdout)[0];labels=info['Config']['Labels']if kind=='container'else info['Labels'];assert labels.get('owasp-ai-goat.test.owner')==self.owner
     self.checked(self.docker+(['rm','-f',name]if kind=='container'else[kind,'rm',name]))
   if self.image:self.run(self.docker+['image','rm',self.tag],timeout=30)
   if 'profile'in self.created:self.remote_run(['sudo','apparmor_parser','-R',self.remote+'/policy'])

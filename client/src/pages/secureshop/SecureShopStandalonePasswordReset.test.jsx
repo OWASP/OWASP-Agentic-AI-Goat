@@ -8,7 +8,7 @@ const target = { id: 17, username: 'shop_customer', email: 'customer@example.tes
   credentialVersion: '3', authorityVersion: '5', membershipVersion: '2', resetAvailable: true };
 const receipt = { operationId, targetId: 17, credentialVersion: '4', authorityVersion: '6',
   receiptSha256: 'a'.repeat(64), expiresAt: new Date(Date.now() + 600000).toISOString() };
-const storageKey = 'dvaia.secureshop.admin-password-reset.v1';
+const storageKey = 'owasp-ai-goat.secureshop.admin-password-reset.v1';
 const user = { role: 'admin', principalId };
 
 function setup(overrides = {}, targetId = 17, storage) {

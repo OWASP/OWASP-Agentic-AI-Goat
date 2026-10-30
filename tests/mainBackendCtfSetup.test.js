@@ -24,11 +24,11 @@ test('owned setup child awaits physical cleanup and preserves failed exit',async
  await assert.rejects(runOwnedSetup({source:'/main',root:'/private',environment:{}},{spawn:()=>assert.fail(),controls}));assert(cleaned);
 });
 test('private configuration admits exactly owned endpoint roles and rejects extra authority',()=>{
- const {validateConfiguration}=require('./fixtures/mainBackendCtfSetup'),manifest=Array.from({length:16},(_,i)=>({schema:'s'+i,runtimeRole:'dvaia_s'+i+'_runtime',runtimeVariable:'R'+i,migrationVariable:'M'+i})),c={CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@127.0.0.1:54321/dvaia_ctf'};
- for(const r of manifest){c[r.runtimeVariable]=`postgresql://${r.runtimeRole}:synthetic@127.0.0.1:54321/dvaia_${r.schema}`;c[r.migrationVariable]=`postgresql://dvaia_${r.schema}_migration:synthetic@127.0.0.1:54321/dvaia_${r.schema}`;}
+ const {validateConfiguration}=require('./fixtures/mainBackendCtfSetup'),manifest=Array.from({length:16},(_,i)=>({schema:'s'+i,runtimeRole:'dvaia_s'+i+'_runtime',runtimeVariable:'R'+i,migrationVariable:'M'+i})),c={CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@127.0.0.1:54321/owasp_ai_goat_ctf'};
+ for(const r of manifest){c[r.runtimeVariable]=`postgresql://${r.runtimeRole}:synthetic@127.0.0.1:54321/owasp_ai_goat_${r.schema}`;c[r.migrationVariable]=`postgresql://dvaia_${r.schema}_migration:synthetic@127.0.0.1:54321/owasp_ai_goat_${r.schema}`;}
  assert.equal(validateConfiguration(c,manifest,54321),c);assert.throws(()=>validateConfiguration({...c,NODE_OPTIONS:'unsafe'},manifest,54321));assert.throws(()=>validateConfiguration(c,manifest,54322));assert.throws(()=>validateConfiguration({...c,CTF_DELIVERY_DATABASE_URL:c.CTF_DELIVERY_DATABASE_URL.replace('127.0.0.1','elsewhere.invalid')},manifest,54321));
 });
 test('private result FD reader rejects oversize and symlink artifacts',async()=>{
- const io=require('node:fs/promises'),os=require('node:os'),{readResult}=require('./fixtures/mainBackendCtfSetup');const dir=await io.mkdtemp(path.join(os.tmpdir(),'dvaia-ctf-read-control-')),file=path.join(dir,'result');
+ const io=require('node:fs/promises'),os=require('node:os'),{readResult}=require('./fixtures/mainBackendCtfSetup');const dir=await io.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-ctf-read-control-')),file=path.join(dir,'result');
  try{await io.writeFile(file,'{"synthetic":true}',{mode:0o600});assert.deepEqual(await readResult(file),{synthetic:true});await io.symlink(file,path.join(dir,'link'));await assert.rejects(readResult(path.join(dir,'link')));await io.writeFile(file,'x'.repeat(65537));await assert.rejects(readResult(file));}finally{await io.rm(dir,{recursive:true,force:true});}
 });

@@ -12,9 +12,9 @@ const exec=createCommandRunner({cwd:root,env});
 const run=(file,args,options)=>exec(file==='docker'?docker:file,args,options);
 const checked=async(file,args)=>{const r=await run(file,args,{timeoutMs:30000,maxOutputBytes:1024*1024});assert.equal(r.exitCode,0);return r.stdout;};
 (async()=>{
- const scratch=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-http-installer-native-'));
+ const scratch=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-http-installer-native-'));
  const listener=net.createServer();await new Promise(resolve=>listener.listen(0,'127.0.0.1',resolve));const port=listener.address().port;await new Promise(resolve=>listener.close(resolve));
- const opts={root:scratch,home:os.homedir(),platform:'darwin',colimaProfile:'colima-dvaia-pg-verify',port,commandEnv:env,run};const p=plan(opts);
+ const opts={root:scratch,home:os.homedir(),platform:'darwin',colimaProfile:'colima-owasp-ai-goat-pg-verify',port,commandEnv:env,run};const p=plan(opts);
  const D=args=>checked('docker',['--host',p.dockerHost,...args]);
  const S=args=>checked('ssh',['-F',p.sshConfig,p.sshHost,args.join(' ')]);
  const evidence={scope:'macOS arm64 host invoking application installer against existing isolated Colima Linux arm64 VM',profile:p.profile,port,actualInstaller:true,defaultActivated:false};
@@ -34,7 +34,7 @@ const checked=async(file,args)=>{const r=await run(file,args,{timeoutMs:30000,ma
   const replay=await client.request('/owned-http/execute',{capability:readmitted.capability,request});assert.deepEqual(replay,receipt);evidence.persistentReceiptReplay=true;
   const operationId=crypto.randomUUID();await client.retire({...scope,operationId});assert.equal((await client.readRetirement({...scope,operationId})).status,'completed');evidence.retirement=true;
   await D(['rm','-f',p.container]);
-  await D(['run','--detach','--name',p.container,'--label','dvaia.http.owner=controlled-conflict','--network','none','--entrypoint','sleep',cfg.image,'300']);
+  await D(['run','--detach','--name',p.container,'--label','owasp-ai-goat.http.owner=controlled-conflict','--network','none','--entrypoint','sleep',cfg.image,'300']);
   await assert.rejects(provision(opts),/MCP_HTTP_CONTAINER_CONFLICT/);evidence.ownershipConflictRejected=true;
   evidence.image=cfg.image;evidence.profileSha256=crypto.createHash('sha256').update(await S(['sudo','cat',p.destination])).digest('hex');
   evidence.status='passed';

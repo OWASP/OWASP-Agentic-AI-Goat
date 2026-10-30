@@ -43,7 +43,7 @@ test('disclosure frame fetch traverses real named transport with separate truste
  for(const [path,body] of [['browser-assessment',{requestId:assessmentId,sendOperationId:randomUUID(),messageId:7}],['disclosure',{requestId:readOperationId,userId:7}],['disclosure-assessment',{requestId:assessmentId,readOperationId}],['disclosure-assessment',{requestId:assessmentId,readOperationId,evaluationId:randomUUID()}]]){
   assert.equal((await fetch('/api/secureshop/email/'+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)})).status,200);
   const req=seen.at(-1);assert.equal(req.method,'POST');assert.equal(req.url,'https://owned.invalid/api/secureshop/email/'+path);assert.deepEqual(await req.json(),body);
-  assert.equal(req.headers.get('authorization'),'Bearer owned-persona-token');assert.equal(req.headers.get('x-dvaia-secureshop-launch'),'a'.repeat(43));assert.equal(req.credentials,'omit');
+  assert.equal(req.headers.get('authorization'),'Bearer owned-persona-token');assert.equal(req.headers.get('x-owasp-ai-goat-secureshop-launch'),'a'.repeat(43));assert.equal(req.credentials,'omit');
   for(const key of ['ownerId','scope','persona','mode','modeStamp','evidence','verdict','completed','headers'])await assert.rejects(fetch('/api/secureshop/email/'+path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...body,[key]:'forged'})}));
  }
  assert.equal(seen.length,4);

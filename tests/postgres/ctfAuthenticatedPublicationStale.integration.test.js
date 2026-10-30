@@ -17,7 +17,7 @@ function urls(state){
  const pair=names.map(name=>new URL(process.env[name]));
  for(const url of pair){
   assert.equal(url.hostname,'127.0.0.1');
-  assert.match(url.pathname,new RegExp(`^/dvaia_test_ctf_publication_stale_[a-f0-9]{12}_${state.toLowerCase()}$`));
+  assert.match(url.pathname,new RegExp(`^/owasp_ai_goat_test_ctf_publication_stale_[a-f0-9]{12}_${state.toLowerCase()}$`));
   assert.equal(url.search,'');assert.equal(url.hash,'');
  }
  assert.equal(pair[0].pathname,pair[1].pathname);assert.equal(pair[0].port,pair[1].port);
@@ -75,7 +75,7 @@ async function seedBoundDecision(pool){
 test('identity 0155 distinguishes authenticated stale publication from foreign or revoked sessions',
  {skip:!ENABLED,timeout:180000},async t=>{
   assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');
-  assert.equal(process.env.DVAIA_CURRENT_MAIN_WORKSPACE,ROOT);
+  assert.equal(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,ROOT);
   const pools=[],paths=new Set();
   t.after(async()=>{const settled=await Promise.allSettled(pools.map(pool=>pool.end()));
    const failed=settled.filter(result=>result.status==='rejected');

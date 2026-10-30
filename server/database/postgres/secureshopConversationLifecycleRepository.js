@@ -54,7 +54,7 @@ function buildReceipt(scope, { completedAt, sessionCount, uncertainTurnCount, se
     platformOwnerId: scope.platformOwnerId, platformSessionId: scope.platformSessionId,
     status: 'completed', sessionCount, uncertainTurnCount, sessionSetSha256, completedAt });
   const receiptSha256 = createHash('sha256').update(JSON.stringify([
-    'dvaia-secureshop-conversation-generation-retirement', fields.version, fields.resetId,
+    'owasp-ai-goat-secureshop-conversation-generation-retirement', fields.version, fields.resetId,
     fields.launchId, fields.scenarioId, fields.fromGeneration, fields.platformOwnerId,
     fields.platformSessionId, fields.status, fields.sessionCount, fields.uncertainTurnCount,
     fields.sessionSetSha256, fields.completedAt,

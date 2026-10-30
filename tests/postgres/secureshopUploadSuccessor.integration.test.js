@@ -34,7 +34,7 @@ function urls(store, roleBase) {
     assert.equal(parsed.protocol, 'postgresql:');
     assert.equal(parsed.hostname, '127.0.0.1');
     assert.equal(parsed.username, `dvaia_secureshop_${roleBase}_${role.toLowerCase()}`);
-    assert.match(parsed.pathname, /^\/dvaia_test_upload_successor_[a-f0-9]{12}_[a-z_]+$/);
+    assert.match(parsed.pathname, /^\/owasp_ai_goat_test_upload_successor_[a-f0-9]{12}_[a-z_]+$/);
     result[role.toLowerCase()] = process.env[key];
   }
   return result;

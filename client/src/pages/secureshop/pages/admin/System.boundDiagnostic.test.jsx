@@ -38,7 +38,7 @@ test('bound diagnostic persists before dispatch and renders target-bound receipt
   expect(container.textContent).toContain('EXECUTED');
   expect(container.textContent).toContain('Practice actions run only when their section is available');
   expect(container.textContent).toContain('A verified result below shows whether it ran');
-  expect(container.textContent).toContain('Diagnostic ran in the isolated SecureShop practice; inspect its verified receipt.');
+  expect(container.textContent).toContain('Diagnostic ran in the isolated OWASP AI SecureShop practice; inspect its verified receipt.');
   expect(container.textContent).not.toContain('SS_SYSTEM_ALLOW_EXEC=true');
   expect(toast.success).toHaveBeenCalledWith('diagnostic executed');
   const reference = JSON.parse(localStorage.getItem(SHOP_SYSTEM_DIAGNOSTIC_KEY)).references[0];
@@ -126,7 +126,7 @@ test('legacy diagnostic retains the original execution guidance', async () => {
   expect(container.textContent).toContain('Exec is guarded by SS_SYSTEM_ALLOW_EXEC=true');
   expect(container.textContent).toContain('cmd_template + args are concatenated and exec\'d. Guarded by SS_SYSTEM_ALLOW_EXEC=true');
   expect(container.textContent).toContain('exec surface is LIVE (SS_SYSTEM_ALLOW_EXEC=true)');
-  expect(container.textContent).not.toContain('isolated SecureShop practice');
+  expect(container.textContent).not.toContain('isolated OWASP AI SecureShop practice');
 });
 
 test('forged binding or non-executed receipt is rejected', async () => {

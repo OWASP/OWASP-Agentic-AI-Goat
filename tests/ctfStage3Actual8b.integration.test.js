@@ -80,9 +80,9 @@ test('stage 3 exact redaction and normalized scoring match the shipped learner t
 test('mounted stage 3 records real failures and one genuine visible-secret win, then resets only its owner', {
   skip: !enabled, timeout: 720_000,
 }, async t => {
-  ownedUrl('IDENTITY_DATABASE_URL', 'dvaia_test_ctf_stage3_identity');
-  ownedUrl('CTF_DATABASE_URL', 'dvaia_test_ctf_stage3_store');
-  assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
+  ownedUrl('IDENTITY_DATABASE_URL', 'owasp_ai_goat_test_ctf_stage3_identity');
+  ownedUrl('CTF_DATABASE_URL', 'owasp_ai_goat_test_ctf_stage3_store');
+  assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
   const tags = await (await fetch(`${process.env.OLLAMA_BASE_URL}/api/tags`)).json();
   assert.ok(tags.models.some(row => row.name === 'llama3.1:8b'));
   const resultsPath = process.env.CTF_STAGE3_EVIDENCE_PATH;

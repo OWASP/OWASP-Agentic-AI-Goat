@@ -513,7 +513,7 @@ function ownedThreadUses(cases,proof){
 // the host retires, preventing INSERT/UPDATE/DELETE/TRUNCATE from changing that
 // fact between the owner query and the separate MCP connection's query.
 async function createMissingProductFence({pool,database,check}){
-  assert.match(database,/^dvaia_test_agent_host_[a-f0-9]{12}_secureshop$/);
+  assert.match(database,/^owasp_ai_goat_test_agent_host_[a-f0-9]{12}_secureshop$/);
   assert.equal(typeof check,'function');check();
   const client=await pool.connect();let closed=false,identity=null,failure=null;
   const onError=error=>{failure??=error;};client.on('error',onError);
@@ -567,7 +567,7 @@ function assertMissingProductEvidence(cases,events){
     assert.deepEqual(before.witness,after.witness);assert.equal(before.witness.callId,call.meta.callId);
     assert.deepEqual(before.absence,after.absence);
     const proof=before.absence;exact(proof,['database','role','pid','locked','productId','absent']);
-    assert.match(proof.database,/^dvaia_test_agent_host_[a-f0-9]{12}_secureshop$/);
+    assert.match(proof.database,/^owasp_ai_goat_test_agent_host_[a-f0-9]{12}_secureshop$/);
     assert.equal(proof.role,'dvaia_secureshop_migration');assert(Number.isSafeInteger(proof.pid)&&proof.pid>0);
     assert.equal(proof.locked,true);assert.equal(proof.absent,true);assert.equal(proof.productId,call.args.product_id);
     assert.equal(after.resultSha256,F.sha(call.result));
@@ -669,13 +669,13 @@ function readControllerReceipt(run,expected,workerPid=process.pid){
 }
 function admission(env=process.env){
   assert.equal(env.SECURESHOP_V30_ORIGINAL_NATIVE,'1');assert.equal(env.LIVE_OLLAMA_TEST,'1');assert.equal(env.PG_TEST_DISPOSABLE,'yes');
-  assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE,ROOT);assert.equal(process.cwd(),ROOT);
+  assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,ROOT);assert.equal(process.cwd(),ROOT);
   assert.equal(env.AI_PROVIDER,'ollama');assert.equal(env.JUDGE_PROVIDER,'ollama');assert.equal(env.OLLAMA_MODEL,MODEL);assert.equal(env.JUDGE_MODEL,MODEL);
   assert([undefined,'','8192'].includes(env.OLLAMA_CONTEXT_WINDOW));assert([undefined,'','32768'].includes(env.JUDGE_CONTEXT_TOKENS));
   const urls={};let nonce,port;
   for(const[key,store]of Object.entries(STORES))for(const role of ['RUNTIME','MIGRATION']){
     const url=new URL(env[`PG_SECURESHOP_DISCLOSURE_${key}_${role}_URL`]);
-    const match=/^\/dvaia_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
+    const match=/^\/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_(identity|secureshop_agents|secureshop_review|secureshop)$/.exec(url.pathname);
     assert.equal(url.protocol,'postgresql:');assert.equal(url.hostname,'127.0.0.1');assert.equal(url.username,`dvaia_${store}_${role.toLowerCase()}`);
     for(const field of ['password','search','hash'])assert.equal(url[field],'');assert(match&&match[2]===store);assert(Buffer.byteLength(url.pathname.slice(1))<=63);
     assert.match(url.port,/^[1-9][0-9]{0,4}$/);assert(Number(url.port)<=65535);nonce??=match[1];port??=url.port;assert.equal(match[1],nonce);assert.equal(url.port,port);
@@ -691,8 +691,8 @@ function admission(env=process.env){
   if(profile===V2_PROFILE||profile===FULL_PROFILE){
     assert.match(env.V30_AGENT_HOST_PORT||'',/^[1-9][0-9]{3,4}$/);
     hostPort=Number(env.V30_AGENT_HOST_PORT);assert(hostPort>=1024&&hostPort<=65535&&hostPort!==Number(port));
-    assert.match(env.DVAIA_V30_HOST_NONCE||'',/^[a-f0-9]{64}$/);
-    assert.match(env.DVAIA_V30_HOST_WORKER_FD||'',/^(?:[3-9]|[1-9][0-9]+)$/);
+    assert.match(env.OWASP_AI_GOAT_V30_HOST_NONCE||'',/^[a-f0-9]{64}$/);
+    assert.match(env.OWASP_AI_GOAT_V30_HOST_WORKER_FD||'',/^(?:[3-9]|[1-9][0-9]+)$/);
   }
   return Object.freeze({urls,run,file,profile,hostPort});
 }

@@ -18,7 +18,7 @@ const SEEDS_DIR = path.join(__dirname, 'seeds');
 // extra_seeds: additional seed files applied after main seed
 const DB_MAP = [
   { name: 'users_auth', schema: '01_users_auth.sql', seed: '01_users_auth.js' },
-  { name: 'dvaia', schema: '02_dvaia_workshop.sql', seed: '02_dvaia_workshop.js' },
+  { name: 'owasp-ai-goat', schema: '02_owasp_ai_goat_workshop.sql', seed: '02_owasp_ai_goat_workshop.js' },
   {
     name: 'secureshop',
     schema: '03_secureshop.sql',

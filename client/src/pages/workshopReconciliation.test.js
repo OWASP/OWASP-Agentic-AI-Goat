@@ -168,7 +168,7 @@ test('WorkshopDashboard presents one next exercise and links to the complete Exe
 
 test('Exercise Library distinguishes visible cards from exercises ready to open', async () => {
   axios.get.mockResolvedValue({ data: { challenges: [
-    { id: 'secureshop_agent_security', workshopKey: 'secureshop_agent_security', title: 'SecureShop',
+    { id: 'secureshop_agent_security', workshopKey: 'secureshop_agent_security', title: 'OWASP AI SecureShop',
       description: 'Pending objectives', difficulty: 'Advanced', status: 'locked', objectives: [], route: '/workshop/secureshop' },
     { id: 'direct_prompt_injection', workshopKey: 'direct_prompt_injection', title: 'Prompt Injection',
       description: 'Available objective', difficulty: 'Beginner', status: 'unlocked',

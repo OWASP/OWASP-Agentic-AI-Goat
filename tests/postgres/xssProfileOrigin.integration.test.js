@@ -24,7 +24,7 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && runtimeUrl && migrat
 function assertOwnedUrl(value) {
   const url = new URL(value);
   assert.equal(url.hostname, '127.0.0.1');
-  assert.equal(url.pathname, '/dvaia_test_xss_profile_origin');
+  assert.equal(url.pathname, '/owasp_ai_goat_test_xss_profile_origin');
 }
 function digest(value) {
   return createHash('sha256').update(value, 'utf8').digest('hex');

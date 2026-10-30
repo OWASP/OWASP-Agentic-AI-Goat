@@ -6,7 +6,7 @@ const {MAILPIT_IMAGE,MAILPIT_IMAGE_VERSION,MAILPIT_IMAGE_DIGEST,createMailpitSta
 const {authorityDigest}=require('../scripts/local-docker-authority');
 const directory='C:\\Users\\Learner\\private',file=directory+'\\mailpit.json',intentFile=file+'.intent';
 const authority={version:1,workspaceId:'fixture',host:'unix:///controlled',daemonId:'controlled-daemon'};
-function initial(){return{version:1,id:'fixture',name:'dvaia-mailpit-fixture',nonce:'c'.repeat(64),image:MAILPIT_IMAGE,imageVersion:MAILPIT_IMAGE_VERSION,imageDigest:MAILPIT_IMAGE_DIGEST,dockerAuthorityDigest:authorityDigest(authority),smtpPort:41025,apiPort:48025};}
+function initial(){return{version:1,id:'fixture',name:'owasp-ai-goat-mailpit-fixture',nonce:'c'.repeat(64),image:MAILPIT_IMAGE,imageVersion:MAILPIT_IMAGE_VERSION,imageDigest:MAILPIT_IMAGE_DIGEST,dockerAuthorityDigest:authorityDigest(authority),smtpPort:41025,apiPort:48025};}
 const encode=value=>Buffer.from(JSON.stringify(value)+'\n');
 function healthyRequest(_url,callback){const response=new EventEmitter();response.statusCode=200;process.nextTick(()=>{callback(response);response.emit('end');});return Object.assign(new EventEmitter(),{destroy(){}});}
 function healthyConnect(){const socket=new EventEmitter();socket.setTimeout=()=>{};socket.destroy=()=>{};process.nextTick(()=>socket.emit('data',Buffer.from('220 controlled SMTP\r\n')));return socket;}
@@ -26,7 +26,7 @@ function fixture(state=initial()){
   },
  };
  const stateStorage=createMailpitStateStorage({filesystemPlatform:'win32',journal,exists:target=>files.has(target)});
- const containerFor=s=>({Id:'d'.repeat(64),Config:{Image:MAILPIT_IMAGE,Labels:{'org.dvaia.workspace':'fixture','org.dvaia.mailpit.nonce':s.nonce}},Image:MAILPIT_IMAGE_DIGEST,HostConfig:{PortBindings:{'1025/tcp':[{HostIp:'127.0.0.1',HostPort:String(s.smtpPort)}],'8025/tcp':[{HostIp:'127.0.0.1',HostPort:String(s.apiPort)}]}},State:{Running:true}});
+ const containerFor=s=>({Id:'d'.repeat(64),Config:{Image:MAILPIT_IMAGE,Labels:{'org.owasp-ai-goat.workspace':'fixture','org.owasp-ai-goat.mailpit.nonce':s.nonce}},Image:MAILPIT_IMAGE_DIGEST,HostConfig:{PortBindings:{'1025/tcp':[{HostIp:'127.0.0.1',HostPort:String(s.smtpPort)}],'8025/tcp':[{HostIp:'127.0.0.1',HostPort:String(s.apiPort)}]}},State:{Running:true}});
  const execute=async(_command,args)=>{
   commands.push(args);
   if(args.includes('image'))return{stdout:JSON.stringify([{Id:MAILPIT_IMAGE_DIGEST,RepoDigests:[MAILPIT_IMAGE]}])};

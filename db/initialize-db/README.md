@@ -17,7 +17,7 @@ The rest of this document describes historical SQLite fixture data and interface
 | DB file | Purpose |
 |--------|---------|
 | `users_auth.db` | User authentication, admin permissions, student progress, challenge config, **prompt_injection_progress**, **rag_injection_progress** (secure) |
-| `dvaia.db` | Vulnerable workshop + admin tables (demo users, products, challenge_visibility) |
+| `owasp-ai-goat.db` | Vulnerable workshop + admin tables (demo users, products, challenge_visibility) |
 | `secureshop.db` | SecureShop: shop users, products, orders, cart, categories |
 | `sql_nosql_workshop.db` | SQL/NoSQL injection workshop (levels 1–4, progress, achievements) |
 | `ctf.db` | CTF: config, participants, stages, progress, attempts, leaderboard |

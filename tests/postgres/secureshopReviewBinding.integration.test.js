@@ -20,7 +20,7 @@ const ids = {
 test('bound review repository isolates owners and conditionally persists decisions', { skip: !enabled }, async () => {
   for (const key of ['PG_SECURESHOP_REVIEW_TEST_MIGRATION_URL', 'PG_SECURESHOP_REVIEW_TEST_RUNTIME_URL']) {
     const url = new URL(process.env[key]);
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   const migration = new Pool({ connectionString: process.env.PG_SECURESHOP_REVIEW_TEST_MIGRATION_URL, max: 2 });
   const runtimeA = new Pool({ connectionString: process.env.PG_SECURESHOP_REVIEW_TEST_RUNTIME_URL, max: 4 });

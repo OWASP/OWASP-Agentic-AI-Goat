@@ -2,7 +2,7 @@
 
 ## Database layers
 
-DVAIA uses many SQLite files to isolate curriculum and operational domains.
+OWASP Agentic AI GOAT uses many SQLite files to isolate curriculum and operational domains.
 There are also three access styles:
 
 - callback-based `sqlite3` in the workshop platform and most legacy labs;
@@ -36,7 +36,7 @@ on it.
 | DB | Main schema/seed | Purpose and primary tables |
 |---|---|---|
 | `users_auth.db` | `01_users_auth.*` | workshop users/sessions/permissions/config/activity, central progress, visibility, hints, solution registries, PI/RAG/email progress |
-| `dvaia.db` | `02_dvaia_workshop.*` | legacy products/cart/orders/reviews/comments/files/AI plus older platform/admin/progress rows |
+| `owasp-ai-goat.db` | `02_owasp_ai_goat_workshop.*` | legacy products/cart/orders/reviews/comments/files/AI plus older platform/admin/progress rows |
 | `secureshop.db` | `03` + `17/19/20` schemas; `03/17/19/20/21/22` seeds | SecureShop business/accounts/products/reviews/cart/orders/policies/email/tickets/addresses/sessions |
 | `ctf.db` | `05_ctf.*` | CTF stages/config/participants/sessions/progress/attempts/events/leaderboard/bans/blocklists |
 | `sensitive_info.db` | `06_sensitive_info.*` | legacy documents and access logs |
@@ -61,7 +61,7 @@ start but creates dual schema ownership.
 | Module | Ownership |
 |---|---|
 | `authDb.js` | `users_auth.db`; integrity recovery, schema/migrations, defaults and all central workshop metadata |
-| `init.js` | `dvaia.db`; legacy users/products/orders/reviews/files/conversations/visibility |
+| `init.js` | `owasp-ai-goat.db`; legacy users/products/orders/reviews/files/conversations/visibility |
 | `adminSchema.js` | reusable legacy/admin tables and default configuration |
 | `ctfDb.js` | `ctf.db`; schema migrations and default stages/config |
 | `secureshop.js` | baseline `secureshop.db` tables |

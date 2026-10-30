@@ -47,8 +47,8 @@ test('real opaque frame uses closed bridge for HTTP/SSE without receiving launch
   const platform = crypto.randomBytes(16).toString('hex');
   const observed = [];
   app.use('/api/secureshop', (req, res, next) => {
-    observed.push({ launch: req.get('X-DVAIA-SecureShop-Launch'), auth: req.get('Authorization'), cookie: req.get('Cookie') });
-    if (req.get('X-DVAIA-SecureShop-Launch') !== launch) return res.sendStatus(403);next();
+    observed.push({ launch: req.get('X-OWASP-AI-GOAT-SecureShop-Launch'), auth: req.get('Authorization'), cookie: req.get('Cookie') });
+    if (req.get('X-OWASP-AI-GOAT-SecureShop-Launch') !== launch) return res.sendStatus(403);next();
   });
   app.get('/api/secureshop/products', (req, res) => res.set('X-Private', 'do-not-forward').json({ products: [{ id: 1, name: 'Synthetic teaching item' }] }));
   const transcript = 'event: assistant_message\ndata: {"text":"synthetic observation"}\n\nevent: done\ndata: {"stopReason":"completed"}\n\n';
@@ -68,7 +68,7 @@ test('real opaque frame uses closed bridge for HTTP/SSE without receiving launch
   server=http.createServer(app);await bounded(new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);}),10000);
   const origin=`http://127.0.0.1:${server.address().port}`;
   applicationCors=createApplicationCors({secureShopOrigins:[origin]});
-  profile=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-shop-bridge-browser-'));
+  profile=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-shop-bridge-browser-'));
   browser=await require('puppeteer').launch({headless:true,timeout:15000,protocolTimeout:15000,userDataDir:profile,...(process.env.PUPPETEER_EXECUTABLE_PATH?{executablePath:process.env.PUPPETEER_EXECUTABLE_PATH}:{})});
   const page=await browser.newPage();page.setDefaultTimeout(10000);page.setDefaultNavigationTimeout(10000);await page.setRequestInterception(true);
   page.on('request',r=>r.url().startsWith(origin+'/')?r.continue():r.abort());
@@ -80,7 +80,7 @@ test('real opaque frame uses closed bridge for HTTP/SSE without receiving launch
   phase='target-ready';await target.waitForFunction(()=>Boolean(window.bridge));
   assert.equal(await sibling.evaluate(()=>Boolean(window.bridge)),false);
   await target.evaluate(async()=>{shopState.setItem('secureshop_v2_token','learner-crafted');shopState.setItem('ss_guest_cart','[{"id":7}]');await flushShopState();});
-  const persisted=await page.evaluate(()=>JSON.parse(localStorage.getItem('dvaia:secureshop:11111111-1111-4111-8111-111111111111:1')));
+  const persisted=await page.evaluate(()=>JSON.parse(localStorage.getItem('owasp-ai-goat:secureshop:11111111-1111-4111-8111-111111111111:1')));
   assert.deepEqual(persisted,{secureshop_v2_token:'learner-crafted',ss_guest_cart:'[{"id":7}]'});
   const result=await target.evaluate(async()=>{
     let denied=false;try{parent.localStorage.getItem('platform_token');}catch(e){denied=e.name==='SecurityError';}

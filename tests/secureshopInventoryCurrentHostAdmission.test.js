@@ -18,7 +18,7 @@ const SOCKET = path.join(ROOT, '.qualification/goat-q/docker.sock');
 async function withOwnedRun(body) {
   const run = path.join(ROOT, 'tasks/qualification', `run-q08inventory${randomBytes(8).toString('hex')}`);
   await fsp.mkdir(run, { mode: 0o700 });
-  const names = ['DOCKER_HOST', 'DVAIA_CURRENT_MAIN_WORKSPACE', 'TMPDIR',
+  const names = ['DOCKER_HOST', 'OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE', 'TMPDIR',
     'MAC_CHROMIUM_TMPDIR', 'XDG_CACHE_HOME', 'XDG_CONFIG_HOME',
     'PUPPETEER_EXECUTABLE_PATH', 'SECURESHOP_STANDALONE_INVENTORY_NATIVE',
     'SECURESHOP_STANDALONE_INVENTORY_RETRY_NATIVE'];
@@ -26,10 +26,10 @@ async function withOwnedRun(body) {
   try {
     for (const name of ['runtime', 'runtime/tmp', 'runtime/home'])
       await fsp.mkdir(path.join(run, name), { mode: 0o700 });
-    const profile = await fsp.mkdtemp(path.join(run, 'runtime/tmp', 'dvaia-standalone-inventory-'));
+    const profile = await fsp.mkdtemp(path.join(run, 'runtime/tmp', 'owasp-ai-goat-standalone-inventory-'));
     const receiptPath = path.join(run, 'standalone-inventory-browser.json');
     Object.assign(process.env, {
-      DOCKER_HOST: `unix://${SOCKET}`, DVAIA_CURRENT_MAIN_WORKSPACE: ROOT,
+      DOCKER_HOST: `unix://${SOCKET}`, OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: ROOT,
       TMPDIR: path.join(run, 'runtime/tmp'), MAC_CHROMIUM_TMPDIR: path.join(run, 'runtime/tmp'),
       XDG_CACHE_HOME: path.join(run, 'runtime/home/.cache'),
       XDG_CONFIG_HOME: path.join(run, 'runtime/home/.config'),

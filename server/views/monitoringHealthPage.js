@@ -38,7 +38,7 @@ function renderHealthPage(payload) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="refresh" content="30">
-<title>DVAIA — System Health</title>
+<title>OWASP Agentic AI GOAT — System Health</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding:2rem}
@@ -78,8 +78,8 @@ footer a:hover{text-decoration:underline}
 <body>
 <div class="container">
   <header>
-    <h1>DVAIA System Health</h1>
-    <p>Damn Vulnerable AI Application — Monitoring Dashboard</p>
+    <h1>OWASP Agentic AI GOAT System Health</h1>
+    <p>OWASP Agentic AI GOAT — Monitoring Dashboard</p>
     <div class="status-badge">${statusIcon}&nbsp;${esc(status.toUpperCase())}</div>
     <div><button type="button" class="refresh-btn" onclick="location.reload()">&#8635;&nbsp;Refresh now</button></div>
   </header>

@@ -35,16 +35,16 @@ test.each(authorityCases)('login redirect %s/%s preserves canonical destination'
 });
 
 
-test.each([['student', 0], ['admin', 2]])('SecureShop login keeps the app destination for %s', async (role, adminLevel) => {
+test.each([['student', 0], ['admin', 2]])('OWASP AI SecureShop login keeps the app destination for %s', async (role, adminLevel) => {
  global.IS_REACT_ACT_ENVIRONMENT=true;
  mockNavigate.mockClear();
  mockLogin.mockResolvedValueOnce({success:true,user:{id:7,role,adminLevel}});
  const host=document.createElement('div');document.body.append(host);const root=createRoot(host);
  try {
   await act(async()=>root.render(<WorkshopLogin application="secureshop"/>));
-  expect(host.textContent).toContain('SecureShop Access');
+  expect(host.textContent).toContain('OWASP AI SecureShop Access');
   expect(host.textContent).toContain('Shop practice accounts are used inside the shop.');
-  expect(host.querySelector('button[type="submit"]').textContent).toBe('Enter SecureShop');
+  expect(host.querySelector('button[type="submit"]').textContent).toBe('Enter OWASP AI SecureShop');
   const inputs=[...host.querySelectorAll('form input')];
   await act(async()=>{props(inputs[0]).onChange({target:{value:'synthetic'}});props(inputs[1]).onChange({target:{value:'controlled'}});});
   await act(async()=>props(host.querySelector('form')).onSubmit({preventDefault(){}}));
@@ -54,7 +54,7 @@ test.each([['student', 0], ['admin', 2]])('SecureShop login keeps the app destin
 });
 
 
-test('failed SecureShop sign-in keeps the user at login and reports the server error', async () => {
+test('failed OWASP AI SecureShop sign-in keeps the user at login and reports the server error', async () => {
  global.IS_REACT_ACT_ENVIRONMENT=true;
  mockNavigate.mockClear();mockLogin.mockResolvedValueOnce({success:false,error:'Invalid credentials'});
  const host=document.createElement('div');document.body.append(host);const root=createRoot(host);

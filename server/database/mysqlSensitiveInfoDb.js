@@ -18,9 +18,9 @@ class MySQLSensitiveInfoDB {
     this.config = {
       host: process.env.MYSQL_HOST || 'localhost',
       port: process.env.MYSQL_PORT || 3306,
-      user: process.env.MYSQL_USER || 'dvaia_user',
-      password: process.env.MYSQL_PASSWORD || 'dvaia_password',
-      database: process.env.MYSQL_DATABASE || 'dvaia_sensitive_info',
+      user: process.env.MYSQL_USER || 'owasp_ai_goat_user',
+      password: process.env.MYSQL_PASSWORD || 'owasp_ai_goat_password',
+      database: process.env.MYSQL_DATABASE || 'owasp_ai_goat_sensitive_info',
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0

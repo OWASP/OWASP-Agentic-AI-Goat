@@ -31,7 +31,7 @@ function open(store, family, t) {
     assert.equal(value.protocol, 'postgresql:');
     assert.equal(value.hostname, '127.0.0.1');
     assert.equal(value.username, `dvaia_${family}_${role.toLowerCase()}`);
-    assert.match(value.pathname, /^\/dvaia_test_persona_(identity|agents|review)_[a-f0-9]{12}$/);
+    assert.match(value.pathname, /^\/owasp_ai_goat_test_persona_(identity|agents|review)_[a-f0-9]{12}$/);
     urls[role.toLowerCase()] = value.href;
   }
   const migration = new Pool({ connectionString: urls.migration, max: 3,
@@ -65,7 +65,7 @@ test('native product-target reset deletes owned upload bytes and preserves immut
     await migrate(agents.migration, path.resolve(__dirname, '../../db/postgres/workshop-migrations/secureshop_agents'));
     await migrate(review.migration, path.resolve(__dirname, '../../db/postgres/workshop-migrations/secureshop_review'));
 
-    const workspace = process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
+    const workspace = process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
     assert.ok(typeof workspace === 'string' && path.isAbsolute(workspace));
     const uploadRoot = path.join(workspace, 'upload-product-reset');
     const filesRoot = path.join(workspace, 'upload-product-reset-owned-files');

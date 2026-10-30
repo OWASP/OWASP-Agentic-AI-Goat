@@ -52,7 +52,7 @@ function admission() {
   assert.equal(process.env.AI_PROVIDER, 'ollama');
   assert.equal(process.env.OLLAMA_MODEL, 'llama3.1:8b');
   assert.equal(process.env.OLLAMA_BASE_URL, 'http://127.0.0.1:11434');
-  const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/');
   assert.equal(workspace, process.cwd());
   const build = path.resolve(process.env[`${BASE}BUILD`] || '/');
   assert.equal(build, path.join(workspace, 'client/build'));
@@ -71,7 +71,7 @@ function admission() {
       assert.match(url.port, /^[1-9]\d{0,4}$/); assert.ok(Number(url.port) <= 65535);
       assert.equal(url.username, `dvaia_${suffix}_${role.toLowerCase()}`);
       assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-      const match = new RegExp(`^/dvaia_test_agent_host_([0-9a-f]{12})_${suffix}$`).exec(url.pathname);
+      const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([0-9a-f]{12})_${suffix}$`).exec(url.pathname);
       assert.ok(match, `closed ${store} database required`);
       nonce ??= match[1]; port ??= url.port;
       assert.equal(match[1], nonce); assert.equal(url.port, port);
@@ -212,7 +212,7 @@ async function roleTurn({ page, frame, role, posts, action }) {
     assert.ok(UUID.test(posted.body.sessionId) && UUID.test(posted.body.requestId));
     assert.ok(typeof posted.launch === 'string' && /^Bearer \S+$/.test(posted.authorization || ''));
     const response = await fetch(`${posted.origin}/api/secureshop/agents/${role}/assistant/operations/${posted.body.sessionId}/${posted.body.requestId}`,
-      { headers: { 'x-dvaia-secureshop-launch': posted.launch,
+      { headers: { 'x-owasp-ai-goat-secureshop-launch': posted.launch,
         authorization: posted.authorization } });
     if (response.status === 200) {
       const value = await response.json();
@@ -447,7 +447,7 @@ test(ASSERTION, { skip: process.env[GATE] !== '1', timeout: 540000 }, async t =>
       const match = /^\/agents\/(merchant|admin)\/assistant\/chat$/.exec(request.path);
       if (request.method === 'POST' && match) posts[match[1]].push({
         role: match[1], origin, body: structuredClone(request.body),
-        launch: request.headers['x-dvaia-secureshop-launch'],
+        launch: request.headers['x-owasp-ai-goat-secureshop-launch'],
         authorization: request.headers.authorization });
       next();
     });
@@ -456,7 +456,7 @@ test(ASSERTION, { skip: process.env[GATE] !== '1', timeout: 540000 }, async t =>
     app.use('/api', (_request, response) => response.status(404).json({ error: 'Outside Q03 qualifier' }));
     app.use(express.static(a.build, opaqueFrameStatic()));
     app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: a.build }));
-    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-q03-role-ambiguity-'));
+    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-q03-role-ambiguity-'));
     browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
       executablePath: a.browser });
     const pages = {};
@@ -489,9 +489,9 @@ test(ASSERTION, { skip: process.env[GATE] !== '1', timeout: 540000 }, async t =>
     await merchantFrame.waitForSelector('[data-testid="merchant-role-assistant"]');
     await adminFrame.waitForSelector('[data-testid="admin-role-composer-slot"] textarea');
     const merchantCookie = (await pages.merchant.cookies(`${origin}/api/secureshop/auth/session`))
-      .find(item => item.name === 'dvaia_shop_session');
+      .find(item => item.name === 'owasp_ai_goat_shop_session');
     const adminCookie = (await pages.admin.cookies(`${origin}/api/secureshop/auth/session`))
-      .find(item => item.name === 'dvaia_shop_session');
+      .find(item => item.name === 'owasp_ai_goat_shop_session');
     assert.equal(merchantCookie?.httpOnly, true); assert.equal(adminCookie?.httpOnly, true);
     assert.equal((await auth.authenticate(merchantCookie.value))?.principalId, merchant.context.principalId);
     assert.equal((await auth.authenticate(adminCookie.value))?.principalId, admin.context.principalId);

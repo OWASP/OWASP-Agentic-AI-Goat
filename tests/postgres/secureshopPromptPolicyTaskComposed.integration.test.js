@@ -20,7 +20,7 @@ function digest(value) { return createHash('sha256').update(value, 'utf8').diges
 function dbUrl(store, role) {
   const value = new URL(process.env[`${PREFIX}${store}_${role}_URL`]);
   assert.equal(value.hostname, '127.0.0.1');
-  assert.match(value.pathname, /^\/dvaia_test_task_policy_[a-f0-9]+_(identity|agents|review|commerce)$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_task_policy_[a-f0-9]+_(identity|agents|review|commerce)$/);
   return value.href;
 }
 function jsonResponse(response) { return response.text().then(text => ({ response, value: text ? JSON.parse(text) : null })); }
@@ -29,7 +29,7 @@ test('mounted task policies bind real renderer, consumers and genuine local mode
   skip: !enabled, timeout: 350000,
 }, async t => {
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+  assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
   assert.equal(process.env.OLLAMA_MODEL, 'llama3.1:8b');
   assert.match(process.env.OLLAMA_BASE_URL, /^http:\/\/(127\.0\.0\.1|localhost):11434\/?$/);
   assert.ok(path.isAbsolute(process.env.XENOVA_CACHE));
@@ -48,7 +48,7 @@ test('mounted task policies bind real renderer, consumers and genuine local mode
   const evidence = { version: 1, status: 'incomplete', scope: 'mounted task policy route, real renderer, controlled graph contrast, then genuine local llama3.1:8b ProductAssist pair',
     rendererCalls: 0, controlled: {}, actual: { model: 'llama3.1:8b', executed: actualModel,
       maxPhysicalCalls: actualModel ? 6 : 0, calls: [] } };
-  const evidencePath = path.join(process.env.DVAIA_ISOLATED_TEST_WORKSPACE, 'task-policy-composed-result.json');
+  const evidencePath = path.join(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE, 'task-policy-composed-result.json');
   const save = () => { fs.writeFileSync(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`, { mode: 0o600 }); fs.chmodSync(evidencePath, 0o600); };
   t.after(save); save();
   try {
@@ -148,7 +148,7 @@ test('mounted task policies bind real renderer, consumers and genuine local mode
     }));
     server = await new Promise(resolve => { const value = app.listen(0, '127.0.0.1', () => resolve(value)); });
     const base = `http://127.0.0.1:${server.address().port}/api/secureshop`;
-    const launchHeaders = { 'x-dvaia-secureshop-launch': issued.bearer, 'content-type': 'application/json' };
+    const launchHeaders = { 'x-owasp-ai-goat-secureshop-launch': issued.bearer, 'content-type': 'application/json' };
     async function login(username) {
       const { response, value } = await jsonResponse(await fetch(`${base}/v2/auth/login`, { method: 'POST', headers: launchHeaders,
         body: JSON.stringify({ username, password: 'student123' }) })); assert.equal(response.status, 200); return value;

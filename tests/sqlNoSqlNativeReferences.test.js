@@ -9,7 +9,7 @@ function fixture(overrides = {}) {
     calls.push({ sql, params });
     if (overrides.query) { const result = await overrides.query(sql, params); if (result) return result; }
     if (/^(BEGIN|COMMIT|ROLLBACK)/.test(sql)) return { rows: [] };
-    if (sql.startsWith('SELECT current_database')) return { rows: [{ database: 'dvaia_test_nova_reference', role: 'dvaia_nova_runtime', ...overrides.identity }] };
+    if (sql.startsWith('SELECT current_database')) return { rows: [{ database: 'owasp_ai_goat_test_nova_reference', role: 'dvaia_nova_runtime', ...overrides.identity }] };
     if (sql.includes("current_setting('server_version')")) return { rows: [{ version: '18.0' }] };
     if (sql.startsWith('SELECT * FROM nova.papers')) return { rows: [rawPaper] };
     if (sql.startsWith('SELECT * FROM nova.authors')) return { rows: [{ author_id: 'A1', expertise: '["Topic"]' }] };

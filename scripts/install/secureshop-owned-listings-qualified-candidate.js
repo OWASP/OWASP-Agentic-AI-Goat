@@ -111,7 +111,7 @@ function profileLocation({authority,root,home,platform}){
 // symlink/FIFO following, no credential inputs, no arbitrary destination.
 const PROFILE_PROGRAM=String.raw`import os,sys,base64,stat,subprocess,fcntl,tempfile,hashlib
 name=sys.argv[1]; data=base64.b64decode(sys.argv[2],validate=True)
-assert name.startswith('dvaia-owned-listings-') and len(name)==33 and all(c in '0123456789abcdef' for c in name[-12:])
+assert name.startswith('owasp-ai-goat-owned-listings-') and len(name)==33 and all(c in '0123456789abcdef' for c in name[-12:])
 assert len(data)<65536 and hashlib.sha256(data).hexdigest()==sys.argv[3]
 assert os.geteuid()==0
 root='/etc/apparmor.d'; dst=root+'/'+name; lock=root+'/.'+name+'.install-lock'
@@ -149,7 +149,7 @@ finally: os.close(lfd)
 `;
 async function provisionProfile({p,authority,root,home,platform,run}){
  const location=profileLocation({authority,root,home,platform});
- if(p.profile.name!=='dvaia-owned-listings-'+p.workspaceId||!/^dvaia-owned-listings-[a-f0-9]{12}$/.test(p.profile.name))throw fail('LISTINGS_PROFILE_INVALID');
+ if(p.profile.name!=='owasp-ai-goat-owned-listings-'+p.workspaceId||!/^owasp-ai-goat-owned-listings-[a-f0-9]{12}$/.test(p.profile.name))throw fail('LISTINGS_PROFILE_INVALID');
  const bytes=Buffer.from(fs.readFileSync(path.join(root,'sidecars/sandbox-runner/owned-listings/profile.apparmor.in'),'utf8').replaceAll('@@SUPERVISOR_PROFILE@@',p.profile.name));if(sha(bytes)!==p.profile.sha256)throw fail('LISTINGS_PROFILE_SOURCE_CHANGED');
  const args=['python3','-c',PROFILE_PROGRAM,p.profile.name,bytes.toString('base64'),p.profile.sha256],quote=s=>"'"+s.replaceAll("'","'\"'\"'")+"'";
  const result=await run(platform==='linux'?'sudo':'ssh',platform==='linux'?['--non-interactive',...args]:['-F',location.sshConfig,location.sshHost,['sudo','--non-interactive',...args].map(quote).join(' ')],{timeoutMs:40000,maxOutputBytes:65536});

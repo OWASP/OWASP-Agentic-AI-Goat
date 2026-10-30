@@ -11,7 +11,7 @@ let isolatedPath;
  */
 function isolateAuthDb(label) {
   if (isolatedPath) return isolatedPath;
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), `dvaia-${label}-`));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), `owasp-ai-goat-${label}-`));
   const database = path.join(directory, 'users_auth.db');
   // Build from source schema only. Never copy a working DB: it may contain
   // private attendee data, and copying without its WAL is not a valid snapshot.

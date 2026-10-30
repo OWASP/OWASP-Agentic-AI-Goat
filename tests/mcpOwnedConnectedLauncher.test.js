@@ -10,7 +10,7 @@ const { spawnSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 
 test('connected launcher rejects changed source, copied bytes, and grant inventory before external mutation', t => {
-  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-mcp-launcher-provenance-'));
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-mcp-launcher-provenance-'));
   t.after(() => fs.rmSync(temporary, { recursive: true, force: true }));
   const source = path.join(temporary, 'source');
   const copied = path.join(temporary, 'copied');
@@ -168,7 +168,7 @@ test('synthetic protected-file format example; actual native byte integrity is a
 });
 
 test('copied directory repair preserves readonly source and rejects symlink escape', t => {
-  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-mcp-copy-modes-'));
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-mcp-copy-modes-'));
   t.after(() => fs.rmSync(temporary, { recursive: true, force: true }));
   const helper = path.join(root, 'tests/postgres/native_copied_permissions.py');
   const python = String.raw`
@@ -212,7 +212,7 @@ for directory in [source,source/'sidecars',nested,bad,outside]: directory.chmod(
 });
 
 test('readiness failure evidence survives independent owned cleanup', t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-mcp-readiness-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-mcp-readiness-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const helper = path.join(root, 'tests/postgres/native_readiness_evidence.py');
   const script = String.raw`
@@ -246,7 +246,7 @@ assert len(log_payload['stderr'])<=4096
 });
 
 test('copied synthetic target fixture is made readable after a conservative launcher umask', t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-mcp-fixture-mode-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-mcp-fixture-mode-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const file = path.join(directory, '.env');
   const prior = process.umask(0o077);

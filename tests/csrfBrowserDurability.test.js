@@ -12,7 +12,7 @@ const { getOwnerExecution } = require('../server/agent-runtime/ownerWorkflowRout
 const sandboxMod = require('../server/services/csrfVictimSandbox');
 
 test('admitted effect is persisted before delayed narration, and browser shutdown cannot grade it', { timeout: 15000 }, async t => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-csrf-durable-effect-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-csrf-durable-effect-'));
   const stateFile = path.join(directory, 'victim.json');
   const attackerOrigin = 'http://attacker.durable.invalid', victimOrigin = 'http://victim.durable.invalid';
   const executor = createCsrfBrowserExecutor({ attackerOrigin, victimOrigin, timeoutMs: 10000 });

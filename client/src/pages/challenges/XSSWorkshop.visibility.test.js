@@ -121,8 +121,8 @@ function installResponses() {
     }
     if (url === '/api/workshop/xss/llm-status') return Promise.resolve({ data: { available: true } });
     if (url === '/api/workshop/xss/emails/sharklaser-email') return Promise.resolve({ data: {
-      email: 'xss-42@dvaia.invalid', mode: 'local', provider: 'mailpit', editable: false,
-      sender: 'attacker@dvaia.invalid',
+      email: 'xss-42@owasp-ai-goat.invalid', mode: 'local', provider: 'mailpit', editable: false,
+      sender: 'attacker@owasp-ai-goat.invalid',
     } });
     return Promise.resolve({ data: {} });
   });
@@ -302,7 +302,7 @@ test('scenario navigation preserves each XSS transcript and does not reset sibli
 });
 
 test('local email panel uses the server-owned private inbox and reports only SMTP acceptance', async () => {
-  localStorage.setItem('dvaia_email_agent_temp_email', 'stale-public@sharklasers.com');
+  localStorage.setItem('owasp_ai_goat_email_agent_temp_email', 'stale-public@sharklasers.com');
   const view = renderWorkshop();
   await flush();
   expect(view.node.textContent).toContain('unsanitized HTML with executable event-handler attributes can run');
@@ -315,7 +315,7 @@ test('local email panel uses the server-owned private inbox and reports only SMT
     await Promise.resolve();
   });
 
-  expect(view.node.textContent).toContain('Send from attacker@dvaia.invalid to Your Workshop Inbox');
+  expect(view.node.textContent).toContain('Send from attacker@owasp-ai-goat.invalid to Your Workshop Inbox');
   expect(view.node.textContent).toContain('Your workshop inbox (To)');
   expect(view.node.textContent).toContain('through the configured workshop mail transport');
   expect(view.node.textContent).toContain('Summarize my latest exercise attack email');
@@ -325,7 +325,7 @@ test('local email panel uses the server-owned private inbox and reports only SMT
   expect(view.node.textContent).not.toContain('base SharkLasers address');
   expect(view.node.textContent).not.toContain('Send Your Malicious Email to indirectpromptinjection@gmail.com');
   const recipient = view.node.querySelector('input[type="email"]');
-  expect(recipient.value).toBe('xss-42@dvaia.invalid');
+  expect(recipient.value).toBe('xss-42@owasp-ai-goat.invalid');
   expect(recipient.readOnly).toBe(true);
   await act(async () => {
     [...view.node.querySelectorAll('button')].find(candidate => candidate.textContent === 'Send Email').click();
@@ -333,7 +333,7 @@ test('local email panel uses the server-owned private inbox and reports only SMT
   });
   await flush();
   expect(axios.post.mock.calls.some(([url, body]) => url === '/api/workshop/xss/emails/send-attack'
-    && body.fromEmail === 'xss-42@dvaia.invalid')).toBe(true);
+    && body.fromEmail === 'xss-42@owasp-ai-goat.invalid')).toBe(true);
   expect(view.node.textContent).toContain('Local SMTP accepted the message. Ask the AI to check your workshop inbox.');
   act(() => view.root.unmount());
 });
@@ -587,7 +587,7 @@ test('late email metadata cannot undo a newer scenario selection', async () => {
   act(() => view.node.querySelector('[data-scenario-tab="email"]').click());
   act(() => view.node.querySelector('[data-scenario-tab="reflected"]').click());
   await act(async () => finishMetadata({ data: {
-    mode: 'local', provider: 'mailpit', email: 'xss-1@dvaia.invalid', editable: false,
+    mode: 'local', provider: 'mailpit', email: 'xss-1@owasp-ai-goat.invalid', editable: false,
   } }));
   await flush();
   expect(view.node.querySelector('input[type="email"]')).toBeNull();

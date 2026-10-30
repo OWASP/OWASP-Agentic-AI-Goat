@@ -13,7 +13,7 @@ const ownerToken = [
     ss_authority_version: '1', ss_launch_id: '10000000-0000-4000-8000-000000000082',
     ss_scenario_id: '20000000-0000-4000-8000-000000000082', ss_generation: 5,
     ss_owner_id: 82, ss_platform_session_id: 802, iat: 1000, exp: 2000,
-    iss: 'dvaia-secureshop-bound', aud: 'dvaia-secureshop-bound-persona', sub: '7',
+    iss: 'owasp-ai-goat-secureshop-bound', aud: 'owasp-ai-goat-secureshop-bound-persona', sub: '7',
     jti: '30000000-0000-4000-8000-000000000082' })).toString('base64url'), 'signature',
 ].join('.');
 jest.mock('../utils/shopStorage.mjs', () => ({

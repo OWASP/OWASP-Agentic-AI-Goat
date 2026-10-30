@@ -4,7 +4,7 @@ const {randomUUID}=require('node:crypto');
 test('native conversation history follows completed runs and reset generations',{
  skip:process.env.PG_TEST_DISPOSABLE!=='yes'||!process.env.PG_CONVERSATIONS_RUNTIME_URL,
 },async()=>{
- for(const key of ['PG_CONVERSATIONS_RUNTIME_URL','PG_CONVERSATIONS_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const key of ['PG_CONVERSATIONS_RUNTIME_URL','PG_CONVERSATIONS_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const {createPool}=require('../../server/database/postgres');
  const runtime=createPool(process.env,'PG_CONVERSATIONS_RUNTIME_URL'),migration=createPool(process.env,'PG_CONVERSATIONS_MIGRATION_URL');
  try{

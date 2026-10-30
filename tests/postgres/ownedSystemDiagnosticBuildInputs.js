@@ -16,7 +16,7 @@ const DOCKERFILE = `FROM node@${BASE}
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev bubblewrap && rm -rf /var/lib/apt/lists/*
 COPY owned-system /qualification/owned-system
 COPY diagnostic-listener-entry.js /qualification/diagnostic-listener-entry.js
-RUN mkdir -p /usr/local/libexec && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-init.c -o /usr/local/libexec/dvaia-system-diagnostic-init && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-supervisor.c -o /usr/local/libexec/dvaia-system-diagnostic-supervisor && chmod 0555 /usr/local/libexec/dvaia-system-diagnostic-* /usr/bin/bwrap && for f in /usr/local/libexec/dvaia-system-diagnostic-init /usr/local/libexec/dvaia-system-diagnostic-supervisor; do sha256sum "$f" | cut -d' ' -f1 > "$f.sha256"; chmod 0444 "$f.sha256"; done && dpkg-query -W > /qualification/packages.txt
+RUN mkdir -p /usr/local/libexec && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-init.c -o /usr/local/libexec/owasp-ai-goat-system-diagnostic-init && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/diagnostic-supervisor.c -o /usr/local/libexec/owasp-ai-goat-system-diagnostic-supervisor && chmod 0555 /usr/local/libexec/owasp-ai-goat-system-diagnostic-* /usr/bin/bwrap && for f in /usr/local/libexec/owasp-ai-goat-system-diagnostic-init /usr/local/libexec/owasp-ai-goat-system-diagnostic-supervisor; do sha256sum "$f" | cut -d' ' -f1 > "$f.sha256"; chmod 0444 "$f.sha256"; done && dpkg-query -W > /qualification/packages.txt
 USER 10001:10001
 ENTRYPOINT ["/usr/local/bin/node","/qualification/diagnostic-listener-entry.js"]
 `;

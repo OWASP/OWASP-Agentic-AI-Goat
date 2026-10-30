@@ -77,7 +77,7 @@ test('unrelated challenge routes retain the intentional reflective CORS behavior
 });
 
 test('production static assets remain readable by the opaque frame while authenticated APIs reject it', async t => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-production-assets-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-production-assets-'));
   fs.mkdirSync(path.join(root, 'assets'));fs.writeFileSync(path.join(root, 'assets', 'frame.js'), 'export const ready=true;');
   const app = express();app.use(createApplicationCors());app.use(express.static(root));
   app.use((_req, res) => res.status(404).end());
@@ -158,7 +158,7 @@ test('trusted origins receive only the reviewed method and header contract', asy
     assert.deepEqual(r.headers.get('access-control-allow-headers').split(','),
       path.startsWith('/api/secureshop/')
         ? ['authorization', 'content-type', 'accept', 'x-request-id',
-          'x-dvaia-secureshop-launch', 'x-api-key']
+          'x-owasp-ai-goat-secureshop-launch', 'x-api-key']
         : ['authorization', 'content-type', 'accept', 'x-request-id']);
     assert.match(r.headers.get('access-control-allow-methods'), /PATCH/);
   }
@@ -177,10 +177,10 @@ test('custom teaching headers remain available on legacy challenge preflights', 
 test('launch credential preflight is allowed only on trusted SecureShop origins', async t => {
   const f = await fixture(t);
   const headers = { Origin: 'http://localhost:3000', 'Access-Control-Request-Method': 'POST',
-    'Access-Control-Request-Headers': 'Authorization, Content-Type, X-DVAIA-SecureShop-Launch, X-API-Key' };
+    'Access-Control-Request-Headers': 'Authorization, Content-Type, X-OWASP-AI-GOAT-SecureShop-Launch, X-API-Key' };
   const accepted = await f.request('/api/secureshop/bound/sessions', { method: 'OPTIONS', headers });
   assert.equal(accepted.status, 204);
-  assert.match(accepted.headers.get('access-control-allow-headers'), /x-dvaia-secureshop-launch/);
+  assert.match(accepted.headers.get('access-control-allow-headers'), /x-owasp-ai-goat-secureshop-launch/);
   assert.match(accepted.headers.get('access-control-allow-headers'), /x-api-key/);
   for (const path of ['/api/admin/users', '/api/auth/login', '/api/agent-runs']) {
     assert.equal((await f.request(path, { method: 'OPTIONS', headers })).status, 403);
@@ -189,7 +189,7 @@ test('launch credential preflight is allowed only on trusted SecureShop origins'
     assert.equal((await f.request('/api/secureshop/bound/sessions', { method: 'OPTIONS', headers: { ...headers, Origin } })).status, 403);
   }
   assert.equal((await f.request('/api/secureshop/bound/sessions', { method: 'OPTIONS', headers: {
-    ...headers, 'Access-Control-Request-Headers': 'x-dvaia-secureshop-launch,x-forged-owner',
+    ...headers, 'Access-Control-Request-Headers': 'x-owasp-ai-goat-secureshop-launch,x-forged-owner',
   } })).status, 403);
   assert.equal(f.effects(), 0);
 });

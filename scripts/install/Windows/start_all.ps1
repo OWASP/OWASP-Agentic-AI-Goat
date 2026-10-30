@@ -8,7 +8,7 @@ param(
     [switch]$Reset,
     [switch]$Stop
 )
-function Get-DvaiaWindowsStopNode {
+function Get-OwaspAiGoatWindowsStopNode {
     param(
         [string]$RepoRoot,
         [string]$UserProfile = $env:USERPROFILE,
@@ -21,19 +21,19 @@ function Get-DvaiaWindowsStopNode {
         [scriptblock]$Runner = $null
     )
     $policy = Get-Content -LiteralPath (Join-Path $RepoRoot 'scripts\install\runtime-version-policy.sh') -Raw
-    $matches = [regex]::Matches($policy, '(?m)^DVAIA_MINIMUM_NODE_VERSION=(\d+\.\d+\.\d+)\r?$')
+    $matches = [regex]::Matches($policy, '(?m)^OWASP_AI_GOAT_MINIMUM_NODE_VERSION=(\d+\.\d+\.\d+)\r?$')
     if ($matches.Count -ne 1) { throw 'WINDOWS_STOP_RUNTIME_POLICY_DENIED' }
     $minimum = $matches[0].Groups[1].Value
     if (-not $Runner) {
         # Import within function scope: the library's Plan/Execute parameters
         # cannot overwrite the startup wrapper's Plan/Stop switches.
         . (Join-Path $PSScriptRoot 'prerequisites.ps1')
-        $Runner = ${function:Invoke-DvaiaPrerequisiteProcess}
+        $Runner = ${function:Invoke-OwaspAiGoatPrerequisiteProcess}
     }
     $candidates = @()
     try { $installed = & $Find; if ($installed) { $candidates += [string]$installed } } catch { }
     if ([IO.Path]::IsPathRooted($UserProfile)) {
-        $candidates += Join-Path $UserProfile ('.dvaia\tools\node-v' + $minimum + '-win-x64\node.exe')
+        $candidates += Join-Path $UserProfile ('.owasp-ai-goat\tools\node-v' + $minimum + '-win-x64\node.exe')
     }
     foreach ($candidate in $candidates) {
         try {
@@ -56,13 +56,13 @@ if ($Reset) {
 if ($Stop) {
     if ($Plan -or $InitDb) { throw '-Stop cannot be combined with -Plan or -InitDb.' }
     $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
-    $node = Get-DvaiaWindowsStopNode -RepoRoot $RepoRoot
+    $node = Get-OwaspAiGoatWindowsStopNode -RepoRoot $RepoRoot
     & $node (Join-Path $RepoRoot 'scripts/launcher-control.js')
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     return
 }
 . (Join-Path $PSScriptRoot 'wrapper-handoff.ps1')
-$handoff = Invoke-DvaiaWindowsWrapperHandoff -Kind start -PlanMode ([bool]$Plan) -InitDb ([bool]$InitDb) -CompositionReady $true
+$handoff = Invoke-OwaspAiGoatWindowsWrapperHandoff -Kind start -PlanMode ([bool]$Plan) -InitDb ([bool]$InitDb) -CompositionReady $true
 $handoff | ConvertTo-Json -Depth 6
 if ($Plan) {
     Write-Output 'Plan performed no service or database changes and did not require Node.js.'

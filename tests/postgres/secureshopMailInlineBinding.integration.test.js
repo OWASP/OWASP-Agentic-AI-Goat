@@ -28,7 +28,7 @@ function pool(key) {
   const family = { IDENTITY: 'identity', AGENTS: 'secureshop_agents',
     COMMERCE: 'secureshop', FRESH: 'secureshop_conversation' }[key.split('_')[0]];
   assert.ok(family, `unsupported mail cohort database key: ${key}`);
-  assert.match(url.pathname, new RegExp(`^/dvaia_test_agent_host_[0-9a-f]{12}_${family}$`));
+  assert.match(url.pathname, new RegExp(`^/owasp_ai_goat_test_agent_host_[0-9a-f]{12}_${family}$`));
   const result = new Pool({ connectionString: url.href, max: 8, connectionTimeoutMillis: 10000, statement_timeout: 10000 });
   result.__cohortDatabaseName = url.pathname;
   return result;

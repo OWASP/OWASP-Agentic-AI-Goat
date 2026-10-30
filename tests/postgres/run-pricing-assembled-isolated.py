@@ -12,8 +12,8 @@ safety = types.ModuleType("pricing_captured_safety")
 exec(compile(SAFETY_BYTES, str(SAFETY_PATH), "exec"), safety.__dict__)
 SignalGate = safety.SignalGate
 
-EXPECTED_DOCKER='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+EXPECTED_DOCKER='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 DOCKER=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 IMAGE='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 SOURCE=Path(__file__).resolve().parents[2]
@@ -24,8 +24,8 @@ SSH=validate_ssh(args.ssh_binary,args.ssh_sha256,args.ssh_config,args.ssh_config
 mode='pricing-journal-canonical' if args.canonical else 'pricing-journal-candidate'
 test_file='tests/postgres/secureshopPricingJournal.integration.test.js'
 if args.docker_host!=EXPECTED_DOCKER:raise SystemExit('reviewed isolated Docker host required')
-root=Path(tempfile.mkdtemp(prefix='dvaia-pricing-journal-'));os.chmod(root,0o700);workspace=root/'source'
-container='dvaia-pricing-journal-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-pricing-journal-'));os.chmod(root,0o700);workspace=root/'source'
+container='owasp-ai-goat-pricing-journal-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
 docker=[str(DOCKER),'--host',args.docker_host]
 env={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(root)}
 state={'container':container,'owner':owner,'image':IMAGE,'evidence':str(root),'launcherPid':os.getpid(),
@@ -67,7 +67,7 @@ try:
  if version!='v26.9.0':raise RuntimeError('managed Node v26.9.0 required')
  state['nodeVersion']=version;persist()
  daemon_name=run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
- if daemon_name!='colima-dvaia-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
+ if daemon_name!='colima-owasp-ai-goat-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
  image_id=run(docker+['image','inspect','--format','{{.Id}}',IMAGE],stdout=subprocess.PIPE,text=True).stdout.strip()
  if image_id!=IMAGE:raise RuntimeError('immutable PostgreSQL image identity mismatch')
  state['dockerDaemon']=daemon_name;state['imageId']=image_id;persist()
@@ -81,12 +81,12 @@ try:
  state['sourceSha256']={name:digest(workspace/name) for name in sorted(set(inventory))};state['nodeSha256']=digest(NODE);persist()
  run([str(NODE),'--check',test_file],cwd=workspace)
  creation_attempted=True;state['containerCreationAttempted']=True;persist()
- run(docker+['run','--detach','--pull','never','--name',container,'--label','dvaia.test.owner='+owner,
+ run(docker+['run','--detach','--pull','never','--name',container,'--label','owasp-ai-goat.test.owner='+owner,
   '--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=536870912','-e','POSTGRES_HOST_AUTH_METHOD=trust',
   '-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=40',
   '-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
  details=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
- if details.get('Mounts') or details['Config']['Labels'].get('dvaia.test.owner')!=owner or details['Image']!=IMAGE:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
+ if details.get('Mounts') or details['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner or details['Image']!=IMAGE:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
  limits=details['HostConfig']
  if limits['Memory']!=1073741824 or limits['NanoCpus']!=2000000000 or limits['PidsLimit']!=128 or list(limits['PortBindings'])!=['5432/tcp'] or len(limits['PortBindings']['5432/tcp'])!=1 or limits['PortBindings']['5432/tcp'][0]['HostIp']!='127.0.0.1':raise RuntimeError('owned PostgreSQL resource/publication mismatch')
  state['containerId']=details['Id'];state['inspectedResources']={'memory':limits['Memory'],'nanoCpus':limits['NanoCpus'],'pidsLimit':limits['PidsLimit'],'portBindings':limits['PortBindings'],'mounts':details.get('Mounts')};persist()
@@ -104,7 +104,7 @@ try:
  run(psql+[';'.join(f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS' for role in roles)+';'],stdout=subprocess.DEVNULL)
  nonce=owner[:12]
  for store,family in [('identity','identity'),('commerce','secureshop'),('fresh','secureshop_agents'),('aclfresh','secureshop_agents'),('review','secureshop_review')]:
-  database=f'dvaia_test_persona_{nonce}_{store}';migration=f'dvaia_{family}_migration';runtime=f'dvaia_{family}_runtime'
+  database=f'owasp_ai_goat_test_persona_{nonce}_{store}';migration=f'dvaia_{family}_migration';runtime=f'dvaia_{family}_runtime'
   run(psql+[f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL)
   run(psql+[f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}'],stdout=subprocess.DEVNULL)
   env[f'PERSONA_{store.upper()}_MIGRATION_URL']=f'postgresql://{migration}@127.0.0.1:{port}/{database}'
@@ -115,7 +115,7 @@ try:
  env.update(executor.start())
  env['PERSONA_PRICING_NATIVE']='1'
  if args.canonical:env['PERSONA_PRICING_CANONICAL']='1'
- env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',PERSONA_REVIEW_CANONICAL_NATIVE='1',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+ env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',PERSONA_REVIEW_CANONICAL_NATIVE='1',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
   PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',
   AI_PROVIDER='mock',TRANSFORMERS_OFFLINE='1',JWT_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,SESSION_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,
   AWS_EC2_METADATA_DISABLED='true',MCP_WORKSHOP_AUTOSTART='false',MCP_SIDECARS_AUTOSTART='false',SS_ENABLE='false',HF_HUB_OFFLINE='1',
@@ -152,7 +152,7 @@ finally:
   try:
    if not exact_absence():
     info=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
-    if info['Config']['Labels'].get('dvaia.test.owner')!=owner or info['Image']!=IMAGE or (state.get('containerId') and info['Id']!=state['containerId']):raise RuntimeError('refusing foreign container cleanup')
+    if info['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner or info['Image']!=IMAGE or (state.get('containerId') and info['Id']!=state['containerId']):raise RuntimeError('refusing foreign container cleanup')
     remove_code=subprocess.run(docker+['rm','-f','-v',container],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=30).returncode
    else:remove_code=0
   except Exception as error:errors.append('remove:'+type(error).__name__)

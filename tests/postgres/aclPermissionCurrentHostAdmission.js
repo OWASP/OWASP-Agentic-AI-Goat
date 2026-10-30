@@ -47,7 +47,7 @@ function deletionPaths(env, repo = REPO) {
   for (const key of ['ADMIN_ACL_PERMISSION_BUILD_SHA256',
     'ADMIN_ACL_PERMISSION_SNAPSHOT_SHA256', 'ADMIN_ACL_PERMISSION_STORE_PLAN_SHA256'])
     assert(SHA256.test(env[key] || ''), `${key} pin required`);
-  assert.equal(env.PUPPETEER_EXECUTABLE_PATH, env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE);
+  assert.equal(env.PUPPETEER_EXECUTABLE_PATH, env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE);
   assert(path.isAbsolute(env.PUPPETEER_EXECUTABLE_PATH));
   return { run, runtime, temp, evidence, buildDirectory };
 }
@@ -68,10 +68,10 @@ function validateDeletionGrant(grant, { env, paths, repo = REPO,
   assert.equal(grant.snapshotSha256, env.ADMIN_ACL_PERMISSION_SNAPSHOT_SHA256);
   assert.equal(grant.storePlanSha256, env.ADMIN_ACL_PERMISSION_STORE_PLAN_SHA256);
   assert.equal(grant.outerSandbox, 'repository-only');
-  assert.equal(grant.chromium, env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE);
+  assert.equal(grant.chromium, env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE);
   assert.equal(path.dirname(grant.profile), paths.temp);
-  assert(/^dvaia-acl-permission-browser-[0-9a-f]{12}$/.test(path.basename(grant.profile)));
-  assert.equal(path.basename(grant.profile), `dvaia-acl-permission-browser-${grant.nonce}`);
+  assert(/^owasp-ai-goat-acl-permission-browser-[0-9a-f]{12}$/.test(path.basename(grant.profile)));
+  assert.equal(path.basename(grant.profile), `owasp-ai-goat-acl-permission-browser-${grant.nonce}`);
   return { admitted: true, nonceSha256: sha(grant.nonce), profile: grant.profile };
 }
 
@@ -113,7 +113,7 @@ async function admitDeletionCurrentHost(env = process.env, repo = REPO) {
       assert(Number.isSafeInteger(ack.startSec) && ack.startSec > 0);
       assert(Number.isSafeInteger(ack.startUsec) && ack.startUsec >= 0);
       assert.equal(ack.profile, admitted.profile);
-      assert.equal(ack.executable, env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE);
+      assert.equal(ack.executable, env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE);
       return { acknowledged: true, pid };
     }
     throw new Error('Student deletion live browser birth ACK timed out');

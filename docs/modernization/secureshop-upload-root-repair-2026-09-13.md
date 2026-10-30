@@ -14,6 +14,6 @@ Verification so far:
 - The strengthened real file/index retrieval proof passed using isolated deterministic compatibility fixtures.
 - Independent review found no blocking defect and confirmed existing callers and deliberate sinks remain compatible.
 - The running backend responded; Ollama was healthy, while the endpoint reported overall `degraded` with its heap-usage metric at 93% (56 of 60 reported units). This is not recorded as a clean health pass or attributed to this change without further evidence.
-- Full isolated SecureShop regression: 306 tests, 305 passed, one skipped, no failures; all three browser exploit cases passed. Runtime and focused-test files match the snapshot. Logs: `/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-regression-367TZM/tests.log`.
+- Full isolated SecureShop regression: 306 tests, 305 passed, one skipped, no failures; all three browser exploit cases passed. Runtime and focused-test files match the snapshot. Logs: `/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-regression-367TZM/tests.log`.
 
 No UI, objective, schema, learner data or AWS/deployment asset changed in this repair.

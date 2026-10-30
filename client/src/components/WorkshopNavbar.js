@@ -571,7 +571,7 @@ const WorkshopNavbar = () => {
                   onClick={() => setIsOpen(false)}
                 >
                   <FiPackage size={16} />
-                  SecureShop
+                  OWASP AI SecureShop
                 </NavLink>
                 <NavLink
                   to="/workshop/agent-runs"

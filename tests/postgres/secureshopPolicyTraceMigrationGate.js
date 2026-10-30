@@ -12,7 +12,7 @@ module.exports=async function qualifyPolicyTrace({t,identity,migration}){
  assert.deepEqual(await through.migrate(migration,base),[name]);assert.deepEqual(await through.migrate(migration,base),[]);
  assert.deepEqual((await identity.query('SELECT * FROM graph_runtime.events WHERE run_id=$1 ORDER BY sequence',[run])).rows,before);
  const ledgerAfter=(await migration.query('SELECT * FROM dvaia_migrations.ledger ORDER BY name')).rows;assert.deepEqual(ledgerAfter.slice(0,-1),ledgerBefore);assert.equal(ledgerAfter.at(-1).checksum,createHash('sha256').update(fs.readFileSync(path.join(base,name))).digest('hex'));
- const url=new URL(process.env.PERSONA_IDENTITYFRESH_MIGRATION_URL);assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/dvaia_test_persona_[a-f0-9]+_identityfresh$/);
+ const url=new URL(process.env.PERSONA_IDENTITYFRESH_MIGRATION_URL);assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/owasp_ai_goat_test_persona_[a-f0-9]+_identityfresh$/);
  // This one bounded pool is closed before actor/service work starts.
  const fresh=new Pool({connectionString:url.href,max:1,statement_timeout:8000});try{assert.ok((await through.migrate(fresh,base)).includes(name));assert.deepEqual(await through.migrate(fresh,base),[]);}finally{await fresh.end();}
  const receipt={admissionId:randomUUID(),runId:run,invocationId:'1:actual-call',toolKey:'audit.search_by_user',policyVersion:'3',registrySha256:'a'.repeat(64),enforcement:true,allowed:false,action:'block',policyViolation:'denied-by-acl'};

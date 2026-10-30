@@ -1,4 +1,4 @@
-export const STANDALONE_SESSION_CHANNEL = 'dvaia-secureshop-standalone-session-v1';
+export const STANDALONE_SESSION_CHANNEL = 'owasp-ai-goat-secureshop-standalone-session-v1';
 
 export function requestStandaloneSessionIntent(type, { role, frameWindow = globalThis.window,
   origin = new URL(frameWindow.document.baseURI).origin, timeoutMs = 10000 } = {}) {

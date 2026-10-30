@@ -168,7 +168,7 @@ async function censusPlan(root, runId, mode = 'HEAD') {
   const guestSource = `'use strict';const modules=${JSON.stringify(modules)},cache=new Map();
 function load(name){if(!Object.hasOwn(modules,name))throw Error('CENSUS_MODULE');if(cache.has(name))return cache.get(name).exports;const module={exports:{}};cache.set(name,module);new Function('require','module','exports',modules[name])(id=>id.startsWith('node:')?require(id):load(id.replace(/^\\.\\//,'')),module,module.exports);return module.exports;}
 (async()=>{const controller=new AbortController(),stop=()=>controller.abort();process.once('SIGTERM',stop);process.once('SIGINT',stop);
-try{const deadline=Number(process.env.DVAIA_ARTIFACT_DEADLINE_SECONDS)*1000,port=Number(process.env.DVAIA_ARTIFACT_PROXY_PORT);
+try{const deadline=Number(process.env.OWASP_AI_GOAT_ARTIFACT_DEADLINE_SECONDS)*1000,port=Number(process.env.OWASP_AI_GOAT_ARTIFACT_PROXY_PORT);
 const receipt=await load('ownedMcpNpmSizeCensus').runSizeCensus({npmLock:Buffer.from('${npmLock.toString('base64')}','base64'),directory:'/closure/census',mode:'${mode}',authority:{host:'127.0.0.1',port},signal:controller.signal,now:()=>Number(process.hrtime.bigint())/1000000,deadline});
 await load('ownedMcpNpmSizeCensus')._internals.record('/closure','ready.json',{binding:${JSON.stringify(base.binding)},receipt});
 }finally{process.removeListener('SIGTERM',stop);process.removeListener('SIGINT',stop);}})().catch(error=>{const value=JSON.stringify({error:error.code||'CENSUS_GUEST_FAILED',retirementUnproven:error.retirementUnproven===true,diagnostic:error.censusDiagnostic||null});process.stderr.write((Buffer.byteLength(value)<=4096?value:JSON.stringify({error:'CENSUS_DIAGNOSTIC_LIMIT'}))+'\\n');process.exitCode=1;});`;
@@ -182,7 +182,7 @@ await load('ownedMcpNpmSizeCensus')._internals.record('/closure','ready.json',{b
   commands.startArtifacts = adapter._internals.replaceOnce(commands.startArtifacts, oldPoll, COMPLETION + 'cat "$root/fs/closure/ready.json"\n');
   commands.censusEvidence = adapter._internals.guardFrom(base) + String.raw`
 check_mount; check_runtime
-/usr/bin/python3 -I -S -B - "$root/fs/closure/census" <<'DVAIA_CENSUS_EVIDENCE'
+/usr/bin/python3 -I -S -B - "$root/fs/closure/census" <<'OWASP_AI_GOAT_CENSUS_EVIDENCE'
 import os,sys,stat,json,hashlib
 root=sys.argv[1];assert os.path.realpath(root)==root
 result={}
@@ -196,7 +196,7 @@ for name in ('failure.json','estimates.json'):
  result[name]=dict(bytes=len(data),sha256=hashlib.sha256(data).hexdigest(),raw=data.decode('utf-8'))
 encoded=json.dumps(result);assert len(encoded.encode())<=1048576
 print(encoded)
-DVAIA_CENSUS_EVIDENCE
+OWASP_AI_GOAT_CENSUS_EVIDENCE
 `;
   return { ...base, kind: 'original-npm-head-size-census', mode, helperHashes, commands, guestSource, guestSourceSha256: hash(guestSource),
     censusLimits: LIMITS, buildApproved: false, qualificationComplete: false };

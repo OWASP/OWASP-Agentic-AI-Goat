@@ -40,7 +40,7 @@ CONTROL_SOURCES = (
 RECORD = 'idor-lesson-browser.json'
 ACK = 'idor-lesson-browser-ack.json'
 KIND = 'idor_lesson_browser'
-PROFILE = 'dvaia-customer-idor-browser-'
+PROFILE = 'owasp-ai-goat-customer-idor-browser-'
 
 
 def digest(path):

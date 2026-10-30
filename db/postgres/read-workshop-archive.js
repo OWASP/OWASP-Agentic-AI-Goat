@@ -70,7 +70,7 @@ async function readWorkshopArchive({archive,family,naiveTimestamps='UTC'}){
  const root=await fs.realpath(archive);const incomplete=await fs.lstat(path.join(root,'INCOMPLETE')).then(()=>true,error=>{if(error.code==='ENOENT')return false;throw error;});if(incomplete)fail('INCOMPLETE_ARCHIVE');
  const manifestBytes=await file(root,'manifest.json',{budget});
  const manifest=JSON.parse(manifestBytes.toString('utf8'));
- if(manifest.version!==1||manifest.format!=='dvaia-sqlite-archive-v1'||manifest.complete!==true||!Array.isArray(manifest.files))fail('INVALID_ARCHIVE_MANIFEST');
+ if(manifest.version!==1||manifest.format!=='owasp-ai-goat-sqlite-archive-v1'||manifest.complete!==true||!Array.isArray(manifest.files))fail('INVALID_ARCHIVE_MANIFEST');
  const source=family==='aria'?'sql_workshop.db':'nosql_workshop.db',seen=new Set(),data=new Map();
  for(const entry of manifest.files){
   if(!entry||typeof entry.name!=='string'||seen.has(entry.name)||!Array.isArray(entry.tables))fail('INVALID_ARCHIVE_SOURCE');seen.add(entry.name);

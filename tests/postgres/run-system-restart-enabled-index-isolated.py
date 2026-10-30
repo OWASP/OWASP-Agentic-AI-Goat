@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sensitive_info_recovery_safety import SignalGate
 
-EXPECTED_DOCKER='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+EXPECTED_DOCKER='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 DOCKER=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 IMAGE='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 LISTENER_BASE='sha256:3a771f83944bb763050c23c0225c260638c4b7899e7a72485ef75e5e570499e5'
@@ -15,8 +15,8 @@ parser=argparse.ArgumentParser();parser.add_argument('--docker-host',required=Tr
 mode='system-restart-enabled-index-registered'
 test_file='tests/postgres/secureshopSystemRestartEnabledIndex.integration.test.js'
 if args.docker_host!=EXPECTED_DOCKER:raise SystemExit('reviewed isolated Docker host required')
-root=Path(tempfile.mkdtemp(prefix='dvaia-system-restart-enabled-index-')).resolve();os.chmod(root,0o700);workspace=root/'source'
-container='dvaia-system-restart-enabled-index-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-system-restart-enabled-index-')).resolve();os.chmod(root,0o700);workspace=root/'source'
+container='owasp-ai-goat-system-restart-enabled-index-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
 listener=container+'-listener';volume=container+'-state';tag=container+':owned';listener_image_id=None
 docker=[str(DOCKER),'--host',args.docker_host]
 env={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(root)}
@@ -61,7 +61,7 @@ try:
  if version!='v26.9.0':raise RuntimeError('managed Node v26.9.0 required')
  state['nodeVersion']=version;persist()
  daemon_name=run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
- if daemon_name!='colima-dvaia-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
+ if daemon_name!='colima-owasp-ai-goat-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
  image_id=run(docker+['image','inspect','--format','{{.Id}}',IMAGE],stdout=subprocess.PIPE,text=True).stdout.strip()
  if image_id!=IMAGE:raise RuntimeError('immutable PostgreSQL image identity mismatch')
  listener_base_id=run(docker+['image','inspect','--format','{{.Id}}',LISTENER_BASE],stdout=subprocess.PIPE,text=True).stdout.strip()
@@ -78,12 +78,12 @@ try:
  run([str(NODE),'--check',test_file],cwd=workspace)
  run([str(NODE),'--test','tests/secureshopSystemRestartLifecycle.test.js','tests/secureshopSystemRestartConcurrency.review.test.js','tests/secureshopRestartManagerConcurrency.review.test.js'],cwd=workspace,stdout=subprocess.DEVNULL)
  creation_attempted=True;state['containerCreationAttempted']=True;persist()
- run(docker+['run','--detach','--pull','never','--name',container,'--label','dvaia.test.owner='+owner,
+ run(docker+['run','--detach','--pull','never','--name',container,'--label','owasp-ai-goat.test.owner='+owner,
   '--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=1073741824','-e','POSTGRES_HOST_AUTH_METHOD=trust',
   '-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=100',
   '-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
  details=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
- if details.get('Mounts') or details['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
+ if details.get('Mounts') or details['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
  for _ in range(100):
   ready=subprocess.run(docker+['exec',container,'pg_isready','-h','127.0.0.1','-U','postgres'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=2)
   if ready.returncode==0:break
@@ -94,14 +94,14 @@ try:
  manifest=json.loads(run([str(NODE),'-e',"console.log(JSON.stringify(require('./db/postgres/initialize-application').requiredStoreManifest))"],cwd=workspace,stdout=subprocess.PIPE,text=True).stdout)
  if len(manifest)!=16:raise RuntimeError('full16 manifest required')
  for row in manifest:
-  family=row['schema'];migration='dvaia_'+family+'_migration';runtime=row['runtimeRole'];database='dvaia_test_full_backend_'+family
+  family=row['schema'];migration='dvaia_'+family+'_migration';runtime=row['runtimeRole'];database='owasp_ai_goat_test_full_backend_'+family
   run(psql+[f'CREATE ROLE {migration} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE {runtime} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
   run(psql+[f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL)
   run(psql+[f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}'],stdout=subprocess.DEVNULL)
   env[row['migrationVariable']]=f'postgresql://{migration}@127.0.0.1:{port}/{database}'
   env[row['runtimeVariable']]=f'postgresql://{runtime}@127.0.0.1:{port}/{database}'
  runtime_root=root/'runtime';runtime_root.mkdir(mode=0o700)
- env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',PG_SECURESHOP_RESTART_ENABLED_INDEX='1',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),DVAIA_FULL_BACKEND_RUNTIME_ROOT=str(runtime_root))
+ env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',PG_SECURESHOP_RESTART_ENABLED_INDEX='1',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT=str(runtime_root))
  # Build children are owned process groups just like the test process.
  state['buildChildren']=[]
  for name,command in [('client',[str(NODE),str(workspace/'client/node_modules/vite/bin/vite.js'),'build']),('review-renderer',[str(NODE),str(workspace/'client/node_modules/vite/bin/vite.js'),'build','--config','vite.review-renderer.config.mjs'])]:
@@ -116,7 +116,7 @@ try:
   if item.is_file():state['sourceSha256'][str(item.relative_to(workspace))]=digest(item)
  persist()
  import shutil
- cache=Path('/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-csrf-clean-rag-lrvupnva/source/model-cache')
+ cache=Path('/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-csrf-clean-rag-lrvupnva/source/model-cache')
  if not cache.is_dir():raise RuntimeError('reviewed cached CPU embedding runtime unavailable')
  shutil.copytree(cache,workspace/'model-cache')
  cache_files={str(item.relative_to(workspace/'model-cache')):digest(item) for item in sorted((workspace/'model-cache').rglob('*')) if item.is_file()}
@@ -132,16 +132,16 @@ try:
   Path(directory).chmod(Path(directory).stat().st_mode & ~0o222)
 
  with (root/'listener-build.log').open('w') as log:
-  child=subprocess.Popen(docker+['build','--pull=false','--network=default','--label','dvaia.test.owner='+owner,'-f','Dockerfile.local','-t',tag,'.'],cwd=workspace/'sidecars/sandbox-runner/owned-system',env=env,stdout=log,stderr=log,start_new_session=True)
+  child=subprocess.Popen(docker+['build','--pull=false','--network=default','--label','owasp-ai-goat.test.owner='+owner,'-f','Dockerfile.local','-t',tag,'.'],cwd=workspace/'sidecars/sandbox-runner/owned-system',env=env,stdout=log,stderr=log,start_new_session=True)
   state['child']={'pid':child.pid,'pgid':os.getpgid(child.pid),'purpose':'listener_build'};persist()
   try:listener_build=child.wait(timeout=300)
   except subprocess.TimeoutExpired:stop_child();raise RuntimeError('Owned restart listener build timed out')
   stop_child()
   if listener_build:raise RuntimeError('Owned restart listener build failed')
  listener_image_id=run(docker+['image','inspect','--format','{{.Id}}',tag],stdout=subprocess.PIPE,text=True).stdout.strip();state['listenerImageId']=listener_image_id
- run(docker+['volume','create','--label','dvaia.test.owner='+owner,volume],stdout=subprocess.DEVNULL)
+ run(docker+['volume','create','--label','owasp-ai-goat.test.owner='+owner,volume],stdout=subprocess.DEVNULL)
  token=secrets.token_urlsafe(32);envfile=root/'restart.env';envfile.write_text('SECURESHOP_SYSTEM_RESTART_HTTP_ENABLED=true\nSECURESHOP_SYSTEM_RESTART_TOKEN='+token+'\nSECURESHOP_SYSTEM_RESTART_HOST=0.0.0.0\nSECURESHOP_SYSTEM_RESTART_PORT=8090\n');os.chmod(envfile,0o600)
- run(docker+['run','-d','--pull','never','--name',listener,'--label','dvaia.test.owner='+owner,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','512','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--tmpfs','/owned-restart:rw,nosuid,nodev,size=8m,mode=0700,uid=10001,gid=10001','--mount','type=volume,source='+volume+',target=/var/lib/dvaia-owned-restart','--security-opt','seccomp=unconfined','--security-opt','apparmor=dvaia-mcp-sandbox','-p','127.0.0.1::8090','--env-file',str(envfile),listener_image_id,'restart'],stdout=subprocess.DEVNULL);envfile.unlink()
+ run(docker+['run','-d','--pull','never','--name',listener,'--label','owasp-ai-goat.test.owner='+owner,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','512','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--tmpfs','/owned-restart:rw,nosuid,nodev,size=8m,mode=0700,uid=10001,gid=10001','--mount','type=volume,source='+volume+',target=/var/lib/owasp-ai-goat-owned-restart','--security-opt','seccomp=unconfined','--security-opt','apparmor=owasp-ai-goat-mcp-sandbox','-p','127.0.0.1::8090','--env-file',str(envfile),listener_image_id,'restart'],stdout=subprocess.DEVNULL);envfile.unlink()
  listener_port=int(run(docker+['port',listener,'8090/tcp'],stdout=subprocess.PIPE,text=True).stdout.strip().rsplit(':',1)[1]);deadline=time.monotonic()+60
  while time.monotonic()<deadline:
   ready=subprocess.run([str(NODE),'-e',"fetch(process.argv[1],{headers:{authorization:'Bearer '+process.argv[2]}}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",f'http://127.0.0.1:{listener_port}/secureshop/system/restart-health',token],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=3)
@@ -179,7 +179,7 @@ finally:
   try:
    if not exact_absence(name):
     info=json.loads(run(docker+['inspect',name],stdout=subprocess.PIPE,text=True).stdout)[0]
-    if info['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('refusing foreign container cleanup')
+    if info['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('refusing foreign container cleanup')
     code=subprocess.run(docker+['rm','-f','-v',name],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=30).returncode
     if name==container:remove_code=code
   except Exception as error:errors.append('remove_'+name+':'+type(error).__name__)

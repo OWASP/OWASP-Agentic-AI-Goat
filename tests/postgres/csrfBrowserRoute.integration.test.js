@@ -13,17 +13,17 @@ const URL_KEYS = Object.freeze([
 ]);
 const enabled = process.env.PG_TEST_DISPOSABLE === 'yes'
   && URL_KEYS.every(key => typeof process.env[key] === 'string' && process.env[key].length > 0)
-  && typeof process.env.DVAIA_ISOLATED_TEST_WORKSPACE === 'string';
+  && typeof process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE === 'string';
 
 function verifyIsolatedInputs() {
-  const workspace = fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  const workspace = fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   assert.equal(fs.realpathSync(process.cwd()), workspace, 'test must run from its declared source-copy workspace');
   assert.equal(path.basename(workspace), 'source');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-csrf-browser-route-/);
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-csrf-browser-route-/);
   const urls = Object.fromEntries(URL_KEYS.map(key => [key, new URL(process.env[key])]));
   for (const [key, url] of Object.entries(urls)) {
     assert.ok(['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname), `${key} must be loopback-only`);
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   assert.equal(urls.PG_CSRF_BROWSER_ROUTE_IDENTITY_RUNTIME_URL.pathname,
     urls.PG_CSRF_BROWSER_ROUTE_IDENTITY_MIGRATION_URL.pathname);

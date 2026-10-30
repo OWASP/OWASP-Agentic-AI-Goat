@@ -176,7 +176,7 @@ test('absent admin assistant assessment retries return explicit unavailable and 
     assert.equal(response.status, 503, leaf);
     assert.deepEqual(await response.json(), { error: 'Bound SecureShop operation unavailable' });
     const stale = await fetch(url, { ...request, headers: { ...request.headers,
-      'x-dvaia-secureshop-launch': 'invalid' } });
+      'x-owasp-ai-goat-secureshop-launch': 'invalid' } });
     assert.equal(stale.status, 401);
     assert.deepEqual(await stale.json(), { error: 'SecureShop launch unavailable' });
   }
@@ -213,7 +213,7 @@ test('mounted admin assessment retries retain production persona guards and exac
     assert.equal(observed.input.requestId, otherSessionId);
     const count = calls.length;
     const missingAuth = await fetch(url, { ...request, headers: {
-      'x-dvaia-secureshop-launch': launchBearer, 'content-type': 'application/json' } });
+      'x-owasp-ai-goat-secureshop-launch': launchBearer, 'content-type': 'application/json' } });
     assert.equal(missingAuth.status, 401);
     const wrongRole = await fetch(url, { ...request, headers: { ...request.headers,
       authorization: 'Bearer merchant-13' } });
@@ -259,7 +259,7 @@ for (const [option, endpoint] of [['systemConfigRouter','config-read'],['systemD
 }
 
 function headers(role = 'customer', id = 41, launch = launchBearer) {
-  return { authorization: `Bearer ${role}-${id}`, 'x-dvaia-secureshop-launch': launch };
+  return { authorization: `Bearer ${role}-${id}`, 'x-owasp-ai-goat-secureshop-launch': launch };
 }
 
 test('separate bound Account avatar multipart admits all roles without changing merchant manual authority', async t => {
@@ -411,7 +411,7 @@ test('missing launch delegates unchanged while body and query authority cannot s
   for (const [path, init] of [
     ['/products', {}],
     ['/v2/auth/users/me/addresses', {}],
-    [`/products?${new URLSearchParams({ 'x-dvaia-secureshop-launch': launchBearer })}`, {}],
+    [`/products?${new URLSearchParams({ 'x-owasp-ai-goat-secureshop-launch': launchBearer })}`, {}],
     ['/cart', { method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ launch: launchBearer }) }],
   ]) {
@@ -429,14 +429,14 @@ test('invalid or duplicate launch authority fails before persona and never reach
   const invalid = await fetch(`${f.base}/cart`, { headers: headers('customer', 41, 'x'.repeat(43)) });
   assert.equal(invalid.status, 401);
   assert.deepEqual(await invalid.json(), { error: 'SecureShop launch unavailable' });
-  assert.equal(invalid.headers.get('x-dvaia-secureshop-launch-state'), 'unavailable');
+  assert.equal(invalid.headers.get('x-owasp-ai-goat-secureshop-launch-state'), 'unavailable');
 
   const duplicate = await new Promise((resolve, reject) => {
     const url = new URL(`${f.base}/products`);
     const request = require('node:http').request({ hostname: url.hostname, port: url.port,
       path: url.pathname, method: 'GET', headers: {
         authorization: 'Bearer customer-41',
-        'x-dvaia-secureshop-launch': [launchBearer, launchBearer],
+        'x-owasp-ai-goat-secureshop-launch': [launchBearer, launchBearer],
       } }, response => {
       const chunks = [];
       response.on('data', chunk => chunks.push(chunk));
@@ -447,7 +447,7 @@ test('invalid or duplicate launch authority fails before persona and never reach
   });
   assert.equal(duplicate.status, 401);
   assert.deepEqual(duplicate.body, { error: 'SecureShop launch unavailable' });
-  assert.equal(duplicate.headers['x-dvaia-secureshop-launch-state'], 'unavailable');
+  assert.equal(duplicate.headers['x-owasp-ai-goat-secureshop-launch-state'], 'unavailable');
   assert.equal(f.legacyCalls(), 0);
   assert.deepEqual(f.calls, []);
 });
@@ -459,11 +459,11 @@ test('only launch authority failures carry the unavailable marker', async t => {
     },
   } });
   const denied = await fetch(`${invalidCredentials.base}/v2/auth/login`, { method: 'POST', headers: {
-    'content-type': 'application/json', 'x-dvaia-secureshop-launch': launchBearer,
+    'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': launchBearer,
   }, body: JSON.stringify({ username: 'student_customer', password: 'wrong' }) });
   assert.equal(denied.status, 401);
   assert.deepEqual(await denied.json(), { error: 'Invalid shop credentials' });
-  assert.equal(denied.headers.get('x-dvaia-secureshop-launch-state'), null);
+  assert.equal(denied.headers.get('x-owasp-ai-goat-secureshop-launch-state'), null);
 
   const staleLaunch = await fixture(t, { personaAuthOverrides: {
     async login() {
@@ -471,11 +471,11 @@ test('only launch authority failures carry the unavailable marker', async t => {
     },
   } });
   const stale = await fetch(`${staleLaunch.base}/v2/auth/login`, { method: 'POST', headers: {
-    'content-type': 'application/json', 'x-dvaia-secureshop-launch': launchBearer,
+    'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': launchBearer,
   }, body: JSON.stringify({ username: 'student_customer', password: 'student-password' }) });
   assert.equal(stale.status, 401);
   assert.deepEqual(await stale.json(), { error: 'SecureShop launch unavailable' });
-  assert.equal(stale.headers.get('x-dvaia-secureshop-launch-state'), 'unavailable');
+  assert.equal(stale.headers.get('x-owasp-ai-goat-secureshop-launch-state'), 'unavailable');
 
   const foreignOwner = await fixture(t, { personaAuthOverrides: {
     async login() {
@@ -483,11 +483,11 @@ test('only launch authority failures carry the unavailable marker', async t => {
     },
   } });
   const foreign = await fetch(`${foreignOwner.base}/v2/auth/login`, { method: 'POST', headers: {
-    'content-type': 'application/json', 'x-dvaia-secureshop-launch': launchBearer,
+    'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': launchBearer,
   }, body: JSON.stringify({ username: 'student_customer', password: 'student-password' }) });
   assert.equal(foreign.status, 401);
   assert.deepEqual(await foreign.json(), { error: 'SecureShop launch unavailable' });
-  assert.equal(foreign.headers.get('x-dvaia-secureshop-launch-state'), null);
+  assert.equal(foreign.headers.get('x-owasp-ai-goat-secureshop-launch-state'), null);
 });
 
 test('present launch permits only scoped review routes and never falls through on unknown review paths', async t => {
@@ -547,7 +547,7 @@ test('bound shop categories require the exact launch and preserve the public env
   assert.deepEqual(f.calls[0][1], { scope: launchScope, persona: { id: 41, role: 'customer' } });
   const stale = await fetch(`${f.base}/categories`, { headers: headers('customer', 41, 'x'.repeat(43)) });
   assert.equal(stale.status, 401);
-  assert.equal(stale.headers.get('x-dvaia-secureshop-launch-state'), 'unavailable');
+  assert.equal(stale.headers.get('x-owasp-ai-goat-secureshop-launch-state'), 'unavailable');
   const foreignPersona = await fetch(`${f.base}/categories`, { headers: headers('merchant', 77) });
   assert.equal(foreignPersona.status, 200);
   assert.equal((await foreignPersona.json()).categories[0].name, 'Home');
@@ -619,7 +619,7 @@ test('merchant listing writes reject malformed values and non-merchant personas 
 test('bound login/logout and profile reads work while shared registration remains unavailable', async t => {
   const f = await fixture(t);
   const login = await fetch(`${f.base}/v2/auth/login`, { method: 'POST', headers: {
-    'content-type': 'application/json', 'x-dvaia-secureshop-launch': launchBearer,
+    'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': launchBearer,
   }, body: JSON.stringify({ username: 'student_customer', password: 'student-password' }) });
   assert.equal(login.status, 200);
   assert.equal((await login.json()).token, 'bound-token');
@@ -747,12 +747,12 @@ test('API-key order reads require both current host launch authority and its chi
   const f = await fixture(t);
   const key = 'sk_ss_live_11111111111111111111111111111111';
   const listed = await fetch(`${f.base}/v2/api/orders`, { headers: {
-    'x-dvaia-secureshop-launch': launchBearer, 'x-api-key': key,
+    'x-owasp-ai-goat-secureshop-launch': launchBearer, 'x-api-key': key,
   } });
   assert.equal(listed.status, 200);
   assert.deepEqual(await listed.json(), { orders: [] });
   const detail = await fetch(`${f.base}/v2/api/orders/19`, { headers: {
-    'x-dvaia-secureshop-launch': launchBearer, 'x-api-key': key,
+    'x-owasp-ai-goat-secureshop-launch': launchBearer, 'x-api-key': key,
   } });
   assert.equal(detail.status, 200);
   assert.equal((await detail.json()).order.id, 19);
@@ -766,17 +766,17 @@ test('API-key order reads require both current host launch authority and its chi
     'x-api-key': key,
   } })).status, 200, 'without host authority the request delegates to legacy instead of selecting bound mode');
   assert.equal((await fetch(`${f.base}/v2/api/orders`, { headers: {
-    'x-dvaia-secureshop-launch': 'x'.repeat(43), 'x-api-key': key,
+    'x-owasp-ai-goat-secureshop-launch': 'x'.repeat(43), 'x-api-key': key,
   } })).status, 401);
   assert.equal((await fetch(`${f.base}/v2/api/orders`, { headers: {
-    'x-dvaia-secureshop-launch': siblingLaunchBearer, 'x-api-key': key,
+    'x-owasp-ai-goat-secureshop-launch': siblingLaunchBearer, 'x-api-key': key,
   } })).status, 401, 'learner A child key cannot select learner A through learner B host authority');
   assert.equal((await fetch(`${f.base}/v2/api/orders`, { headers: {
-    'x-dvaia-secureshop-launch': launchBearer, 'x-api-key': key,
+    'x-owasp-ai-goat-secureshop-launch': launchBearer, 'x-api-key': key,
     authorization: 'Bearer customer-41',
   } })).status, 401);
   assert.equal((await fetch(`${f.base}/v2/api/orders?user_id=41`, { headers: {
-    'x-dvaia-secureshop-launch': launchBearer, 'x-api-key': key,
+    'x-owasp-ai-goat-secureshop-launch': launchBearer, 'x-api-key': key,
   } })).status, 400);
 });
 
@@ -866,7 +866,7 @@ test('renewal of a concurrently revoked persona session returns 401 without reti
   const response=await fetch(`${f.base}/v2/auth/renew`,{method:'PATCH',headers:headers('customer',41)});
   assert.equal(response.status,401);
   assert.deepEqual(await response.json(),{error:'Shop authentication required'});
-  assert.equal(response.headers.get('x-dvaia-secureshop-launch-state'),null);
+  assert.equal(response.headers.get('x-owasp-ai-goat-secureshop-launch-state'),null);
   assert.equal(f.legacyCalls(),0);
 });
 
@@ -1120,7 +1120,7 @@ test('bound MCP tools read uses current admin authority without legacy fallback'
     assert.equal((await fetch(`${f.base}/recommended${query}`,{headers:headers()})).status,400);
   }
   for(const role of ['merchant','admin']) assert.equal((await fetch(`${f.base}/recommended`,{headers:headers(role)})).status,403);
-  assert.equal((await fetch(`${f.base}/recommended`,{headers:{'x-dvaia-secureshop-launch':launchBearer}})).status,401);
+  assert.equal((await fetch(`${f.base}/recommended`,{headers:{'x-owasp-ai-goat-secureshop-launch':launchBearer}})).status,401);
   assert.equal(f.calls.filter(row=>row[0]==='recommendations').length,1);
   assert.equal(f.legacyCalls(),0);
  });
@@ -1152,7 +1152,7 @@ test('bound merchant top products admits only bounded owned-commerce reads',asyn
  const defaultResponse=await fetch(f.base+'/merchant/overview/top-products',{headers:headers('merchant',77)});assert.equal(defaultResponse.status,200);
  for(const query of ['?limit=0','?limit=51','?limit=1.5','?days=6','?days=366','?days=30&days=31','?retailer_id=77','?targetId=other','?user_id=1'])assert.equal((await fetch(f.base+'/merchant/overview/top-products'+query,{headers:headers('merchant',77)})).status,400);
  for(const role of ['customer','admin'])assert.equal((await fetch(f.base+'/merchant/overview/top-products',{headers:headers(role,77)})).status,403);
- assert.equal((await fetch(f.base+'/merchant/overview/top-products',{headers:{'x-dvaia-secureshop-launch':launchBearer}})).status,401);
+ assert.equal((await fetch(f.base+'/merchant/overview/top-products',{headers:{'x-owasp-ai-goat-secureshop-launch':launchBearer}})).status,401);
  assert.equal(f.calls.filter(row=>row[0]==='merchantTopProducts').length,2);assert.equal(f.legacyCalls(),0);
 });
 
@@ -1233,7 +1233,7 @@ test('policy readiness is admin-only and explicitly false only for an uncomposed
  let r=await fetch(`${f.base}/admin/policies/readiness`,{headers:headers('admin',13)});
  assert.equal(r.status,200);assert.equal(r.headers.get('cache-control'),'no-store');assert.deepEqual(await r.json(),{ready:false});
  for(const role of ['customer','merchant']){r=await fetch(`${f.base}/admin/policies/readiness`,{headers:headers(role,41)});assert.equal(r.status,403);}
- r=await fetch(`${f.base}/admin/policies/readiness`,{headers:{'x-dvaia-secureshop-launch':launchBearer}});assert.equal(r.status,401);
+ r=await fetch(`${f.base}/admin/policies/readiness`,{headers:{'x-owasp-ai-goat-secureshop-launch':launchBearer}});assert.equal(r.status,401);
  r=await fetch(`${f.base}/admin/policies/readiness?ready=true`,{headers:headers('admin',13)});assert.equal(r.status,400);
 });
 test('composed policy readiness probes the strict renderer and never disguises health or stale authority errors as disabled',async t=>{
@@ -1312,8 +1312,8 @@ test('avatar upload routes traverse the canonical agents prefix through the boun
   ['GET',`/agents/customer/avatar-upload/assess/${currentSessionId}/${uploadRequestId}`,'assessment'],
  ]){const response=await fetch(f.base+path,{method,headers:method==='POST'?json:customer,...(body===undefined?{}:{body})});assert.equal(response.status,200,`${method} ${path}`);await response.json();assert.ok(routeCalls.some(([value])=>value===kind),kind);}
  const beforeMissing=routeCalls.length;const missing=await fetch(`${f.base}/agents/customer/avatar-upload/session`,{method:'POST',headers:{authorization:'Bearer customer-41','content-type':'application/json'},body:'{}'});assert.equal(missing.status,200);assert.deepEqual(await missing.json(),{legacy:true,method:'POST',path:'/agents/customer/avatar-upload/session'});assert.equal(routeCalls.length,beforeMissing);
- const beforeDenied=routeCalls.length;const missingPersona=await fetch(`${f.base}/agents/customer/avatar-upload/session`,{method:'POST',headers:{'x-dvaia-secureshop-launch':launchBearer,'content-type':'application/json'},body:'{}'});assert.equal(missingPersona.status,401);assert.equal(routeCalls.length,beforeDenied);
- const invalidLaunch=await fetch(`${f.base}/agents/customer/avatar-upload/session`,{method:'POST',headers:{authorization:'Bearer customer-41','x-dvaia-secureshop-launch':'invalid','content-type':'application/json'},body:'{}'});assert.equal(invalidLaunch.status,401);assert.equal(routeCalls.length,beforeDenied);
+ const beforeDenied=routeCalls.length;const missingPersona=await fetch(`${f.base}/agents/customer/avatar-upload/session`,{method:'POST',headers:{'x-owasp-ai-goat-secureshop-launch':launchBearer,'content-type':'application/json'},body:'{}'});assert.equal(missingPersona.status,401);assert.equal(routeCalls.length,beforeDenied);
+ const invalidLaunch=await fetch(`${f.base}/agents/customer/avatar-upload/session`,{method:'POST',headers:{authorization:'Bearer customer-41','x-owasp-ai-goat-secureshop-launch':'invalid','content-type':'application/json'},body:'{}'});assert.equal(invalidLaunch.status,401);assert.equal(routeCalls.length,beforeDenied);
  const wrongRole=await fetch(`${f.base}/agents/customer/avatar-upload/session`,{method:'POST',headers:{...headers('merchant',12),'content-type':'application/json'},body:'{}'});assert.equal(wrongRole.status,403);assert.equal(routeCalls.length,beforeDenied);
  const former=await fetch(`${f.base}/customer/avatar-upload/session`,{method:'POST',headers:json,body:'{}'});assert.equal(former.status,404);assert.deepEqual(await former.json(),{error:'Bound SecureShop route not found'});
  assert.equal(f.legacyCalls(),1);
@@ -1505,7 +1505,7 @@ test('mounted traversal GETs reject old-generation persona JWT after reset capab
   const f = await fixture(t, { avatarUploadRouter, boundDispatch:true, resolveCapabilityOverride:launches.resolveCapability });
   const paths = [`/agents/customer/avatar-upload/path-traversal/requests/${otherSessionId}`,
     `/agents/customer/avatar-upload/path-traversal/assessment/${currentSessionId}/${otherSessionId}`];
-  const request = path => fetch(f.base + path, { headers:{authorization:`Bearer ${token}`,'x-dvaia-secureshop-launch':launchBearer} });
+  const request = path => fetch(f.base + path, { headers:{authorization:`Bearer ${token}`,'x-owasp-ai-goat-secureshop-launch':launchBearer} });
   for (const path of paths) assert.equal((await request(path)).status,200);
   assert.equal(operationReads,1);assert.equal(assessmentReads,1);
   generation++;
@@ -1513,7 +1513,7 @@ test('mounted traversal GETs reject old-generation persona JWT after reset capab
   for (const path of paths) {
     const response=await request(path);assert.equal(response.status,401);
     assert.deepEqual(await response.json(),{error:'Shop authentication required'});
-    assert.equal(response.headers.get('x-dvaia-secureshop-launch-state'),null);
+    assert.equal(response.headers.get('x-owasp-ai-goat-secureshop-launch-state'),null);
   }
   assert.deepEqual({sessionReads,authorityChecks,operationReads,assessmentReads},before);
   assert.equal(f.legacyCalls(),0);assert.deepEqual(f.calls,[]);
@@ -1555,11 +1555,11 @@ test('mounted file-path summary routes preserve exact fixed and sibling DTOs and
   const f=await fixture(t,{filePathSummaryRouter,boundDispatch:true,resolveCapabilityOverride:launches.resolveCapability});
   const base='/agents/customer/file-path-summary';
   const paths=[`${base}/requests/${currentSessionId}/${otherSessionId}`,`${base}/assess/${currentSessionId}/${otherSessionId}`];
-  const request = path => fetch(f.base + path, { headers:{authorization:`Bearer ${token}`,'x-dvaia-secureshop-launch':launchBearer} });
+  const request = path => fetch(f.base + path, { headers:{authorization:`Bearer ${token}`,'x-owasp-ai-goat-secureshop-launch':launchBearer} });
   for (const path of paths) assert.equal((await request(path)).status,200);
   assert.equal(operationReads,1);assert.equal(assessmentReads,1);
   const assessment=await fetch(f.base+base+'/assess',{method:'POST',headers:{authorization:`Bearer ${token}`,
-    'x-dvaia-secureshop-launch':launchBearer,'content-type':'application/json'},body:JSON.stringify({sessionId:currentSessionId,requestId:otherSessionId})});
+    'x-owasp-ai-goat-secureshop-launch':launchBearer,'content-type':'application/json'},body:JSON.stringify({sessionId:currentSessionId,requestId:otherSessionId})});
   assert.equal(assessment.status,200);assert.deepEqual(await assessment.json(),fixed);assert.equal(attempts,1);
   peerRead=true;
   const peerRequest=await request(paths[0]);assert.equal(peerRequest.status,200);
@@ -1574,7 +1574,7 @@ test('mounted file-path summary routes preserve exact fixed and sibling DTOs and
   for (const path of paths) {
     const response=await request(path);assert.equal(response.status,401);
     assert.deepEqual(await response.json(),{error:'Shop authentication required'});
-    assert.equal(response.headers.get('x-dvaia-secureshop-launch-state'),null);
+    assert.equal(response.headers.get('x-owasp-ai-goat-secureshop-launch-state'),null);
   }
   assert.deepEqual({sessionReads,authorityChecks,operationReads,assessmentReads,attempts},before);
   assert.equal(f.legacyCalls(),0);assert.deepEqual(f.calls,[]);

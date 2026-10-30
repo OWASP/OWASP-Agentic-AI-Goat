@@ -58,11 +58,11 @@ def store_urls(nonce, port):
 def container_command(docker, docker_host, name, image, owner):
     if not all(type(item) is str and item for item in (docker, docker_host, name, image, owner)) \
             or not re.fullmatch(r'sha256:[a-f0-9]{64}', image) \
-            or not re.fullmatch(r'dvaia-student-deletion-[a-f0-9]{12}', name) \
+            or not re.fullmatch(r'owasp-ai-goat-student-deletion-[a-f0-9]{12}', name) \
             or not re.fullmatch(r'[a-f0-9]{32}', owner):
         raise RuntimeError('Exact owned container identity required')
     return (docker, '--host', docker_host, 'run', '-d', '--pull', 'never',
-            '--name', name, '--label', 'dvaia.test.owner=' + owner,
+            '--name', name, '--label', 'owasp-ai-goat.test.owner=' + owner,
             '--memory', str(LIMITS['memoryBytes']), '--cpus', str(LIMITS['cpus']),
             '--memory-swap', str(LIMITS['memorySwapBytes']),
             '--pids-limit', str(LIMITS['pids']),
@@ -102,8 +102,8 @@ def worker_environment(repo, runtime, nonce, port, args, snapshot_sha256, jwt_se
                   PGOPTIONS='-c statement_timeout=15000 -c idle_in_transaction_session_timeout=30000',
                   PLATFORM_DATABASE_ENGINE='postgres', WORKSHOP_DATABASE_ENGINE='postgres',
                   AWS_EC2_METADATA_DISABLED='true', JWT_SECRET=jwt_secret,
-                  DVAIA_ISOLATED_TEST_WORKSPACE=str(repo),
-                  DVAIA_APP_DATA_ROOT=str(runtime), LOGS_DIR=str(runtime / 'logs'),
+                  OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(repo),
+                  OWASP_AI_GOAT_APP_DATA_ROOT=str(runtime), LOGS_DIR=str(runtime / 'logs'),
                   ADMIN_STUDENT_DELETION_CURRENT_HOST='1',
                   ADMIN_STUDENT_DELETION_BUILD_DIRECTORY=str(repo / 'client/build'),
                   ADMIN_STUDENT_DELETION_BUILD_SHA256=args.build_sha256,
@@ -113,7 +113,7 @@ def worker_environment(repo, runtime, nonce, port, args, snapshot_sha256, jwt_se
                   STUDENT_DELETION_RESOURCE_JOURNAL=str(tmp / 'student-deletion-resources.json'),
                   STUDENT_DELETION_EVIDENCE_PATH=str(expected_run / 'student-deletion-evidence.json'),
                   PUPPETEER_EXECUTABLE_PATH=args.chromium,
-                  DVAIA_CHROMIUM_ACTUAL_EXECUTABLE=args.chromium)
+                  OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE=args.chromium)
     result.update(store_urls(nonce, port))
     return result
 
@@ -260,7 +260,7 @@ def execute(args, *, repo, inspector, before, verify_fixture, verify_tap,
     docker_env = dict(PATH='/usr/bin:/bin', HOME=str(runtime / 'home'),
                       TMPDIR=str(runtime / 'tmp'))
     owner_token = os.urandom(16).hex()
-    name = 'dvaia-student-deletion-' + nonce
+    name = 'owasp-ai-goat-student-deletion-' + nonce
     container_id = None
     owned = Owned()
     child = None
@@ -294,7 +294,7 @@ def execute(args, *, repo, inspector, before, verify_fixture, verify_tap,
         if type(data) is not list or len(data) != 1:
             raise RuntimeError('Exact owned container inspection required')
         row = data[0]
-        if row['Config']['Labels'].get('dvaia.test.owner') != owner_token or \
+        if row['Config']['Labels'].get('owasp-ai-goat.test.owner') != owner_token or \
                 (container_id is not None and row['Id'] != container_id):
             raise RuntimeError('Owned container identity changed')
         return row
@@ -353,7 +353,7 @@ def execute(args, *, repo, inspector, before, verify_fixture, verify_tap,
                 stream, owned, deadline=min(deadline, time.monotonic() + 180),
                 on_spawn=retain_initializer)
         private_json(root / 'result.json', state)
-        profile = runtime / 'tmp' / ('dvaia-student-deletion-browser-' + nonce)
+        profile = runtime / 'tmp' / ('owasp-ai-goat-student-deletion-browser-' + nonce)
         read_fd, write_fd = os.pipe()
         environment['ADMIN_STUDENT_DELETION_ADMISSION_FD'] = str(read_fd)
         log_path = root / 'browser.tap'

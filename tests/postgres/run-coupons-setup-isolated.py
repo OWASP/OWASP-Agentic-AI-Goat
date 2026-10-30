@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sensitive_info_recovery_safety import SignalGate
 
-EXPECTED_DOCKER='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+EXPECTED_DOCKER='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 DOCKER=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 IMAGE='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 SOURCE=Path(__file__).resolve().parents[2]
@@ -14,8 +14,8 @@ parser=argparse.ArgumentParser();parser.add_argument('--docker-host',required=Tr
 mode='coupons-setup'
 test_file='tests/postgres/secureshopCouponsSetup.native.js'
 if args.docker_host!=EXPECTED_DOCKER:raise SystemExit('reviewed isolated Docker host required')
-root=Path(tempfile.mkdtemp(prefix='dvaia-coupons-setup-')).resolve();os.chmod(root,0o700);workspace=root/'source'
-container='dvaia-coupons-setup-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-coupons-setup-')).resolve();os.chmod(root,0o700);workspace=root/'source'
+container='owasp-ai-goat-coupons-setup-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
 docker=[str(DOCKER),'--host',args.docker_host]
 home=root/'home';home.mkdir(mode=0o700)
 env={'PATH':str(NODE.parent)+':'+str(DOCKER.parent)+':/usr/bin:/bin','HOME':str(home),'TMPDIR':str(root),'DOCKER_HOST':EXPECTED_DOCKER}
@@ -57,7 +57,7 @@ try:
  if version!='v26.9.0':raise RuntimeError('managed Node v26.9.0 required')
  state['nodeVersion']=version;persist()
  daemon_name=run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
- if daemon_name!='colima-dvaia-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
+ if daemon_name!='colima-owasp-ai-goat-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
  image_id=run(docker+['image','inspect','--format','{{.Id}}',IMAGE],stdout=subprocess.PIPE,text=True).stdout.strip()
  if image_id!=IMAGE:raise RuntimeError('immutable PostgreSQL image identity mismatch')
  state['dockerDaemon']=daemon_name;state['imageId']=image_id;persist()
@@ -78,12 +78,12 @@ try:
  state['sourceSha256']={name:digest(workspace/name) for name in sorted(set(inventory))};state['nodeSha256']=digest(NODE);persist()
  run([str(NODE),'--check',test_file],cwd=workspace)
  creation_attempted=True;state['containerCreationAttempted']=True;persist()
- run(docker+['run','--detach','--pull','never','--name',container,'--label','dvaia.test.owner='+owner,
+ run(docker+['run','--detach','--pull','never','--name',container,'--label','owasp-ai-goat.test.owner='+owner,
   '--memory','1g','--cpus','2','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=536870912','-e','POSTGRES_HOST_AUTH_METHOD=trust',
   '-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=40',
   '-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
  details=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
- if details.get('Mounts') or details['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
+ if details.get('Mounts') or details['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
  for _ in range(100):
   ready=subprocess.run(docker+['exec',container,'pg_isready','-h','127.0.0.1','-U','postgres'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=2)
   if ready.returncode==0:break
@@ -94,14 +94,14 @@ try:
  state['postgresServerVersion']=server_version;state['postgresImageMetadata']=json.loads(run(docker+['image','inspect',IMAGE],stdout=subprocess.PIPE,text=True).stdout)[0].get('Config',{}).get('Labels',{});persist()
  env['COUPON_APP_ADMIN_URL']=f'postgresql://postgres@127.0.0.1:{port}/postgres'
  env['COUPON_SETUP_NATIVE']='1';env['COUPON_EVIDENCE_ROOT']=str(root);env['COUPON_RESULT']=str(root/'candidate-result.json')
- env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+ env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
   PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',
   AI_PROVIDER='mock',TRANSFORMERS_OFFLINE='1',JWT_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,SESSION_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,
   AWS_EC2_METADATA_DISABLED='true',MCP_WORKSHOP_AUTOSTART='false',MCP_SIDECARS_AUTOSTART='false',SS_ENABLE='false',HF_HUB_OFFLINE='1',
   OLLAMA_BASE_URL='http://127.0.0.1:1',SANDBOX_RUNNER_URL='http://127.0.0.1:1',SSRF_TARGET_URL='http://127.0.0.1:1',
  ROGUE_MCP_URL='http://127.0.0.1:1',MAILPIT_API_URL='http://127.0.0.1:1',MAILPIT_SMTP_HOST='127.0.0.1',MAILPIT_SMTP_PORT='1')
  workspace_id=hashlib.sha256(str(workspace).encode()).hexdigest()[:12]
- analytics_name='dvaia-analytics-'+workspace_id;analytics_volume=analytics_name+'-data'
+ analytics_name='owasp-ai-goat-analytics-'+workspace_id;analytics_volume=analytics_name+'-data'
  state.update(analyticsContainer=analytics_name,analyticsVolume=analytics_volume,workspaceId=workspace_id);persist()
  if not exact_absence(analytics_name):raise RuntimeError('Analytics name exists before owned test')
  existing=run(docker+['volume','ls','--filter','name=^'+analytics_volume+'$','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
@@ -128,19 +128,19 @@ finally:
  except Exception as error:errors.append('child:'+type(error).__name__)
  if state.get('analyticsCreationAttempted'):
   try:
-   name=state['analyticsContainer'];volume=state['analyticsVolume'];directory=home/'.dvaia'/state['workspaceId']
+   name=state['analyticsContainer'];volume=state['analyticsVolume'];directory=home/'.owasp-ai-goat'/state['workspaceId']
    intent_path=directory/'analytics-install-intent.json'
    intent=json.loads(intent_path.read_text()) if intent_path.exists() else None
    expected_owner=intent.get('ownerId') if intent else None
    if not exact_absence(name):
     info=json.loads(run(docker+['inspect',name],stdout=subprocess.PIPE,text=True).stdout)[0]
     labels=info['Config']['Labels']
-    if not expected_owner or labels.get('dvaia.owner')!=expected_owner or labels.get('dvaia.workspace')!=state['workspaceId'] or labels.get('dvaia.purpose')!='owned-analytics':raise RuntimeError('Foreign Analytics container')
+    if not expected_owner or labels.get('owasp-ai-goat.owner')!=expected_owner or labels.get('owasp-ai-goat.workspace')!=state['workspaceId'] or labels.get('owasp-ai-goat.purpose')!='owned-analytics':raise RuntimeError('Foreign Analytics container')
     run(docker+['rm','-f','-v',name],stdout=subprocess.DEVNULL)
    existing=run(docker+['volume','ls','--filter','name=^'+volume+'$','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
    if existing:
     info=json.loads(run(docker+['volume','inspect',volume],stdout=subprocess.PIPE,text=True).stdout)[0]
-    if not expected_owner or info['Labels'].get('dvaia.owner')!=expected_owner or info['Labels'].get('dvaia.workspace')!=state['workspaceId']:raise RuntimeError('Foreign Analytics volume')
+    if not expected_owner or info['Labels'].get('owasp-ai-goat.owner')!=expected_owner or info['Labels'].get('owasp-ai-goat.workspace')!=state['workspaceId']:raise RuntimeError('Foreign Analytics volume')
     run(docker+['volume','rm',volume],stdout=subprocess.DEVNULL)
    state['analyticsAbsent']=exact_absence(name);state['analyticsVolumeAbsent']=not run(docker+['volume','ls','--filter','name=^'+volume+'$','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
    if not state['analyticsAbsent'] or not state['analyticsVolumeAbsent']:raise RuntimeError('Analytics remains')
@@ -157,7 +157,7 @@ finally:
   try:
    if not exact_absence():
     info=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
-    if info['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('refusing foreign container cleanup')
+    if info['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('refusing foreign container cleanup')
     remove_code=subprocess.run(docker+['rm','-f','-v',container],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=30).returncode
    else:remove_code=0
   except Exception as error:errors.append('remove:'+type(error).__name__)

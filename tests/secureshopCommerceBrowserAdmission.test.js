@@ -29,13 +29,13 @@ async function owned(t) {
   const temp = path.join(runtime, 'tmp');
   await fs.mkdir(runtime, { mode: 0o700 });
   await fs.mkdir(temp, { mode: 0o700 });
-  const profile = await fs.mkdtemp(path.join(temp, 'dvaia-standalone-commerce-'));
+  const profile = await fs.mkdtemp(path.join(temp, 'owasp-ai-goat-standalone-commerce-'));
   const evidencePath = path.join(run, 'standalone-commerce-browser.json');
   const executablePath = syncFs.realpathSync(process.execPath);
   const buildSha256 = (await buildInventory(path.join(ROOT, 'client/build'))).sha256;
   const env = {
     SECURESHOP_STANDALONE_COMMERCE_NATIVE: '1', PG_TEST_DISPOSABLE: 'yes', NODE_ENV: 'test',
-    DVAIA_CURRENT_MAIN_WORKSPACE: ROOT,
+    OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: ROOT,
     SECURESHOP_STANDALONE_COMMERCE_BUILD: path.join(ROOT, 'client/build'),
     SECURESHOP_STANDALONE_COMMERCE_EVIDENCE_PATH: evidencePath,
     SECURESHOP_COMMERCE_TEST_NO_SANDBOX: '1',
@@ -229,7 +229,7 @@ test('one real inherited FIFO grant is consumed and closed before commerce brows
     + `const descriptor=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
     + `const closed=()=>{try{fs.fstatSync(descriptor);return false}catch(e){return e.code==='EBADF'}};`
     + `(async()=>{const admission=await admitCommerceBrowser(process.env,`
-    + `{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_STANDALONE_COMMERCE_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH});`
     + `const browser=new EventEmitter();const boundary=admission.watchBrowserTargets(browser);`
@@ -310,7 +310,7 @@ test('focused session-revoke grant is independent and consumed before its browse
   const childScript = `const fs=require('node:fs');const a=require('node:assert/strict');`
     + `const h=require(${JSON.stringify(HELPER)});(async()=>{`
     + `const fd=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
-    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_ACCOUNT_SESSION_REVOKE_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,variant:'account-session-revoke'});`
     + `a(grant);a.throws(()=>fs.fstatSync(fd),{code:'EBADF'});`
@@ -337,7 +337,7 @@ test('focused session-revoke grant is independent and consumed before its browse
 
 test('focused Account-avatar grant consumes the actual inherited FIFO before browser birth', async t => {
   const { run, executablePath, env } = await owned(t);
-  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/dvaia-account-avatar-'));
+  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/owasp-ai-goat-account-avatar-'));
   const evidencePath = path.join(run, 'account-avatar-browser-v1.json');
   const focused = { ...env, SECURESHOP_STANDALONE_COMMERCE_NATIVE: undefined,
     SECURESHOP_ACCOUNT_AVATAR_NATIVE: '1',
@@ -347,7 +347,7 @@ test('focused Account-avatar grant consumes the actual inherited FIFO before bro
   const childScript = `const fs=require('node:fs');const a=require('node:assert/strict');`
     + `const h=require(${JSON.stringify(HELPER)});(async()=>{`
     + `const fd=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
-    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_ACCOUNT_AVATAR_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,variant:'account-avatar'});`
     + `a(grant);a.throws(()=>fs.fstatSync(fd),{code:'EBADF'});`
@@ -374,7 +374,7 @@ test('focused Account-avatar grant consumes the actual inherited FIFO before bro
 
 test('owned customer checkout consumes one bound FIFO before browser args and rejects cross-cohort paths', async t => {
   const { run, profile: wrongProfile, executablePath, env } = await owned(t);
-  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/dvaia-customer-checkout-'));
+  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/owasp-ai-goat-customer-checkout-'));
   const evidencePath = path.join(run, 'customer-checkout-browser.json');
   const checkout = { ...env, SECURESHOP_STANDALONE_COMMERCE_NATIVE: undefined,
     SECURESHOP_CUSTOMER_CHECKOUT_NATIVE: '1',
@@ -400,7 +400,7 @@ test('owned customer checkout consumes one bound FIFO before browser args and re
     + `const {EventEmitter}=require('node:events');`
     + `const h=require(${JSON.stringify(HELPER)});(async()=>{`
     + `const fd=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
-    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_CUSTOMER_CHECKOUT_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,variant:'customer-checkout'});`
     + `a(grant);a.throws(()=>fs.fstatSync(fd),{code:'EBADF'});`
@@ -429,7 +429,7 @@ test('owned customer checkout consumes one bound FIFO before browser args and re
 
 test('direct manual checkout consumes its own FIFO and cannot borrow chat checkout authority', async t => {
   const { run, executablePath, env } = await owned(t);
-  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/dvaia-customer-manual-checkout-'));
+  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/owasp-ai-goat-customer-manual-checkout-'));
   const evidencePath = path.join(run, 'customer-manual-checkout-browser.json');
   const selected = { ...env, SECURESHOP_STANDALONE_COMMERCE_NATIVE: undefined,
     SECURESHOP_CUSTOMER_MANUAL_CHECKOUT_NATIVE: '1',
@@ -449,7 +449,7 @@ test('direct manual checkout consumes its own FIFO and cannot borrow chat checko
   const childScript = `const fs=require('node:fs');const a=require('node:assert/strict');`
     + `const h=require(${JSON.stringify(HELPER)});(async()=>{`
     + `const fd=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
-    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_CUSTOMER_MANUAL_CHECKOUT_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,variant:'customer-manual-checkout'});`
     + `a(grant);a.throws(()=>fs.fstatSync(fd),{code:'EBADF'});`
@@ -473,7 +473,7 @@ test('direct manual checkout consumes its own FIFO and cannot borrow chat checko
 
 test('owned customer profile consumes exact FIFO, publishes browser birth, and waits for its ACK', async t => {
   const { run, profile: wrongProfile, executablePath, env } = await owned(t);
-  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/dvaia-customer-profile-'));
+  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/owasp-ai-goat-customer-profile-'));
   const evidencePath = path.join(run, 'customer-profile-browser.json');
   const profileEnv = { ...env, SECURESHOP_STANDALONE_COMMERCE_NATIVE: undefined,
     SECURESHOP_CUSTOMER_PROFILE_NATIVE: '1',
@@ -500,7 +500,7 @@ test('owned customer profile consumes exact FIFO, publishes browser birth, and w
     + `const {spawn}=require('node:child_process');const {once}=require('node:events');`
     + `const h=require(${JSON.stringify(HELPER)});(async()=>{`
     + `const fd=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
-    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_CUSTOMER_PROFILE_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,variant:'customer-profile'});`
     + `a(grant);a.throws(()=>fs.fstatSync(fd),{code:'EBADF'});`
@@ -537,7 +537,7 @@ test('owned customer profile consumes exact FIFO, publishes browser birth, and w
 
 test('owned cart lifecycle consumes its distinct FIFO, birth and ACK before a page', async t => {
   const { run, executablePath, env } = await owned(t);
-  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/dvaia-customer-cart-lifecycle-'));
+  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/owasp-ai-goat-customer-cart-lifecycle-'));
   const evidencePath = path.join(run, 'customer-cart-lifecycle-browser.json');
   const cartEnv = { ...env, SECURESHOP_STANDALONE_COMMERCE_NATIVE: undefined,
     SECURESHOP_CUSTOMER_CART_LIFECYCLE_NATIVE: '1',
@@ -562,7 +562,7 @@ test('owned cart lifecycle consumes its distinct FIFO, birth and ACK before a pa
     + `const {spawn}=require('node:child_process');const {once}=require('node:events');`
     + `const h=require(${JSON.stringify(HELPER)});(async()=>{`
     + `const fd=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
-    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_CUSTOMER_CART_LIFECYCLE_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,variant:'customer-cart-lifecycle'});`
     + `a(grant);a.throws(()=>fs.fstatSync(fd),{code:'EBADF'});`
@@ -600,7 +600,7 @@ test('owned cart lifecycle consumes its distinct FIFO, birth and ACK before a pa
 
 test('owned payment setup consumes distinct FIFO, birth and ACK before a page', async t => {
   const { run, executablePath, env } = await owned(t);
-  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/dvaia-customer-payment-setup-'));
+  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/owasp-ai-goat-customer-payment-setup-'));
   const evidencePath = path.join(run, 'customer-payment-setup-browser.json');
   const paymentEnv = { ...env, SECURESHOP_STANDALONE_COMMERCE_NATIVE: undefined,
     SECURESHOP_CUSTOMER_PAYMENT_SETUP_NATIVE: '1',
@@ -624,7 +624,7 @@ test('owned payment setup consumes distinct FIFO, birth and ACK before a page', 
     + `const {spawn}=require('node:child_process');const {once}=require('node:events');`
     + `const h=require(${JSON.stringify(HELPER)});(async()=>{`
     + `const fd=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
-    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_CUSTOMER_PAYMENT_SETUP_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,variant:'customer-payment-setup'});`
     + `a(grant);a.throws(()=>fs.fstatSync(fd),{code:'EBADF'});`
@@ -660,7 +660,7 @@ test('owned payment setup consumes distinct FIFO, birth and ACK before a page', 
 
 test('owned older orders consumes distinct FIFO, birth and ACK before a page', async t => {
   const { run, executablePath, env } = await owned(t);
-  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/dvaia-customer-older-orders-'));
+  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/owasp-ai-goat-customer-older-orders-'));
   const evidencePath = path.join(run, 'customer-older-orders-browser.json');
   const olderEnv = { ...env, SECURESHOP_STANDALONE_COMMERCE_NATIVE: undefined,
     SECURESHOP_CUSTOMER_OLDER_ORDERS_NATIVE: '1',
@@ -686,7 +686,7 @@ test('owned older orders consumes distinct FIFO, birth and ACK before a page', a
     + `const {spawn}=require('node:child_process');const {once}=require('node:events');`
     + `const h=require(${JSON.stringify(HELPER)});(async()=>{`
     + `const fd=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
-    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_CUSTOMER_OLDER_ORDERS_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,variant:'customer-older-orders'});`
     + `a(grant);a.throws(()=>fs.fstatSync(fd),{code:'EBADF'});`
@@ -722,7 +722,7 @@ test('owned older orders consumes distinct FIFO, birth and ACK before a page', a
 
 test('owned address setup consumes distinct FIFO, birth and ACK before a page', async t => {
   const { run, executablePath, env } = await owned(t);
-  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/dvaia-customer-address-setup-'));
+  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/owasp-ai-goat-customer-address-setup-'));
   const evidencePath = path.join(run, 'customer-address-setup-browser.json');
   const addressEnv = { ...env, SECURESHOP_STANDALONE_COMMERCE_NATIVE: undefined,
     SECURESHOP_CUSTOMER_ADDRESS_SETUP_NATIVE: '1',
@@ -750,7 +750,7 @@ test('owned address setup consumes distinct FIFO, birth and ACK before a page', 
     + `const {spawn}=require('node:child_process');const {once}=require('node:events');`
     + `const h=require(${JSON.stringify(HELPER)});(async()=>{`
     + `const fd=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
-    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_CUSTOMER_ADDRESS_SETUP_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,variant:'customer-address-setup'});`
     + `a(grant);a.throws(()=>fs.fstatSync(fd),{code:'EBADF'});`
@@ -785,7 +785,7 @@ test('owned address setup consumes distinct FIFO, birth and ACK before a page', 
 });
 test('owned refund handoff consumes distinct FIFO, birth and ACK before a page', async t => {
   const { run, executablePath, env } = await owned(t);
-  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/dvaia-customer-refund-handoff-'));
+  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/owasp-ai-goat-customer-refund-handoff-'));
   const evidencePath = path.join(run, 'customer-refund-handoff-browser.json');
   const refundEnv = { ...env, SECURESHOP_STANDALONE_COMMERCE_NATIVE: undefined,
     SECURESHOP_CUSTOMER_REFUND_HANDOFF_NATIVE: '1',
@@ -815,7 +815,7 @@ test('owned refund handoff consumes distinct FIFO, birth and ACK before a page',
     + `const {spawn}=require('node:child_process');const {once}=require('node:events');`
     + `const h=require(${JSON.stringify(HELPER)});(async()=>{`
     + `const fd=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
-    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_CUSTOMER_REFUND_HANDOFF_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,variant:'customer-refund-handoff'});`
     + `a(grant);a.throws(()=>fs.fstatSync(fd),{code:'EBADF'});`
@@ -850,7 +850,7 @@ test('owned refund handoff consumes distinct FIFO, birth and ACK before a page',
 });
 test('owned product details consumes distinct FIFO, birth and ACK before a page', async t => {
   const { run, executablePath, env } = await owned(t);
-  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/dvaia-customer-product-details-'));
+  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/owasp-ai-goat-customer-product-details-'));
   const evidencePath = path.join(run, 'customer-product-disambiguation-browser.json');
   const productEnv = { ...env, SECURESHOP_STANDALONE_COMMERCE_NATIVE: undefined,
     SECURESHOP_CUSTOMER_PRODUCT_DETAILS_NATIVE: '1',
@@ -881,7 +881,7 @@ test('owned product details consumes distinct FIFO, birth and ACK before a page'
     + `const {spawn}=require('node:child_process');const {once}=require('node:events');`
     + `const h=require(${JSON.stringify(HELPER)});(async()=>{`
     + `const fd=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
-    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_CUSTOMER_PRODUCT_DETAILS_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,variant:'customer-product-details'});`
     + `a(grant);a.throws(()=>fs.fstatSync(fd),{code:'EBADF'});`
@@ -916,7 +916,7 @@ test('owned product details consumes distinct FIFO, birth and ACK before a page'
 });
 test('owned stock rejection consumes distinct FIFO, birth and ACK before a page', async t => {
   const { run, executablePath, env } = await owned(t);
-  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/dvaia-customer-out-of-stock-'));
+  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/owasp-ai-goat-customer-out-of-stock-'));
   const evidencePath = path.join(run, 'customer-out-of-stock-browser.json');
   const stockEnv = { ...env, SECURESHOP_STANDALONE_COMMERCE_NATIVE: undefined,
     SECURESHOP_CUSTOMER_OUT_OF_STOCK_NATIVE: '1',
@@ -947,7 +947,7 @@ test('owned stock rejection consumes distinct FIFO, birth and ACK before a page'
     + `const {spawn}=require('node:child_process');const {once}=require('node:events');`
     + `const h=require(${JSON.stringify(HELPER)});(async()=>{`
     + `const fd=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
-    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_CUSTOMER_OUT_OF_STOCK_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,variant:'customer-out-of-stock'});`
     + `a(grant);a.throws(()=>fs.fstatSync(fd),{code:'EBADF'});`
@@ -982,7 +982,7 @@ test('owned stock rejection consumes distinct FIFO, birth and ACK before a page'
 });
 test('owned checkout fences consumes distinct FIFO, birth and ACK before a page', async t => {
   const { run, executablePath, env } = await owned(t);
-  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/dvaia-customer-checkout-fences-'));
+  const profile = await fs.mkdtemp(path.join(run, 'runtime/tmp/owasp-ai-goat-customer-checkout-fences-'));
   const evidencePath = path.join(run, 'customer-checkout-fences.json');
   const fencesEnv = { ...env, SECURESHOP_STANDALONE_COMMERCE_NATIVE: undefined,
     SECURESHOP_CUSTOMER_CHECKOUT_FENCES_NATIVE: '1',
@@ -1008,7 +1008,7 @@ test('owned checkout fences consumes distinct FIFO, birth and ACK before a page'
     + `const {spawn}=require('node:child_process');const {once}=require('node:events');`
     + `const h=require(${JSON.stringify(HELPER)});(async()=>{`
     + `const fd=Number(process.env.SECURESHOP_COMMERCE_ADMISSION_FD);`
-    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `const grant=await h.admitCommerceBrowser(process.env,{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_CUSTOMER_CHECKOUT_FENCES_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH,variant:'customer-checkout-fences'});`
     + `a(grant);a.throws(()=>fs.fstatSync(fd),{code:'EBADF'});`
@@ -1051,12 +1051,12 @@ test('customer checkout fixture retains original controls and admits owned brows
   assert.match(fixture, /admitCommerceBrowser\(process\.env/);
   assert.match(fixture, /variant: MANUAL_CHECKOUT \? 'customer-manual-checkout' : PROFILE \? 'customer-profile' : CART_LIFECYCLE \? 'customer-cart-lifecycle'\s*: STOCK_REJECTION \? 'customer-out-of-stock' : PRODUCT_DETAILS \? 'customer-product-details' : REFUND_HANDOFF \? 'customer-refund-handoff' : ADDRESS_SETUP \? 'customer-address-setup' : PAYMENT_SETUP \? 'customer-payment-setup' : OLDER_ORDERS \? 'customer-older-orders'\s*: CHECKOUT_FENCES \? 'customer-checkout-fences' : 'customer-checkout'/);
   assert.match(fixture, /MANUAL_CHECKOUT \? 'PG_SECURESHOP_CUSTOMER_CHECKOUT_'/);
-  assert.match(fixture, /browserAdmission && MANUAL_CHECKOUT\s*\? 'dvaia-customer-manual-checkout-'/);
-  assert.match(fixture, /browserAdmission && PROFILE\s*\? 'dvaia-customer-profile-'/);
-  assert.match(fixture, /browserAdmission && CART_LIFECYCLE\s*\? 'dvaia-customer-cart-lifecycle-'/);
-  assert.match(fixture, /browserAdmission && PAYMENT_SETUP\s*\? 'dvaia-customer-payment-setup-'/);
-  assert.match(fixture, /browserAdmission && OLDER_ORDERS\s*\? 'dvaia-customer-older-orders-'/);
-  assert.match(fixture, /browserAdmission && CHECKOUT_FENCES\s*\? 'dvaia-customer-checkout-fences-'/);
+  assert.match(fixture, /browserAdmission && MANUAL_CHECKOUT\s*\? 'owasp-ai-goat-customer-manual-checkout-'/);
+  assert.match(fixture, /browserAdmission && PROFILE\s*\? 'owasp-ai-goat-customer-profile-'/);
+  assert.match(fixture, /browserAdmission && CART_LIFECYCLE\s*\? 'owasp-ai-goat-customer-cart-lifecycle-'/);
+  assert.match(fixture, /browserAdmission && PAYMENT_SETUP\s*\? 'owasp-ai-goat-customer-payment-setup-'/);
+  assert.match(fixture, /browserAdmission && OLDER_ORDERS\s*\? 'owasp-ai-goat-customer-older-orders-'/);
+  assert.match(fixture, /browserAdmission && CHECKOUT_FENCES\s*\? 'owasp-ai-goat-customer-checkout-fences-'/);
   assert(fixture.indexOf('await browserAdmission.acknowledgeBrowser({ browser, profile })')
     < fixture.indexOf('browserBoundary.newPage(browser)'));
   assert.match(fixture, /stage = 'two-tab-second-open';\s*const secondPage = browserBoundary \? await browserBoundary\.newPage\(browser\) : await browser\.newPage\(\);/);
@@ -1187,7 +1187,7 @@ test('exact API-key confirmation selector ignores a mounted hidden Hop sheet and
 });
 
 test('A18 pre-fault snapshot probe reads only exact scoped keys and returns bounded metadata, never saved values', async () => {
-  const scopeKey = 'dvaia:secureshop:11111111-1111-4111-8111-111111111111:1';
+  const scopeKey = 'owasp-ai-goat:secureshop:11111111-1111-4111-8111-111111111111:1';
   const sceneId = '22222222-2222-4222-8222-222222222222';
   const summaryKey = 'secureshop.product-summary.operations.v1';
   const allowedFields = ['secureshop_v2_token', 'ss_guest_cart', summaryKey,
@@ -1237,13 +1237,13 @@ test('A18 metadata probe is diagnostic only and leaves original storage-failure 
   assert.match(fixture, /\^SHOP_\[A-Z_\]\+_KEY\$/);
   assert.match(fixture, /allowedFields: allowedSnapshotFields/);
   assert.match(fixture, /summaryKey: shopStateNames\.SHOP_PRODUCT_SUMMARY_KEY/);
-  assert.match(fixture, /scopeKey: `dvaia:secureshop:\$\{beforePractice\.launch\.launchId\.toLowerCase\(\)\}:\$\{beforePractice\.launch\.generation\}`/);
+  assert.match(fixture, /scopeKey: `owasp-ai-goat:secureshop:\$\{beforePractice\.launch\.launchId\.toLowerCase\(\)\}:\$\{beforePractice\.launch\.generation\}`/);
   assert.match(fixture, /sceneId: originalPractice\.id\.toLowerCase\(\)/);
   assert.doesNotMatch(fixture.slice(capture, fault), /Object\.(?:keys|entries)\(localStorage\)|localStorage\.key\(/);
 });
 
 test('A18 exact Product reference comparison rejects replacement with the same entry count', () => {
-  const scopeKey = 'dvaia:secureshop:11111111-1111-4111-8111-111111111111:1';
+  const scopeKey = 'owasp-ai-goat:secureshop:11111111-1111-4111-8111-111111111111:1';
   const sceneId = '22222222-2222-4222-8222-222222222222';
   const summaryKey = 'secureshop.product-summary.operations.v1';
   const input = { scopeKey, sceneId, summaryKey };
@@ -1438,12 +1438,12 @@ test('readiness capture remains stage- and path-scoped without recording other t
   stage = 'merchant-listings-browser';
   observer.arm();
   const unrelated = await fetch(`${origin}/api/secureshop/merchant/listings/other`);
-  assert.equal(unrelated.headers.has('x-dvaia-commerce-readiness-observation'), false);
+  assert.equal(unrelated.headers.has('x-owasp-ai-goat-commerce-readiness-observation'), false);
   const wrongMethod = await fetch(`${origin}${READINESS}`, { method: 'POST' });
-  assert.equal(wrongMethod.headers.has('x-dvaia-commerce-readiness-observation'), false);
+  assert.equal(wrongMethod.headers.has('x-owasp-ai-goat-commerce-readiness-observation'), false);
   stage = 'retired';
   const retired = await fetch(`${origin}${READINESS}`);
-  assert.equal(retired.headers.has('x-dvaia-commerce-readiness-observation'), false);
+  assert.equal(retired.headers.has('x-owasp-ai-goat-commerce-readiness-observation'), false);
   assert.throws(() => observer.assertBrowserResponse(browserResponse(origin, retired), origin),
     /exactly one/);
 });

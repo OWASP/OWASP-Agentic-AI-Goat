@@ -188,7 +188,7 @@ class IdorBrowserLauncher(unittest.TestCase):
                 return_value=SimpleNamespace(stdout='')):
             root = Path(folder); (root / 'tmp').mkdir()
             self.assertTrue(all(L.standalone_browser_cleanup_state(root).values()))
-            (root / 'tmp' / 'dvaia-customer-idor-browser-owned').mkdir()
+            (root / 'tmp' / 'owasp-ai-goat-customer-idor-browser-owned').mkdir()
             self.assertFalse(L.standalone_browser_cleanup_state(root)['browserProfilesAbsent'])
 
 

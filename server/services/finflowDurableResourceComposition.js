@@ -8,9 +8,9 @@ const {createFinflowOwnerResourceDeletion}=require('./finflowOwnerResourceDeleti
 const {initialFinflowCustomerDataset}=require('./finflowCustomerDataset');
 
 function controlledRoots({appDataRoot,env=process.env}={}){
-  const supplied=appDataRoot===undefined?env.DVAIA_APP_DATA_ROOT:appDataRoot;
+  const supplied=appDataRoot===undefined?env.OWASP_AI_GOAT_APP_DATA_ROOT:appDataRoot;
   if(typeof supplied!=='string'||!path.isAbsolute(supplied)){
-    throw new TypeError('Explicit absolute DVAIA application data root required');
+    throw new TypeError('Explicit absolute OWASP Agentic AI GOAT application data root required');
   }
   const root=path.resolve(supplied);
   const traversalRoot=path.resolve(env.FINFLOW_TRAVERSAL_TARGET_ROOT||path.join(root,'finflow-traversal-targets'));

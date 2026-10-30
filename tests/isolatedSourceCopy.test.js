@@ -28,7 +28,7 @@ test('isolated source copy admits exactly the approved FinFlow log fixtures', ()
   }
   assert.equal(include(path.join(ROOT, 'server/sensitive_files/logs/unapproved.log')), false);
   assert.equal(include(path.join(ROOT, 'server/sensitive_files/logs/debug.log')), false);
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-source-copy-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-source-copy-'));
   const source = path.join(directory, 'synthetic-donor');
   const destination = path.join(directory, 'copy');
   const included = [...CONTROLLED_FINFLOW_LOGS, 'example.js', '.env.example'];
@@ -61,7 +61,7 @@ test('isolated source copy admits exactly the approved FinFlow log fixtures', ()
 });
 
 test('Git ignores every non-inventoried log while allowing the four controlled fixtures', () => {
-  const repository = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-log-ignore-'));
+  const repository = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-log-ignore-'));
   const fixtures = [...CONTROLLED_FINFLOW_LOGS];
   const excluded = [
     'server/sensitive_files/logs/debug.log',
@@ -92,7 +92,7 @@ test('Git ignores every non-inventoried log while allowing the four controlled f
 
 test('only byte-pinned synthetic MCP environment is copied; private and changed environment files stay excluded', t => {
   const fixture='sidecars/sandbox-runner/labfs/opt/app/config/.env';
-  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-env-copy-'));
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-env-copy-'));
   t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
   const source=path.join(dir,'source');const destination=path.join(dir,'copy');
   const file=path.join(source,fixture);fs.mkdirSync(path.dirname(file),{recursive:true});

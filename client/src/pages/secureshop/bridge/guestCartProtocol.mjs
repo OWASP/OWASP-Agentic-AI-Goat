@@ -1,5 +1,5 @@
-export const GUEST_CART_CHANNEL = 'dvaia-secureshop-guest-cart-v1';
-export const GUEST_CART_STORAGE_KEY = 'dvaia.secureshop.guest-cart.v1';
+export const GUEST_CART_CHANNEL = 'owasp-ai-goat-secureshop-guest-cart-v1';
+export const GUEST_CART_STORAGE_KEY = 'owasp-ai-goat.secureshop.guest-cart.v1';
 export const MAX_GUEST_CART_ITEMS = 50;
 export const MAX_GUEST_CART_BYTES = 4096;
 

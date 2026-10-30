@@ -114,10 +114,10 @@ def database_plan(cohort, nonce):
     """Closed database/role identities; no caller-controlled SQL identifiers."""
     if cohort not in COHORTS or not re.fullmatch('[a-f0-9]{12}', nonce):
         raise RuntimeError('Exact cohort and database nonce required')
-    result = dict(identity=dict(database='dvaia_test_admin_browser_' + nonce,
+    result = dict(identity=dict(database='owasp_ai_goat_test_admin_browser_' + nonce,
         runtime='dvaia_identity_runtime', migration='dvaia_identity_migration'))
     if cohort == RESET_COHORT:
-        result['finflow'] = dict(database='dvaia_test_student_reset_finflow_' + nonce,
+        result['finflow'] = dict(database='owasp_ai_goat_test_student_reset_finflow_' + nonce,
             runtime='dvaia_finflow_runtime', migration='dvaia_finflow_migration')
     return result
 
@@ -498,7 +498,7 @@ def environment(repo, runtime, port, database, args):
     # The supplied identity name is itself an exact nonce source, never an
     # arbitrary connection string or SQL identifier. Both stores share this
     # nonce and the single owned container's loopback port.
-    match = re.fullmatch('dvaia_test_admin_browser_([a-f0-9]{12})', database)
+    match = re.fullmatch('owasp_ai_goat_test_admin_browser_([a-f0-9]{12})', database)
     if not match or type(port) is not int or not 1 <= port <= 65535:
         raise RuntimeError('Exact owned database/port required')
     stores = database_plan(args.cohort, match[1])
@@ -514,10 +514,10 @@ def environment(repo, runtime, port, database, args):
                PG_ADMIN_BROWSER_RESOURCE_JOURNAL=str(tmp / 'admin-browser-resources.json'),
                PG_ADMIN_BROWSER_TEMP_ROOT=str(tmp / 'admin-browser-runtime'),
                PUPPETEER_EXECUTABLE_PATH=args.chromium,
-               DVAIA_CHROMIUM_ACTUAL_EXECUTABLE=args.chromium,
+               OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE=args.chromium,
                AWS_EC2_METADATA_DISABLED='true', LOGS_DIR=str(runtime / 'logs'),
-               DVAIA_APP_DATA_ROOT=str(runtime / 'data'),
-               DVAIA_ISOLATED_TEST_WORKSPACE=str(repo),
+               OWASP_AI_GOAT_APP_DATA_ROOT=str(runtime / 'data'),
+               OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(repo),
                PGCONNECT_TIMEOUT='5',
                PGOPTIONS='-c statement_timeout=15000 -c idle_in_transaction_session_timeout=30000')
     for role in ('runtime', 'migration'):
@@ -807,9 +807,9 @@ def main(argv):
     docker = [args.docker, '--host', args.docker_host]
     env = dict(PATH='/usr/bin:/bin', HOME=str(runtime / 'home'), TMPDIR=str(runtime / 'tmp'))
     container = None
-    name = ('dvaia-admin-student-reset-' if args.cohort == RESET_COHORT else 'dvaia-admin-q05-') + nonce
+    name = ('owasp-ai-goat-admin-student-reset-' if args.cohort == RESET_COHORT else 'owasp-ai-goat-admin-q05-') + nonce
     owner = uuid.uuid4().hex
-    database = 'dvaia_test_admin_browser_' + nonce
+    database = 'owasp_ai_goat_test_admin_browser_' + nonce
     state['stores'] = database_plan(args.cohort, nonce)
     child = None
     owned = Owned()
@@ -838,7 +838,7 @@ def main(argv):
                 return None
             raise RuntimeError('Container absence inspection failed')
         row = json.loads(result.stdout)[0]
-        if row['Config']['Labels'].get('dvaia.test.owner') != owner \
+        if row['Config']['Labels'].get('owasp-ai-goat.test.owner') != owner \
                 or (container is not None and row['Id'] != container):
             raise RuntimeError('Container identity mismatch')
         return row
@@ -857,7 +857,7 @@ def main(argv):
         if inspect() is not None:
             raise RuntimeError('Fresh owned container required')
         command(docker + ['run', '-d', '--pull', 'never', '--name', name,
-            '--label', 'dvaia.test.owner=' + owner, '--memory', '1g', '--cpus', '1',
+            '--label', 'owasp-ai-goat.test.owner=' + owner, '--memory', '1g', '--cpus', '1',
             '--pids-limit', '128', '--tmpfs', '/var/lib/postgresql:rw,size=536870912',
             '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', '-p', '127.0.0.1::5432',
             args.image_id, '-c', 'max_connections=100'])

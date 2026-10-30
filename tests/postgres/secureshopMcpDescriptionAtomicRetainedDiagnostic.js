@@ -9,7 +9,7 @@ const {createHash}=require('node:crypto');
 const D=require('../fixtures/secureshopMcpDescriptionAtomicDiagnostic');
 const transport=require('./secureshopAuditRetainedTransportDiagnostic');
 const ROOT=path.resolve(__dirname,'../..');
-const ORIGINAL='tasks/qualification/dvaia-mcp-assembly-iw6u2bic';
+const ORIGINAL='tasks/qualification/owasp-ai-goat-mcp-assembly-iw6u2bic';
 const INPUTS=Object.freeze({
  'mcp-description-qualification.json':'904b7629f4c36cd53bea6dc2d434f7997b759115d65da3cc36f17e0e1e0aeab5',
  'mcp-description-wire.json':'d10b81c2a3c848e25c7c4d72a1cf0efe320af153718705ac18f244a3bbef0d8c',

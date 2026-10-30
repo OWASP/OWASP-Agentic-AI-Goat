@@ -180,7 +180,7 @@ test('V01 production HTTP chat route binds an empty model action to the immutabl
   try {
     const response=await fetch(`http://127.0.0.1:${server.address().port}/api/secureshop/agents/customer/checkout-audit/chat`,{
       method:'POST',headers:{'content-type':'application/json',
-        'x-dvaia-secureshop-launch':'a'.repeat(43)},body:JSON.stringify(body)});
+        'x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)},body:JSON.stringify(body)});
     assert.equal(response.status,200);assert.match(response.headers.get('content-type')||'',/^text\/event-stream/);
     const stream=await response.text();assert.match(stream,/event: assistant_message/);
     assert.match(stream,/event: done/);assert.match(stream,/\"params\":\{\}/);

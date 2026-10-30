@@ -12,7 +12,7 @@ install_macos_prerequisites() {
   fi
   if ! command -v brew >/dev/null 2>&1; then
     local brew_script
-    brew_script="$(mktemp -t dvaia-homebrew.XXXXXX)"
+    brew_script="$(mktemp -t owasp-ai-goat-homebrew.XXXXXX)"
     curl --fail --show-error --location --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$brew_script" || { rm -f "$brew_script"; die 'Homebrew download failed.'; }
     /bin/bash "$brew_script" || { rm -f "$brew_script"; die 'Homebrew installation failed; complete any macOS developer-tool prompt and rerun.'; }
     rm -f "$brew_script"
@@ -44,7 +44,7 @@ install_macos_prerequisites() {
     fi
   fi
   if ! validate_npm; then
-    env NODE_USE_SYSTEM_CA=1 npm install --global "npm@${DVAIA_MINIMUM_NPM_VERSION}"
+    env NODE_USE_SYSTEM_CA=1 npm install --global "npm@${OWASP_AI_GOAT_MINIMUM_NPM_VERSION}"
     hash -r
   fi
   validate_node || die 'The qualified Node.js and npm runtime is unavailable after Homebrew installation.'
@@ -54,11 +54,11 @@ install_macos_prerequisites() {
   # an explicit Colima VM instead of whichever Docker context happens to be active.
   command -v docker >/dev/null 2>&1 || brew install docker
   command -v colima >/dev/null 2>&1 || brew install colima
-  local owned_profile="${DVAIA_MCP_OWNED_COLIMA_PROFILE:-colima-default}"
+  local owned_profile="${OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE:-colima-default}"
   if ! "$repair_existing"; then
-    [[ "$owned_profile" =~ ^colima-[a-z0-9][a-z0-9-]{0,47}$ ]] || die 'DVAIA_MCP_OWNED_COLIMA_PROFILE must be colima-<profile>.'
+    [[ "$owned_profile" =~ ^colima-[a-z0-9][a-z0-9-]{0,47}$ ]] || die 'OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE must be colima-<profile>.'
     colima start --profile "${owned_profile#colima-}" --cpu 2 --memory 4
-    export DVAIA_MCP_OWNED_COLIMA_PROFILE="$owned_profile"
+    export OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE="$owned_profile"
   fi
   ensure_macos_docker_ready "$repair_existing" "$owned_profile"
   ensure_macos_compose
@@ -71,7 +71,7 @@ install_macos_prerequisites() {
       open -a Ollama
     else
       local ollama_log_dir
-      ollama_log_dir="$(mktemp -d "${TMPDIR:-/tmp}/dvaia-ollama.XXXXXXXX")"
+      ollama_log_dir="$(mktemp -d "${TMPDIR:-/tmp}/owasp-ai-goat-ollama.XXXXXXXX")"
       (umask 077; OLLAMA_HOST=127.0.0.1:11434 nohup ollama serve > "$ollama_log_dir/ollama.log" 2>&1 < /dev/null &)
       printf 'Local Ollama startup log: %s/ollama.log\n' "$ollama_log_dir"
     fi

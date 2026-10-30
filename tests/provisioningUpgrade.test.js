@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { provisioningPlan, provisionApplication } = require('../db/postgres/provision-application');
 async function fixture(run, failCreate = false) {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-upgrade-unit-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-upgrade-unit-'));
   const manifestPath = path.join(directory, 'manifest.json');
   const plan = provisioningPlan(); const oldPlan = plan.slice(0, -1);
   const configuration = Object.fromEntries(oldPlan.flatMap(row => ['runtime', 'migration'].map(kind => [row[kind + 'Variable'], `postgres://${row[kind + 'Role']}:existing-secret@127.0.0.1/${row.database}`])));

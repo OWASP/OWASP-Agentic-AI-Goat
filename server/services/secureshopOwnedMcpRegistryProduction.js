@@ -15,7 +15,7 @@ function validateConfiguration(value,{root=path.resolve(__dirname,'../..')}={}){
  return Object.freeze({...value});
 }
 async function readConfiguration({root=path.resolve(__dirname,'../..'),home=os.homedir()}={}){
- const file=path.join(home,'.dvaia',workspaceId(root),'secureshop-owned-mcp-registry.json');
+ const file=path.join(home,'.owasp-ai-goat',workspaceId(root),'secureshop-owned-mcp-registry.json');
  let stat;try{stat=await fs.lstat(file);}catch(error){if(error.code==='ENOENT')return null;throw fail();}
  if(!stat.isFile()||stat.isSymbolicLink()||stat.size>8192||(stat.mode&0o077)||stat.uid!==process.getuid())throw fail();
  try{return validateConfiguration(JSON.parse(await fs.readFile(file,'utf8')),{root});}catch{throw fail();}

@@ -1,6 +1,6 @@
 import subprocess,uuid,json,pathlib,hashlib,shlex,os,time,urllib.request
-root=pathlib.Path('/Users/averma5/Documents/github/Damn-Vulnerable-AI-Application');nonce=uuid.uuid4().hex[:12];name='dvaia-owned-http-'+nonce;profile=name;remote='/tmp/'+name
-D=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host','unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'];S=['/usr/bin/ssh','-F',str(pathlib.Path.home()/'.colima/_lima/colima-dvaia-pg-verify/ssh.config'),'lima-colima-dvaia-pg-verify'];image='sha256:ba0128a2a64f17b1fdf4158979b0c401ba74c0fa8229b61da30f40bc2f9030e4'
+root=pathlib.Path('/Users/averma5/Documents/github/OWASP Agentic AI GOAT');nonce=uuid.uuid4().hex[:12];name='owasp-ai-goat-owned-http-'+nonce;profile=name;remote='/tmp/'+name
+D=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host','unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'];S=['/usr/bin/ssh','-F',str(pathlib.Path.home()/'.colima/_lima/colima-owasp-ai-goat-pg-verify/ssh.config'),'lima-colima-owasp-ai-goat-pg-verify'];image='sha256:ba0128a2a64f17b1fdf4158979b0c401ba74c0fa8229b61da30f40bc2f9030e4'
 def ssh(args,**kw):return subprocess.run(S+[shlex.join(args)],text=True,capture_output=True,timeout=30,**kw)
 def checked(r):
  if r.returncode:raise RuntimeError(r.stderr)
@@ -8,10 +8,10 @@ def checked(r):
 base=(root/'sidecars/sandbox-runner/owned-http/http-profile.apparmor.in').read_text().replace('@@SUPERVISOR_PROFILE@@',profile)
 # Template already contains HTTP setup capability.
 policy=base
-source=(root/'tests/fixtures/mcpOwnedHttpServiceGate.cjs').read_text().replace('if(require.main===module)','if(true)').replace("'dvaia-mcp-sandbox (enforce)'",repr(profile+' (enforce)')).replace("'--cap-add','CAP_SETPCAP'","'--cap-add','CAP_SETPCAP','--cap-add','CAP_NET_BIND_SERVICE'")
+source=(root/'tests/fixtures/mcpOwnedHttpServiceGate.cjs').read_text().replace('if(require.main===module)','if(true)').replace("'owasp-ai-goat-mcp-sandbox (enforce)'",repr(profile+' (enforce)')).replace("'--cap-add','CAP_SETPCAP'","'--cap-add','CAP_SETPCAP','--cap-add','CAP_NET_BIND_SERVICE'")
 # Existingstore readiness expects explicit profile parameter via environment.
-cliProfile='dvaia-mcp-sandbox-'+nonce;cliName=cliProfile
-cliPolicy=(root/'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in').read_text().replace('@@SUPERVISOR_PROFILE@@',cliProfile)
+cliProfile='owasp-ai-goat-mcp-sandbox-'+nonce;cliName=cliProfile
+cliPolicy=(root/'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in').read_text().replace('@@SUPERVISOR_PROFILE@@',cliProfile)
 result={'profile':profile,'policySha256':hashlib.sha256(policy.encode()).hexdigest(),'image':image};created=False;loaded=False
 try:
  labels=checked(ssh(['sudo','cat','/sys/kernel/security/apparmor/profiles']));assert not any(line.startswith(profile+' ') or line.startswith(profile+'//') for line in labels.splitlines())
@@ -21,9 +21,9 @@ try:
  checked(ssh(['tee',remote+'/cli-policy'],input=cliPolicy));checked(ssh(['sudo','apparmor_parser','-r',remote+'/cli-policy']))
  token=uuid.uuid4().hex+uuid.uuid4().hex
  cliToken=uuid.uuid4().hex+uuid.uuid4().hex
- checked(subprocess.run(D+['run','--detach','--rm','--name',cliName,'--label','dvaia.owner='+nonce,'--user','10001:10001','--security-opt','apparmor='+cliProfile,'--security-opt','seccomp=unconfined','-p','127.0.0.1::8090','--env','MCP_OWNED_TARGETS_ENABLED=true','--env','MCP_OWNED_TARGET_TOKEN='+cliToken,'--env','MCP_OWNED_TARGET_ROOT=/tmp/cli-owned','--env','MCP_OWNED_TARGET_APPARMOR_PROFILE='+cliProfile,'--entrypoint','node',image,'/app/index.js'],text=True,capture_output=True,timeout=30))
+ checked(subprocess.run(D+['run','--detach','--rm','--name',cliName,'--label','owasp-ai-goat.owner='+nonce,'--user','10001:10001','--security-opt','apparmor='+cliProfile,'--security-opt','seccomp=unconfined','-p','127.0.0.1::8090','--env','MCP_OWNED_TARGETS_ENABLED=true','--env','MCP_OWNED_TARGET_TOKEN='+cliToken,'--env','MCP_OWNED_TARGET_ROOT=/tmp/cli-owned','--env','MCP_OWNED_TARGET_APPARMOR_PROFILE='+cliProfile,'--entrypoint','node',image,'/app/index.js'],text=True,capture_output=True,timeout=30))
  cliPort=checked(subprocess.run(D+['port',cliName,'8090/tcp'],text=True,capture_output=True,timeout=10)).strip().rsplit(':',1)[1]
- cmd=D+['run','--detach','--rm','--name',name,'--label','dvaia.owner='+nonce,'--user','10001:10001','--security-opt','apparmor='+profile,'--security-opt','seccomp=unconfined','-p','127.0.0.1::8091','--env','MCP_OWNED_HTTP_TOKEN='+token,'--env','MCP_OWNED_HTTP_ROOT=/tmp/owned-http-state','--env','MCP_OWNED_TARGET_APPARMOR_PROFILE='+profile,'--entrypoint','node',image,'/app/owned-http/service.js']
+ cmd=D+['run','--detach','--rm','--name',name,'--label','owasp-ai-goat.owner='+nonce,'--user','10001:10001','--security-opt','apparmor='+profile,'--security-opt','seccomp=unconfined','-p','127.0.0.1::8091','--env','MCP_OWNED_HTTP_TOKEN='+token,'--env','MCP_OWNED_HTTP_ROOT=/tmp/owned-http-state','--env','MCP_OWNED_TARGET_APPARMOR_PROFILE='+profile,'--entrypoint','node',image,'/app/owned-http/service.js']
  checked(subprocess.run(cmd,text=True,capture_output=True,timeout=30))
  port=checked(subprocess.run(D+['port',name,'8091/tcp'],text=True,capture_output=True,timeout=10)).strip().rsplit(':',1)[1]
  base='http://127.0.0.1:'+port

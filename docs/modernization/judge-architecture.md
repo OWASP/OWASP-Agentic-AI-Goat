@@ -115,7 +115,7 @@ Structured decoding now restricts each satisfied criterion to its exact ID and e
 
 The four email-builder levels use the same shared LLM evaluator and browser-qualified evidence but retain their separate legacy receipt/progress tables. They are not four extra entries in the canonical 136-objective workshop catalog. Generation and reset routes run through the owner coordinator with a PostgreSQL run ledger: reset invalidates the run generation and drains the owner lease before deleting templates/progress. A separate receipt table is therefore not, by itself, evidence of an anonymous or unfenced completion bypass.
 
-The owner-bound generation/reset and grader tests passed 13 cases in the current review (`/tmp/dvaia-legacy-email-owner-review.log`). This verifies those tested paths; it does not claim canonical visibility/mode semantics or retained-packet retry for the legacy namespace. Its eight positive/negative evidence cases passed the v9 audit. Keep these boundaries explicit when reporting coverage.
+The owner-bound generation/reset and grader tests passed 13 cases in the current review (`/tmp/owasp-ai-goat-legacy-email-owner-review.log`). This verifies those tested paths; it does not claim canonical visibility/mode semantics or retained-packet retry for the legacy namespace. Its eight positive/negative evidence cases passed the v9 audit. Keep these boundaries explicit when reporting coverage.
 
 
 ### Grounded-v10: explicit outcome intent

@@ -5,15 +5,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from sensitive_info_recovery_safety import SignalGate
 
-EXPECTED_DOCKER='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+EXPECTED_DOCKER='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 DOCKER=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 IMAGE='sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 SOURCE=Path(__file__).resolve().parents[2]
 parser=argparse.ArgumentParser();parser.add_argument('--docker-host',required=True);args=parser.parse_args()
 if args.docker_host!=EXPECTED_DOCKER:raise SystemExit('reviewed isolated Docker host required')
-root=Path(tempfile.mkdtemp(prefix='dvaia-csrf-clean-rag-'));os.chmod(root,0o700);workspace=root/'source'
-container='dvaia-csrf-clean-rag-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-csrf-clean-rag-'));os.chmod(root,0o700);workspace=root/'source'
+container='owasp-ai-goat-csrf-clean-rag-'+uuid.uuid4().hex[:12];owner=uuid.uuid4().hex
 docker=[str(DOCKER),'--host',args.docker_host]
 env={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(root)}
 state={'container':container,'owner':owner,'image':IMAGE,'evidence':str(root),'launcherPid':os.getpid(),
@@ -53,7 +53,7 @@ try:
  if version!='v26.9.0':raise RuntimeError('managed Node v26.9.0 required')
  state['nodeVersion']=version;persist()
  daemon_name=run(docker+['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()
- if daemon_name!='colima-dvaia-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
+ if daemon_name!='colima-owasp-ai-goat-pg-verify':raise RuntimeError('reviewed isolated Docker daemon required')
  image_id=run(docker+['image','inspect','--format','{{.Id}}',IMAGE],stdout=subprocess.PIPE,text=True).stdout.strip()
  if image_id!=IMAGE:raise RuntimeError('immutable PostgreSQL image identity mismatch')
  state['dockerDaemon']=daemon_name;state['imageId']=image_id;persist()
@@ -70,7 +70,7 @@ try:
   'server/database/postgres/csrfWorkshopDb.js','db/postgres/identity-migrations/0082_workshop_rag_sources.sql',
   'db/postgres/identity-migrations/0095_teaching_sessions.sql','db/postgres/identity-migrations/0097_mcp_protected_reconciliation.sql']
  state['sourceSha256']={name:digest(workspace/name) for name in inventory};persist()
- cache=Path('/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-embedding-430-255u6f1z/cache')
+ cache=Path('/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-embedding-430-255u6f1z/cache')
  if not cache.is_dir():raise RuntimeError('reviewed cached CPU embedding runtime unavailable')
  import shutil
  shutil.copytree(cache,workspace/'model-cache')
@@ -81,12 +81,12 @@ try:
  run([str(NODE),'--check','tests/postgres/csrfCleanRagReadiness.integration.test.js'],cwd=workspace)
  run([str(NODE),'--check','server/routes/csrfWorkshop.js'],cwd=workspace)
  creation_attempted=True;state['containerCreationAttempted']=True;persist()
- run(docker+['run','--detach','--pull','never','--name',container,'--label','dvaia.test.owner='+owner,
+ run(docker+['run','--detach','--pull','never','--name',container,'--label','owasp-ai-goat.test.owner='+owner,
   '--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_HOST_AUTH_METHOD=trust',
   '-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=40',
   '-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL)
  details=json.loads(run(docker+['inspect',container],stdout=subprocess.PIPE,text=True).stdout)[0]
- if details.get('Mounts') or details['Config']['Labels'].get('dvaia.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
+ if details.get('Mounts') or details['Config']['Labels'].get('owasp-ai-goat.test.owner')!=owner:raise RuntimeError('owned PostgreSQL isolation/ownership check failed')
  for _ in range(100):
   ready=subprocess.run(docker+['exec',container,'pg_isready','-h','127.0.0.1','-U','postgres'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=2)
   if ready.returncode==0:break
@@ -97,14 +97,14 @@ try:
  roles=['dvaia_identity_migration','dvaia_identity_runtime','dvaia_csrf_migration','dvaia_csrf_runtime']
  run(psql+[';'.join(f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS' for role in roles)+';'],stdout=subprocess.DEVNULL)
  nonce=owner[:12]
- for family,database in [('identity',f'dvaia_test_workshop_rag_{nonce}'),('csrf',f'dvaia_test_csrf_clean_rag_{nonce}')]:
+ for family,database in [('identity',f'owasp_ai_goat_test_workshop_rag_{nonce}'),('csrf',f'owasp_ai_goat_test_csrf_clean_rag_{nonce}')]:
   migration=f'dvaia_{family}_migration';runtime=f'dvaia_{family}_runtime'
   run(psql+[f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL)
   run(psql+[f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}'],stdout=subprocess.DEVNULL)
   prefix='WORKSHOP_RAG' if family=='identity' else 'CSRF_CLEAN_RAG'
   env[f'{prefix}_MIGRATION_URL']=f'postgresql://{migration}@127.0.0.1:{port}/{database}'
   env[f'{prefix}_RUNTIME_URL']=f'postgresql://{runtime}@127.0.0.1:{port}/{database}'
- env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',CSRF_CLEAN_RAG_NATIVE='1',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+ env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',CSRF_CLEAN_RAG_NATIVE='1',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
   WORKSHOP_RAG_EVIDENCE_PATH=str(root/'service-evidence.json'),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',
   AI_PROVIDER='mock',TRANSFORMERS_OFFLINE='1',WORKSHOP_RAG_ACTUAL_EMBEDDING='1',JWT_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,SESSION_SECRET=uuid.uuid4().hex+uuid.uuid4().hex,
   AWS_EC2_METADATA_DISABLED='true',MCP_WORKSHOP_AUTOSTART='false',MCP_SIDECARS_AUTOSTART='false',SS_ENABLE='false',HF_HUB_OFFLINE='1',

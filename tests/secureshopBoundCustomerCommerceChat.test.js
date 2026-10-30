@@ -283,7 +283,7 @@ test('route admits only the closed selected-card body and forwards its exact cho
   await new Promise(resolve => server.once('listening', resolve));
   const base = `http://127.0.0.1:${server.address().port}/api/secureshop/agents/customer/chat`;
   const post = body => fetch(base, { method: 'POST', headers: { 'content-type': 'application/json',
-    'x-dvaia-secureshop-launch': 'a'.repeat(43) }, body: JSON.stringify(body) });
+    'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43) }, body: JSON.stringify(body) });
   const body = { sessionId: credential.sessionId, requestId: 'a0000000-0000-4000-8000-000000000001',
     message: 'Use my selected option.', selection: { choiceId } };
   const good = await post(body);
@@ -306,7 +306,7 @@ test('route admits only the closed selected-card body and forwards its exact cho
   assert.equal(received.length, 5);
   const profileUrl=`http://127.0.0.1:${server.address().port}/api/secureshop/agents/customer/profile/confirm`;
   const profilePost=body=>fetch(profileUrl,{method:'POST',headers:{'content-type':'application/json',
-    'x-dvaia-secureshop-launch':'a'.repeat(43)},body:JSON.stringify(body)});
+    'x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)},body:JSON.stringify(body)});
   const valid={sessionId:credential.sessionId,requestId:body.requestId,proposalId:choiceId};
   assert.equal((await profilePost(valid)).status,200);
   assert.equal(confirmed.length,1);

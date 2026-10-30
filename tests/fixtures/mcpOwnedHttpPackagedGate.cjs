@@ -23,7 +23,7 @@ async function main(){
   await assert.rejects(cancellation.execute({input:{url:'http://benign.training/',mode:'vuln',canary:'a'.repeat(64)}}),{code:'HTTP_EXECUTION_TIMEOUT'});
   const aborted=new AbortController();aborted.abort();
   await assert.rejects(executor.execute({input:{url:'http://benign.training/',mode:'vuln',canary:'a'.repeat(64)},signal:aborted.signal}),{code:'HTTP_OPERATION_ABORTED'});
-  const workerPath='/usr/local/libexec/dvaia-owned-http-worker.js';
+  const workerPath='/usr/local/libexec/owasp-ai-goat-owned-http-worker.js';
   const workerBefore=await fs.readFile(workerPath);
   // Read-only mounts may deny the write before the file permission check.
   await assert.rejects(fs.writeFile(workerPath,'untrusted'),error=>['EACCES','EROFS'].includes(error.code));

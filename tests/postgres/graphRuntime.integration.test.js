@@ -7,7 +7,7 @@ const {createPostgresRunLedger}=require('../../server/agent-runtime/postgresRunL
 const {createRunCoordinator}=require('../../server/agent-runtime/runCoordinator');
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&Boolean(process.env.PG_GRAPH_TEST_RUNTIME_URL);
 test('PG graph leases persist generations, serialize remote reset, and block uncertain replay after restart',{skip:!enabled},async()=>{
- for(const key of ['PG_GRAPH_TEST_MIGRATION_URL','PG_GRAPH_TEST_RUNTIME_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const key of ['PG_GRAPH_TEST_MIGRATION_URL','PG_GRAPH_TEST_RUNTIME_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const migration=createPool(process.env,'PG_GRAPH_TEST_MIGRATION_URL'),pool=createPool(process.env,'PG_GRAPH_TEST_RUNTIME_URL'),leasePool=createPool(process.env,'PG_GRAPH_TEST_RUNTIME_URL');
  leasePool.options.max=1;
  try{

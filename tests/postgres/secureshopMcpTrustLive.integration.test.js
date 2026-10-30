@@ -35,13 +35,13 @@ const fixtureMode=process.env.MCP_TRUST_MODEL_PREFLIGHT==='1';
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&(fixtureMode||process.env.LIVE_OLLAMA_TEST==='1')&&KEYS.every(key=>process.env[PREFIX+key]);
 const uuid=crypto.randomUUID,WORKSHOP='secureshop_agent_security',OBJECTIVES=['ss_rogue_tool_selected','ss_rug_pull_invoked'];
 function checked(key){const value=new URL(process.env[PREFIX+key]);assert.ok(['127.0.0.1','localhost'].includes(value.hostname));
-  assert.match(value.pathname,/^\/dvaia_test_[a-z0-9_]+$/);return value.href;}
+  assert.match(value.pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);return value.href;}
 const parse=value=>{try{return JSON.parse(value);}catch{return null;}};
 
 test(fixtureMode?'bound MCP qualifier SQL/control-flow preflight uses labeled deterministic actor and Judge fixtures'
   :'bound production MCP runner records real SDK effects, actual actor and Judge before owner-only reset',{skip:!enabled,timeout:300000},async t=>{
-  assert.ok(process.env.DVAIA_ISOLATED_TEST_WORKSPACE,'Explicit source workspace required');
-  const workspace=await fs.realpath(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  assert.ok(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE,'Explicit source workspace required');
+  const workspace=await fs.realpath(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   const sourceRoot=await fs.realpath(path.resolve(__dirname,'../..'));
   assert.equal(workspace,sourceRoot,'Workspace must identify the executing canonical source');
   assert.equal(await fs.realpath(process.cwd()),sourceRoot,'Run from the admitted source root');
@@ -49,7 +49,7 @@ test(fixtureMode?'bound MCP qualifier SQL/control-flow preflight uses labeled de
   const leases=new Pool({connectionString:checked('IDENTITY_RUNTIME_URL'),max:3,application_name:'mcp-trust-live-lease'});
   const agentsMigration=new Pool({connectionString:checked('AGENTS_MIGRATION_URL'),max:2}),agents=new Pool({connectionString:checked('AGENTS_RUNTIME_URL'),max:10});
   const commerceMigration=new Pool({connectionString:checked('COMMERCE_MIGRATION_URL'),max:2}),commerce=new Pool({connectionString:checked('COMMERCE_RUNTIME_URL'),max:2});
-  const fixtureRoot=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-live-fixture-'));
+  const fixtureRoot=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-live-fixture-'));
   let targetPool;const ownedTargetIds=[],semanticFailures=[],evidenceReads={invocation:0,priorSchema:0},qualifiedIdentities=[],turnSummaries=[],judgeInputs=[];
   const verify=(label,callback)=>{try{callback();}catch(error){semanticFailures.push(Object.freeze({label,message:error.message}));}};
   try{

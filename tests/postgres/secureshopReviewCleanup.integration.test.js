@@ -43,7 +43,7 @@ function repository(pool, checkCleanup = async () => {}) {
 test('review cleanup is operation-bound, atomic, durable and owner-isolated', { skip: !enabled }, async () => {
   for (const key of ['PG_SECURESHOP_REVIEW_TEST_MIGRATION_URL', 'PG_SECURESHOP_REVIEW_TEST_RUNTIME_URL']) {
     const url = new URL(process.env[key]);
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
     assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
   }
   const migration = new Pool({ connectionString: process.env.PG_SECURESHOP_REVIEW_TEST_MIGRATION_URL, max: 2 });

@@ -12,7 +12,7 @@ if (process.env.V25_PRELOAD_CONTROL_CHILD === '1') {
     const output = require('./fixtures/pricingOwnedOutput');
     const admitted = output.v25Admission();
     assert(output.isV25Admission(admitted));
-    assert.equal(output.pricingOwnedOutputRoot(), process.env.DVAIA_PRICING_OWNED_OUTPUT_ROOT);
+    assert.equal(output.pricingOwnedOutputRoot(), process.env.OWASP_AI_GOAT_PRICING_OWNED_OUTPUT_ROOT);
     assert.throws(() => require('./postgres/ownedPricingManualConsumer').run(),
       { code: 'V25_MANUAL_NOT_ADMITTED' });
     assert.deepEqual(require('./postgres/ownedPricingManualConsumer').contract().budget,
@@ -60,7 +60,7 @@ try:
  output=cohort/'output';output.mkdir(mode=0o700)
  owner='10000000-0000-4000-8000-000000000001';nonce='b'*12
  identity=dict(ownerId=owner,workspaceId=workspace,qualificationNonce=nonce,containerId='c'*64,
-   imageId='sha256:'+'d'*64,packageSha256='e'*64,profile='dvaia-owned-pricing-http-'+nonce,
+   imageId='sha256:'+'d'*64,packageSha256='e'*64,profile='owasp-ai-goat-owned-pricing-http-'+nonce,
    origin='http://127.0.0.1:18093')
  descriptor=dict(version=1,**identity,token='t'*43)
  raw=(json.dumps(descriptor,separators=(',',':'))+'\n').encode()
@@ -71,8 +71,8 @@ try:
  env=os.environ.copy();env.pop('NODE_TEST_CONTEXT',None);env.update(dict(
    SECURESHOP_PRICING_V25_MANUAL_NATIVE='1',PERSONA_PRICING_NATIVE='1',PERSONA_PRICING_ACTUAL='1',
    PERSONA_PRICING_MANUAL_ONLY='1',PERSONA_PRICING_ACTUAL_REMAINING='0',PERSONA_PRICING_CANONICAL='1',
-   PERSONA_PRICING_COHORT='baseline',PG_TEST_DISPOSABLE='yes',DVAIA_ISOLATED_TEST_WORKSPACE=root,
-   DVAIA_PRICING_OWNED_OUTPUT_ROOT=str(output),SECURESHOP_PRICING_V25_READY_FD=str(ready_w),
+   PERSONA_PRICING_COHORT='baseline',PG_TEST_DISPOSABLE='yes',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=root,
+   OWASP_AI_GOAT_PRICING_OWNED_OUTPUT_ROOT=str(output),SECURESHOP_PRICING_V25_READY_FD=str(ready_w),
    SECURESHOP_PRICING_V25_ADMISSION_FD=str(grant_r),V25_PRELOAD_CONTROL_CHILD='1'))
  child=subprocess.Popen([node,'--import',str(pathlib.Path(root)/'tests/fixtures/secureshopPricingV25OwnerPreload.mjs'),
    '--test','--test-isolation=none','--test-reporter=tap','--test-concurrency=1',test_file],cwd=root,env=env,

@@ -5,7 +5,7 @@ async function acknowledge({root,evidencePath,profile,browser,env=process.env}){
  const run=path.dirname(evidencePath),temporary=path.join(run,'runtime/tmp');
  assert.equal(path.dirname(run),path.join(root,'tasks/qualification'));assert.match(path.basename(run),/^run-[A-Za-z0-9_-]+$/);
  assert.equal(env.TMPDIR,temporary);assert.equal(env.MAC_CHROMIUM_TMPDIR,temporary);
- assert.equal(path.dirname(profile),temporary);assert.match(path.basename(profile),/^(dvaia-role-admin-(policy|audit)|dvaia-q64-admin-acl)-[A-Za-z0-9_-]+$/);
+ assert.equal(path.dirname(profile),temporary);assert.match(path.basename(profile),/^(owasp-ai-goat-role-admin-(policy|audit)|owasp-ai-goat-q64-admin-acl)-[A-Za-z0-9_-]+$/);
  const record=path.join(run,'rolechoices-browser-birth.json'),ack=path.join(run,'rolechoices-browser-ack.json');
  assert.equal(env.SECURESHOP_ROLECHOICES_BROWSER_RECORD_PATH,record);assert.equal(env.SECURESHOP_ROLECHOICES_BROWSER_ACK_PATH,ack);
  const child=browser.process();assert(Number.isSafeInteger(child?.pid)&&child.pid>1);

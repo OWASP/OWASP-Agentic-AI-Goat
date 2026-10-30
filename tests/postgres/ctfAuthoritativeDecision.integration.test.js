@@ -19,7 +19,7 @@ test('0106 fresh/populated/noop and actual decision functions: session, epochs, 
   for(const kind of ['IDENTITY','CTF']){
    const keys=['RUNTIME','MIGRATION'].map(role=>`PG_CTF_DECISION_${state}_${kind}_${role}_URL`);
    assert(keys.every(k=>process.env[k]),'Explicit disposable database pair required');const urls=keys.map(k=>new URL(process.env[k]));
-   for(const url of urls){assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/dvaia_test_ctf_decision_/);}
+   for(const url of urls){assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,/^\/owasp_ai_goat_test_ctf_decision_/);}
    assert.equal(urls[0].pathname,urls[1].pathname);assert.equal(urls[0].port,urls[1].port);assert.notEqual(urls[0].username,urls[1].username);assert(!names.has(urls[0].pathname));names.add(urls[0].pathname);
    const [runtime,migration]=keys.map(k=>createPool(process.env,k));pools.push(runtime,migration);stores[kind]={runtime,migration};
    assert.equal((await runtime.query('SELECT current_user AS role')).rows[0].role,`dvaia_${kind.toLowerCase()}_runtime`);

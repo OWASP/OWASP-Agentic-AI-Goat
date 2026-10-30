@@ -33,7 +33,7 @@ MODEL_DIGEST = '46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e
 OLLAMA_BASE_URL = 'http://127.0.0.1:11434'
 POSTGRES_IMAGE = 'postgres:18'
 POSTGRES_IMAGE_ID = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
-DOCKER_HOST = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+DOCKER_HOST = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 DOCKER_DAEMON_ID = '2c9da9a7-1f8c-490b-af98-87bbf6bf83db'
 NODE_VERSION = 'v26.8.2'
 MIGRATION_ROLE = 'dvaia_identity_migration'
@@ -745,15 +745,15 @@ def main(argv=None):
 
     persist()
     docker = ['docker', '--host', DOCKER_HOST]
-    container_name = 'dvaia-legacy-sensitive-loop-' + args.run_nonce
+    container_name = 'owasp-ai-goat-legacy-sensitive-loop-' + args.run_nonce
     container_id = None
     container_attempted = False
-    database = 'dvaia_test_legacy_sensitive_loop'
-    labels = {'dvaia.owner': '/root', 'dvaia.grant': args.grant_id,
-              'dvaia.nonce': args.run_nonce, 'dvaia.stage': STAGE}
+    database = 'owasp_ai_goat_test_legacy_sensitive_loop'
+    labels = {'owasp-ai-goat.owner': '/root', 'owasp-ai-goat.grant': args.grant_id,
+              'owasp-ai-goat.nonce': args.run_nonce, 'owasp-ai-goat.stage': STAGE}
 
     def psql(sql):
-        result = run(docker + ['exec', container_id, 'psql', '-U', 'dvaia_bootstrap',
+        result = run(docker + ['exec', container_id, 'psql', '-U', 'owasp_ai_goat_bootstrap',
             '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-c', sql],
             capture_output=True, timeout=30)
         if result.returncode:
@@ -798,7 +798,7 @@ def main(argv=None):
         except (TypeError, ValueError):
             daemon_info = None
         if not daemon_info or daemon_info.get('ID') != DOCKER_DAEMON_ID \
-                or daemon_info.get('Name') != 'colima-dvaia-pg-verify' \
+                or daemon_info.get('Name') != 'colima-owasp-ai-goat-pg-verify' \
                 or daemon_info.get('Architecture') != 'aarch64':
             raise RuntimeError('exact Colima verification daemon required')
         state['dockerDaemon'] = {'id': daemon_info['ID'], 'name': daemon_info['Name'],
@@ -817,7 +817,7 @@ def main(argv=None):
         created = run(docker + ['run', '--detach', '--pull', 'never', '--name', container_name,
             *sum((['--label', f'{key}={value}'] for key, value in labels.items()), []),
             '--tmpfs', '/var/lib/postgresql:rw,size=536870912',
-            '-e', 'POSTGRES_USER=dvaia_bootstrap', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust',
+            '-e', 'POSTGRES_USER=owasp_ai_goat_bootstrap', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust',
             '-p', '127.0.0.1::5432', POSTGRES_IMAGE,
             '-c', 'shared_buffers=24MB', '-c', 'max_connections=32'],
             capture_output=True, timeout=60)
@@ -835,7 +835,7 @@ def main(argv=None):
         persist()
         for _ in range(120):
             ready = run(docker + ['exec', container_id, 'pg_isready', '-h', '127.0.0.1',
-                '-U', 'dvaia_bootstrap'],
+                '-U', 'owasp_ai_goat_bootstrap'],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
             if ready.returncode == 0:
                 break
@@ -877,7 +877,7 @@ def main(argv=None):
             'LANGCHAIN_TRACING_V2': 'false',
             'LANGSMITH_TRACING': 'false',
             'NO_PROXY': '127.0.0.1,localhost',
-            'DVAIA_ISOLATED_TEST_WORKSPACE': str(source),
+            'OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE': str(source),
             'LEGACY_SENSITIVE_LOOP_ACTUAL8B_ISOLATED': '1',
             'LEGACY_SENSITIVE_LOOP_ACTUAL8B_STAGE': STAGE,
             'AI_PROVIDER': 'ollama',

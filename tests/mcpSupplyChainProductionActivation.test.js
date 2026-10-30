@@ -52,7 +52,7 @@ function resourcePool() {
 function runner(extra = {}) {
   return { async readiness() { return {
     ready: true, runnerReady: true, version: 'mcp-owned-target-http.v1',
-    isolation: 'bwrap-seccomp-v1', supervisorProfile: 'dvaia-mcp-sandbox (enforce)',
+    isolation: 'bwrap-seccomp-v1', supervisorProfile: 'owasp-ai-goat-mcp-sandbox (enforce)',
     endpoint: 'http://127.0.0.1:48123/', ...extra,
   }; } };
 }
@@ -140,7 +140,7 @@ test('supply-chain configuration is default-false, hierarchical and backwards co
   ]) await assert.rejects(installMcpOwnedResourceProduction({ env }),
     /requires MCP_OWNED_RESOURCES_ENABLED and MCP_OBSERVED_ACTION_ENABLED/);
 
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mcp-supply-activation-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mcp-supply-activation-'));
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
   const envPath = path.join(directory, '.env');
   const managedPath = path.join(directory, 'mcp-owned.env');

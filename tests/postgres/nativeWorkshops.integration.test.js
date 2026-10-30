@@ -9,7 +9,7 @@ const {initializeIdentityRepository,createIdentityRepository}=require('../../ser
 const {seedWorkshopPlatform}=require('../../server/database/postgres/workshopPlatformSeed');
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_NATIVE_TEST_RUNTIME_URL;
 test('native MCP/CSRF PG storage and selected HTTP routes preserve owner isolation, activity, victim hydration and scoped resets',{skip:!enabled},async()=>{
- const pools=[];const pool=key=>{assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);const p=createPool(process.env,key);pools.push(p);return p;};
+ const pools=[];const pool=key=>{assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);const p=createPool(process.env,key);pools.push(p);return p;};
  const mcp=createMcpWorkshopDb(pool('PG_MCP_TEST_RUNTIME_URL')),csrf=createCsrfWorkshopDb(pool('PG_CSRF_TEST_RUNTIME_URL'));
  const nativePool=pool('PG_NATIVE_TEST_RUNTIME_URL'),nativeMigration=pool('PG_NATIVE_TEST_MIGRATION_URL');
  let server;

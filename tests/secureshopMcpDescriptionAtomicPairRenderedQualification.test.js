@@ -48,7 +48,7 @@ test('real receipt flags retain observed eight-store and fresh admin scope check
   for (const [key, store] of Object.entries({ identity: 'identity', agents: 'secureshop_agents', review: 'secureshop_review', commerce: 'secureshop' })) {
     const entry = stores[key] = {};
     for (const role of ['runtime', 'migration']) {
-      const database = `dvaia_test_agent_host_012345abcdef_${store}`, username = `dvaia_${store}_${role}`;
+      const database = `owasp_ai_goat_test_agent_host_012345abcdef_${store}`, username = `dvaia_${store}_${role}`;
       const url = `postgresql://${username}@127.0.0.1:54321/${database}`;
       const row = { database, role: username, session_role: username, server_address: '172.20.0.2', server_port: 5432, server_started: '2026-10-19 00:00:00+00' }; rows.push(row);
       entry[`${role}Url`] = url;

@@ -5,7 +5,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {prepareSetupPrivateDirectory:prepare}=require('../scripts/setup-application');
 const {createWindowsPrivateState}=require('../scripts/lib/windows-private-state');
 const file=path.resolve(__dirname,'../scripts/setup-application.js');
-const id='abcdef123456',homeDirectory='C:\\Users\\Learner',privateBase=homeDirectory+'\\.dvaia',directory=privateBase+'\\'+id;
+const id='abcdef123456',homeDirectory='C:\\Users\\Learner',privateBase=homeDirectory+'\\.owasp-ai-goat',directory=privateBase+'\\'+id;
 const denied={code:'SETUP_PRIVATE_DIRECTORY_INVALID',message:'Private setup directory unavailable'};
 function controlled(){
  const calls=[],existing=new Map();let deniedPath=null,deniedOperation=null;

@@ -1,6 +1,6 @@
 import { isStandaloneShopFrame } from './assessmentPanelIntent.mjs';
 
-export const EXTERNAL_MAIL_PANEL_CHANNEL = 'dvaia-secureshop-external-mail-panel-v1';
+export const EXTERNAL_MAIL_PANEL_CHANNEL = 'owasp-ai-goat-secureshop-external-mail-panel-v1';
 
 export function openStandaloneExternalMail(frameWindow = globalThis.window) {
   const nonce = frameWindow.location.hash.slice(1);

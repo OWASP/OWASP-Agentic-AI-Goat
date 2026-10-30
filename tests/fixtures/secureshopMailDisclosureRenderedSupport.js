@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),http=require('node:http'),{createHash}=require('node:crypto');
 const OBJECTIVE='ss_mail_cross_persona_read';
 function stageDisclosureCandidate(root,evidence){
- assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(root),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));assert.equal(path.dirname(fs.realpathSync(root)),fs.realpathSync(evidence));
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(root),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));assert.equal(path.dirname(fs.realpathSync(root)),fs.realpathSync(evidence));
  root=fs.realpathSync(root);evidence=fs.realpathSync(evidence);
  for(const file of ['server/config/secureshopCurriculum.js','server/services/secureshopMailObjectiveReadiness.js']){const target=path.join(root,file);assert.equal(fs.realpathSync(target),target);for(let ancestor=target;ancestor!==root;ancestor=path.dirname(ancestor)){const st=fs.lstatSync(ancestor);assert(!st.isSymbolicLink());assert.equal(st.uid,process.getuid());}assert(fs.lstatSync(target).isFile());}
  const curriculumText=fs.readFileSync(path.join(root,'server/config/secureshopCurriculum.js'),'utf8'),readinessText=fs.readFileSync(path.join(root,'server/services/secureshopMailObjectiveReadiness.js'),'utf8');

@@ -2,10 +2,10 @@
 import argparse,hashlib,json,os,re,shutil,signal,subprocess,tempfile,time
 from pathlib import Path
 parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--docker-host',required=True);parser.add_argument('--activate',action='store_true');args=parser.parse_args()
-HOST='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+HOST='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 if args.docker_host!=HOST:parser.error('reviewed explicit Docker authority required')
-SOURCE=Path(__file__).resolve().parents[1];OUT=Path(tempfile.mkdtemp(prefix='dvaia-system-provision-native-')).resolve();OUT.chmod(0o700);WORK=OUT/'source';WORK.mkdir()
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node');CLI=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker');DOCKER=[str(CLI),'--host',HOST]
+SOURCE=Path(__file__).resolve().parents[1];OUT=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-system-provision-native-')).resolve();OUT.chmod(0o700);WORK=OUT/'source';WORK.mkdir()
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node');CLI=Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker');DOCKER=[str(CLI),'--host',HOST]
 ENV={'PATH':str(NODE.parent)+':'+str(CLI.parent)+':/usr/bin:/bin','HOME':'/Users/averma5','TMPDIR':str(OUT)}
 state={'version':1,'out':str(OUT),'status':'preparing','sourceHashes':{},'cleanup':{},'resources':{'buildSeconds':300,'parentSeconds':900,'listenerCount':3,'eachMemoryBytes':536870912,'eachCpu':1,'eachPids':128,'baseTmpfsBytes':134217728,'restartExtraTmpfsBytes':16777216,'drainSeconds':25},'installedActivation':False,'activationAdapterGate':args.activate};child=None
 
@@ -51,17 +51,17 @@ def join():
 def interrupted(signum,frame):raise InterruptedError('qualification interrupted')
 signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupted);persist()
 try:
- assert docker(['info','--format','{{.Name}}']).stdout.strip()=='colima-dvaia-pg-verify'
+ assert docker(['info','--format','{{.Name}}']).stdout.strip()=='colima-owasp-ai-goat-pg-verify'
  closure('tests/fixtures/secureshopSystemProvisionNative.js')
  closure('scripts/install/secureshop-owned-system-activate.js')
  closure('server/services/secureshopSystemManagedEnvironment.js')
  for p in (SOURCE/'sidecars/sandbox-runner/owned-system').iterdir():
   if p.is_file():copy(str(p.relative_to(SOURCE)))
- copy('sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in');copy('tests/run-system-provision-native-isolated.py')
+ copy('sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in');copy('tests/run-system-provision-native-isolated.py')
  for relative in ['scripts/setup-application.js','scripts/start-application.js','server/index.js']:copy(relative)
  state['sourceHashes']={str(p.relative_to(WORK)):sha(p) for p in WORK.rglob('*') if p.is_file()};state['nodeSha256']=sha(NODE)
- wid=hashlib.sha256(str(WORK.resolve()).encode()).hexdigest()[:12];state['workspaceId']=wid;private=Path('/Users/averma5/.dvaia')/wid
- assert not private.exists();state['privateDirectory']=str(private);state['containers']=[f'dvaia-owned-system-{wid}-{m}' for m in ['config','diagnostic','restart']];state['network']=f'dvaia-owned-system-{wid}-bridge';state['imageTag']=f'dvaia-owned-system-{wid}:local'
+ wid=hashlib.sha256(str(WORK.resolve()).encode()).hexdigest()[:12];state['workspaceId']=wid;private=Path('/Users/averma5/.owasp-ai-goat')/wid
+ assert not private.exists();state['privateDirectory']=str(private);state['containers']=[f'owasp-ai-goat-owned-system-{wid}-{m}' for m in ['config','diagnostic','restart']];state['network']=f'owasp-ai-goat-owned-system-{wid}-bridge';state['imageTag']=f'owasp-ai-goat-owned-system-{wid}:local'
  for name in state['containers']:assert inspect('container',name) is None
  assert inspect('network',state['network']) is None and inspect('image',state['imageTag']) is None
  persist();env={**ENV,'SYSTEM_PROVISION_NATIVE':'1','SYSTEM_PROVISION_NATIVE_OUT':str(OUT),'SYSTEM_PROVISION_ACTIVATION':'1' if args.activate else '0'}
@@ -79,7 +79,7 @@ finally:
  fixture={}
  if (OUT/'fixture-result.json').exists():
   fixture=json.loads((OUT/'fixture-result.json').read_text());state['fixture']=fixture
- expected={'dvaia.system.workspace':state.get('workspaceId'),'dvaia.system.authority':fixture.get('authoritySha256'),'dvaia.system.source':fixture.get('sourceSha256')}
+ expected={'owasp-ai-goat.system.workspace':state.get('workspaceId'),'owasp-ai-goat.system.authority':fixture.get('authoritySha256'),'owasp-ai-goat.system.source':fixture.get('sourceSha256')}
  def owned(labels):return all(v is not None and labels.get(k)==v for k,v in expected.items())
  for name in state.get('containers',[]):
   try:

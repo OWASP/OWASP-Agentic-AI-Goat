@@ -8,7 +8,7 @@ test('isolated entry validates current mode and bounded echo before its only mou
   globalThis.IS_REACT_ACT_ENVIRONMENT = true;
   document.body.innerHTML = '<main id="sink"></main>';
   await import('./searchEchoClientRenderer.jsx');
-  const mount = globalThis.__DVAIA_SEARCH_ECHO_MOUNT__;
+  const mount = globalThis.__OWASP_AI_GOAT_SEARCH_ECHO_MOUNT__;
   for (const value of [
     { echoHtml: '<b>x</b>', modeCapability: { ...mode('vuln'), policyVersion: 'stale' } },
     { echoHtml: '\ud800', modeCapability: mode('vuln') },
@@ -25,7 +25,7 @@ test('isolated entry validates current mode and bounded echo before its only mou
 test('V27 checked-in reply mount rejects foreign modes and keeps the original fixed final HTML inert', async () => {
   document.body.innerHTML = '<main id="sink"></main>';
   await import('./policyOutputClientRenderer.jsx');
-  const mount = globalThis.__DVAIA_POLICY_OUTPUT_MOUNT__;
+  const mount = globalThis.__OWASP_AI_GOAT_POLICY_OUTPUT_MOUNT__;
   const current = { version: 1, featureId: 'controlled_ssrf',
     policyVersion: 'owned-public-destination-v1', effectiveMode: 'fixed',
     scope: { kind: 'launch_feature', id: 'controlled_ssrf' } };

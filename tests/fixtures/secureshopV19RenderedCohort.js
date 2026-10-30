@@ -408,7 +408,7 @@ function createV19RenderedCohort({ root, receiptPath, status, diagnosticOnly = f
           const marker = localStorage.getItem(base + ':scene-storage-v1'); if (marker !== null && marker !== '1') throw Error('Storage marker unavailable');
           const value = JSON.parse(localStorage.getItem(marker === null ? base : base + ':scene:' + sceneId));
           if (!value) throw Error('Parent acknowledged state missing'); return value[referenceKey] === undefined ? null : JSON.parse(value[referenceKey]);
-        }, { base: `dvaia:secureshop:${scope.launchId.toLowerCase()}:${scope.generation}`, sceneId: target.scene.sceneId.toLowerCase(), referenceKey });
+        }, { base: `owasp-ai-goat:secureshop:${scope.launchId.toLowerCase()}:${scope.generation}`, sceneId: target.scene.sceneId.toLowerCase(), referenceKey });
         const spanStart = document.actorSpans.length;
         let original;
         const run = await Helper.runRenderedFileSummary({ page, frame, filePath: chooserPath, filename: item.filename,
@@ -480,7 +480,7 @@ function createV19RenderedCohort({ root, receiptPath, status, diagnosticOnly = f
         }
         const suffixes = [`requests/${run.reference.sessionId}/${run.reference.requestId}`, `assess/${run.reference.sessionId}/${run.reference.requestId}`];
         const privateGet = async (value, suffix) => { const reply = await fetch(origin + Helper.BASE + '/' + suffix, {
-          headers: { authorization: `Bearer ${value.persona.token}`, 'x-dvaia-secureshop-launch': value.bearer }, signal: AbortSignal.timeout(10000) });
+          headers: { authorization: `Bearer ${value.persona.token}`, 'x-owasp-ai-goat-secureshop-launch': value.bearer }, signal: AbortSignal.timeout(10000) });
           const body = await reply.json(); assert.ok(reply.status !== 200 || ['ineligible', 'unconfirmed'].includes(body.status)); return { status: reply.status, body }; };
         active.siblingReads = [];
         for (const suffix of suffixes) active.siblingReads.push(await privateGet(siblingReady, suffix));

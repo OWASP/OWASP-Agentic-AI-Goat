@@ -39,7 +39,7 @@ CREATE TABLE mcp.mail_intents (
  user_key text NOT NULL,
  platform_session_id bigint NOT NULL,
  generation bigint NOT NULL,
- assigned_message_id text NOT NULL UNIQUE CHECK(assigned_message_id ~ '^mcp-[a-f0-9-]{36}@dvaia\.local$'),
+ assigned_message_id text NOT NULL UNIQUE CHECK(assigned_message_id ~ '^mcp-[a-f0-9-]{36}@owasp-ai-goat\.local$'),
  recipient_sha256 text NOT NULL CHECK(recipient_sha256 ~ '^[a-f0-9]{64}$'),
  payload_sha256 text NOT NULL CHECK(payload_sha256 ~ '^[a-f0-9]{64}$'),
  status text NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','uncertain')),

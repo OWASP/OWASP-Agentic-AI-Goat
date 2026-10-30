@@ -61,7 +61,7 @@ ORIGINAL_EVIDENCE = 'audit-collection-v36-original-evidence.json'
 BROWSER_RECORD = 'audit-collection-v36-browser.json'
 BROWSER_ACK = 'audit-collection-v36-browser-ack.json'
 BROWSER_KIND = 'audit_collection_v36_browser'
-PROFILE_PREFIX = 'dvaia-admin-audit-jobs-'
+PROFILE_PREFIX = 'owasp-ai-goat-admin-audit-jobs-'
 _CAPTURE_KEY = object()
 
 

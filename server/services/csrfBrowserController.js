@@ -31,7 +31,7 @@ function createCsrfBrowserController({ workflow, getExecution, getGate, getCompl
       const result = await workflow.run({ execution, userId, objectiveId: body.objectiveId,
         tab: body.tab, html: body.html,
         attackerOrigin: ATTACKER_ORIGIN, victimOrigin: VICTIM_ORIGIN,
-        victimCookie: { name: 'dvaia_csrf_victim', value: randomBytes(24).toString('base64url') },
+        victimCookie: { name: 'owasp_ai_goat_csrf_victim', value: randomBytes(24).toString('base64url') },
         actionHandlerDeps,
         beginGrading: child => beginGrading(userId, child, sandbox),
         finalGrade: async packet => {

@@ -27,7 +27,7 @@ class Controls(unittest.TestCase):
    e=m.dpi_environment(a,pathlib.Path('/e'),pathlib.Path('/e/runtime'),'abcdef012345'+20*'a',urls)
    for bad in [{**urls,'PG_ADMIN_DATABASE_URL':'bad'},{**urls,'IDENTITY_DATABASE_URL':urls['IDENTITY_DATABASE_URL'].replace('runtime','migration')},{**urls,'IDENTITY_MIGRATION_DATABASE_URL':urls['IDENTITY_MIGRATION_DATABASE_URL'].replace('55432','55433')},{**urls,'IDENTITY_DATABASE_URL':urls['IDENTITY_DATABASE_URL'].replace('abcdef012345','000000000000')}]:
     with self.assertRaises(RuntimeError):m.dpi_environment(a,pathlib.Path('/e'),pathlib.Path('/e/runtime'),'abcdef012345'+20*'a',bad)
-  self.assertEqual({k for k in e if k.endswith('_URL')},set(urls));self.assertEqual(e['LOGS_DIR'],'/e/runtime/logs');self.assertEqual(e['DPI_CURRENT_SELECTOR'],'all');self.assertNotIn('OPENAI_API_KEY',e);self.assertNotIn('DVAIA_ISOLATED_TEST_WORKSPACE',e)
+  self.assertEqual({k for k in e if k.endswith('_URL')},set(urls));self.assertEqual(e['LOGS_DIR'],'/e/runtime/logs');self.assertEqual(e['DPI_CURRENT_SELECTOR'],'all');self.assertNotIn('OPENAI_API_KEY',e);self.assertNotIn('OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE',e)
  def test_selector_and_barrier(self):
   a=SimpleNamespace(scenario='dpi-current-owned',policy_cohort=None,main_workspace=True,python_sha256='a'*64,browser=None,browser_root=None,browser_sha256=None,original_case=None,node='/node',package='/main');m.validate_original_case(a)
   for k,v in [('main_workspace',False),('policy_cohort','plain'),('browser','/browser'),('python_sha256',None)]:

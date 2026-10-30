@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto');
 async function initializeControl({pool,database}){
- if(!/^dvaia_audit_control_[a-f0-9]+$/.test(database))throw Error('Dedicated control database required');
+ if(!/^owasp_ai_goat_audit_control_[a-f0-9]+$/.test(database))throw Error('Dedicated control database required');
  const migrations=['schema.sql','migrations/0002_query_receipts.sql','migrations/0003_query_destruction_tombstones.sql'].map((file,index)=>{const source=fs.readFileSync(path.join(__dirname,file),'utf8');return{version:index+1,source,hash:createHash('sha256').update(source).digest('hex')};});
  const client=await pool.connect();
  try{

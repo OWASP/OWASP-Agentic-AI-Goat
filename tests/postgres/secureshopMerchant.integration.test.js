@@ -88,7 +88,7 @@ test('SecureShop native PostgreSQL merchant HTTP routes preserve DTOs and teachi
     const xxeDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'secureshop-pg-xxe-'));
     fs.chmodSync(xxeDirectory, 0o700);
     try {
-      const xxeSecret = `DVAIA_XXE_PG_${crypto.randomUUID().replaceAll('-', '')}`;
+      const xxeSecret = `OWASP_AI_GOAT_XXE_PG_${crypto.randomUUID().replaceAll('-', '')}`;
       const secretPath = path.join(xxeDirectory, 'owned-secret.txt');
       const xmlPath = path.join(xxeDirectory, 'owned-products.xml');
       fs.writeFileSync(secretPath, xxeSecret, { mode: 0o600 });
@@ -112,7 +112,7 @@ test('SecureShop native PostgreSQL merchant HTTP routes preserve DTOs and teachi
       fs.rmSync(xxeDirectory, { recursive: true, force: true });
     }
 
-    const competitorBody = `DVAIA_SSRF_PG_${crypto.randomUUID().replaceAll('-', '')}`;
+    const competitorBody = `OWASP_AI_GOAT_SSRF_PG_${crypto.randomUUID().replaceAll('-', '')}`;
     const competitorRequests = [];
     const competitorServer = http.createServer((req, res) => {
       competitorRequests.push({ method: req.method, url: req.url, userAgent: req.headers['user-agent'] });

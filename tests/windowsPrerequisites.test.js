@@ -56,7 +56,7 @@ $expand = { param($File,$Destination,$ExpectedRoot) if ($ExpectedRoot -ne 'node-
 $cleanup = { param($File) if ($File -match 'npm-bootstrap-operation') { throw 'UNBOUND_CLEANUP' }; $script:events.Add('tempCleanup') }
 ${override}
 try {
- $plan = Invoke-DvaiaWindowsPrerequisites -ExecuteMode $${execute} -RepoRoot ${psQuote(root)} -UserProfile ${psQuote(path.join(root, 'controlled profile'))} -SystemRoot ${psQuote(path.join(root, 'controlled system'))} -Inventory $inventory -Runner $runner -Download $download -ReadText $read -Hash $hash -Expand $expand -Exists $exists -DirectoryExists { param($Dir) $false } -Find { param($Name) $null } -Cleanup $cleanup -IsElevated { $script:elevated }
+ $plan = Invoke-OwaspAiGoatWindowsPrerequisites -ExecuteMode $${execute} -RepoRoot ${psQuote(root)} -UserProfile ${psQuote(path.join(root, 'controlled profile'))} -SystemRoot ${psQuote(path.join(root, 'controlled system'))} -Inventory $inventory -Runner $runner -Download $download -ReadText $read -Hash $hash -Expand $expand -Exists $exists -DirectoryExists { param($Dir) $false } -Find { param($Name) $null } -Cleanup $cleanup -IsElevated { $script:elevated }
  @{ plan = $plan; events = @($script:events.ToArray()); marker = $script:marker } | ConvertTo-Json -Depth 8
 } catch { @{ code = $_.Exception.Message; events = @($script:events.ToArray()); marker = $script:marker } | ConvertTo-Json -Depth 8 }
 `;
@@ -76,7 +76,7 @@ test('prerequisite component is opt-in and delegates full installation to the ca
   assert.match(source, /WINDOWS_OWNED_SANDBOX_BACKEND_UNDECIDED/);
   const wrapper = fs.readFileSync(path.join(root, 'scripts/install/Windows/install-windows.ps1'), 'utf8');
   assert.ok(!wrapper.includes('prerequisites.ps1'));
-  assert.match(wrapper, /Invoke-DvaiaWindowsWrapperHandoff -Kind setup/);
+  assert.match(wrapper, /Invoke-OwaspAiGoatWindowsWrapperHandoff -Kind setup/);
   assert.match(wrapper, /-CompositionReady \$true/);
   assert.match(wrapper, /WINDOWS_HOST_PREFLIGHT_DENIED/);
 });
@@ -186,7 +186,7 @@ test('controlled actual CLI footer returns Execute error and Plan or verified co
   for (const [execute, succeeded, status] of [[true, false, 1], [false, false, 0], [true, true, 0]]) {
     const program = `
 . ${psQuote(filename)}
-function Invoke-DvaiaWindowsPrerequisites { param([bool]$ExecuteMode) [pscustomobject]@{ componentSucceeded = $${succeeded}; installationBlocked = $true; runtime = $(if ($${succeeded}) { @{ nodeExecutable = 'controlled node'; npmCli = 'controlled npm' } } else { $null }) } }
+function Invoke-OwaspAiGoatWindowsPrerequisites { param([bool]$ExecuteMode) [pscustomobject]@{ componentSucceeded = $${succeeded}; installationBlocked = $true; runtime = $(if ($${succeeded}) { @{ nodeExecutable = 'controlled node'; npmCli = 'controlled npm' } } else { $null }) } }
 $Plan = $false; $Execute = $${execute}
 ${footer}
 `;

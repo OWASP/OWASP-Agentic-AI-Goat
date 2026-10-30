@@ -7,9 +7,9 @@ const path = require('node:path');
 const { constants } = require('node:fs');
 const { assertNativeEvidencePath } = require('./secureshopNativeEvidencePath');
 const SCOPES = Object.freeze({
-  'admin-policy-chat-browser': ['SECURESHOP_ADMIN_POLICY_CHAT_BROWSER_NATIVE', 'dvaia-role-admin-policy-'],
-  'admin-audit-browser': ['SECURESHOP_ADMIN_AUDIT_CHAT_BROWSER_NATIVE', 'dvaia-role-admin-audit-'],
-  'admin-acl-chat-browser': ['SECURESHOP_ADMIN_ACL_CHAT_BROWSER_NATIVE', 'dvaia-q64-admin-acl-'],
+  'admin-policy-chat-browser': ['SECURESHOP_ADMIN_POLICY_CHAT_BROWSER_NATIVE', 'owasp-ai-goat-role-admin-policy-'],
+  'admin-audit-browser': ['SECURESHOP_ADMIN_AUDIT_CHAT_BROWSER_NATIVE', 'owasp-ai-goat-role-admin-audit-'],
+  'admin-acl-chat-browser': ['SECURESHOP_ADMIN_ACL_CHAT_BROWSER_NATIVE', 'owasp-ai-goat-q64-admin-acl-'],
 });
 async function browserArgs({ cohort, root, evidencePath, profile, executablePath, origin }) {
   assert(Object.hasOwn(SCOPES, cohort));
@@ -19,7 +19,7 @@ async function browserArgs({ cohort, root, evidencePath, profile, executablePath
   if (!evidencePath.startsWith(`${root}${path.sep}`)) return [];
   const runtime = path.join(path.dirname(evidencePath), 'runtime'), tmp = path.join(runtime, 'tmp'), home = path.join(runtime, 'home');
   assert.equal(root, process.cwd());
-  assert.equal(process.env.DVAIA_CURRENT_MAIN_WORKSPACE, root);
+  assert.equal(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, root);
   assert.equal(process.env.TMPDIR, tmp); assert.equal(process.env.MAC_CHROMIUM_TMPDIR, tmp);
   assert.equal(process.env.XDG_CACHE_HOME, path.join(home, '.cache'));
   assert.equal(process.env.XDG_CONFIG_HOME, path.join(home, '.config'));

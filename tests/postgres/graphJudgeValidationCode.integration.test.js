@@ -19,7 +19,7 @@ test('reserved 0046 persists a bounded Judge validationCode and permits the repa
   for (const url of urls) {
     assert.equal(url.protocol, 'postgresql:'); assert.equal(url.hostname, '127.0.0.1');
     assert.match(url.port, /^[1-9][0-9]*$/); assert.equal(url.password, '');
-    assert.match(url.pathname, /^\/dvaia_test_graph_validation_[a-f0-9]{12}$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_graph_validation_[a-f0-9]{12}$/);
     assert.equal(url.search, ''); assert.equal(url.hash, '');
   }
   assert.equal(urls[0].username, 'dvaia_identity_runtime');

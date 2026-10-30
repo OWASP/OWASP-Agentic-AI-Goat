@@ -10,7 +10,7 @@ const {Pool}=require('pg');
 async function main(){
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');
  const root=path.resolve(__dirname,'../..'),homeDirectory=process.env.ANALYTICS_INSTALL_TEST_HOME;
- assert.ok(homeDirectory&&path.isAbsolute(homeDirectory));assert.equal(root,process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+ assert.ok(homeDirectory&&path.isAbsolute(homeDirectory));assert.equal(root,process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
  const options={root,homeDirectory},p=installer.plan(options),checks=[];
  await fs.mkdir(p.directory,{recursive:true,mode:0o700});
  const legacy=process.env.ANALYTICS_LEGACY_UPGRADE==='yes';const initialInstaller=legacy?require('../../scripts/install/analytics-target-legacy-fixture'):installer;
@@ -52,7 +52,7 @@ async function main(){
  checks.push('disabled-retirement-removes-exact-target');
  // Real setup helper against a separately owned application-state cluster.
  const migrationUrl=new URL(process.env.ANALYTICS_SETUP_MIGRATION_URL),runtimeUrl=new URL(process.env.ANALYTICS_SETUP_RUNTIME_URL);
- assert.equal(migrationUrl.hostname,'127.0.0.1');assert.equal(runtimeUrl.hostname,'127.0.0.1');assert.equal(migrationUrl.pathname,'/dvaia_test_setup_'+p.workspaceId);assert.equal(runtimeUrl.pathname,migrationUrl.pathname);assert.notEqual(Number(runtimeUrl.port),config.port);
+ assert.equal(migrationUrl.hostname,'127.0.0.1');assert.equal(runtimeUrl.hostname,'127.0.0.1');assert.equal(migrationUrl.pathname,'/owasp_ai_goat_test_setup_'+p.workspaceId);assert.equal(runtimeUrl.pathname,migrationUrl.pathname);assert.notEqual(Number(runtimeUrl.port),config.port);
  const migration=new Pool({connectionString:migrationUrl.href,max:1});
  try{
   const {migrate}=require('../../db/postgres/migrate'),canonical=path.join(root,'db/postgres/workshop-migrations/secureshop_agents'),folder=path.join(homeDirectory,'staged-agents');await fs.cp(canonical,folder,{recursive:true});assert.ok((await fs.readdir(folder)).includes('0034_analytics_mode_admission.sql'));await migrate(migration,folder);assert.deepEqual(await migrate(migration,folder),[]);

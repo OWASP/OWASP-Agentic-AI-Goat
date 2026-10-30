@@ -93,7 +93,7 @@ export function SecureShopRegisterForm({ register, isAuthed, user }) {
           letterSpacing: '0.02em', textTransform: 'uppercase',
           color: 'var(--ink)', textDecoration: 'none',
         }}>
-          SecureShop
+          OWASP AI SecureShop
         </Link>
 
         <h1 className="ss-display" style={{ fontSize: 48, margin: '28px 0 8px 0', lineHeight: 1.05 }}>

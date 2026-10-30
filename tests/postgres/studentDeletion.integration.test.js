@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path');
 test('native deletion admission authorizes, deduplicates and revokes atomically',{skip:process.env.PG_TEST_DISPOSABLE!=='yes'||!process.env.PG_DELETION_RUNTIME_URL},async()=>{
  const {createPool}=require('../../server/database/postgres');
- for(const key of ['PG_DELETION_RUNTIME_URL','PG_DELETION_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_/);
+ for(const key of ['PG_DELETION_RUNTIME_URL','PG_DELETION_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_/);
  const runtime=createPool(process.env,'PG_DELETION_RUNTIME_URL'),migration=createPool(process.env,'PG_DELETION_MIGRATION_URL');
  try{
   const {initializeIdentityRepository,createIdentityRepository}=require('../../server/database/postgres/identityRepository');
@@ -73,7 +73,7 @@ test('native deletion admission authorizes, deduplicates and revokes atomically'
   assert.equal(identityAttempts,2,'A false identity receipt is failed and retried instead of acknowledged forever');
 
   if(process.env.PG_DELETION_EA_RUNTIME_URL && process.env.PG_DELETION_EA_MIGRATION_URL){
-    for(const key of ['PG_DELETION_EA_RUNTIME_URL','PG_DELETION_EA_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_/);
+    for(const key of ['PG_DELETION_EA_RUNTIME_URL','PG_DELETION_EA_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_/);
     const eaRuntime=createPool(process.env,'PG_DELETION_EA_RUNTIME_URL'),eaMigration=createPool(process.env,'PG_DELETION_EA_MIGRATION_URL');
     try{
       const manager=require('../../server/database/postgres/excessiveAgencyLabDb').createExcessiveAgencyDatabaseManager(eaRuntime);

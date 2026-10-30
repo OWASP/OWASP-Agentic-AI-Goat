@@ -13,5 +13,5 @@ function installGuard({fs,Module,net,tls,http,https,dgram,dns,cp,workers,globalO
  for(const key of ['write','writeSync','writev','writevSync'])if(fs[key]){const original=fs[key];fs[key]=function(fd,...args){if(fd!==1&&fd!==2)return deny();return original.call(fs,fd,...args);};}
  if(fs.createWriteStream)fs.createWriteStream=deny;
 }
-if(process.env.DVAIA_MAIN_PLATFORM_PURE==='1')installGuard({fs:require('node:fs'),Module:require('node:module'),net:require('node:net'),tls:require('node:tls'),http:require('node:http'),https:require('node:https'),dgram:require('node:dgram'),dns:require('node:dns'),cp:require('node:child_process'),workers:require('node:worker_threads')});
+if(process.env.OWASP_AI_GOAT_MAIN_PLATFORM_PURE==='1')installGuard({fs:require('node:fs'),Module:require('node:module'),net:require('node:net'),tls:require('node:tls'),http:require('node:http'),https:require('node:https'),dgram:require('node:dgram'),dns:require('node:dns'),cp:require('node:child_process'),workers:require('node:worker_threads')});
 module.exports={installGuard};

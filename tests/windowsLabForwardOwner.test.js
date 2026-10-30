@@ -5,8 +5,8 @@ const {createWindowsLabForwardOwner}=require('../scripts/lib/windows-lab-forward
 const dir='C:\\Private State\\workspace',uuid='12345678-1234-4321-abcd-123456789abc';
 function request(ports=[18081,18082]){
  const args=['-F','NUL','-i',dir+'\\windows-owned-lab.pem'];
- for(const value of ['BatchMode=yes','IdentitiesOnly=yes','StrictHostKeyChecking=yes','UserKnownHostsFile="'+dir.replace(/\\/g,'/')+'/windows-owned-lab.hosts"','GlobalKnownHostsFile=NUL','HostKeyAlias=dvaia-'+uuid,'ConnectTimeout=10','ServerAliveInterval=15','ServerAliveCountMax=2','ForwardAgent=no','PermitLocalCommand=no','ProxyCommand=none','ProxyJump=none','ControlMaster=no','RequestTTY=no','ExitOnForwardFailure=yes'])args.push('-o',value);
- args.push('-N');for(const port of ports)args.push('-L',`127.0.0.1:${port}:127.0.0.1:8081`);args.push('dvaia@172.22.1.2');
+ for(const value of ['BatchMode=yes','IdentitiesOnly=yes','StrictHostKeyChecking=yes','UserKnownHostsFile="'+dir.replace(/\\/g,'/')+'/windows-owned-lab.hosts"','GlobalKnownHostsFile=NUL','HostKeyAlias=owasp-ai-goat-'+uuid,'ConnectTimeout=10','ServerAliveInterval=15','ServerAliveCountMax=2','ForwardAgent=no','PermitLocalCommand=no','ProxyCommand=none','ProxyJump=none','ControlMaster=no','RequestTTY=no','ExitOnForwardFailure=yes'])args.push('-o',value);
+ args.push('-N');for(const port of ports)args.push('-L',`127.0.0.1:${port}:127.0.0.1:8081`);args.push('owasp-ai-goat@172.22.1.2');
  return{executable:'C:\\Windows\\System32\\OpenSSH\\ssh.exe',args};
 }
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return{promise,resolve,reject};};
@@ -65,7 +65,7 @@ test('spawn failure closes empty job; rejected admission joins direct guardian h
 test('post-ready helper/workload failure rejects safe lifetime and drains the exact job',async()=>{
  for(const helper of [true,false]){
   const f=fixture(),pending=f.ownChild(request());await tick();f.ready();const owner=await pending,rejected=assert.rejects(owner.failurePromise,{code:'WINDOWS_LAB_FORWARD_DENIED'});
-  if(helper)f.helperFailure.reject(Error('PRIVATE_NATIVE_OUTPUT'));else f.child.emit('message',{type:'dvaia-owned-child-outcome',outcome:{type:'exit',code:1}});
+  if(helper)f.helperFailure.reject(Error('PRIVATE_NATIVE_OUTPUT'));else f.child.emit('message',{type:'owasp-ai-goat-owned-child-outcome',outcome:{type:'exit',code:1}});
   await rejected;await owner.stopAndJoin();assert.equal(f.calls.filter(x=>x==='stop-job').length,1);assert.equal(f.calls.filter(x=>x==='close-job').length,1);
  }
 });

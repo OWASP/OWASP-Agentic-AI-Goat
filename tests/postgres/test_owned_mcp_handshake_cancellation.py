@@ -10,15 +10,15 @@ class Scheduling(unittest.TestCase):
  def test_compiled_fixed_hooks_are_nonblocking_cancel_and_deadline_preserving(self):
   header=ROOT/'sidecars/sandbox-runner/owned-mcp-registry/invocation-qualification-schedule.h'
   for phase in [2,3]:
-   portable.compile_run('#include <assert.h>\n#include <stdio.h>\n#define DVAIA_ATTESTATION_HOLD_PHASE '+str(phase)+'\n#include "'+str(header)+'"\n'+r'''int main(void){
-assert(!QUALIFICATION_HOLD(DVAIA_ATTESTATION_HOLD_PHASE,1,100,0));QUALIFICATION_START();
-assert(QUALIFICATION_HOLD(DVAIA_ATTESTATION_HOLD_PHASE,1,100,0));assert(QUALIFICATION_HOLD(DVAIA_ATTESTATION_HOLD_PHASE,2,100,0));
-assert(!QUALIFICATION_HOLD(DVAIA_ATTESTATION_HOLD_PHASE,100,100,0));assert(!QUALIFICATION_HOLD(DVAIA_ATTESTATION_HOLD_PHASE,1,100,1));assert(!QUALIFICATION_HOLD(0,1,100,0));
-QUALIFICATION_ADMITTED(DVAIA_ATTESTATION_HOLD_PHASE,0,1,100,200);QUALIFICATION_START();assert(!QUALIFICATION_HOLD(DVAIA_ATTESTATION_HOLD_PHASE,1,100,0));return 0;}
+   portable.compile_run('#include <assert.h>\n#include <stdio.h>\n#define OWASP_AI_GOAT_ATTESTATION_HOLD_PHASE '+str(phase)+'\n#include "'+str(header)+'"\n'+r'''int main(void){
+assert(!QUALIFICATION_HOLD(OWASP_AI_GOAT_ATTESTATION_HOLD_PHASE,1,100,0));QUALIFICATION_START();
+assert(QUALIFICATION_HOLD(OWASP_AI_GOAT_ATTESTATION_HOLD_PHASE,1,100,0));assert(QUALIFICATION_HOLD(OWASP_AI_GOAT_ATTESTATION_HOLD_PHASE,2,100,0));
+assert(!QUALIFICATION_HOLD(OWASP_AI_GOAT_ATTESTATION_HOLD_PHASE,100,100,0));assert(!QUALIFICATION_HOLD(OWASP_AI_GOAT_ATTESTATION_HOLD_PHASE,1,100,1));assert(!QUALIFICATION_HOLD(0,1,100,0));
+QUALIFICATION_ADMITTED(OWASP_AI_GOAT_ATTESTATION_HOLD_PHASE,0,1,100,200);QUALIFICATION_START();assert(!QUALIFICATION_HOLD(OWASP_AI_GOAT_ATTESTATION_HOLD_PHASE,1,100,0));return 0;}
 ''')
  def test_admission_marker_rejects_expired_gate_or_worker_deadline(self):
   header=ROOT/'sidecars/sandbox-runner/owned-mcp-registry/invocation-qualification-schedule.h'
-  portable.compile_run('#include <assert.h>\n#include <stdio.h>\n#include <string.h>\nstatic char observed[256];\n#define fprintf(stream,...) snprintf(observed,sizeof(observed),__VA_ARGS__)\n#define DVAIA_ATTESTATION_HOLD_PHASE 2\n#include "'+str(header)+'"\n'+r'''int main(void){
+  portable.compile_run('#include <assert.h>\n#include <stdio.h>\n#include <string.h>\nstatic char observed[256];\n#define fprintf(stream,...) snprintf(observed,sizeof(observed),__VA_ARGS__)\n#define OWASP_AI_GOAT_ATTESTATION_HOLD_PHASE 2\n#include "'+str(header)+'"\n'+r'''int main(void){
 QUALIFICATION_START();assert(QUALIFICATION_HOLD(2,1,100,0));
 QUALIFICATION_ADMITTED(2,0,99,100,200);assert(strstr(observed,"deadlineValid=1\n"));
 QUALIFICATION_ADMITTED(2,0,100,100,200);assert(strstr(observed,"deadlineValid=0\n"));
@@ -45,5 +45,5 @@ QUALIFICATION_ADMITTED(2,0,99,200,99);assert(strstr(observed,"deadlineValid=0\n"
  def test_fixture_syntax_and_default_image(self):
   fixture=ROOT/'tests/fixtures/secureshopOwnedMcpHandshakeCancellation.native.js';subprocess.run([str(m.M.NODE),'--check',str(fixture)],check=True,capture_output=True,timeout=5)
   docker=(ROOT/'sidecars/sandbox-runner/owned-mcp-registry/Dockerfile.invocation').read_text();self.assertTrue(docker.rstrip().endswith('FROM runtime AS default-runtime'))
-  self.assertEqual(docker.count('-DDVAIA_ATTESTATION_HOLD_PHASE='),2)
+  self.assertEqual(docker.count('-DOWASP_AI_GOAT_ATTESTATION_HOLD_PHASE='),2)
 if __name__=='__main__':unittest.main()

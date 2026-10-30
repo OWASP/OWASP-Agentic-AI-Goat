@@ -21,7 +21,7 @@ test('imports supported sensitive_info archive rows into native FinFlow legacy n
   let ownerFixture;
   try {
     for (const key of ['PG_LEGACY_SENSITIVE_IMPORT_TEST_RUNTIME_URL', 'PG_LEGACY_SENSITIVE_IMPORT_TEST_MIGRATION_URL']) {
-      assert.match(new URL(process.env[key]).pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+      assert.match(new URL(process.env[key]).pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
     }
     await migrate(migration,path.join(__dirname,'../../db/postgres/workshop-migrations/finflow'));
     const raw=fixture();raw.ownerBinding={archiveDigest:raw.archiveDigest,identityMap:{7:71}};

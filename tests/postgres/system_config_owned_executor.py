@@ -9,7 +9,7 @@ from system_diagnostic_owned_executor import (
 )
 
 RESTART_BASE='sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1'
-RESTART_CACHE_PREFIX='dvaia-system-restart-content:'
+RESTART_CACHE_PREFIX='owasp-ai-goat-system-restart-content:'
 def original_system_dockerfile():
  # One original recipe, shared by the historical fenced caller and future
  # private builder. Exporting bytes grants no build or runtime authority.
@@ -46,8 +46,8 @@ def validate_restart_content_cache(value,image,tag,source_digest):
  if not isinstance(image_id,str) or len(image_id)!=71 or not image_id.startswith('sha256:') \
   or any(character not in '0123456789abcdef' for character in image_id[7:]) \
   or value!=expected or image.get('Architecture')!='arm64' \
-  or labels.get('dvaia.cache.kind')!='system-restart-content' \
-  or labels.get('dvaia.cache.source')!=source_digest or labels.get('dvaia.cache.base')!=RESTART_BASE:
+  or labels.get('owasp-ai-goat.cache.kind')!='system-restart-content' \
+  or labels.get('owasp-ai-goat.cache.source')!=source_digest or labels.get('owasp-ai-goat.cache.base')!=RESTART_BASE:
   raise RuntimeError('Restart content cache inspection mismatch')
  return True
 def upload_preview_buildx_identity(docker):
@@ -68,14 +68,14 @@ class OwnedSystemExecutor:
   return '''FROM node@'''+BASE+'''
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev bubblewrap && rm -rf /var/lib/apt/lists/*
 COPY . /qualification/owned-system
-RUN mkdir -p /usr/local/libexec && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/system-init.c -o /usr/local/libexec/dvaia-system-config-init && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/process-supervisor.c -o /usr/local/libexec/dvaia-system-config-supervisor && chmod 0555 /usr/local/libexec/dvaia-system-config-* /usr/bin/bwrap && dpkg-query -W > /qualification/packages.txt
+RUN mkdir -p /usr/local/libexec && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/system-init.c -o /usr/local/libexec/owasp-ai-goat-system-config-init && gcc -static -O2 -Wall -Wextra -Werror /qualification/owned-system/process-supervisor.c -o /usr/local/libexec/owasp-ai-goat-system-config-supervisor && chmod 0555 /usr/local/libexec/owasp-ai-goat-system-config-* /usr/bin/bwrap && dpkg-query -W > /qualification/packages.txt
 USER 10001:10001
 ENTRYPOINT ["/usr/local/bin/node","/qualification/owned-system/http-listener.js"]
 '''
 
  def __init__(self, root, workspace, docker, env, owner, persist):
   self.root,self.workspace,self.docker,self.env,self.owner,self.persist=root,workspace,docker,env,owner,persist
-  self.name='dvaia-system-http-'+owner[:12];self.tag=self.name+':owned';self.network=self.name+'-bridge'
+  self.name='owasp-ai-goat-system-http-'+owner[:12];self.tag=self.name+':owned';self.network=self.name+'-bridge'
   self.build=None;self.token=secrets.token_urlsafe(32);self.secret_file=root/'system-executor-private.env'
   self.state={'container':self.name,'imageTag':self.tag,'network':self.network,'base':BASE,'creationAttempted':False,'networkAttempted':False,'imageBuildAttempted':False,'cleanup':None}
  def run(self,args,timeout=30,check=True):
@@ -122,22 +122,22 @@ ENTRYPOINT ["/usr/local/bin/node","/qualification/owned-system/http-listener.js"
   self.state['dockerfileSha256']=hashlib.sha256(dockerfile.encode()).hexdigest()
   self.state['imageBuildAttempted']=True;self.persist()
   with (self.root/'executor-build.log').open('w') as log:
-   self.build=subprocess.Popen(self.docker+['build','--pull=false','--network=default','-f',str(build_file),'--label','dvaia.test.owner='+self.owner,'-t',self.tag,str(source)],env=self.env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
+   self.build=subprocess.Popen(self.docker+['build','--pull=false','--network=default','-f',str(build_file),'--label','owasp-ai-goat.test.owner='+self.owner,'-t',self.tag,str(source)],env=self.env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
    self.state['buildPgid']=self.build.pid;self.persist()
    try:code=self.build.wait(timeout=300)
    except BaseException:self.stop_build();raise
    if code:raise RuntimeError('Owned executor image build failed')
   if restart_content_digest(source)!=source_digest:raise RuntimeError('Original owned System source changed during build')
   image=self.inspect('image',self.tag)
-  if image['Config']['Labels'].get('dvaia.test.owner')!=self.owner:raise RuntimeError('Executor image owner mismatch')
+  if image['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Executor image owner mismatch')
   self.state['imageId']=image['Id'];self.state['networkAttempted']=True;self.persist()
-  self.run(['network','create','--label','dvaia.test.owner='+self.owner,self.network])
+  self.run(['network','create','--label','owasp-ai-goat.test.owner='+self.owner,self.network])
   network=self.inspect('network',self.network)
-  if network.get('Internal') is not False or network.get('Labels',{}).get('dvaia.test.owner')!=self.owner:raise RuntimeError('Owned bridge network unavailable')
+  if network.get('Internal') is not False or network.get('Labels',{}).get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Owned bridge network unavailable')
   self.state['networkInternal']=False;self.state['outerEgressIsolationEstablished']=False
   self.secret_file.write_text('SECURESHOP_SYSTEM_CONFIG_HTTP_ENABLED=true\nSECURESHOP_SYSTEM_CONFIG_TOKEN='+self.token+'\nSECURESHOP_SYSTEM_CONFIG_HOST=0.0.0.0\nSECURESHOP_SYSTEM_CONFIG_PORT=8090\n');os.chmod(self.secret_file,0o600)
   self.state['creationAttempted']=True;self.persist()
-  self.run(['run','--detach','--pull','never','--name',self.name,'--label','dvaia.test.owner='+self.owner,'--network',self.network,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--security-opt','seccomp=unconfined','--security-opt','apparmor=dvaia-mcp-sandbox','-p','127.0.0.1::8090','--env-file',str(self.secret_file),image['Id']])
+  self.run(['run','--detach','--pull','never','--name',self.name,'--label','owasp-ai-goat.test.owner='+self.owner,'--network',self.network,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--security-opt','seccomp=unconfined','--security-opt','apparmor=owasp-ai-goat-mcp-sandbox','-p','127.0.0.1::8090','--env-file',str(self.secret_file),image['Id']])
   self.secret_file.unlink()
   deadline=time.monotonic()+5
   while True:
@@ -147,7 +147,7 @@ ENTRYPOINT ["/usr/local/bin/node","/qualification/owned-system/http-listener.js"
    time.sleep(.1)
   host_bindings=actual['HostConfig']['PortBindings']
   if set(host_bindings)!={'8090/tcp'} or len(host_bindings['8090/tcp'])!=1 or host_bindings['8090/tcp'][0]['HostIp']!='127.0.0.1':raise RuntimeError('Executor host publish binding mismatch')
-  if actual.get('Mounts') or actual['Config']['Labels'].get('dvaia.test.owner')!=self.owner or set(actual['NetworkSettings']['Networks'])!={self.network} or set(ports)!={'8090/tcp'} or len(bindings)!=1 or bindings[0]['HostIp']!='127.0.0.1':raise RuntimeError('Executor mount/network/port isolation mismatch')
+  if actual.get('Mounts') or actual['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner or set(actual['NetworkSettings']['Networks'])!={self.network} or set(ports)!={'8090/tcp'} or len(bindings)!=1 or bindings[0]['HostIp']!='127.0.0.1':raise RuntimeError('Executor mount/network/port isolation mismatch')
   if actual['Config']['User']!='10001:10001' or actual['HostConfig']['ReadonlyRootfs'] is not True or actual['HostConfig']['Memory']!=536870912 or actual['HostConfig']['NanoCpus']!=1000000000 or actual['HostConfig']['PidsLimit']!=128:raise RuntimeError('Executor runtime resource mismatch')
   self.state['runtime']={'user':actual['Config']['User'],'readOnlyRoot':actual['HostConfig']['ReadonlyRootfs'],'memory':actual['HostConfig']['Memory'],'nanoCpus':actual['HostConfig']['NanoCpus'],'pidsLimit':actual['HostConfig']['PidsLimit'],'tmpfs':actual['HostConfig']['Tmpfs'],'ports':ports,'mounts':actual['Mounts'],'securityOpt':actual['HostConfig']['SecurityOpt']}
   self.url='http://127.0.0.1:'+bindings[0]['HostPort'];self.persist()
@@ -171,7 +171,7 @@ ENTRYPOINT ["/usr/local/bin/node","/qualification/owned-system/http-listener.js"
    try:
     if not self.absent('container',self.name):
      actual=self.inspect('container',self.name)
-     if actual['Config']['Labels'].get('dvaia.test.owner')!=self.owner:raise RuntimeError('Foreign executor container')
+     if actual['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Foreign executor container')
      self.run(['stop','--time','25',self.name],timeout=35)
      exit_code=self.inspect('container',self.name)['State']['ExitCode']
      logs=self.run(['logs','--tail','100',self.name],check=False);safe=(logs.stdout+logs.stderr).replace(self.token,'[REDACTED]');(self.root/'executor.log').write_text(safe)
@@ -180,14 +180,14 @@ ENTRYPOINT ["/usr/local/bin/node","/qualification/owned-system/http-listener.js"
    finally:
     try:
      if not self.absent('container',self.name):
-      if self.inspect('container',self.name)['Config']['Labels'].get('dvaia.test.owner')!=self.owner:raise RuntimeError('Foreign container cleanup refused')
+      if self.inspect('container',self.name)['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Foreign container cleanup refused')
       self.run(['rm','-f','-v',self.name])
     except BaseException as e:errors.append('container-final:'+type(e).__name__)
   if self.state['imageBuildAttempted']:
    try:
     if not self.absent('image',self.tag):
      image=self.inspect('image',self.tag)
-     if image['Config']['Labels'].get('dvaia.test.owner')!=self.owner:raise RuntimeError('Foreign executor image')
+     if image['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Foreign executor image')
      # Remove this run's image while retaining Docker's reusable dependency parents.
      # The exact final image/tag absence checks below still determine cleanup success.
      self.run(['image','rm','--no-prune',self.tag])
@@ -196,7 +196,7 @@ ENTRYPOINT ["/usr/local/bin/node","/qualification/owned-system/http-listener.js"
    try:
     if not self.absent('network',self.network):
      network=self.inspect('network',self.network)
-     if network.get('Labels',{}).get('dvaia.test.owner')!=self.owner or network.get('Containers'):raise RuntimeError('Foreign or occupied executor network')
+     if network.get('Labels',{}).get('owasp-ai-goat.test.owner')!=self.owner or network.get('Containers'):raise RuntimeError('Foreign or occupied executor network')
      self.run(['network','rm',self.network])
    except BaseException as e:errors.append('network:'+type(e).__name__)
   self.secret_file.unlink(missing_ok=True)
@@ -220,7 +220,7 @@ class OwnedSystemRestartExecutor(OwnedSystemExecutor):
   if mode not in ('restart','upload-preview'):raise ValueError('Closed owned System listener mode required')
   self.mode=mode
   super().__init__(root, workspace, docker, env, owner, persist)
-  self.name='dvaia-system-'+mode+'-'+owner[:12];self.tag=self.name+':owned';self.network=self.name+'-bridge';self.volume=self.name+'-state'
+  self.name='owasp-ai-goat-system-'+mode+'-'+owner[:12];self.tag=self.name+':owned';self.network=self.name+'-bridge';self.volume=self.name+'-state'
   self.secret_file=root/('system-'+mode+'-private.env')
   self.state={'container':self.name,'imageTag':self.tag,'network':self.network,'volume':self.volume,
    'base':RESTART_BASE,'creationAttempted':False,'networkAttempted':False,'volumeAttempted':False,
@@ -277,15 +277,15 @@ class OwnedSystemRestartExecutor(OwnedSystemExecutor):
   if prior and prior['tag']!=cache_tag:
    if prior['tag'] not in listed:raise RuntimeError('Restart content cache manifest image missing')
    old=self.inspect('image',prior['tag']);labels=old.get('Config',{}).get('Labels') or {}
-   if old.get('Id')!=prior['imageId'] or labels.get('dvaia.cache.kind')!='system-restart-content' \
-    or labels.get('dvaia.cache.source')!=prior['sourceSha256'] or labels.get('dvaia.cache.base')!=prior['base']:
+   if old.get('Id')!=prior['imageId'] or labels.get('owasp-ai-goat.cache.kind')!='system-restart-content' \
+    or labels.get('owasp-ai-goat.cache.source')!=prior['sourceSha256'] or labels.get('owasp-ai-goat.cache.base')!=prior['base']:
     raise RuntimeError('Foreign restart content cache refused')
    self.run(['image','rm',prior['tag']]);listed.remove(prior['tag']);prior=None;manifest_path.unlink()
   # Other source hashes may have independently owned historical cache tags.
   if listed.count(cache_tag)>1:
    raise RuntimeError('Duplicate selected restart content cache image refused')
-  cache_labels={'dvaia.cache.kind':'system-restart-content','dvaia.cache.source':source_digest,
-   'dvaia.cache.base':RESTART_BASE}
+  cache_labels={'owasp-ai-goat.cache.kind':'system-restart-content','owasp-ai-goat.cache.source':source_digest,
+   'owasp-ai-goat.cache.base':RESTART_BASE}
   if cache_tag in listed:
    if not prior:raise RuntimeError('Restart content cache manifest missing')
    cache=self.inspect('image',cache_tag)
@@ -321,7 +321,7 @@ class OwnedSystemRestartExecutor(OwnedSystemExecutor):
    'sourceSha256':source_digest,'base':RESTART_BASE};self.persist()
   child=context/'owned-child';child.mkdir(mode=0o700)
   base_reference=cache_tag if self.mode=='upload-preview' else cache['Id']
-  (child/'Dockerfile').write_text('FROM '+base_reference+'\nLABEL dvaia.test.owner="'+self.owner+'"\n')
+  (child/'Dockerfile').write_text('FROM '+base_reference+'\nLABEL owasp-ai-goat.test.owner="'+self.owner+'"\n')
   self.state['imageBuildAttempted']=True;self.persist()
   with (self.root/'restart-executor-build.log').open('w') as log:
    validate_restart_content_cache(prior,self.inspect('image',cache_tag),cache_tag,source_digest)
@@ -332,25 +332,25 @@ class OwnedSystemRestartExecutor(OwnedSystemExecutor):
    if code:raise RuntimeError('Owned restart executor image build failed')
   validate_restart_content_cache(prior,self.inspect('image',cache_tag),cache_tag,source_digest)
   image=self.inspect('image',self.tag)
-  if image['Architecture']!='arm64' or image['Config']['Labels'].get('dvaia.test.owner')!=self.owner \
+  if image['Architecture']!='arm64' or image['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner \
    or image.get('RootFS',{}).get('Layers')!=cache.get('RootFS',{}).get('Layers'):
    raise RuntimeError('Restart executor image owner or content mismatch')
   self.state['imageId']=image['Id'];self.state['networkAttempted']=True;self.persist()
-  self.run(['network','create','--label','dvaia.test.owner='+self.owner,self.network])
+  self.run(['network','create','--label','owasp-ai-goat.test.owner='+self.owner,self.network])
   network=self.inspect('network',self.network)
-  if network.get('Internal') is not False or network.get('Labels',{}).get('dvaia.test.owner')!=self.owner:raise RuntimeError('Restart executor network unavailable')
+  if network.get('Internal') is not False or network.get('Labels',{}).get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Restart executor network unavailable')
   if self.mode=='restart':
-   self.state['volumeAttempted']=True;self.persist();self.run(['volume','create','--label','dvaia.test.owner='+self.owner,self.volume])
+   self.state['volumeAttempted']=True;self.persist();self.run(['volume','create','--label','owasp-ai-goat.test.owner='+self.owner,self.volume])
    volume=self.inspect('volume',self.volume)
-   if volume.get('Labels',{}).get('dvaia.test.owner')!=self.owner:raise RuntimeError('Restart executor volume owner mismatch')
+   if volume.get('Labels',{}).get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Restart executor volume owner mismatch')
   prefix='SECURESHOP_UPLOAD_PREVIEW' if self.mode=='upload-preview' else 'SECURESHOP_SYSTEM_RESTART'
   self.secret_file.write_text(prefix+'_HTTP_ENABLED=true\n'+prefix+'_TOKEN='+self.token+'\n'+prefix+'_HOST=0.0.0.0\n'+prefix+'_PORT=8090\n');os.chmod(self.secret_file,0o600)
   self.state['creationAttempted']=True;self.persist()
-  writable=['--tmpfs','/var/lib/dvaia-owned-upload-preview:rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001'] if self.mode=='upload-preview' else ['--tmpfs','/owned-restart:rw,nosuid,nodev,size=8m,mode=0700,uid=10001,gid=10001','--mount','type=volume,source='+self.volume+',target=/var/lib/dvaia-owned-restart']
-  self.run(['run','--detach','--pull','never','--name',self.name,'--label','dvaia.test.owner='+self.owner,
+  writable=['--tmpfs','/var/lib/owasp-ai-goat-owned-upload-preview:rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001'] if self.mode=='upload-preview' else ['--tmpfs','/owned-restart:rw,nosuid,nodev,size=8m,mode=0700,uid=10001,gid=10001','--mount','type=volume,source='+self.volume+',target=/var/lib/owasp-ai-goat-owned-restart']
+  self.run(['run','--detach','--pull','never','--name',self.name,'--label','owasp-ai-goat.test.owner='+self.owner,
    '--network',self.network,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128',
    '--tmpfs','/tmp:rw,nosuid,nodev,size=128m',*writable,'--security-opt','seccomp=unconfined',
-   '--security-opt','apparmor=dvaia-mcp-sandbox','-p','127.0.0.1::8090','--env-file',str(self.secret_file),image['Id'],self.mode])
+   '--security-opt','apparmor=owasp-ai-goat-mcp-sandbox','-p','127.0.0.1::8090','--env-file',str(self.secret_file),image['Id'],self.mode])
   self.secret_file.unlink()
   deadline=time.monotonic()+60;status=None;health=None
   while time.monotonic()<deadline:
@@ -371,7 +371,7 @@ class OwnedSystemRestartExecutor(OwnedSystemExecutor):
    raise RuntimeError('Owned restart executor readiness mismatch')
   host=actual['HostConfig'];mounts=actual.get('Mounts') or []
   ports=actual['NetworkSettings']['Ports'];bindings=(ports or {}).get('8090/tcp') or []
-  if actual['Config']['Labels'].get('dvaia.test.owner')!=self.owner \
+  if actual['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner \
    or set(actual['NetworkSettings']['Networks'])!={self.network} or set(ports or {})!={'8090/tcp'} \
    or set(host['PortBindings'] or {})!={'8090/tcp'} or len(bindings)!=1 \
    or len(host['PortBindings']['8090/tcp'])!=1 or bindings[0].get('HostIp')!='127.0.0.1' \
@@ -381,9 +381,9 @@ class OwnedSystemRestartExecutor(OwnedSystemExecutor):
    or host['NanoCpus']!=1000000000 or host['PidsLimit']!=128:
    raise RuntimeError('Owned System listener runtime mismatch')
   if self.mode=='upload-preview':
-   if mounts or host['Tmpfs'].get('/var/lib/dvaia-owned-upload-preview')!='rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001':raise RuntimeError('Owned upload preview writable root mismatch')
+   if mounts or host['Tmpfs'].get('/var/lib/owasp-ai-goat-owned-upload-preview')!='rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001':raise RuntimeError('Owned upload preview writable root mismatch')
   elif len(mounts)!=1 or mounts[0].get('Type')!='volume' or mounts[0].get('Name')!=self.volume \
-   or mounts[0].get('Destination')!='/var/lib/dvaia-owned-restart' or mounts[0].get('RW') is not True:
+   or mounts[0].get('Destination')!='/var/lib/owasp-ai-goat-owned-restart' or mounts[0].get('RW') is not True:
    raise RuntimeError('Owned restart executor runtime mismatch')
   self.state['runtime']={'user':actual['Config']['User'],'readOnlyRoot':host['ReadonlyRootfs'],'memory':host['Memory'],
    'nanoCpus':host['NanoCpus'],'pidsLimit':host['PidsLimit'],'tmpfs':host['Tmpfs'],'ports':actual['NetworkSettings']['Ports'],
@@ -397,7 +397,7 @@ class OwnedSystemRestartExecutor(OwnedSystemExecutor):
    try:
     if not self.absent('container',self.name):
      actual=self.inspect('container',self.name)
-     if actual['Config']['Labels'].get('dvaia.test.owner')!=self.owner:raise RuntimeError('Foreign restart executor container')
+     if actual['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Foreign restart executor container')
      self.run(['stop','--time','25',self.name],timeout=35);exit_code=self.inspect('container',self.name)['State']['ExitCode']
      logs=self.run(['logs','--tail','100',self.name],check=False);safe=(logs.stdout+logs.stderr).replace(self.token,'[REDACTED]')
      target=self.root/'restart-executor.log';target.write_text(safe);os.chmod(target,0o600);self.run(['rm','-f','-v',self.name])
@@ -405,26 +405,26 @@ class OwnedSystemRestartExecutor(OwnedSystemExecutor):
    finally:
     try:
      if not self.absent('container',self.name):
-      if self.inspect('container',self.name)['Config']['Labels'].get('dvaia.test.owner')!=self.owner:raise RuntimeError('Foreign restart container cleanup refused')
+      if self.inspect('container',self.name)['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Foreign restart container cleanup refused')
       self.run(['rm','-f','-v',self.name])
     except BaseException as e:errors.append('container-final:'+type(e).__name__)
   if self.state['volumeAttempted']:
    try:
     if not self.volume_absent():
-     if self.inspect('volume',self.volume).get('Labels',{}).get('dvaia.test.owner')!=self.owner:raise RuntimeError('Foreign restart volume')
+     if self.inspect('volume',self.volume).get('Labels',{}).get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Foreign restart volume')
      self.run(['volume','rm',self.volume])
    except BaseException as e:errors.append('volume:'+type(e).__name__)
   if self.state['imageBuildAttempted']:
    try:
     if not self.absent('image',self.tag):
-     if self.inspect('image',self.tag)['Config']['Labels'].get('dvaia.test.owner')!=self.owner:raise RuntimeError('Foreign restart image')
+     if self.inspect('image',self.tag)['Config']['Labels'].get('owasp-ai-goat.test.owner')!=self.owner:raise RuntimeError('Foreign restart image')
      self.run(['image','rm',self.tag])
    except BaseException as e:errors.append('image:'+type(e).__name__)
   if self.state['networkAttempted']:
    try:
     if not self.absent('network',self.network):
      network=self.inspect('network',self.network)
-     if network.get('Labels',{}).get('dvaia.test.owner')!=self.owner or network.get('Containers'):raise RuntimeError('Foreign or occupied restart network')
+     if network.get('Labels',{}).get('owasp-ai-goat.test.owner')!=self.owner or network.get('Containers'):raise RuntimeError('Foreign or occupied restart network')
      self.run(['network','rm',self.network])
    except BaseException as e:errors.append('network:'+type(e).__name__)
   self.secret_file.unlink(missing_ok=True)
@@ -439,9 +439,9 @@ class OwnedSystemRestartExecutor(OwnedSystemExecutor):
    if cache_state:
     cache=self.inspect('image',cache_state['tag']);cache_labels=cache.get('Config',{}).get('Labels') or {}
     flags['contentCacheRetained']=cache.get('Id')==cache_state['imageId'] \
-     and cache_labels.get('dvaia.cache.kind')=='system-restart-content' \
-     and cache_labels.get('dvaia.cache.source')==cache_state['sourceSha256'] \
-     and cache_labels.get('dvaia.cache.base')==cache_state['base']
+     and cache_labels.get('owasp-ai-goat.cache.kind')=='system-restart-content' \
+     and cache_labels.get('owasp-ai-goat.cache.source')==cache_state['sourceSha256'] \
+     and cache_labels.get('owasp-ai-goat.cache.base')==cache_state['base']
    else:
     # No cache is owned by this run before verified cache admission. All actual
     # run-owned container/network/image/process absence checks still follow.

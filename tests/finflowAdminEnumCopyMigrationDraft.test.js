@@ -28,7 +28,7 @@ test('identity0068 preserves its qualified names-only predecessor without regist
     'tests/release-inputs', path.basename(record.nativeQualification.reviewRecord)))).digest('hex'),
   record.nativeQualification.reviewRecordSha256);
   assert.equal(record.nativeQualification.evidence,
-    '/Users/averma5/.dvaia/native-verification/dvaia-finflow_0068_admin_enum_copy_defaults-b031b78466ee');
+    '/Users/averma5/.owasp-ai-goat/native-verification/owasp-ai-goat-finflow_0068_admin_enum_copy_defaults-b031b78466ee');
   assert.equal(record.nativeQualification.status, 'terminal_pass_cleaned');
   assert.equal(fs.existsSync(registered), false);
 });

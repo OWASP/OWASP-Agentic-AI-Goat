@@ -106,7 +106,7 @@ test('actual host nonzero child exit propagates only the closed diagnostic and p
 test('actual worker executes selected immutable focus and preserves full oversized source through canonical evidence',async t=>{
  // Controlled provider only: proves composition/effects, never real-model credit.
  const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path'),{randomUUID,createHash}=require('node:crypto');
- const hash=value=>createHash('sha256').update(value).digest('hex'),root=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-audit-focus-control-'));
+ const hash=value=>createHash('sha256').update(value).digest('hex'),root=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-audit-focus-control-'));
  t.after(()=>fs.rm(root,{recursive:true,force:true}));
  const runId=randomUUID(),requestId=randomUUID(),nonce=randomUUID(),action='audit_unbounded_requested';
  const rows=Array.from({length:130},(_,i)=>({id:'agents:'+randomUUID(),store:'agents',

@@ -3,7 +3,7 @@ import importlib.util,json,os,tempfile,unittest
 from pathlib import Path
 import sys
 sys.path.insert(0,str(Path.cwd()/'tests/postgres'))
-SOURCE=Path(os.environ.get('DVAIA_V11_LAUNCHER_SOURCE',Path(__file__).resolve().parents[2]/'tests/postgres/run-secureshop-agent-host-transport-main.py'))
+SOURCE=Path(os.environ.get('OWASP_AI_GOAT_V11_LAUNCHER_SOURCE',Path(__file__).resolve().parents[2]/'tests/postgres/run-secureshop-agent-host-transport-main.py'))
 SPEC=importlib.util.spec_from_file_location('v11_launcher',SOURCE);L=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(L)
 class V11Launcher(unittest.TestCase):
  def receipt(self):return dict.fromkeys(L.V11_FLAGS,True)|{'scope':L.V11_SCOPE,'actorCalls':12,'deniedHopCount':1,'judgeCalls':1,'roleTurns':6,'assessmentPosts':2,'savedAssessmentGets':1,'genuineCredit':1,'errors':[]}

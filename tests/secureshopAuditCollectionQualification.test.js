@@ -29,14 +29,14 @@ test('V36 collection browser exception is opt-in, exact-owned and localhost-only
   const run=path.join(workspace,'tasks/qualification/run-v36-controlled');
   const env={SECURESHOP_AUDIT_COLLECTION_TEST_NO_SANDBOX:'1',SECURESHOP_AUDIT_COLLECTION_BROWSER_NATIVE:'1',
     SECURESHOP_DIRECT_AUDIT_BROWSER_NATIVE:'0',SECURESHOP_SCENE_AUDIT_BROWSER_NATIVE:'0',
-    PG_TEST_DISPOSABLE:'yes',LIVE_OLLAMA_TEST:'1',NODE_ENV:'test',DVAIA_CURRENT_MAIN_WORKSPACE:workspace,
+    PG_TEST_DISPOSABLE:'yes',LIVE_OLLAMA_TEST:'1',NODE_ENV:'test',OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:workspace,
     TMPDIR:path.join(run,'runtime/tmp'),SECURESHOP_AUDIT_COLLECTION_BROWSER_RECORD_PATH:path.join(run,'audit-collection-v36-browser.json'),
     SECURESHOP_AUDIT_COLLECTION_BROWSER_ACK_PATH:path.join(run,'audit-collection-v36-browser-ack.json'),
     SECURESHOP_AUDIT_COLLECTION_BROWSER_SHA256:'a'.repeat(64),
     SECURESHOP_BOUND_BROWSER_BIRTH_SCRIPT:path.join(workspace,'tests/postgres/secureshop_darwin_browser_birth.py'),
     SECURESHOP_BOUND_BROWSER_BIRTH_PYTHON:'/controlled/python'};
   const input={workspace,evidencePath:path.join(run,'admin-audit-jobs-browser.json'),
-    profile:path.join(env.TMPDIR,'dvaia-admin-audit-jobs-controlled'),origin:'http://127.0.0.1:12345'};
+    profile:path.join(env.TMPDIR,'owasp-ai-goat-admin-audit-jobs-controlled'),origin:'http://127.0.0.1:12345'};
   const flags=control.args(env,input);assert.ok(flags.includes('--no-sandbox'));
   assert.ok(flags.includes('--proxy-server=http://blocked.invalid:9'));
   assert.ok(flags.some(flag=>flag.startsWith('--host-resolver-rules=MAP * ~NOTFOUND')));
@@ -45,7 +45,7 @@ test('V36 collection browser exception is opt-in, exact-owned and localhost-only
     {SECURESHOP_AUDIT_COLLECTION_BROWSER_NATIVE:'0'},
     {SECURESHOP_DIRECT_AUDIT_BROWSER_NATIVE:'1'},
     {PG_TEST_DISPOSABLE:'no'},{LIVE_OLLAMA_TEST:'0'},{NODE_ENV:'development'},
-    {DVAIA_CURRENT_MAIN_WORKSPACE:'/other'},{TMPDIR:run},
+    {OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:'/other'},{TMPDIR:run},
     {SECURESHOP_AUDIT_COLLECTION_BROWSER_RECORD_PATH:'/other'},
     {SECURESHOP_BOUND_BROWSER_BIRTH_SCRIPT:'/other'}
   ])assert.throws(()=>control.args({...env,...mutation},input));

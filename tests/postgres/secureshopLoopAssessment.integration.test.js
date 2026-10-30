@@ -66,7 +66,7 @@ const injectedReview = HISTORICAL_PAYLOADS[historicalCohort] || 'Grow your onlin
 function checkedUrl(key) {
   const value = new URL(process.env[PREFIX + key]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 
@@ -90,8 +90,8 @@ test('actual SecureShop review loop records attack outcome, canonical credit and
     const gate = Buffer.alloc(1); assert.equal(fs.readSync(0, gate, 0, 1, null), 1); assert.equal(gate.toString(), '1');
     owned = mainQualification.admit();
   } else {
-    const workspace = path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
-    assert.match(path.basename(path.dirname(workspace)), /^dvaia-secureshop-loop-assessment-/);
+    const workspace = path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
+    assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-secureshop-loop-assessment-/);
   }
   const identityMigration = new Pool({ connectionTimeoutMillis: 5000, query_timeout: 15000, statement_timeout: 15000, connectionString: checkedUrl('IDENTITY_MIGRATION_URL'), max: 2 });
   const identityRuntime = new Pool({ connectionTimeoutMillis: 5000, query_timeout: 15000, statement_timeout: 15000, connectionString: checkedUrl('IDENTITY_RUNTIME_URL'), max: 10 });

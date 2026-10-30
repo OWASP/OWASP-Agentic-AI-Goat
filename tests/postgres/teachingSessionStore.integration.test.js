@@ -42,12 +42,12 @@ test('native teaching sessions persist across instances and cannot resurrect aft
   skip: process.env.TEACHING_SESSION_NATIVE !== '1', timeout: 180000,
 }, async () => {
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+  assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
   const pools = [], servers = [], runtimes = [], authRouters = [];
   const connect = (role, max = 5) => {
     const url = new URL(process.env['WORKSHOP_RAG_' + role.toUpperCase() + '_URL']);
     assert.equal(url.hostname, '127.0.0.1');
-    assert.match(url.pathname, /^\/dvaia_test_workshop_rag_[a-f0-9]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/);
     assert.equal(url.username, 'dvaia_identity_' + role);
     const pool = new Pool({ connectionString: url.href, max, statement_timeout: 10000 });
     pools.push(pool); return pool;

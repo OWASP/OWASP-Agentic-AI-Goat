@@ -29,7 +29,7 @@ function createApplicationMaintenanceStoreInspection({environment=process.env,ma
   async function connect(key){
    await observeLease();
    const config=poolConfig({...env,PG_POOL_MAX_LEASE:'1'},key,{purpose:'lease'}),release=terminalPermit?reserveFinalInspectionConnection(terminalPermit,lease,env,key):reserveDedicatedConnection(env);
-   let client;try{client=new Client({...config,connectionTimeoutMillis:remaining(),query_timeout:3000,statement_timeout:3000,application_name:'dvaia-maintenance-inspection'});}catch(e){release();throw e;}
+   let client;try{client=new Client({...config,connectionTimeoutMillis:remaining(),query_timeout:3000,statement_timeout:3000,application_name:'owasp-ai-goat-maintenance-inspection'});}catch(e){release();throw e;}
    const row={client,release,closed:false};clients.push(row);client.on('error',()=>{row.failed=true;});await bound(()=>client.connect(),remaining());
    const tls=await query(row,'SELECT ssl FROM pg_stat_ssl WHERE pid=pg_backend_pid()');if(config.ssl&&tls.rows?.[0]?.ssl!==true)throw fail('MAINTENANCE_INSPECTION_TLS_MISMATCH');
    return row;
@@ -47,7 +47,7 @@ function createApplicationMaintenanceStoreInspection({environment=process.env,ma
    if(deliveryRoles.length||env.CTF_DELIVERY_DATABASE_URL||deliveryManifestPath){
     const prior=readManifest(deliveryManifestPath),ctf=plan.find(x=>x.schema==='ctf'),fingerprint=createHash('sha256').update(JSON.stringify({cluster:manifest.cluster,ctf})).digest('hex');
     if(prior.version!==1||prior.status!=='complete'||prior.baseFingerprint!==fingerprint||prior.cluster!==cluster||prior.database!==ctf.database||prior.role!=='dvaia_ctf_delivery'||Object.keys(prior.configuration||{}).join()!=='CTF_DELIVERY_DATABASE_URL'||prior.configuration.CTF_DELIVERY_DATABASE_URL!==env.CTF_DELIVERY_DATABASE_URL)throw fail('MAINTENANCE_INSPECTION_DELIVERY_MISMATCH');
-    const u=new URL(env.CTF_DELIVERY_DATABASE_URL),a=new URL(env.PG_ADMIN_DATABASE_URL);if(u.host!==a.host||u.pathname!=='/dvaia_ctf'||decodeURIComponent(u.username)!=='dvaia_ctf_delivery'||!u.password||u.search||u.hash)throw fail('MAINTENANCE_INSPECTION_DELIVERY_MISMATCH');
+    const u=new URL(env.CTF_DELIVERY_DATABASE_URL),a=new URL(env.PG_ADMIN_DATABASE_URL);if(u.host!==a.host||u.pathname!=='/'+ctf.database||decodeURIComponent(u.username)!=='dvaia_ctf_delivery'||!u.password||u.search||u.hash)throw fail('MAINTENANCE_INSPECTION_DELIVERY_MISMATCH');
     if(deliveryRoles.length!==1||!deliveryRoles[0].rolcanlogin||['rolsuper','rolcreatedb','rolcreaterole','rolreplication','rolbypassrls'].some(k=>deliveryRoles[0][k])||(await query(admin,"SELECT 1 FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.member OR r.oid=m.roleid WHERE r.rolname='dvaia_ctf_delivery' LIMIT 1")).rows.length)throw fail('MAINTENANCE_INSPECTION_DELIVERY_MISMATCH');delivery=true;
    }
    const adminSession=await session(admin),stores=[];

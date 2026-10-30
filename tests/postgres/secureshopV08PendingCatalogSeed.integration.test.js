@@ -40,7 +40,7 @@ function checkedUrls(store) {
     assert.equal(url.hostname, '127.0.0.1');
     assert.equal(url.username, `dvaia_identity_${role.toLowerCase()}`);
     assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-    assert.match(url.pathname, new RegExp(`^/dvaia_test_persona_${store.toLowerCase()}_[a-f0-9]{12}$`));
+    assert.match(url.pathname, new RegExp(`^/owasp_ai_goat_test_persona_${store.toLowerCase()}_[a-f0-9]{12}$`));
     assert.ok(Number(url.port) > 0 && Number(url.port) <= 65535);
     return url;
   });

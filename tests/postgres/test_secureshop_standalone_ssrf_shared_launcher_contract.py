@@ -63,8 +63,8 @@ class StandaloneSsrfSharedLauncherContract(unittest.TestCase):
         pairs = {'runtime': 'owned-runtime', 'migration': 'owned-migration'}
         context = dict(vars(LAUNCHER), args=args, source=ROOT, env={'PG_TEST_DISPOSABLE': 'yes'}, identity=pairs, agents=pairs)
         exec(compile(ast.fix_missing_locations(ast.Module(body=branch.body, type_ignores=[])), '<native-env>', 'exec'), context)
-        self.assertEqual(set(context['env']), {'PG_TEST_DISPOSABLE', 'DVAIA_ISOLATED_TEST_WORKSPACE',
-            'DVAIA_CURRENT_MAIN_WORKSPACE', 'PG_SECURESHOP_SSRF_IDENTITY_RUNTIME_URL',
+        self.assertEqual(set(context['env']), {'PG_TEST_DISPOSABLE', 'OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE',
+            'OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE', 'PG_SECURESHOP_SSRF_IDENTITY_RUNTIME_URL',
             'PG_SECURESHOP_SSRF_IDENTITY_MIGRATION_URL', 'PG_SECURESHOP_SSRF_AGENTS_RUNTIME_URL',
             'PG_SECURESHOP_SSRF_AGENTS_MIGRATION_URL'})
         value = {key: True for key in LAUNCHER.POLICY_OUTPUT_NATIVE_FLAGS}

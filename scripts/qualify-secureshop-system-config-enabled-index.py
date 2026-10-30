@@ -14,9 +14,9 @@ import tempfile
 import time
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
-NODE = pathlib.Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+NODE = pathlib.Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 DOCKER = ['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker',
-          '--host', 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock']
+          '--host', 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock']
 PG_IMAGE = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 MIGRATIONS = {
     'db/postgres/workshop-migrations/secureshop_agents/0028_system_config_candidate.sql':
@@ -30,15 +30,15 @@ if len(sys.argv) != 2 or sys.argv[1] not in ('--plan', '--run'):
 
 suffix = secrets.token_hex(6)
 owner = secrets.token_hex(16)
-pg_name = f'dvaia-system-index-pg-{suffix}'
-evidence = pathlib.Path.home() / '.dvaia/native-verification' / f'dvaia-system-enabled-index-{suffix}'
+pg_name = f'owasp-ai-goat-system-index-pg-{suffix}'
+evidence = pathlib.Path.home() / '.owasp-ai-goat/native-verification' / f'owasp-ai-goat-system-enabled-index-{suffix}'
 task_result = REPO / 'tasks' / f'secureshop-system-enabled-index-native-{suffix}.json'
 
 if sys.argv[1] == '--plan':
     print(json.dumps({'node': str(NODE), 'expectedNode': 'v26.9.0', 'docker': DOCKER,
                       'postgresImage': PG_IMAGE, 'canonicalMigrations': MIGRATIONS,
                       'ownedResources': {'postgres': pg_name,
-                        'systemExecutorPrefix': f'dvaia-system-http-{owner[:12]}'},
+                        'systemExecutorPrefix': f'owasp-ai-goat-system-http-{owner[:12]}'},
                       'limits': {'parentDeadlineSeconds': 720, 'testDeadlineSeconds': 360,
                         'postgres': {'memory': '1g', 'cpus': 2, 'pids': 256,
                           'maxConnections': 100},
@@ -55,7 +55,7 @@ if sys.argv[1] == '--plan':
 sys.path.insert(0, str(REPO / 'tests/postgres'))
 from sensitive_info_recovery_safety import SignalGate
 
-root = pathlib.Path(tempfile.mkdtemp(prefix='dvaia-system-enabled-index-'))
+root = pathlib.Path(tempfile.mkdtemp(prefix='owasp-ai-goat-system-enabled-index-'))
 os.chmod(root, 0o700)
 workspace = root / 'source'
 runtime = root / 'runtime'
@@ -117,7 +117,7 @@ exit_code = 1
 try:
     evidence.mkdir(parents=True, mode=0o700)
     info = json.loads(docker(['info', '--format', '{{json .}}'], timeout=30))
-    if info.get('Name') != 'colima-dvaia-pg-verify' or info.get('Architecture') != 'aarch64':
+    if info.get('Name') != 'colima-owasp-ai-goat-pg-verify' or info.get('Architecture') != 'aarch64':
         raise RuntimeError('Docker authority or architecture mismatch')
     if run([str(NODE), '--version']) != 'v26.9.0':
         raise RuntimeError('Node 26.9.0 is required')
@@ -171,7 +171,7 @@ try:
     persist()
 
     docker(['run', '--detach', '--pull', 'never', '--name', pg_name,
-      '--label', f'dvaia.test.owner={owner}', '--memory', '1g', '--cpus', '2',
+      '--label', f'owasp-ai-goat.test.owner={owner}', '--memory', '1g', '--cpus', '2',
       '--pids-limit', '256', '--tmpfs', '/var/lib/postgresql:rw,size=1073741824',
       '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', '-p', '127.0.0.1::5432', PG_IMAGE,
       '-c', 'max_connections=100', '-c', 'max_wal_size=64MB', '-c', 'min_wal_size=32MB'])
@@ -193,7 +193,7 @@ try:
     if len(manifest) != 16:
         raise RuntimeError('expected exact sixteen-store manifest')
     for row in manifest:
-        schema, database = row['schema'], f'dvaia_test_full_backend_{row["schema"]}'
+        schema, database = row['schema'], f'owasp_ai_goat_test_full_backend_{row["schema"]}'
         run(base + [f'CREATE ROLE dvaia_{schema}_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; '
           f'CREATE ROLE {row["runtimeRole"]} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;'])
         run(base + [f'CREATE DATABASE {database} OWNER dvaia_{schema}_migration'])
@@ -204,8 +204,8 @@ try:
     env.update(PG_TEST_DISPOSABLE='yes', PG_SECURESHOP_SYSTEM_ENABLED_INDEX='1',
       PG_SECURESHOP_SYSTEM_EXECUTOR_ORIGIN=executor_origin,
       PG_SECURESHOP_SYSTEM_EXECUTOR_TOKEN=executor_token,
-      DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace.resolve()),
-      DVAIA_FULL_BACKEND_RUNTIME_ROOT=str(runtime.resolve()), PG_POOL_BUDGET='78')
+      OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace.resolve()),
+      OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT=str(runtime.resolve()), PG_POOL_BUDGET='78')
     tests_log = evidence / 'tests.log'
     with tests_log.open('w') as output:
         child = subprocess.Popen([str(NODE), '--test', '--test-reporter=tap',
@@ -264,7 +264,7 @@ finally:
             cleanup_errors.append(f'postgres-diagnostics:{type(error).__name__}:{str(error)[:500]}')
         try:
             details = json.loads(docker(['inspect', pg_name]))[0]
-            if details['Config']['Labels'].get('dvaia.test.owner') != owner:
+            if details['Config']['Labels'].get('owasp-ai-goat.test.owner') != owner:
                 raise RuntimeError('refusing foreign PostgreSQL cleanup')
             docker(['rm', '--force', '--volumes', pg_name], timeout=30)
         except Exception as error:

@@ -9,7 +9,7 @@ const sha=value=>crypto.createHash('sha256').update(value).digest('hex');
 function fixture(t){
  const home=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'listing-template-provision-'));
  t.after(()=>fs.rmSync(home,{recursive:true,force:true}));
- const id=workspaceId(ROOT),directory=path.join(home,'.dvaia',id);
+ const id=workspaceId(ROOT),directory=path.join(home,'.owasp-ai-goat',id);
  fs.mkdirSync(directory,{recursive:true,mode:0o700});
  fs.writeFileSync(path.join(directory,'local-docker.json'),JSON.stringify({version:1,workspaceId:id,
   host:'unix:///var/run/docker.sock',daemonId:'controlled-template-daemon',source:'environment-host'}),{mode:0o600});
@@ -37,12 +37,12 @@ function fixture(t){
     HostConfig:{Privileged:false,ReadonlyRootfs:true,Memory:536870912,NanoCpus:1000000000,PidsLimit:128,
      CapAdd:null,CapDrop:['ALL'],PidMode:'',IpcMode:'private',UsernsMode:'',Binds:null,Devices:[],DeviceRequests:null,
      Tmpfs:{'/tmp':'rw,nosuid,nodev,noexec,mode=1777,size=128m'},
-     SecurityOpt:['seccomp=unconfined','apparmor=dvaia-owned-listing-template-'+id],NetworkMode:network,
+     SecurityOpt:['seccomp=unconfined','apparmor=owasp-ai-goat-owned-listing-template-'+id],NetworkMode:network,
      PortBindings:{'8090/tcp':[{HostIp:'127.0.0.1',HostPort:port}]}},NetworkSettings:{Networks:{},Ports:null}};
-   if(state.foreign)state.container.Config.Labels['dvaia.listing-template.owner']='foreign';
+   if(state.foreign)state.container.Config.Labels['owasp-ai-goat.listing-template.owner']='foreign';
   }else if(args[0]==='start'){
    assert.equal(args[1],ID);state.container.State={Running:true,Status:'running'};
-   state.container.AppArmorProfile='dvaia-owned-listing-template-'+id;
+   state.container.AppArmorProfile='owasp-ai-goat-owned-listing-template-'+id;
    state.container.NetworkSettings={Networks:{[state.container.HostConfig.NetworkMode]:{NetworkID:state.network.Id}},Ports:state.container.HostConfig.PortBindings};
    state.network.Containers={[ID]:{}};
   }else assert.fail('unexpected Docker mutation '+args[0]);
@@ -123,7 +123,7 @@ for(const [name,change]of [
  assert.equal(managed.capture(f.options),null);
 });
 test('profile admission requests base and bwrap enforce with nonblocking exact file read',async t=>{
- const f=fixture(t),name='dvaia-owned-listing-template-'+f.id;
+ const f=fixture(t),name='owasp-ai-goat-owned-listing-template-'+f.id;
  let program='';
  await installer._internals.provisionProfile({p:{profile:name,workspaceId:f.id},authority:{host:'unix:///var/run/docker.sock'},
   root:ROOT,home:f.home,platform:'linux',existingOnly:true,run:async(file,args)=>{

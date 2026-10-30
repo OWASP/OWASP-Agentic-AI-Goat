@@ -56,7 +56,7 @@ test('parent accepts only the exact attested denial for its original request', (
 });
 
 test('durable executor stores only the allowlisted safe denial code', async () => {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-listing-denial-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-listing-denial-'));
   try {
     await fs.chmod(directory, 0o700);
     const executor = await createListingOperationExecutor({ directory, identity: 'a'.repeat(64),
@@ -83,7 +83,7 @@ test('fixed XML parser denial survives worker, parent and durable receipt withou
   const envelope = resourceDenial(xmlInput, error);
   assert.deepEqual(envelope, { ...expected, requestSha256: listingRequestDigest(xmlInput.request), error: error.code });
   assert.doesNotMatch(JSON.stringify(envelope), /private|host|secret/);
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-listing-xml-denial-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-listing-xml-denial-'));
   try {
     await fs.chmod(directory, 0o700); let calls = 0;
     const executor = await createListingOperationExecutor({ directory, identity: 'a'.repeat(64), mode: 'fixed',

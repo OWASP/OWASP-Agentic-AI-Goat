@@ -24,10 +24,10 @@ const ENABLED = process.env.SECURESHOP_V01_CHECKOUT_AUDIT_NATIVE === '1'
 function pool(role) {
   const parsed = new URL(process.env[`${PREFIX}REVIEW_${role}_URL`]);
   assert.equal(parsed.hostname, '127.0.0.1');
-  assert.match(parsed.pathname, /^\/dvaia_test_v01_checkout_audit_review_[a-z0-9]+$/);
+  assert.match(parsed.pathname, /^\/owasp_ai_goat_test_v01_checkout_audit_review_[a-z0-9]+$/);
   return new Pool({ connectionString: parsed.href, max: role === 'RUNTIME' ? 8 : 2,
     statement_timeout: 15000, lock_timeout: 3000,
-    application_name: 'dvaia-v01-checkout-audit-native' });
+    application_name: 'owasp-ai-goat-v01-checkout-audit-native' });
 }
 function scope(owner, generation = 1, session = owner + 1000) {
   return Object.freeze({ launchId: randomUUID(), scenarioId: randomUUID(), generation,

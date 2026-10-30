@@ -18,12 +18,12 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes'
 const WORKSHOP = 'sensitive_info_disclosure';
 const DRAFT = path.join(__dirname, '../../docs/modernization/drafts/finflow-recon-scope-managed-defaults.candidate.sql');
 const SOURCE_VERSION = 'finflow-recon-scope-2026-09-15-draft';
-const OWNED_PATH = /^\/dvaia_test_[a-z0-9_]+$/;
+const OWNED_PATH = /^\/owasp_ai_goat_test_[a-z0-9_]+$/;
 
 function ownedUrl(key) {
   const url = new URL(process.env[key]);
   assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname), `${key} must be local disposable PostgreSQL`);
-  assert.match(url.pathname, OWNED_PATH, `${key} must target a dvaia_test database`);
+  assert.match(url.pathname, OWNED_PATH, `${key} must target a owasp_ai_goat_test database`);
   return url.href;
 }
 

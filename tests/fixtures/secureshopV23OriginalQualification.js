@@ -4,7 +4,7 @@
 const assert=require('node:assert/strict'),{createHash}=require('node:crypto');
 const {canonicalDigest}=require('../../server/services/mcp/protocolContext');
 const sha=value=>createHash('sha256').update(value).digest('hex');
-const PEER='exec /usr/local/bin/node /usr/local/libexec/dvaia-owned-mcp-registry-worker.js --stdio-peer';
+const PEER='exec /usr/local/bin/node /usr/local/libexec/owasp-ai-goat-owned-mcp-registry-worker.js --stdio-peer';
 const LIMITS=Object.freeze({actorCallsPerTurn:4,totalActorCalls:12,judgeCalls:2,registrationEffects:2});
 const REQUIRED_LIFECYCLE=Object.freeze(['sameRequestReplayWithoutModelOrEffect','foreignOwnerDenied','foreignSessionDenied',
  'committedResetAndStaleGenerationDenied','siblingSnapshotUnchanged','registrationJournalDrained','serviceContainerAndProfileAbsent','sharedPostgresAndBridgePreserved']);

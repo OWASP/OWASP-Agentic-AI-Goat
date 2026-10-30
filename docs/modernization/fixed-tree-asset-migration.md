@@ -26,7 +26,7 @@ manifest digest must come from that workflow's immutable receipt.
 node db/postgres/fixed-tree-assets.js \
   --bundle /migration/bundle \
   --manifest-digest <64-character-sha256> \
-  --candidate /staging/dvaia-next \
+  --candidate /staging/owasp-ai-goat-next \
   --candidate-stopped \
   --candidate-is-staged \
   > /migration/fixed-tree-plan.json
@@ -51,7 +51,7 @@ Validate the completed review without writing:
 node db/postgres/fixed-tree-assets.js \
   --bundle /migration/bundle \
   --manifest-digest <64-character-sha256> \
-  --candidate /staging/dvaia-next \
+  --candidate /staging/owasp-ai-goat-next \
   --candidate-stopped \
   --candidate-is-staged \
   --review /migration/fixed-tree-review.json
@@ -70,7 +70,7 @@ bundle, the failure marker, and the final receipt.
 node db/postgres/fixed-tree-assets.js \
   --bundle /migration/bundle \
   --manifest-digest <64-character-sha256> \
-  --candidate /staging/dvaia-next \
+  --candidate /staging/owasp-ai-goat-next \
   --candidate-stopped \
   --candidate-is-staged \
   --review /migration/fixed-tree-review.json \

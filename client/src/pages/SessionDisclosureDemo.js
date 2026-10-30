@@ -30,14 +30,14 @@ export default function SessionDisclosureDemo() {
       // Explicitly select the challenge projection; never render arbitrary API
       // fields, browser cookies, local storage, or platform authentication data.
       if (data?.scope !== 'isolated synthetic lab session' || !data.session
-          || typeof data.cookies?.dvaia_lab_session !== 'string'
+          || typeof data.cookies?.owasp_ai_goat_lab_session !== 'string'
           || typeof data.session.sessionId !== 'string' || typeof data.session.role !== 'string'
           || !/^\d+$/.test(String(data.session.generation))
           || (reset && String(data.session.generation) !== String(resetGeneration))) {
         throw new Error('Invalid lab projection');
       }
       setSession({ sessionId: data.session.sessionId, role: data.session.role,
-        generation: data.session.generation, credential: data.cookies.dvaia_lab_session });
+        generation: data.session.generation, credential: data.cookies.owasp_ai_goat_lab_session });
       setMessage(reset ? 'Lab credential rotated. Previously issued lab cookies are now invalid.' : 'Current isolated lab credential loaded.');
     } catch (error) {
       if (!controller.signal.aborted) {

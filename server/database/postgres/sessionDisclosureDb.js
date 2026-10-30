@@ -14,14 +14,14 @@ function ownerId(value) {
 }
 
 function credential(value) {
-  if (typeof value !== 'string' || !/^dvaia_lab_[A-Za-z0-9_-]{43}$/.test(value)) return null;
+  if (typeof value !== 'string' || !/^(?:owasp_ai_goat|dvaia)_lab_[A-Za-z0-9_-]{43}$/.test(value)) return null;
   return value;
 }
 
 function candidate() {
   return {
     sessionId: crypto.randomUUID(),
-    cookie: `dvaia_lab_${crypto.randomBytes(32).toString('base64url')}`,
+    cookie: `owasp_ai_goat_lab_${crypto.randomBytes(32).toString('base64url')}`,
     csrfToken: crypto.randomBytes(24).toString('base64url'),
     labUserId: `lab-${crypto.randomUUID()}`,
   };

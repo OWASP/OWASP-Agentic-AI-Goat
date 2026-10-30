@@ -360,7 +360,7 @@ module.exports = function seed(dbPath) {
           fallbackFrom.email, fallbackTo.email, subj,
           `Hi ${fallbackTo.username},\n\nJust a quick update: ${pick(DETAILS)}\n\nThanks,\nSecureShop`,
           `<p>Hi ${fallbackTo.username},</p><p>Just a quick update: ${pick(DETAILS)}</p><p>Thanks,<br/>SecureShop</p>`,
-          `Message-Id: <${Math.random().toString(36).slice(2)}@dvaia.local>`,
+          `Message-Id: <${Math.random().toString(36).slice(2)}@owasp-ai-goat.local>`,
           `-${randInt(1, 120)} days`,
         );
       }
@@ -377,7 +377,7 @@ module.exports = function seed(dbPath) {
           from.email, to.email, subj,
           `Hey ${to.username},\n\n${pick(DETAILS)}\n\nBest,\n${from.username}`,
           `<p>Hey ${to.username},</p><p>${pick(DETAILS)}</p><p>Best,<br/>${from.username}</p>`,
-          `Message-Id: <${Math.random().toString(36).slice(2)}@dvaia.local>`,
+          `Message-Id: <${Math.random().toString(36).slice(2)}@owasp-ai-goat.local>`,
           `-${randInt(2, 60)} days`,
         );
       }

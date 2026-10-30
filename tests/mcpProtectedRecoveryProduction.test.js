@@ -2,9 +2,9 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const {attachCleanupErrors,createProtectedRecoveryProduction}=require('../server/services/mcp/protectedRecoveryProduction');
 const {getPoolBudgetSnapshot}=require('../server/database/postgres');
-const env={MCP_PROTECTED_RECOVERY_ENABLED:'true',IDENTITY_DATABASE_URL:'postgresql://fixture@localhost/dvaia_fixture',MCP_WORKSHOP_DATABASE_URL:'postgresql://fixture@localhost/dvaia_mcp_fixture'};
+const env={MCP_PROTECTED_RECOVERY_ENABLED:'true',IDENTITY_DATABASE_URL:'postgresql://fixture@localhost/owasp_ai_goat_fixture',MCP_WORKSHOP_DATABASE_URL:'postgresql://fixture@localhost/owasp_ai_goat_mcp_fixture'};
 const identityAdapter={validateSession:async()=>null,pool:{query:async sql=>({rows:[sql.includes('has_table_privilege')?{read:true,write:false}:{admit:true,append:true,internal:false}]})}};
-const targets={readProtectedOperationReceipt:async()=>{},readiness:async()=>({ready:true,runnerReady:true,isolation:'bwrap-seccomp-v1',supervisorProfile:'dvaia-mcp-sandbox (enforce)',protectedJournalCapability:'mcp-owned-protected-operation-journal.v1',protectedReadbackCapability:'mcp-owned-protected-readback.v1'})};
+const targets={readProtectedOperationReceipt:async()=>{},readiness:async()=>({ready:true,runnerReady:true,isolation:'bwrap-seccomp-v1',supervisorProfile:'owasp-ai-goat-mcp-sandbox (enforce)',protectedJournalCapability:'mcp-owned-protected-operation-journal.v1',protectedReadbackCapability:'mcp-owned-protected-readback.v1'})};
 test('managed recovery registers four connections within76/78 modeled budget and closes them',async()=>{
  const before=getPoolBudgetSnapshot().reserved;const result=await createProtectedRecoveryProduction({env,identityAdapter,targets});assert.equal(getPoolBudgetSnapshot().reserved,before+4);assert.equal(72+4,76);assert.equal(result.resourceLeasePool.options.max,2);await result.close();assert.equal(getPoolBudgetSnapshot().reserved,before);
 });

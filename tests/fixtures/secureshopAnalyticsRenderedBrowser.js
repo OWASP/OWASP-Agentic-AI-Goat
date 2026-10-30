@@ -194,7 +194,7 @@ async function qualifyActualMerchantAnalyticsBrowser({origin,username,foreignUse
   if(observed.error)throw observed.error;assert.equal(observed.response.status(),200);
   const current=await frameFor(selectedPage);
   await current.waitForFunction(name=>document.querySelector('[aria-label="Account menu"]')?.title===name,{timeout:30000},name);
-  const cookie=(await selectedPage.cookies(origin+'/api/secureshop/auth/session')).find(value=>value.name==='dvaia_shop_session');
+  const cookie=(await selectedPage.cookies(origin+'/api/secureshop/auth/session')).find(value=>value.name==='owasp_ai_goat_shop_session');
   assert.equal(cookie?.httpOnly,true);return{page:selectedPage,frame:current,owner:await readReady(cookie.value)};
  };
  const open=async()=>{await frame.waitForSelector('a[href="/secureshop/merchant/analytics"]',{timeout:30000});

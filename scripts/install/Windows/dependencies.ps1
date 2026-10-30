@@ -3,25 +3,25 @@
    powershell.exe -NoProfile -File scripts/install/Windows/dependencies.ps1 -Execute
    Accept only componentSucceeded=true and use returned absolute bindings. A
    dot-sourced caller may use childEnvironment; CLI callers use exported
-   New-DvaiaWindowsDependencyEnvironment with their private environment. This
+   New-OwaspAiGoatWindowsDependencyEnvironment with their private environment. This
    does not authorize full setup/start. Package restart retirement remains an
    explicit packages.ps1 -Execute -Resume operation; this coordinator never retries. #>
 [CmdletBinding()]
 param([switch]$Plan, [switch]$Execute)
 
-function Get-DvaiaDependencyCoordinatorPolicy {
+function Get-OwaspAiGoatDependencyCoordinatorPolicy {
     param([string]$RepoRoot)
     $source = Get-Content -LiteralPath (Join-Path $RepoRoot 'scripts\install\runtime-version-policy.sh') -Raw
     $policy = @{}
     foreach ($entry in @(@{ key = 'nodeMinimum'; variable = 'NODE' },@{ key = 'npmMinimum'; variable = 'NPM' })) {
-        $matches = [regex]::Matches($source, ('(?m)^DVAIA_MINIMUM_' + $entry.variable + '_VERSION=(\d+\.\d+\.\d+)\r?$'))
+        $matches = [regex]::Matches($source, ('(?m)^OWASP_AI_GOAT_MINIMUM_' + $entry.variable + '_VERSION=(\d+\.\d+\.\d+)\r?$'))
         if ($matches.Count -ne 1) { throw 'WINDOWS_DEPENDENCIES_POLICY_DENIED' }
         $policy[$entry.key] = $matches[0].Groups[1].Value
     }
     return $policy
 }
 
-function ConvertTo-DvaiaDependencyStage {
+function ConvertTo-OwaspAiGoatDependencyStage {
     param($Value, [string]$ExpectedComponent)
     if ($Value.schemaVersion -ne 1 -or $Value.component -cne $ExpectedComponent -or $Value.componentSucceeded -isnot [bool]) { throw 'WINDOWS_DEPENDENCIES_COMPONENT_CONTRACT_DENIED' }
     # Only closed status codes cross the coordinator boundary; no raw provider
@@ -31,7 +31,7 @@ function ConvertTo-DvaiaDependencyStage {
     return [pscustomobject]@{ component = $ExpectedComponent; componentSucceeded = $Value.componentSucceeded; restartRequired = ($Value.restartRequired -eq $true); operationRetained = $retained; blockers = $blockers }
 }
 
-function New-DvaiaWindowsDependencyEnvironment {
+function New-OwaspAiGoatWindowsDependencyEnvironment {
     # Consumer contract: replace the child's inherited environment (Clear +
     # copy all returned entries). Overlaying entries leaves removed variables
     # such as VCINSTALLDIR inherited. The current prerequisite runner overlays;
@@ -46,7 +46,7 @@ function New-DvaiaWindowsDependencyEnvironment {
     }
     foreach ($key in @('nodeExecutable','npmCli','npmExecpath','gitExecutable','pythonExecutable','ollamaExecutable','multipassExecutable','sshExecutable')) { if (-not [IO.Path]::GetFileName($Bindings.$key) -or -not [IO.Path]::GetDirectoryName($Bindings.$key)) { throw 'WINDOWS_DEPENDENCIES_CHILD_BINDING_DENIED' } }
     if ($Bindings.npmExecpath -cne $Bindings.npmCli) { throw 'WINDOWS_DEPENDENCIES_CHILD_BINDING_DENIED' }
-    $controlled = @('Path','npm_execpath','PYTHON','NODE_GYP_FORCE_PYTHON','npm_package_config_node_gyp_msvs_version','VCINSTALLDIR','DVAIA_WINDOWS_MULTIPASS_EXECUTABLE','DVAIA_WINDOWS_SSH_EXECUTABLE')
+    $controlled = @('Path','npm_execpath','PYTHON','NODE_GYP_FORCE_PYTHON','npm_package_config_node_gyp_msvs_version','VCINSTALLDIR','OWASP_AI_GOAT_WINDOWS_MULTIPASS_EXECUTABLE','OWASP_AI_GOAT_WINDOWS_SSH_EXECUTABLE')
     $child = New-Object 'System.Collections.Generic.Dictionary[string,string]'
     $priorPaths = New-Object 'System.Collections.Generic.List[string]'
     foreach ($key in $Environment.Keys) {
@@ -68,12 +68,12 @@ function New-DvaiaWindowsDependencyEnvironment {
     $child.Add('npm_package_config_node_gyp_msvs_version',$Bindings.visualStudioInstallation)
     # The lab session re-verifies these admitted executable observations. No
     # PATH lookup, global driver change or authentication command is delegated.
-    $child.Add('DVAIA_WINDOWS_MULTIPASS_EXECUTABLE',$Bindings.multipassExecutable)
-    $child.Add('DVAIA_WINDOWS_SSH_EXECUTABLE',$Bindings.sshExecutable)
+    $child.Add('OWASP_AI_GOAT_WINDOWS_MULTIPASS_EXECUTABLE',$Bindings.multipassExecutable)
+    $child.Add('OWASP_AI_GOAT_WINDOWS_SSH_EXECUTABLE',$Bindings.sshExecutable)
     return ,$child
 }
 
-function ConvertTo-DvaiaWindowsDependenciesPublicResult {
+function ConvertTo-OwaspAiGoatWindowsDependenciesPublicResult {
     param($Value)
     # Never serialize childEnvironment: it preserves caller secrets privately.
     $public = [ordered]@{}
@@ -81,7 +81,7 @@ function ConvertTo-DvaiaWindowsDependenciesPublicResult {
     return [pscustomobject]$public
 }
 
-function Invoke-DvaiaWindowsDependencies {
+function Invoke-OwaspAiGoatWindowsDependencies {
     param(
         [bool]$ExecuteMode = $false,
         [string]$RepoRoot = (Join-Path $PSScriptRoot '..\..\..'),
@@ -92,7 +92,7 @@ function Invoke-DvaiaWindowsDependencies {
         [scriptblock]$Runner = $null,
         [System.Collections.IDictionary]$ProcessEnvironment = $null
     )
-    $policy = Get-DvaiaDependencyCoordinatorPolicy $RepoRoot
+    $policy = Get-OwaspAiGoatDependencyCoordinatorPolicy $RepoRoot
     $result = [ordered]@{
         schemaVersion = 1; component = 'windows-native-dependencies'; nonMutating = (-not $ExecuteMode)
         componentSucceeded = $false; installationBlocked = $true; restartRequired = $false; operationRetained = $false; operationUncertain = $false
@@ -108,13 +108,13 @@ function Invoke-DvaiaWindowsDependencies {
             # Library imports stay in this function scope; their CLI parameter
             # blocks cannot clobber the coordinator's Plan/Execute switches.
             . (Join-Path $PSScriptRoot 'packages.ps1')
-            if (-not $Bootstrap) { $Bootstrap = { param($Request) Invoke-DvaiaWindowsPrerequisites -ExecuteMode $true -RepoRoot $Request.repoRoot -UserProfile $Request.userProfile -SystemRoot $Request.systemRoot } }
-            if (-not $Packages) { $Packages = { param($Request) Invoke-DvaiaWindowsPackages -ExecuteMode $true -RepoRoot $Request.repoRoot -UserProfile $Request.userProfile -SystemRoot $Request.systemRoot } }
-            if (-not $Runner) { $Runner = ${function:Invoke-DvaiaPrerequisiteProcess} }
+            if (-not $Bootstrap) { $Bootstrap = { param($Request) Invoke-OwaspAiGoatWindowsPrerequisites -ExecuteMode $true -RepoRoot $Request.repoRoot -UserProfile $Request.userProfile -SystemRoot $Request.systemRoot } }
+            if (-not $Packages) { $Packages = { param($Request) Invoke-OwaspAiGoatWindowsPackages -ExecuteMode $true -RepoRoot $Request.repoRoot -UserProfile $Request.userProfile -SystemRoot $Request.systemRoot } }
+            if (-not $Runner) { $Runner = ${function:Invoke-OwaspAiGoatPrerequisiteProcess} }
         }
         $request = @{ repoRoot = $RepoRoot; userProfile = $UserProfile; systemRoot = $SystemRoot }
         $runtime = & $Bootstrap $request
-        $stage = ConvertTo-DvaiaDependencyStage $runtime 'windows-native-prerequisites'
+        $stage = ConvertTo-OwaspAiGoatDependencyStage $runtime 'windows-native-prerequisites'
         $result.stages += $stage
         $result.restartRequired = $stage.restartRequired; $result.operationRetained = $stage.operationRetained
         if (-not $stage.componentSucceeded -or $stage.restartRequired -or $stage.operationRetained) { $result.blockers += 'WINDOWS_RUNTIME_COMPONENT_INCOMPLETE'; return [pscustomobject]$result }
@@ -128,7 +128,7 @@ function Invoke-DvaiaWindowsDependencies {
         # lookup. Pass verified bindings as explicit context, never alter PATH.
         $request.runtime = @{ nodeExecutable = $binding.nodeExecutable; npmCli = $binding.npmCli; npmExecpath = $binding.npmExecpath }
         $native = & $Packages $request
-        $stage = ConvertTo-DvaiaDependencyStage $native 'windows-native-packages'
+        $stage = ConvertTo-OwaspAiGoatDependencyStage $native 'windows-native-packages'
         $result.stages += $stage
         $result.restartRequired = $stage.restartRequired; $result.operationRetained = $stage.operationRetained
         if (-not $stage.componentSucceeded -or $stage.restartRequired -or $stage.operationRetained) { $result.blockers += 'WINDOWS_PACKAGE_COMPONENT_INCOMPLETE'; return [pscustomobject]$result }
@@ -142,7 +142,7 @@ function Invoke-DvaiaWindowsDependencies {
         if ($service.Count -ne 1 -or $service[0].status -cne 'present') { throw 'WINDOWS_DEPENDENCIES_OLLAMA_HANDOFF_DENIED' }
         $result.bindings = @{ nodeExecutable = $binding.nodeExecutable; npmCli = $binding.npmCli; npmExecpath = $binding.npmExecpath; gitExecutable = $paths.gitExecutable; pythonExecutable = $paths.pythonExecutable; visualStudioInstallation = $paths.visualStudioInstallation; ollamaExecutable = $paths.ollamaExecutable; multipassExecutable = $paths.multipassExecutable; sshExecutable = $paths.sshExecutable }
         if ($null -eq $ProcessEnvironment) { $ProcessEnvironment = [Environment]::GetEnvironmentVariables('Process') }
-        $result.childEnvironment = New-DvaiaWindowsDependencyEnvironment -Bindings $result.bindings -Environment $ProcessEnvironment
+        $result.childEnvironment = New-OwaspAiGoatWindowsDependencyEnvironment -Bindings $result.bindings -Environment $ProcessEnvironment
         $result.componentSucceeded = $true
     } catch {
         $code = [string]$_.Exception.Message
@@ -158,8 +158,8 @@ function Invoke-DvaiaWindowsDependencies {
 if ($MyInvocation.InvocationName -ne '.') {
     if ($Plan -and $Execute) { throw '-Plan and -Execute cannot be combined.' }
     try {
-        $output = Invoke-DvaiaWindowsDependencies -ExecuteMode ([bool]$Execute)
-        ConvertTo-DvaiaWindowsDependenciesPublicResult $output | ConvertTo-Json -Depth 8
+        $output = Invoke-OwaspAiGoatWindowsDependencies -ExecuteMode ([bool]$Execute)
+        ConvertTo-OwaspAiGoatWindowsDependenciesPublicResult $output | ConvertTo-Json -Depth 8
         if ($Execute -and -not $output.componentSucceeded) { exit 1 }
     } catch {
         [pscustomobject]@{ schemaVersion = 1; component = 'windows-native-dependencies'; componentSucceeded = $false; installationBlocked = $true; code = 'WINDOWS_DEPENDENCIES_FAILED' } | ConvertTo-Json

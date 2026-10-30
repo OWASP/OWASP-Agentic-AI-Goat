@@ -48,7 +48,7 @@ async function qualifyCodeBot(t, owned) {
   assert.ok(!fixedControl || (!owned && process.env.CODEBOT_LIVE_SCOPE !== 'representative'), 'Historical fixed control requires separate full-cohort budget; current owned cohort does not admit it');
   if (!owned && !process.env.CODEBOT_LIVE_ISOLATED) {
     const root = path.resolve(__dirname, '../..');
-    const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-codebot-live-'));
+    const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-codebot-live-'));
     try {
       copySource(root, copy);
       const { spawn } = require('node:child_process');
@@ -88,7 +88,7 @@ async function qualifyCodeBot(t, owned) {
     .some(model => model.name === 'llama3.1:8b'));
 
   const admin = owned ? null : new Pool({ connectionString: adminUrl.href });
-  const name = `dvaia_test_codebotlive_${process.pid}`;
+  const name = `owasp_ai_goat_test_codebotlive_${process.pid}`;
   const supplyName = `${name}_supply`;
   const pools = [];
   let server, primary;const restore=[];

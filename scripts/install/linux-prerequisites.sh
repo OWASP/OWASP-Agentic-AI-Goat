@@ -60,7 +60,7 @@ install_linux_prerequisites() {
   # binary is not a complete supported runtime and cannot bootstrap npm by
   # invoking a command that does not exist.
   if ! validate_node_binary || ! command -v npm >/dev/null 2>&1; then
-    release="v${DVAIA_MINIMUM_NODE_VERSION}"
+    release="v${OWASP_AI_GOAT_MINIMUM_NODE_VERSION}"
     tmp="$(mktemp -d)" || die 'Cannot create Node download directory.'
     local archive="node-${release}-linux-${node_arch}.tar.xz"
     if ! curl --fail --location --proto '=https' --tlsv1.2 "https://nodejs.org/dist/${release}/${archive}" -o "$tmp/$archive" ||
@@ -80,7 +80,7 @@ install_linux_prerequisites() {
   command -v node >/dev/null 2>&1 || die 'Node.js is unavailable after installation.'
   command -v npm >/dev/null 2>&1 || die 'npm is unavailable after Node.js installation.'
   if ! validate_npm; then
-    as_root env NODE_USE_SYSTEM_CA=1 npm install --global "npm@${DVAIA_MINIMUM_NPM_VERSION}"
+    as_root env NODE_USE_SYSTEM_CA=1 npm install --global "npm@${OWASP_AI_GOAT_MINIMUM_NPM_VERSION}"
     hash -r
   fi
   validate_node || die 'A compatible Node.js and npm are required after installation.'
@@ -100,15 +100,15 @@ install_linux_prerequisites() {
       as_root docker info >/dev/null 2>&1 || die 'Docker daemon is unavailable; start Docker and rerun.'
       current_user="$(id -un)"
       [[ "$current_user" != root ]] || die 'Docker is unavailable to the current user.'
-      [[ "${DVAIA_INSTALL_GROUP_REFRESHED:-}" != 1 ]] || die 'Docker permissions are still unavailable after refreshing groups. Sign out/in and rerun.'
+      [[ "${OWASP_AI_GOAT_INSTALL_GROUP_REFRESHED:-}" != 1 ]] || die 'Docker permissions are still unavailable after refreshing groups. Sign out/in and rerun.'
       as_root usermod -aG docker "$current_user"
       echo 'Docker access granted. Continuing as your user with refreshed groups. Sign out/in once before using Docker from other terminal sessions.'
-      export DVAIA_INSTALL_GROUP_REFRESHED=1
+      export OWASP_AI_GOAT_INSTALL_GROUP_REFRESHED=1
       # sudo initializes supplementary groups for the target user. Values stay in
       # the environment, never in command arguments; no shell command is built.
       local preserved_setup_environment
-      preserved_setup_environment='PATH,PUPPETEER_EXECUTABLE_PATH,PUPPETEER_SKIP_DOWNLOAD,XENOVA_CACHE,HF_HUB_OFFLINE,TRANSFORMERS_OFFLINE,PG_ADMIN_DATABASE_URL,PG_TLS,DOCKER_HOST,DOCKER_CONTEXT,DOCKER_CONFIG,IPI_EMAIL_PROVIDER,MCP_SIDECARS_AUTOSTART,SANDBOX_RUNNER_URL,TEAM_ID,ECS_CONTAINER_METADATA_URI_V4,LEGACY_SENSITIVE_FILES_ROOT,DVAIA_APP_DATA_ROOT,NODE_USE_SYSTEM_CA,NODE_EXTRA_CA_CERTS,SSL_CERT_FILE,SSL_CERT_DIR,NODE_OPTIONS,npm_config_cafile,NPM_CONFIG_CAFILE,npm_config_ca,NPM_CONFIG_CA,HTTP_PROXY,HTTPS_PROXY,NO_PROXY,http_proxy,https_proxy,no_proxy,DVAIA_INSTALL_GROUP_REFRESHED'
-      exec sudo "--preserve-env=$preserved_setup_environment" --user "$current_user" -- bash "$ROOT/scripts/install/Ubuntu/install-dvaia-ubuntu.sh" ${INSTALL_ARGS[@]+"${INSTALL_ARGS[@]}"}
+      preserved_setup_environment='PATH,PUPPETEER_EXECUTABLE_PATH,PUPPETEER_SKIP_DOWNLOAD,XENOVA_CACHE,HF_HUB_OFFLINE,TRANSFORMERS_OFFLINE,PG_ADMIN_DATABASE_URL,PG_TLS,DOCKER_HOST,DOCKER_CONTEXT,DOCKER_CONFIG,IPI_EMAIL_PROVIDER,MCP_SIDECARS_AUTOSTART,SANDBOX_RUNNER_URL,TEAM_ID,ECS_CONTAINER_METADATA_URI_V4,LEGACY_SENSITIVE_FILES_ROOT,OWASP_AI_GOAT_APP_DATA_ROOT,NODE_USE_SYSTEM_CA,NODE_EXTRA_CA_CERTS,SSL_CERT_FILE,SSL_CERT_DIR,NODE_OPTIONS,npm_config_cafile,NPM_CONFIG_CAFILE,npm_config_ca,NPM_CONFIG_CA,HTTP_PROXY,HTTPS_PROXY,NO_PROXY,http_proxy,https_proxy,no_proxy,OWASP_AI_GOAT_INSTALL_GROUP_REFRESHED'
+      exec sudo "--preserve-env=$preserved_setup_environment" --user "$current_user" -- bash "$ROOT/scripts/install/Ubuntu/install-owasp-ai-goat-ubuntu.sh" ${INSTALL_ARGS[@]+"${INSTALL_ARGS[@]}"}
     fi
   }
 
@@ -127,7 +127,7 @@ install_linux_prerequisites() {
     if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]] && systemctl cat ollama.service >/dev/null 2>&1; then
       as_root systemctl enable --now ollama
     else
-      tmp="$(mktemp -d "${TMPDIR:-/tmp}/dvaia-ollama.XXXXXXXX")" || die 'Cannot create private Ollama log directory.'
+      tmp="$(mktemp -d "${TMPDIR:-/tmp}/owasp-ai-goat-ollama.XXXXXXXX")" || die 'Cannot create private Ollama log directory.'
       (umask 077; OLLAMA_HOST=127.0.0.1:11434 nohup ollama serve > "$tmp/ollama.log" 2>&1 < /dev/null &)
       printf 'Local Ollama startup log: %s/ollama.log\n' "$tmp"
     fi

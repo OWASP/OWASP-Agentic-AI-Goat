@@ -7,7 +7,7 @@ param([switch]$Plan, [switch]$Execute)
 
 . (Join-Path $PSScriptRoot 'dependency-plan.ps1')
 
-function ConvertTo-DvaiaProcessArgument {
+function ConvertTo-OwaspAiGoatProcessArgument {
     param([string]$Argument)
     # Win32 CommandLineToArgvW quoting, including spaces and trailing slashes.
     $escaped = [regex]::Replace($Argument, '(\\*)"', '$1$1\"')
@@ -15,17 +15,17 @@ function ConvertTo-DvaiaProcessArgument {
     return '"' + $escaped + '"'
 }
 
-function Invoke-DvaiaPrerequisiteProcess {
+function Invoke-OwaspAiGoatPrerequisiteProcess {
     param($Request)
-    $arguments = @($Request.arguments | ForEach-Object { ConvertTo-DvaiaProcessArgument $_ }) -join ' '
+    $arguments = @($Request.arguments | ForEach-Object { ConvertTo-OwaspAiGoatProcessArgument $_ }) -join ' '
     if ($Request.elevate) { throw 'WINDOWS_PREREQUISITE_ELEVATION_DENIED' }
-    if (-not ('Dvaia.PrerequisiteOutput' -as [type])) {
+    if (-not ('OwaspAiGoat.PrerequisiteOutput' -as [type])) {
         Add-Type -TypeDefinition @'
 using System;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-namespace Dvaia {
+namespace OwaspAiGoat {
   public static class PrerequisiteOutput {
     public static async Task<string> Read(StreamReader reader, bool capture) {
       var buffer = new char[4096]; var text = new StringBuilder(); bool exceeded = false;
@@ -55,8 +55,8 @@ namespace Dvaia {
     $child.StartInfo = $info
     try {
         [void]$child.Start()
-        $stdout = [Dvaia.PrerequisiteOutput]::Read($child.StandardOutput, [bool]$Request.capture)
-        $stderr = [Dvaia.PrerequisiteOutput]::Read($child.StandardError, [bool]$Request.capture)
+        $stdout = [OwaspAiGoat.PrerequisiteOutput]::Read($child.StandardOutput, [bool]$Request.capture)
+        $stderr = [OwaspAiGoat.PrerequisiteOutput]::Read($child.StandardError, [bool]$Request.capture)
         if ($Request.input) { $child.StandardInput.Write($Request.input) }
         $child.StandardInput.Close()
         if (-not $child.WaitForExit($Request.timeoutMs)) {
@@ -71,7 +71,7 @@ namespace Dvaia {
     } finally { $child.Dispose() }
 }
 
-function Receive-DvaiaOfficialDownload {
+function Receive-OwaspAiGoatOfficialDownload {
     param([string]$Uri, [string]$Destination)
     if ($Uri -notmatch '^https://nodejs\.org/dist/v\d+\.\d+\.\d+/(?:SHASUMS256\.txt|node-v\d+\.\d+\.\d+-win-x64\.zip)$') { throw 'WINDOWS_PREREQUISITE_DOWNLOAD_DENIED' }
     # Framework HttpClient retains OS certificate verification. No TLS override.
@@ -110,7 +110,7 @@ function Receive-DvaiaOfficialDownload {
     } finally { $cancel.Cancel(); $cancel.Dispose(); $client.Dispose(); $handler.Dispose() }
 }
 
-function Expand-DvaiaNodeArchive {
+function Expand-OwaspAiGoatNodeArchive {
     param([string]$Archive, [string]$Destination, [string]$ExpectedRoot)
     if ($ExpectedRoot -notmatch '^node-v\d+\.\d+\.\d+-win-x64$') { throw 'WINDOWS_NODE_ARCHIVE_DENIED' }
     if (Test-Path -LiteralPath (Join-Path $Destination $ExpectedRoot)) { throw 'WINDOWS_NODE_PARTIAL_RUNTIME' }
@@ -133,19 +133,19 @@ function Expand-DvaiaNodeArchive {
     [IO.Compression.ZipFile]::ExtractToDirectory($Archive, $Destination)
 }
 
-function Invoke-DvaiaWindowsPrerequisites {
+function Invoke-OwaspAiGoatWindowsPrerequisites {
     [CmdletBinding()]
     param(
         [bool]$ExecuteMode = $false,
         [string]$RepoRoot = (Join-Path $PSScriptRoot '..\..\..'),
         [string]$UserProfile = $env:USERPROFILE,
         [string]$SystemRoot = $env:SystemRoot,
-        [scriptblock]$Inventory = { param($Root) Get-DvaiaWindowsDependencyPlan -RepoRoot $Root },
-        [scriptblock]$Runner = ${function:Invoke-DvaiaPrerequisiteProcess},
-        [scriptblock]$Download = ${function:Receive-DvaiaOfficialDownload},
+        [scriptblock]$Inventory = { param($Root) Get-OwaspAiGoatWindowsDependencyPlan -RepoRoot $Root },
+        [scriptblock]$Runner = ${function:Invoke-OwaspAiGoatPrerequisiteProcess},
+        [scriptblock]$Download = ${function:Receive-OwaspAiGoatOfficialDownload},
         [scriptblock]$Hash = { param($File) (Get-FileHash -LiteralPath $File -Algorithm SHA256).Hash },
         [scriptblock]$ReadText = { param($File) Get-Content -LiteralPath $File -Raw },
-        [scriptblock]$Expand = ${function:Expand-DvaiaNodeArchive},
+        [scriptblock]$Expand = ${function:Expand-OwaspAiGoatNodeArchive},
         [scriptblock]$DirectoryExists = { param($Directory) Test-Path -LiteralPath $Directory -PathType Container },
         [scriptblock]$Exists = { param($File) Test-Path -LiteralPath $File -PathType Leaf },
         [scriptblock]$Find = { param($Name) (Get-Command $Name -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1).Source },
@@ -178,7 +178,7 @@ function Invoke-DvaiaWindowsPrerequisites {
         $admitted = $response.output | ConvertFrom-Json
         if ($admitted.version -ne 1 -or $admitted.ok -ne $true) { throw 'WINDOWS_PREREQUISITE_PRIVATE_DIRECTORY_DENIED' }
     }
-    $base = Join-Path $UserProfile '.dvaia'
+    $base = Join-Path $UserProfile '.owasp-ai-goat'
     $tools = Join-Path $base 'tools'
     $cache = Join-Path $tools 'downloads'
     foreach ($directory in @($base, $tools, $cache)) { & $privateDirectory $directory }
@@ -209,7 +209,7 @@ function Invoke-DvaiaWindowsPrerequisites {
         $result.completed += 'nodeArchive'
     }
     $nodeVersion = & $Runner @{ id = 'verifyNode'; executable = $node; arguments = @('--version'); capture = $true; timeoutMs = 10000 }
-    if ((Get-DvaiaVersionStatus @{ available = $true; exitCode = $nodeVersion.exitCode; output = $nodeVersion.output } $nodeMinimum) -ne 'present') { throw 'WINDOWS_NODE_VERIFICATION_FAILED' }
+    if ((Get-OwaspAiGoatVersionStatus @{ available = $true; exitCode = $nodeVersion.exitCode; output = $nodeVersion.output } $nodeMinimum) -ne 'present') { throw 'WINDOWS_NODE_VERIFICATION_FAILED' }
     $bundledNpm = Join-Path (Split-Path $node -Parent) 'node_modules\npm\bin\npm-cli.js'
     if (-not (& $Exists $bundledNpm)) { throw 'WINDOWS_NPM_BOOTSTRAP_MISSING' }
     $npmPrefix = Join-Path $tools ('npm-' + $npmMinimum)
@@ -251,7 +251,7 @@ function Invoke-DvaiaWindowsPrerequisites {
 if ($MyInvocation.InvocationName -ne '.') {
     if ($Plan -and $Execute) { throw '-Plan and -Execute cannot be combined.' }
     try {
-        $output = Invoke-DvaiaWindowsPrerequisites -ExecuteMode ([bool]$Execute)
+        $output = Invoke-OwaspAiGoatWindowsPrerequisites -ExecuteMode ([bool]$Execute)
         $output | ConvertTo-Json -Depth 7
         if ($Execute -and -not $output.componentSucceeded) { exit 1 }
     }

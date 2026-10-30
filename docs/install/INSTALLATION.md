@@ -26,7 +26,7 @@ bash scripts/install/Mac/install-macos.sh --plan
 Use the Linux path for its preview. After setup succeeds, run `./start_all.sh`, open `http://localhost:3000`, and use the administrator credentials in the private file printed by setup. Stop application processes with `./stop_all.sh`. The launcher locates supported Node installations in standard Homebrew or `/usr/local/bin` paths without editing shell profiles.
 
 The OS wrappers also forward the optional strict policy-renderer flags. These
-are explicit SecureShop capability requests, not part of ordinary setup:
+are explicit OWASP AI SecureShop capability requests, not part of ordinary setup:
 
 ```bash
 # Preview the paired policy-renderer capability without changing the host
@@ -43,7 +43,7 @@ host shell architecture.
 
 ### Optional owned MCP registry
 
-The owned MCP registry is a separate SecureShop capability, rather than a
+The owned MCP registry is a separate OWASP AI SecureShop capability, rather than a
 requirement for the ordinary workshop install. Request its preparation through
 the matching OS wrapper:
 
@@ -84,9 +84,9 @@ A fresh platform database starts with these two public training accounts:
 
 The student password contains one space. Sign in through `/workshop-login`. The administrator has level 2 authority and workshop-management permissions. Setup retains its credential record at the private `administrator.json` path it prints; passwords in PostgreSQL are hashed. Existing installations keep their current accounts and passwords: repair, upgrade and repeat initialization do not reset them to these defaults.
 
-SecureShop opens at `/secureshop` and uses its own sign-in at `/secureshop/login`. No workshop account or second sign-in is required. Guests can browse products; customers, merchants and shop administrators share the installation’s storefront with separate permissions and private customer carts.
+OWASP AI SecureShop opens at `/secureshop` and uses its own sign-in at `/secureshop/login`. No workshop account or second sign-in is required. Guests can browse products; customers, merchants and shop administrators share the installation’s storefront with separate permissions and private customer carts.
 
-Fresh SecureShop installations create these practice accounts once:
+Fresh OWASP AI SecureShop installations create these practice accounts once:
 
 | Practice role | Username | Password |
 | --- | --- | --- |
@@ -94,9 +94,9 @@ Fresh SecureShop installations create these practice accounts once:
 | Merchant | `student_merchant` | `student123` |
 | Shop administrator | `student_admin` | `student123` |
 
-SecureShop also retains synthetic lesson personas and legacy aliases referenced by its products, orders and reviews. These do not grant platform administrator access. SecureShop's password has no space. Repeat initialization preserves changed credentials and disabled accounts; it does not recreate removed defaults. Customer and merchant registration is available from the shop login page.
+OWASP AI SecureShop also retains synthetic lesson personas and legacy aliases referenced by its products, orders and reviews. These do not grant platform administrator access. OWASP AI SecureShop's password has no space. Repeat initialization preserves changed credentials and disabled accounts; it does not recreate removed defaults. Customer and merchant registration is available from the shop login page.
 
-At runtime, `SS_ENABLE=true` composes the standalone SecureShop core, including
+At runtime, `SS_ENABLE=true` composes the standalone OWASP AI SecureShop core, including
 the independent shop sign-in, public catalog and customer, merchant and shop
 administrator routes. It requires all 16 configured and migrated PostgreSQL
 stores, including `secureshop_review`. The full six-panel bound application is a
@@ -143,7 +143,7 @@ The levels are enforced by the server: **Level 1 — instructor** supports permi
 | PostgreSQL18 | Dedicated loopback-only Docker container and persistent volume, with16 isolated application stores and separate runtime/migration roles. A host PostgreSQL package is unnecessary. |
 | Docker runtime | Local exercise sidecars require Docker even when PostgreSQL is external. macOS installs the Docker CLI and Colima when missing, then starts the explicit Colima profile used by the owned runner. Ubuntu/Debian installs Docker Engine when absent and starts its service. |
 | Ollama and model | Installs Ollama if missing, starts the local service, checks `llama3.1:8b`, and pulls it only when absent. Agent and Judge use the same installed model by default. |
-| SecureShop agent host | With `SS_ENABLE=true`, startup automatically supervises the local agent host. `SS_AGENT_HOST_PORT` must be free and distinct from application ports (default 8082); do not launch the host separately. |
+| OWASP AI SecureShop agent host | With `SS_ENABLE=true`, startup automatically supervises the local agent host. `SS_AGENT_HOST_PORT` must be free and distinct from application ports (default 8082); do not launch the host separately. |
 | Document embedding model | Fresh setup downloads/caches `Xenova/all-MiniLM-L6-v2` q8 and verifies a finite384-dimensional embedding before provisioning. The cache lives in the workspace's private setup directory unless an absolute `XENOVA_CACHE` is supplied. Downloads use Node system CA trust with TLS verification enabled. |
 | Exercise browser | Strict npm installation plus setup provisions Puppeteer's Chrome on macOS and Linux x86-64 when missing. Linux browser libraries are installed. Because Puppeteer has no matching Linux ARM64 Chrome download, Debian ARM64 installs distro Chromium and Ubuntu ARM64 installs Canonical's confined Chromium Snap. Setup must successfully launch and close a sandboxed browser before provisioning databases. |
 
@@ -177,17 +177,17 @@ Stop the application, keep its recorded Docker daemon running, and use the match
 - Linux: Ubuntu/Debian with apt. Ubuntu24.04 and Debian13 package resolution is checked separately from complete OS installation. Other distributions fail before changing packages; install prerequisites with the distribution's supported tools and then use `npm run setup`.
 - Windows: x64 Windows10 build19045 or newer or Windows11 Pro, Education or Enterprise with Hyper-V enabled, the Hyper-V PowerShell module, and normal-user membership in Hyper-V Administrators. See [Native Windows](#native-windows) for the supported setup, start, stop and recovery commands; clean-host native Windows execution is not claimed.
 - Linux x86-64 uses Puppeteer's downloaded browser. Debian ARM64 automatically installs distro Chromium. Ubuntu ARM64 automatically installs Canonical's confined Chromium Snap and uses `/snap/bin/chromium`. That path requires a normal systemd-based Ubuntu host so `snapd` can start; a non-systemd environment stops before package changes and must supply a sandbox-capable browser through `PUPPETEER_EXECUTABLE_PATH`. It does not disable or reconfigure browser sandboxing, AppArmor, or user-namespace protections.
-- Optional owned SecureShop system, pricing, listings and registry capabilities have separate architecture and sandbox requirements. General installer support does not establish that every optional capability works on Intel/x86-64; the owned system amd64 candidate remains disabled.
+- Optional owned OWASP AI SecureShop system, pricing, listings and registry capabilities have separate architecture and sandbox requirements. General installer support does not establish that every optional capability works on Intel/x86-64; the owned system amd64 candidate remains disabled.
 - Allow several gigabytes for the model and browser, plus container storage. At least16GB RAM is recommended for a local8B workshop; actual inference speed depends on hardware. Internet access is required for missing downloads. No GPU driver or global sandbox-security changes are made.
 
 On Linux, adding Docker group membership continues setup in a refreshed user process. Existing terminal/login sessions need sign-out/sign-in before using Docker directly. Docker-group membership grants powerful host access; use a trusted local workshop account. If sudo policy prevents group refresh, sign in again and rerun.
 
-Exercise visibility and objective availability are separate administrator controls. In **Manage Objectives**, use **Enable Available Objectives** or individual switches; hint/solution controls do not enable objectives. SecureShop objectives start disabled. Curriculum qualification does not provision their optional services: enable only objectives whose required local capabilities are available. Pending objectives remain excluded by the server.
+Exercise visibility and objective availability are separate administrator controls. In **Manage Objectives**, use **Enable Available Objectives** or individual switches; hint/solution controls do not enable objectives. OWASP AI SecureShop objectives start disabled. Curriculum qualification does not provision their optional services: enable only objectives whose required local capabilities are available. Pending objectives remain excluded by the server.
 
 ### Optional owned System profile preparation
 
 Explicit `--owned-system` setup on supported ARM64 Linux or macOS uses the
-existing exact `dvaia-mcp-sandbox` AppArmor profile. Combined
+existing exact `owasp-ai-goat-mcp-sandbox` AppArmor profile. Combined
 `--qualified-secureshop --owned-system` preflight is read-only: it can report a
 missing or unloaded exact profile as requiring preparation. It rejects a
 conflicting profile, symlink, wrong owner or unsafe mode before installation.
@@ -212,7 +212,7 @@ this does not claim a completed clean-host installation.
 
 ### Optional owned strict policy renderer
 
-The SecureShop strict policy renderer is not installed or enabled by ordinary
+The OWASP AI SecureShop strict policy renderer is not installed or enabled by ordinary
 setup. It uses two paired setup flags:
 
 ```bash
@@ -299,7 +299,7 @@ origin; do not use a wildcard or copy the request's Origin header into the list.
 
 An unlisted browser origin receives HTTP 403 before authentication, even when
 the same token works from an API client that sends no Origin header. This can
-appear as a working page whose actions or SecureShop launch fail. Configure the
+appear as a working page whose actions or OWASP AI SecureShop launch fail. Configure the
 origin explicitly instead of disabling CORS checks. `TRUSTED_PROXY_CIDRS` is a
 separate setting and does not add browser origins to this allowlist.
 
@@ -356,4 +356,4 @@ Installation confidence uses source review, locked dependencies, syntax checks w
 
 - [Optional SMTP/Gmail configuration](SMTP_SETUP.md). LangChain and LangGraph themselves require no credentials; cloud model provider credentials are optional private configuration.
 - [Interrupted maintenance recovery](local-recovery-contract.md). Never delete private state or learner databases to bypass an error.
-- Advanced SecureShop setup: [Listings](owned-listings.md), [Inventory](owned-inventory.md), [Coupons](owned-coupons.md). Qualified local SecureShop setup prepares coupons by default unless an existing Analytics or coupon preference is disabled; these guides are not additional basic installation steps.
+- Advanced OWASP AI SecureShop setup: [Listings](owned-listings.md), [Inventory](owned-inventory.md), [Coupons](owned-coupons.md). Qualified local OWASP AI SecureShop setup prepares coupons by default unless an existing Analytics or coupon preference is disabled; these guides are not additional basic installation steps.

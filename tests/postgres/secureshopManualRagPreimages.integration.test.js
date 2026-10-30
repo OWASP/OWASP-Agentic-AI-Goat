@@ -39,7 +39,7 @@ function urls() {
       const url = new URL(process.env[`${PREFIX}${store}_${role}_URL`]);
       assert.equal(url.protocol, 'postgresql:');
       assert.equal(url.hostname, '127.0.0.1');
-      assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+      assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
       assert.equal(url.username, `dvaia_secureshop_review_${role.toLowerCase()}`);
       assert.equal(url.password, '');
       assert.equal(url.search, ''); assert.equal(url.hash, '');
@@ -175,7 +175,7 @@ function manualInput(storage, current, operationId) {
 
 test(TITLE, { skip: !ENABLED, timeout: 240000 }, async t => {
   assert.equal(process.cwd(), ROOT);
-  assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
+  assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
   const names = (await readMigrations(DIRECTORY)).map(row => row.name);
   assert.equal(names.at(-1), CANDIDATE, '0050 must be the current review migration tip');
   const pair = urls(), pools = [], state = {};

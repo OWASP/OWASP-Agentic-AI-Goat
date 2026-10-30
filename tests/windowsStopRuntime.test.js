@@ -30,7 +30,7 @@ $runner = { param($Request)
  return @{ exitCode = 0; output = $script:privateVersion }
 }
 ${steer}
-try { $selected = Get-DvaiaWindowsStopNode -RepoRoot ${quote(root)} -UserProfile $profile -Find $find -Exists $exists -Runner $runner; @{ selected = $selected; events = @($script:events) } | ConvertTo-Json -Compress }
+try { $selected = Get-OwaspAiGoatWindowsStopNode -RepoRoot ${quote(root)} -UserProfile $profile -Find $find -Exists $exists -Runner $runner; @{ selected = $selected; events = @($script:events) } | ConvertTo-Json -Compress }
 catch { @{ code = $_.Exception.Message; events = @($script:events) } | ConvertTo-Json -Compress }
 `;
   const run = spawnSync(interpreter, ['-NoProfile', '-NonInteractive', '-Command', program], { encoding: 'utf8', timeout: 10000 });
@@ -41,8 +41,8 @@ catch { @{ code = $_.Exception.Message; events = @($script:events) } | ConvertTo
 test('Stop reads shared runtime policy and checks only exact managed Node fallback with bounded runner', () => {
   assert.match(source, /runtime-version-policy\.sh/);
   assert.match(source, /\$matches.Count -ne 1/);
-  assert.match(source, /\.dvaia\\tools\\node-v.*-win-x64\\node\.exe/);
-  assert.match(source, /Invoke-DvaiaPrerequisiteProcess/);
+  assert.match(source, /\.owasp-ai-goat\\tools\\node-v.*-win-x64\\node\.exe/);
+  assert.match(source, /Invoke-OwaspAiGoatPrerequisiteProcess/);
   assert.match(source, /IsPathRooted\(\$candidate\)/);
   assert.match(source, /Test-Path -LiteralPath \$File -PathType Leaf/);
   assert.match(source, /FileAttributes\]::ReparsePoint/);
@@ -56,8 +56,8 @@ test('startup uses qualified composition and reset/conflict guards precede runti
   assert.match(source, /if \(\$MyInvocation.InvocationName -ne '\.'\)/);
   assert.match(source, /if \(\$Reset\)/);
   assert.match(source, /if \(\$Plan -or \$InitDb\)/);
-  assert.ok(source.indexOf('if ($Reset)') < source.indexOf('$node = Get-DvaiaWindowsStopNode'));
-  assert.ok(source.indexOf('if ($Plan -or $InitDb)') < source.indexOf('$node = Get-DvaiaWindowsStopNode'));
+  assert.ok(source.indexOf('if ($Reset)') < source.indexOf('$node = Get-OwaspAiGoatWindowsStopNode'));
+  assert.ok(source.indexOf('if ($Plan -or $InitDb)') < source.indexOf('$node = Get-OwaspAiGoatWindowsStopNode'));
   assert.match(source, /& \$node \(Join-Path \$RepoRoot 'scripts\/launcher-control\.js'\)/);
   assert.match(source, /exit \$LASTEXITCODE/);
   assert.match(source, /did not require Node\.js/);
@@ -91,7 +91,7 @@ test('function-scope library import preserves caller startup switches and dot-so
   const program = `
 . ${quote(filename)}
 $Plan = $true; $Stop = $true; $InitDb = $true
-try { Get-DvaiaWindowsStopNode -RepoRoot ${quote(root)} -UserProfile ([IO.Path]::GetTempPath()) -Find { $null } -Exists { $false } | Out-Null } catch { }
+try { Get-OwaspAiGoatWindowsStopNode -RepoRoot ${quote(root)} -UserProfile ([IO.Path]::GetTempPath()) -Find { $null } -Exists { $false } | Out-Null } catch { }
 @{ plan = [bool]$Plan; stop = [bool]$Stop; initDb = [bool]$InitDb } | ConvertTo-Json -Compress
 `;
   const run = spawnSync(interpreter, ['-NoProfile', '-NonInteractive', '-Command', program], { encoding: 'utf8', timeout: 10000 });

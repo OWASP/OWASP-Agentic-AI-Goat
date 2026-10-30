@@ -25,15 +25,15 @@ const {setTimeout:pause}=require('node:timers/promises');
    const expectedPhase=phase==='pre'?2:3;
    const pending=client.claim(q).then(value=>({value}),error=>({error:error.name}));
    const logs=async()=>{const value=await command(config.docker,['--host',config.dockerHost,'logs','--tail','30',config.container],{timeout:1000,maxBuffer:8192});return value.stdout+'\n'+value.stderr;};
-   const pauseMarker=`DVAIA_ATTEST_QUAL paused phase=${expectedPhase} ordinal=1`;
+   const pauseMarker=`OWASP_AI_GOAT_ATTEST_QUAL paused phase=${expectedPhase} ordinal=1`;
    await until(async()=>(await logs()).split('\n').includes(pauseMarker),'designated handshake pause',2000);
    if(phase==='pre'){
-    const workers=JSON.parse(await inside("const fs=require('fs');console.log(JSON.stringify(fs.readdirSync('/proc').filter(x=>/^\\d+$/.test(x)).filter(x=>{try{return fs.readFileSync('/proc/'+x+'/cmdline','utf8').split('\\0')[1]==='/usr/local/libexec/dvaia-invocation-worker.js';}catch{return false;}})));"));assert.deepEqual(workers,[]);
+    const workers=JSON.parse(await inside("const fs=require('fs');console.log(JSON.stringify(fs.readdirSync('/proc').filter(x=>/^\\d+$/.test(x)).filter(x=>{try{return fs.readFileSync('/proc/'+x+'/cmdline','utf8').split('\\0')[1]==='/usr/local/libexec/owasp-ai-goat-invocation-worker.js';}catch{return false;}})));"));assert.deepEqual(workers,[]);
    }
    const b=q.request.binding,fence={version:'owned-mcp-invocation-fence-v1',kind:'retirement',fenceId:crypto.randomUUID(),platformOwnerId:b.platformOwnerId,launchId:b.launchId,scenarioId:b.scenarioId,generation:b.generation,platformSessionId:b.platformSessionId,managerInstanceId:config.managerInstanceId,runtimeSha256:config.runtimeSha256,invocationIds:[q.invocationId]};
    const retired=await client.retire(fence);assert.equal(retired.drained,true);const settled=await pending;
    if(settled.value)assert.equal(settled.value.state,'uncertain');
-   const admission=`DVAIA_ATTEST_QUAL admitted phase=${expectedPhase} ordinal=1 attested=0 releaseCount=${phase==='pre'?0:1} deadlineValid=1`;
+   const admission=`OWASP_AI_GOAT_ATTEST_QUAL admitted phase=${expectedPhase} ordinal=1 attested=0 releaseCount=${phase==='pre'?0:1} deadlineValid=1`;
    const observed=await logs();assert(observed.split('\n').includes(admission),'Actual supervisor retirement admission was not observed at designated phase');
    const status=await client.status(lookup(q));assert.equal(status.state,'uncertain');assert.equal(status.drained,true);
    assert(!(await processes()).some(p=>p.command.includes('bwrap')));const later=structuredClone(q);later.invocationId=crypto.randomUUID();await assert.rejects(client.claim(later));

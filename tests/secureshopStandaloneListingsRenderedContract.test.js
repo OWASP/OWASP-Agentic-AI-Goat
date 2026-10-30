@@ -102,11 +102,11 @@ test('actual factory wrapper composes prior factory and restores original on pro
 test('actual private manager configuration preserves original workspace validator and rejects aliases', () => {
   const root=path.resolve(__dirname,'..'),runId='a'.repeat(32);
   const workspaceId=require('../scripts/application-data-root').workspaceId(root);
-  const profile='dvaia-owned-listings-'+workspaceId;
+  const profile='owasp-ai-goat-owned-listings-'+workspaceId;
   const qualified=require('../scripts/install/secureshop-owned-listings-qualified-candidate').qualifiedPackage({root,architecture:'arm64'});
   const hash=value=>require('node:crypto').createHash('sha256').update(value).digest('hex');
   const profileSha=hash(fs.readFileSync(path.join(root,'sidecars/sandbox-runner/owned-listings/profile.apparmor.in'),'utf8').replaceAll('@@SUPERVISOR_PROFILE@@',profile));
-  const host=`unix:///var/tmp/dvaia-v23-build-${runId}/fs/docker.sock`,daemonId='d'.repeat(36);
+  const host=`unix:///var/tmp/owasp-ai-goat-v23-build-${runId}/fs/docker.sock`,daemonId='d'.repeat(36);
   const env={SECURESHOP_LISTINGS_TEST_MANAGER_RUNTIME_DIGEST:qualified.runtimeDigest,
     SECURESHOP_LISTINGS_TEST_MANAGER_SOURCE_SHA256:qualified.qualifiedSourceSha256,
     SECURESHOP_LISTINGS_TEST_MANAGER_IMAGE_ID:'sha256:'+'b'.repeat(64),
@@ -119,7 +119,7 @@ test('actual private manager configuration preserves original workspace validato
   const record=load(env).managerConfiguration(root);
   assert.equal(record.workspaceId,workspaceId);assert.equal(record.profile.name,profile);
   for(const [key,value] of [['SECURESHOP_LISTINGS_PRIVATE_MANAGER_RUN_ID','b'.repeat(32)],
-    ['SECURESHOP_LISTINGS_PRIVATE_MANAGER_PROFILE','dvaia-owned-listings-'+runId.slice(0,12)],
+    ['SECURESHOP_LISTINGS_PRIVATE_MANAGER_PROFILE','owasp-ai-goat-owned-listings-'+runId.slice(0,12)],
     ['SECURESHOP_LISTINGS_PRIVATE_MANAGER_PROFILE_SHA256','0'.repeat(64)],
     ['SECURESHOP_LISTINGS_PRIVATE_MANAGER_CONTAINER','foreign'],
     ['SECURESHOP_LISTINGS_TEST_DOCKER_DAEMON_ID','e'.repeat(36)]])
@@ -140,11 +140,11 @@ test('actual original browser wrapper forwards exact bounded policy and rejects 
   const runtime = path.join(directory, 'runtime'), tmp = path.join(runtime, 'tmp'), home = path.join(runtime, 'home');
   const receiptPath = path.join(directory, 'standalone-listings-browser.json');
   const executablePath = '/controlled/canonical/chromium';
-  const env = { DVAIA_CURRENT_MAIN_WORKSPACE: root, TMPDIR: tmp, MAC_CHROMIUM_TMPDIR: tmp,
+  const env = { OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: root, TMPDIR: tmp, MAC_CHROMIUM_TMPDIR: tmp,
     XDG_CACHE_HOME: path.join(home, '.cache'), XDG_CONFIG_HOME: path.join(home, '.config'),
     PUPPETEER_EXECUTABLE_PATH: executablePath };
   const base = { root, receiptPath, origin: 'http://127.0.0.1:1234',
-    profile: path.join(tmp, 'dvaia-listings-browser-owned'), executablePath };
+    profile: path.join(tmp, 'owasp-ai-goat-listings-browser-owned'), executablePath };
   let launches = [], alteration = null;
   const io = { lstat: async value => {
     if (value === receiptPath) throw Object.assign(Error('absent'), { code: 'ENOENT' });
@@ -161,7 +161,7 @@ test('actual original browser wrapper forwards exact bounded policy and rejects 
     '--proxy-server=http://blocked.invalid:9', '--proxy-bypass-list=127.0.0.1;localhost;[::1]',
     '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1, EXCLUDE localhost, EXCLUDE [::1]'];
   for (const role of ['vulnerable', 'fixed', 'customer']) {
-    const input = { ...base, profile: path.join(tmp, 'dvaia-listings-browser-' + role) };
+    const input = { ...base, profile: path.join(tmp, 'owasp-ai-goat-listings-browser-' + role) };
     assert.equal(await fixture(env).launchStandaloneBrowser(input), browser);
     assert.deepEqual(launches.at(-1), { headless: true, userDataDir: input.profile, executablePath, args: expectedArgs });
   }
@@ -181,7 +181,7 @@ test('actual original browser wrapper forwards exact bounded policy and rejects 
     'http://127.0.0.1:1234/x', 'http://127.0.0.1:1234?q=1', 'http://127.0.0.1:1234#x']) await denied({ ...base, origin });
   for (const [key, value] of [['root', root + '-other'], ['receiptPath', path.join(directory, 'foreign.json')],
     ['receiptPath', path.join(root, 'tasks/qualification/run-another123/standalone-listings-browser.json')],
-    ['profile', path.join(tmp, 'foreign-profile')], ['profile', path.join(home, 'dvaia-listings-browser-other')],
+    ['profile', path.join(tmp, 'foreign-profile')], ['profile', path.join(home, 'owasp-ai-goat-listings-browser-other')],
     ['executablePath', executablePath + '-changed']]) await denied({ ...base, [key]: value });
   for (const bad of [{ ...assessment, origin: base.origin },
     { ...assessment, receiptPath: null },
@@ -246,7 +246,7 @@ test('actual fixture composition forwards the owned qualifier only for its curre
   const root = path.resolve(__dirname, '..');
   const directory = path.join(root, 'tasks/qualification/run-controlled123');
   const tmp = path.join(directory, 'runtime/tmp');
-  const profile = path.join(tmp, 'dvaia-listings-browser-abc');
+  const profile = path.join(tmp, 'owasp-ai-goat-listings-browser-abc');
   const raw = { qualify: async () => ({ executed: false, reason: 'qualification_error' }),
     qualifyDocument: async () => ({}), qualifyClient: async () => ({}), close: async () => {} };
   for (const admitted of [true, false]) {
@@ -255,7 +255,7 @@ test('actual fixture composition forwards the owned qualifier only for its curre
       receiptPath: path.join(directory, 'standalone-listings-browser.json'),
       executablePath: '/controlled/chromium', assert, path,
       os: { tmpdir: () => tmp }, process: { env: { TMPDIR: tmp }, getuid: () => process.getuid() },
-      fs: { mkdtemp: async prefix => { writes++; assert.equal(prefix, path.join(tmp, 'dvaia-listings-browser-')); return profile; },
+      fs: { mkdtemp: async prefix => { writes++; assert.equal(prefix, path.join(tmp, 'owasp-ai-goat-listings-browser-')); return profile; },
         lstat: async () => ({ isDirectory: () => true, isSymbolicLink: () => false,
           uid: process.getuid(), mode: 0o700 }), realpath: async value => value },
       assertStandaloneReceiptPath: async () => directory,
@@ -346,7 +346,7 @@ test('actual original launch sites register profiles before launch and cleanup f
     const profiles = [], browsers = [], calls = [];
     const run = vm.compileFunction('return (async()=>{'+source.slice(starts[site], ends[site])+'})();',
       ['fs','os','profiles','browsers','launchStandaloneBrowser','root','receiptPath','standalonePrivateReceipt','app','vulnerableApp','executablePath','path'], { filename });
-    const io = { mkdtemp: async prefix => { assert.equal(prefix, path.join(tmp, 'dvaia-listings-browser-')); return prefix + role; } };
+    const io = { mkdtemp: async prefix => { assert.equal(prefix, path.join(tmp, 'owasp-ai-goat-listings-browser-')); return prefix + role; } };
     const launch = async options => { assert.deepEqual(profiles, [options.profile]); calls.push(options); return browser; };
     await run(io, { tmpdir: () => tmp }, profiles, browsers, launch, root, receiptPath, true,
       { origin: 'http://127.0.0.1:1234' }, { origin: 'http://127.0.0.1:1234' }, executablePath, path);
@@ -391,7 +391,7 @@ test('actual merchant launch site binds only the admitted private receipt to bou
   for (const privateSelected of [true, false]) {
     const profiles = [], browsers = [], calls = [];
     const result = await launch({ mkdtemp: async prefix => {
-      assert.equal(prefix, path.join(tmp, 'dvaia-listings-browser-'));
+      assert.equal(prefix, path.join(tmp, 'owasp-ai-goat-listings-browser-'));
       return prefix + 'owned';
     } }, { tmpdir: () => tmp }, path, profiles, browsers, async options => {
       assert.deepEqual(profiles, [options.profile]); calls.push(options); return browser;
@@ -507,7 +507,7 @@ test('actual standalone entry admits only its exact repo receipt before build or
   const fsp = require('node:fs/promises'), root = path.resolve(__dirname, '..');
   const owned = await fsp.mkdtemp(path.join(root, 'tasks/qualification/run-listings-entry-'));
   const receipt = path.join(owned, 'standalone-listings-browser.json');
-  const env = { DVAIA_CURRENT_MAIN_WORKSPACE: root, SECURESHOP_STANDALONE_LISTINGS_NATIVE: '1',
+  const env = { OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: root, SECURESHOP_STANDALONE_LISTINGS_NATIVE: '1',
     PG_TEST_DISPOSABLE: 'yes', LIVE_OLLAMA_TEST: '1', SECURESHOP_STANDALONE_LISTINGS_EVIDENCE_PATH: receipt };
   for (const store of ['IDENTITY', 'AGENTS', 'REVIEW', 'COMMERCE']) for (const role of ['MIGRATION', 'RUNTIME'])
     env[`PG_SECURESHOP_STANDALONE_LISTINGS_${store}_${role}_URL`] = 'controlled-unused';

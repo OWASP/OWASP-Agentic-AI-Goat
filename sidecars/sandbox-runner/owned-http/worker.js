@@ -4,7 +4,7 @@ const http = require('node:http');
 const dns = require('node:dns/promises');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
-const manifest = JSON.parse(fs.readFileSync(require('node:path').join(__dirname, require.main === module ? 'dvaia-owned-http-manifest.json' : 'network-manifest.json'), 'utf8'));
+const manifest = JSON.parse(fs.readFileSync(require('node:path').join(__dirname, require.main === module ? 'owasp-ai-goat-owned-http-manifest.json' : 'network-manifest.json'), 'utf8'));
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 function parseUrl(raw) {
   if (typeof raw !== 'string' || !raw || Buffer.byteLength(raw) > 2048) throw Error('invalid_url');
@@ -64,13 +64,13 @@ async function run(input, { inherited = true } = {}) {
         current = parseUrl(new URL(hop.location, current).href);
       }
     } catch (error) { outcome = { status: 'failed', category: ['policy_denied','redirect_limit','invalid_url','response_too_large'].includes(error.message) ? error.message : 'network_failure', hops }; }
-    return { version: 1, isolationAttestation: process.env.DVAIA_OWNED_HTTP_ATTESTED === '1' ? { zeroCapabilities: true, noNewPrivileges: true, loopbackOnly: true, noDefaultRoute: true, unshareDenied: true, setnsDenied: true, cloneNamespaceDenied: true, mountDenied: true, onlyListenerDescriptors: true, udpExternalRouteDenied: true, ipv6ExternalRouteDenied: true } : null, originalUrlSha256: hash(input.url), originalUrlBytes: Buffer.byteLength(input.url), mode: input.mode, ...outcome, hits };
+    return { version: 1, isolationAttestation: process.env.OWASP_AI_GOAT_OWNED_HTTP_ATTESTED === '1' ? { zeroCapabilities: true, noNewPrivileges: true, loopbackOnly: true, noDefaultRoute: true, unshareDenied: true, setnsDenied: true, cloneNamespaceDenied: true, mountDenied: true, onlyListenerDescriptors: true, udpExternalRouteDenied: true, ipv6ExternalRouteDenied: true } : null, originalUrlSha256: hash(input.url), originalUrlBytes: Buffer.byteLength(input.url), mode: input.mode, ...outcome, hits };
   } finally {
     await Promise.all(servers.map(server => new Promise(resolve => { server.closeAllConnections(); if (!server.listening) return resolve(); server.close(resolve); })));
   }
 }
 async function main() {
-  if (process.platform !== 'linux' || process.env.DVAIA_OWNED_HTTP_ATTESTED !== '1') throw Error('unattested_worker');
+  if (process.platform !== 'linux' || process.env.OWASP_AI_GOAT_OWNED_HTTP_ATTESTED !== '1') throw Error('unattested_worker');
   // Bound stdin before parsing; no learner string becomes executable code.
   const chunks = []; let bytes = 0;
   for await (const chunk of process.stdin) { bytes += chunk.length; if (bytes > 4096) throw Error('input_too_large'); chunks.push(chunk); }

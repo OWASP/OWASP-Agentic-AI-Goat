@@ -17,7 +17,7 @@ test('forward target migration retains existing reservations and backfills immut
   for (const suffix of ['MIGRATION', 'RUNTIME']) {
     const url = new URL(process.env[`PG_SECURESHOP_TARGET_TEST_${suffix}_URL`]);
     assert.equal(url.protocol, 'postgresql:');
-    assert.match(url.pathname, /^\/dvaia_test_(?:persona_identity_[a-f0-9]{12}|secureshop_target)$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_(?:persona_identity_[a-f0-9]{12}|secureshop_target)$/);
     assert.equal(url.hostname, '127.0.0.1');
     assert.equal(url.username, `dvaia_identity_${suffix.toLowerCase()}`);
     assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');

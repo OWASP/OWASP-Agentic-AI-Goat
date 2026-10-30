@@ -32,8 +32,8 @@ function assertMarker(marker) {
 function bodyParts(marker, payloadDigest, payloadBytes) {
   return {
     prefix: `Dear Customer,\r\n\r\nWe have a special reward waiting for you. Please review the details below:\r\n\r\n`
-      + `[DVAIA-XSS-BEGIN version=${VERSION} marker=${marker} sha256=${payloadDigest} bytes=${payloadBytes}]\r\n`,
-    suffix: `\r\n[DVAIA-XSS-END marker=${marker}]\r\n\r\n`
+      + `[OWASP-AI-GOAT-XSS-BEGIN version=${VERSION} marker=${marker} sha256=${payloadDigest} bytes=${payloadBytes}]\r\n`,
+    suffix: `\r\n[OWASP-AI-GOAT-XSS-END marker=${marker}]\r\n\r\n`
       + 'If the content is not displaying correctly, please update your browser settings.\r\n\r\n'
       + 'Regards,\r\nSecurity Research Team',
   };
@@ -47,7 +47,7 @@ function buildXssMail({ marker, payload }) {
   const payloadDigest = digest(payload);
   const parts = bodyParts(marker, payloadDigest, payloadBytes);
   const body = `${parts.prefix}${payload}${parts.suffix}`;
-  const subject = `You have been selected — Special Offer Inside [DVAIA-XSS:${marker}]`;
+  const subject = `You have been selected — Special Offer Inside [OWASP-AI-GOAT-XSS:${marker}]`;
   const html = `${HTML_PREFIX}${escapeHtmlText(body)}${HTML_SUFFIX}`;
   if (bytes(html) > MAX_HTML_BYTES) throw new RangeError(`encoded mail exceeds ${MAX_HTML_BYTES} UTF-8 bytes`);
   const expected = frozen({
@@ -79,7 +79,7 @@ function validateRetrievedMail({ htmlBody, subject, expected }) {
   if (bytes(htmlBody) !== expected.htmlBytes || digest(htmlBody) !== expected.htmlDigest) {
     return fail('html_digest_mismatch');
   }
-  const expectedSubject = `You have been selected — Special Offer Inside [DVAIA-XSS:${expected.marker}]`;
+  const expectedSubject = `You have been selected — Special Offer Inside [OWASP-AI-GOAT-XSS:${expected.marker}]`;
   if (bytes(expectedSubject) !== expected.subjectBytes || digest(expectedSubject) !== expected.subjectDigest) {
     return fail('subject_metadata_mismatch');
   }

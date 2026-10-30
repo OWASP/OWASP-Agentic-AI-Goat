@@ -41,7 +41,7 @@ class MaintenanceV5Launcher(unittest.TestCase):
         self.assertEqual(set(environment), expected)
         self.assertEqual(len({value.rsplit('/', 1)[1] for value in environment.values()}), 3)
         for value in environment.values():
-            self.assertIn('@127.0.0.1:54321/dvaia_test_maintenance_v5_abcdef012345_', value)
+            self.assertIn('@127.0.0.1:54321/owasp_ai_goat_test_maintenance_v5_abcdef012345_', value)
             self.assertLessEqual(len(value.rsplit('/', 1)[1].encode()), 63)
         for owner, port in (('learner', 5432), ('abcdef012345', 0), ('abcdef012345', 65536), ('abcdef012345', 'application')):
             with self.assertRaises(ValueError):

@@ -11,7 +11,7 @@ async function mount(t,code){
  app.use(createBoundMcpTrustRouter({launches:{resolveCapability:async()=>scope},authenticatePersona(req,_res,next){req.ssUser={id:13,role:'admin'};req.ssPersonaSession=session;next();},application}));
  const server=await new Promise(resolve=>{const server=app.listen(0,'127.0.0.1',()=>resolve(server));});
  t.after(()=>new Promise(resolve=>server.close(resolve)));
- return{calls,async request(path,body){return fetch(`http://127.0.0.1:${server.address().port}/v2/mcp-trust/${path}`,{method:body===null?'GET':'POST',headers:{'x-dvaia-secureshop-launch':'p'.repeat(43),'content-type':'application/json'},...(body===null?{}:{body:JSON.stringify(body)})});}};
+ return{calls,async request(path,body){return fetch(`http://127.0.0.1:${server.address().port}/v2/mcp-trust/${path}`,{method:body===null?'GET':'POST',headers:{'x-owasp-ai-goat-secureshop-launch':'p'.repeat(43),'content-type':'application/json'},...(body===null?{}:{body:JSON.stringify(body)})});}};
 }
 test('all four MCP contexts forward the exact authenticated persona session only',async t=>{
  const f=await mount(t);
@@ -22,17 +22,17 @@ test('all four MCP contexts forward the exact authenticated persona session only
 });
 test('persona loss is 401 without falsely invalidating the platform launch',async t=>{
  const f=await mount(t,'SHOP_AUTH_INVALID'),r=await f.request('rotate',{});
- assert.equal(r.status,401);assert.equal(r.headers.get('x-dvaia-secureshop-launch-state'),null);
+ assert.equal(r.status,401);assert.equal(r.headers.get('x-owasp-ai-goat-secureshop-launch-state'),null);
  assert.deepEqual(await r.json(),{error:'Shop authentication required'});
 });
 test('post-effect uncertainty exposes only safe nonretry metadata',async t=>{
  const f=await mount(t,'PERSONA_EFFECT_OUTCOME_UNCERTAIN'),r=await f.request('rotate',{});
- assert.equal(r.status,503);assert.equal(r.headers.get('x-dvaia-secureshop-launch-state'),null);
+ assert.equal(r.status,503);assert.equal(r.headers.get('x-owasp-ai-goat-secureshop-launch-state'),null);
  assert.deepEqual(await r.json(),{error:'MCP operation outcome is unknown; do not automatically retry',code:'PERSONA_EFFECT_OUTCOME_UNCERTAIN',outcome:'unknown',automaticRetry:false});
 });
 test('platform launch loss still invalidates launch and unknown errors stay private',async t=>{
  const stale=await mount(t,'STALE_LAUNCH'),r=await stale.request('readiness',null);
- assert.equal(r.status,401);assert.equal(r.headers.get('x-dvaia-secureshop-launch-state'),'unavailable');
+ assert.equal(r.status,401);assert.equal(r.headers.get('x-owasp-ai-goat-secureshop-launch-state'),'unavailable');
  const unknown=await mount(t,'PRIVATE_INTERNAL_CODE'),other=await unknown.request('readiness',null);
  assert.equal(other.status,503);assert.deepEqual(await other.json(),{error:'MCP trust exercise unavailable'});
 });

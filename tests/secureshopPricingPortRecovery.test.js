@@ -5,12 +5,12 @@ const managed=require('../server/services/secureshopPricingManagedConfiguration'
 function fixture(t){
  const home=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'pricing-port-recovery-'))),root=path.join(home,'source');fs.mkdirSync(root);t.after(()=>fs.rmSync(home,{recursive:true,force:true}));
  for(const file of require('../server/services/secureshopPricingPackage').PRICING_PACKAGE_FILES){const target=path.join(root,file);fs.mkdirSync(path.dirname(target),{recursive:true});fs.writeFileSync(target,'controlled Pricing package '+file);}
- const workspaceId=require('../scripts/application-data-root').workspaceId(root),directory=path.join(home,'.dvaia',workspaceId);fs.mkdirSync(directory,{recursive:true,mode:0o700});
+ const workspaceId=require('../scripts/application-data-root').workspaceId(root),directory=path.join(home,'.owasp-ai-goat',workspaceId);fs.mkdirSync(directory,{recursive:true,mode:0o700});
  const authority={version:1,workspaceId,host:'unix:///tmp/controlled-pricing.sock',daemonId:'controlled-daemon',source:'environment-host'};
  fs.writeFileSync(path.join(directory,'local-docker.json'),JSON.stringify(authority),{mode:0o600});
- const config={version:1,enabled:false,workspaceId,ownerId:crypto.randomUUID(),dockerAuthoritySha256:require('../scripts/local-docker-authority').authorityDigest(authority),containerName:'dvaia-pricing-'+workspaceId,containerId:'a'.repeat(64),imageId:'sha256:'+'b'.repeat(64),packageSha256:require('../server/services/secureshopPricingPackage').capturePricingPackage(root).sha256,profile:'dvaia-owned-pricing-http-'+workspaceId,port:8093,token:'x'.repeat(43)};
+ const config={version:1,enabled:false,workspaceId,ownerId:crypto.randomUUID(),dockerAuthoritySha256:require('../scripts/local-docker-authority').authorityDigest(authority),containerName:'owasp-ai-goat-pricing-'+workspaceId,containerId:'a'.repeat(64),imageId:'sha256:'+'b'.repeat(64),packageSha256:require('../server/services/secureshopPricingPackage').capturePricingPackage(root).sha256,profile:'owasp-ai-goat-owned-pricing-http-'+workspaceId,port:8093,token:'x'.repeat(43)};
  managed.stage({root,home,value:config});stage.prepare({root,home,plan:{workspaceId,dockerAuthoritySha256:config.dockerAuthoritySha256,source:{sha256:config.packageSha256},port:config.port},imageId:config.imageId});
- const labels={'dvaia.pricing.owner':config.ownerId,'dvaia.pricing.workspace':workspaceId,'dvaia.pricing.package':config.packageSha256},network=config.containerName+'-network',entrypoint=['node','sidecars/sandbox-runner/owned-pricing-http/http-listener.js'];
+ const labels={'owasp-ai-goat.pricing.owner':config.ownerId,'owasp-ai-goat.pricing.workspace':workspaceId,'owasp-ai-goat.pricing.package':config.packageSha256},network=config.containerName+'-network',entrypoint=['node','sidecars/sandbox-runner/owned-pricing-http/http-listener.js'];
  const image={Id:config.imageId,Architecture:'arm64',Config:{Labels:labels,Entrypoint:entrypoint,Cmd:null,Env:[]}};
  let container={Id:config.containerId,Name:'/'+config.containerName,Image:config.imageId,RestartCount:0,State:{Status:'created',Running:false,StartedAt:'0001-01-01T00:00:00Z',FinishedAt:'0001-01-01T00:00:00Z',ExitCode:128},Mounts:[],Config:{Labels:labels,Entrypoint:entrypoint,Cmd:null,User:'10001:10001',Env:['SECURESHOP_PRICING_ENABLED=true','SECURESHOP_PRICING_TOKEN='+config.token,'SECURESHOP_PRICING_PROFILE='+config.profile,'SECURESHOP_PRICING_HOST=0.0.0.0','SECURESHOP_PRICING_PORT=8093']},HostConfig:{Privileged:false,CapDrop:['ALL'],ReadonlyRootfs:true,Memory:536870912,NanoCpus:1000000000,PidsLimit:128,PortBindings:{'8093/tcp':[{HostIp:'127.0.0.1',HostPort:'8093'}]},NetworkMode:network,Tmpfs:{'/tmp':'rw,nosuid,nodev,size=134217728'},SecurityOpt:['apparmor='+config.profile,'seccomp=unconfined']},NetworkSettings:{Ports:{},Networks:{[network]:{}}}};
  const events=[],control={unused:true,occupied:false,failCreate:false,foreign:false,leaseHeld:false,closes:0};
@@ -19,7 +19,7 @@ function fixture(t){
   if(args.includes('info'))return{exitCode:0,stdout:'"controlled-daemon"'};
   if(args.includes('ps'))return{exitCode:0,stdout:control.foreign?'foreign8096\n':''};
   if(args.includes('rm')){assert.deepEqual(args.slice(-2),['rm',config.containerId]);container=null;return{exitCode:0,stdout:''};}
-  if(args.includes('create')){if(control.failCreate)return{exitCode:1,stderr:'controlled create uncertainty'};const labelAt=args.findIndex(a=>a.startsWith('dvaia.pricing.retarget='));assert.ok(labelAt>=0);assert.ok(args.includes('127.0.0.1:8096:8093'));const envFile=args[args.indexOf('--env-file')+1];assert.match(fs.readFileSync(envFile,'utf8'),new RegExp(config.token));container=structuredClone(original);container.Id='c'.repeat(64);container.HostConfig.PortBindings['8093/tcp'][0].HostPort='8096';container.Config.Labels['dvaia.pricing.retarget']=args[labelAt].split('=')[1];return{exitCode:0,stdout:container.Id};}
+  if(args.includes('create')){if(control.failCreate)return{exitCode:1,stderr:'controlled create uncertainty'};const labelAt=args.findIndex(a=>a.startsWith('owasp-ai-goat.pricing.retarget='));assert.ok(labelAt>=0);assert.ok(args.includes('127.0.0.1:8096:8093'));const envFile=args[args.indexOf('--env-file')+1];assert.match(fs.readFileSync(envFile,'utf8'),new RegExp(config.token));container=structuredClone(original);container.Id='c'.repeat(64);container.HostConfig.PortBindings['8093/tcp'][0].HostPort='8096';container.Config.Labels['owasp-ai-goat.pricing.retarget']=args[labelAt].split('=')[1];return{exitCode:0,stdout:container.Id};}
   if(args.includes('inspect')){const found=args.includes('image')?image:args.includes('network')?{Name:network,Driver:'bridge',Labels:labels}:container&&[container.Id,config.containerName].includes(args.at(-1))?container:null;return found?{exitCode:0,stdout:JSON.stringify([found])}:{exitCode:1,stderr:'No such container'};}
   assert.fail('unexpected Docker effect');
  };
@@ -59,7 +59,7 @@ test('unused SQL guard retains zero-effect cleanup receipts and rejects uncertai
    return result;
   };this.end=async()=>{closed++;};}
  };
- const environment={SECURESHOP_AGENTS_MIGRATION_DATABASE_URL:'postgresql://controlled@127.0.0.1:5432/dvaia_test_pricing_guard'};
+ const environment={SECURESHOP_AGENTS_MIGRATION_DATABASE_URL:'postgresql://controlled@127.0.0.1:5432/owasp_ai_goat_test_pricing_guard'};
  await assertNoPricingRuns(environment);
  for(const rows of [[{unused:false}],[{unused:null}],[{unused:'true'}],[],[{unused:true},{unused:true}]]){
   result={rows};await assert.rejects(assertNoPricingRuns(environment),{code:'PRICING_PORT_RECOVERY_UNAVAILABLE'});

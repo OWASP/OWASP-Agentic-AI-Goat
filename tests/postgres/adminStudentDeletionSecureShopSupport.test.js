@@ -91,7 +91,7 @@ test('complete seed orchestration preserves owner/session and canonical factory 
   const Module = require('node:module'), originalLoad = Module._load;
   const admission = require('./adminStudentDeletionRenderedSupport');
   const environment = { PG_TEST_DISPOSABLE: 'yes', PLATFORM_DATABASE_ENGINE: 'postgres', WORKSHOP_DATABASE_ENGINE: 'postgres', PG_POOL_BUDGET: '78' };
-  for (const row of admission.STORES) for (const [key, role] of [[row.runtimeVariable, row.runtimeRole], [row.migrationVariable, row.migrationRole]]) environment[key] = `postgresql://${role}@127.0.0.1:54321/dvaia_test_student_deletion_123456abcdef_${row.schema}`;
+  for (const row of admission.STORES) for (const [key, role] of [[row.runtimeVariable, row.runtimeRole], [row.migrationVariable, row.migrationRole]]) environment[key] = `postgresql://${role}@127.0.0.1:54321/owasp_ai_goat_test_student_deletion_123456abcdef_${row.schema}`;
   const old = Object.fromEntries([...Object.keys(environment), 'LEGACY_PLATFORM_LIFECYCLE_ENABLED'].map(k => [k, process.env[k]]));
   Object.assign(process.env, environment); delete process.env.LEGACY_PLATFORM_LIFECYCLE_ENABLED;
   const id = '00000000-0000-4000-8000-000000000001', target = '00000000-0000-4000-8000-000000000002';

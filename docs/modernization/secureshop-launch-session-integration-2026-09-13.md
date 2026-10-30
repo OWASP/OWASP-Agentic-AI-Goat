@@ -13,7 +13,7 @@ Never put `identity.user_sessions.id`, the platform JWT, its digest, a user ID, 
 Issue a separate random launch handle of at least 256 bits. Store only its SHA-256 digest. In deployed HTTPS, use a host-only cookie such as:
 
 ```text
-Set-Cookie: __Host-dvaia-ss-launch=<random>; Path=/; HttpOnly; Secure; SameSite=Strict
+Set-Cookie: __Host-owasp-ai-goat-ss-launch=<random>; Path=/; HttpOnly; Secure; SameSite=Strict
 ```
 
 `__Host-` deliberately requires `Path=/` and no `Domain`. This lets the existing authenticated `/api/auth/status` endpoint inspect and repair the binding without frontend work. Other routes must ignore the cookie and request logging must redact it. For the supported offline HTTP installation, use a separately named host-only development cookie with `HttpOnly; SameSite=Strict; Path=/` and no `Domain`; select this from trusted deployment configuration, not an untrusted forwarded header. Qualify localhost, `127.0.0.1`, the CRA proxy, and the deployed HTTPS origin in real browsers. Never accept the development cookie in the deployed HTTPS configuration.

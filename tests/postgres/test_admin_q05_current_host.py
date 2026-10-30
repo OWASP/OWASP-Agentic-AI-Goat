@@ -132,14 +132,14 @@ class ResetAdmission(unittest.TestCase):
         from urllib.parse import urlparse
         parsed = profile.arguments(args('--run', profile.RESET_COHORT))
         env = profile.environment(Path('/repo'), Path('/repo/tasks/qualification/run-x/runtime'),
-            55432, 'dvaia_test_admin_browser_abcdef123456', parsed)
+            55432, 'owasp_ai_goat_test_admin_browser_abcdef123456', parsed)
         urls = [urlparse(env[name]) for name in (
             'PG_ADMIN_BROWSER_TEST_RUNTIME_URL', 'PG_ADMIN_BROWSER_TEST_MIGRATION_URL',
             'FINFLOW_WORKSHOP_DATABASE_URL', 'FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL')]
         self.assertEqual(len({url.username for url in urls}), 4)
         self.assertEqual({url.path for url in urls}, {
-            '/dvaia_test_admin_browser_abcdef123456',
-            '/dvaia_test_student_reset_finflow_abcdef123456'})
+            '/owasp_ai_goat_test_admin_browser_abcdef123456',
+            '/owasp_ai_goat_test_student_reset_finflow_abcdef123456'})
         for url in urls:
             self.assertEqual((url.hostname, url.port, url.password, url.query, url.fragment),
                              ('127.0.0.1', 55432, None, '', ''))
@@ -164,13 +164,13 @@ class ResetAdmission(unittest.TestCase):
         self.assertEqual(env['WORKSHOP_DATABASE_ENGINE'], 'postgres')
         self.assertEqual(env['SENSITIVE_INFO_AGGREGATE_RESET_ENABLED'], 'true')
         manual = profile.environment(Path('/repo'), Path('/repo/runtime'), 55432,
-            'dvaia_test_admin_browser_abcdef123456', profile.arguments(args('--run')))
+            'owasp_ai_goat_test_admin_browser_abcdef123456', profile.arguments(args('--run')))
         for name in ('FINFLOW_WORKSHOP_DATABASE_URL', 'ADMIN_STUDENT_RESET_ONLY', 'ADMIN_Q05_COHORT'):
             self.assertNotIn(name, manual)
         for database, port in (
-                ('application_database', 55432), ('dvaia_test_admin_browser_abcdef123456;SQL', 55432),
-                ('dvaia_test_admin_browser_abcdef123456', True),
-                ('dvaia_test_admin_browser_abcdef123456', 65536)):
+                ('application_database', 55432), ('owasp_ai_goat_test_admin_browser_abcdef123456;SQL', 55432),
+                ('owasp_ai_goat_test_admin_browser_abcdef123456', True),
+                ('owasp_ai_goat_test_admin_browser_abcdef123456', 65536)):
             with self.assertRaisesRegex(RuntimeError, 'owned database/port'):
                 profile.environment(Path('/repo'), Path('/repo/runtime'), port, database, parsed)
 
@@ -181,7 +181,7 @@ class ResetAdmission(unittest.TestCase):
         self.assertEqual(len(reset), 6)
         self.assertEqual(sum('CREATE DATABASE' in sql for sql in reset), 2)
         self.assertEqual(sum(sql.count('CREATE ROLE ') for sql in reset), 4)
-        self.assertIn('REVOKE ALL ON DATABASE dvaia_test_student_reset_finflow_abcdef123456 FROM PUBLIC',
+        self.assertIn('REVOKE ALL ON DATABASE owasp_ai_goat_test_student_reset_finflow_abcdef123456 FROM PUBLIC',
                       reset[-1])
         self.assertNotIn('identity', ''.join(reset[3:]))
         for nonce in ('', 'ABCDEF123456', 'abcdef123456;'):
@@ -412,14 +412,14 @@ class Admission(unittest.TestCase):
     def test_environment_is_repo_only_and_does_not_forward_inspector(self):
         parsed = profile.arguments(args('--run'))
         env = profile.environment(Path('/repo'), Path('/repo/tasks/qualification/run-x/runtime'),
-                                  55432, 'dvaia_test_admin_browser_abcdef123456', parsed)
+                                  55432, 'owasp_ai_goat_test_admin_browser_abcdef123456', parsed)
         for key in ('HOME', 'TMPDIR', 'TMP', 'TEMP', 'MAC_CHROMIUM_TMPDIR',
-                    'XDG_CACHE_HOME', 'LOGS_DIR', 'DVAIA_APP_DATA_ROOT',
+                    'XDG_CACHE_HOME', 'LOGS_DIR', 'OWASP_AI_GOAT_APP_DATA_ROOT',
                     'ADMIN_Q05_BROWSER_ACK'):
             self.assertTrue(env[key].startswith('/repo/tasks/qualification/run-x/runtime/'))
-        self.assertNotIn('DVAIA_PROCESS_INSPECTOR_FD', env)
+        self.assertNotIn('OWASP_AI_GOAT_PROCESS_INSPECTOR_FD', env)
         self.assertEqual(env['ADMIN_Q05_SNAPSHOT_SHA256'], '1' * 64)
-        self.assertEqual(env['DVAIA_CHROMIUM_ACTUAL_EXECUTABLE'], env['PUPPETEER_EXECUTABLE_PATH'])
+        self.assertEqual(env['OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE'], env['PUPPETEER_EXECUTABLE_PATH'])
         self.assertNotEqual(env['PG_ADMIN_BROWSER_TEST_RUNTIME_URL'],
                             env['PG_ADMIN_BROWSER_TEST_MIGRATION_URL'])
 
@@ -574,7 +574,7 @@ class Admission(unittest.TestCase):
             def execute(loader, module):
                 original_exec(loader, module)
                 loaded.append(module.__name__)
-                if module.__name__ == 'dvaia_frontend_build_receipt':
+                if module.__name__ == 'owasp_ai_goat_frontend_build_receipt':
                     actual_inventory = module.inventory
 
                     def current_inputs(root):
@@ -617,7 +617,7 @@ class Admission(unittest.TestCase):
                 result = profile.validate_modern_build_receipt(repo, parsed)
                 self.assertEqual(result['reportSha256'], parsed.build_report_sha256)
                 self.assertIn('q05_reviewed_frontend_build_verifier', loaded)
-                self.assertIn('dvaia_frontend_build_receipt', loaded)
+                self.assertIn('owasp_ai_goat_frontend_build_receipt', loaded)
                 for change in ({'qualified': False}, {'beforeAfterInputsEqual': False},
                         {'buildInputInventorySha256': '0' * 64},
                         {'clientBuildInventorySha256': '0' * 64},
@@ -770,7 +770,7 @@ class ControlledLifecycle(unittest.TestCase):
                 if docker_state['present']:
                     result.stdout = json.dumps([{
                         'Id': docker_state['id'], 'Config': {'Labels': {
-                            'dvaia.test.owner': docker_state['owner']}},
+                            'owasp-ai-goat.test.owner': docker_state['owner']}},
                         'NetworkSettings': {'Ports': {'5432/tcp': [
                             {'HostIp': '127.0.0.1', 'HostPort': '55432'}]}}}])
                 else:
@@ -834,7 +834,7 @@ class ControlledLifecycle(unittest.TestCase):
         self.assertEqual(signal_before, {number: signal.getsignal(number) for number in signal_before})
         self.assertEqual(len(spawned), 0 if setup_error else 1)
         if not setup_error:
-            self.assertNotIn('DVAIA_PROCESS_INSPECTOR_FD', spawned[0][1]['env'])
+            self.assertNotIn('OWASP_AI_GOAT_PROCESS_INSPECTOR_FD', spawned[0][1]['env'])
             self.assertEqual(len(spawned[0][1]['pass_fds']), 1)
             self.assertIn('--test-isolation=none', spawned[0][0])
             owner.register_child.assert_called_once_with(111)

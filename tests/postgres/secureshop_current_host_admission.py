@@ -16,7 +16,7 @@ import subprocess
 SHA256 = re.compile(r'[0-9a-f]{64}\Z')
 IMAGE_ID = re.compile(r'sha256:[0-9a-f]{64}\Z')
 DAEMON_ID = re.compile(r'[0-9a-f-]{16,}\Z')
-PROFILE = re.compile(r'(?:dvaia|goat)-[a-z0-9]+(?:-[a-z0-9]+)*\Z')
+PROFILE = re.compile(r'(?:owasp-ai-goat|goat)-[a-z0-9]+(?:-[a-z0-9]+)*\Z')
 NODE_VERSION = 'v26.10.0'
 
 

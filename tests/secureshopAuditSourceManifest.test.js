@@ -179,7 +179,7 @@ test('fixed v2 keeps exact original forensic source privately and exposes metada
 test('spool stores v2 exact source bytes and rejects another consumer without partial artifacts',async t=>{
   const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
   const {spoolAuditObservation}=require('../server/services/secureshopAuditObservationSpool');
-  const root=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-v15-spool-'));
+  const root=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-v15-spool-'));
   t.after(()=>fs.rm(root,{recursive:true,force:true}));
   const r=sceneRow(),scope=r.sceneSource.consumerExecution;
   const args={root,scope,runId:'v15-owned',requestedCount:1,checkCurrent:async()=>{}};

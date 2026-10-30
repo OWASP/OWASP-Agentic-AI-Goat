@@ -175,8 +175,8 @@ def main():
   result=command(arguments)
   if result.returncode: raise RuntimeError('Owned Docker operation failed')
   return result
- nonce=str(uuid.uuid4());name='dvaia-full-backend-auth-'+nonce
- labels={'dvaia.qualification':'full_backend_auth','dvaia.owner-uid':str(os.getuid()),'dvaia.run-nonce':nonce}
+ nonce=str(uuid.uuid4());name='owasp-ai-goat-full-backend-auth-'+nonce
+ labels={'owasp-ai-goat.qualification':'full_backend_auth','owasp-ai-goat.owner-uid':str(os.getuid()),'owasp-ai-goat.run-nonce':nonce}
  processes=OwnedProcesses(stop_group,lambda value:record('process-'+value['name']+'.json',value))
  intended=False;captured=None;failures=[];passed=False;mcp_resources=None;secureshop_resources=None;owned_children=[];runtime_root=None
  processes.install()
@@ -222,9 +222,9 @@ def main():
    time.sleep(.25)
   else:raise RuntimeError('Database readiness deadline')
   def sql(statement):run(['exec',captured,'psql','-U','ownership_test_admin','-d','postgres','-v','ON_ERROR_STOP=1','-c',statement])
-  env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',PG_FULL_BACKEND_AUTH='1',AWS_EC2_METADATA_DISABLED='true',DVAIA_ISOLATED_TEST_WORKSPACE=str(source))
+  env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',PG_FULL_BACKEND_AUTH='1',AWS_EC2_METADATA_DISABLED='true',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(source))
   runtime_root=root/'runtime';runtime_root.mkdir(mode=0o700)
-  env['DVAIA_FULL_BACKEND_RUNTIME_ROOT']=str(runtime_root)
+  env['OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT']=str(runtime_root)
   if capacity:
    env['PG_FULL_BACKEND_CAPACITY']='1'
    env['PG_CAPACITY_OBSERVER_URL']=f'postgresql://ownership_test_admin@127.0.0.1:{port}/postgres'
@@ -252,7 +252,7 @@ def main():
     MAILPIT_SMTP_HOST='127.0.0.1',MAILPIT_SMTP_PORT=str(endpoint_manifest['smtp']['port']),MAILPIT_API_URL='http://127.0.0.1:'+str(endpoint_manifest['mailpit']['port']))
    for key in ['MCP_PROTECTED_STATE_CANDIDATE','MCP_OBSERVED_ACTION_CANDIDATE','MCP_INDIRECT_INJECTION_CANDIDATE','MCP_CATALOG_RECON_CANDIDATE','MCP_CATALOG_RECON_PRODUCTION']:env[key]='no'
   for family,prefix in STORES:
-   migration='dvaia_'+family+'_migration';runtime='dvaia_'+family+'_runtime';database='dvaia_test_full_backend_'+family
+   migration='dvaia_'+family+'_migration';runtime='dvaia_'+family+'_runtime';database='owasp_ai_goat_test_full_backend_'+family
    for role in [migration,runtime]:sql(f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS')
    sql(f'CREATE DATABASE {database} OWNER {migration}')
    sql(f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}')

@@ -48,7 +48,7 @@ function createBoundCouponAgentAssessmentRouter({ launches, authenticatePersona,
   const router = express.Router(), launch = requireSecureShopLaunch({ launches });
   const select = (req, res, next) => {
     const names = (req.rawHeaders || []).filter((_, index) => index % 2 === 0)
-      .filter(name => String(name).toLowerCase() === 'x-dvaia-secureshop-launch');
+      .filter(name => String(name).toLowerCase() === 'x-owasp-ai-goat-secureshop-launch');
     return names.length === 1 ? launch(req, res, next) : next('route');
   };
   const customer = [authenticatePersona, (req, res, next) => {

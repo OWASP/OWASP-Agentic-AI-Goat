@@ -45,9 +45,9 @@ async function provisionProfile({p,authority,root,home,platform,run}){
  }
  if(location.dockerHost!==authority.host)throw fail('PRICING_PROFILE_AUTHORITY_CONFLICT');
  // Exact namespace-specific profile only; never replace different existing bytes.
- if(!/^dvaia-owned-pricing-http-[a-f0-9]{12}$/.test(p.profile))throw fail('PRICING_PROFILE_INVALID');
+ if(!/^owasp-ai-goat-owned-pricing-http-[a-f0-9]{12}$/.test(p.profile))throw fail('PRICING_PROFILE_INVALID');
  const bytes=Buffer.from(fs.readFileSync(path.join(root,'sidecars/sandbox-runner/owned-pricing-http/http-profile.apparmor.in'),'utf8').replaceAll('@@SUPERVISOR_PROFILE@@',p.profile));
- const program=`import os,sys,base64,stat,subprocess\nname=sys.argv[1]; data=base64.b64decode(sys.argv[2],validate=True)\nassert name.startswith('dvaia-owned-pricing-http-') and len(name)==37 and all(c in '0123456789abcdef' for c in name[-12:])\np='/etc/apparmor.d/'+name\ntry:\n fd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)\nexcept FileExistsError:\n fd=os.open(p,os.O_RDONLY|os.O_NOFOLLOW); st=os.fstat(fd); assert stat.S_ISREG(st.st_mode) and st.st_uid==0 and st.st_nlink==1; assert os.read(fd,1048577)==data; os.close(fd)\nelse:\n os.write(fd,data); os.fsync(fd); os.close(fd)\nsubprocess.run(['apparmor_parser','-r',p],check=True,timeout=15)\nassert name+' (enforce)' in open('/sys/kernel/security/apparmor/profiles').read().splitlines()\n`;
+ const program=`import os,sys,base64,stat,subprocess\nname=sys.argv[1]; data=base64.b64decode(sys.argv[2],validate=True)\nassert name.startswith('owasp-ai-goat-owned-pricing-http-') and len(name)==37 and all(c in '0123456789abcdef' for c in name[-12:])\np='/etc/apparmor.d/'+name\ntry:\n fd=os.open(p,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)\nexcept FileExistsError:\n fd=os.open(p,os.O_RDONLY|os.O_NOFOLLOW); st=os.fstat(fd); assert stat.S_ISREG(st.st_mode) and st.st_uid==0 and st.st_nlink==1; assert os.read(fd,1048577)==data; os.close(fd)\nelse:\n os.write(fd,data); os.fsync(fd); os.close(fd)\nsubprocess.run(['apparmor_parser','-r',p],check=True,timeout=15)\nassert name+' (enforce)' in open('/sys/kernel/security/apparmor/profiles').read().splitlines()\n`;
  const args=['python3','-c',program,p.profile,bytes.toString('base64')];
  const result=await run(platform==='linux'?'sudo':'ssh',platform==='linux'?['--non-interactive',...args]:['-F',location.sshConfig,location.sshHost,['sudo','--non-interactive',...args].map(value=>"'"+value.replaceAll("'","'\"'\"'")+"'").join(' ')],{timeoutMs:25000,maxOutputBytes:65536});
  if(result.exitCode!==0)throw fail('PRICING_PROFILE_UNAVAILABLE');return{sha256:sha(bytes)};
@@ -63,9 +63,9 @@ async function provision(options={}){
  const docker=async(args,timeoutMs=30000,missing=false)=>{const r=await run('docker',['--host',authority.host,...args],{timeoutMs,maxOutputBytes:1048576});if(r.exitCode!==0){if(missing&&/No such|not found/.test(r.stderr||''))return null;throw fail('PRICING_INSTALL_COMMAND_FAILED');}return r.stdout;};
  const inspect=async(kind,id)=>{const raw=await docker([kind,'inspect',id],10000,true);if(raw===null)return null;const rows=JSON.parse(raw);if(!Array.isArray(rows)||rows.length!==1)throw fail('PRICING_INSPECT_INVALID');return rows[0];};
  const daemon=JSON.parse(await docker(['info','--format','{{json .Architecture}}']));if(!['aarch64','arm64'].includes(daemon))throw fail('PRICING_DAEMON_ARCHITECTURE_UNQUALIFIED');
- const temp=fs.mkdtempSync(path.join(temporaryRoot(root,options.repositoryOnlyStorage===true),'dvaia-pricing-provision-'));fs.chmodSync(temp,0o700);const tempId=fs.lstatSync(temp);
+ const temp=fs.mkdtempSync(path.join(temporaryRoot(root,options.repositoryOnlyStorage===true),'owasp-ai-goat-pricing-provision-'));fs.chmodSync(temp,0o700);const tempId=fs.lstatSync(temp);
  try{
-  const saved=stage.read({root,home}),existing=managed.load({root,home}),tag='dvaia-owned-pricing-'+p.workspaceId+':local';
+  const saved=stage.read({root,home}),existing=managed.load({root,home}),tag='owasp-ai-goat-owned-pricing-'+p.workspaceId+':local';
   let image=await inspect('image',saved?.value.imageId||existing?.config.imageId||tag);
   if(!image&&(saved||existing))throw fail('PRICING_STAGED_IMAGE_MISSING');
   if(!image){
@@ -73,13 +73,13 @@ async function provision(options={}){
    const capture=planner.qualifiedSource(root);if(capture.sha256!==p.source.sha256)throw fail('PRICING_SOURCE_CHANGED');
    for(const [relative,digest]of Object.entries(capture.files)){const bytes=fs.readFileSync(path.join(root,relative));if(sha(bytes)!==digest)throw fail('PRICING_SOURCE_CHANGED');const dest=path.join(temp,relative);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes,{mode:0o444,flag:'wx'});}
    if(planner.qualifiedSource(root).sha256!==capture.sha256)throw fail('PRICING_SOURCE_CHANGED');
-   await docker(['build','--pull=false','--network=default','--label','dvaia.pricing.package='+p.source.sha256,'-f',path.join(temp,'sidecars/sandbox-runner/owned-pricing-http/Dockerfile.local'),'-t',tag,temp],300000);image=await inspect('image',tag);
+   await docker(['build','--pull=false','--network=default','--label','owasp-ai-goat.pricing.package='+p.source.sha256,'-f',path.join(temp,'sidecars/sandbox-runner/owned-pricing-http/Dockerfile.local'),'-t',tag,temp],300000);image=await inspect('image',tag);
   }
-  if(!image||!/^sha256:[a-f0-9]{64}$/.test(image.Id)||image.Architecture!=='arm64'||image.Os!=='linux'||image.Config?.Labels?.['dvaia.pricing.package']!==p.source.sha256||image.Config.User!=='10001:10001'||JSON.stringify(image.Config.Entrypoint)!==JSON.stringify(['node','sidecars/sandbox-runner/owned-pricing-http/http-listener.js'])||image.Config.Volumes&&Object.keys(image.Config.Volumes).length)throw fail('PRICING_IMAGE_CONFLICT');
+  if(!image||!/^sha256:[a-f0-9]{64}$/.test(image.Id)||image.Architecture!=='arm64'||image.Os!=='linux'||image.Config?.Labels?.['owasp-ai-goat.pricing.package']!==p.source.sha256||image.Config.User!=='10001:10001'||JSON.stringify(image.Config.Entrypoint)!==JSON.stringify(['node','sidecars/sandbox-runner/owned-pricing-http/http-listener.js'])||image.Config.Volumes&&Object.keys(image.Config.Volumes).length)throw fail('PRICING_IMAGE_CONFLICT');
   const staged=stage.prepare({root,home,plan:p,imageId:image.Id}),v=staged.value;
   if(existing&&['ownerId','token','imageId','port','packageSha256'].some(k=>existing.config[k]!==v[k]))throw fail('PRICING_STAGE_CONFLICT');
   await (options.provisionProfile||provisionProfile)({p,authority,root,home,platform,run});
-  const labels={'dvaia.pricing.owner':v.ownerId,'dvaia.pricing.workspace':p.workspaceId,'dvaia.pricing.package':p.source.sha256},labelArgs=Object.entries(labels).flatMap(([k,val])=>['--label',k+'='+val]);
+  const labels={'owasp-ai-goat.pricing.owner':v.ownerId,'owasp-ai-goat.pricing.workspace':p.workspaceId,'owasp-ai-goat.pricing.package':p.source.sha256},labelArgs=Object.entries(labels).flatMap(([k,val])=>['--label',k+'='+val]);
   let network=await inspect('network',p.network);if(!network){try{await docker(['network','create',...labelArgs,p.network]);}catch{}network=await inspect('network',p.network);}
   if(!network||network.Name!==p.network||network.Driver!=='bridge'||network.Internal!==false||Object.entries(labels).some(([k,val])=>network.Labels?.[k]!==val))throw fail('PRICING_NETWORK_CONFLICT');
   let container=await inspect('container',p.container);if(!container){
@@ -109,7 +109,7 @@ async function verifyExistingProfile({root,home,platform,authority,profile,run})
     if(!/^[a-z0-9][a-z0-9-]{0,47}$/.test(name))throw fail('PRICING_PROFILE_AUTHORITY_CONFLICT');
     location=localProfilePlan({root,home:authorityHome,platform,colimaProfile:'colima-'+name});
   }else throw fail('PRICING_START_PLATFORM_UNQUALIFIED');
-  if(location.dockerHost!==authority.host||!/^dvaia-owned-pricing-http-[a-f0-9]{12}$/.test(profile))throw fail('PRICING_PROFILE_AUTHORITY_CONFLICT');
+  if(location.dockerHost!==authority.host||!/^owasp-ai-goat-owned-pricing-http-[a-f0-9]{12}$/.test(profile))throw fail('PRICING_PROFILE_AUTHORITY_CONFLICT');
   const bytes=Buffer.from(fs.readFileSync(path.join(root,'sidecars/sandbox-runner/owned-pricing-http/http-profile.apparmor.in'),'utf8').replaceAll('@@SUPERVISOR_PROFILE@@',profile));
   const program=`import os,sys,hashlib,stat\nname=sys.argv[1]; expected=sys.argv[2]\np='/etc/apparmor.d/'+name\nfd=os.open(p,os.O_RDONLY|os.O_NOFOLLOW)\ntry:\n st=os.fstat(fd); assert stat.S_ISREG(st.st_mode) and st.st_uid==0 and st.st_nlink==1\n assert hashlib.sha256(os.read(fd,1048577)).hexdigest()==expected\nfinally: os.close(fd)\nassert name+' (enforce)' in open('/sys/kernel/security/apparmor/profiles').read().splitlines()\n`;
   const args=['python3','-c',program,profile,sha(bytes)];

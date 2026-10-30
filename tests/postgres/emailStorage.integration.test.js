@@ -6,7 +6,7 @@ const { initializeIdentityRepository } = require('../../server/database/postgres
 const { createEmailWorkshopRepository } = require('../../server/database/postgres/emailWorkshopRepository');
 const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && !!process.env.PG_EMAIL_TEST_RUNTIME_URL;
 test('PostgreSQL attendee email config/progress/audit persist without cross-owner reset', { skip: !enabled }, async () => {
-  for (const key of ['PG_EMAIL_TEST_RUNTIME_URL','PG_EMAIL_TEST_MIGRATION_URL']) assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+  for (const key of ['PG_EMAIL_TEST_RUNTIME_URL','PG_EMAIL_TEST_MIGRATION_URL']) assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   const pool=createPool(process.env,'PG_EMAIL_TEST_RUNTIME_URL'),migration=createPool(process.env,'PG_EMAIL_TEST_MIGRATION_URL');
   try {
     await initializeIdentityRepository(pool,migration);

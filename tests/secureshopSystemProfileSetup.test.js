@@ -6,7 +6,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),cryp
 const system=require('../scripts/install/secureshop-owned-system-provision')._internals;
 const combined=require('../scripts/install/secureshop-qualified-system-setup');
 const {workspaceId}=require('../scripts/application-data-root');
-const root=path.resolve(__dirname,'..'),name='dvaia-mcp-sandbox';
+const root=path.resolve(__dirname,'..'),name='owasp-ai-goat-mcp-sandbox';
 const rendered=require('../scripts/render-mcp-sandbox-apparmor').renderMcpSandboxAppArmor(fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/'+name+'.apparmor.in'),'utf8'),name);
 const digest=crypto.createHash('sha256').update(rendered).digest('hex');
 function fixture(t,platform,state={}) {

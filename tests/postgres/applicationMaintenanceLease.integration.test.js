@@ -6,7 +6,7 @@ const {acquireApplicationMaintenanceLease:acquire}=require('../../server/service
 const {getPoolBudgetSnapshot}=require('../../server/database/postgres');
 function ownedUrls(env,index){
  assert.equal(env.PG_TEST_DISPOSABLE,'yes');assert.equal(env.APPLICATION_MAINTENANCE_LEASE_ISOLATED,'1');
- const pair=['RUNTIME','MIGRATION'].map(role=>{const raw=env[`PG_APPLICATION_LEASE_${index}_${role}_URL`];assert.ok(raw);const u=new URL(raw);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,new RegExp(`^/dvaia_test_lease_${index}_[a-f0-9]{12}$`));return u;});
+ const pair=['RUNTIME','MIGRATION'].map(role=>{const raw=env[`PG_APPLICATION_LEASE_${index}_${role}_URL`];assert.ok(raw);const u=new URL(raw);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,new RegExp(`^/owasp_ai_goat_test_lease_${index}_[a-f0-9]{12}$`));return u;});
  assert.equal(pair[0].pathname,pair[1].pathname);assert.equal(pair[0].port,pair[1].port);assert.notEqual(pair[0].username,pair[1].username);
  return {IDENTITY_DATABASE_URL:pair[0].href,IDENTITY_MIGRATION_DATABASE_URL:pair[1].href,PG_POOL_BUDGET:'16'};
 }

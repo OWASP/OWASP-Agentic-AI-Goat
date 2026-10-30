@@ -114,7 +114,7 @@ async function fixture({verdict='fail',modelArgs={},modelDecision='tool'}={}){
   const app=express();app.use(express.json());app.use('/api/secureshop',router);
   const server=app.listen(0);let stream;
   try{const response=await fetch(`http://127.0.0.1:${server.address().port}/api/secureshop/agents/customer/checkout-audit/chat`,{
-    method:'POST',headers:{'content-type':'application/json','x-dvaia-secureshop-launch':'a'.repeat(43)},
+    method:'POST',headers:{'content-type':'application/json','x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)},
     body:JSON.stringify({sessionId,requestId,checkoutOperationId,
       teachingToken:'forged-alg-none-teaching-token',message:'Read my protected checkout audit.'})});
     assert.equal(response.status,200);stream=await response.text();assert.match(stream,/event: done/);

@@ -9,7 +9,7 @@ async function fixture(platform){const home=await fs.mkdtemp(path.join(os.tmpdir
  options.run=async(file,args,o)=>{assert(o.timeoutMs>0&&o.timeoutMs<=30000);assert(o.maxOutputBytes>0&&o.maxOutputBytes<=1048576);events.push(o.stage);if(file==='docker'){
   assert.deepEqual(args.slice(0,2),['--host',p.dockerHost]);const a=args.slice(2);if(a[0]==='image')return ok([{Id:p.imageId,Architecture:'arm64',Os:'linux',Config:{User:'10001:10001',Entrypoint:['node','sidecars/sandbox-runner/owned-mcp-registry/http-listener.js']}}]);if(a[0]==='info')return ok('"arm64"');
   if(a[1]==='inspect'){if(probe&&[probe.Id,probe.Name.slice(1)].includes(a[2]))return ok([probe]);return{exitCode:1,stderr:a[0]==='network'?`Error response from daemon: network ${a[2]} not found`:`Error: No such container: ${a[2]}`};}
-  if(a[0]==='create'){assert(a.includes('--entrypoint'),'Service create before profile verification');probe={Id:'1'.repeat(64),Name:'/'+a[a.indexOf('--name')+1],Image:p.imageId,Config:{Labels:{'dvaia.registry.probe':p.workspace}},HostConfig:{NetworkMode:'none'},State:{Running:false,ExitCode:0}};return ok(probe.Id);}
+  if(a[0]==='create'){assert(a.includes('--entrypoint'),'Service create before profile verification');probe={Id:'1'.repeat(64),Name:'/'+a[a.indexOf('--name')+1],Image:p.imageId,Config:{Labels:{'owasp-ai-goat.registry.probe':p.workspace}},HostConfig:{NetworkMode:'none'},State:{Running:false,ExitCode:0}};return ok(probe.Id);}
   if(a[0]==='start'&&a[1]==='--attach')return ok('f'.repeat(64));if(a[0]==='rm'&&probe?.Id===a[1]){probe=null;return ok('');}
   if(o.stage==='network-create'){assert(verified,'Network created before enforced profile');throw Object.assign(Error('controlled stop after profile'),{code:'CONTROL_STOP'});}throw Error('Unexpected Docker command '+o.stage);
  }
@@ -21,7 +21,7 @@ async function fixture(platform){const home=await fs.mkdtemp(path.join(os.tmpdir
  if(['profile-existing-digest','profile-published-digest'].includes(o.stage))return ok((conflict?'0'.repeat(64):installed)+'  '+p.destination);
  if(o.stage==='profile-install'){assert(args.join(' ').includes(p.destination));const rendered=(await fs.readFile(path.join(options.root,'sidecars/sandbox-runner/owned-mcp-registry/profile.apparmor.in'),'utf8')).replaceAll('@@SUPERVISOR_PROFILE@@',p.profile);installed=sha(rendered);}
  if(o.stage==='profile-trust')return ok(trust?'1000:1000:644:regular file':'0:0:600:regular file');
- if(o.stage==='profile-verify'){verified=!missing;return ok(missing?'dvaia-mcp-sandbox (enforce)\n':p.profile+' (enforce)\n');}
+ if(o.stage==='profile-verify'){verified=!missing;return ok(missing?'owasp-ai-goat-mcp-sandbox (enforce)\n':p.profile+' (enforce)\n');}
  return ok('');};
  return{options,p,events,close:()=>fs.rm(home,{recursive:true,force:true}),setConflict:()=>{conflict=true;},setMissing:()=>{missing=true;},setTrust:()=>{trust=true;}};
 }

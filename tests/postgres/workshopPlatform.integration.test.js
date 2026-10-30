@@ -11,7 +11,7 @@ const {createWorkshopRevisionStore,createWorkshopModeRepository}=require('../../
 const {WORKSHOP_OBJECTIVES}=require('../../server/config/workshopCatalog');
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&Boolean(process.env.PG_PLATFORM_TEST_MIGRATION_URL);
 test('real PG18 canonical workshop config/progress/time/mode/revisions remain coherent under mutations and resets',{skip:!enabled},async()=>{
- for(const key of ['PG_PLATFORM_TEST_MIGRATION_URL','PG_PLATFORM_TEST_RUNTIME_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const key of ['PG_PLATFORM_TEST_MIGRATION_URL','PG_PLATFORM_TEST_RUNTIME_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const migration=createPool(process.env,'PG_PLATFORM_TEST_MIGRATION_URL'),pool=createPool(process.env,'PG_PLATFORM_TEST_RUNTIME_URL');
  const config=createWorkshopConfigRepository(pool),progress=createWorkshopProgressRepository(pool),revisions=createWorkshopRevisionStore(pool),modes=createWorkshopModeRepository(pool);
  const wk='sql_injection_workshop';

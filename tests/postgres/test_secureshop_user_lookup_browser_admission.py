@@ -73,7 +73,7 @@ class Admission(unittest.TestCase):
         self.assertEqual(watcher.direct_command([parsed.node, '--test', '--test-reporter=tap',
             '--test-concurrency=1', L.TEST], parsed), [parsed.node, '--test-reporter=tap', L.TEST])
         self.assertEqual(watcher.KIND, 'user_lookup_disclosure_browser')
-        self.assertEqual(ownership.PROFILE_PREFIX, 'dvaia-user-lookup-browser-')
+        self.assertEqual(ownership.PROFILE_PREFIX, 'owasp-ai-goat-user-lookup-browser-')
         original = L.load(L.LIFECYCLE, 'lookup_v12_unmodified_control')
         self.assertEqual(original.KIND, 'idor_lesson_browser')
         self.assertNotEqual(original.TEST, watcher.TEST)
@@ -83,7 +83,7 @@ class Admission(unittest.TestCase):
     def test_exact_profile_and_independent_absence(self):
         evidence = L.ROOT / 'tasks/qualification/run-controlled'
         owner = SimpleNamespace(evidence=evidence, captured=SimpleNamespace(
-            profile=str(evidence / 'runtime/tmp/dvaia-user-lookup-browser-controlled'), record={'pid': 123}))
+            profile=str(evidence / 'runtime/tmp/owasp-ai-goat-user-lookup-browser-controlled'), record={'pid': 123}))
         absent = Mock(return_value={'absent': True})
         ownership = SimpleNamespace(_browser_modules=lambda: (None, None, None, None, absent))
         with patch.object(Path, 'exists', return_value=False), patch.object(Path, 'is_symlink', return_value=False):
@@ -92,10 +92,10 @@ class Admission(unittest.TestCase):
         with patch.object(Path, 'exists', return_value=True):
             with self.assertRaisesRegex(RuntimeError, 'profile remains'):
                 L.verify_retirement(owner, ownership)
-        owner.captured.profile = str(evidence / 'runtime/tmp/dvaia-v19-browser-foreign')
+        owner.captured.profile = str(evidence / 'runtime/tmp/owasp-ai-goat-v19-browser-foreign')
         with self.assertRaisesRegex(RuntimeError, 'ownership mismatch'):
             L.verify_retirement(owner, ownership)
-        owner.captured.profile = str(evidence / 'runtime/tmp/dvaia-user-lookup-browser-controlled')
+        owner.captured.profile = str(evidence / 'runtime/tmp/owasp-ai-goat-user-lookup-browser-controlled')
         absent.side_effect = RuntimeError('still live')
         with self.assertRaisesRegex(RuntimeError, 'still live'):
             L.verify_retirement(owner, ownership)

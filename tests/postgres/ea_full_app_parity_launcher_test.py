@@ -131,7 +131,7 @@ class Admission(unittest.TestCase):
   self.assertEqual(owner.profile_contract('route-actual-eight')['workSeconds'],960)
  def test_closed_route_contract(self):
   c=owner.profile_contract('route-session-controlled')
-  self.assertEqual(c,{'cohort':'ea-route-session-controlled-main','workSeconds':180,'databasePrefix':'dvaia_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'})
+  self.assertEqual(c,{'cohort':'ea-route-session-controlled-main','workSeconds':180,'databasePrefix':'owasp_ai_goat_test_ea_route','child':'tests/postgres/excessiveAgencyRoute.integration.test.js'})
   self.assertEqual(owner.profile_contract('nine-content')['workSeconds'],780)
   with self.assertRaises(RuntimeError):owner.profile_contract('route-live')
   with self.assertRaisesRegex(RuntimeError,'admitted main'):owner.main(['--docker-host',owner.EXPECTED_DOCKER,'--profile','route-session-controlled','--plan'])

@@ -111,7 +111,7 @@ async function startControlledTarget() {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'healthy',
-      marker: 'dvaia-controlled-ssrf-target',
+      marker: 'owasp-ai-goat-controlled-ssrf-target',
       path: req.url,
     }));
   });
@@ -317,7 +317,7 @@ async function runIntegrationTests() {
     );
     const toolResult = result.toolCalls?.[0]?.result || '';
     assert(toolResult.includes('HTTP 200'), 'controlled loopback tool records HTTP 200');
-    assert(toolResult.includes('dvaia-controlled-ssrf-target'),
+    assert(toolResult.includes('owasp-ai-goat-controlled-ssrf-target'),
       'controlled loopback tool returns the target marker');
     assert(toolResult.includes('/health'), 'controlled loopback tool returns the requested path');
   } finally {

@@ -1,4 +1,4 @@
-# DVAIA Quick Start
+# OWASP Agentic AI GOAT Quick Start
 
 Run these commands from the repository root. Initial setup downloads dependencies and models, so installation time depends on your machine and network.
 

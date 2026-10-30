@@ -135,8 +135,8 @@ def read_v28_result(evidence, image_id, source_sha256, runtime_digest):
     resource = json.loads(resource_path.read_text())
     labels = resource.get('labels') if isinstance(resource, dict) else None
     if (not isinstance(resource, dict) or resource.get('image') != image_id or not isinstance(labels, dict)
-            or labels.get('dvaia.listings.source') != source_sha256
-            or labels.get('dvaia.listings.runtime') != runtime_digest):
+            or labels.get('owasp-ai-goat.listings.source') != source_sha256
+            or labels.get('owasp-ai-goat.listings.runtime') != runtime_digest):
         raise RuntimeError('V28 result Listings identity mismatch')
     return value
 

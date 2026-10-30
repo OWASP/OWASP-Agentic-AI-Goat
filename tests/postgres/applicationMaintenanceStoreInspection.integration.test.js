@@ -11,7 +11,7 @@ async function bounded(work,ms=5000){let timer;try{return await Promise.race([Pr
 test('real canonical16 inspection authenticates roles, rejects each foreign backend and preserves lease ownership',{skip:!enabled,timeout:240000},async()=>{
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');
  const root=await fs.realpath(process.cwd()),evidence=await fs.realpath(process.env.SETUP_PHASE_EVIDENCE_ROOT);
- assert.equal(root,await fs.realpath(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));assert.equal(path.dirname(root),evidence);assert.match(path.basename(evidence),/^dvaia-setup-phase-/);
+ assert.equal(root,await fs.realpath(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));assert.equal(path.dirname(root),evidence);assert.match(path.basename(evidence),/^owasp-ai-goat-setup-phase-/);
  assert.match(process.env.SETUP_PHASE_OWNER,/^[a-f0-9]{32}$/);
  const adminUrl=new URL(process.env.PG_ADMIN_DATABASE_URL);assert.equal(adminUrl.hostname,'127.0.0.1');assert.equal(adminUrl.pathname,'/postgres');assert.match(adminUrl.port,/^[0-9]+$/);
  await assert.rejects(fs.lstat(path.join(root,'.env')),{code:'ENOENT'});
@@ -46,7 +46,7 @@ test('real canonical16 inspection authenticates roles, rejects each foreign back
    await assert.rejects(api.inspect(),{code:'MAINTENANCE_INSPECTION_OTHER_BACKEND'});result.idleBlocks.push(store.schema);await close(c);
   }
   const d=await connect(env.CTF_DELIVERY_DATABASE_URL);await assert.rejects(api.inspect(),{code:'MAINTENANCE_INSPECTION_OTHER_BACKEND'});result.deliveryBlock=true;await close(d);
-  const sameRole=await connect(env.IDENTITY_MIGRATION_DATABASE_URL);await sameRole.query("SET application_name='dvaia-maintenance-lease'");await assert.rejects(api.inspect(),{code:'MAINTENANCE_INSPECTION_OTHER_BACKEND'});result.roleWideExemptionDenied=true;await close(sameRole);
+  const sameRole=await connect(env.IDENTITY_MIGRATION_DATABASE_URL);await sameRole.query("SET application_name='owasp-ai-goat-maintenance-lease'");await assert.rejects(api.inspect(),{code:'MAINTENANCE_INSPECTION_OTHER_BACKEND'});result.roleWideExemptionDenied=true;await close(sameRole);
   await assert.rejects(createInspector({environment:env,manifestPath,deliveryManifestPath,lease:{signal:new AbortController().signal,assertHeld(){},status(){return{state:'held',mode:'maintenance'};}}}).inspect(),{code:'MAINTENANCE_INSPECTION_UNAVAILABLE'});
   const wrong=path.join(directory,'wrong-cluster.json');await fs.writeFile(wrong,JSON.stringify({...manifest,cluster:'1'}),{mode:0o600});await assert.rejects(createInspector({environment:env,manifestPath:wrong,deliveryManifestPath,lease}).inspect(),{code:'MAINTENANCE_INSPECTION_UNAVAILABLE'});
   const hidden={...env,PG_ADMIN_DATABASE_URL:env.IDENTITY_MIGRATION_DATABASE_URL};await assert.rejects(createInspector({environment:hidden,manifestPath,deliveryManifestPath,lease}).inspect(),{code:'MAINTENANCE_INSPECTION_VISIBILITY_REQUIRED'});

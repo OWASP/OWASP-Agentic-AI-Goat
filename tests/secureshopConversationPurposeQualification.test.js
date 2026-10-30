@@ -28,7 +28,7 @@ test('purpose qualifier covers upgrade compatibility, isolation, replay and aggr
 
 test('single-use launcher stages reserved agents0013 from frozen copied source', () => {
   const source = read('tests/postgres/run-secureshop-conversation-purpose-isolated.py');
-  assert.match(source, /EXPECTED_DOCKER = 'unix:\/\/\/Users\/averma5\/\.colima\/dvaia-pg-verify\/docker\.sock'/);
+  assert.match(source, /EXPECTED_DOCKER = 'unix:\/\/\/Users\/averma5\/\.colima\/owasp-ai-goat-pg-verify\/docker\.sock'/);
   assert.match(source, /OWNER = '\/root\/purpose_native_review'/);
   assert.match(source, /0013_secureshop_conversation_purpose\.sql/);
   assert.match(source, /0011_secureshop_mcp_trust\.sql/);

@@ -6,7 +6,7 @@ const { posix: path } = require('node:path');
 const { createV06UploadSourceReader } = require('./secureshopV06UploadSourceReader');
 const { readQualifiedUploadSource } = require('./secureshopV06UploadEvidence');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-const MARKER = /dvaia-v08-[a-f0-9]{32}/g;
+const MARKER = /owasp-ai-goat-v08-[a-f0-9]{32}/g;
 const hash = value => createHash('sha256').update(value).digest('hex');
 const fail = () => Object.assign(Error('SVG upload source unavailable'), {
   code: 'SVG_UPLOAD_SOURCE_UNAVAILABLE', executionBoundary: true,

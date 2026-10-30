@@ -7,8 +7,8 @@ from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[2]
 DOCKER = Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
-DOCKER_HOST = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
-NODE = Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+DOCKER_HOST = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
+NODE = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 PG_IMAGE = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 MODEL_DIGEST = '46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e'
 
@@ -23,12 +23,12 @@ if not cache.is_absolute() or not cache.resolve(strict=True).is_dir(): raise Sys
 if not DOCKER.is_file() or not NODE.is_file(): raise SystemExit('Pinned native tools unavailable')
 
 suffix = uuid.uuid4().hex[:12]
-evidence = Path(tempfile.mkdtemp(prefix='dvaia-prompt-policy-task-composed-')); os.chmod(evidence, 0o700)
+evidence = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-prompt-policy-task-composed-')); os.chmod(evidence, 0o700)
 workspace = evidence / 'source'
-pg_name = f'dvaia-task-policy-pg-{suffix}'
-renderer_name = f'dvaia-task-policy-renderer-{suffix}'
-renderer_image = f'dvaia-task-policy-renderer:{suffix}'
-renderer_network = f'dvaia-task-policy-net-{suffix}'
+pg_name = f'owasp-ai-goat-task-policy-pg-{suffix}'
+renderer_name = f'owasp-ai-goat-task-policy-renderer-{suffix}'
+renderer_image = f'owasp-ai-goat-task-policy-renderer:{suffix}'
+renderer_network = f'owasp-ai-goat-task-policy-net-{suffix}'
 docker = [str(DOCKER), '--host', DOCKER_HOST]
 env = {'PATH': f'{NODE.parent}:/usr/bin:/bin', 'HOME': os.environ['HOME'], 'TMPDIR': str(evidence)}
 state = {'version': 1, 'scope': 'secureshop_task_policy_composed_actual8b', 'status': 'preparing',
@@ -80,7 +80,7 @@ def on_signal(signum,_frame): interrupted['signal']=signum; raise KeyboardInterr
 signal.signal(signal.SIGINT,on_signal);signal.signal(signal.SIGTERM,on_signal)
 try:
  if run([str(NODE),'--version'],stdout=subprocess.PIPE,text=True).stdout.strip()!='v26.9.0': raise RuntimeError('Node v26.9.0 required')
- if dcmd(['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()!='colima-dvaia-pg-verify': raise RuntimeError('reviewed Docker daemon required')
+ if dcmd(['info','--format','{{.Name}}'],stdout=subprocess.PIPE,text=True).stdout.strip()!='colima-owasp-ai-goat-pg-verify': raise RuntimeError('reviewed Docker daemon required')
  if dcmd(['image','inspect','--format','{{.Id}}',PG_IMAGE],stdout=subprocess.PIPE,text=True).stdout.strip()!=PG_IMAGE: raise RuntimeError('pinned PG image unavailable')
  if not args.provider_free_finalize:
   with urllib.request.urlopen('http://127.0.0.1:11434/api/tags',timeout=5) as response: body=response.read(262145)
@@ -94,15 +94,15 @@ try:
   inventory.extend(str(item.relative_to(workspace)) for item in sorted((workspace/folder).rglob('*')) if item.is_file())
  state['sourceSha256']={name:sha(workspace/name) for name in sorted(set(inventory))};state['nodeSha256']=sha(NODE);save()
  run([str(NODE),'--check','tests/postgres/secureshopPromptPolicyTaskComposed.integration.test.js'],cwd=workspace)
- dcmd(['network','create','--label',f'dvaia.qualification={suffix}',renderer_network]);created.append(('network',renderer_network))
+ dcmd(['network','create','--label',f'owasp-ai-goat.qualification={suffix}',renderer_network]);created.append(('network',renderer_network))
  with build_log.open('w') as output:
   built=subprocess.run(docker+['build','--pull=false','-f','sidecars/sandbox-runner/Dockerfile','-t',renderer_image,'sidecars/sandbox-runner'],cwd=workspace,env=env,stdout=output,stderr=subprocess.STDOUT,timeout=300)
  os.chmod(build_log,0o600)
  if built.returncode: raise RuntimeError('renderer image build failed')
  created.append(('image',renderer_image)); state['rendererImageId']=json.loads(dcmd(['image','inspect',renderer_image],stdout=subprocess.PIPE,text=True).stdout)[0]['Id'];save()
- dcmd(['run','--detach','--pull','never','--name',renderer_name,'--label',f'dvaia.qualification={suffix}','--network',renderer_network,
+ dcmd(['run','--detach','--pull','never','--name',renderer_name,'--label',f'owasp-ai-goat.qualification={suffix}','--network',renderer_network,
   '--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,noexec,nosuid,size=32m','--security-opt','seccomp=unconfined',
-  '--security-opt','apparmor=dvaia-mcp-sandbox','-e','SECURESHOP_POLICY_RENDER_ENABLED=true','-e','SECURESHOP_POLICY_RENDER_MAX_CONCURRENT=1',
+  '--security-opt','apparmor=owasp-ai-goat-mcp-sandbox','-e','SECURESHOP_POLICY_RENDER_ENABLED=true','-e','SECURESHOP_POLICY_RENDER_MAX_CONCURRENT=1',
   '-p','127.0.0.1::8090',renderer_image],stdout=subprocess.DEVNULL);created.append(('container',renderer_name))
  renderer_port=int(dcmd(['port',renderer_name,'8090/tcp'],stdout=subprocess.PIPE,text=True).stdout.strip().rsplit(':',1)[1])
  renderer_origin=f'http://127.0.0.1:{renderer_port}'
@@ -113,7 +113,7 @@ try:
   except Exception: pass
   time.sleep(.2)
  else: raise RuntimeError('renderer readiness failed')
- dcmd(['run','--detach','--pull','never','--name',pg_name,'--label',f'dvaia.qualification={suffix}','--memory','512m','--cpus','1','--pids-limit','128',
+ dcmd(['run','--detach','--pull','never','--name',pg_name,'--label',f'owasp-ai-goat.qualification={suffix}','--memory','512m','--cpus','1','--pids-limit','128',
   '--tmpfs','/var/lib/postgresql:rw,size=335544320','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1',
   '-p','127.0.0.1::5432',PG_IMAGE,'-c','shared_buffers=16MB','-c','max_connections=48','-c','max_wal_size=16MB','-c','min_wal_size=4MB'],stdout=subprocess.DEVNULL);created.append(('container',pg_name))
  for _ in range(100):
@@ -126,12 +126,12 @@ try:
   'REVIEW':('dvaia_secureshop_review_migration','dvaia_secureshop_review_runtime'),'COMMERCE':('dvaia_secureshop_migration','dvaia_secureshop_runtime')}
  dcmd(psql[len(docker):]+[';'.join(f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS' for pair in roles.values() for role in pair)+';'],stdout=subprocess.DEVNULL)
  for store,(migration,runtime) in roles.items():
-  database=f'dvaia_test_task_policy_{suffix}_{store.lower()}'
+  database=f'owasp_ai_goat_test_task_policy_{suffix}_{store.lower()}'
   dcmd(psql[len(docker):]+[f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL)
   dcmd(psql[len(docker):]+[f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}'],stdout=subprocess.DEVNULL)
   env[f'PG_PROMPT_POLICY_TASK_COMPOSED_{store}_MIGRATION_URL']=f'postgresql://{quote(migration)}@127.0.0.1:{port}/{database}'
   env[f'PG_PROMPT_POLICY_TASK_COMPOSED_{store}_RUNTIME_URL']=f'postgresql://{quote(runtime)}@127.0.0.1:{port}/{database}'
- env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',PROMPT_POLICY_TASK_COMPOSED_NATIVE='1',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+ env.update(NODE_ENV='test',PG_TEST_DISPOSABLE='yes',PROMPT_POLICY_TASK_COMPOSED_NATIVE='1',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
   PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',PROMPT_POLICY_RENDERER_ORIGIN=renderer_origin,
   OLLAMA_BASE_URL='http://127.0.0.1:11434',OLLAMA_MODEL='llama3.1:8b',AI_PROVIDER='ollama',
   PROMPT_POLICY_TASK_ACTUAL_MODEL='0' if args.provider_free_finalize else '1',

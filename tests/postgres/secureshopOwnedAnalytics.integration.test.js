@@ -11,7 +11,7 @@ const {fixture:foundation}=require('../fixtures/secureshopAnalyticsFoundation');
 const enabled=process.env.OWNED_ANALYTICS_NATIVE==='1';
 test('owned Analytics native candidate', {skip:!enabled,timeout:150000},async()=>{
  const nonce=process.env.OWNED_ANALYTICS_OWNER,port=Number(process.env.OWNED_ANALYTICS_PORT),database=process.env.OWNED_ANALYTICS_CONTROL;
- assert.match(nonce,/^[a-f0-9]{12}$/);assert.equal(database,`dvaia_analytics_control_${nonce}`);assert.ok(port>1024&&port<65536);
+ assert.match(nonce,/^[a-f0-9]{12}$/);assert.equal(database,`owasp_ai_goat_analytics_control_${nonce}`);assert.ok(port>1024&&port<65536);
  const connection={host:'127.0.0.1',port,user:'postgres',database,connectionTimeoutMillis:1500,query_timeout:4000};
  const control=new Pool({...connection,max:6});control.on('error',()=>{});let active=0,maximum=0,dispatches=0,targetPoolCreations=0;
  const pools=new Set();
@@ -22,7 +22,7 @@ test('owned Analytics native candidate', {skip:!enabled,timeout:150000},async()=
  let service;
  try{
   const systemIdentifier=(await control.query('SELECT system_identifier::text FROM pg_control_system()')).rows[0].system_identifier;
-  const identity={systemIdentifier,controlDatabase:database,clusterName:`dvaia-owned-analytics-${nonce}`};
+  const identity={systemIdentifier,controlDatabase:database,clusterName:`owasp-ai-goat-owned-analytics-${nonce}`};
   const migration=fs.readFileSync(path.join(__dirname,'../../docs/modernization/drafts/secureshop-bound-analytics/control-schema.candidate.sql'),'utf8'),checksum=hash(migration);
   await control.query('CREATE TABLE candidate_migrations(id text PRIMARY KEY,sha256 text NOT NULL)');
   async function migrate(text=migration){const prior=(await control.query("SELECT sha256 FROM candidate_migrations WHERE id='analytics-v1'")).rows[0];if(prior){assert.equal(prior.sha256,hash(text));return false;}const c=await control.connect();try{await c.query('BEGIN');await c.query(text);await c.query("INSERT INTO candidate_migrations VALUES('analytics-v1',$1)",[hash(text)]);await c.query('COMMIT');return true;}finally{c.release(true);}}

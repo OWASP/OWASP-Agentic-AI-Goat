@@ -8,7 +8,7 @@ const crypto = require('node:crypto');
 const { readSyntheticConfig, MAX_BYTES } = require('../sidecars/sandbox-runner/owned-system/config-reader');
 
 function fixture(t) {
-  const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-system-config-'));
+  const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-system-config-'));
   const root = path.join(parent, 'target');
   fs.mkdirSync(path.join(root, 'config'), { recursive: true });
   fs.writeFileSync(path.join(root, 'config', 'service.json'), '{"service":"synthetic"}');

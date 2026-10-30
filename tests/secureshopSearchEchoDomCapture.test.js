@@ -49,7 +49,7 @@ function fixture() {
     if(name==='./components/AgentLane/SearchEcho.jsx')return componentModule.exports;
     throw Error(name);
   },entryModule,entryModule.exports);
-  return {dom,document,mount:context.__DVAIA_SEARCH_ECHO_MOUNT__};
+  return {dom,document,mount:context.__OWASP_AI_GOAT_SEARCH_ECHO_MOUNT__};
 }
 function capture(snapshot,source='source') {
   return {version:1,originalSourceSha256:sha(source),instrumentedSourceSha256:sha('instrumented'),

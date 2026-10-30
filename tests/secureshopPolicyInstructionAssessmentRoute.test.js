@@ -27,7 +27,7 @@ test('policy instruction retry is bound to the original saved IDs and authentica
  t.after(()=>new Promise(resolve=>server.close(resolve)));
  await new Promise(resolve=>server.once('listening',resolve));
  const url=`http://127.0.0.1:${server.address().port}/agents/admin/assistant/policy/instruction/assessment-retry`;
- const headers={'content-type':'application/json','x-dvaia-secureshop-launch':'a'.repeat(43)};
+ const headers={'content-type':'application/json','x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)};
  const post=(body=source,suffix='',provided=headers)=>fetch(url+suffix,{method:'POST',headers:provided,body:JSON.stringify(body)});
  const response=await post({sessionId:source.sessionId.toUpperCase(),requestId:source.requestId.toUpperCase()});
  assert.equal(response.status,200);assert.equal(response.headers.get('cache-control'),'no-store');

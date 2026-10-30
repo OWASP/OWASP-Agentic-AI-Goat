@@ -9,7 +9,7 @@ const exact = (value, keys) => value && Object.getPrototypeOf(value) === Object.
   && Object.keys(value).sort().join(',') === [...keys].sort().join(',');
 const singleLaunchHeader = req => (req.rawHeaders || [])
   .filter((_, i) => i % 2 === 0)
-  .filter(value => String(value).toLowerCase() === 'x-dvaia-secureshop-launch').length === 1;
+  .filter(value => String(value).toLowerCase() === 'x-owasp-ai-goat-secureshop-launch').length === 1;
 
 function createBoundV01AuditLessonRouter({ launches, authenticatePersona, runtime, assessment } = {}) {
   if (typeof launches?.resolveCapability !== 'function'

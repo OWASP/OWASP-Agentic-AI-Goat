@@ -5,7 +5,7 @@ const { withTransaction } = require('./index');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SHA = /^[a-f0-9]{64}$/;
 const OWNER_KEY = /^[1-9][0-9]{0,9}$/;
-const MESSAGE_ID = /^mcp-[0-9a-f-]{36}@dvaia\.local$/;
+const MESSAGE_ID = /^mcp-[0-9a-f-]{36}@(?:owasp-ai-goat|dvaia)\.local$/;
 const fail = (code, message) => { const error = new Error(message); error.code = code; throw error; };
 function coordinates(value) {
   if (!value || !UUID.test(value.targetId || '') || !Number.isSafeInteger(value.platformOwnerId) || value.platformOwnerId < 1
@@ -355,7 +355,7 @@ function createMcpResourceRepository(pool) {
     async beginMailIntent(value) {
       const [target, owner, session, generation] = coordinates(value); const intent = uuid(value.intentId, 'intentId');
       const assigned = String(value.assignedMessageId || '');
-      if (!/^mcp-[0-9a-f-]{36}@dvaia\.local$/.test(assigned)) fail('MCP_RESOURCE_SCOPE_INVALID', 'Assigned SMTP Message-ID is invalid');
+      if (!MESSAGE_ID.test(assigned)) fail('MCP_RESOURCE_SCOPE_INVALID', 'Assigned SMTP Message-ID is invalid');
       hash(value.recipientSha256, 'recipientSha256'); hash(value.payloadSha256, 'payloadSha256');
       return withTransaction(pool, async client => {
         const active = (await client.query(`SELECT 1 FROM mcp.runner_targets WHERE target_id=$1 AND user_key=$2

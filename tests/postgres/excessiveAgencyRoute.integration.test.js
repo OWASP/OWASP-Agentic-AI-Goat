@@ -390,9 +390,9 @@ async function readTurnEvidence(pool, ownerKey, priorRunIds) {
 
 test('mounted EA route qualifies nine observed objectives with native owner effects and reset isolation',
   { skip: !enabled, timeout: live ? 900000 : 120000 }, async t => {
-    assertOwnedUrl(process.env.IDENTITY_DATABASE_URL, 'dvaia_test_ea_route_identity');
-    assertOwnedUrl(process.env.EXCESSIVE_AGENCY_DATABASE_URL, 'dvaia_test_ea_route_lab');
-    assert.equal(require('node:fs').realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE),
+    assertOwnedUrl(process.env.IDENTITY_DATABASE_URL, 'owasp_ai_goat_test_ea_route_identity');
+    assertOwnedUrl(process.env.EXCESSIVE_AGENCY_DATABASE_URL, 'owasp_ai_goat_test_ea_route_lab');
+    assert.equal(require('node:fs').realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE),
       require('node:fs').realpathSync(process.cwd()));
     const main = process.env.EA_PARITY_MAIN === '1';
     const assertLoaded = main ? admitMainRoute() : () => {};

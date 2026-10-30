@@ -21,7 +21,7 @@ function Read-BoundedLine {
 }
 try {
     Add-Type -Path (Join-Path $PSScriptRoot 'windows-owned-process.cs')
-    $job = New-Object DvaiaOwnedProcessJob
+    $job = New-Object OwaspAiGoatOwnedProcessJob
     [Console]::Out.WriteLine('{"version":1,"event":"ready"}')
     [Console]::Out.Flush()
     while ($null -ne ($line = Read-BoundedLine)) {

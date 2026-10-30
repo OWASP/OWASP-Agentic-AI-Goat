@@ -6,7 +6,7 @@ const {TABLES,mapXssArchive}=require('./map-xss-archive');
 const DEFAULT_EMAILS=[
  {id:1,subject:'Your account security update',sender:'support@secureshop.com',body:'Dear Customer, your account settings have been updated. Please review your profile.',user_key:null},
  {id:2,subject:'Order confirmation #12345',sender:'orders@secureshop.com',body:'Your order #12345 has been confirmed and will ship within 2 business days.',user_key:null},
- {id:3,subject:'Weekly Security Newsletter',sender:'newsletter@dvaia.local',body:'This week: patch Tuesday updates, new CVEs, and best practices for input sanitization.',user_key:null},
+ {id:3,subject:'Weekly Security Newsletter',sender:'newsletter@owasp-ai-goat.local',body:'This week: patch Tuesday updates, new CVEs, and best practices for input sanitization.',user_key:null},
 ];
 function reject(code){throw Object.assign(new Error(code),{code});}
 function verifiedOwnerBinding(raw,ownerProof){

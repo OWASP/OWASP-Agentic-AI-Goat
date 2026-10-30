@@ -24,7 +24,7 @@ def publish_ownership(target, state):
         if os.path.lexists(temporary):os.unlink(temporary)
 
 def create_private_installation(package):
-    root=Path(tempfile.mkdtemp(prefix='dvaia-maintenance-installation-')).resolve()
+    root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-maintenance-installation-')).resolve()
     root.chmod(0o700)
     if root==package or package in root.parents:raise RuntimeError('Installation must be outside source repository')
     st=root.lstat()
@@ -365,7 +365,7 @@ def verify_platform_rendered_result(value,bound_sessions=False):
 
 def codebot_store_configuration(store,port,nonce,profile='codebot'):
     if store not in browser_stores(profile) or type(port)is not int or not 1<=port<=65535 or not re.fullmatch('[a-f0-9]{12}',nonce):raise ValueError('CodeBot closed store binding required')
-    migration='dvaia_'+store+'_migration';runtime='dvaia_'+store+'_runtime';database='dvaia_test_codebot_parity_'+nonce+'_'+store
+    migration='dvaia_'+store+'_migration';runtime='dvaia_'+store+'_runtime';database='owasp_ai_goat_test_codebot_parity_'+nonce+'_'+store
     sql=f'CREATE ROLE {migration} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE {runtime} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE DATABASE {database} OWNER {migration}; REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime};'
     prefix={'identity':'IDENTITY','supply_chain':'SUPPLY_CHAIN_WORKSHOP','aria':'SQL_WORKSHOP','nova':'NOSQL_WORKSHOP','mcp':'MCP_WORKSHOP','xss':'XSS_WORKSHOP','csrf':'CSRF_WORKSHOP'}[store]
     return sql,{prefix+suffix:f'postgresql://{role}@127.0.0.1:{port}/{database}' for suffix,role in [('_DATABASE_URL',runtime),('_MIGRATION_DATABASE_URL',migration)]}
@@ -375,8 +375,8 @@ class OwnedEmailMailpit:
     def __init__(self, command, daemon, owner, record):
         if not re.fullmatch('[a-f0-9]{32}',owner):raise ValueError('Email Mailpit owner required')
         self.command,self.daemon,self.record=command,daemon,record
-        self.name='dvaia-ipi-email-'+owner[:12]
-        self.labels={'dvaia.owner':owner,'dvaia.cohort':IPI_EMAIL_ACTUAL_PROFILE}
+        self.name='owasp-ai-goat-ipi-email-'+owner[:12]
+        self.labels={'owasp-ai-goat.owner':owner,'owasp-ai-goat.cohort':IPI_EMAIL_ACTUAL_PROFILE}
         self.identifier=None;self.attempted=False
         self.state={'name':self.name,'imageId':IPI_EMAIL_MAILPIT_IMAGE,'labels':self.labels,'daemonId':daemon,'creationAttempted':False}
     def start(self):
@@ -431,7 +431,7 @@ def codebot_environment(args,evidence,runtime,owner,urls):
       'CODEBOT_PARITY_PROFILE':profile,'CODEBOT_PARITY_NATIVE':'1','CODEBOT_PARITY_SOURCE_ROOT':args.package,'CODEBOT_PARITY_EVIDENCE_ROOT':str(evidence),'CODEBOT_PARITY_OWNER':owner,
       'CODEBOT_PARITY_MANIFEST':str(Path(args.manifest).resolve()),'CODEBOT_PARITY_MANIFEST_SHA256':args.manifest_sha256,
       **({'ANALYTICS_BROWSER_EXECUTABLE':args.browser,'ANALYTICS_BROWSER_SHA256':args.browser_sha256} if profile not in (IPI_RAG_ACTUAL_PROFILE,IPI_EMAIL_ACTUAL_PROFILE) else {}),'JWT_SECRET':secrets.token_urlsafe(48),
-      'DVAIA_APP_DATA_ROOT':str(runtime/'appdata'),'LOGS_DIR':str(runtime/'logs'),'LEGACY_SENSITIVE_FILES_ROOT':str(runtime/'assets'),
+      'OWASP_AI_GOAT_APP_DATA_ROOT':str(runtime/'appdata'),'LOGS_DIR':str(runtime/'logs'),'LEGACY_SENSITIVE_FILES_ROOT':str(runtime/'assets'),
       'AI_PROVIDER':'ollama' if profile in (*XSS_REFLECTED_PROFILES,XSS_BUILDER_ACTUAL_PROFILE,IPI_RAG_ACTUAL_PROFILE,IPI_EMAIL_ACTUAL_PROFILE) else 'mock',
       **({'OLLAMA_MODEL':POLICY_MODEL,'OLLAMA_BASE_URL':'http://127.0.0.1:11434','JUDGE_PROVIDER':'ollama','JUDGE_MODEL':POLICY_MODEL} if profile in (*XSS_REFLECTED_PROFILES,XSS_BUILDER_ACTUAL_PROFILE,IPI_RAG_ACTUAL_PROFILE,IPI_EMAIL_ACTUAL_PROFILE) else {}),**({'XENOVA_CACHE':json.loads(Path(args.manifest).read_text())['embeddingCache']['directory'],'TRANSFORMERS_CACHE':json.loads(Path(args.manifest).read_text())['embeddingCache']['directory'],'HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1'} if profile==IPI_RAG_ACTUAL_PROFILE else {}),'SS_ENABLE':'false','MCP_SIDECARS_AUTOSTART':'false','MCP_WORKSHOP_AUTOSTART':'false','AWS_EC2_METADATA_DISABLED':'true',**urls}
 
@@ -963,7 +963,7 @@ def verify_workshop_history_result(value):
 
 def finflow0055_store_configuration(case,port,nonce):
     if case not in ('fresh','populated') or type(port)is not int or not 1024<port<65536 or not re.fullmatch('[a-f0-9]{12}',nonce):raise ValueError('FinFlow closed store binding required')
-    migration='dvaia_identity_migration';runtime='dvaia_identity_runtime';database='dvaia_test_finflow_0055_'+nonce+'_'+case
+    migration='dvaia_identity_migration';runtime='dvaia_identity_runtime';database='owasp_ai_goat_test_finflow_0055_'+nonce+'_'+case
     roles=''.join('CREATE ROLE '+role+' LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; ' for role in (migration,runtime)) if case=='fresh' else ''
     sql=roles+f'CREATE DATABASE {database} OWNER {migration}; REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime};'
     return sql,{'PG_FINFLOW_0055_'+case.upper()+'_'+kind+'_URL':f'postgresql://{role}@127.0.0.1:{port}/{database}' for kind,role in [('RUNTIME',runtime),('MIGRATION',migration)]}
@@ -1026,7 +1026,7 @@ def validate_finflow0055_main(args):
 
 def finflow_admission_store_configuration(port,nonce):
     if type(port)is not int or not 1024<port<65536 or not re.fullmatch('[a-f0-9]{12}',nonce):raise ValueError('FinFlow admission binding required')
-    database='dvaia_test_finflow_admission_'+nonce+'_identity';migration='dvaia_identity_migration';runtime='dvaia_identity_runtime'
+    database='owasp_ai_goat_test_finflow_admission_'+nonce+'_identity';migration='dvaia_identity_migration';runtime='dvaia_identity_runtime'
     sql=''.join('CREATE ROLE '+role+' LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; ' for role in (migration,runtime))+f'CREATE DATABASE {database} OWNER {migration}; REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime};'
     return sql,{key:f'postgresql://{role}@127.0.0.1:{port}/{database}' for key,role in [('IDENTITY_DATABASE_URL',runtime),('IDENTITY_MIGRATION_DATABASE_URL',migration)]}
 
@@ -1080,7 +1080,7 @@ def validate_dpi_manifest(m):
 
 def dpi_store_configuration(port,nonce):
     sql,urls=finflow_admission_store_configuration(port,nonce)
-    return sql.replace('dvaia_test_finflow_admission_','dvaia_test_dpi_current_'),{k:v.replace('dvaia_test_finflow_admission_','dvaia_test_dpi_current_') for k,v in urls.items()}
+    return sql.replace('owasp_ai_goat_test_finflow_admission_','owasp_ai_goat_test_dpi_current_'),{k:v.replace('owasp_ai_goat_test_finflow_admission_','owasp_ai_goat_test_dpi_current_') for k,v in urls.items()}
 
 def dpi_environment(args,evidence,runtime,owner,urls):
     if set(urls)!={'IDENTITY_DATABASE_URL','IDENTITY_MIGRATION_DATABASE_URL'}:raise RuntimeError('DPI exact identity URLs required')
@@ -1124,7 +1124,7 @@ def verify_dpi_result(value,wire,selector='all'):
     if value['actualModelProof']is not model_proof:raise RuntimeError('DPI actual model proof mismatch')
     return True
 
-MCP_TEMPLATES={'cli':'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in','http':'sidecars/sandbox-runner/owned-http/http-profile.apparmor.in'}
+MCP_TEMPLATES={'cli':'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in','http':'sidecars/sandbox-runner/owned-http/http-profile.apparmor.in'}
 MCP_MAILPIT_IMAGE='sha256:98b916bd3c8d61f7633a52d3ea2f58d00620cb01ca57ab59edde68c347a95365'
 def validate_mcp_arguments(args):
     if args.scenario not in ('mcp-mounted-http','codebot-current-representative','codebot-current-full-six','codebot-current-clean-fixed') or not args.main_workspace:raise RuntimeError('MCP main-only selector required')
@@ -1202,7 +1202,7 @@ def verify_mcp_ssh_runtime(args,topology,run):
 
 def mcp_store_configuration(store,port,nonce):
     if store not in ('identity','mcp') or type(port)is not int or not 1024<port<65536 or not re.fullmatch('[a-f0-9]{12}',nonce):raise ValueError('Exact MCP store binding required')
-    database='dvaia_test_mcp_mounted_http_'+nonce+'_'+store;roles={k:'dvaia_'+store+'_'+k for k in ('runtime','migration')};prefix='IDENTITY' if store=='identity' else 'MCP_WORKSHOP'
+    database='owasp_ai_goat_test_mcp_mounted_http_'+nonce+'_'+store;roles={k:'dvaia_'+store+'_'+k for k in ('runtime','migration')};prefix='IDENTITY' if store=='identity' else 'MCP_WORKSHOP'
     sql=''.join('CREATE ROLE '+r+' LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; ' for r in roles.values())+f"CREATE DATABASE {database} OWNER {roles['migration']}; REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {roles['migration']},{roles['runtime']};"
     return sql,{prefix+('_MIGRATION_DATABASE_URL' if k=='migration' else '_DATABASE_URL'):f'postgresql://{r}@127.0.0.1:{port}/{database}'for k,r in roles.items()}
 
@@ -1226,12 +1226,12 @@ def mcp_environment(args,evidence,runtime,owner,urls,sidecars):
         if not re.fullmatch('[A-Za-z0-9_-]{64}',sidecars[key]):raise RuntimeError('MCP owned token required')
     if sidecars['MCP_OWNED_TARGET_TOKEN']==sidecars['MCP_OWNED_HTTP_TOKEN']:raise RuntimeError('MCP distinct tokens required')
     for name in ('home','tmp','logs','appdata','assets'):(runtime/name).mkdir(mode=0o700)
-    return {'PATH':str(Path(args.node).parent)+':/usr/bin:/bin','HOME':str(runtime/'home'),'TMPDIR':str(runtime/'tmp'),'LOGS_DIR':str(runtime/'logs'),'DVAIA_APP_DATA_ROOT':str(runtime/'appdata'),'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes','PG_TLS':'disable','PLATFORM_DATABASE_ENGINE':'postgres','WORKSHOP_DATABASE_ENGINE':'postgres','AWS_EC2_METADATA_DISABLED':'true','MCP_SIDECARS_AUTOSTART':'false','MCP_OWNED_RESOURCES_ENABLED':'true','MCP_MOUNTED_HTTP_NATIVE':'1','MCP_MOUNTED_PROFILE':mcp_profile(args),**({'MCP_RECON_70B':'1','MCP_DECISION_TIMEOUT_MS':'90000','MCP_RESPONSE_TIMEOUT_MS':'90000','MCP_RUN_TIMEOUT_MS':'290000'} if getattr(args,'mcp_recon_70b',False) else {}),**({'MCP_RECON_JUDGE_120':'1','MCP_RECON_JUDGE_TIMEOUT_MS':'120000'} if getattr(args,'mcp_recon_judge_120',False) else {}),**({'MCP_OBSERVED_ACTION_ENABLED':'true','MCP_SUPPLY_CHAIN_ENABLED':'true'} if mcp_profile(args)=='supply-chain' else {'MCP_OBSERVED_ACTION_ENABLED':'true'} if mcp_profile(args) in ('poisoning-contrast','poisoning-positive') else {}),'MCP_MOUNTED_HTTP_SOURCE_ROOT':args.package,'MCP_MOUNTED_HTTP_EVIDENCE_ROOT':str(evidence),'MCP_MOUNTED_HTTP_MANIFEST':str(Path(args.manifest).resolve()),'MCP_MOUNTED_HTTP_MANIFEST_SHA256':args.manifest_sha256,'MCP_MOUNTED_HTTP_OWNER':owner,'JWT_SECRET':secrets.token_urlsafe(48),**urls,**sidecars}
+    return {'PATH':str(Path(args.node).parent)+':/usr/bin:/bin','HOME':str(runtime/'home'),'TMPDIR':str(runtime/'tmp'),'LOGS_DIR':str(runtime/'logs'),'OWASP_AI_GOAT_APP_DATA_ROOT':str(runtime/'appdata'),'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes','PG_TLS':'disable','PLATFORM_DATABASE_ENGINE':'postgres','WORKSHOP_DATABASE_ENGINE':'postgres','AWS_EC2_METADATA_DISABLED':'true','MCP_SIDECARS_AUTOSTART':'false','MCP_OWNED_RESOURCES_ENABLED':'true','MCP_MOUNTED_HTTP_NATIVE':'1','MCP_MOUNTED_PROFILE':mcp_profile(args),**({'MCP_RECON_70B':'1','MCP_DECISION_TIMEOUT_MS':'90000','MCP_RESPONSE_TIMEOUT_MS':'90000','MCP_RUN_TIMEOUT_MS':'290000'} if getattr(args,'mcp_recon_70b',False) else {}),**({'MCP_RECON_JUDGE_120':'1','MCP_RECON_JUDGE_TIMEOUT_MS':'120000'} if getattr(args,'mcp_recon_judge_120',False) else {}),**({'MCP_OBSERVED_ACTION_ENABLED':'true','MCP_SUPPLY_CHAIN_ENABLED':'true'} if mcp_profile(args)=='supply-chain' else {'MCP_OBSERVED_ACTION_ENABLED':'true'} if mcp_profile(args) in ('poisoning-contrast','poisoning-positive') else {}),'MCP_MOUNTED_HTTP_SOURCE_ROOT':args.package,'MCP_MOUNTED_HTTP_EVIDENCE_ROOT':str(evidence),'MCP_MOUNTED_HTTP_MANIFEST':str(Path(args.manifest).resolve()),'MCP_MOUNTED_HTTP_MANIFEST_SHA256':args.manifest_sha256,'MCP_MOUNTED_HTTP_OWNER':owner,'JWT_SECRET':secrets.token_urlsafe(48),**urls,**sidecars}
 
 def codebot_current_store_configuration(store,port,nonce):
     if type(port)is not int or not 1024<port<65536:raise ValueError('CodeBot owned port required')
     sql,urls=codebot_store_configuration(store,port,nonce)
-    return sql.replace('dvaia_test_codebot_parity_','dvaia_test_codebot_current_'),{k:v.replace('dvaia_test_codebot_parity_','dvaia_test_codebot_current_')for k,v in urls.items()}
+    return sql.replace('owasp_ai_goat_test_codebot_parity_','owasp_ai_goat_test_codebot_current_'),{k:v.replace('owasp_ai_goat_test_codebot_parity_','owasp_ai_goat_test_codebot_current_')for k,v in urls.items()}
 
 def codebot_current_environment(args,evidence,runtime,owner,urls,sidecars):
     from urllib.parse import urlparse
@@ -1244,7 +1244,7 @@ def codebot_current_environment(args,evidence,runtime,owner,urls,sidecars):
     u=urlparse(sidecars['SANDBOX_RUNNER_URL'])
     if u.scheme!='http' or u.hostname!='127.0.0.1' or u.username or u.password or u.path or u.query or u.fragment or not u.port or not 1024<u.port<65536 or u.port==port:raise RuntimeError('CodeBot distinct owned CLI endpoint required')
     for name in ('home','tmp','logs','appdata','assets'):(runtime/name).mkdir(mode=0o700)
-    return {'PATH':str(Path(args.node).parent)+':/usr/bin:/bin','HOME':str(runtime/'home'),'TMPDIR':str(runtime/'tmp'),'LOGS_DIR':str(runtime/'logs'),'DVAIA_APP_DATA_ROOT':str(runtime/'appdata'),'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes','PG_TLS':'disable','PLATFORM_DATABASE_ENGINE':'postgres','WORKSHOP_DATABASE_ENGINE':'postgres','AWS_EC2_METADATA_DISABLED':'true','MCP_SIDECARS_AUTOSTART':'false','CODEBOT_OWNED_EXECUTION_ENABLED':'true','CODEBOT_LIVE_SCOPE':('clean-fixed' if args.scenario=='codebot-current-clean-fixed' else 'all' if args.scenario=='codebot-current-full-six' else 'representative'),'CODEBOT_CURRENT_NATIVE':'1','CODEBOT_CURRENT_SOURCE_ROOT':args.package,'CODEBOT_CURRENT_EVIDENCE_ROOT':str(evidence),'CODEBOT_CURRENT_MANIFEST':str(Path(args.manifest).resolve()),'CODEBOT_CURRENT_MANIFEST_SHA256':args.manifest_sha256,'CODEBOT_CURRENT_OWNER':owner,'CODEBOT_SANDBOX_RUNNER_URL':sidecars['SANDBOX_RUNNER_URL'],'JWT_SECRET':secrets.token_urlsafe(48),**urls,**sidecars}
+    return {'PATH':str(Path(args.node).parent)+':/usr/bin:/bin','HOME':str(runtime/'home'),'TMPDIR':str(runtime/'tmp'),'LOGS_DIR':str(runtime/'logs'),'OWASP_AI_GOAT_APP_DATA_ROOT':str(runtime/'appdata'),'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes','PG_TLS':'disable','PLATFORM_DATABASE_ENGINE':'postgres','WORKSHOP_DATABASE_ENGINE':'postgres','AWS_EC2_METADATA_DISABLED':'true','MCP_SIDECARS_AUTOSTART':'false','CODEBOT_OWNED_EXECUTION_ENABLED':'true','CODEBOT_LIVE_SCOPE':('clean-fixed' if args.scenario=='codebot-current-clean-fixed' else 'all' if args.scenario=='codebot-current-full-six' else 'representative'),'CODEBOT_CURRENT_NATIVE':'1','CODEBOT_CURRENT_SOURCE_ROOT':args.package,'CODEBOT_CURRENT_EVIDENCE_ROOT':str(evidence),'CODEBOT_CURRENT_MANIFEST':str(Path(args.manifest).resolve()),'CODEBOT_CURRENT_MANIFEST_SHA256':args.manifest_sha256,'CODEBOT_CURRENT_OWNER':owner,'CODEBOT_SANDBOX_RUNNER_URL':sidecars['SANDBOX_RUNNER_URL'],'JWT_SECRET':secrets.token_urlsafe(48),**urls,**sidecars}
 
 def verify_codebot_current_result(value,wire,captures,scenario='codebot-current-representative',history=None):
     if scenario not in ('codebot-current-representative','codebot-current-full-six','codebot-current-clean-fixed'):raise RuntimeError('CodeBot closed cohort required')
@@ -1478,7 +1478,7 @@ def validate_policy_manifest(manifest,cohort):
 def finflow_policy_store_configuration(store,port,nonce,profile='policy'):
     if profile not in ('policy','traversal'):raise ValueError('Closed FinFlow profile required')
     if store not in ('identity','finflow') or type(port)is not int or not 1024<port<65536 or not re.fullmatch('[a-f0-9]{12}',nonce):raise ValueError('Policy store binding required')
-    database='dvaia_test_finflow_'+profile+'_'+nonce+'_'+store;roles={kind:'dvaia_'+store+'_'+kind for kind in ('runtime','migration')};prefix='IDENTITY' if store=='identity' else 'FINFLOW_WORKSHOP'
+    database='owasp_ai_goat_test_finflow_'+profile+'_'+nonce+'_'+store;roles={kind:'dvaia_'+store+'_'+kind for kind in ('runtime','migration')};prefix='IDENTITY' if store=='identity' else 'FINFLOW_WORKSHOP'
     sql=''.join('CREATE ROLE '+r+' LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; ' for r in roles.values())+f"CREATE DATABASE {database} OWNER {roles['migration']}; REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {roles['migration']},{roles['runtime']};"
     return sql,{prefix+('_MIGRATION_DATABASE_URL' if k=='migration' else '_DATABASE_URL'):f'postgresql://{r}@127.0.0.1:{port}/{database}' for k,r in roles.items()}
 
@@ -1492,7 +1492,7 @@ def finflow_policy_environment(args,evidence,runtime,owner,urls,profile='policy'
     for store in ('identity','finflow'):expected.update(finflow_policy_store_configuration(store,port,owner[:12],profile)[1])
     if urls!=expected:raise RuntimeError('Exact owned policy URLs required')
     for name in ('home','tmp','logs','assets','appdata'):(runtime/name).mkdir(mode=0o700)
-    env={'PATH':str(Path(args.node).parent)+':/usr/bin:/bin','HOME':str(runtime/'home'),'TMPDIR':str(runtime/'tmp'),'LOGS_DIR':str(runtime/'logs'),'DVAIA_APP_DATA_ROOT':str(runtime/'appdata'),'FINFLOW_BACKUP_ROOT':str(runtime/'appdata/finflow-backups'),'FINFLOW_TRAVERSAL_TARGET_ROOT':str(runtime/'appdata/finflow-traversal-targets'),'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes','PG_TLS':'disable','PLATFORM_DATABASE_ENGINE':'postgres','WORKSHOP_DATABASE_ENGINE':'postgres','LEGACY_SENSITIVE_FILES_ROOT':str(runtime/'assets'),'SENSITIVE_INFO_AGGREGATE_RESET_ENABLED':'true','AWS_EC2_METADATA_DISABLED':'true','FINFLOW_POLICY_NATIVE':'1','FINFLOW_POLICY_COHORT':args.policy_cohort,'FINFLOW_POLICY_SOURCE_ROOT':args.package,'FINFLOW_POLICY_EVIDENCE_ROOT':str(evidence),'FINFLOW_POLICY_OWNER':owner,'FINFLOW_POLICY_MANIFEST':str(Path(args.manifest).resolve()),'FINFLOW_POLICY_MANIFEST_SHA256':args.manifest_sha256,'JWT_SECRET':secrets.token_urlsafe(48),**urls}
+    env={'PATH':str(Path(args.node).parent)+':/usr/bin:/bin','HOME':str(runtime/'home'),'TMPDIR':str(runtime/'tmp'),'LOGS_DIR':str(runtime/'logs'),'OWASP_AI_GOAT_APP_DATA_ROOT':str(runtime/'appdata'),'FINFLOW_BACKUP_ROOT':str(runtime/'appdata/finflow-backups'),'FINFLOW_TRAVERSAL_TARGET_ROOT':str(runtime/'appdata/finflow-traversal-targets'),'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes','PG_TLS':'disable','PLATFORM_DATABASE_ENGINE':'postgres','WORKSHOP_DATABASE_ENGINE':'postgres','LEGACY_SENSITIVE_FILES_ROOT':str(runtime/'assets'),'SENSITIVE_INFO_AGGREGATE_RESET_ENABLED':'true','AWS_EC2_METADATA_DISABLED':'true','FINFLOW_POLICY_NATIVE':'1','FINFLOW_POLICY_COHORT':args.policy_cohort,'FINFLOW_POLICY_SOURCE_ROOT':args.package,'FINFLOW_POLICY_EVIDENCE_ROOT':str(evidence),'FINFLOW_POLICY_OWNER':owner,'FINFLOW_POLICY_MANIFEST':str(Path(args.manifest).resolve()),'FINFLOW_POLICY_MANIFEST_SHA256':args.manifest_sha256,'JWT_SECRET':secrets.token_urlsafe(48),**urls}
     if profile=='traversal':
         env.pop('FINFLOW_POLICY_COHORT')
         env={k.replace('FINFLOW_POLICY_','FINFLOW_TRAVERSAL_'):v for k,v in env.items()}
@@ -1643,7 +1643,7 @@ def validate_prospective_main(args):
 
 def prospective_evidence(root, scenario='prospective-original'):
     if scenario=='fresh-interruption':
-        evidence=Path(tempfile.mkdtemp(prefix='dvaia-setup-phase-')).resolve();evidence.chmod(0o700)
+        evidence=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-setup-phase-')).resolve();evidence.chmod(0o700)
         if evidence.is_relative_to(root):raise RuntimeError('External interruption evidence required')
         return evidence
     parent=root/('backups/private-recovery/maintenance-recovery' if scenario=='prospective-recovery' else 'backups/private-recovery/codebot-current' if scenario in ('codebot-current-representative','codebot-current-full-six','codebot-current-clean-fixed') else 'backups/private-recovery/dpi-current' if scenario=='dpi-current-owned' else 'backups/private-recovery/mcp-mounted-http' if scenario=='mcp-mounted-http' else 'backups/private-recovery/finflow-traversal' if scenario=='finflow-traversal' else 'backups/private-recovery/finflow-policy' if scenario=='finflow-policy' else 'backups/private-recovery/finflow-admission' if scenario=='finflow-admission' else 'backups/private-recovery/finflow-0055' if scenario=='finflow-0055' else 'backups/private-recovery/codebot-parity' if scenario=='codebot-rendered-parity' else 'backups/private-recovery/populated16-rehearsal' if scenario=='restored-populated-upgrade' else 'backups/private-recovery/retained-ownership-migrations' if scenario=='retained-ownership-migrations' else 'backups/private-recovery/backend-auth' if scenario in ('main-backend-auth','main-capacity-200') else 'backups/private-recovery/maintenance-prospective')
@@ -1830,7 +1830,7 @@ def admit_rehearsal_request(args, manifest):
 
 def rehearsal_environment(env, installation, args):
     result=dict(env)
-    result.pop('DVAIA_ISOLATED_TEST_WORKSPACE',None)
+    result.pop('OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE',None)
     result.pop('MCP_SIDECARS_AUTOSTART',None)
     root=Path(installation['path']);st=root.lstat()
     if (st.st_dev,st.st_ino,st.st_uid)!=(installation['device'],installation['inode'],installation['uid']):raise RuntimeError('Installation changed')
@@ -1882,9 +1882,9 @@ def main():
         signal.alarm(0);signal.signal(signal.SIGALRM,previous_alarm)
         print(json.dumps({'plan':True,'scenario':args.scenario,**({'profile':browser_profile(args),'stores':browser_stores(browser_profile(args))} if args.scenario=='codebot-rendered-parity' else {}),'workSeconds':work_seconds,'childSeconds':child_seconds,'cleanupSeconds':cleanup_seconds}));return 0
     clean={'PATH':'/usr/bin:/bin:/usr/sbin:/sbin'}
-    evidence=prospective_evidence(package,args.scenario) if args.main_workspace else Path(tempfile.mkdtemp(prefix='dvaia-setup-phase-')).resolve();evidence.chmod(0o700)
-    source=package if args.main_workspace else evidence/'source';owner=uuid.uuid4().hex;name='dvaia-setup-phase-'+owner[:12]
-    labels={'dvaia.test.owner':owner,'dvaia.test.cohort':'setup-database-phase'}
+    evidence=prospective_evidence(package,args.scenario) if args.main_workspace else Path(tempfile.mkdtemp(prefix='owasp-ai-goat-setup-phase-')).resolve();evidence.chmod(0o700)
+    source=package if args.main_workspace else evidence/'source';owner=uuid.uuid4().hex;name='owasp-ai-goat-setup-phase-'+owner[:12]
+    labels={'owasp-ai-goat.test.owner':owner,'owasp-ai-goat.test.cohort':'setup-database-phase'}
     state={'version':1,'evidenceRoot':str(evidence),'containerName':name,'owner':owner,'children':[],'nativeStarted':False,'mcpRecon70b':getattr(args,'mcp_recon_70b',False),'mcpReconJudge120':getattr(args,'mcp_recon_judge_120',False),**({'mcpReconTiming':mcp_recon_timing(getattr(args,'mcp_recon_judge_120',False),True)} if getattr(args,'mcp_recon_70b',False) else {})}
     def record():
         publish_ownership(evidence/'ownership.json',state)
@@ -1971,12 +1971,12 @@ def main():
             def sidecar_record(value):state['sidecars']=value;record()
             sidecars=OwnedSidecars(args,source,evidence,owner,docker,sidecar_record)
             sidecar_env=sidecars.start()
-        env={**clean,**sidecar_env,**({'SETUP_PHASE_INSTALLATION_ROOT':installation['path']} if installation else {}),'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes','SETUP_DATABASE_PHASE_ISOLATED':'1','DVAIA_ISOLATED_TEST_WORKSPACE':str(source),'SETUP_PHASE_EVIDENCE_ROOT':str(evidence),'PG_ADMIN_DATABASE_URL':f'postgresql://postgres@127.0.0.1:{port}/postgres','SETUP_PHASE_OWNER':owner,'SETUP_PHASE_SCENARIO':args.scenario,**({'ENTRY_CASE':args.entry_case} if args.scenario=='journal-bound-entry' else {}),**({'ORIGINAL_WRITER_CASE':args.original_case} if args.scenario=='inprocess-original' else {}),**({'CTF_SETUP_APPLICATION_ISOLATED':'1'} if args.scenario in ('ctf-fresh','ctf-populated') else {}),'MCP_SIDECARS_AUTOSTART':'false','PG_TLS':'disable'}
+        env={**clean,**sidecar_env,**({'SETUP_PHASE_INSTALLATION_ROOT':installation['path']} if installation else {}),'NODE_ENV':'test','PG_TEST_DISPOSABLE':'yes','SETUP_DATABASE_PHASE_ISOLATED':'1','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE':str(source),'SETUP_PHASE_EVIDENCE_ROOT':str(evidence),'PG_ADMIN_DATABASE_URL':f'postgresql://postgres@127.0.0.1:{port}/postgres','SETUP_PHASE_OWNER':owner,'SETUP_PHASE_SCENARIO':args.scenario,**({'ENTRY_CASE':args.entry_case} if args.scenario=='journal-bound-entry' else {}),**({'ORIGINAL_WRITER_CASE':args.original_case} if args.scenario=='inprocess-original' else {}),**({'CTF_SETUP_APPLICATION_ISOLATED':'1'} if args.scenario in ('ctf-fresh','ctf-populated') else {}),'MCP_SIDECARS_AUTOSTART':'false','PG_TLS':'disable'}
         if args.scenario=='fresh-interruption':env['SETUP_PHASE_INTERRUPTION_CASE']=args.interruption_case
         if args.scenario in ('main-backend-auth','main-capacity-200'):
             runtime=evidence/'runtime';runtime.mkdir(mode=0o700)
-            env.pop('DVAIA_ISOLATED_TEST_WORKSPACE',None)
-            env.update(MAIN_BACKEND_AUTH_APP_DATA=auth_data['path'],PG_MAIN_BACKEND_AUTH='1',MAIN_BACKEND_AUTH_EVIDENCE=str(evidence),DVAIA_FULL_BACKEND_RUNTIME_ROOT=str(runtime),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',AI_PROVIDER='mock',AWS_EC2_METADATA_DISABLED='true',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1')
+            env.pop('OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE',None)
+            env.update(MAIN_BACKEND_AUTH_APP_DATA=auth_data['path'],PG_MAIN_BACKEND_AUTH='1',MAIN_BACKEND_AUTH_EVIDENCE=str(evidence),OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT=str(runtime),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',AI_PROVIDER='mock',AWS_EC2_METADATA_DISABLED='true',HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1')
             state.update(cohort=args.scenario,sourceRoot=str(source),databasePort=int(port))
             if standalone_core(args):
                 env['PG_FULL_BACKEND_STANDALONE_CORE']='1'

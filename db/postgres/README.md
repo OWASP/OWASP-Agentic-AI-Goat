@@ -1,5 +1,7 @@
 # PostgreSQL migration status
 
+For the current fresh-install namespaces and deliberately retained historical SQL identifiers, see [Project naming and fresh installations](../../docs/install/BRANDING.md). Verification records below describe their original source versions; the branding change does not requalify those historical builds.
+
 Fresh setup and the normal launcher now select PostgreSQL; existing-installation migration and full release parity remain in progress. Converted repositories now include identity, canonical workshop configuration/progress/Judge receipts, ARIA, NOVA, XSS (including the legacy email builder), MCP, CSRF, supply chain, FinFlow, Excessive Agency, CTF, SecureShop commerce/agent state/vectors, legacy generic challenge data and sensitive lookup. See their tests and current implementation checkpoint in `tasks/todo.md`; full application startup has been verified; lossless existing-data import and complete release parity remain open. AWS/deployment files remain frozen.
 
 `npm run db:postgres:initialize -- --plan` prints the sixteen dedicated database role/configuration pairs without connecting or printing credentials. After provisioning the restricted roles/databases, `npm run db:postgres:initialize` applies the converted schemas and deterministic seeds sequentially, then closes its pools. It validates that all required URL pairs are present before starting. Each database migration is transactional; a failure in a later database does not undo earlier databases, and rerunning resumes through checksum-verified migrations. The command never imports or modifies existing SQLite data and does not provision cluster roles or create a platform administrator. Existing data requires the explicit import tools, with a dry run and an empty destination.
@@ -36,7 +38,7 @@ The bootstrap intentionally creates only migration bookkeeping. Platform/challen
 Run foundation unit checks with `node --test tests/postgres/foundation.test.js`. For real integration checks, supply a newly created disposable PG18 database owned by the restricted test role:
 
 ```
-PG_TEST_DISPOSABLE=yes PG_TEST_DATABASE_URL=postgresql://<test-user>:<password>@localhost:5432/dvaia_test_<unique_suffix> node --test tests/postgres/migrations.integration.test.js
+PG_TEST_DISPOSABLE=yes PG_TEST_DATABASE_URL=postgresql://<test-user>:<password>@localhost:5432/owasp_ai_goat_test_<unique_suffix> node --test tests/postgres/migrations.integration.test.js
 ```
 
 Tests reject non-test database names and pre-existing migration ledgers. They create only a probe table and ledger, leave the disposable database for inspection, and never reset application databases. They prove concurrent migration serialization, idempotence, rollback after a SQL failure, and checksum mismatch rejection. Without explicit configuration the integration test is skipped, which is not evidence of PostgreSQL runtime compatibility.
@@ -508,7 +510,7 @@ constant, not the native PostgreSQL query interface.
 
 `npm run setup` is the fresh PostgreSQL entrypoint. It refuses an existing `.env`, installs locked application dependencies, provisions isolated roles/databases, runs all14 initializers and creates a private administrator login. Use `npm run setup -- --plan` for a non-mutating overview. An explicit `PG_ADMIN_DATABASE_URL` selects an existing server; otherwise setup creates only its own labeled local Docker container/volume and persists a fixed host port for restarts.
 
-Provisioning credentials and the ownership manifest live under the user's private `.dvaia/<workspace-id>/` directory outside the repository. The application `.env` is created with mode0600. Existing resource-name collisions are refused. A completed provision can be verified and reused; incomplete provisioning is retained for explicit remediation and is never automatically deleted.
+Provisioning credentials and the ownership manifest live under the user's private `.owasp-ai-goat/<workspace-id>/` directory outside the repository. The application `.env` is created with mode0600. Existing resource-name collisions are refused. A completed provision can be verified and reused; incomplete provisioning is retained for explicit remediation and is never automatically deleted.
 
 Fresh-cluster provisioning, setup-wrapper (`--no-install`, using already installed locked dependencies), private credential modes, bootstrap login, and refusal to overwrite configuration passed. Real local Docker setup authenticated successfully and retained its port/credentials after restart. Logs: `/tmp/dvaia-provision-integration.log`, `/tmp/dvaia-setup-integration-final.log`, `/tmp/dvaia-local-setup-integration-final.log`.
 
@@ -524,7 +526,7 @@ Latest regression:696 tests,677 passed,19 skipped,0 failed. Native PostgreSQL36/
 After exporting quiesced legacy copies, inspect platform migration coverage without connecting to PostgreSQL:
 
 ```sh
-npm run --silent db:legacy:plan-platform -- --archive /private/dvaia-archive --identity-map /private/identity-map.json --naive-timestamps UTC --output /private/platform-plan.json
+npm run --silent db:legacy:plan-platform -- --archive /private/owasp-ai-goat-archive --identity-map /private/identity-map.json --naive-timestamps UTC --output /private/platform-plan.json
 ```
 
 The identity map is explicit source-owner to preserved native-user ID data, for example `{"7":7}`. The planner refuses mappings to users absent from the archived identity collection. `UTC` explicitly interprets naive SQLite timestamps; omit it to reject ambiguous timestamps. Optional `--resolutions FILE` supplies archive-bound NOVA solution choices, and `--identity-review FILE` validates an exact identity metadata normalization review.

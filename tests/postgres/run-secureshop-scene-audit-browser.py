@@ -44,7 +44,7 @@ CONTROL_SOURCES = (
 )
 RECORD = 'scene-audit-v15-browser-birth.json'
 ACK = 'scene-audit-v15-browser-ack.json'
-PROFILE = 'dvaia-scene-audit-v15-'
+PROFILE = 'owasp-ai-goat-scene-audit-v15-'
 
 
 def digest(path):

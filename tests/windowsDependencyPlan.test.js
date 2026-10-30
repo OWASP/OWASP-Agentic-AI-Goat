@@ -37,7 +37,7 @@ $environment = @{ Windows = $true; Architecture = 'AMD64'; Browser = ${quotePs(s
 ${overrides}
 ${environmentOverrides}
 $probe = { param($Name, $Command, $Arguments) $observations[$Name] }
-Get-DvaiaWindowsDependencyPlan -RepoRoot ${quotePs(root)} -Environment $environment -Probe $probe -PathProbe { param($Path) $true } -SdkProbe { param($Path) ${sdkReady ? '$true' : '$false'} } | ConvertTo-Json -Depth 6
+Get-OwaspAiGoatWindowsDependencyPlan -RepoRoot ${quotePs(root)} -Environment $environment -Probe $probe -PathProbe { param($Path) $true } -SdkProbe { param($Path) ${sdkReady ? '$true' : '$false'} } | ConvertTo-Json -Depth 6
 `;
   const result = spawnSync(interpreter, ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', fixture], { encoding: 'utf8', timeout: 10000 });
   assert.equal(result.status, 0, result.stderr);
@@ -53,11 +53,11 @@ test('inventory bounds pipe draining after process exit', () => {
 
 test('Windows dependency planning uses the shared qualified runtime floor and actual locked native addons', () => {
   const policy = fs.readFileSync(path.join(root, 'scripts/install/runtime-version-policy.sh'), 'utf8');
-  assert.match(policy, /^DVAIA_MINIMUM_NODE_VERSION=26\.10\.0$/m);
-  assert.match(policy, /^DVAIA_MINIMUM_NPM_VERSION=12\.1\.0$/m);
+  assert.match(policy, /^OWASP_AI_GOAT_MINIMUM_NODE_VERSION=26\.10\.0$/m);
+  assert.match(policy, /^OWASP_AI_GOAT_MINIMUM_NPM_VERSION=12\.1\.0$/m);
   assert.match(source, /runtime-version-policy\.sh/);
-  assert.match(source, /DVAIA_MINIMUM_NODE_VERSION=\(\\d\+/);
-  assert.match(source, /DVAIA_MINIMUM_NPM_VERSION=\(\\d\+/);
+  assert.match(source, /OWASP_AI_GOAT_MINIMUM_NODE_VERSION=\(\\d\+/);
+  assert.match(source, /OWASP_AI_GOAT_MINIMUM_NPM_VERSION=\(\\d\+/);
   const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
   for (const name of ['hnswlib-node', 'bcrypt', 'better-sqlite3', 'sqlite3']) {
     assert.ok(lock.packages[`node_modules/${name}`]);
@@ -114,8 +114,8 @@ test('Python inventory range agrees with the native package policy instead of th
   const inventoryPattern = new RegExp(inventoryExpression.replace('(?m)', ''), 'm');
   for (const version of ['3.11.0', '3.12.10', '3.13.0', '3.14.99']) assert.equal(inventoryPattern.test(`Python ${version}`), true, version);
   for (const version of ['3.6.0', '3.10.99', '3.15.0', '4.0.0', '3.13', '3.13.0rc1']) assert.equal(inventoryPattern.test(`Python ${version}`), false, version);
-  assert.match(source, /Get-DvaiaVersionStatus \$Observation '3\.11\.0'/);
-  assert.match(source, /Get-DvaiaPythonInventoryStatus \$python/);
+  assert.match(source, /Get-OwaspAiGoatVersionStatus \$Observation '3\.11\.0'/);
+  assert.match(source, /Get-OwaspAiGoatPythonInventoryStatus \$python/);
   assert.doesNotMatch(source, /'3\.6\.0'|detection floor3\.6/);
 });
 

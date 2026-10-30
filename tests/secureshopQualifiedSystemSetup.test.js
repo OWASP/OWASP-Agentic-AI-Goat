@@ -11,7 +11,7 @@ function fixture(t){const home=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdi
 function ready(){return{exitCode:0,stdout:'SECURESHOP_ACTIVATION_QUALIFICATION='+JSON.stringify({ready:true,objectiveIds:curriculum.OBJECTIVES.map(r=>r.id),structuralPanels:curriculum.EXERCISES.map(r=>r.id)})+'\n'};}
 test('fresh Linux and Colima selection reaches real read-only preflight without active-context fallback',async t=>{
  for(const platform of ['linux','darwin']){
-  const f=fixture(t),environment=platform==='darwin'?{DVAIA_MCP_OWNED_COLIMA_PROFILE:'colima-fixture'}:{};
+  const f=fixture(t),environment=platform==='darwin'?{OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE:'colima-fixture'}:{};
   const selected=await actualHelper.selectSetupEnvironment({root:repo,home:f.home,platform,environment});
   const host=platform==='linux'?'unix:///var/run/docker.sock':`unix://${f.home}/.colima/fixture/docker.sock`;
   assert.equal(selected.DOCKER_HOST,host);assert.equal(environment.DOCKER_HOST,undefined);
@@ -27,15 +27,15 @@ test('upgrade preserves recorded daemon and rejects explicit conflicts before pr
  const authority={version:1,workspaceId:require('../scripts/application-data-root').workspaceId(f.root),host:`unix://${f.home}/.colima/retained/docker.sock`,daemonId:'retained-daemon',source:'environment-host',platform:'darwin'};
  await authorityTools.writeLocalDockerAuthority({directory:f.directory,authority});
  const selected=await actualHelper.selectSetupEnvironment({root:f.root,home:f.home,platform:'darwin',environment:{}});
- assert.equal(selected.DOCKER_HOST,authority.host);assert.equal(selected.DVAIA_MCP_OWNED_COLIMA_PROFILE,'colima-retained');
- for(const environment of [{DOCKER_HOST:`unix://${f.home}/.colima/other/docker.sock`},{DVAIA_MCP_OWNED_COLIMA_PROFILE:'colima-other'},{DOCKER_CONTEXT:'other'}])await assert.rejects(actualHelper.selectSetupEnvironment({root:f.root,home:f.home,platform:'darwin',environment}),{code:'SYSTEM_INSTALL_PROFILE_AUTHORITY_CONFLICT'});
+ assert.equal(selected.DOCKER_HOST,authority.host);assert.equal(selected.OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE,'colima-retained');
+ for(const environment of [{DOCKER_HOST:`unix://${f.home}/.colima/other/docker.sock`},{OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE:'colima-other'},{DOCKER_CONTEXT:'other'}])await assert.rejects(actualHelper.selectSetupEnvironment({root:f.root,home:f.home,platform:'darwin',environment}),{code:'SYSTEM_INSTALL_PROFILE_AUTHORITY_CONFLICT'});
  const before=fs.readFileSync(path.join(f.directory,'local-docker.json'));
  await assert.rejects(actualHelper.preflight({root:f.root,home:f.home,platform:'darwin',architecture:'arm64',environment:selected,run:async()=>({exitCode:0,stdout:'"different-daemon"'}),verifyProfile:async()=>assert.fail('wrong daemon reached profile')}));
  assert.deepEqual(fs.readFileSync(path.join(f.directory,'local-docker.json')),before);
 });
 test('fresh invalid authorities cannot fall back to the default socket',async t=>{
  const f=fixture(t);
- for(const environment of [{DOCKER_CONTEXT:'desktop-linux'},{DOCKER_HOST:'tcp://127.0.0.1:2375'},{DOCKER_HOST:'unix:///tmp/other.sock'},{DVAIA_MCP_OWNED_COLIMA_PROFILE:'../bad'}])await assert.rejects(actualHelper.selectSetupEnvironment({root:f.root,home:f.home,platform:'darwin',environment}));
+ for(const environment of [{DOCKER_CONTEXT:'desktop-linux'},{DOCKER_HOST:'tcp://127.0.0.1:2375'},{DOCKER_HOST:'unix:///tmp/other.sock'},{OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE:'../bad'}])await assert.rejects(actualHelper.selectSetupEnvironment({root:f.root,home:f.home,platform:'darwin',environment}));
 });
 test('fresh explicit combined setup stages disabled, validates captured candidate, then activates System; repeat preserves inode',async t=>{
  const f=fixture(t);let probes=0,systems=0;
@@ -68,7 +68,7 @@ test('early profile prerequisite checks are read-only and require explicit local
 });
 test('combined setup preflight failure occurs before fresh writes, dependency work or database calls',async t=>{
  const f=fixture(t);let work=0,preflights=0;const before=fs.readdirSync(f.root);
- await assert.rejects(require('../scripts/setup-application').setup({root:f.root,homeDirectory:f.home,ownedSystem:true,qualifiedSecureShop:true,preflightQualifiedSystem:async()=>{preflights++;throw Object.assign(Error('profile missing'),{code:'SYSTEM_INSTALL_PROFILE_UNAVAILABLE'});},runCommand:async()=>work++,execute:async()=>work++,provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision:async()=>work++}),{code:'SYSTEM_INSTALL_PROFILE_UNAVAILABLE'});
+ await assert.rejects(require('../scripts/setup-application').setup({root:f.root,homeDirectory:f.home,ownedSystem:true,qualifiedSecureShop:true,preflightQualifiedSystem:async()=>{preflights++;throw Object.assign(Error('profile missing'),{code:'SYSTEM_INSTALL_PROFILE_UNAVAILABLE'});},runCommand:async()=>work++,execute:async()=>work++,provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision:async()=>work++}),{code:'SYSTEM_INSTALL_PROFILE_UNAVAILABLE'});
  assert.equal(preflights,1);assert.equal(work,0);assert.deepEqual(fs.readdirSync(f.root),before);
  await assert.rejects(require('../scripts/setup-application').setup({root:f.root,homeDirectory:f.home,qualifiedSecureShop:true}),{code:'SYSTEM_COMBINED_OPT_IN_REQUIRED'});
 });
@@ -98,7 +98,7 @@ test('fresh setup wires combined helper after schema/seed, preserves generated p
     preflightQualifiedSystem:async()=>{assert.ok(!fs.existsSync(path.join(f.root,'.env')));order.push('preflight');},
     loadProductRenderer: () => ({ componentId: 'SecureShop.Product.Description', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64), renderProductDescription: async product => `<div>${product.description_html}</div>` }), loadMailRenderer: () => ({ component: { id: 'SecureShop.MailMessageBody', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64) } }),
       loadRenderer:()=>({sourceSha256:'source',artifactSha256:'artifact',renderReviewCard:async({body})=>`<article>${body}</article>`}),loadPuppeteer:()=>({launch:async()=>({close:async()=>{}})}),
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision:async()=>({configuration:{IDENTITY_DATABASE_URL:'postgresql://controlled.invalid/identity',IDENTITY_MIGRATION_DATABASE_URL:'postgresql://controlled.invalid/identity'}}),provisionOwnedRunner:async()=>({available:false}),
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision:async()=>({configuration:{IDENTITY_DATABASE_URL:'postgresql://controlled.invalid/identity',IDENTITY_MIGRATION_DATABASE_URL:'postgresql://controlled.invalid/identity'}}),provisionOwnedRunner:async()=>({available:false}),
     runCommand:async(_file,args)=>{if(args[0]==='controlled-scoped-initializer')order.push('schema');if(args[0]==='server/database/sensitiveInfoFiles.js')order.push('seed');},
     setupOwnedMcpRegistry:async args=>{assert.equal(args.requested,true);assert.equal(args.upgrade,false);assert.equal(args.applicationEnvironment.SS_BOUND_REVIEWS_ENABLED,'true');assert.ok(fs.existsSync(path.join(f.directory,'administrator.json')));require('../scripts/lib/application-maintenance-scope').assertApplicationMaintenanceScope(args.maintenanceScope,process.env);order.push('registry');return{requested:true,activationEnabled:true};},
     setupOwnedAnalytics:async args=>{assert.equal(args.requested,true);assert.equal(args.applicationEnvironment.SS_BOUND_REVIEWS_ENABLED,'true');assert.ok(fs.existsSync(path.join(f.directory,'administrator.json')));order.push('analytics');return{requested:true,activationEnabled:true};},

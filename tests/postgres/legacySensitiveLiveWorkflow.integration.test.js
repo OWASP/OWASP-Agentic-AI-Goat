@@ -20,7 +20,7 @@ test('legacy sensitive route reads synthetic protected file through Judge and na
 }, async t => {
   if (!process.env.LEGACY_SENSITIVE_LIVE_ISOLATED) {
     const root = path.resolve(__dirname, '../..');
-    const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-legacy-sensitive-live-'));
+    const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-legacy-sensitive-live-'));
     try {
       for (const dir of ['server', 'db', 'tests']) {
         fs.cpSync(path.join(root, dir), path.join(copy, dir), {
@@ -93,8 +93,8 @@ test('legacy sensitive route reads synthetic protected file through Judge and na
 
   const admin = new Pool({ connectionString: adminUrl.href });
   const suffix = `${process.pid}_${Date.now().toString(36)}`;
-  const identityDb = `dvaia_test_sensitive_live_i_${suffix}`;
-  const finflowDb = `dvaia_test_sensitive_live_f_${suffix}`;
+  const identityDb = `owasp_ai_goat_test_sensitive_live_i_${suffix}`;
+  const finflowDb = `owasp_ai_goat_test_sensitive_live_f_${suffix}`;
   const pools = [];
   let server;
   const poolFor = (role, database) => {

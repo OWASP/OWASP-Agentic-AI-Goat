@@ -16,8 +16,8 @@ function initializeAdminDatabase() {
 
     console.log('🎉 Admin database initialization complete!');
     console.log('📋 Default admin accounts:');
-    console.log('   - admin@dvaia.local (admin123!@#) - Super Admin');
-    console.log('   - administrator@dvaia.local (admin2024$) - Regular Admin');
+    console.log('   - admin@owasp-ai-goat.local (admin123!@#) - Super Admin');
+    console.log('   - administrator@owasp-ai-goat.local (admin2024$) - Regular Admin');
 
   } catch (error) {
     console.error('❌ Error initializing admin database:', error);

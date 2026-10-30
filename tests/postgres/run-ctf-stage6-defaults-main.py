@@ -139,8 +139,8 @@ def main():
     for folder in ('home', 'tmp', 'logs'):
         (evidence / folder).mkdir(mode=0o700)
     owner = uuid.uuid4().hex
-    name = 'dvaia-ctf-stage6-defaults-' + owner[:12]
-    labels = {'dvaia.owner': owner, 'dvaia.cohort': 'ctf-stage6-defaults-main'}
+    name = 'owasp-ai-goat-ctf-stage6-defaults-' + owner[:12]
+    labels = {'owasp-ai-goat.owner': owner, 'owasp-ai-goat.cohort': 'ctf-stage6-defaults-main'}
     clean = {'PATH': str(Path(args.node).parent) + ':' + str(Path(args.docker_cli).parent) + ':/usr/bin:/bin',
              'HOME': str(evidence / 'home'), 'TMPDIR': str(evidence / 'tmp'),
              'LANG': 'C', 'DOCKER_HOST': args.docker_host}
@@ -234,10 +234,10 @@ def main():
         checked(psql, 'CREATE ROLE dvaia_ctf_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE dvaia_ctf_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE dvaia_identity_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE dvaia_identity_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;')
         nonce = owner[:12]
         names = {
-            'fresh': 'dvaia_ctf_provenance_fresh_' + nonce,
-            'populated': 'dvaia_ctf_provenance_populated_' + nonce,
-            'tail': 'dvaia_test_ctf_stage6_tail_' + nonce,
-            'identity': 'dvaia_test_ctf_stage6_profile_' + nonce,
+            'fresh': 'owasp_ai_goat_ctf_provenance_fresh_' + nonce,
+            'populated': 'owasp_ai_goat_ctf_provenance_populated_' + nonce,
+            'tail': 'owasp_ai_goat_test_ctf_stage6_tail_' + nonce,
+            'identity': 'owasp_ai_goat_test_ctf_stage6_profile_' + nonce,
         }
         for label, database in names.items():
             family = 'identity' if label == 'identity' else 'ctf'
@@ -247,7 +247,7 @@ def main():
         env = {**clean, 'PG_TEST_DISPOSABLE': 'yes', 'CTF_PROVENANCE_NATIVE': '1',
                'CTF_STAGE6_PROFILE_ISOLATED': '1', 'WORKSHOP_DATABASE_ENGINE': 'postgres',
                'PLATFORM_DATABASE_ENGINE': 'postgres', 'NODE_ENV': 'test',
-               'DVAIA_ISOLATED_TEST_WORKSPACE': str(evidence / 'tmp')}
+               'OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE': str(evidence / 'tmp')}
         for label in ('fresh', 'populated'):
             env['CTF_PROVENANCE_' + label.upper() + '_MIGRATION_URL'] = (
                 f'postgresql://dvaia_ctf_migration@127.0.0.1:{port}/{names[label]}')

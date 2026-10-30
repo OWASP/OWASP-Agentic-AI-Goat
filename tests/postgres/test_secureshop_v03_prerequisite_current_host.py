@@ -37,7 +37,7 @@ class Integration(unittest.TestCase):
     self.assertEqual(plan['fixture'],self.new['SUITES'][suite]['fixture'])
     self.assertEqual(plan['stores'],[s for s,r in self.new['SUITES'][suite]['stores']])
     self.assertEqual(plan['runCommand'],[str(SOURCE),'--suite',suite,'--run'])
-    self.assertEqual(plan['dockerHost'],'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock')
+    self.assertEqual(plan['dockerHost'],'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock')
     self.assertEqual(plan['expectedTests'],2)
     for flag in ('actualModel','browser','judgeOrCredit','sourceCopies'):self.assertFalse(plan[flag])
  def test_current_plan_exact_forwarding_roundtrip(self):
@@ -278,7 +278,7 @@ class Composed(unittest.TestCase):
   ns=module(SOURCE.read_text());ns['V03_CURRENT_HOST_LIVE']=True
   tick=[time.monotonic()];lease=ns['V03Lease'](lambda:tick[0]);ns['V03Lease']=lambda:lease
   with tempfile.TemporaryDirectory(dir=ROOT/'tasks/qualification',prefix='v03-composed-') as tmp:
-   parent=pathlib.Path(tmp);calls=[];writes=[];owner='a'*32;cid='b'*64;name='dvaia-v03-optimize-'+owner[:12]
+   parent=pathlib.Path(tmp);calls=[];writes=[];owner='a'*32;cid='b'*64;name='owasp-ai-goat-v03-optimize-'+owner[:12]
    args=Integration().argv()+['--v03-run-id',owner,'--v03-admission',str(parent/'admission.json'),'--v03-admission-sha256','a'*64,'--run']
    for flag in ('--v03-node-sha256','--v03-docker-sha256'):args[args.index(flag)+1]='a'*64
    def writer(path,value):
@@ -316,7 +316,7 @@ class Composed(unittest.TestCase):
      stdout=cid if created and not removed else ''
     elif 'inspect' in command:
      stdout=json.dumps([{'Id':cid,'Name':'/'+name,'Image':'sha256:'+'3'*64,
-      'Config':{'Labels':{'dvaia.test.owner':'foreign' if mode=='foreign' else owner}},
+      'Config':{'Labels':{'owasp-ai-goat.test.owner':'foreign' if mode=='foreign' else owner}},
       'HostConfig':{'PortBindings':{'5432/tcp':[{'HostIp':'127.0.0.1'}]},'Memory':536870912,'NanoCpus':2000000000,
        'PidsLimit':256,'Tmpfs':{'/var/lib/postgresql':'rw,size=536870912'}},'Mounts':[]}])
     elif 'port' in command:stdout='127.0.0.1:55555'

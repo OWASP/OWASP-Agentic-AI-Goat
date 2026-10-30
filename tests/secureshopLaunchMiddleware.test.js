@@ -3,7 +3,7 @@ const test = require('node:test'), assert = require('node:assert/strict');
 const { requireSecureShopLaunch, LAUNCH_STATE_HEADER, LAUNCH_UNAVAILABLE }
   = require('../server/middleware/secureshopLaunch');
 const bearer = 'a'.repeat(43);
-function fixture(resolver, headers = { 'x-dvaia-secureshop-launch': bearer }, rawHeaders = []) {
+function fixture(resolver, headers = { 'x-owasp-ai-goat-secureshop-launch': bearer }, rawHeaders = []) {
   const req = { headers, rawHeaders, ssLaunch: { platformOwnerId: 999 }, body: { platformOwnerId: 999 } };
   const res = { headers: {}, setHeader(k,v) { this.headers[k] = v; }, status(n) { this.code = n; return this; }, json(value) { this.body = value; return this; } };
   let next = 0;
@@ -17,7 +17,7 @@ test('launch middleware derives only frozen ownership coordinates from its resol
   assert.equal(f.res.headers['Cache-Control'], 'no-store');
 });
 test('missing, malformed and duplicate launch headers never resolve or retain caller scope', async () => {
-  for (const [headers, raw] of [[{}, []], [{ 'x-dvaia-secureshop-launch': 'bad' }, []], [{ 'x-dvaia-secureshop-launch': bearer }, ['X-DVAIA-SecureShop-Launch',bearer,'x-dvaia-secureshop-launch',bearer]]]) {
+  for (const [headers, raw] of [[{}, []], [{ 'x-owasp-ai-goat-secureshop-launch': 'bad' }, []], [{ 'x-owasp-ai-goat-secureshop-launch': bearer }, ['X-OWASP-AI-GOAT-SecureShop-Launch',bearer,'x-owasp-ai-goat-secureshop-launch',bearer]]]) {
     const f = fixture(() => assert.fail('must not resolve'), headers, raw);
     assert.equal(await f.run(), 0); assert.equal(f.res.code, 401); assert.equal(f.req.ssLaunch, undefined);
     assert.equal(f.res.headers[LAUNCH_STATE_HEADER], LAUNCH_UNAVAILABLE);
@@ -49,11 +49,11 @@ test('actual HTTP rejects repeated headers and never accepts body-provided launc
     });
   }
   const missing=await request({'content-type':'application/json'});assert.equal(missing.code,401);
-  const duplicate=await request({'content-type':'application/json','x-dvaia-secureshop-launch':[bearer,bearer]});assert.equal(duplicate.code,401);
-  assert.equal(missing.headers['x-dvaia-secureshop-launch-state'], LAUNCH_UNAVAILABLE);
-  assert.equal(duplicate.headers['x-dvaia-secureshop-launch-state'], LAUNCH_UNAVAILABLE);
+  const duplicate=await request({'content-type':'application/json','x-owasp-ai-goat-secureshop-launch':[bearer,bearer]});assert.equal(duplicate.code,401);
+  assert.equal(missing.headers['x-owasp-ai-goat-secureshop-launch-state'], LAUNCH_UNAVAILABLE);
+  assert.equal(duplicate.headers['x-owasp-ai-goat-secureshop-launch-state'], LAUNCH_UNAVAILABLE);
   assert.equal(resolutions,0);
-  const valid=await request({'content-type':'application/json','x-dvaia-secureshop-launch':bearer});
+  const valid=await request({'content-type':'application/json','x-owasp-ai-goat-secureshop-launch':bearer});
   assert.equal(valid.code,200);assert.deepEqual(valid.body,{owner:7});assert.equal(valid.headers['cache-control'],'no-store');
-  assert.equal(valid.headers['x-dvaia-secureshop-launch-state'], undefined);
+  assert.equal(valid.headers['x-owasp-ai-goat-secureshop-launch-state'], undefined);
 });

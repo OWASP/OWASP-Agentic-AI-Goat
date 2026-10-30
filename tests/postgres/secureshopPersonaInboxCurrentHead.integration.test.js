@@ -29,7 +29,7 @@ const passwordHash = bcrypt.hashSync('owned-persona-current-head', 4);
 function checked(variant, key) {
   const value = new URL(process.env[`${PREFIX}${variant}_${key}`]);
   assert.equal(value.hostname, '127.0.0.1');
-  assert.match(value.pathname, /^\/dvaia_test_secureshop_persona_current_(fresh|populated)_(identity|agents)$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_secureshop_persona_current_(fresh|populated)_(identity|agents)$/);
   return value.href;
 }
 function digest(value) { return crypto.createHash('sha256').update(value).digest(); }
@@ -48,8 +48,8 @@ async function atomicCopy(source, target) {
 test('current-head persona inbox drafts preserve hidden fresh and populated stores through actual loaders', {
   skip: !enabled, timeout: 90000,
 }, async () => {
-  const workspace = path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-secureshop-persona-current-/);
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-secureshop-persona-current-/);
   const identityDir = path.join(workspace, 'db/postgres/identity-migrations');
   const agentsDir = path.join(workspace, 'db/postgres/workshop-migrations/secureshop_agents');
   const identityTarget = path.join(identityDir, '0045_secureshop_persona_inbox_identity.sql');

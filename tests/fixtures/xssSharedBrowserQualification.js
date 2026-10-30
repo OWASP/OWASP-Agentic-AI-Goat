@@ -104,7 +104,7 @@ async function qualifySharedBrowserModes({browser}) {
   assert.equal(script.renderingMode, 'document');
 
   const sibling = await runner.qualifyDocument(`<script type="application/json">{}</script>
-    <img src=x onerror="window.__dvaiaXssMarkers=[];window.__dvaiaXssMarkers.push({kind:'script',value:'parser_execution'})">`);
+    <img src=x onerror="window.__owasp-ai-goatXssMarkers=[];window.__owasp-ai-goatXssMarkers.push({kind:'script',value:'parser_execution'})">`);
   assert.equal(sibling.executed, false);
   assert.equal(sibling.scriptExecuted, false);
   assert.deepEqual(sibling.markers, [], 'page-owned marker writes are not browser evidence');
@@ -169,7 +169,7 @@ async function qualifySharedBrowserModes({browser}) {
   assert.equal(modelOnly.targetEventExecuted, true, JSON.stringify(modelOnly));
   assert.equal(modelOnly.targetEffectObserved, false, 'profile-owned onerror must be removed from the target projection');
 
-  const fakeEffect = '<img src=x onerror="window.__dvaiaXssMarkers=[];window.__dvaiaXssMarkers.push({kind:\'alert\',value:\'1\'})">';
+  const fakeEffect = '<img src=x onerror="window.__owasp-ai-goatXssMarkers=[];window.__owasp-ai-goatXssMarkers.push({kind:\'alert\',value:\'1\'})">';
   const forged = await runner.qualify(fakeEffect, { eventSource: fakeEffect });
   assert.equal(forged.targetEventExecuted, true, JSON.stringify(forged));
   assert.equal(forged.targetEffectObserved, false, 'page-owned marker writes cannot impersonate a browser dialog');

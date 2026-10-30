@@ -63,10 +63,10 @@ async function capturePreexistingTables(pool, schemas, inventory = null) {
 
 test('application upgrade preserves populated identity0069 and XSS0007 state through current tails',
   { skip: !enabled, timeout: 60000 }, async () => {
-    assertOwnedUrl(process.env[URLS.identityRuntime], 'dvaia_test_xss_upgrade_identity', 'dvaia_identity_runtime');
-    assertOwnedUrl(process.env[URLS.identityMigration], 'dvaia_test_xss_upgrade_identity', 'dvaia_identity_migration');
-    assertOwnedUrl(process.env[URLS.xssRuntime], 'dvaia_test_xss_upgrade_store', 'dvaia_xss_runtime');
-    assertOwnedUrl(process.env[URLS.xssMigration], 'dvaia_test_xss_upgrade_store', 'dvaia_xss_migration');
+    assertOwnedUrl(process.env[URLS.identityRuntime], 'owasp_ai_goat_test_xss_upgrade_identity', 'dvaia_identity_runtime');
+    assertOwnedUrl(process.env[URLS.identityMigration], 'owasp_ai_goat_test_xss_upgrade_identity', 'dvaia_identity_migration');
+    assertOwnedUrl(process.env[URLS.xssRuntime], 'owasp_ai_goat_test_xss_upgrade_store', 'dvaia_xss_runtime');
+    assertOwnedUrl(process.env[URLS.xssMigration], 'owasp_ai_goat_test_xss_upgrade_store', 'dvaia_xss_migration');
 
     const identityRuntime = createPool(process.env, URLS.identityRuntime);
     const identityMigration = createPool(process.env, URLS.identityMigration);

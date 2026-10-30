@@ -21,8 +21,8 @@
 #include <time.h>
 #include <unistd.h>
 #include "procless-peer-contract.h"
-#define BINARY "/usr/local/libexec/dvaia-procless-feasibility"
-#define FILTER "/usr/share/dvaia/invocation-target.seccomp.bpf"
+#define BINARY "/usr/local/libexec/owasp-ai-goat-procless-feasibility"
+#define FILTER "/usr/share/owasp-ai-goat/invocation-target.seccomp.bpf"
 #define LIMIT 8192
 static volatile sig_atomic_t cancelled=0;
 static void cancel_probe(int sig){(void)sig;cancelled=1;}

@@ -42,11 +42,11 @@ test('immutable full sixteen-store backend authenticates owned admin and student
   const mcpRequested = process.env.PG_FULL_BACKEND_MCP_INDIRECT !== undefined;
   let mcpAdmission = null;
   if (!mainAdmission) {
-    assert.equal(fs.realpathSync(source), process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+    assert.equal(fs.realpathSync(source), process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
     assert.equal(fs.statSync(source).mode & 0o222, 0, 'source must be frozen');
   }
   const sourceLogsBefore = mainAdmission ? require('../fixtures/mainBackendAuthAdmission').snapshotDirectory(path.join(source,'server/logs')) : null;
-  const root = process.env.DVAIA_FULL_BACKEND_RUNTIME_ROOT;
+  const root = process.env.OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT;
   assert.ok(root && path.isAbsolute(root));
   assert.equal(fs.realpathSync(root), root);
   assert.equal(fs.statSync(root).uid, process.getuid());
@@ -57,7 +57,7 @@ test('immutable full sixteen-store backend authenticates owned admin and student
   assert.equal(requiredStoreManifest.length, 16);
   const env = { PATH: process.env.PATH, NODE_ENV: 'test', PLATFORM_DATABASE_ENGINE: 'postgres',
     WORKSHOP_DATABASE_ENGINE: 'postgres', PG_TEST_DISPOSABLE: 'yes',
-    HOME: path.join(root, 'home'), DVAIA_APP_DATA_ROOT: mainAdmission ? mainAdmission.appData : path.join(root, 'app-data'),
+    HOME: path.join(root, 'home'), OWASP_AI_GOAT_APP_DATA_ROOT: mainAdmission ? mainAdmission.appData : path.join(root, 'app-data'),
     LOGS_DIR: path.join(root, 'logs'), LEGACY_SENSITIVE_FILES_ROOT: path.join(root, 'legacy-sensitive-files'), SS_ENABLE: 'false', SS_ENABLE_REAL_MCP_SPAWN: 'false',
     MCP_SIDECARS_AUTOSTART: 'false', MCP_WORKSHOP_AUTOSTART: 'false', AI_PROVIDER: 'mock', OLLAMA_BASE_URL: 'http://127.0.0.1:1',
     AWS_EC2_METADATA_DISABLED: 'true', HF_HUB_OFFLINE: '1', TRANSFORMERS_OFFLINE: '1',
@@ -72,17 +72,17 @@ test('immutable full sixteen-store backend authenticates owned admin and student
       assert.equal(url.hostname, '127.0.0.1'); assert.ok(url.port);
       assert.equal(url.search, ''); assert.equal(url.hash, '');
       assert.equal(decodeURIComponent(url.username), role);
-      assert.equal(url.pathname, mainAdmission ? `/dvaia_${row.schema}` : `/dvaia_test_full_backend_${row.schema}`);
+      assert.equal(url.pathname, mainAdmission ? `/owasp_ai_goat_${row.schema}` : `/owasp_ai_goat_test_full_backend_${row.schema}`);
       if (database) assert.equal(url.pathname, database);
       database = url.pathname; roles.add(role); endpoints.add(url.host);env[key] = url.href;
     }
     databases.add(database);
   }
   if(mainAdmission){
-    const delivery=new URL(process.env.CTF_DELIVERY_DATABASE_URL);assert.equal(delivery.hostname,'127.0.0.1');assert.equal(delivery.port,String(mainAdmission.port));assert.equal(delivery.pathname,'/dvaia_ctf');assert.equal(delivery.username,'dvaia_ctf_delivery');assert.ok(delivery.password);assert.equal(delivery.search,'');assert.equal(delivery.hash,'');env.CTF_DELIVERY_DATABASE_URL=delivery.href;
+    const delivery=new URL(process.env.CTF_DELIVERY_DATABASE_URL);assert.equal(delivery.hostname,'127.0.0.1');assert.equal(delivery.port,String(mainAdmission.port));assert.equal(delivery.pathname,'/owasp_ai_goat_ctf');assert.equal(delivery.username,'dvaia_ctf_delivery');assert.ok(delivery.password);assert.equal(delivery.search,'');assert.equal(delivery.hash,'');env.CTF_DELIVERY_DATABASE_URL=delivery.href;
   }
   assert.equal(databases.size, 16); assert.equal(roles.size, 32); assert.equal(endpoints.size, 1);
-  for (const directory of [env.HOME, env.LOGS_DIR, env.DVAIA_APP_DATA_ROOT]) fs.mkdirSync(directory, { mode: 0o700, recursive: !!mainAdmission });
+  for (const directory of [env.HOME, env.LOGS_DIR, env.OWASP_AI_GOAT_APP_DATA_ROOT]) fs.mkdirSync(directory, { mode: 0o700, recursive: !!mainAdmission });
   if (mcpRequested) {
     assert.ok(rendered, 'MCP qualification requires the real rendered application');
     const endpointManifest = JSON.parse(process.env.PG_FULL_BACKEND_MCP_ENDPOINTS_JSON || 'null');
@@ -271,7 +271,7 @@ test('immutable full sixteen-store backend authenticates owned admin and student
     if(standaloneCoreRequested){
       async function shopRequest(url,{method='GET',body,cookie,authority,headers={}}={}){
         const response=await fetch(base+url,{method,signal:AbortSignal.any([t.signal,AbortSignal.timeout(5000)]),headers:{origin:base,
-          ...(body===undefined?{}:{'content-type':'application/json'}),...(cookie?{cookie}:{}),...(authority?{authorization:`Bearer ${authority.token}`,'x-dvaia-secureshop-launch':authority.bearer}:{}),...headers},
+          ...(body===undefined?{}:{'content-type':'application/json'}),...(cookie?{cookie}:{}),...(authority?{authorization:`Bearer ${authority.token}`,'x-owasp-ai-goat-secureshop-launch':authority.bearer}:{}),...headers},
           ...(body===undefined?{}:{body:JSON.stringify(body)})});
         const text=await response.text();return{status:response.status,body:text?JSON.parse(text):null,setCookie:response.headers.get('set-cookie')};
       }
@@ -282,7 +282,7 @@ test('immutable full sixteen-store backend authenticates owned admin and student
       const username='native_'+randomUUID().slice(0,8),shopPassword='Native1!'+randomUUID(),email=username+'@example.invalid';
       const registered=await shopRequest('/api/secureshop/auth/register',{method:'POST',body:{username,email,password:shopPassword,role:'customer'}});
       assert.equal(registered.status,200);assert.equal(registered.body.authenticated,true);assert.equal(registered.body.user.username,username);
-      const firstCookie=registered.setCookie?.split(';',1)[0];assert.match(firstCookie||'',/^dvaia_shop_session=[A-Za-z0-9_-]{43}$/);
+      const firstCookie=registered.setCookie?.split(';',1)[0];assert.match(firstCookie||'',/^owasp_ai_goat_shop_session=[A-Za-z0-9_-]{43}$/);
       const session=await shopRequest('/api/secureshop/auth/session',{cookie:firstCookie});
       assert.equal(session.status,200);assert.equal(session.body.authenticated,true);assert.equal(session.body.user.principalId,registered.body.user.principalId);
       const firstBootstrap=await shopRequest('/api/secureshop/auth/bootstrap',{method:'POST',body:{},cookie:firstCookie});
@@ -324,7 +324,7 @@ test('immutable full sixteen-store backend authenticates owned admin and student
       assert.equal((await request('/api/admin/users',adminToken)).status,200);
       const loggedIn=await shopRequest('/api/secureshop/auth/login',{method:'POST',body:{username,password:shopPassword}});
       assert.equal(loggedIn.status,200);assert.equal(loggedIn.body.user.principalId,registered.body.user.principalId);
-      const secondCookie=loggedIn.setCookie?.split(';',1)[0];assert.match(secondCookie||'',/^dvaia_shop_session=[A-Za-z0-9_-]{43}$/);assert.notEqual(secondCookie,firstCookie);
+      const secondCookie=loggedIn.setCookie?.split(';',1)[0];assert.match(secondCookie||'',/^owasp_ai_goat_shop_session=[A-Za-z0-9_-]{43}$/);assert.notEqual(secondCookie,firstCookie);
       const retained=await shopRequest('/api/secureshop/auth/session',{cookie:secondCookie});assert.equal(retained.status,200);assert.equal(retained.body.authenticated,true);
       const fullReadiness=await request('/api/admin/secureshop-runtime-readiness',adminToken);assert.equal(fullReadiness.status,503);
       const platformLogout=await request('/api/auth/logout',adminToken,{});

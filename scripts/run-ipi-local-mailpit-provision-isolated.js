@@ -84,11 +84,11 @@ async function runProvision({ root = path.resolve(__dirname, '..'), evidenceRoot
   if (!nodePath || !nodeSha256 || !dockerCli || !dockerCliSha256 || !dockerHost) throw new Error('Explicit Node, Docker CLI and Docker host pins are required');
   const node = await validateExecutable(nodePath, nodeSha256, 'Managed Node'); const cli = await validateExecutable(dockerCli, dockerCliSha256, 'Docker CLI');
   if (path.resolve(process.execPath) !== node) throw new Error('Launcher is not running under the pinned Node executable');
-  const evidence = evidenceRoot || await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-ipi-mailpit-provision-')); await fs.mkdir(evidence, { recursive: true, mode: 0o700 });
+  const evidence = evidenceRoot || await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ipi-mailpit-provision-')); await fs.mkdir(evidence, { recursive: true, mode: 0o700 });
   const { source, snapshot } = await copyFrozenSource(root, evidence);
   const mailpit = require(path.join(source, 'scripts/local-mailpit.js')); const authorityModule = require(path.join(source, 'scripts/local-docker-authority.js'));
   if (mailpit.MAILPIT_IMAGE !== IMAGE || mailpit.MAILPIT_IMAGE_VERSION !== IMAGE_VERSION || mailpit.MAILPIT_IMAGE_DIGEST !== IMAGE_DIGEST) throw new Error('Frozen Mailpit image constants do not match the launcher pin');
-  const id = `ipi-mailpit-${crypto.randomBytes(16).toString('hex')}`; const name = `dvaia-mailpit-${id}`; const env = { ...environment, DOCKER_HOST: dockerHost };
+  const id = `ipi-mailpit-${crypto.randomBytes(16).toString('hex')}`; const name = `owasp-ai-goat-mailpit-${id}`; const env = { ...environment, DOCKER_HOST: dockerHost };
   const pinnedExecute = (_command, args, options = {}) => execute(cli, args, options); let resolved; let state; let primaryError = null; let cleanupResult = { status: 'not-attempted' };
   try {
     resolved = await authorityModule.resolveDockerAuthority({ directory: evidence, workspaceId: id, environment: env, execute: pinnedExecute, platform: process.platform, persist: false });

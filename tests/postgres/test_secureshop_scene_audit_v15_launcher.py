@@ -136,7 +136,7 @@ class SceneAuditLauncher(unittest.TestCase):
         environment = next(n for n in branches if 'SCENE_AUDIT_BROWSER' in ast.unparse(n.test)
                            and any('SECURESHOP_ADMIN_AUDIT_JOBS_BROWSER_NATIVE' in ast.unparse(v) for v in n.body))
         ns = dict(vars(L), args=SimpleNamespace(cohort=COHORT, browser='/pinned/browser'), source=ROOT,
-                  env={}, audit_port=54321, audit_database='dvaia_audit_control_abc',
+                  env={}, audit_port=54321, audit_database='owasp_ai_goat_audit_control_abc',
                   **{name: {'runtime': name + ':runtime', 'migration': name + ':migration'} for name in ('identity', 'agents', 'reviews', 'commerce')})
         exec(compile(ast.fix_missing_locations(ast.Module(body=environment.body, type_ignores=[])), '<environment>', 'exec'), ns)
         env = ns['env']

@@ -36,12 +36,12 @@ class CacheSpec:
 
     @property
     def name(self):
-        return "dvaia-mcp-build-" + self.owner
+        return "owasp-ai-goat-mcp-build-" + self.owner
 
     @property
     def labels(self):
-        return {"dvaia.owner": self.owner, "dvaia.resource": "ephemeral-buildkit-cache",
-                "dvaia.cache.bytes": str(self.cache_bytes)}
+        return {"owasp-ai-goat.owner": self.owner, "owasp-ai-goat.resource": "ephemeral-buildkit-cache",
+                "owasp-ai-goat.cache.bytes": str(self.cache_bytes)}
 
     @property
     def tmpfs(self):

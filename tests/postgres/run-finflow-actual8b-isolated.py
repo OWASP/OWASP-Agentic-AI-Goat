@@ -6,7 +6,7 @@ owned loopback-only PostgreSQL 18 databases, runs the gated test, and cleans up.
 import argparse, hashlib, json, os, re, secrets, signal, subprocess, sys, time
 from datetime import datetime, timezone
 from pathlib import Path
-SCOPE='finflow_recon_actual8b'; STAGE='actual8b-v3'; IMAGE='postgres:18'; SOCKET='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+SCOPE='finflow_recon_actual8b'; STAGE='actual8b-v3'; IMAGE='postgres:18'; SOCKET='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 FIXTURES={
  'server/sensitive_files/traversal-fixtures/config/llm_config.yml':'e2cb44baf52a6124d812723bf775cd2d6a7fbe100e71cb2053669ce57d345eab',
  'server/sensitive_files/traversal-fixtures/config/secrets.env':'58dc81956934ce9fae23e65af3674f27dc6d46f07326a54404c4a874e27d027a',
@@ -87,8 +87,8 @@ def main():
    break
   time.sleep(.1)
  else: raise RuntimeError('owner handle registration timeout')
- evidence=Path.home()/'.dvaia/native-verification'/f'{SCOPE}-{a.container_nonce}'; evidence.mkdir(parents=True,exist_ok=False); os.chmod(evidence,0o700)
- log=evidence/'native.log'; own=evidence/'ownership.json'; cid=None; child=None; name=f'dvaia-finflow-actual8b-{a.container_nonce}'; state={'version':1,'owner':'/root','grantId':a.grant_id,'ownerHandle':int(hv),'launcherPid':os.getpid(),'candidateSourceRoot':str(root/'source'),'candidateManifestSha256':ms,'sourceHashes':files,'dependencySnapshotSha256':m.get('dependencySnapshotSha256'),'managedNodePath':str(node),'managedNodeSha256':ns,'postgresImageRef':IMAGE,'postgresImageId':a.postgres_image_id,'stage':STAGE,'scope':a.scope,'evidence':str(evidence),'runStatus':'owner_registered'}; save(own,state)
+ evidence=Path.home()/'.owasp-ai-goat/native-verification'/f'{SCOPE}-{a.container_nonce}'; evidence.mkdir(parents=True,exist_ok=False); os.chmod(evidence,0o700)
+ log=evidence/'native.log'; own=evidence/'ownership.json'; cid=None; child=None; name=f'owasp-ai-goat-finflow-actual8b-{a.container_nonce}'; state={'version':1,'owner':'/root','grantId':a.grant_id,'ownerHandle':int(hv),'launcherPid':os.getpid(),'candidateSourceRoot':str(root/'source'),'candidateManifestSha256':ms,'sourceHashes':files,'dependencySnapshotSha256':m.get('dependencySnapshotSha256'),'managedNodePath':str(node),'managedNodeSha256':ns,'postgresImageRef':IMAGE,'postgresImageId':a.postgres_image_id,'stage':STAGE,'scope':a.scope,'evidence':str(evidence),'runStatus':'owner_registered'}; save(own,state)
  def reap():
   nonlocal child
   if child and child.poll() is None:
@@ -101,31 +101,31 @@ def main():
    x=run(image+['inspect',cid],capture_output=True)
    if x.returncode==0:
     info=json.loads(x.stdout)[0]; labels=info.get('Config',{}).get('Labels',{}) or {}
-    if info.get('Name')!='/'+name or labels.get('dvaia.owner')!='/root' or labels.get('dvaia.grant')!=a.grant_id or labels.get('dvaia.nonce')!=a.container_nonce: raise RuntimeError('unowned cleanup refused')
+    if info.get('Name')!='/'+name or labels.get('owasp-ai-goat.owner')!='/root' or labels.get('owasp-ai-goat.grant')!=a.grant_id or labels.get('owasp-ai-goat.nonce')!=a.container_nonce: raise RuntimeError('unowned cleanup refused')
     run(image+['rm','--force',cid],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
   return run(image+['inspect',name],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode!=0
  try:
-  x=run(image+['run','--detach','--pull','never','--name',name,'--label','dvaia.owner=/root','--label',f'dvaia.grant={a.grant_id}','--label',f'dvaia.nonce={a.container_nonce}','--label',f'dvaia.stage={STAGE}','--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_USER=dvaia_bootstrap','-e','POSTGRES_HOST_AUTH_METHOD=trust','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=64'],capture_output=True,timeout=60)
+  x=run(image+['run','--detach','--pull','never','--name',name,'--label','owasp-ai-goat.owner=/root','--label',f'owasp-ai-goat.grant={a.grant_id}','--label',f'owasp-ai-goat.nonce={a.container_nonce}','--label',f'owasp-ai-goat.stage={STAGE}','--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_USER=owasp_ai_goat_bootstrap','-e','POSTGRES_HOST_AUTH_METHOD=trust','-p','127.0.0.1::5432',IMAGE,'-c','shared_buffers=16MB','-c','max_connections=64'],capture_output=True,timeout=60)
   if x.returncode: raise RuntimeError(x.stderr.strip())
   cid=x.stdout.strip(); state.update(containerId=cid,runStatus='container_started'); save(own,state)
   for _ in range(90):
-   if run(image+['exec',cid,'pg_isready','-U','dvaia_bootstrap'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0: break
+   if run(image+['exec',cid,'pg_isready','-U','owasp_ai_goat_bootstrap'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0: break
    time.sleep(.5)
   else: raise RuntimeError('postgres readiness timeout')
   port=run(image+['port',cid,'5432/tcp'],capture_output=True).stdout.strip();
   if not re.fullmatch(r'127\.0\.0\.1:\d+',port): raise RuntimeError('loopback port required')
   p=port.rsplit(':',1)[1]
   def psql(sql,db='postgres'):
-   y=run(image+['exec',cid,'psql','-U','dvaia_bootstrap','-d',db,'-v','ON_ERROR_STOP=1','-c',sql],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,timeout=45)
+   y=run(image+['exec',cid,'psql','-U','owasp_ai_goat_bootstrap','-d',db,'-v','ON_ERROR_STOP=1','-c',sql],stdout=subprocess.DEVNULL,stderr=subprocess.PIPE,timeout=45)
    if y.returncode: raise RuntimeError('psql failed: '+y.stderr.strip())
   for role in ('dvaia_identity_migration','dvaia_identity_runtime','dvaia_finflow_migration','dvaia_finflow_runtime'): psql(f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS')
-  for db,owner,runtime in (('dvaia_test_finflow_recon_identity','dvaia_identity_migration','dvaia_identity_runtime'),('dvaia_test_finflow_recon_store','dvaia_finflow_migration','dvaia_finflow_runtime')):
+  for db,owner,runtime in (('owasp_ai_goat_test_finflow_recon_identity','dvaia_identity_migration','dvaia_identity_runtime'),('owasp_ai_goat_test_finflow_recon_store','dvaia_finflow_migration','dvaia_finflow_runtime')):
    psql(f'CREATE DATABASE {db} OWNER {owner}')
    psql(f'REVOKE CONNECT ON DATABASE {db} FROM PUBLIC; GRANT CONNECT ON DATABASE {db} TO {owner},{runtime}')
   app_data=evidence/'app-data'; backup_root=app_data/'finflow-backups'
   for private_root in (app_data,app_data/'logs',app_data/'finflow-traversal-targets'): ensure_private_root(private_root)
   if os.path.lexists(backup_root): raise RuntimeError('application-owned backup leaf must be absent')
-  env={k:os.environ[k] for k in ('PATH','HOME','TMPDIR') if k in os.environ}; env.update(PG_TEST_DISPOSABLE='yes',FINFLOW_RECON_ACTUAL8B_ISOLATED='1',FINFLOW_RECON_ACTUAL8B_STAGE=STAGE,DVAIA_ISOLATED_TEST_WORKSPACE=str(root),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',SENSITIVE_INFO_AGGREGATE_RESET_ENABLED='true',AI_PROVIDER='ollama',OLLAMA_BASE_URL='http://127.0.0.1:11434',OLLAMA_MODEL='llama3.1:8b',JUDGE_PROVIDER='ollama',JUDGE_MODEL='llama3.1:8b',JWT_SECRET=secrets.token_urlsafe(32),DVAIA_APP_DATA_ROOT=str(app_data),LOGS_DIR=str(app_data/'logs'),FINFLOW_TRAVERSAL_TARGET_ROOT=str(app_data/'finflow-traversal-targets'),FINFLOW_BACKUP_ROOT=str(backup_root),IDENTITY_DATABASE_URL=f'postgresql://dvaia_identity_runtime@127.0.0.1:{p}/dvaia_test_finflow_recon_identity',IDENTITY_MIGRATION_DATABASE_URL=f'postgresql://dvaia_identity_migration@127.0.0.1:{p}/dvaia_test_finflow_recon_identity',FINFLOW_WORKSHOP_DATABASE_URL=f'postgresql://dvaia_finflow_runtime@127.0.0.1:{p}/dvaia_test_finflow_recon_store',FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL=f'postgresql://dvaia_finflow_migration@127.0.0.1:{p}/dvaia_test_finflow_recon_store',FINFLOW_RECON_ACTUAL8B_EVIDENCE_PATH=str(evidence/'actor-evidence.json'),NODE_ENV='test')
+  env={k:os.environ[k] for k in ('PATH','HOME','TMPDIR') if k in os.environ}; env.update(PG_TEST_DISPOSABLE='yes',FINFLOW_RECON_ACTUAL8B_ISOLATED='1',FINFLOW_RECON_ACTUAL8B_STAGE=STAGE,OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(root),PLATFORM_DATABASE_ENGINE='postgres',WORKSHOP_DATABASE_ENGINE='postgres',SENSITIVE_INFO_AGGREGATE_RESET_ENABLED='true',AI_PROVIDER='ollama',OLLAMA_BASE_URL='http://127.0.0.1:11434',OLLAMA_MODEL='llama3.1:8b',JUDGE_PROVIDER='ollama',JUDGE_MODEL='llama3.1:8b',JWT_SECRET=secrets.token_urlsafe(32),OWASP_AI_GOAT_APP_DATA_ROOT=str(app_data),LOGS_DIR=str(app_data/'logs'),FINFLOW_TRAVERSAL_TARGET_ROOT=str(app_data/'finflow-traversal-targets'),FINFLOW_BACKUP_ROOT=str(backup_root),IDENTITY_DATABASE_URL=f'postgresql://dvaia_identity_runtime@127.0.0.1:{p}/owasp_ai_goat_test_finflow_recon_identity',IDENTITY_MIGRATION_DATABASE_URL=f'postgresql://dvaia_identity_migration@127.0.0.1:{p}/owasp_ai_goat_test_finflow_recon_identity',FINFLOW_WORKSHOP_DATABASE_URL=f'postgresql://dvaia_finflow_runtime@127.0.0.1:{p}/owasp_ai_goat_test_finflow_recon_store',FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL=f'postgresql://dvaia_finflow_migration@127.0.0.1:{p}/owasp_ai_goat_test_finflow_recon_store',FINFLOW_RECON_ACTUAL8B_EVIDENCE_PATH=str(evidence/'actor-evidence.json'),NODE_ENV='test')
   with open(log,'w') as out:
    os.chmod(log,0o600); child=subprocess.Popen([str(node),'--test','--test-concurrency=1','source/tests/postgres/finflowReconActual8b.integration.test.js'],cwd=root,env=env,stdout=out,stderr=subprocess.STDOUT,start_new_session=True); state.update(childPid=child.pid,runStatus='test_running'); save(own,state); code=child.wait(timeout=1800); child=None
   if code!=0: raise RuntimeError(f'cohort exited {code}')

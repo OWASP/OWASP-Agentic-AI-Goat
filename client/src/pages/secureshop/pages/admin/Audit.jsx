@@ -537,7 +537,7 @@ export default function AdminAudit({ scopeKey = '' }) {
     if (!events.length || exportLock.current) return;
     if (!standalone) {
       setExportNotice('');
-      setExportError('CSV export is available in standalone SecureShop. Open the standalone shop to download this page.');
+      setExportError('CSV export is available in standalone OWASP AI SecureShop. Open the standalone shop to download this page.');
       return;
     }
     exportLock.current = true;

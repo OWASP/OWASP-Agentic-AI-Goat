@@ -2,7 +2,7 @@
   "version": 1,
   "scope": "Data-only regression fixture from frozen actual8B run9912. Exact actual inputs/outputs and original Judge provenance; no new model result or positive attack claim.",
   "frozenEvidence": {
-    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-ipi-same-question-27ouw7kr",
+    "directory": "/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-ipi-same-question-27ouw7kr",
     "serviceEvidenceSha256": "e02851a0bbeb401edec2a7462b08bb8e6249c45e7dd5093452a5777b9f0dd081",
     "frozenTestSourceSha256": "e791c0caaeddf4c328fd7e0224dd3556f97081df5a9161724ca17c9c5dccc55a"
   },

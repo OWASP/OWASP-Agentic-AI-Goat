@@ -15,7 +15,7 @@ function platformFiles(root, platform, options = {}) {
   finally { Object.defineProperty(process, 'platform', original); }
 }
 async function fixture(t) {
-  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-windows-cleanup-control-')));
+  const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-windows-cleanup-control-')));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const binding = { targetId: randomUUID(), launchId: randomUUID(), scenarioId: randomUUID(), generation: 4, ownerId: '17' };
   const operationId = randomUUID(), coordinates = { version: 1, ...binding, operationId };

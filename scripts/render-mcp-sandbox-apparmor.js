@@ -4,7 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const PROFILE = /^dvaia-mcp-sandbox(?:-[a-z0-9]{12})?$/;
+const PROFILE = /^owasp-ai-goat-mcp-sandbox(?:-[a-z0-9]{12})?$/;
 
 function renderMcpSandboxAppArmor(template, profileName) {
   if (typeof template !== 'string' || !template.includes('@@SUPERVISOR_PROFILE@@')) {

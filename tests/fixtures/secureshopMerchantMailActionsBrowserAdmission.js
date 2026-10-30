@@ -83,7 +83,7 @@ async function admitMerchantMailActionsBrowser(env, { workspace, evidencePath, e
   assert.equal(env.PG_TEST_DISPOSABLE, 'yes');
   assert.equal(env.LIVE_OLLAMA_TEST, '1');
   assert.equal(env.NODE_ENV, 'test');
-  assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, workspace);
+  assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, workspace);
   assert.equal(workspace, process.cwd());
   assert.equal(fs.realpathSync(workspace), workspace);
   assert.ok(path.isAbsolute(evidencePath) && path.resolve(evidencePath) === evidencePath);
@@ -131,7 +131,7 @@ async function admitMerchantMailActionsBrowser(env, { workspace, evidencePath, e
   function browserArgs({ profile, origin }) {
     privateDirectory(profile);
     assert.equal(path.dirname(profile), tempRoot);
-    assert.match(path.basename(profile), /^dvaia-role-mail-actions-[A-Za-z0-9_-]+$/);
+    assert.match(path.basename(profile), /^owasp-ai-goat-role-mail-actions-[A-Za-z0-9_-]+$/);
     const target = new URL(origin);
     assert.equal(target.origin, origin);
     assert.equal(target.protocol, 'http:');

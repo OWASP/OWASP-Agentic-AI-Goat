@@ -31,7 +31,7 @@ function urls(){
   for(const kind of ['RUNTIME','MIGRATION']){
    const value=new URL(process.env[`${PREFIX}${key}_${kind}_URL`]);
    assert.equal(value.protocol,'postgresql:');assert.equal(value.hostname,'127.0.0.1');
-   assert.match(value.pathname,/^\/dvaia_test_[a-z0-9_]+$/);assert.equal(value.password,'');
+   assert.match(value.pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);assert.equal(value.password,'');
    assert.equal(value.search,'');assert.equal(value.hash,'');
    assert.equal(value.username,`dvaia_${store}_${kind.toLowerCase()}`);
    pair[kind.toLowerCase()]=value;ports.add(value.port);
@@ -95,7 +95,7 @@ async function seedTurn(agents,identity,original,purpose,originKey,origin,{aband
 }
 
 if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:180000},async t=>{
- assert.equal(process.cwd(),ROOT);assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE||'/'),ROOT);
+ assert.equal(process.cwd(),ROOT);assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE||'/'),ROOT);
  const pairs=urls(),pools={},all=[];
  t.after(async()=>{const ended=await Promise.allSettled(all.map(p=>p.end()));assert.deepEqual(ended.filter(r=>r.status==='rejected'),[],'all owned pools close');});
  for(const [key,store] of Object.entries(STORES)){

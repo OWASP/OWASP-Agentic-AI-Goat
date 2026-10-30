@@ -11,7 +11,7 @@ function provisioningExtension(previous, desired) {
     const identities = new Set();
     for (const row of plan) {
       if (!row || Object.keys(row).length !== FIELDS.length || FIELDS.some(key => typeof row[key] !== 'string' || !row[key])) invalid();
-      if (!/^[a-z][a-z_]*$/.test(row.schema) || row.database !== `dvaia_${row.schema}`
+      if (!/^[a-z][a-z_]*$/.test(row.schema) || row.database !== `owasp_ai_goat_${row.schema}`
           || row.runtimeRole !== `dvaia_${row.schema}_runtime` || row.migrationRole !== `dvaia_${row.schema}_migration`
           || !/^[A-Z][A-Z_]*_DATABASE_URL$/.test(row.runtimeVariable)
           || row.migrationVariable !== row.runtimeVariable.replace(/_DATABASE_URL$/, '_MIGRATION_DATABASE_URL')) invalid();

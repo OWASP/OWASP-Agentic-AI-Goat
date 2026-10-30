@@ -28,7 +28,7 @@
   <a href="#donations">Donate</a>
 </p>
 
-OWASP Agentic AI GOAT is a deliberately vulnerable application for learning how to attack and defend AI agents. It includes prompt injection, RAG and email attacks, SQL and NoSQL injection, XSS, MCP labs, a prompt-injection CTF, and SecureShop, an AI-powered shopping application.
+OWASP Agentic AI GOAT is a deliberately vulnerable application for learning how to attack and defend AI agents. It includes prompt injection, RAG and email attacks, SQL and NoSQL injection, XSS, MCP labs, a prompt-injection CTF, and OWASP AI SecureShop, an AI-powered shopping application.
 
 Run it locally for training. Never expose it to the internet or use real sensitive data in the labs.
 
@@ -69,7 +69,7 @@ Open [localhost:3000](http://localhost:3000) and sign in with the [initial accou
 
 - Choose an exercise from the workshop dashboard and follow its objectives. Hints and solutions are available when enabled by the instructor.
 - Open the [admin panel](http://localhost:3000/admin) to manage students, exercises, hints, solutions, and progress.
-- Try the [prompt-injection CTF](http://localhost:3000/ctf) or [SecureShop](http://localhost:3000/secureshop). SecureShop uses separate practice accounts.
+- Try the [prompt-injection CTF](http://localhost:3000/ctf) or [OWASP AI SecureShop](http://localhost:3000/secureshop). OWASP AI SecureShop uses separate practice accounts.
 
 Stop with Ctrl+C in the launcher terminal or run `./stop_all.sh`. Use the exercise reset controls to reset progress.
 
@@ -84,7 +84,7 @@ Keep credentials in your private `.env`. Do not commit them.
 - [Email setup](docs/install/SMTP_SETUP.md): Gmail SMTP, SharkLasers, and local Mailpit delivery. Choose the workshop email provider in Admin → Settings → Email Delivery. With Mailpit selected, the IPI and XSS email labs include a link to the inbox.
 - [Workshop entry password](docs/install/INSTALLATION.md#optional-workshop-entry-password): restrict entry during an event.
 - [Custom ports and browser origins](docs/install/INSTALLATION.md#browser-origins-and-custom-ports) and [reverse proxies](docs/install/INSTALLATION.md#reverse-proxies).
-- [SecureShop setup](docs/secureshop/README.md): shop accounts, agents, and optional services.
+- [OWASP AI SecureShop setup](docs/secureshop/README.md): shop accounts, agents, and optional services.
 
 ## Guides
 
@@ -92,6 +92,7 @@ Keep credentials in your private `.env`. Do not commit them.
 - [All documentation](docs/README.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Current release status and known limitations](docs/modernization/current-release-status.md)
+- [Project rename and fresh-installation scope](docs/install/BRANDING.md)
 - [Installation recovery](docs/install/local-recovery-contract.md)
 - [Security policy](docs/SECURITY.md)
 

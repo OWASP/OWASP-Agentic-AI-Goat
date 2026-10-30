@@ -135,7 +135,7 @@ async function testStructure() {
   await runTest('Admin preview endpoint returns solution with hints array', async () => {
     const login = await axios.post(`${BASE_URL}/api/auth/login`, {
       username: process.env.TEST_ADMIN_USERNAME || 'Abhinav',
-      password: process.env.TEST_ADMIN_PASSWORD || 'Abh1nav@DVAIA#2026'
+      password: process.env.TEST_ADMIN_PASSWORD || 'Abh1nav@OWASP-AI-GOAT#2026'
     }, { timeout: 5000 });
     adminHeaders = { Authorization: `Bearer ${login.data.token}` };
     const res = await axios.get(`${BASE_URL}/api/admin/pi-workshop/solutions/preview/jailbreak`, {

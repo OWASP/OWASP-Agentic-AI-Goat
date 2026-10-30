@@ -9,7 +9,7 @@ test('0031 preserves all prior purposes and admits only bound Analytics', {skip:
  const pools=[];try{
   for(const name of (await fs.readdir(directory)).filter(n=>n.endsWith('.sql')&&!n.startsWith('0031_')))await fs.copyFile(path.join(directory,name),path.join(prefix,name));
   for(const variant of ['FRESH','POPULATED']){
-   const pair={};for(const kind of ['MIGRATION','RUNTIME']){const url=new URL(process.env[`ANALYTICS_PURPOSE_${variant}_${kind}_URL`]);assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,new RegExp(`^/dvaia_test_analytics_purpose_${process.env.ANALYTICS_PURPOSE_OWNER}_${variant.toLowerCase()}$`));pair[kind]=new Pool({connectionString:url.href,max:3,query_timeout:10000,connectionTimeoutMillis:1500});pair[kind].on('error',()=>{});pools.push(pair[kind]);}
+   const pair={};for(const kind of ['MIGRATION','RUNTIME']){const url=new URL(process.env[`ANALYTICS_PURPOSE_${variant}_${kind}_URL`]);assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,new RegExp(`^/owasp_ai_goat_test_analytics_purpose_${process.env.ANALYTICS_PURPOSE_OWNER}_${variant.toLowerCase()}$`));pair[kind]=new Pool({connectionString:url.href,max:3,query_timeout:10000,connectionTimeoutMillis:1500});pair[kind].on('error',()=>{});pools.push(pair[kind]);}
    await migrate(pair.MIGRATION,variant==='FRESH'?directory:prefix);
    const repository=createBoundConversationsRepository({pool:pair.RUNTIME,queue:async(_id,work)=>work()});
    const binding={launchId:randomUUID(),scenarioId:randomUUID(),generation:1,platformOwnerId:101,platformSessionId:102,shopUserId:103,role:'merchant'},sessions=[];

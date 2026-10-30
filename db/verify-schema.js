@@ -37,7 +37,7 @@ const EXPECTED = {
     // without it throws on every boot ("no column named category").
     security_settings: ['category'],
   },
-  dvaia: { users: ['admin_level', 'email_verified'] },
+  'owasp-ai-goat': { users: ['admin_level', 'email_verified'] },
   // Platform auth/session/admin DB — required by the secure platform layer.
   platform_secure: { platform_users: [], admin_permissions: [] },
   secureshop: { products: [], reviews: [] },

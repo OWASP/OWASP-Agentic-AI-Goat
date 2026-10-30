@@ -2,7 +2,7 @@
 // Preserved Sept27 native smoke, main-only authority. Root executes after review.
 // No application imports, database URLs, model session/inference or downloads.
 const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto'),{createRequire}=require('node:module'),{spawn}=require('node:child_process');
-const EXPECTED='/Users/averma5/Documents/github/Damn-Vulnerable-AI-Application';
+const EXPECTED='/Users/averma5/Documents/github/OWASP Agentic AI GOAT';
 assert.equal(path.resolve(__dirname,'../..'),EXPECTED);
 assert.equal(fs.realpathSync(EXPECTED),EXPECTED);
 const evidence=path.resolve(process.argv[3]);

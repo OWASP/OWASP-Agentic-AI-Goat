@@ -240,10 +240,10 @@ class V30HostControllerClient {
 }
 
 function consumeInheritedController(env = process.env, expectedHostEnvironment = null) {
-  const fd = Number(env.DVAIA_V30_HOST_WORKER_FD), nonce = env.DVAIA_V30_HOST_NONCE;
+  const fd = Number(env.OWASP_AI_GOAT_V30_HOST_WORKER_FD), nonce = env.OWASP_AI_GOAT_V30_HOST_NONCE;
   const hostPort = Number(env.V30_AGENT_HOST_PORT);
   assert(Number.isSafeInteger(fd) && fd >= 3 && Number.isSafeInteger(hostPort));
-  delete env.DVAIA_V30_HOST_WORKER_FD; delete env.DVAIA_V30_HOST_NONCE;
+  delete env.OWASP_AI_GOAT_V30_HOST_WORKER_FD; delete env.OWASP_AI_GOAT_V30_HOST_NONCE;
   return new V30HostControllerClient({ socket: new net.Socket({ fd, readable: true, writable: true }),
     nonce, hostPort, expectedHostEnvironment });
 }

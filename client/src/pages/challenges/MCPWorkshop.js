@@ -486,7 +486,7 @@ function explainRpc(entry, revealPoison = false) {
 /* ═══════════════════ Component ═══════════════════ */
 
 export function ShadowSourceEditor({ ownerId, resetting = false, resetVersion = 0 }) {
-  const storageKey = ownerId ? `dvaia:mcp-shadow-source:${ownerId}` : null;
+  const storageKey = ownerId ? `owasp-ai-goat:mcp-shadow-source:${ownerId}` : null;
   const [source, setSource] = useState(null);
   const [readyScope, setReadyScope] = useState(null);
   const [text, setText] = useState('');
@@ -507,7 +507,7 @@ export function ShadowSourceEditor({ ownerId, resetting = false, resetVersion = 
     revision.current++; request.current?.abort(); request.current = null;
     if(previousStorageKey.current && previousStorageKey.current!==storageKey)removeStored(previousStorageKey.current);
     previousStorageKey.current=storageKey;
-    try { for(const key of Object.keys(sessionStorage))if(key.startsWith('dvaia:mcp-shadow-source:') && key!==storageKey)removeStored(key); } catch { /* Storage can be disabled by browser policy. */ }
+    try { for(const key of Object.keys(sessionStorage))if(key.startsWith('owasp-ai-goat:mcp-shadow-source:') && key!==storageKey)removeStored(key); } catch { /* Storage can be disabled by browser policy. */ }
     setSource(null); setText(''); setBusy(false);
     if (previousReset.current !== resetVersion) { if (storageKey) removeStored(storageKey); previousReset.current = resetVersion; }
     let saved = null;

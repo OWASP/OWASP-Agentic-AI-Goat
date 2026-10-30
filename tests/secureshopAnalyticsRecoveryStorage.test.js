@@ -15,13 +15,13 @@ test('Analytics references persist over the real frame channel without storing q
   assert.deepEqual(readAnalyticsReferences(),[]);
   frame.setItem('ss_system_rebuild_recovery',JSON.stringify({version:1,references:[reference]}));await frame.flush();
   await saveAnalyticsReference(reference);
-  const state=JSON.parse(values.get(`dvaia:secureshop:${launchId}:1`));
+  const state=JSON.parse(values.get(`owasp-ai-goat:secureshop:${launchId}:1`));
   assert.deepEqual(JSON.parse(state[SHOP_ANALYTICS_KEY]),{version:1,references:[reference]});
   await assert.rejects(saveAnalyticsReference({...reference,question:'private question'}));
   await saveAnalyticsReference({...reference,state:'unknown'});
   await assert.rejects(forgetAnalyticsReference(reference),/changed/);
   await forgetAnalyticsReference({...reference,state:'unknown'});
-  const after=JSON.parse(values.get(`dvaia:secureshop:${launchId}:1`));
+  const after=JSON.parse(values.get(`owasp-ai-goat:secureshop:${launchId}:1`));
   assert.equal(after[SHOP_ANALYTICS_KEY],null);assert.equal(after.ss_system_rebuild_recovery,state.ss_system_rebuild_recovery);
  } finally {release();frame.close();host.close();}
 });

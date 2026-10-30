@@ -193,7 +193,7 @@ async function competitorEndpoint({getCase,bodyFor,record}){
 
 if(require.main===module)test(TITLE,{skip:!ENABLED,timeout:LIMITS.fixtureMs},async()=>{
   const selectedSourceVariant=sourceVariant(process.env.SECURESHOP_TOOL_OUTPUT_SOURCE_VARIANT);
-  assert.equal(fs.realpathSync(process.cwd()),ROOT);assert.equal(process.env.DVAIA_CURRENT_MAIN_WORKSPACE,ROOT);
+  assert.equal(fs.realpathSync(process.cwd()),ROOT);assert.equal(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,ROOT);
   assert.equal(process.env.AI_PROVIDER,'ollama');assert.equal(process.env.OLLAMA_MODEL,MODEL);
   const evidence=process.env.SECURESHOP_TOOL_OUTPUT_EVIDENCE_PATH;
   require('../fixtures/secureshopNativeEvidencePath').assertNativeEvidencePath(evidence,{root:ROOT,dockerHost:process.env.DOCKER_HOST,basename:'tool-output-evidence.json'});

@@ -23,9 +23,9 @@ from trusted_process_inspector import peer_identity
 
 LIVE_ENABLED = False
 FULL_LIVE_ENABLED = True
-LAUNCHER_FD_ENV = 'DVAIA_V30_HOST_LAUNCHER_FD'
-WORKER_FD_ENV = 'DVAIA_V30_HOST_WORKER_FD'
-NONCE_ENV = 'DVAIA_V30_HOST_NONCE'
+LAUNCHER_FD_ENV = 'OWASP_AI_GOAT_V30_HOST_LAUNCHER_FD'
+WORKER_FD_ENV = 'OWASP_AI_GOAT_V30_HOST_WORKER_FD'
+NONCE_ENV = 'OWASP_AI_GOAT_V30_HOST_NONCE'
 MAX_FRAME = 16384
 COHORT = 'secureshop-v30-original-customer-disclosure-current-main-v1'
 PROFILE = 'search-continuation-v2'
@@ -194,7 +194,7 @@ def validate_grant(repo, grant, *, check_dependencies=True):
             or not hexadecimal(grant['containerId']) or not uuid(grant['owner']):
         raise RuntimeError('V30_CONTROLLER_GRANT')
     for key, store in (('commerceUrl', 'secureshop'), ('agentsUrl', 'secureshop_agents')):
-        expected = f"postgresql://dvaia_{store}_runtime@127.0.0.1:{grant['pgPort']}/dvaia_test_agent_host_{grant['pgNonce']}_{store}"
+        expected = f"postgresql://dvaia_{store}_runtime@127.0.0.1:{grant['pgPort']}/owasp_ai_goat_test_agent_host_{grant['pgNonce']}_{store}"
         if grant[key] != expected:
             raise RuntimeError('V30_CONTROLLER_DATABASE')
     node = canonical_file(repo, NODE_RELATIVE)
@@ -419,8 +419,8 @@ class DarwinDriver:
                 {'PATH': '/usr/bin:/bin', 'DOCKER_CONFIG': str(Path(grant['run']) / 'runtime')}, timeout=8)
             return subprocess.CompletedProcess(args, code, out.decode(), err.decode())
         verify_daemon(command, DAEMON)
-        row = inspect_owned(command, name='dvaia-v30-original-disclosure-' + grant['pgNonce'],
-            labels={'dvaia.owner': grant['owner'], 'dvaia.cohort': COHORT}, image=IMAGE, captured_id=grant['containerId'])
+        row = inspect_owned(command, name='owasp-ai-goat-v30-original-disclosure-' + grant['pgNonce'],
+            labels={'owasp-ai-goat.owner': grant['owner'], 'owasp-ai-goat.cohort': COHORT}, image=IMAGE, captured_id=grant['containerId'])
         if row is None or validate_container_layout(row) != grant['pgPort']:
             raise RuntimeError('V30_CONTROLLER_DATABASE')
 

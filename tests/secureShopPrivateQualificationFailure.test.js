@@ -138,7 +138,7 @@ test('private artifact preserves an exact unavailable transport receipt with nul
 });
 
 test('owned writer creates one mode-0600 artifact and rejects a collision',t=>{
-  const root=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-private-qualification-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-private-qualification-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
   fs.chmodSync(root,0o700);const writer=createOwnedPrivateQualificationWriter(fs.realpathSync(root));
   assert.throws(()=>writer.write({scope:'forged'}),/helper-built/);
   const artifact=privatePersonaJudgmentFailureArtifact(input());assert.equal(writer.write(artifact),writer.output);

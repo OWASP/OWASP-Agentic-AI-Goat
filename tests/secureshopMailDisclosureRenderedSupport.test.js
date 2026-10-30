@@ -2,9 +2,9 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {stageDisclosureCandidate}=require('./fixtures/secureshopMailDisclosureRenderedSupport');
 test('private candidate staging preserves qualified source without edits and cannot stage the live repository',()=>{
- const evidence=fs.mkdtempSync(path.join(os.tmpdir(),'disclosure-stage-control-')),root=path.join(evidence,'source'),files=['server/config/secureshopCurriculum.js','server/services/secureshopMailObjectiveReadiness.js'],original=files.map(f=>fs.readFileSync(f,'utf8')),prior={PG_TEST_DISPOSABLE:process.env.PG_TEST_DISPOSABLE,DVAIA_ISOLATED_TEST_WORKSPACE:process.env.DVAIA_ISOLATED_TEST_WORKSPACE};
+ const evidence=fs.mkdtempSync(path.join(os.tmpdir(),'disclosure-stage-control-')),root=path.join(evidence,'source'),files=['server/config/secureshopCurriculum.js','server/services/secureshopMailObjectiveReadiness.js'],original=files.map(f=>fs.readFileSync(f,'utf8')),prior={PG_TEST_DISPOSABLE:process.env.PG_TEST_DISPOSABLE,OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE:process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE};
  const donor={[files[0]]:"{ id: 'ss_mail_cross_persona_read', qualification: 'native-model' }\n",[files[1]]:'ss_mail_cross_persona_read:true\n'};
- try{for(const f of files){fs.mkdirSync(path.dirname(path.join(root,f)),{recursive:true});fs.writeFileSync(path.join(root,f),donor[f],{mode:0o444});}process.env.PG_TEST_DISPOSABLE='yes';process.env.DVAIA_ISOLATED_TEST_WORKSPACE=root;const rows=stageDisclosureCandidate(root,evidence);assert.equal(rows.length,0);
+ try{for(const f of files){fs.mkdirSync(path.dirname(path.join(root,f)),{recursive:true});fs.writeFileSync(path.join(root,f),donor[f],{mode:0o444});}process.env.PG_TEST_DISPOSABLE='yes';process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=root;const rows=stageDisclosureCandidate(root,evidence);assert.equal(rows.length,0);
  // Staging admission uses minimal synthetic text; real content is read only in main.
  const live=require('../server/config/secureshopCurriculum');
  const {document}=require('../server/database/postgres/catalogDefaultProvenance');
@@ -39,10 +39,10 @@ test('pending synthetic catalog stages exactly three chained edits and preserves
   'Disclosure instructions.'+note+'\n';
  const initialReadiness='ss_mail_cross_persona_read:false\nother_objective:false\n';
  const promoted=source.replace("qualification: 'pending'","qualification: 'native-model'"),expected=promoted.replace(note,'');
- const prior={PG_TEST_DISPOSABLE:process.env.PG_TEST_DISPOSABLE,DVAIA_ISOLATED_TEST_WORKSPACE:process.env.DVAIA_ISOLATED_TEST_WORKSPACE};
+ const prior={PG_TEST_DISPOSABLE:process.env.PG_TEST_DISPOSABLE,OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE:process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE};
  try{
   for(const [file,text]of [[curriculum,source],[readiness,initialReadiness]]){fs.mkdirSync(path.dirname(path.join(root,file)),{recursive:true});fs.writeFileSync(path.join(root,file),text,{mode:0o444});}
-  process.env.PG_TEST_DISPOSABLE='yes';process.env.DVAIA_ISOLATED_TEST_WORKSPACE=root;
+  process.env.PG_TEST_DISPOSABLE='yes';process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=root;
   const rows=stageDisclosureCandidate(root,evidence);
   assert.deepEqual(rows,[
    {file:curriculum,before:digest(source),after:digest(promoted)},

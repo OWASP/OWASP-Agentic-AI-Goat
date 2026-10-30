@@ -9,7 +9,7 @@ const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_LEGACY_CH
 async function fixture(fn){
  const url=new URL(process.env.PG_LEGACY_CHALLENGE_IMPORT_ADMIN_URL);
  assert.ok(['postgres:','postgresql:'].includes(url.protocol));assert.ok(['127.0.0.1','localhost','[::1]'].includes(url.hostname));assert.equal(url.pathname,'/postgres');assert.equal(url.search,'');assert.equal(url.hash,'');
- const admin=new Pool({connectionString:url.href,max:1}),name=`dvaia_test_legacy_import_${process.pid}_${crypto.randomBytes(4).toString('hex')}`;
+ const admin=new Pool({connectionString:url.href,max:1}),name=`owasp_ai_goat_test_legacy_import_${process.pid}_${crypto.randomBytes(4).toString('hex')}`;
  let migration,runtime;
  try{
   await admin.query(`CREATE DATABASE ${name} OWNER dvaia_legacy_challenge_migration`);

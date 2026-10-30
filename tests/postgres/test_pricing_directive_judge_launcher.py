@@ -7,7 +7,7 @@ class ClosedMode(unittest.TestCase):
  def test_conflicting_modes_reject_at_parse(self):
   value=self.invoke('--directive-groups','--synthetic-positive');self.assertEqual(value.returncode,2);self.assertIn('not allowed',value.stderr)
  def test_missing_pins_refuse_before_owned_root(self):
-  value=self.invoke('--directive-groups');self.assertNotEqual(value.returncode,0);self.assertIn('Explicit reviewed runtime',value.stderr);self.assertNotIn('dvaia-pricing-directive-judge-',value.stdout)
+  value=self.invoke('--directive-groups');self.assertNotEqual(value.returncode,0);self.assertIn('Explicit reviewed runtime',value.stderr);self.assertNotIn('owasp-ai-goat-pricing-directive-judge-',value.stdout)
  def test_unknown_case_selector_cannot_subset_prospective_cases(self):
   value=self.invoke('--directive-groups','--case','data_only');self.assertEqual(value.returncode,2);self.assertIn('unrecognized arguments',value.stderr)
 class CleanupBehavior(unittest.TestCase):

@@ -15,7 +15,7 @@ const {
 } = require('../scripts/verify-release-source-inclusion');
 
 function fixture(t) {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-source-inclusion-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-source-inclusion-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.mkdirSync(path.join(root, 'client'), { recursive: true });
   fs.mkdirSync(path.join(root, 'scripts', 'lib'), { recursive: true });

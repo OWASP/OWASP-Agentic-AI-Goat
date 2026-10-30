@@ -29,7 +29,7 @@ function controlled(){
  };
  const executePublication=(exe,args,wire)=>{
   const r=JSON.parse(wire.input);calls.push(r);if(privateDenied)throw Error('private authority denied');
-  const stagePath=r.targetPath+'.dvaia-'+r.operationId+'.stage';let retained=files.get(r.intentPath),intent;
+  const stagePath=r.targetPath+'.owasp-ai-goat-'+r.operationId+'.stage';let retained=files.get(r.intentPath),intent;
   if(!retained){
    if(r.operation!=='preparePrivatePublication'||r.originalBytesBase64!==null||files.has(r.targetPath))throw Error('fresh target conflict');
    const bytes=Buffer.from(r.resultBytesBase64,'base64');let result=files.get(r.intentPath+'.result'),stage=files.get(stagePath);

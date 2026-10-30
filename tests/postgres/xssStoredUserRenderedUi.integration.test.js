@@ -13,12 +13,12 @@ const KEYS = ['PG_XSS_EMAIL_ROUTE_IDENTITY_RUNTIME_URL', 'PG_XSS_EMAIL_ROUTE_IDE
   'PG_XSS_EMAIL_ROUTE_XSS_RUNTIME_URL', 'PG_XSS_EMAIL_ROUTE_XSS_MIGRATION_URL',
   'PG_XSS_EMAIL_ROUTE_CTF_RUNTIME_URL', 'PG_XSS_EMAIL_ROUTE_CTF_MIGRATION_URL'];
 const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && process.env.XSS_STORED_USER_ROUTE_UI === 'yes'
-  && KEYS.every(key => process.env[key]) && process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
+  && KEYS.every(key => process.env[key]) && process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
 
 function verifyInputs() {
   const current = require('./xssCurrentCheckoutAdmission').verifyCurrentCheckout({ keys: KEYS, cohort: 'stored_user' });
   if (current) return current;
-  const workspace = fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  const workspace = fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   assert.equal(fs.realpathSync(process.cwd()), workspace);
   const sourceRoot = fs.realpathSync(path.resolve(__dirname, '../..'));
   assert.equal(workspace, sourceRoot, 'workspace must be the canonical fixture source root');
@@ -27,13 +27,13 @@ function verifyInputs() {
   for (const key of KEYS) {
     const url = new URL(process.env[key]);
     assert.equal(url.hostname, '127.0.0.1');
-    assert.match(url.pathname, /^\/dvaia_test_xss_email_route_(?:identity|xss|ctf)$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_xss_email_route_(?:identity|xss|ctf)$/);
   }
   return workspace;
 }
 
 function verifyRenderedRuntimeRoot(workspace) {
-  const value = process.env.DVAIA_XSS_RENDERED_RUNTIME_ROOT;
+  const value = process.env.OWASP_AI_GOAT_XSS_RENDERED_RUNTIME_ROOT;
   assert.ok(value && path.isAbsolute(value), 'owned rendered runtime root is required');
   const root = fs.realpathSync(value);
   assert.notEqual(root, workspace);

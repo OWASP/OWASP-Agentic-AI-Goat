@@ -56,7 +56,7 @@ async function launchInventoryBrowser({ root, receiptPath, profile, executablePa
   const tmp = path.join(runtime, 'tmp');
   const home = path.join(runtime, 'home');
   assert.equal(root, process.cwd());
-  assert.equal(process.env.DVAIA_CURRENT_MAIN_WORKSPACE, root);
+  assert.equal(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, root);
   assert.equal(process.env.TMPDIR, tmp);
   assert.equal(process.env.MAC_CHROMIUM_TMPDIR, tmp);
   assert.equal(process.env.XDG_CACHE_HOME, path.join(home, '.cache'));
@@ -67,7 +67,7 @@ async function launchInventoryBrowser({ root, receiptPath, profile, executablePa
   await fs.access(executablePath, constants.X_OK);
   for (const directory of [runtime, tmp, home, profile]) await privateDirectory(directory);
   assert.equal(path.dirname(profile), tmp);
-  assert.match(path.basename(profile), /^dvaia-standalone-inventory-[A-Za-z0-9_-]+$/);
+  assert.match(path.basename(profile), /^owasp-ai-goat-standalone-inventory-[A-Za-z0-9_-]+$/);
   exactLoopbackOrigin(origin);
   return require('puppeteer').launch({ ...ordinary, args: [
     '--no-sandbox', '--disable-background-networking', '--disable-component-update',

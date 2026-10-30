@@ -1,6 +1,6 @@
 import { GUEST_CART_STORAGE_KEY, parseStoredGuestCart, validGuestCartItems } from './bridge/guestCartProtocol.mjs';
 
-const REQUEST_KEY = 'dvaia.secureshop.guest-cart-import.v1';
+const REQUEST_KEY = 'owasp-ai-goat.secureshop.guest-cart-import.v1';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function readSavedGuestCart(storage) {

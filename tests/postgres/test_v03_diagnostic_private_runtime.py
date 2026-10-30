@@ -32,7 +32,7 @@ class DiagnosticRuntime(ControlledRuntime):
     def docker(self, *args):
         result = super().docker(*args)
         if args[0] == 'create':
-            self.row['Config']['Labels'] = {'dvaia.diagnostic.runtime':self.binding['runId']}
+            self.row['Config']['Labels'] = {'owasp-ai-goat.diagnostic.runtime':self.binding['runId']}
             self.row['Config']['Entrypoint'] = self.entrypoint
         return result
 
@@ -48,7 +48,7 @@ class DiagnosticControls(unittest.TestCase):
         connection=SimpleNamespace(request=lambda *args,**kwargs:calls.append((args,kwargs)),
                                    getresponse=lambda:response,close=lambda:calls.append('closed'))
         info=SimpleNamespace(st_mode=stat.S_IFREG|0o600,st_uid=0,st_nlink=1,st_size=len(raw))
-        source=channel.diagnostic_readiness_program('/var/tmp/dvaia-v23-build-'+'a'*32+'/fs/diagnostic-runtime.env',12345,120)
+        source=channel.diagnostic_readiness_program('/var/tmp/owasp-ai-goat-v23-build-'+'a'*32+'/fs/diagnostic-runtime.env',12345,120)
         self.assertNotIn('x'*43,source)
         with patch.object(channel.os,'stat',return_value=SimpleNamespace(st_ino=12345)), \
              patch.object(channel.os,'open',return_value=77),patch.object(channel.os,'fstat',return_value=info), \
@@ -65,7 +65,7 @@ class DiagnosticControls(unittest.TestCase):
         value=binding();value['target']='original-v03-diagnostic'
         parent='a'*32
         value['runId']=channel.digest((parent+':v03-diagnostic').encode())[:32]
-        value['physical']['privateDockerHost']='unix:///var/tmp/dvaia-v23-build-'+value['runId']+'/fs/docker.sock'
+        value['physical']['privateDockerHost']='unix:///var/tmp/owasp-ai-goat-v23-build-'+value['runId']+'/fs/docker.sock'
         with patch.object(channel.time,'monotonic',return_value=100):
             runtime=channel.GuestRuntime(value,110)
         row=dict(version=1,target='original-v03-combined-preparation-lease-v1',runId=value['runId'],parentRunId=parent,
@@ -107,7 +107,7 @@ class DiagnosticControls(unittest.TestCase):
 
     def test_actual_start_and_stop_use_original_diagnostic_entry_and_envelope(self):
         runtime=DiagnosticRuntime()
-        profile=Path(__file__).resolve().parents[2]/'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'
+        profile=Path(__file__).resolve().parents[2]/'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'
         with patch.object(channel.os,'stat',return_value=SimpleNamespace(st_ino=12345)):
             result=runtime.start('x'*43,profile.read_bytes(),time.monotonic()+2100)
             self.assertEqual(result['target'],'original-v03-diagnostic')

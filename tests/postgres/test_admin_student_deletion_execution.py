@@ -25,7 +25,7 @@ class DeletionExecutionControls(unittest.TestCase):
         self.assertEqual(sum(row.startswith('REVOKE CONNECT ') for row in statements), 16)
         self.assertEqual(sum(row.startswith('GRANT CONNECT ') for row in statements), 16)
         self.assertEqual(sum('dvaia_ctf_delivery' in row for row in statements), 2)
-        self.assertIn('GRANT CONNECT ON DATABASE dvaia_test_student_deletion_aaaaaaaaaaaa_ctf '
+        self.assertIn('GRANT CONNECT ON DATABASE owasp_ai_goat_test_student_deletion_aaaaaaaaaaaa_ctf '
                       'TO dvaia_ctf_migration,dvaia_ctf_runtime,dvaia_ctf_delivery', statements)
         self.assertTrue(all(' IF NOT EXISTS ' not in row for row in statements))
 
@@ -34,17 +34,17 @@ class DeletionExecutionControls(unittest.TestCase):
         self.assertEqual(len(urls), 33)
         self.assertEqual(urls['IDENTITY_DATABASE_URL'],
                          'postgresql://dvaia_identity_runtime@127.0.0.1:54321/'
-                         'dvaia_test_student_deletion_aaaaaaaaaaaa_identity')
+                         'owasp_ai_goat_test_student_deletion_aaaaaaaaaaaa_identity')
         self.assertEqual(urls['CTF_DELIVERY_DATABASE_URL'],
                          'postgresql://dvaia_ctf_delivery@127.0.0.1:54321/'
-                         'dvaia_test_student_deletion_aaaaaaaaaaaa_ctf')
+                         'owasp_ai_goat_test_student_deletion_aaaaaaaaaaaa_ctf')
         for bad in (None, True, 0, 65536, '54321'):
             with self.assertRaises(RuntimeError): execution.store_urls(NONCE, bad)
 
     def test_owned_existing_image_command_has_closed_resource_envelope(self):
         image = 'sha256:' + 'b' * 64
         command = execution.container_command('/owned/docker', 'unix:///owned/docker.sock',
-            'dvaia-student-deletion-' + NONCE, image, 'c' * 32)
+            'owasp-ai-goat-student-deletion-' + NONCE, image, 'c' * 32)
         self.assertIn('--pull', command)
         self.assertEqual(command[command.index('--pull') + 1], 'never')
         self.assertEqual(command[command.index('--memory') + 1], str(2 * 1024 ** 3))
@@ -63,7 +63,7 @@ class DeletionExecutionControls(unittest.TestCase):
         for bad in ('latest', 'sha256:'+'a'*63):
             with self.assertRaises(RuntimeError):
                 execution.container_command('/owned/docker', 'unix:///owned/docker.sock',
-                    'dvaia-student-deletion-' + NONCE, bad, 'c'*32)
+                    'owasp-ai-goat-student-deletion-' + NONCE, bad, 'c'*32)
 
     def test_private_worker_environment_and_direct_node_commands(self):
         with tempfile.TemporaryDirectory(dir=ROOT / 'tasks/qualification') as parent:
@@ -84,7 +84,7 @@ class DeletionExecutionControls(unittest.TestCase):
                 env = execution.worker_environment(ROOT, runtime, NONCE, 54321, args,
                     'c'*64, 'privateSyntheticSigningSecret1234567890')
                 self.assertEqual(env['PG_POOL_BUDGET'], '78')
-                self.assertEqual(env['DVAIA_APP_DATA_ROOT'], str(runtime))
+                self.assertEqual(env['OWASP_AI_GOAT_APP_DATA_ROOT'], str(runtime))
                 self.assertEqual(env['STUDENT_DELETION_RESOURCE_JOURNAL'],
                     str(runtime/'tmp/student-deletion-resources.json'))
                 self.assertEqual(env['ADMIN_STUDENT_DELETION_STORE_PLAN_SHA256'],
@@ -189,7 +189,7 @@ class DeletionExecutionControls(unittest.TestCase):
     def test_execute_failure_still_removes_exact_owned_container_and_keeps_failure(self):
         image = 'sha256:' + 'b' * 64
         container = 'c' * 64
-        name = 'dvaia-student-deletion-' + NONCE
+        name = 'owasp-ai-goat-student-deletion-' + NONCE
         args = argparse.Namespace(nonce=NONCE, docker='/owned/docker',
             docker_host='unix:///owned/docker.sock', daemon_id='owned-daemon',
             image_id=image, current_host_profile='owned', node='/owned/node',
@@ -219,7 +219,7 @@ class DeletionExecutionControls(unittest.TestCase):
                 if not state['container'] or command[-1] == container and state.get('removed'):
                     return result(err=f'Error: No such object: {command[-1]}', code=1)
                 return result(json.dumps([{'Id': container,
-                    'Config': {'Labels': {'dvaia.test.owner': state['owner']}},
+                    'Config': {'Labels': {'owasp-ai-goat.test.owner': state['owner']}},
                     'State': {'Running': True, 'OOMKilled': False, 'ExitCode': 0},
                     'HostConfig': {'Memory': 2 * 1024**3, 'MemorySwap': 2 * 1024**3,
                         'NanoCpus': 2*10**9,

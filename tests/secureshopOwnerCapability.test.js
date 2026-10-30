@@ -71,7 +71,7 @@ test('issues canonical short-lived tokens and verifies only against complete tru
 
   assert.equal(verified.claims.v, 1);
   assert.equal(verified.claims.keyVersion, 2);
-  assert.equal(verified.claims.iss, 'dvaia-backend');
+  assert.equal(verified.claims.iss, 'owasp-ai-goat-backend');
   assert.equal(verified.claims.iat, Math.floor(now / 1000));
   assert.equal(verified.claims.exp, Math.floor(now / 1000) + 30);
   assert.equal(verified.claims.argsDigest, service.digestArguments(expected.args));

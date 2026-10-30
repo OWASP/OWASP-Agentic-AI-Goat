@@ -34,7 +34,7 @@ const ledger = async pool => (await pool.query('SELECT name,checksum FROM dvaia_
 
 function admittedUrls() {
   assert.equal(path.resolve(process.cwd()), ROOT);
-  assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
+  assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), ROOT);
   const owner = process.env[`${PREFIX}OWNER`];
   assert.match(owner, /^[a-f0-9]{12}$/);
   const urls = {}, names = new Set(); let port;
@@ -44,7 +44,7 @@ function admittedUrls() {
       assert.equal(url.protocol, 'postgresql:'); assert.equal(url.hostname, '127.0.0.1');
       assert.equal(url.username, `dvaia_${family}_${role.toLowerCase()}`);
       assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-      assert.equal(url.pathname, `/dvaia_test_ticket_${owner}_${store.toLowerCase()}`);
+      assert.equal(url.pathname, `/owasp_ai_goat_test_ticket_${owner}_${store.toLowerCase()}`);
       assert.match(url.port, /^[1-9][0-9]{0,4}$/); assert.ok(Number(url.port) <= 65535);
       port ??= url.port; assert.equal(url.port, port);
       urls[key] = url.href;
@@ -57,7 +57,7 @@ function admittedUrls() {
 }
 
 async function reviewView(through, directories) {
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-ticket-migrations-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ticket-migrations-'));
   directories.push(directory);
   for (const entry of await readMigrations(REVIEW)) {
     if (Number(entry.name.slice(0, 4)) <= through) {

@@ -939,7 +939,7 @@ function createSecureShopBoundReviewComposition({ identityPool, agentsPool, revi
     if (!scenes || !personaAuthority || !personaBindings || !jwtSecret || !audit?.review)
       throw unavailable('Checkout audit lesson authority unavailable');
     const secretMaterial = require('node:crypto').hkdfSync('sha256',
-      Buffer.from(jwtSecret, 'utf8'), Buffer.from('dvaia/secureshop/v01/root/v1'),
+      Buffer.from(jwtSecret, 'utf8'), Buffer.from('owasp-ai-goat/secureshop/v01/root/v1'),
       Buffer.from('isolated checkout audit teaching verifier'), 32);
     // The shared audit bundle owns append and cleanup, but its generic reader
     // has no launch authority. V01's protected order join uses the same review

@@ -81,8 +81,8 @@ test('retained admin artifact evidence preserves byte-exact HTTP and activity-lo
  }
 });
 test('actual cohort requires exact isolated role and model bindings',{skip:!enabled},()=>{
- assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
- owned('IDENTITY_DATABASE_URL','dvaia_test_finflow_recon_identity','dvaia_identity_runtime');owned('IDENTITY_MIGRATION_DATABASE_URL','dvaia_test_finflow_recon_identity','dvaia_identity_migration');owned('FINFLOW_WORKSHOP_DATABASE_URL','dvaia_test_finflow_recon_store','dvaia_finflow_runtime');owned('FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL','dvaia_test_finflow_recon_store','dvaia_finflow_migration');
+ assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE),fs.realpathSync(process.cwd()));
+ owned('IDENTITY_DATABASE_URL','owasp_ai_goat_test_finflow_recon_identity','dvaia_identity_runtime');owned('IDENTITY_MIGRATION_DATABASE_URL','owasp_ai_goat_test_finflow_recon_identity','dvaia_identity_migration');owned('FINFLOW_WORKSHOP_DATABASE_URL','owasp_ai_goat_test_finflow_recon_store','dvaia_finflow_runtime');owned('FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL','owasp_ai_goat_test_finflow_recon_store','dvaia_finflow_migration');
  assert.equal(process.env.OLLAMA_BASE_URL,'http://127.0.0.1:11434');assert.equal(process.env.OLLAMA_MODEL,MODEL);assert.equal(process.env.JUDGE_PROVIDER,'ollama');assert.equal(process.env.JUDGE_MODEL,MODEL);
 });
 
@@ -90,7 +90,7 @@ test('actual actor and Judge preserve all five outcomes and owner-scoped resets'
  const originalLoad=Module._load,originalFetch=globalThis.fetch,calls=[];
  globalThis.fetch=async(input,init)=>{const url=String(input?.url||input||'');if(!/^http:\/\/(?:127\.0\.0\.1|localhost):11434\//.test(url))return originalFetch(input,init);const rawRequest=await requestBytes(input,init),response=await originalFetch(input,init),rawResponse=await response.clone().text();calls.push({url,status:response.status,rawRequest,request:json(rawRequest),rawResponse,responseJson:json(rawResponse)});return response;};
  Module._load=function(request,parent,isMain){if(/(?:^|\/)(?:authDb|sqlite|sqlite3|better-sqlite3)(?:\.js)?$/.test(request))throw Error(`SQLite import forbidden: ${request}`);return originalLoad.call(this,request,parent,isMain);};
- const evidencePath=path.resolve(process.env.FINFLOW_RECON_ACTUAL8B_EVIDENCE_PATH||''),stage=path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE||process.cwd());assert.ok(path.isAbsolute(process.env.FINFLOW_RECON_ACTUAL8B_EVIDENCE_PATH||''));assert.ok(evidencePath!==stage&&!evidencePath.startsWith(`${stage}${path.sep}`));
+ const evidencePath=path.resolve(process.env.FINFLOW_RECON_ACTUAL8B_EVIDENCE_PATH||''),stage=path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE||process.cwd());assert.ok(path.isAbsolute(process.env.FINFLOW_RECON_ACTUAL8B_EVIDENCE_PATH||''));assert.ok(evidencePath!==stage&&!evidencePath.startsWith(`${stage}${path.sep}`));
  const evidence={version:4,cohort:'finflow-admin-catalog-actual8b-v4',provider:'ollama',model:MODEL,qualification:'incomplete',cases:[],modeControls:[],judgeControls:[],contractFailures:[],qualificationFailures:[],failures:[]};
  const persist=()=>{fs.mkdirSync(path.dirname(evidencePath),{recursive:true,mode:0o700});const tmp=`${evidencePath}.${process.pid}.pending`;fs.writeFileSync(tmp,`${JSON.stringify({...evidence,updatedAt:new Date().toISOString()},null,2)}\n`,{mode:0o600});fs.renameSync(tmp,evidencePath);};
  const check=(result,value,label)=>{result.checks[label]=value===true;if(value!==true)result.failures.push(label);};persist();

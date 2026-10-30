@@ -41,7 +41,7 @@ test('native rendered caller uses four owned stores and physical standalone prog
     'secureshopAssessmentProgressRendered.integration.test.js'), 'utf8');
   assert.ok(source.includes("const PREFIX = 'PG_SECURESHOP_ASSESSMENT_PROGRESS_RENDERED_';"));
   assert.ok(source.includes('SECURESHOP_ASSESSMENT_PROGRESS_RENDERED_NATIVE'));
-  assert.ok(source.includes('dvaia_test_agent_host_'));
+  assert.ok(source.includes('owasp_ai_goat_test_agent_host_'));
   assert.ok(source.includes("physicalButton(customerPage, 'Shop settings')"));
   assert.ok(source.includes("physicalButton(adminPage, 'Shop settings')"));
   assert.ok(source.includes("'/api/secureshop/auth/progress'"));

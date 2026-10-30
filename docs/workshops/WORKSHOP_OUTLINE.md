@@ -1,6 +1,6 @@
-# DVAIA Workshop Outline
+# OWASP Agentic AI GOAT Workshop Outline
 
-**Damn Vulnerable AI Application — Hands-On Security Workshop**  
+**OWASP Agentic AI GOAT — Hands-On Security Workshop**
 *Draft for RSA Conference*
 
 ---
@@ -9,11 +9,11 @@
 
 | Item | Details |
 |------|---------|
-| **Title** | DVAIA: Web & AI Security in a Safe Lab |
+| **Title** | OWASP Agentic AI GOAT: Web & AI Security in a Safe Lab |
 | **Format** | Hands-on lab with guided challenges |
 | **Duration** | ~90–120 minutes (adjustable) |
 | **Audience** | Security practitioners, penetration testers, developers (RSA attendees) |
-| **Platform** | DVAIA v2.0 — secure platform with isolated vulnerable challenges |
+| **Platform** | OWASP Agentic AI GOAT v2.0 — secure platform with isolated vulnerable challenges |
 
 **What we’ll do:** Use a single application to practice web vulnerabilities (SQLi, XSS) and AI security (prompt injection, CTF) in isolated environments. The platform stays secure; the lab is the target.
 
@@ -41,7 +41,7 @@ By the end of the workshop, participants will have:
 
 ## 4. Ground Rules (One Slide)
 
-- **In scope:** Only the DVAIA app and lab; only provided accounts and URLs.
+- **In scope:** Only the OWASP Agentic AI GOAT app and lab; only provided accounts and URLs.
 - **Out of scope:** No conference Wi‑Fi, other attendees, venue systems, or real data.
 - **No:** DoS, abuse of shared lab, or anything illegal.
 - **Conduct:** Don’t break others’ sessions; ask before heavy or custom testing.
@@ -54,7 +54,7 @@ By the end of the workshop, participants will have:
 
 | # | Section | Time | Description |
 |---|---------|------|-------------|
-| 1 | **Intro & setup** | ~10 min | What is DVAIA; lab access; quick tour of main app and workshop login. |
+| 1 | **Intro & setup** | ~10 min | What is OWASP Agentic AI GOAT; lab access; quick tour of main app and workshop login. |
 | 2 | **Platform & login** | ~5 min | Log in as student (`student` / `student 123`) or admin (`admin` / `admin123`); dashboards and navigation. |
 | 3 | **Web security** | ~25 min | **SQL injection** (isolated DB), **XSS** (comment system), **SQL/NoSQL workshop** (prompt-driven queries). Emphasize: only challenge DBs are vulnerable. |
 | 4 | **AI security** | ~25 min | **Direct prompt injection** → **Indirect prompt injection** → **CTF prompt injection** (8 levels). Hands-on with Llama 3.1 in the app. |
@@ -107,7 +107,7 @@ By the end of the workshop, participants will have:
 
 ## 8. Wrap-Up & Resources
 
-- **Repo:** [GitHub – Damn-Vulnerable-AI-Application]
+- **Repo:** [GitHub – OWASP Agentic AI GOAT]
 - **Docs:** README.md, INSTALL_GUIDE.md (and this outline).
 - **Learning path:** SQLi → XSS → Direct/Indirect prompt injection → CTF → SecureShop.
 

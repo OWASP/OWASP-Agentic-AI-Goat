@@ -7,7 +7,7 @@ const puppeteer = require('puppeteer');
 
 const root = path.resolve(__dirname, '..');
 const buildDirectory = path.join(root, 'client/build');
-const outputDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-workshop-browser-'));
+const outputDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-workshop-browser-'));
 const widths = [375, 768, 1024, 1440];
 const ids = {
   direct_prompt_injection: ['interact', 'system_prompt', 'jailbreak', 'multi_language', 'virtualization', 'role_playing', 'side_stepping', 'obfuscation'],

@@ -260,7 +260,7 @@ async function deputyPacket({owner=7,generation=3,runId=crypto.randomUUID(),reci
  const selectedBody='send it';const subject='MCP diagnostic report';
  const fullBody=`${selectedBody}\n\n${marker}${protectedContent}`;const effectKey='mail';
  const intentId='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
- const messageId=`mcp-${intentId}@dvaia.local`;
+ const messageId=`mcp-${intentId}@owasp-ai-goat.local`;
  const scope={targetId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',platformOwnerId:owner,platformSessionId:71,generation};
  const toolResult={tool:'send_report',args:{to:recipient,body:selectedBody},objective:'mcp_confused_deputy',achieved:true,real:true,
   output:`Report delivered to EXTERNAL recipient ${recipient}.\n${marker}${protectedContent}`};

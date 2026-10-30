@@ -4,7 +4,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ## What This Project Is
 
-**DVAIA (Damn Vulnerable AI Application)** is an educational security platform with a deliberate split architecture:
+**OWASP Agentic AI GOAT** is an educational security platform with a deliberate split architecture:
 - **Platform layer**: Production-grade secure infrastructure (auth, session management, audit logging)
 - **Challenge layer**: Intentionally vulnerable isolated databases for hands-on learning
 
@@ -299,7 +299,7 @@ The `LAB_MODE` env var (`vuln`/`fixed`) toggles challenge behavior in several ro
 
 ## Default Credentials
 
-Fresh supported PostgreSQL setup creates only two platform users: `admin` / `admin123` (level 2 administrator) and `student` / `student 123` (one literal space). Passwords are hashed in PostgreSQL. The private `~/.dvaia/<workspace-id>/administrator.json` records the installation’s administrator credential. Never reset existing users or passwords during upgrade/repair/reseed. Legacy SQLite fixture credentials are not supported startup authority.
+Fresh supported PostgreSQL setup creates only two platform users: `admin` / `admin123` (level 2 administrator) and `student` / `student 123` (one literal space). Passwords are hashed in PostgreSQL. The private `~/.owasp-ai-goat/<workspace-id>/administrator.json` records the installation’s administrator credential. Never reset existing users or passwords during upgrade/repair/reseed. Legacy SQLite fixture credentials are not supported startup authority.
 
 SecureShop has separate synthetic practice accounts and lesson personas; see the single [installation guide](docs/install/INSTALLATION.md#initial-accounts) for their default logins. These accounts cannot create platform authority.
 

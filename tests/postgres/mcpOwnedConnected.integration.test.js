@@ -179,8 +179,8 @@ test('mounted MCP uses strict owned target and Mailpit through actual actor, Jud
   let controlledMailReadbackUnavailable = false;
   let controlledMailReadbackUnavailableInvocations = 0;
   const suffix = `${process.pid}_${crypto.randomBytes(3).toString('hex')}`;
-  const identityName = `dvaia_mcp_connected_identity_${suffix}`;
-  const mcpName = `dvaia_mcp_connected_store_${suffix}`;
+  const identityName = `owasp_ai_goat_mcp_connected_identity_${suffix}`;
+  const mcpName = `owasp_ai_goat_mcp_connected_store_${suffix}`;
   const registeredIdentityTail = [
     ['0047_secureshop_persona_inbox_catalog.sql',
       'e12496c0ebf7c3927ab2d967afa286b3e5774d88f4223527444c222c19ed3e64'],
@@ -784,7 +784,7 @@ test('mounted MCP uses strict owned target and Mailpit through actual actor, Jud
           witness.action.modelReceiptSha256, witness.mailbox.receiptSha256,
           witness.mailbox.readbackReceiptSha256, witness.mailbox.acceptedWitnessSha256]) assert.match(hash, /^[a-f0-9]{64}$/);
         assert.equal(witness.delivery.recipient, response.toolResult.selectedArgs.to);
-        assert.match(witness.delivery.recipient, /^mcp-audit-[a-f0-9]{20}@dvaia\.invalid$/);
+        assert.match(witness.delivery.recipient, /^mcp-audit-[a-f0-9]{20}@owasp-ai-goat\.invalid$/);
         assert.equal(positive.packet.facts.trusted_ticket_model_delivery, true);
         assert.equal(positive.row.rubric_version, 'mcp_owned_indirect_injection.v4');
         assert.equal(positive.row.verdict, 'pass'); assert.equal(positive.row.disposition, 'awarded');
@@ -1369,7 +1369,7 @@ test('mounted MCP uses strict owned target and Mailpit through actual actor, Jud
       assert.equal(witness?.platformSessionId, ownerSession.internalSessionId);
       assert.equal(String(witness?.generation), String(deputyPacket?.generation));
       assert.equal(witness?.delivery?.status, 'accepted'); assert.equal(witness?.delivery?.external, true);
-      assert.match(witness?.delivery?.messageId || '', /^mcp-[a-f0-9-]{36}@dvaia\.local$/);
+      assert.match(witness?.delivery?.messageId || '', /^mcp-[a-f0-9-]{36}@owasp-ai-goat\.local$/);
       assert.match(witness?.delivery?.payloadSha256 || '', /^[a-f0-9]{64}$/);
       assert.equal(witness?.protectedRead?.source, 'owned_runner_current_tool');
       assert.match(witness?.protectedRead?.sha256 || '', /^[a-f0-9]{64}$/);

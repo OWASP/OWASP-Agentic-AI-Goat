@@ -51,7 +51,7 @@ manifest = validate_package(workspace, manifest_path, args.manifest_sha256, node
 for filename in ('run-sql-nosql-route-isolated.py', 'sql_nosql_route_contract.py', 'sql_nosql_package_contract.py', 'sql_nosql_docker_ownership.py', 'sql_nosql_process_ownership.py'):
     if digest(Path(__file__).parent / filename) != manifest['files']['tests/postgres/' + filename]:
         raise RuntimeError('Executing launcher contracts differ from immutable package')
-with tempfile.TemporaryDirectory(prefix='dvaia-sql-nosql-offline-') as offline_logs:
+with tempfile.TemporaryDirectory(prefix='owasp-ai-goat-sql-nosql-offline-') as offline_logs:
     offline_env = dict((key, os.environ[key]) for key in ('PATH', 'HOME', 'TMPDIR') if key in os.environ)
     offline_env.update(NODE_ENV='test', SQL_NOSQL_OFFLINE_COMPOSITION='1',
         PLATFORM_DATABASE_ENGINE='postgres', WORKSHOP_DATABASE_ENGINE='postgres',
@@ -62,13 +62,13 @@ with tempfile.TemporaryDirectory(prefix='dvaia-sql-nosql-offline-') as offline_l
         cwd=workspace, env=offline_env, capture_output=True, text=True, timeout=30)
     if offline.returncode or offline.stdout.strip() != 'SQL_NOSQL_OFFLINE_COMPOSITION_READY':
         raise RuntimeError('Offline SQL/NOVA route/grader composition closure failed')
-root = prepare_evidence_root(args.evidence_root, [workspace.parent, Path(__file__).resolve().parents[2]]) if args.evidence_root else Path(tempfile.mkdtemp(prefix='dvaia-sql-nosql-route-')).resolve()
+root = prepare_evidence_root(args.evidence_root, [workspace.parent, Path(__file__).resolve().parents[2]]) if args.evidence_root else Path(tempfile.mkdtemp(prefix='owasp-ai-goat-sql-nosql-route-')).resolve()
 os.chmod(root, 0o700)
 base_env = {key: os.environ[key] for key in ['PATH', 'HOME', 'TMPDIR'] if key in os.environ}
 docker = ['docker', '--host', args.docker_host]
 run_nonce = uuid.uuid4().hex
-container = 'dvaia-sql-nosql-route-' + run_nonce
-labels = {'dvaia.qualification.scope': 'sql_nosql_route_actual8b', 'dvaia.qualification.nonce': run_nonce, 'dvaia.qualification.uid': str(os.getuid())}
+container = 'owasp-ai-goat-sql-nosql-route-' + run_nonce
+labels = {'owasp-ai-goat.qualification.scope': 'sql_nosql_route_actual8b', 'owasp-ai-goat.qualification.nonce': run_nonce, 'owasp-ai-goat.qualification.uid': str(os.getuid())}
 creation_intended = False
 captured_id = None
 
@@ -174,7 +174,7 @@ try:
     psql = ['psql', '-h', '127.0.0.1', '-p', str(port), '-U', 'sql_nosql_route_admin',
             '-d', 'postgres', '-v', 'ON_ERROR_STOP=1']
     env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes',
-        SQL_NOSQL_ROUTE_ISOLATED='1', DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+        SQL_NOSQL_ROUTE_ISOLATED='1', OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
         PLATFORM_DATABASE_ENGINE='postgres', WORKSHOP_DATABASE_ENGINE='postgres',
         AI_PROVIDER='ollama', JUDGE_PROVIDER='ollama', OLLAMA_MODEL='llama3.1:8b',
         JUDGE_MODEL='llama3.1:8b', OLLAMA_BASE_URL='http://127.0.0.1:11434',
@@ -191,9 +191,9 @@ try:
     env['SQL_NOSQL_ROUTE_FIXED_SESSION'] = '1' if args.fixed_session else '0'
     env['SQL_NOSQL_ROUTE_CREDIT_GATE'] = '1' if args.credit_gate else '0'
     env['SQL_NOSQL_ROUTE_CREDIT_GATE_CONTROL_ONLY'] = '1' if args.credit_gate_control_only else '0'
-    for family, database in [('identity', 'dvaia_test_sql_nosql_route_identity'),
-                             ('aria', 'dvaia_test_sql_nosql_route_aria'),
-                             ('nova', 'dvaia_test_sql_nosql_route_nova')]:
+    for family, database in [('identity', 'owasp_ai_goat_test_sql_nosql_route_identity'),
+                             ('aria', 'owasp_ai_goat_test_sql_nosql_route_aria'),
+                             ('nova', 'owasp_ai_goat_test_sql_nosql_route_nova')]:
         migration, runtime = f'dvaia_{family}_migration', f'dvaia_{family}_runtime'
         for role in [migration, runtime]:
             run(psql + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'], stdout=subprocess.DEVNULL)
@@ -207,7 +207,7 @@ try:
     bootstrap_env = {key: value for key, value in env.items()
                      if key in base_env or key in {
                          'NODE_ENV', 'PG_TEST_DISPOSABLE', 'SQL_NOSQL_ROUTE_ISOLATED',
-                         'DVAIA_ISOLATED_TEST_WORKSPACE', 'PLATFORM_DATABASE_ENGINE',
+                         'OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE', 'PLATFORM_DATABASE_ENGINE',
                          'WORKSHOP_DATABASE_ENGINE', 'SQL_NOSQL_ROUTE_FIXED_SESSION', 'SQL_NOSQL_ROUTE_FIXTURE_NONCE', 'LOGS_DIR'}
                      or key.endswith('_DATABASE_URL')}
     bootstrap_log = root / 'bootstrap.log'

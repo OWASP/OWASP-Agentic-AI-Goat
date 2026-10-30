@@ -22,17 +22,17 @@ def resource_plan(nonce, runner_image, mailpit_image, cli_template, http_templat
     if any(not re.fullmatch(r'sha256:[a-f0-9]{64}', x) for x in ((runner_image, mailpit_image) if cohort=='mcp-mounted-http' else (runner_image,))):
         raise ValueError('Immutable local images required')
     if cohort in ('codebot-current-representative','codebot-current-full-six','codebot-current-clean-fixed') and (mailpit_image is not None or http_template is not None):raise ValueError('CodeBot owns only CLI topology')
-    prefix='dvaia-mcp-mounted-' if cohort=='mcp-mounted-http' else 'dvaia-codebot-current-'
+    prefix='owasp-ai-goat-mcp-mounted-' if cohort=='mcp-mounted-http' else 'owasp-ai-goat-codebot-current-'
     result = {'owner': nonce, 'directory': '/tmp/'+prefix+nonce, 'resources': {}}
     resources=[('cli',runner_image,[8090],cli_template)]
     if cohort=='mcp-mounted-http':resources += [('http',runner_image,[8091],http_template),('mail',mailpit_image,[1025,8025],None)]
     for kind, image, ports, template in resources:
         name=prefix+kind+'-'+nonce
-        value={'kind':kind,'name':name,'image':image,'ports':ports,'labels':{'dvaia.qualification':cohort,'dvaia.owner':nonce,'dvaia.resource':kind}}
+        value={'kind':kind,'name':name,'image':image,'ports':ports,'labels':{'owasp-ai-goat.qualification':cohort,'owasp-ai-goat.owner':nonce,'owasp-ai-goat.resource':kind}}
         if template is not None:
             if not isinstance(template,bytes) or template.count(b'@@SUPERVISOR_PROFILE@@')<1:
                 raise ValueError('Exact profile template required')
-            profile=('dvaia-mcp-sandbox-' if kind=='cli' else 'dvaia-owned-http-')+nonce[:12]
+            profile=('owasp-ai-goat-mcp-sandbox-' if kind=='cli' else 'owasp-ai-goat-owned-http-')+nonce[:12]
             policy=template.replace(b'@@SUPERVISOR_PROFILE@@',profile.encode())
             if b'@@' in policy:raise ValueError('Unresolved profile template')
             value.update(profile=profile,profileNames=[profile,profile+'//bwrap'],policy=policy,policySha256=hashlib.sha256(policy).hexdigest())

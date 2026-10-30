@@ -30,9 +30,9 @@ function isolatedOwnedFiles() {
 
 test('one retained primitive uses the private owned root and full public upload limits', () => {
   const { api, calls, primitive } = isolatedOwnedFiles();
-  const appRoot = path.resolve('/private/dvaia/app-data');
-  const first = api.getSecureShopOwnedFiles({ DVAIA_APP_DATA_ROOT: appRoot });
-  const second = api.getSecureShopOwnedFiles({ DVAIA_APP_DATA_ROOT: `${appRoot}/../app-data` });
+  const appRoot = path.resolve('/private/owasp-ai-goat/app-data');
+  const first = api.getSecureShopOwnedFiles({ OWASP_AI_GOAT_APP_DATA_ROOT: appRoot });
+  const second = api.getSecureShopOwnedFiles({ OWASP_AI_GOAT_APP_DATA_ROOT: `${appRoot}/../app-data` });
   assert.equal(first, primitive);
   assert.equal(second, primitive);
   assert.deepEqual(calls, [{
@@ -44,13 +44,13 @@ test('one retained primitive uses the private owned root and full public upload 
 
 test('invalid or changed roots fail without constructing a second primitive', () => {
   const invalid = isolatedOwnedFiles();
-  assert.throws(() => invalid.api.getSecureShopOwnedFiles({ DVAIA_APP_DATA_ROOT: 'relative/data' }),
+  assert.throws(() => invalid.api.getSecureShopOwnedFiles({ OWASP_AI_GOAT_APP_DATA_ROOT: 'relative/data' }),
     /Private application data root required/);
   assert.equal(invalid.calls.length, 0);
 
   const configured = isolatedOwnedFiles();
-  configured.api.getSecureShopOwnedFiles({ DVAIA_APP_DATA_ROOT: '/private/dvaia/one' });
-  assert.throws(() => configured.api.getSecureShopOwnedFiles({ DVAIA_APP_DATA_ROOT: '/private/dvaia/two' }),
+  configured.api.getSecureShopOwnedFiles({ OWASP_AI_GOAT_APP_DATA_ROOT: '/private/owasp-ai-goat/one' });
+  assert.throws(() => configured.api.getSecureShopOwnedFiles({ OWASP_AI_GOAT_APP_DATA_ROOT: '/private/owasp-ai-goat/two' }),
     /already configured/);
   assert.equal(configured.calls.length, 1);
 });
@@ -61,7 +61,7 @@ test('missing configuration is optional only before the singleton is retained', 
   assert.equal(absent.calls.length, 0);
 
   const configured = isolatedOwnedFiles();
-  configured.api.getSecureShopOwnedFiles({ DVAIA_APP_DATA_ROOT: '/private/dvaia/retained' });
+  configured.api.getSecureShopOwnedFiles({ OWASP_AI_GOAT_APP_DATA_ROOT: '/private/owasp-ai-goat/retained' });
   assert.throws(() => configured.api.getSecureShopOwnedFiles({}), /already configured/);
   assert.equal(configured.calls.length, 1);
 });

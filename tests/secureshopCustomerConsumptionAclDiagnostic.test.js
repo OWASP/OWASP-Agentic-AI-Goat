@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),Module=require('node:module');
 const {beginAclDiagnostic,validateAclDiagnostic}=require('./fixtures/secureshopCustomerConsumptionAclDiagnostic');
-const DB={role:'dvaia_secureshop_agents_runtime',database:'dvaia_test_agent_host_0123456789ab_secureshop_agents'};
+const DB={role:'dvaia_secureshop_agents_runtime',database:'owasp_ai_goat_test_agent_host_0123456789ab_secureshop_agents'};
 function evidence(spans,{name='vuln',error=null,admitted=spans.flatMap(s=>s.response.tool_uses).length}={}){
   return {name,spans,error,dispatches:Array.from({length:admitted},()=>({agent:'cart',tool:'view',args:{}})),
     traces:Array.from({length:admitted},(_,i)=>({kind:'mcp_call',step:i+1,agent_ns:'cart',tool_name:'view'}))};

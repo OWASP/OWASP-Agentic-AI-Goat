@@ -2,7 +2,7 @@
 
 > Superseded database recommendation: the active decision is [PostgreSQL as the sole target engine](postgresql-single-engine-plan-2026-09-10.md). SQLite-first and SQLite/PostgreSQL dual-runtime recommendations below are historical, not implementation instructions. AWS deployment changes remain deferred.
 
-Status: recommended design, based on the user's clarification that DVAIA primarily runs on learners' laptops. No database migration or runtime change has been made.
+Status: recommended design, based on the user's clarification that OWASP Agentic AI GOAT primarily runs on learners' laptops. No database migration or runtime change has been made.
 
 Current scope: the application must serve local users and improve behavior for workshop workloads, but the user has frozen CloudFormation and all AWS deployment changes. Retain SQLite for the active application phase. The [dual-deployment architecture](dual-deployment-architecture-2026-09-10.md) is a deferred reference only; no PostgreSQL service, hosted migration or new infrastructure is introduced now. The [implementation plan](implementation-plan-2026-09-10.md) controls current scope. Controlled 200-user application tests do not certify the existing AWS deployment.
 

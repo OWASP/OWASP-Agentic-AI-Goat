@@ -479,7 +479,7 @@ test('V7 outgoing comparison schema requires positive grounding and preserves bo
 // controls do not create canonical Judge or learner-credit evidence.
 // They replay private retained artifacts and therefore stay outside the
 // portable aggregate unless the standard retained-evidence opt-in is explicit.
-const retainedV8Test = process.env.DVAIA_RETAINED_EVIDENCE_TESTS === '1' ? test : test.skip;
+const retainedV8Test = process.env.OWASP_AI_GOAT_RETAINED_EVIDENCE_TESTS === '1' ? test : test.skip;
 test('V8 retained lookup dependency is lazy and fails closed before retained-wire access when unavailable', () => {
   const Module = require('node:module');
   const resolve = Module._resolveFilename;
@@ -501,7 +501,7 @@ test('V8 retained lookup dependency is lazy and fails closed before retained-wir
     Module._resolveFilename = resolve;
   }
 });
-const V8_V12_WIRE='/Users/averma5/.dvaia/recovery/secureshop-idor-browser-2026-10-12/run-3m4cqits/idor-lesson-original-wire.json';
+const V8_V12_WIRE='/Users/averma5/.owasp-ai-goat/recovery/secureshop-idor-browser-2026-10-12/run-3m4cqits/idor-lesson-original-wire.json';
 const v8Sources=()=>D.v8ReadSources({v12WirePath:V8_V12_WIRE});
 function v8ControlledAnswer(item,sources){
  const fields=item.family==='v12'?D.FIELDS:D.V8_LOOKUP_FIELDS;

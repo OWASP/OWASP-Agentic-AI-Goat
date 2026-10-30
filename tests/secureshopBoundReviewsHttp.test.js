@@ -60,7 +60,7 @@ async function fixture(t, moderation) {
     service, personaCalls: () => personaCalls, legacyCalls: () => legacyCalls };
 }
 function headers(role = 'customer', id = 41, launch = launchBearer) {
-  return { authorization: `Bearer ${role}-${id}`, 'x-dvaia-secureshop-launch': launch };
+  return { authorization: `Bearer ${role}-${id}`, 'x-owasp-ai-goat-secureshop-launch': launch };
 }
 
 test('default real review application accepts router trusted session metadata without authority mode', async t => {
@@ -148,7 +148,7 @@ test('bound moderation exposes request conflicts without disclosing internal det
     });
     assert.equal(response.status, status);
     assert.deepEqual(await response.json(), { error: message });
-    assert.equal(response.headers.get('x-dvaia-secureshop-launch-state'),
+    assert.equal(response.headers.get('x-owasp-ai-goat-secureshop-launch-state'),
       launchUnavailable ? 'unavailable' : null);
   }
   assert.equal(f.legacyCalls(), 0);
@@ -163,7 +163,7 @@ test('a missing or foreign review target cannot mark a still-valid launch unavai
     const response = await fetch(`${f.base}/products/7/reviews`, { headers: headers() });
     assert.equal(response.status, 401);
     assert.deepEqual(await response.json(), { error: 'SecureShop launch unavailable' });
-    assert.equal(response.headers.get('x-dvaia-secureshop-launch-state'), null);
+    assert.equal(response.headers.get('x-owasp-ai-goat-secureshop-launch-state'), null);
   }
 });
 
@@ -196,7 +196,7 @@ test('a present invalid launch fails closed before persona auth and never reache
   assert.deepEqual(f.calls, []);
 
   const missingPersona = await fetch(`${f.base}/products/7/reviews`, {
-    headers: { 'x-dvaia-secureshop-launch': launchBearer },
+    headers: { 'x-owasp-ai-goat-secureshop-launch': launchBearer },
   });
   assert.equal(missingPersona.status, 401);
   assert.equal(f.personaCalls(), 1);

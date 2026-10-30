@@ -1,8 +1,8 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path'),Module=require('node:module'),{monitorEventLoopDelay}=require('node:perf_hooks');
 const {instrument,createRecorder,SYMBOL}=require('./applicationCapacityCoordinatorObserver.cjs');
-const root=fs.realpathSync(process.env.DVAIA_CAPACITY_ROOT),file=path.join(root,'capacity-private.json');
-if(root!==process.env.DVAIA_CAPACITY_ROOT||fs.statSync(root).uid!==process.getuid())throw Error('Owned capacity root required');
+const root=fs.realpathSync(process.env.OWASP_AI_GOAT_CAPACITY_ROOT),file=path.join(root,'capacity-private.json');
+if(root!==process.env.OWASP_AI_GOAT_CAPACITY_ROOT||fs.statSync(root).uid!==process.getuid())throw Error('Owned capacity root required');
 const input=JSON.parse(fs.readFileSync(file));const recorder=createRecorder(input.users.map(x=>String(x.id)));globalThis[Symbol.for(SYMBOL)]=recorder.record;
 const target=require.resolve('../../server/agent-runtime/runCoordinator'),compile=Module._extensions['.js'];let installed=false;
 Module._extensions['.js']=function(module,filename){if(filename!==target)return compile(module,filename);installed=true;const source=instrument(fs.readFileSync(filename,'utf8'),input.coordinatorSha256);module._compile(source,filename);};

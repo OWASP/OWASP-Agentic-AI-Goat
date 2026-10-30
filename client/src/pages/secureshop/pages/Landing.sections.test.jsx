@@ -60,7 +60,7 @@ async function renderAt(route) {
 }
 
 test.each([
-  ['How SecureShop thinks', 'about'],
+  ['How OWASP AI SecureShop thinks', 'about'],
   ['Agent lane', 'agent-lane'],
   ['Lab notes', 'lab-notes'],
 ])('footer %s navigates within MemoryRouter and scrolls its landing section', async (label, section) => {
@@ -79,7 +79,7 @@ test.each([
 test('same section can be clicked again and How it works uses the same local route', async () => {
   await renderAt('/secureshop');
   const about = [...container.querySelectorAll('a')]
-    .find(node => node.textContent === 'How SecureShop thinks');
+    .find(node => node.textContent === 'How OWASP AI SecureShop thinks');
   await act(async () => about.click());
   await act(async () => about.click());
   expect(scroll).toHaveBeenCalledTimes(2);
@@ -94,7 +94,7 @@ test('editorial uses a scoped grid that stacks at the existing narrow breakpoint
   await renderAt('/secureshop');
   const editorial = container.querySelector('.ss-landing-editorial');
   expect(editorial).toBeTruthy();
-  expect(editorial.querySelector('h2')?.textContent).toBe('How SecureShop thinks.');
+  expect(editorial.querySelector('h2')?.textContent).toBe('How OWASP AI SecureShop thinks.');
   expect(editorial.style.gridTemplateColumns).toBe('');
   const css = readFileSync(join(__dirname, '../theme.css'), 'utf8');
   expect(css).toMatch(/\.ss-landing-editorial\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(0,\s*1\.4fr\)/);

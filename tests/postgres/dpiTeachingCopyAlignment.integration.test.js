@@ -38,10 +38,10 @@ async function histories() {
 test('DPI copy migration uses the real loader, rolls back atomically, preserves custom fields, and replays',
   { skip: !enabled, timeout: 60000 }, async () => {
     const database = decodeURIComponent(new URL(connectionString).pathname.slice(1));
-    assert.match(database, /^dvaia_dpi_copy_[a-f0-9]{12}$/, 'owned disposable database required');
+    assert.match(database, /^owasp_ai_goat_dpi_copy_[a-f0-9]{12}$/, 'owned disposable database required');
     const pool = new Pool({ connectionString, max: 1 });
     const stagedRoot = await fs.mkdtemp(path.join(
-      process.env.DVAIA_ISOLATED_TEST_WORKSPACE || os.tmpdir(), 'dpi-copy-loader-'));
+      process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || os.tmpdir(), 'dpi-copy-loader-'));
     const baselineDir = path.join(stagedRoot, 'baseline');
     const fullDir = path.join(stagedRoot, 'full');
     const failingDir = path.join(stagedRoot, 'failing');

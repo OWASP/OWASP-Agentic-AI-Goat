@@ -31,7 +31,7 @@ function admission() {
   assert.equal(process.env.AI_PROVIDER, 'ollama');
   assert.equal(process.env.OLLAMA_MODEL, 'llama3.1:8b');
   assert.equal(process.env.OLLAMA_BASE_URL, 'http://127.0.0.1:11434');
-  const workspace = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/');
   assert.equal(workspace, process.cwd(), 'run against the current main checkout only');
   const build = path.resolve(process.env[`${BASE}BUILD`] || '/');
   assert.equal(build, path.join(workspace, 'client/build'));
@@ -51,7 +51,7 @@ function admission() {
       assert.match(url.port, /^[1-9]\d{0,4}$/); assert.ok(Number(url.port) <= 65535);
       assert.equal(url.username, `dvaia_${suffix}_${role.toLowerCase()}`);
       assert.equal(url.password, ''); assert.equal(url.search, ''); assert.equal(url.hash, '');
-      const match = new RegExp(`^/dvaia_test_agent_host_([0-9a-f]{12})_${suffix}$`).exec(url.pathname);
+      const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([0-9a-f]{12})_${suffix}$`).exec(url.pathname);
       assert.ok(match, `closed disposable ${store} database`);
       nonce ??= match[1]; port ??= url.port;
       assert.equal(match[1], nonce); assert.equal(url.port, port);
@@ -64,7 +64,7 @@ function admission() {
   const auditUrl = new URL(process.env[`${BASE}AUDIT_CONTROL_URL`] || '/');
   assert.equal(auditUrl.protocol, 'postgresql:'); assert.equal(auditUrl.hostname, '127.0.0.1');
   assert.match(auditUrl.port, /^[1-9]\d{0,4}$/); assert.ok(Number(auditUrl.port) <= 65535);
-  assert.match(auditUrl.pathname, /^\/dvaia_audit_control_[a-f0-9]+$/);
+  assert.match(auditUrl.pathname, /^\/owasp_ai_goat_audit_control_[a-f0-9]+$/);
   assert.equal(auditUrl.username, 'postgres'); assert.equal(auditUrl.password, '');
   assert.equal(auditUrl.search, ''); assert.equal(auditUrl.hash, '');
   assert.notEqual(auditUrl.port, port, 'owned audit SQL target is a separate cluster');
@@ -135,7 +135,7 @@ async function roleTurn({ page, frame, origin, authority, posts, expectedPosts,
     const submitted = posts.at(-1);
     assert.ok(UUID.test(submitted.sessionId) && UUID.test(submitted.requestId));
     const read = await fetch(`${origin}/api/secureshop/agents/admin/assistant/operations/${submitted.sessionId}/${submitted.requestId}`,
-      { headers: { 'x-dvaia-secureshop-launch': authority.launch,
+      { headers: { 'x-owasp-ai-goat-secureshop-launch': authority.launch,
         authorization: `Bearer ${authority.token}` } });
     if (read.status === 200) {
       const value = await read.json();
@@ -387,7 +387,7 @@ test(ASSERTION, { skip: process.env[GATE] !== '1', timeout: 540000 }, async t =>
     app.use('/api', (_request, response) => response.status(404).json({ error: 'Outside Q64 qualifier' }));
     app.use(express.static(a.build, { setHeaders: response => response.set('Access-Control-Allow-Origin', '*') }));
     app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: a.build }));
-    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-q64-admin-acl-'));
+    profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-q64-admin-acl-'));
     browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
       executablePath: a.browser, args: await require('../fixtures/secureshopAdminOwnedBrowserAdmission')
         .browserArgs({ cohort: 'admin-acl-chat-browser', root: a.workspace, evidencePath: a.evidence,
@@ -413,7 +413,7 @@ test(ASSERTION, { skip: process.env[GATE] !== '1', timeout: 540000 }, async t =>
     await frame.waitForSelector('[data-testid="admin-role-composer-slot"] textarea');
     assert.equal(pageErrors.length, 0);
     const cookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-      .find(item => item.name === 'dvaia_shop_session');
+      .find(item => item.name === 'owasp_ai_goat_shop_session');
     assert.equal(cookie?.httpOnly, true);
     const current = await auth.authenticate(cookie.value);
     assert.equal(current?.principalId, tenant.principalId);
@@ -429,7 +429,7 @@ test(ASSERTION, { skip: process.env[GATE] !== '1', timeout: 540000 }, async t =>
     assert.notEqual(adminScope.launchId, siblingScope.launchId);
     assert.notEqual(current.principalId, siblingLogin.context.principalId);
     status.genuineAdminUiSession = true;
-    const headers = { 'x-dvaia-secureshop-launch': browserAuth.launch,
+    const headers = { 'x-owasp-ai-goat-secureshop-launch': browserAuth.launch,
       authorization: `Bearer ${browserAuth.token}` };
     const policyInput = { scope: adminScope, persona: actor, personaSession: actorSession };
     const baseline = await toolPolicyRepository.readPolicy(policyInput);
@@ -608,7 +608,7 @@ test(ASSERTION, { skip: process.env[GATE] !== '1', timeout: 540000 }, async t =>
     status.allowedDeniedAclEffects = true;
 
     const foreign = await fetch(`${origin}${operationPath}`, { headers: {
-      'x-dvaia-secureshop-launch': siblingFirst.bearer,
+      'x-owasp-ai-goat-secureshop-launch': siblingFirst.bearer,
       authorization: `Bearer ${siblingFirst.persona.token}` } });
     assert.equal(foreign.status, 404);
     assert.equal((await operationRows(agents, siblingScope)).length, 0);

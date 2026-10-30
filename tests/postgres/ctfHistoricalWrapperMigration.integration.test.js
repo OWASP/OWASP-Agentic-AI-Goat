@@ -22,14 +22,14 @@ test('historical CTF wrapper keeps its original ledger checksum and rolls back w
 }, async () => {
   const url = new URL(connectionString);
   const database = decodeURIComponent(url.pathname.slice(1));
-  assert.match(database, /^dvaia_ctf_wrapper_[a-f0-9]{12}$/,
+  assert.match(database, /^owasp_ai_goat_ctf_wrapper_[a-f0-9]{12}$/,
     'owned disposable database required');
   assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname), 'loopback PostgreSQL required');
   assert.equal(url.search, '');
   assert.equal(url.hash, '');
   const pool = new Pool({ connectionString, max: 1 });
   const stagedRoot = await fs.mkdtemp(path.join(
-    process.env.DVAIA_ISOLATED_TEST_WORKSPACE || os.tmpdir(), 'ctf-wrapper-loader-'));
+    process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || os.tmpdir(), 'ctf-wrapper-loader-'));
   const baselineDir = path.join(stagedRoot, 'baseline');
   const fullDir = path.join(stagedRoot, 'full');
   const failingDir = path.join(stagedRoot, 'failing');

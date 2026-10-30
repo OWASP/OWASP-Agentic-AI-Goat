@@ -94,7 +94,7 @@ class MerchantMailLauncherContract(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 LAUNCHER.merchant_mail_receipt(link)
             runtime = Path(directory) / 'runtime'
-            (runtime / 'tmp' / 'dvaia-role-mail-unit').mkdir(parents=True)
+            (runtime / 'tmp' / 'owasp-ai-goat-role-mail-unit').mkdir(parents=True)
             self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
     def test_plan_stays_before_allocation_and_unrelated_authorities(self):
@@ -280,7 +280,7 @@ class MerchantMailActionsLauncherContract(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 LAUNCHER.merchant_mail_actions_receipt(link)
             runtime = Path(directory) / 'runtime'
-            (runtime / 'tmp' / 'dvaia-role-mail-actions-unit').mkdir(parents=True)
+            (runtime / 'tmp' / 'owasp-ai-goat-role-mail-actions-unit').mkdir(parents=True)
             self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
     def test_plan_stays_before_allocation_and_unrelated_authorities(self):
@@ -374,7 +374,7 @@ class RoleChoicesLauncherContract(unittest.TestCase):
             runtime = Path(directory)
             temporary = runtime / 'tmp'
             temporary.mkdir()
-            profile = temporary / 'dvaia-role-choices-unit'
+            profile = temporary / 'owasp-ai-goat-role-choices-unit'
             profile.mkdir()
             self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
@@ -441,7 +441,7 @@ class AdminReadLauncherContract(unittest.TestCase):
             runtime = Path(directory)
             temporary = runtime / 'tmp'
             temporary.mkdir()
-            (temporary / 'dvaia-role-admin-read-unit').mkdir()
+            (temporary / 'owasp-ai-goat-role-admin-read-unit').mkdir()
             self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 
@@ -686,7 +686,7 @@ class MerchantOrderLauncherContract(unittest.TestCase):
             runtime = Path(directory)
             temporary = runtime / 'tmp'
             temporary.mkdir()
-            (temporary / 'dvaia-role-order-unit').mkdir()
+            (temporary / 'owasp-ai-goat-role-order-unit').mkdir()
             self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 
@@ -752,7 +752,7 @@ class MerchantReviewLauncherContract(unittest.TestCase):
                 LAUNCHER.merchant_review_receipt(link)
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp').mkdir(parents=True)
-            (runtime / 'tmp' / 'dvaia-role-review-unit').mkdir()
+            (runtime / 'tmp' / 'owasp-ai-goat-role-review-unit').mkdir()
             self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 
@@ -815,7 +815,7 @@ class AdminAuditChatLauncherContract(unittest.TestCase):
                 LAUNCHER.admin_audit_chat_receipt(link)
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp').mkdir(parents=True)
-            (runtime / 'tmp' / 'dvaia-role-admin-audit-unit').mkdir()
+            (runtime / 'tmp' / 'owasp-ai-goat-role-admin-audit-unit').mkdir()
             self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 
@@ -878,7 +878,7 @@ class AdminUserChatLauncherContract(unittest.TestCase):
                 LAUNCHER.admin_user_chat_receipt(link)
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp').mkdir(parents=True)
-            (runtime / 'tmp' / 'dvaia-role-admin-user-unit').mkdir()
+            (runtime / 'tmp' / 'owasp-ai-goat-role-admin-user-unit').mkdir()
             self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 
@@ -890,7 +890,7 @@ class AdminResetBrowserAdmissionControls(unittest.TestCase):
             dir=HERE.parent.parent / 'tasks/tmp')
         self.evidence = Path(self.directory.name)
         self.runtime = self.evidence / 'runtime'
-        self.profile = self.runtime / 'tmp/dvaia-role-admin-reset-controlled'
+        self.profile = self.runtime / 'tmp/owasp-ai-goat-role-admin-reset-controlled'
         self.profile.mkdir(parents=True, mode=0o700)
         self.record = self.evidence / LAUNCHER.AdminResetBrowserOwner.RECORD
         self.record.write_text('{"schemaVersion":2}\n')
@@ -920,11 +920,11 @@ class AdminResetBrowserAdmissionControls(unittest.TestCase):
         old = LAUNCHER.Q05ReviewBrowserOwner
         self.assertEqual((old.COHORT, old.PREFIX, old.PROFILE, old.KIND),
             ('q05-review-moderation-browser', 'SECURESHOP_Q05_REVIEW_MODERATION_',
-             'dvaia-q05-review-', 'q05_review_moderation_browser'))
+             'owasp-ai-goat-q05-review-', 'q05_review_moderation_browser'))
         self.assertEqual((self.owner.COHORT, self.owner.PREFIX, self.owner.PROFILE,
                           self.owner.KIND, self.owner.RECEIPT),
             ('admin-password-reset-chat-browser', 'SECURESHOP_ADMIN_RESET_BROWSER_',
-             'dvaia-role-admin-reset-', 'admin_reset_browser', 'admin-password-reset-chat-browser.json'))
+             'owasp-ai-goat-role-admin-reset-', 'admin_reset_browser', 'admin-password-reset-chat-browser.json'))
         self.assertEqual(len(LAUNCHER.ADMIN_PASSWORD_RESET_CHAT_FLAGS), 19)
         source = (HERE / 'run-secureshop-agent-host-transport-main.py').read_text()
         branch = source.split("reset_path = evidence / 'admin-password-reset-chat-browser.json'", 1)[1]
@@ -987,7 +987,7 @@ class AdminResetBrowserAdmissionControls(unittest.TestCase):
         self.assertTrue(sibling.is_dir())
 
     def test_foreign_profile_and_hardlinked_record_do_not_receive_ack(self):
-        foreign = self.runtime / 'tmp/dvaia-q05-review-foreign'
+        foreign = self.runtime / 'tmp/owasp-ai-goat-q05-review-foreign'
         foreign.mkdir(mode=0o700)
         self.captured.profile = str(foreign)
         self.owner._watch(SimpleNamespace(pid=12345), (50, 1), threading.Event())
@@ -1177,7 +1177,7 @@ class AdminPasswordResetChatLauncherContract(unittest.TestCase):
                 LAUNCHER.admin_password_reset_chat_receipt(link)
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp').mkdir(parents=True)
-            (runtime / 'tmp' / 'dvaia-role-admin-reset-unit').mkdir()
+            (runtime / 'tmp' / 'owasp-ai-goat-role-admin-reset-unit').mkdir()
             self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 
@@ -1240,7 +1240,7 @@ class AdminPolicyChatLauncherContract(unittest.TestCase):
                 LAUNCHER.admin_policy_chat_receipt(link)
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp').mkdir(parents=True)
-            (runtime / 'tmp' / 'dvaia-role-admin-policy-unit').mkdir()
+            (runtime / 'tmp' / 'owasp-ai-goat-role-admin-policy-unit').mkdir()
             self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
         source = (HERE / '../fixtures/secureshopOwnedPolicyRendererAdmission.js').resolve()
         self.assertTrue(source.is_file())
@@ -1341,7 +1341,7 @@ class ChatPresentationLauncherContract(unittest.TestCase):
                 LAUNCHER.chat_presentation_receipt(link)
             runtime = Path(directory) / 'runtime'
             (runtime / 'tmp').mkdir(parents=True)
-            (runtime / 'tmp' / 'dvaia-chat-presentation-unit').mkdir()
+            (runtime / 'tmp' / 'owasp-ai-goat-chat-presentation-unit').mkdir()
             self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
 
@@ -1616,7 +1616,7 @@ class CatalogPageLauncherContract(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 LAUNCHER.catalog_page_receipt(alias)
             runtime = Path(directory) / 'runtime'
-            (runtime / 'tmp' / 'dvaia-role-catalog-page-owned').mkdir(parents=True)
+            (runtime / 'tmp' / 'owasp-ai-goat-role-catalog-page-owned').mkdir(parents=True)
             self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
 
     def test_plan_has_four_disposable_stores_without_allocating(self):
@@ -1703,10 +1703,10 @@ class UserLookupDisclosureLauncherContract(unittest.TestCase):
 class UserLookupBenignCaptureLauncherContract(unittest.TestCase):
     def test_main_cleanup_detects_the_actual_lookup_browser_profile(self):
         fixture=(HERE.parent.parent/LAUNCHER.ADMIN_USER_CHAT_TEST).read_text()
-        self.assertIn("USER_LOOKUP_BROWSER ? 'dvaia-user-lookup-browser-'",fixture)
+        self.assertIn("USER_LOOKUP_BROWSER ? 'owasp-ai-goat-user-lookup-browser-'",fixture)
         with tempfile.TemporaryDirectory() as folder:
             runtime=Path(folder)/'runtime'
-            profile=runtime/'tmp'/'dvaia-user-lookup-browser-unit'
+            profile=runtime/'tmp'/'owasp-ai-goat-user-lookup-browser-unit'
             profile.mkdir(parents=True)
             self.assertFalse(controlled_browser_cleanup_state(runtime)['browserProfilesAbsent'])
             profile.rmdir()

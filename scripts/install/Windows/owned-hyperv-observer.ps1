@@ -7,14 +7,14 @@
 [CmdletBinding()]
 param()
 
-function Assert-DvaiaOwnedHyperVName {
+function Assert-OwaspAiGoatOwnedHyperVName {
     param($Name)
-    if ($Name -isnot [string] -or $Name.Length -gt 57 -or $Name -cmatch '[\r\n]' -or $Name -cnotmatch '^dvaia-lab-[a-z0-9](?:[a-z0-9-]{0,45}[a-z0-9])?$') { throw 'WINDOWS_OWNED_HYPERV_OBSERVATION_DENIED' }
+    if ($Name -isnot [string] -or $Name.Length -gt 57 -or $Name -cmatch '[\r\n]' -or $Name -cnotmatch '^owasp-ai-goat-lab-[a-z0-9](?:[a-z0-9-]{0,45}[a-z0-9])?$') { throw 'WINDOWS_OWNED_HYPERV_OBSERVATION_DENIED' }
 }
 
-function Get-DvaiaOwnedHyperVObservation {
+function Get-OwaspAiGoatOwnedHyperVObservation {
     param([string]$Name, [scriptblock]$Probe = { param($ExactName) Hyper-V\Get-VM -Name $ExactName -ErrorAction Stop })
-    Assert-DvaiaOwnedHyperVName $Name
+    Assert-OwaspAiGoatOwnedHyperVName $Name
     $first = $null
     # Reject identity/state changes during this bounded observation. The caller
     # must still compare VMId with retained ownership before any later restart.
@@ -44,8 +44,8 @@ if ($MyInvocation.InvocationName -ne '.') {
         }
         $request = $builder.ToString() | ConvertFrom-Json -ErrorAction Stop
         if ($null -eq $request -or $request -is [Array] -or (@($request.PSObject.Properties.Name | Sort-Object) -join ',') -cne 'name,operation,version' -or ($request.version -isnot [int] -and $request.version -isnot [long]) -or $request.version -ne 1 -or $request.operation -cne 'observeOwnedHyperVVm') { throw 'WINDOWS_OWNED_HYPERV_OBSERVATION_DENIED' }
-        Assert-DvaiaOwnedHyperVName $request.name
-        Get-DvaiaOwnedHyperVObservation -Name $request.name | ConvertTo-Json -Depth 3 -Compress
+        Assert-OwaspAiGoatOwnedHyperVName $request.name
+        Get-OwaspAiGoatOwnedHyperVObservation -Name $request.name | ConvertTo-Json -Depth 3 -Compress
     } catch {
         [Console]::Out.WriteLine('{"version":1,"ok":false,"code":"WINDOWS_OWNED_HYPERV_OBSERVATION_DENIED"}')
         exit 1

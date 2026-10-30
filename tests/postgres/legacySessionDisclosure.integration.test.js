@@ -21,7 +21,7 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' &&
 function required(name) {
   const value = process.env[name];
   assert.ok(value, `${name} is required`);
-  assert.match(new URL(value).pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(new URL(value).pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value;
 }
 
@@ -52,7 +52,7 @@ test('mounted session disclosure route persists isolated owner credentials and r
         progress: null, jwtSecret: process.env.JWT_SECRET });
       async function user(label) {
         const row = await identityRepo.createUser({ username: `session-${label}-${crypto.randomUUID()}`,
-          email: `${crypto.randomUUID()}@dvaia.invalid`, passwordHash: bcrypt.hashSync('owned-fixture', 4) });
+          email: `${crypto.randomUUID()}@owasp-ai-goat.invalid`, passwordHash: bcrypt.hashSync('owned-fixture', 4) });
         const credential = await identityRepo.findCredentialById(row.id);
         const issued = await identityAdapter.createSession(credential, { get: () => null, ip: '127.0.0.1' });
         return { id: row.id, token: issued.token };
@@ -79,18 +79,18 @@ test('mounted session disclosure route persists isolated owner credentials and r
       assert.ok(concurrent.every(response => response.headers.get('cache-control') === 'no-store'));
       const bodies = await Promise.all(concurrent.map(response => response.json()));
       assert.equal(new Set(bodies.map(body => body.session.sessionId)).size, 1);
-      assert.equal(new Set(bodies.map(body => body.cookies.dvaia_lab_session)).size, 1);
+      assert.equal(new Set(bodies.map(body => body.cookies.owasp_ai_goat_lab_session)).size, 1);
       assert.equal(bodies[0].session.generation, 1);
       assert.equal(Object.hasOwn(bodies[0].session, 'platformOwnerId'), false);
       assert.doesNotMatch(JSON.stringify(bodies), /connect\.sid|platform-/);
-      const aliceCookie = `dvaia_lab_session=${bodies[0].cookies.dvaia_lab_session}`;
+      const aliceCookie = `owasp_ai_goat_lab_session=${bodies[0].cookies.owasp_ai_goat_lab_session}`;
 
       const exact = await request(alice, '/info', { cookie: aliceCookie });
       assert.equal(exact.status, 200);
       assert.equal((await exact.json()).session.sessionId, bodies[0].session.sessionId);
       const bobWrong = await request(bob, '/info', { cookie: aliceCookie });
       assert.equal(bobWrong.status, 401);
-      assert.match(bobWrong.headers.get('set-cookie') || '', /dvaia_lab_session=;/);
+      assert.match(bobWrong.headers.get('set-cookie') || '', /owasp_ai_goat_lab_session=;/);
       assert.doesNotMatch(JSON.stringify(await bobWrong.json()), new RegExp(bodies[0].session.sessionId));
 
       const bobFirst = await request(bob, '/info');
@@ -113,14 +113,14 @@ test('mounted session disclosure route persists isolated owner credentials and r
       assert.notEqual(rotatedBody.session.csrfToken, bodies[0].session.csrfToken);
 
       const reopened = createSessionDisclosureDb(labPool);
-      const persisted = await reopened.resolve(alice.id, rotatedBody.cookies.dvaia_lab_session);
+      const persisted = await reopened.resolve(alice.id, rotatedBody.cookies.owasp_ai_goat_lab_session);
       assert.equal(persisted.sessionId, rotatedBody.session.sessionId);
-      const bobPersisted = await reopened.resolve(bob.id, bobBody.cookies.dvaia_lab_session);
+      const bobPersisted = await reopened.resolve(bob.id, bobBody.cookies.owasp_ai_goat_lab_session);
       assert.equal(bobPersisted.sessionId, bobBody.session.sessionId);
-      assert.equal(await reopened.resolve(bob.id, rotatedBody.cookies.dvaia_lab_session), null);
+      assert.equal(await reopened.resolve(bob.id, rotatedBody.cookies.owasp_ai_goat_lab_session), null);
       assert.equal(await reopened.destroyOwner(bob.id), 1);
-      assert.equal(await reopened.resolve(bob.id, bobBody.cookies.dvaia_lab_session), null);
-      assert.ok(await reopened.resolve(alice.id, rotatedBody.cookies.dvaia_lab_session));
+      assert.equal(await reopened.resolve(bob.id, bobBody.cookies.owasp_ai_goat_lab_session), null);
+      assert.ok(await reopened.resolve(alice.id, rotatedBody.cookies.owasp_ai_goat_lab_session));
     } finally {
       if (server) await new Promise(resolve => server.close(resolve));
       await closeSessionDisclosureLab();

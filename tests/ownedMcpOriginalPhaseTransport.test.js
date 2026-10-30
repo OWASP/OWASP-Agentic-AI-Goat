@@ -7,7 +7,7 @@ const adapter=require('./postgres/ownedMcpOriginalBuildAdapter');
 const producer=require('./postgres/ownedMcpOriginalServiceProducer');
 const derivation=require('./postgres/ownedMcpOriginalServiceDerivation');
 const {phaseTransport,PHASE_TRANSPORT,PHASE_DECODER,limaArgvEnvelope}=adapter._internals;
-const root=path.resolve(__dirname,'..'),runId='e'.repeat(32),guest='/var/tmp/dvaia-v23-build-'+runId;
+const root=path.resolve(__dirname,'..'),runId='e'.repeat(32),guest='/var/tmp/owasp-ai-goat-v23-build-'+runId;
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const quote=x=>"'"+x.replace(/'/g,"'\\''")+"'";
 const args=['owned-original-build',guest,runId];

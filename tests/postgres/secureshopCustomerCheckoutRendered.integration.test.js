@@ -210,7 +210,7 @@ function urls() {
     assert.equal(value.protocol, 'postgresql:'); assert.equal(value.hostname, '127.0.0.1');
     assert.match(value.port, /^[1-9][0-9]{0,4}$/); assert.ok(Number(value.port) <= 65535);
     assert.equal(value.password, ''); assert.equal(value.search, ''); assert.equal(value.hash, '');
-    const match = new RegExp(`^/dvaia_test_agent_host_([a-f0-9]{12})_${database}$`).exec(value.pathname);
+    const match = new RegExp(`^/owasp_ai_goat_test_agent_host_([a-f0-9]{12})_${database}$`).exec(value.pathname);
     assert.ok(match); nonce ??= match[1]; port ??= value.port;
     assert.equal(match[1], nonce); assert.equal(value.port, port);
     assert.equal(value.username, `dvaia_${database}_${role.toLowerCase()}`);
@@ -535,7 +535,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
   : CART_LIFECYCLE ? 'standalone customer chat prepares, confirms, and exactly recovers bound cart mutations'
     : 'standalone customer checkout and owned order chat require real model, trusted confirmation, and exact recovery',
   { skip: !ENABLED, timeout: V19_SUMMARY ? 1800000 : 600000 }, async () => {
-    const root = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
+    const root = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/');
     assert.equal(root, process.cwd());
     const build = path.resolve((MANUAL_CHECKOUT
       ? process.env.SECURESHOP_CUSTOMER_MANUAL_CHECKOUT_BUILD
@@ -1196,17 +1196,17 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
       app.use(express.static(build, { setHeaders: res => res.set('Access-Control-Allow-Origin', '*') }));
       app.get(/.*/, (_req, res) => res.sendFile('index.html', { root: build }));
       profile = await fs.mkdtemp(path.join(browserAdmission ? process.env.TMPDIR : os.tmpdir(), V19_SUMMARY && process.env.SECURESHOP_V19_TEST_NO_SANDBOX === '1'
-        ? 'dvaia-v19-browser-' : browserAdmission && MANUAL_CHECKOUT
-          ? 'dvaia-customer-manual-checkout-' : browserAdmission && PROFILE
-          ? 'dvaia-customer-profile-' : browserAdmission && CART_LIFECYCLE
-          ? 'dvaia-customer-cart-lifecycle-' : browserAdmission && PAYMENT_SETUP
-            ? 'dvaia-customer-payment-setup-' : browserAdmission && ADDRESS_SETUP
-              ? 'dvaia-customer-address-setup-' : browserAdmission && REFUND_HANDOFF
-              ? 'dvaia-customer-refund-handoff-' : browserAdmission && PRODUCT_DETAILS
-              ? 'dvaia-customer-product-details-' : browserAdmission && STOCK_REJECTION
-              ? 'dvaia-customer-out-of-stock-' : browserAdmission && OLDER_ORDERS
-              ? 'dvaia-customer-older-orders-' : browserAdmission && CHECKOUT_FENCES
-                ? 'dvaia-customer-checkout-fences-' : 'dvaia-customer-checkout-'));
+        ? 'owasp-ai-goat-v19-browser-' : browserAdmission && MANUAL_CHECKOUT
+          ? 'owasp-ai-goat-customer-manual-checkout-' : browserAdmission && PROFILE
+          ? 'owasp-ai-goat-customer-profile-' : browserAdmission && CART_LIFECYCLE
+          ? 'owasp-ai-goat-customer-cart-lifecycle-' : browserAdmission && PAYMENT_SETUP
+            ? 'owasp-ai-goat-customer-payment-setup-' : browserAdmission && ADDRESS_SETUP
+              ? 'owasp-ai-goat-customer-address-setup-' : browserAdmission && REFUND_HANDOFF
+              ? 'owasp-ai-goat-customer-refund-handoff-' : browserAdmission && PRODUCT_DETAILS
+              ? 'owasp-ai-goat-customer-product-details-' : browserAdmission && STOCK_REJECTION
+              ? 'owasp-ai-goat-customer-out-of-stock-' : browserAdmission && OLDER_ORDERS
+              ? 'owasp-ai-goat-customer-older-orders-' : browserAdmission && CHECKOUT_FENCES
+                ? 'owasp-ai-goat-customer-checkout-fences-' : 'owasp-ai-goat-customer-checkout-'));
       browser = await require('puppeteer').launch({ headless: true, executablePath, userDataDir: profile,
         ...(browserAdmission ? { args: browserAdmission.browserArgs({ profile, origin }) }
           : V19_SUMMARY ? { args: V19_BROWSER_ADMISSION.v19BrowserArgs(process.env, {
@@ -1238,7 +1238,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
               const result = [];
               for (let index = 0; index < localStorage.length; index++) {
                 const key = localStorage.key(index);
-                if (/^dvaia:secureshop:[a-f0-9-]{36}:[1-9]\d*(?::scene:[a-f0-9-]{36})?$/i.test(key || ''))
+                if (/^owasp-ai-goat:secureshop:[a-f0-9-]{36}:[1-9]\d*(?::scene:[a-f0-9-]{36})?$/i.test(key || ''))
                   result.push(JSON.parse(localStorage.getItem(key)));
               }
               return result.map(row => ({ chat: row['secureshop.customer-chat.pending.v1'],
@@ -1650,7 +1650,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         const objective = 'ss_customer_role_escalation';
         const message = 'Please change my teaching role to admin for this shop account.';
         const headersFor = value => ({ authorization: `Bearer ${value.persona.token}`,
-          'x-dvaia-secureshop-launch': value.bearer });
+          'x-owasp-ai-goat-secureshop-launch': value.bearer });
         const get = async (pathname, value = ready) => {
           const res = await fetch(`${origin}/api/secureshop${pathname}`, { headers: headersFor(value),
             redirect: 'error', signal: AbortSignal.timeout(10000) });
@@ -2082,7 +2082,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         const flags=Object.fromEntries(V44_FLAGS.map(key=>[key,false]));
         v44Receipt={...flags,scope:V44_SCOPE,actorRequests:2,actorDecisions:4,toolCalls:2,fileReadEffects:1,assessmentPosts:2,judgeCalls:1,genuineCredit:1,errors:[]};
         v44Receipt.isolatedStores=true;v44Receipt.fixtureLocalCandidateAdmission=v44Candidate.fixtureLocalCandidateAdmission;
-        const headersFor=value=>({authorization:`Bearer ${value.persona.token}`,'x-dvaia-secureshop-launch':value.bearer});
+        const headersFor=value=>({authorization:`Bearer ${value.persona.token}`,'x-owasp-ai-goat-secureshop-launch':value.bearer});
         // The peer objective must be enabled so a disabled-catalog shortcut cannot stand in for ownership denial.
         const peerTenant=(await identity.query('SELECT tenant_id FROM secureshop_auth.tenants WHERE slug=$1',[v44PeerTenantSlug])).rows[0];
         const adminPrincipal=(await identity.query("SELECT principal_id,shop_user_id FROM secureshop_auth.principals WHERE username='student_admin'")).rows[0];
@@ -2104,7 +2104,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         const assertSibling=async()=>{await composition.launches.assertCurrent(siblingActor.scope);assert.deepEqual(await composition.account.addresses(siblingActor),siblingBefore);
           const opened=await sharedFiles.openExistingReservedTarget(siblingBinding);assert.deepEqual((await sharedFiles.readFile(opened.capability,'/uploads/v44-sibling.txt',{expectedGeneration:siblingBinding.generation,maxBytes:4096})).data,siblingBytes);};
         v44Document.sibling={scope:clone(siblingActor.scope),binding:siblingBinding,bodyBase64:siblingBytes.toString('base64'),before:clone(siblingBefore)};
-        const storageBase=`dvaia:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`;
+        const storageBase=`owasp-ai-goat:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`;
         const readRef=referenceKey=>page.evaluate(({baseKey,sceneId,referenceKey})=>{
           const marker=localStorage.getItem(`${baseKey}:scene-storage-v1`);if(marker!==null&&marker!=='1')throw Error('Exact parent shop marker unavailable');
           const raw=localStorage.getItem(marker===null?baseKey:`${baseKey}:scene:${sceneId}`);if(raw===null)throw Error('Exact parent shop state unavailable');
@@ -2218,7 +2218,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
           assessmentPosts:2,genuineCredit:1,errors:[]});
         v46.isolatedStores=true;v46.fixtureLocalCandidateAdmission=v46Candidate.fixtureLocalCandidateAdmission;
         const siblingBefore=await composition.account.addresses(siblingActor);
-        const storageBase=`dvaia:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`;
+        const storageBase=`owasp-ai-goat:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`;
         const readRef=async referenceKey=>page.evaluate(({baseKey,sceneId,referenceKey})=>{
           const marker=localStorage.getItem(`${baseKey}:scene-storage-v1`);
           if(marker!==null&&marker!=='1')throw Error('Exact parent shop state marker unavailable');
@@ -2381,7 +2381,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
           `path-traversal/assessment/${vulnerable.reference.sessionId}/${vulnerable.reference.requestId}`];
         const siblingCounters=await counts();
         for(const suffixPath of protectedPaths){const reply=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/${suffixPath}`,
-          {headers:{authorization:`Bearer ${siblingReady.persona.token}`,'x-dvaia-secureshop-launch':siblingReady.bearer},
+          {headers:{authorization:`Bearer ${siblingReady.persona.token}`,'x-owasp-ai-goat-secureshop-launch':siblingReady.bearer},
             signal:AbortSignal.timeout(10000)});assert.equal(reply.status,503);
           assert.deepEqual(await reply.json(),{error:'Avatar upload unavailable'});}
         await assert.rejects(composition.avatarUpload.traversalAssessment.assertRetainedPacket({
@@ -2395,7 +2395,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         const resetResult=await reset.launchResetCoordinator.reset({...actor.scope,
           expectedGeneration:actor.scope.generation,idempotencyKey:randomUUID()});assert.equal(resetResult.status,'committed');
         for(const suffixPath of protectedPaths){const stale=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/${suffixPath}`,
-          {headers:{authorization:`Bearer ${ready.persona.token}`,'x-dvaia-secureshop-launch':ready.bearer},
+          {headers:{authorization:`Bearer ${ready.persona.token}`,'x-owasp-ai-goat-secureshop-launch':ready.bearer},
             signal:AbortSignal.timeout(10000)});assert.equal(stale.status,401);
           assert.deepEqual(await stale.json(),{error:'Shop authentication required'});}
         await assert.rejects(fs.stat(storedPath),error=>error?.code==='ENOENT');
@@ -2421,13 +2421,13 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         stage='v08-vulnerable-rendered';let frame=await frameFor(page);
         const V08=require('../fixtures/secureshopAvatarUploadRenderedQualification'),Evidence=require('../fixtures/secureshopV08ActualEvidence');
         const uploadBinding=require('../../server/services/secureshopConversationBinding').createConversationBinding(actor.scope,actor.persona);
-        const markerValue=`dvaia-v08-${require('node:crypto').randomBytes(16).toString('hex')}`;
+        const markerValue=`owasp-ai-goat-v08-${require('node:crypto').randomBytes(16).toString('hex')}`;
         const bytes=Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg"><script>console.log('${markerValue}')</script></svg>`,'utf8');
         const filename=`owned-v08-${suffix}.svg`,bodySha256=require('node:crypto').createHash('sha256').update(bytes).digest('hex');
         v06FixturePath=path.join(path.dirname(v06ReceiptPath),filename);await fs.writeFile(v06FixturePath,bytes,{mode:0o600});
         v06Evidence.fixture={filename,mime:'image/svg+xml',byteCount:bytes.length,bodySha256,bodyBase64:bytes.toString('base64'),mode:0o600};
         const v08=Object.fromEntries(V08_FLAGS.map(key=>[key,false]));Object.assign(v08,{scope:V08_SCOPE,vulnerableActorCalls:2,fixedActorCalls:2,judgeCalls:1,svgAssessmentPosts:2,genuineCredit:1,errors:[]});v08.isolatedStores=true;v08.fixtureLocalCandidateAdmission=v08Candidate.fixtureLocalCandidateAdmission;
-        const storageBase=`dvaia:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`;
+        const storageBase=`owasp-ai-goat:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`;
         const readRef=async referenceKey=>page.evaluate(({baseKey,sceneId,referenceKey})=>{const marker=localStorage.getItem(`${baseKey}:scene-storage-v1`);if(marker!==null&&marker!=='1')throw Error('Exact parent shop state marker unavailable');const storageKey=marker===null?baseKey:`${baseKey}:scene:${sceneId}`;const raw=localStorage.getItem(storageKey);if(raw===null)throw Error('Exact parent shop state unavailable');const snapshot=JSON.parse(raw),reference=snapshot[referenceKey];return reference===undefined?null:JSON.parse(reference);},{baseKey:storageBase,sceneId:target.scene.sceneId.toLowerCase(),referenceKey});
         const svgEffects=async()=>Number((await identity.query("SELECT count(*)::int n FROM graph_runtime.effects WHERE effect_key LIKE '%:svg-browser:%'")).rows[0].n);
         const counts=async()=>({actor:status.actualModelCalls,tools:Number((await agents.query("SELECT count(*)::int n FROM secureshop_agents.agent_trace WHERE kind='local_tool_call' AND agent_ns='uploads' AND tool_name='upload_avatar'")).rows[0].n),writes:Number((await review.query("SELECT count(*)::int n FROM secureshop_review.bound_upload_effects WHERE outcome='completed'")).rows[0].n),mints:v06AssetPosts.length,judges:status.judgeCalls,serves:Number((await review.query('SELECT count(*)::int n FROM secureshop_review.bound_upload_serves')).rows[0].n),svgEffects:await svgEffects(),svgMints:v08CapabilityMints});
@@ -2445,10 +2445,10 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         const credit=await Evidence.snapshotCredit({identity,platformOwnerId:actor.scope.platformOwnerId}),modeBefore=await mode.get(registration.context);await mode.set(registration.context,{mode:'fixed',expectedRevision:modeBefore.revision});await click(frame,'Start another avatar upload');
         const fixedStart=v06ActorSpans.length,fixed=await V08.runRenderedUpload({page,frame,filePath:v06FixturePath,filename,mime:'image/svg+xml',byteCount:bytes.length,message,publicAsset:true,expectedStatus:'denied',bodySha256,readAcknowledgedReference:readRef,observeSessionResponse:async value=>v06SessionResponses.push(structuredClone(value)),readOriginalMultipart:async requestId=>waitFor(()=>v06Multipart.find(row=>row.fields.requestId===requestId),'fixed V08 multipart'),assertOriginalGraphEvidence:async({reference})=>{const value=await Evidence.assertFixedOriginalUpload({agents,conversations:composition.repositories.conversations,binding:uploadBinding,sessionId:reference.sessionId,requestId:reference.requestId,qualifyModel:require('../../server/services/secureshopModelQualification').createSecureShopModelQualifier(provider),actorSpans:v06ActorSpans.slice(fixedStart)});v06Evidence.fixed=structuredClone(value);return true;}});v08.fixedModelChoice=true;
         V08.assertActorRequest(v06Posts[1],{sessionId:fixed.reference.sessionId,requestId:fixed.reference.requestId,message,publicAsset:true});assert.equal(v06ActorSpans.length-fixedStart,2);
-        const beforeFixed=await counts(),fixedResponse=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/svg-assess`,{method:'POST',headers:{authorization:`Bearer ${ready.persona.token}`,'x-dvaia-secureshop-launch':ready.bearer,'content-type':'application/json'},body:JSON.stringify({sessionId:fixed.reference.sessionId,requestId:fixed.reference.requestId}),signal:AbortSignal.timeout(30000)});assert.equal(fixedResponse.status,200);assert.deepEqual(await fixedResponse.json(),{completed:false,status:'ineligible',modelEvaluated:false});assert.deepEqual(await counts(),beforeFixed);await Evidence.assertFixedSvgUploadNoCredit({identity,review,operationId:fixed.reference.operationId,beforeJudgeCount:1,afterJudgeCount:status.judgeCalls,platformOwnerId:actor.scope.platformOwnerId,beforeCredit:credit});v08.fixedRouteIneligibleZeroEffect=true;
-        const protectedPaths=[`requests/${vulnerable.reference.requestId}`,`operations/${vulnerable.reference.operationId}`,`svg-assess/${vulnerable.reference.sessionId}/${vulnerable.reference.requestId}`];for(const suffixPath of protectedPaths){const reply=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/${suffixPath}`,{headers:{authorization:`Bearer ${siblingReady.persona.token}`,'x-dvaia-secureshop-launch':siblingReady.bearer},signal:AbortSignal.timeout(10000)});assert.notEqual(reply.status,200);await reply.arrayBuffer();}
-        const siblingAsset=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/operations/${vulnerable.reference.operationId}/asset`,{method:'POST',headers:{authorization:`Bearer ${siblingReady.persona.token}`,'x-dvaia-secureshop-launch':siblingReady.bearer,'content-type':'application/json'},body:'{}',signal:AbortSignal.timeout(10000)});assert.notEqual(siblingAsset.status,200);await siblingAsset.arrayBuffer();assert.equal(await Evidence.readCanonicalProgress({identity,scope:siblingActor.scope,persona:siblingActor.persona}),false);v08.siblingPrivate=true;
-        const storedPath=path.join(uploadRoot,original.retained.effect.file.storedVirtualPath),resetResult=await reset.launchResetCoordinator.reset({...actor.scope,expectedGeneration:actor.scope.generation,idempotencyKey:randomUUID()});assert.equal(resetResult.status,'committed');for(const suffixPath of protectedPaths){const reply=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/${suffixPath}`,{headers:{authorization:`Bearer ${ready.persona.token}`,'x-dvaia-secureshop-launch':ready.bearer},signal:AbortSignal.timeout(10000)});assert.notEqual(reply.status,200);await reply.arrayBuffer();}const staleAsset=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/operations/${vulnerable.reference.operationId}/asset`,{method:'POST',headers:{authorization:`Bearer ${ready.persona.token}`,'x-dvaia-secureshop-launch':ready.bearer,'content-type':'application/json'},body:'{}',signal:AbortSignal.timeout(10000)});assert.notEqual(staleAsset.status,200);await staleAsset.arrayBuffer();const staleCapability=await fetch(preview.src,{signal:AbortSignal.timeout(10000)});assert.equal(staleCapability.status,404);await staleCapability.arrayBuffer();await assert.rejects(fs.stat(storedPath),error=>error?.code==='ENOENT');await Evidence.assertUploadReset({review,targetId:target.targetId,operationId:vulnerable.reference.operationId,resetId:resetResult.resetId});assert.equal(await progress(),false);v08.resetFenced=true;
+        const beforeFixed=await counts(),fixedResponse=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/svg-assess`,{method:'POST',headers:{authorization:`Bearer ${ready.persona.token}`,'x-owasp-ai-goat-secureshop-launch':ready.bearer,'content-type':'application/json'},body:JSON.stringify({sessionId:fixed.reference.sessionId,requestId:fixed.reference.requestId}),signal:AbortSignal.timeout(30000)});assert.equal(fixedResponse.status,200);assert.deepEqual(await fixedResponse.json(),{completed:false,status:'ineligible',modelEvaluated:false});assert.deepEqual(await counts(),beforeFixed);await Evidence.assertFixedSvgUploadNoCredit({identity,review,operationId:fixed.reference.operationId,beforeJudgeCount:1,afterJudgeCount:status.judgeCalls,platformOwnerId:actor.scope.platformOwnerId,beforeCredit:credit});v08.fixedRouteIneligibleZeroEffect=true;
+        const protectedPaths=[`requests/${vulnerable.reference.requestId}`,`operations/${vulnerable.reference.operationId}`,`svg-assess/${vulnerable.reference.sessionId}/${vulnerable.reference.requestId}`];for(const suffixPath of protectedPaths){const reply=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/${suffixPath}`,{headers:{authorization:`Bearer ${siblingReady.persona.token}`,'x-owasp-ai-goat-secureshop-launch':siblingReady.bearer},signal:AbortSignal.timeout(10000)});assert.notEqual(reply.status,200);await reply.arrayBuffer();}
+        const siblingAsset=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/operations/${vulnerable.reference.operationId}/asset`,{method:'POST',headers:{authorization:`Bearer ${siblingReady.persona.token}`,'x-owasp-ai-goat-secureshop-launch':siblingReady.bearer,'content-type':'application/json'},body:'{}',signal:AbortSignal.timeout(10000)});assert.notEqual(siblingAsset.status,200);await siblingAsset.arrayBuffer();assert.equal(await Evidence.readCanonicalProgress({identity,scope:siblingActor.scope,persona:siblingActor.persona}),false);v08.siblingPrivate=true;
+        const storedPath=path.join(uploadRoot,original.retained.effect.file.storedVirtualPath),resetResult=await reset.launchResetCoordinator.reset({...actor.scope,expectedGeneration:actor.scope.generation,idempotencyKey:randomUUID()});assert.equal(resetResult.status,'committed');for(const suffixPath of protectedPaths){const reply=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/${suffixPath}`,{headers:{authorization:`Bearer ${ready.persona.token}`,'x-owasp-ai-goat-secureshop-launch':ready.bearer},signal:AbortSignal.timeout(10000)});assert.notEqual(reply.status,200);await reply.arrayBuffer();}const staleAsset=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/operations/${vulnerable.reference.operationId}/asset`,{method:'POST',headers:{authorization:`Bearer ${ready.persona.token}`,'x-owasp-ai-goat-secureshop-launch':ready.bearer,'content-type':'application/json'},body:'{}',signal:AbortSignal.timeout(10000)});assert.notEqual(staleAsset.status,200);await staleAsset.arrayBuffer();const staleCapability=await fetch(preview.src,{signal:AbortSignal.timeout(10000)});assert.equal(staleCapability.status,404);await staleCapability.arrayBuffer();await assert.rejects(fs.stat(storedPath),error=>error?.code==='ENOENT');await Evidence.assertUploadReset({review,targetId:target.targetId,operationId:vulnerable.reference.operationId,resetId:resetResult.resetId});assert.equal(await progress(),false);v08.resetFenced=true;
         const immutable=(await identity.query(`SELECT count(DISTINCT j.evaluation_id)::int judgments,count(DISTINCT c.evaluation_id)::int completions FROM secureshop_auth.assessment_judgments j LEFT JOIN secureshop_auth.assessment_completions c ON c.tenant_id=j.tenant_id AND c.principal_id=j.principal_id AND c.evaluation_id=j.evaluation_id AND c.objective_id=j.objective_id AND c.generation=j.generation WHERE j.evaluation_id=$1 AND j.shop_user_id=$2 AND j.objective_id=$3 AND j.rubric_version=$4 AND j.mode='vuln' AND j.execution_json->'scope'->>'launchId'=$5 AND j.execution_json->'scope'->>'scenarioId'=$6 AND j.execution_json->'scope'->>'generation'=$7 AND j.execution_json->'scope'->>'platformOwnerId'=$8 AND j.execution_json->'scope'->>'platformSessionId'=$9`,[assessed.judgment.evaluationId,actor.persona.id,V08.V08_BROWSER_OBJECTIVE,V08.V08_BROWSER_RUBRIC,actor.scope.launchId,actor.scope.scenarioId,String(actor.scope.generation),String(actor.scope.platformOwnerId),String(actor.scope.platformSessionId)])).rows[0];assert.deepEqual({judgments:Number(immutable.judgments),completions:Number(immutable.completions)},{judgments:1,completions:1});v08.immutableHistoryRetained=true;
         assert.equal(v06ActorSpans.length,4);assert.equal(v06Posts.length,2);assert.equal(v06Multipart.length,2);assert.equal(v06AssessmentPosts.length,2);assert.deepEqual(v06SessionResponses.map(value=>value.status),[200,200]);assert.equal(judgePackets.length,1);v08.passed=true;Object.assign(status,Object.fromEntries(V08_FLAGS.map(key=>[key,v08[key]])));v08Receipt=v08;
       } else if(V07_POLYGLOT){
@@ -2459,14 +2459,14 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         const fixture=E.v07PolyglotFixture(),{bytes,filename,mime,byteCount,bodySha256}=fixture;v06FixturePath=path.join(path.dirname(v06ReceiptPath),filename);await fs.writeFile(v06FixturePath,bytes,{mode:0o600});
         v06Evidence.fixture={filename,mime,byteCount,bodySha256,bodyBase64:bytes.toString('base64'),mode:0o600};
         const receipt=Object.fromEntries(V07_FLAGS.map(key=>[key,false]));Object.assign(receipt,{scope:V07_SCOPE,fixtureLocalCandidateAdmission:v07Candidate.fixtureLocalCandidateAdmission,actorCalls:8,physicalJudgeCalls:2,uploadPosts:2,previewPosts:2,assessmentPosts:2,genuineCredit:1,errors:[]});
-        const storageBase=`dvaia:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`;
+        const storageBase=`owasp-ai-goat:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`;
         const readRef=key=>page.evaluate(({base,scene,key})=>{const marker=localStorage.getItem(`${base}:scene-storage-v1`);if(marker!==null&&marker!=='1')throw Error('Shop storage marker unavailable');const raw=localStorage.getItem(marker===null?base:`${base}:scene:${scene}`);if(raw===null)throw Error('Owned shop storage unavailable');const value=JSON.parse(raw)[key];return value===undefined?null:JSON.parse(value);},{base:storageBase,scene:target.scene.sceneId.toLowerCase(),key});
         const counts=async()=>({actor:status.actualModelCalls,uploadTools:Number((await agents.query("SELECT count(*)::int n FROM secureshop_agents.agent_trace WHERE kind='local_tool_call' AND agent_ns='uploads' AND tool_name='upload_avatar'")).rows[0].n),previewTools:Number((await agents.query("SELECT count(*)::int n FROM secureshop_agents.agent_trace WHERE kind='local_tool_call' AND agent_ns='uploads' AND tool_name='preview_legacy_image'")).rows[0].n),writes:Number((await review.query("SELECT count(*)::int n FROM secureshop_review.bound_upload_effects WHERE outcome='completed'")).rows[0].n),previews:Number((await agents.query("SELECT count(*)::int n FROM secureshop_agents.turn_requests WHERE status='completed' AND result_json->'taskMetadata' ? 'polyglotPreview'")).rows[0].n),judges:v44Transport.calls.filter(call=>call.kind==='judge').length,serves:Number((await review.query('SELECT count(*)::int n FROM secureshop_review.bound_upload_serves')).rows[0].n)});
         const publicProgress=async expected=>{const response=await page.evaluate(async()=>{const r=await fetch('/api/secureshop/auth/progress',{credentials:'same-origin',signal:AbortSignal.timeout(10000)});return{status:r.status,body:await r.json()};});v06Evidence.polyglotProgress??=[];v06Evidence.polyglotProgress.push(response);saveV07();assert.equal(response.status,200);const rows=response.body.objectives.filter(row=>row.objectiveId===Contract.OBJECTIVE);assert.equal(rows.length,1);if(expected!==undefined)assert.equal(rows[0].completed,expected);assert.equal(response.body.totalObjectives,response.body.objectives.length);assert.equal(response.body.completedObjectives,response.body.objectives.filter(row=>row.completed).length);return rows[0].completed;};
         const canonical=async()=>{const rows=(await identity.query('SELECT * FROM secureshop_auth.assessment_judgments WHERE objective_id=$1 ORDER BY created_at',[Contract.OBJECTIVE])).rows;assert.ok(rows.length<=1);return rows[0]||null;};
         const historyInput={identity,objectiveId:Contract.OBJECTIVE,scope:actor.scope,persona:actor.persona};
         const history=()=>readV07AssessmentHistory(historyInput),activeAssessments=()=>readV07ActiveAssessments(historyInput);
-        const headers=value=>({authorization:`Bearer ${value.persona.token}`,'x-dvaia-secureshop-launch':value.bearer});
+        const headers=value=>({authorization:`Bearer ${value.persona.token}`,'x-owasp-ai-goat-secureshop-launch':value.bearer});
         const http=async(path,authority=ready)=>{const r=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/${path}`,{headers:headers(authority),signal:AbortSignal.timeout(10000)});return{status:r.status,body:await r.json()};};
         const preflight=await http('polyglot-readiness');assert.deepEqual(preflight,{status:200,body:{ready:true}});assert.deepEqual(await counts(),{actor:0,uploadTools:0,previewTools:0,writes:0,previews:0,judges:0,serves:0});assert.equal(await publicProgress(false),false);assert.equal(await canonical(),null);v06Evidence.polyglotHistoryPreflight=await history();assert.deepEqual(v06Evidence.polyglotHistoryPreflight,{assessment_judgments:[],assessment_completions:[],assessment_contributions:[]});assert.deepEqual(await activeAssessments(),[]);const sameCookie=await reauthenticateV07OriginalLaunch({page,actorFor,originalActor:actor,originalReady:ready});const originalReadiness=await http('polyglot-readiness');assert.deepEqual(originalReadiness,{status:200,body:{ready:true}});v06Evidence.polyglotBootstrapPreflight={scope:sameCookie.actor.scope,personaSession:sameCookie.actor.personaSession,renewal:sameCookie.renewal,originalReadiness};assert.deepEqual(await counts(),{actor:0,uploadTools:0,previewTools:0,writes:0,previews:0,judges:0,serves:0});assert.equal(v44Transport.calls.length,0);receipt.isolatedStores=true;saveV07();
         const reader=require('../../server/services/secureshopV07UploadSourceReader').createV07UploadSourceReader({identityPool:identity,agentsPool:agents,assets:composition.avatarUpload.assetBackend,assertCurrent:composition.avatarUpload.assetBackend.assertCurrent,read:require('../../server/services/secureshopUploadAssetReader').createSecureShopUploadAssetReader(),journal:{...composition.repositories.journal,...require('../../server/database/postgres/secureshopV06UploadTurnReader').createV06UploadTurnReader({pool:agents})},conversationRepository:composition.repositories.conversations,qualifyModel});
@@ -2526,7 +2526,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         Object.assign(v06,{scope:V06_SCOPE,vulnerableActorCalls:2,fixedActorCalls:2,judgeCalls:1,assessmentPosts:2,genuineCredit:1,errors:[]});
         v06.isolatedStores=true;v06.fixtureLocalCandidateAdmission=v06Candidate.fixtureLocalCandidateAdmission;
         assert.match(target.scene?.sceneId||'',UUID);assert.notEqual(target.scene.sceneId,actor.scope.scenarioId);
-        const v06ParentStorageBase=`dvaia:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`;
+        const v06ParentStorageBase=`owasp-ai-goat:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`;
         const readV06AcknowledgedReference=async referenceKey=>page.evaluate(({baseKey,sceneId,referenceKey})=>{
           const marker=localStorage.getItem(`${baseKey}:scene-storage-v1`);
           if(marker!==null&&marker!=='1')throw Error('Exact parent shop state marker unavailable');
@@ -2597,14 +2597,14 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
           beforeJudgeCount:fixedJudgeBefore,afterJudgeCount:status.judgeCalls,platformOwnerId:actor.scope.platformOwnerId,beforeCredit:vulnerableCredit});v06.fixedNoEffectServeJudgeCredit=true;
         const protectedSuffixes=[`requests/${vulnerable.reference.requestId}`,`operations/${vulnerable.reference.operationId}`,
           `assess/${vulnerable.reference.sessionId}/${vulnerable.reference.requestId}`];
-        for(const suffixPath of protectedSuffixes){const reply=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/${suffixPath}`,{headers:{authorization:`Bearer ${siblingReady.persona.token}`,'x-dvaia-secureshop-launch':siblingReady.bearer},signal:AbortSignal.timeout(10000)});assert.notEqual(reply.status,200);await reply.arrayBuffer();}
-        const siblingAsset=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/operations/${vulnerable.reference.operationId}/asset`,{method:'POST',headers:{authorization:`Bearer ${siblingReady.persona.token}`,'x-dvaia-secureshop-launch':siblingReady.bearer,'content-type':'application/json'},body:'{}',signal:AbortSignal.timeout(10000)});assert.notEqual(siblingAsset.status,200);await siblingAsset.arrayBuffer();
+        for(const suffixPath of protectedSuffixes){const reply=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/${suffixPath}`,{headers:{authorization:`Bearer ${siblingReady.persona.token}`,'x-owasp-ai-goat-secureshop-launch':siblingReady.bearer},signal:AbortSignal.timeout(10000)});assert.notEqual(reply.status,200);await reply.arrayBuffer();}
+        const siblingAsset=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/operations/${vulnerable.reference.operationId}/asset`,{method:'POST',headers:{authorization:`Bearer ${siblingReady.persona.token}`,'x-owasp-ai-goat-secureshop-launch':siblingReady.bearer,'content-type':'application/json'},body:'{}',signal:AbortSignal.timeout(10000)});assert.notEqual(siblingAsset.status,200);await siblingAsset.arrayBuffer();
         await composition.launches.assertCurrent(siblingActor.scope);assert.deepEqual(await composition.account.addresses(siblingActor),siblingBefore);
         assert.equal(await Evidence.readCanonicalProgress({identity,scope:siblingActor.scope,persona:siblingActor.persona}),false);v06.siblingPrivate=true;
         const storedPath=path.join(uploadRoot,vulnerableEvidence.retained.effect.file.storedVirtualPath);
         const resetResult=await reset.launchResetCoordinator.reset({...actor.scope,expectedGeneration:actor.scope.generation,idempotencyKey:randomUUID()});assert.equal(resetResult.status,'committed');
-        for(const suffixPath of protectedSuffixes){const stale=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/${suffixPath}`,{headers:{authorization:`Bearer ${ready.persona.token}`,'x-dvaia-secureshop-launch':ready.bearer},signal:AbortSignal.timeout(10000)});assert.notEqual(stale.status,200);await stale.arrayBuffer();}
-        const staleAsset=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/operations/${vulnerable.reference.operationId}/asset`,{method:'POST',headers:{authorization:`Bearer ${ready.persona.token}`,'x-dvaia-secureshop-launch':ready.bearer,'content-type':'application/json'},body:'{}',signal:AbortSignal.timeout(10000)});assert.notEqual(staleAsset.status,200);await staleAsset.arrayBuffer();
+        for(const suffixPath of protectedSuffixes){const stale=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/${suffixPath}`,{headers:{authorization:`Bearer ${ready.persona.token}`,'x-owasp-ai-goat-secureshop-launch':ready.bearer},signal:AbortSignal.timeout(10000)});assert.notEqual(stale.status,200);await stale.arrayBuffer();}
+        const staleAsset=await fetch(`${origin}/api/secureshop/agents/customer/avatar-upload/operations/${vulnerable.reference.operationId}/asset`,{method:'POST',headers:{authorization:`Bearer ${ready.persona.token}`,'x-owasp-ai-goat-secureshop-launch':ready.bearer,'content-type':'application/json'},body:'{}',signal:AbortSignal.timeout(10000)});assert.notEqual(staleAsset.status,200);await staleAsset.arrayBuffer();
         await assert.rejects(fs.stat(storedPath),error=>error?.code==='ENOENT');await composition.launches.assertCurrent(siblingActor.scope);
         await Evidence.assertUploadReset({review,targetId:target.targetId,operationId:vulnerable.reference.operationId,resetId:resetResult.resetId});
         assert.equal(await Evidence.readCanonicalProgress({identity,scope:actor.scope,persona:actor.persona}),false);v06.resetFenced=true;
@@ -3851,7 +3851,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
           const references = [];
           for (let index = 0; index < localStorage.length; index++) {
             const key = localStorage.key(index);
-            if (!/^dvaia:secureshop:[a-f0-9-]{36}:[1-9]\d*(?::scene:[a-f0-9-]{36})?$/i.test(key || '')) continue;
+            if (!/^owasp-ai-goat:secureshop:[a-f0-9-]{36}:[1-9]\d*(?::scene:[a-f0-9-]{36})?$/i.test(key || '')) continue;
             const snapshot = JSON.parse(localStorage.getItem(key));
             const raw = snapshot['secureshop.customer-chat.pending.v1'];
             if (raw) references.push(...JSON.parse(raw).references);
@@ -5074,7 +5074,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         const result = [];
         for (let index = 0; index < localStorage.length; index++) {
           const key = localStorage.key(index);
-          if (!/^dvaia:secureshop:[a-f0-9-]{36}:[1-9]\d*(?::scene:[a-f0-9-]{36})?$/i.test(key || '')) continue;
+          if (!/^owasp-ai-goat:secureshop:[a-f0-9-]{36}:[1-9]\d*(?::scene:[a-f0-9-]{36})?$/i.test(key || '')) continue;
           const encoded = JSON.parse(localStorage.getItem(key))['secureshop.checkout.operation.v1'];
           if (encoded) result.push(JSON.parse(encoded).operationId);
         }
@@ -5233,7 +5233,7 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         Object.assign(v01,{renderedPracticeToken:true,physicalUnsignedAdminEdit:true,
           actualModelSelectedAuditProbe:true,ownedGraphAuditRead:true,renderedExactAuditReport:true});
         assert.match(target.scene?.sceneId||'',UUID);assert.notEqual(target.scene.sceneId,actor.scope.scenarioId);
-        const v01ParentStorageBase=`dvaia:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`;
+        const v01ParentStorageBase=`owasp-ai-goat:secureshop:${actor.scope.launchId.toLowerCase()}:${actor.scope.generation}`;
         const readV01AssessmentReference=async()=>page.evaluate(({baseKey,sceneId,referenceKey})=>{
           const marker=localStorage.getItem(`${baseKey}:scene-storage-v1`);
           if(marker!==null&&marker!=='1')throw Error('Exact parent shop state marker unavailable');
@@ -5327,12 +5327,12 @@ test(V29_AGENCY ? 'rendered customer teaching role escalation proves denied ACL,
         assert.equal(await activeContributionCount(),1);v01.fixedNoJudgeOrCredit=true;
         const siblingPath=`/api/secureshop/agents/customer/checkout-audit/assess/${vulnerable.sessionId}/${vulnerable.requestId}`;
         const siblingResponse=await fetch(`${origin}${siblingPath}`,{headers:{authorization:`Bearer ${siblingReady.persona.token}`,
-          'x-dvaia-secureshop-launch':siblingReady.bearer},redirect:'error',signal:AbortSignal.timeout(10000)});
+          'x-owasp-ai-goat-secureshop-launch':siblingReady.bearer},redirect:'error',signal:AbortSignal.timeout(10000)});
         assert.notEqual(siblingResponse.status,200);await siblingResponse.arrayBuffer();v01.siblingPrivate=true;
         const resetResult=await reset.launchResetCoordinator.reset({...actor.scope,expectedGeneration:actor.scope.generation,
           idempotencyKey:randomUUID()});assert.equal(resetResult.status,'committed');
         const resetResponse=await fetch(`${origin}${siblingPath}`,{headers:{authorization:`Bearer ${ready.persona.token}`,
-          'x-dvaia-secureshop-launch':ready.bearer},redirect:'error',signal:AbortSignal.timeout(10000)});
+          'x-owasp-ai-goat-secureshop-launch':ready.bearer},redirect:'error',signal:AbortSignal.timeout(10000)});
         assert.notEqual(resetResponse.status,200);await resetResponse.arrayBuffer();
         assert.equal(await activeContributionCount(),0);v01.resetFenced=true;
         const immutable=(await identity.query(`SELECT count(DISTINCT j.evaluation_id)::int judgments,

@@ -71,7 +71,7 @@ test('native SecureShop conversation binding upgrades legacy rows and enforces i
   const urls = ['MIGRATION', 'RUNTIME'].map((suffix) => new URL(process.env[`${PREFIX}_${suffix}_URL`]));
   for (const url of urls) {
     assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   assert.equal(urls[0].pathname, urls[1].pathname);
 

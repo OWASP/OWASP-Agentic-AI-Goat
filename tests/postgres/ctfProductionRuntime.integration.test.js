@@ -42,7 +42,7 @@ const {canonicalCtfJson}=require('../../server/services/ctfLifecycleCommands');
   const stores={};
   for(const kind of ['IDENTITY','CTF']){
    const keys=['RUNTIME','MIGRATION'].map(role=>`PG_CTF_PRODUCTION_RUNTIME_${state}_${kind}_${role}_URL`);assert(keys.every(k=>process.env[k]));
-   const urls=keys.map(k=>new URL(process.env[k]));for(const u of urls){assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_ctf_prod_/);}
+   const urls=keys.map(k=>new URL(process.env[k]));for(const u of urls){assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_ctf_prod_/);}
    assert.equal(urls[0].pathname,urls[1].pathname);assert.equal(urls[0].port,urls[1].port);assert.notEqual(urls[0].username,urls[1].username);assert(!dbs.has(urls[0].pathname));dbs.add(urls[0].pathname);
    const [runtime,migration]=keys.map(k=>createPool({...process.env,PG_POOL_MAX_WORKSHOP:'1'},k));pools.push(runtime,migration);stores[kind]={runtime,migration};
    const directory=path.resolve(__dirname,'../../db/postgres',kind==='IDENTITY'?'identity-migrations':'workshop-migrations/ctf');

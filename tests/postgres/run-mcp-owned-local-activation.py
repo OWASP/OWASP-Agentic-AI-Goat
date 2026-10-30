@@ -6,14 +6,14 @@ from mcp_owned_live_promotion_safety import select_backend_pid
 from sensitive_info_recovery_safety import classify_process_state, wait_for_exit
 
 ROOT=pathlib.Path(__file__).resolve().parents[2]; OWNER='/root/workshop_authenticity'
-DOCKER_HOST='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'; PROFILE='colima-dvaia-pg-verify'
-MAILPIT='damn-vulnerable-ai-application-mailpit-1'; RUNNER='damn-vulnerable-ai-application-mcp-owned-sandbox-1'
-IMAGE='mcp-owned-sandbox-runner:dev'; NODE=pathlib.Path.home()/'.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin/node'
+DOCKER_HOST='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'; PROFILE='colima-owasp-ai-goat-pg-verify'
+MAILPIT='OWASP Agentic AI GOAT-mailpit-1'; RUNNER='OWASP Agentic AI GOAT-mcp-owned-sandbox-1'
+IMAGE='mcp-owned-sandbox-runner:dev'; NODE=pathlib.Path.home()/'.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin/node'
 ap=argparse.ArgumentParser(); ap.add_argument('--grant-file',required=True);ap.add_argument('--grant-id',required=True)
 ap.add_argument('--owner-handle-file',required=True);ap.add_argument('--watcher-pid',type=int,required=True);ap.add_argument('--backend-pid',type=int,required=True)
 a=ap.parse_args();os.umask(0o077);docker=['docker','--host',DOCKER_HOST]
 base={k:os.environ[k] for k in ('PATH','HOME','TMPDIR') if k in os.environ};base['PATH']=str(NODE.parent)+os.pathsep+base.get('PATH','')
-evidence=pathlib.Path(tempfile.mkdtemp(prefix='dvaia-mcp-owned-activation-'));ownership=evidence/'ownership.json';result=evidence/'result.json'
+evidence=pathlib.Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-owned-activation-'));ownership=evidence/'ownership.json';result=evidence/'result.json'
 diagnostics=evidence/'command-diagnostics.jsonl'
 state={'owner':OWNER,'grantId':a.grant_id,'launcherPid':os.getpid(),'ownerHandle':None,'evidence':str(evidence),'runStatus':'preparing','cleanup':None}
 def save():
@@ -88,7 +88,7 @@ with grant_path.open('r+') as f:
  g.update(status='consumed',consumerPid=os.getpid(),launcherPid=os.getpid(),ownerHandle=state['ownerHandle'],evidence=str(evidence),consumedAt=datetime.now(timezone.utc).isoformat());f.seek(0);json.dump(g,f,indent=2);f.write('\n');f.truncate();f.flush();os.fsync(f.fileno())
 created_runner=False;created_image=False
 try:
- command=[str(NODE),'scripts/install/mcp-owned-provision.js','--env',str(ROOT/'.env'),'--managed-config',str(pathlib.Path.home()/'.dvaia/c231599fa8cd/mcp-owned.env'),'--colima-profile',PROFILE,'--activate-qualified']
+ command=[str(NODE),'scripts/install/mcp-owned-provision.js','--env',str(ROOT/'.env'),'--managed-config',str(pathlib.Path.home()/'.owasp-ai-goat/c231599fa8cd/mcp-owned.env'),'--colima-profile',PROFILE,'--activate-qualified']
  run(command,timeout=900,stage='owned-provision');created_runner=runner_before is None and inspect(RUNNER) is not None;created_image=image_before is None and image_id() is not None
  after_mail=inspect(MAILPIT)
  if not after_mail or after_mail['Id']!=mail_identity['id'] or after_mail['Image']!=mail_identity['image'] or mail_count()!=mail_identity['count']:raise RuntimeError('Mailpit identity or learner messages changed')
@@ -113,7 +113,7 @@ except BaseException as error:
  cleanup={'managedDisabled':False,'runnerRemoved':False,'imageRemoved':False,'mailpitPreserved':False,'healthyAfterRollback':False}
  try:
   code="const p=require('./scripts/install/mcp-owned-local');p.prepareOwnedManagedConfiguration({envPath:process.argv[1],managedPath:process.argv[2],forceDisabled:true}).catch(()=>process.exit(1))"
-  run([str(NODE),'-e',code,str(ROOT/'.env'),str(pathlib.Path.home()/'.dvaia/c231599fa8cd/mcp-owned.env')])
+  run([str(NODE),'-e',code,str(ROOT/'.env'),str(pathlib.Path.home()/'.owasp-ai-goat/c231599fa8cd/mcp-owned.env')])
   cleanup['managedDisabled']=True
  except Exception:pass
  created_runner=runner_before is None and inspect(RUNNER) is not None

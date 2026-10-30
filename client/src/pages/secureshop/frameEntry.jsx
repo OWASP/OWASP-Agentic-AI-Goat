@@ -13,8 +13,8 @@ import { GuestCartChannelContext } from './bridge/GuestCartChannelContext.jsx';
 import { STANDALONE_SESSION_CHANNEL } from './bridge/standaloneIntents.mjs';
 import { BOUND_CART_REFRESH_CHANNEL, BOUND_CART_REFRESH_EVENT } from './bridge/cartRefresh.mjs';
 
-const GUEST_CHANNEL = 'dvaia-secureshop-guest-route-v1';
-const BOUND_CHANNEL = 'dvaia-secureshop-bound-route-v1';
+const GUEST_CHANNEL = 'owasp-ai-goat-secureshop-guest-route-v1';
+const BOUND_CHANNEL = 'owasp-ai-goat-secureshop-bound-route-v1';
 
 function GuestRouteSync({ origin, nonce }) {
   const location = useLocation();
@@ -89,7 +89,7 @@ const standalone = !guest && frameParams.get('standalone') === '1';
 const entry = safeShopRoute(frameParams.get('entry'), { publicOnly: guest }) || '/secureshop';
 const nonce = window.location.hash.slice(1);
 if (window.parent === window) {
-  mount.textContent = 'Open SecureShop from your account.';
+  mount.textContent = 'Open OWASP AI SecureShop from your account.';
 } else {
   startShopFrame({ origin, guest, standalone, enableBoundReviews: !guest, render() {
     mount.removeAttribute('role');
@@ -106,6 +106,6 @@ if (window.parent === window) {
     return () => { root.unmount(); cartChannel?.close(); };
   } }).catch(() => {
     mount.setAttribute('role', 'alert');
-    mount.textContent = 'Your SecureShop connection is unavailable. Return to SecureShop and reconnect.';
+    mount.textContent = 'Your OWASP AI SecureShop connection is unavailable. Return to OWASP AI SecureShop and reconnect.';
   });
 }

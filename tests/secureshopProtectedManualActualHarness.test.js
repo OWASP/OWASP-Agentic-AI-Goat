@@ -65,7 +65,7 @@ test('receipt read-only proof rejects actor, SQL receipt/grant and original file
 });
 test('four disposable store URLs require exact roles, same nonce and endpoint with no options',()=>{
   const env={};for(const [store,name]of Object.entries(harness.STORES))for(const role of ['MIGRATION','RUNTIME'])
-    env[`${harness.PREFIX}${store}_${role}_URL`]=`postgresql://dvaia_${name}_${role.toLowerCase()}@127.0.0.1:54321/dvaia_test_agent_host_0123456789ab_${name}`;
+    env[`${harness.PREFIX}${store}_${role}_URL`]=`postgresql://dvaia_${name}_${role.toLowerCase()}@127.0.0.1:54321/owasp_ai_goat_test_agent_host_0123456789ab_${name}`;
   assert.equal(Object.keys(harness.disposableUrls(env)).length,8);
   const key=`${harness.PREFIX}REVIEW_RUNTIME_URL`;
   for(const replacement of [env[key].replace('0123456789ab','1123456789ab'),env[key].replace('54321','54322'),
@@ -215,7 +215,7 @@ test('saved product gateway hides foreign and missing conversations before readi
   }
   sceneOverride=undefined;launchFailure=Object.assign(Error('stale generation'),{code:'STALE_LAUNCH'});
   const staleLaunch=await dispatch(sessionId,owner);assert.equal(staleLaunch.statusCode,401);
-  assert.equal(staleLaunch.headers['X-DVAIA-SecureShop-Launch-State'],'unavailable');launchFailure=undefined;
+  assert.equal(staleLaunch.headers['X-OWASP-AI-GOAT-SecureShop-Launch-State'],'unavailable');launchFailure=undefined;
   for(const error of [Error('private SQL'),Object.assign(Error('provider unavailable'),{code:'PRODUCT_MODEL_UNAVAILABLE'})]) {
     sceneFailure=error;const unavailable=await dispatch(sessionId,owner);
     assert.equal(unavailable.statusCode,503);assert.deepEqual(unavailable.body,{error:'Bound SecureShop operation unavailable'});

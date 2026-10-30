@@ -7,12 +7,12 @@ const hash=b=>createHash('sha256').update(b).digest('hex');
 async function bounded(p,ms){let t;try{return await Promise.race([p,new Promise((_,reject)=>{t=setTimeout(()=>reject(Error('Owned original deadline')),ms);})]);}finally{clearTimeout(t);}}
 test('actual canonical16 original writer and exact commit boundaries',{skip:!enabled,timeout:600000},async()=>{
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');const scenario=process.env.ORIGINAL_WRITER_CASE;assert(CASES.includes(scenario));
- const root=await fs.realpath(process.cwd()),evidence=await fs.realpath(process.env.SETUP_PHASE_EVIDENCE_ROOT);assert.equal(root,process.env.DVAIA_ISOLATED_TEST_WORKSPACE);assert.equal(path.dirname(root),evidence);
+ const root=await fs.realpath(process.cwd()),evidence=await fs.realpath(process.env.SETUP_PHASE_EVIDENCE_ROOT);assert.equal(root,process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);assert.equal(path.dirname(root),evidence);
  const admin=new URL(process.env.PG_ADMIN_DATABASE_URL);assert.equal(admin.hostname,'127.0.0.1');assert.equal(admin.pathname,'/postgres');
- const home=path.join(evidence,'home'),id=hash(root).slice(0,12),directory=path.join(home,'.dvaia',id);await fs.mkdir(directory,{recursive:true,mode:0o700});
+ const home=path.join(evidence,'home'),id=hash(root).slice(0,12),directory=path.join(home,'.owasp-ai-goat',id);await fs.mkdir(directory,{recursive:true,mode:0o700});
  const guard=path.join(evidence,'original-network-guard.cjs');await fs.writeFile(guard,networkGuardSource({host:'127.0.0.1',port:admin.port}),{mode:0o600});
- const environment={PATH:process.env.PATH,HOME:home,PG_TLS:'disable',PG_POOL_BUDGET:'78',NODE_ENV:'test',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',MCP_SIDECARS_AUTOSTART:'false',MCP_WORKSHOP_AUTOSTART:'false',AWS_EC2_METADATA_DISABLED:'true',HF_HUB_OFFLINE:'1',TRANSFORMERS_OFFLINE:'1',LOGS_DIR:path.join(evidence,'logs'),LEGACY_SENSITIVE_FILES_ROOT:path.join(evidence,'teaching'),DVAIA_APP_DATA_ROOT:path.join(evidence,'app-data')};
- for(const key of ['LOGS_DIR','LEGACY_SENSITIVE_FILES_ROOT','DVAIA_APP_DATA_ROOT'])await fs.mkdir(environment[key],{recursive:true,mode:0o700});
+ const environment={PATH:process.env.PATH,HOME:home,PG_TLS:'disable',PG_POOL_BUDGET:'78',NODE_ENV:'test',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',MCP_SIDECARS_AUTOSTART:'false',MCP_WORKSHOP_AUTOSTART:'false',AWS_EC2_METADATA_DISABLED:'true',HF_HUB_OFFLINE:'1',TRANSFORMERS_OFFLINE:'1',LOGS_DIR:path.join(evidence,'logs'),LEGACY_SENSITIVE_FILES_ROOT:path.join(evidence,'teaching'),OWASP_AI_GOAT_APP_DATA_ROOT:path.join(evidence,'app-data')};
+ for(const key of ['LOGS_DIR','LEGACY_SENSITIVE_FILES_ROOT','OWASP_AI_GOAT_APP_DATA_ROOT'])await fs.mkdir(environment[key],{recursive:true,mode:0o700});
  const provisioned=await require('../../db/postgres/provision-application').provisionApplication({adminUrl:admin.href,manifestPath:path.join(directory,'provisioning.json'),env:environment});assert.equal(provisioned.plan.length,16);
  const delivery=await require('../../scripts/install/ctf-delivery-setup').prepareCtfDelivery({directory,adminUrl:admin.href,environment});
  require('../../scripts/lib/setup-administrator-journal').ensureAdministratorJournal({directory});

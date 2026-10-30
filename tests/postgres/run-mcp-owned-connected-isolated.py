@@ -30,8 +30,8 @@ tool_poisoning_candidate=args.candidate=='tool-poisoning'
 recon_candidate=args.candidate=='recon'
 recon_production=args.candidate=='recon-production'
 grant_lock=grant_path.with_suffix(grant_path.suffix+'.consume-lock');docker=['docker','--host',args.docker_host]
-evidence_parent=Path.home()/'.dvaia'/'native-verification';evidence_parent.mkdir(parents=True,exist_ok=True);os.chmod(evidence_parent,0o700)
-root=Path(tempfile.mkdtemp(prefix='dvaia-mcp-owned-connected-',dir=evidence_parent));os.chmod(root,0o700);workspace=root/'source'
+evidence_parent=Path.home()/'.owasp-ai-goat'/'native-verification';evidence_parent.mkdir(parents=True,exist_ok=True);os.chmod(evidence_parent,0o700)
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-mcp-owned-connected-',dir=evidence_parent));os.chmod(root,0o700);workspace=root/'source'
 def ignore(_directory,names):
  denied={'.git','node_modules','build','logs','uploads','sensitive_files','workshop_data','vector-indexes','coverage','.cache','__pycache__'}
  return [name for name in names if name in denied or name.startswith('.env') or any(name.endswith(suffix) for suffix in ['.db','.db-wal','.db-shm','.db-journal','.sqlite','.sqlite3','.log'])]
@@ -43,16 +43,16 @@ make_copied_directories_owner_writable(workspace)
 (workspace/'package.json').write_bytes((source/'package.json').read_bytes())
 (workspace/'package-lock.json').write_bytes((source/'package-lock.json').read_bytes())
 (workspace/'node_modules').symlink_to(source/'node_modules',target_is_directory=True)
-base_env={key:os.environ[key] for key in ['PATH','HOME','TMPDIR'] if key in os.environ};managed=Path.home()/'.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin';base_env['PATH']=str(managed)+os.pathsep+base_env.get('PATH','')
-suffix=uuid.uuid4().hex[:12];profile_name='dvaia-mcp-sandbox-'+suffix;token=secrets.token_urlsafe(48);jwt_secret=secrets.token_urlsafe(64)
-profile_template=workspace/'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in';profile_path=root/f'{profile_name}.apparmor'
+base_env={key:os.environ[key] for key in ['PATH','HOME','TMPDIR'] if key in os.environ};managed=Path.home()/'.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin';base_env['PATH']=str(managed)+os.pathsep+base_env.get('PATH','')
+suffix=uuid.uuid4().hex[:12];profile_name='owasp-ai-goat-mcp-sandbox-'+suffix;token=secrets.token_urlsafe(48);jwt_secret=secrets.token_urlsafe(64)
+profile_template=workspace/'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in';profile_path=root/f'{profile_name}.apparmor'
 subprocess.run([str(managed/'node'),str(workspace/'scripts/render-mcp-sandbox-apparmor.js'),str(profile_template),str(profile_path),profile_name],check=True,env=base_env)
-ssh_config=Path.home()/'.colima/_lima/colima-dvaia-pg-verify/ssh.config';ssh_host='lima-colima-dvaia-pg-verify'
+ssh_config=Path.home()/'.colima/_lima/colima-owasp-ai-goat-pg-verify/ssh.config';ssh_host='lima-colima-owasp-ai-goat-pg-verify'
 remote_dir=f'/tmp/{profile_name}';remote_profile=f'{remote_dir}/policy.apparmor';remote_marker=f'{remote_dir}/owner';remote_owner=secrets.token_hex(64)
 local_marker=root/'remote-owner';local_marker.write_text(remote_owner);os.chmod(local_marker,0o600)
 ssh=['ssh','-F',str(ssh_config),ssh_host,'--'];scp=['scp','-F',str(ssh_config)]
-containers={'postgres':'dvaia-mcp-connected-pg-'+suffix,'mailpit':'dvaia-mcp-connected-mailpit-'+suffix,'runner':'dvaia-mcp-connected-runner-'+suffix}
-image=f'dvaia-mcp-connected-runner:{suffix}'
+containers={'postgres':'owasp-ai-goat-mcp-connected-pg-'+suffix,'mailpit':'owasp-ai-goat-mcp-connected-mailpit-'+suffix,'runner':'owasp-ai-goat-mcp-connected-runner-'+suffix}
+image=f'owasp-ai-goat-mcp-connected-runner:{suffix}'
 inventory_rel='docs/modernization/drafts/mcp-owned-connected-v20-tracked-files-2026-09-14.json'
 inventory=json.loads((source/inventory_rel).read_text())
 tracked=inventory.get('trackedFiles')
@@ -91,7 +91,7 @@ finally: grant_lock.rmdir()
 started=[];container_attempted=[];built=False;build_attempted=False;remote_creation_attempted=False;marker_matches=False;profile_load_attempted=False
 try:
  daemon=json.loads(run(docker+['info','--format','{{json .}}'],capture_output=True,text=True,timeout=30).stdout)
- if daemon.get('Name')!='colima-dvaia-pg-verify' or daemon.get('Architecture')!='aarch64': raise RuntimeError('Exact Colima verification daemon is required')
+ if daemon.get('Name')!='colima-owasp-ai-goat-pg-verify' or daemon.get('Architecture')!='aarch64': raise RuntimeError('Exact Colima verification daemon is required')
  for name,container in containers.items():
   prior_container=run(docker+['ps','-a','--filter',f'name=^{container}$','--format','{{.Names}}'],capture_output=True,text=True,timeout=20)
   if prior_container.stdout.strip(): raise RuntimeError(f'Owned {name} container name was not absent before use')

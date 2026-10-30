@@ -17,13 +17,13 @@ REPO=Path(__file__).resolve().parents[2]
 
 class McpInspectorTests(unittest.TestCase):
     def setUp(self):
-        self.directory=tempfile.TemporaryDirectory(prefix='dvaia-mcp-assembly-',
+        self.directory=tempfile.TemporaryDirectory(prefix='owasp-ai-goat-mcp-assembly-',
                                                    dir=REPO/'tasks'/'qualification')
         self.addCleanup(self.directory.cleanup)
         self.root=Path(self.directory.name)
         self.root.chmod(0o700)
         self.owner='a'*32
-        self.profile='dvaia-owned-mcp-registry-'+'b'*12
+        self.profile='owasp-ai-goat-owned-mcp-registry-'+'b'*12
         self.journal=self.root/'ownership.json'
         self.save()
         self.row=SimpleNamespace(ppid=os.getpid(),uid=os.getuid(),ruid=os.getuid(),
@@ -55,7 +55,7 @@ class McpInspectorTests(unittest.TestCase):
             self.subject.handle(self.request(sequence=2,nonce='d'*64))
 
     def test_changed_scope_parent_owner_and_pid_denied(self):
-        for changes in ({'runtime':'/tmp/dvaia-mcp-assembly-12345678'},
+        for changes in ({'runtime':'/tmp/owasp-ai-goat-mcp-assembly-12345678'},
                         {'runtime':str(self.root/'nested')},{'mode':'exec'},
                         {'identity':{'pid':40001}},{'pid':40002},{'version':True},
                         {'nonce':'short'},{'runtime':str(self.root/'..'/self.root.name)}):

@@ -10,10 +10,10 @@ const helper = require('../scripts/qualify-application-backups');
 test('backup qualification keeps application credentials out of child argv', () => {
   const secret = 'never-print-this-password';
   const env = helper.connectionEnvironment(
-    `postgresql://dvaia_identity_migration:${secret}@127.0.0.1:5432/dvaia_identity`,
+    `postgresql://dvaia_identity_migration:${secret}@127.0.0.1:5432/owasp_ai_goat_identity`,
   );
   assert.equal(env.PGHOST, '127.0.0.1');
-  assert.equal(env.PGDATABASE, 'dvaia_identity');
+  assert.equal(env.PGDATABASE, 'owasp_ai_goat_identity');
   assert.equal(env.PGPASSWORD, secret);
   const source = fs.readFileSync(path.join(__dirname, '../scripts/qualify-application-backups.js'), 'utf8');
   assert.match(source, /const dumpArguments = \['--format=custom', '--file', dump\]/);
@@ -155,7 +155,7 @@ test('container cleanup tolerates an ambiguous remove only after verified daemon
 
 test('owned restore container inspection requires exact identity and resource bounds',()=>{
   const value={Name:'/owned',Image:helper.POSTGRES_IMAGE_ID,
-    Config:{Labels:{'dvaia.backup.owner':'receipt'}},Mounts:[],HostConfig:{Memory:2147483648,
+    Config:{Labels:{'owasp-ai-goat.backup.owner':'receipt'}},Mounts:[],HostConfig:{Memory:2147483648,
       NanoCpus:2000000000,PidsLimit:256,Tmpfs:{'/var/lib/postgresql':'rw,size=1073741824'}}};
   assert.deepEqual(helper.validateOwnedContainerInspection(value,{container:'owned',owner:'receipt'}),{
     memoryBytes:2147483648,nanoCpus:2000000000,pidsLimit:256,tmpfsBytes:1073741824,bindMounts:0,
@@ -186,7 +186,7 @@ test('catalog transition qualification pages every private row without aggregate
   const statements=[];
   const result=await helper.verifyCatalogTransitions({}, {query:async(_env,statement)=>{
     statements.push(statement);
-    if(statement.includes("count(*))::text FROM dvaia_qualification.catalog_fields")) return {count:2};
+    if(statement.includes("count(*))::text FROM owasp_ai_goat_qualification.catalog_fields")) return {count:2};
     if(statement.includes("to_regclass('workshop_platform.catalog_field_defaults')")) return {ready:false};
     const offset=Number(statement.match(/OFFSET (\d+)$/)?.[1]);
     assert(Number.isSafeInteger(offset));return rows[offset];
@@ -195,7 +195,7 @@ test('catalog transition qualification pages every private row without aggregate
   const pages=statements.filter(statement=>statement.includes('LIMIT 1 OFFSET'));
   assert.equal(pages.length,2);assert(pages.every(statement=>!statement.includes('json_agg')));
   await assert.rejects(helper.verifyCatalogTransitions({}, {query:async(_env,statement)=>{
-    if(statement.includes('count(*))::text FROM dvaia_qualification.catalog_fields')) return {count:1};
+    if(statement.includes('count(*))::text FROM owasp_ai_goat_qualification.catalog_fields')) return {count:1};
     if(statement.includes("to_regclass('workshop_platform.catalog_field_defaults')")) return {ready:false};
     throw Object.assign(new Error('private SQL failure'),{code:'CHILD_FAILED'});
   }}),error=>error.preservationDiagnostic?.phase==='catalog-transition'&&/^[a-f0-9]{64}$/.test(error.preservationDiagnostic.querySha256));
@@ -229,7 +229,7 @@ test('backup qualification derives the exact initializer-wide store scope', () =
   assert.match(source, /no cross-store coherent snapshot is claimed/);
   assert.match(source, /A final quiescent backup and migration rehearsal is required immediately before activation/);
   assert.match(source, /activationReady: false/);
-  assert.match(source, /dvaia-backup-verify-/);
+  assert.match(source, /owasp-ai-goat-backup-verify-/);
   assert.match(source, /ensureContainerAbsent\(container, docker\)/);
   assert.match(source, /migration\.PGUSER !== spec\.migrationRole/);
   assert.match(source, /runtime\.PGUSER !== spec\.runtimeRole/);

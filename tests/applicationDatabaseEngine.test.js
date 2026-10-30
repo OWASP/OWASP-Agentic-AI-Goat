@@ -31,8 +31,8 @@ test('application engine requires PostgreSQL for both stores', () => {
 
 test('even a realpath-matched test workspace cannot select legacy SQLite', () => {
   const { resolveApplicationDatabaseEngine } = require(helperPath);
-  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-engine-test-'));
-  const env = { NODE_ENV: 'test', DVAIA_ISOLATED_TEST_WORKSPACE: workspace, PLATFORM_DATABASE_ENGINE: 'sqlite' };
+  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-engine-test-'));
+  const env = { NODE_ENV: 'test', OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE: workspace, PLATFORM_DATABASE_ENGINE: 'sqlite' };
   try {
     assert.throws(() => resolveApplicationDatabaseEngine({ env, cwd: workspace }), /PostgreSQL is required/);
     assert.throws(() => resolveApplicationDatabaseEngine({ env: { ...env, PLATFORM_DATABASE_ENGINE: undefined }, cwd: workspace }), /PostgreSQL is required/);
@@ -54,7 +54,7 @@ test('even a realpath-matched test workspace cannot select legacy SQLite', () =>
 });
 
 test('main entrypoint fails before database or provider imports when PostgreSQL is not configured', () => {
-  const isolatedCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-entrypoint-test-'));
+  const isolatedCwd = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-entrypoint-test-'));
   const script = `
     const Module = require('node:module');
     const originalLoad = Module._load;

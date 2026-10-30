@@ -139,7 +139,7 @@ test('automatic build pins image once then reuses immutable receipt without anot
           Os: 'linux',
           Config: {
             Labels: {
-              'dvaia.registry.package': digest
+              'owasp-ai-goat.registry.package': digest
             }
           }
         }])
@@ -166,7 +166,7 @@ test('automatic build pins image once then reuses immutable receipt without anot
     await setupOwnedMcpRegistry(options);
     assert.equal(builds, 1);
     assert.equal(provisions, 2);
-    const file = path.join(home, '.dvaia', workspaceId(process.cwd()), 'secureshop-owned-mcp-registry-build.json');
+    const file = path.join(home, '.owasp-ai-goat', workspaceId(process.cwd()), 'secureshop-owned-mcp-registry-build.json');
     const before = JSON.parse(await fs.readFile(file));
     assert.equal((await fs.stat(file)).mode & 0o777, 0o600);
     await fs.writeFile(file, JSON.stringify({
@@ -227,8 +227,8 @@ test('registry architecture preflight inspects only the selected Docker host and
   assert.deepEqual(calls[0].args,['--host','unix:///var/run/docker.sock','info','--format','{{json .ID}}|{{json .Architecture}}']);
   assert.deepEqual(calls[0].limits,{timeoutMs:30000,maxOutputBytes:1048576,allowExitCodes:[0]});
   const colima=await preflightOwnedMcpRegistryArchitecture({...options,platform:'darwin',
-    homeDirectory:'/controlled/home',colimaProfile:'colima-dvaia'});
-  assert.equal(colima.dockerHost,'unix:///controlled/home/.colima/dvaia/docker.sock');
+    homeDirectory:'/controlled/home',colimaProfile:'colima-owasp-ai-goat'});
+  assert.equal(colima.dockerHost,'unix:///controlled/home/.colima/owasp-ai-goat/docker.sock');
   assert.deepEqual(calls[1].args.slice(0,3),['--host',colima.dockerHost,'info']);
   await assert.rejects(preflightOwnedMcpRegistryArchitecture({...options,
     dockerAuthority:{host:'unix:///another-daemon.sock'}}),{code:'REGISTRY_BUILD_DOCKER_AUTHORITY_MISMATCH'});
@@ -249,7 +249,7 @@ test('registry architecture preflight inspects only the selected Docker host and
 });
 test('existing install without build authority is never rebuilt or silently adopted', async () => {
   const home = await fs.mkdtemp(path.join(os.tmpdir(), 'registry-adoption-control-')),
-    directory = path.join(home, '.dvaia', workspaceId(process.cwd()));
+    directory = path.join(home, '.owasp-ai-goat', workspaceId(process.cwd()));
   await fs.mkdir(directory, {
     recursive: true,
     mode: 0o700
@@ -275,7 +275,7 @@ test('existing install without build authority is never rebuilt or silently adop
         Os: 'linux',
         Config: {
           Labels: label === undefined ? {} : {
-            'dvaia.registry.package': label
+            'owasp-ai-goat.registry.package': label
           }
         }
       }])
@@ -348,10 +348,10 @@ test('activation readiness checks canonical bound/persona/registry authority and
 
 test('requested setup preserves disabled existing state unless explicit; fresh activates only qualified readiness',async()=>{
  for(const existing of [false,true])for(const explicitActivation of [false,true]){
-  const home=await fs.mkdtemp(path.join(os.tmpdir(),'registry-policy-control-')),root=process.cwd(),directory=path.join(home,'.dvaia',workspaceId(root)),file=path.join(directory,'secureshop-owned-mcp-registry.json');
+  const home=await fs.mkdtemp(path.join(os.tmpdir(),'registry-policy-control-')),root=process.cwd(),directory=path.join(home,'.owasp-ai-goat',workspaceId(root)),file=path.join(directory,'secureshop-owned-mcp-registry.json');
   const imageId='sha256:'+'a'.repeat(64),configuration={version:1,workspace:workspaceId(root),enabled:false,baseURL:'http://127.0.0.1:8095',token:'a'.repeat(43),runtimeDigest:'b'.repeat(64),mode:'vuln'};
   await fs.mkdir(directory,{recursive:true,mode:0o700});if(existing)await fs.writeFile(file,JSON.stringify(configuration),{mode:0o600});let probes=0;
-  const options={root,homeDirectory:home,platform:'linux',environment:{},requested:true,explicitActivation,productionQualified:true,readiness:async()=>{probes++;return true;},run:async(_cmd,args)=>({exitCode:0,stdout:args[2]==='info'?dockerInfo('arm64'):JSON.stringify([{Id:imageId,Architecture:'arm64',Os:'linux',Config:{Labels:{'dvaia.registry.package':i.packageDigest()}}}])}),build:async()=>{},provision:async()=>{if(!existing)await fs.writeFile(file,JSON.stringify(configuration),{mode:0o600});return{ready:true,architecture:'arm64',imageId,runtimeDigest:configuration.runtimeDigest,activationEnabled:false};}};
+  const options={root,homeDirectory:home,platform:'linux',environment:{},requested:true,explicitActivation,productionQualified:true,readiness:async()=>{probes++;return true;},run:async(_cmd,args)=>({exitCode:0,stdout:args[2]==='info'?dockerInfo('arm64'):JSON.stringify([{Id:imageId,Architecture:'arm64',Os:'linux',Config:{Labels:{'owasp-ai-goat.registry.package':i.packageDigest()}}}])}),build:async()=>{},provision:async()=>{if(!existing)await fs.writeFile(file,JSON.stringify(configuration),{mode:0o600});return{ready:true,architecture:'arm64',imageId,runtimeDigest:configuration.runtimeDigest,activationEnabled:false};}};
   try{const result=await setupOwnedMcpRegistry(options),enabled=!existing||explicitActivation;assert.equal(result.activationEnabled,enabled);assert.equal(probes,Number(enabled));assert.deepEqual(JSON.parse(await fs.readFile(file)),{...configuration,enabled});}
   finally{await fs.rm(home,{recursive:true,force:true});}
  }
@@ -364,7 +364,7 @@ test('packaged control-plane execution bytes are part of authenticated runtime a
 });
 test('changed package requires explicit upgrade and authentic maintenance before building', async()=>{
  const home=await fs.mkdtemp(path.join(os.tmpdir(),'registry-upgrade-admission-'));
- const directory=path.join(home,'.dvaia',workspaceId(process.cwd()));await fs.mkdir(directory,{recursive:true,mode:0o700});
+ const directory=path.join(home,'.owasp-ai-goat',workspaceId(process.cwd()));await fs.mkdir(directory,{recursive:true,mode:0o700});
  const installer=require('../scripts/install/secureshop-owned-mcp-registry');
  await installer._internals.writePrivate(path.join(directory,'secureshop-owned-mcp-registry-build.json'),{version:1,packageDigest:previousPackageDigest,imageId:'sha256:'+'a'.repeat(64),dockerHost:'unix:///var/run/docker.sock'},null);
  await installer._internals.writePrivate(path.join(directory,'secureshop-owned-mcp-registry-install.json'),{imageId:'sha256:'+'a'.repeat(64)},null);

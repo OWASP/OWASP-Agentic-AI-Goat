@@ -27,7 +27,7 @@ int main(int argc,char **argv){
  for(int fd=3;fd<1024;fd++)close(fd);
  const char attestation[]="upload-preview-init-v1 uid=10001 gid=10001 caps=zero bounding=zero ambient=zero nnp=1\n";
  require(write(1,attestation,sizeof(attestation)-1)==(ssize_t)(sizeof(attestation)-1));
- char *const env[]={"PATH=/usr/local/bin:/usr/bin:/bin","HOME=/work","LANG=C.UTF-8","USER=owned-upload-preview","DVAIA_UPLOAD_PREVIEW_ATTESTED=upload-preview-init-v1",NULL};
+ char *const env[]={"PATH=/usr/local/bin:/usr/bin:/bin","HOME=/work","LANG=C.UTF-8","USER=owned-upload-preview","OWASP_AI_GOAT_UPLOAD_PREVIEW_ATTESTED=upload-preview-init-v1",NULL};
  char *const args[]={"/usr/local/bin/node","--max-old-space-size=128","/opt/upload-preview/upload-preview-worker.js",argv[1],argc==3?"--probe":NULL,NULL};
  execve(args[0],args,env);return 70;
 }

@@ -5,7 +5,7 @@ import SessionDisclosureDemo from './SessionDisclosureDemo';
 jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn() }));
 jest.mock('../components/WorkshopNavbar', () => () => null);
 let node, root;
-const packet = generation => ({ data: { scope: 'isolated synthetic lab session', session: { sessionId: 'lab-only', role: 'learner', generation }, cookies: { dvaia_lab_session: `lab-cookie-${generation}`, platform_token: 'MUST_NOT_RENDER' }, platformToken: 'MUST_NOT_RENDER' } });
+const packet = generation => ({ data: { scope: 'isolated synthetic lab session', session: { sessionId: 'lab-only', role: 'learner', generation }, cookies: { owasp_ai_goat_lab_session: `lab-cookie-${generation}`, platform_token: 'MUST_NOT_RENDER' }, platformToken: 'MUST_NOT_RENDER' } });
 const click = async text => { await act(async () => { [...node.querySelectorAll('button')].find(b => b.textContent === text).click(); }); };
 beforeEach(() => { global.IS_REACT_ACT_ENVIRONMENT = true; axios.get.mockReset(); axios.post.mockReset(); node = document.createElement('div'); root = createRoot(node); act(() => root.render(<SessionDisclosureDemo />)); });
 afterEach(() => act(() => root.unmount()));
@@ -36,7 +36,7 @@ test('failed reset clears stale display and does not fetch a claimed replacement
   expect(node.textContent).toContain('could not be loaded');
 });
 test('rejects projections outside the isolated lab scope', async () => {
-  axios.get.mockResolvedValue({ data: { scope: 'platform', session: {}, cookies: { dvaia_lab_session: 'MUST_NOT_RENDER' } } });
+  axios.get.mockResolvedValue({ data: { scope: 'platform', session: {}, cookies: { owasp_ai_goat_lab_session: 'MUST_NOT_RENDER' } } });
   await click('Inspect lab session');
   expect(node.textContent).not.toContain('MUST_NOT_RENDER');
   expect(node.textContent).toContain('could not be loaded');

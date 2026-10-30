@@ -1618,7 +1618,7 @@ test('v43 historical successor preserves its exact owned Windows lab and protect
   "sidecars/audit-sql-target/readiness.js",
   "sidecars/audit-sql-target/service.js",
   "sidecars/sandbox-runner/Dockerfile",
-  "sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in",
+  "sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in",
   "sidecars/sandbox-runner/entrypoint.sh",
   "sidecars/sandbox-runner/index.js",
   "sidecars/sandbox-runner/labfs/etc/hosts.lab",
@@ -1708,7 +1708,7 @@ test('owned Windows lab, protected profile and build dependency drift deny admis
   "scripts/lib/windows-lab-installation.js",
   "scripts/lib/windows-lab-forward-owner.js",
   "scripts/install/Windows/owned-hyperv-observer.ps1",
-  "sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in",
+  "sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in",
   "sidecars/sandbox-runner/Dockerfile",
   "sidecars/sandbox-runner/owned-shadow/Dockerfile"
 ])rejectsSimulatedSourceDrift(name);
@@ -1822,7 +1822,7 @@ test('recovery closure denies representative transitive JavaScript and SQL drift
 });
 
 test('Windows separator inventory admits identical bytes and rejects SQL drift',()=>{
- const windowsRoot='C:\\dvaia';
+ const windowsRoot='C:\\owasp-ai-goat';
  const local=file=>{const relative=path.win32.relative(windowsRoot,file);assert.ok(relative!==''&&!relative.startsWith('..')&&!path.win32.isAbsolute(relative));return path.join(ROOT,...relative.split('\\'));};
  const filesystem={
   readdirSync(file,options){return fs.readdirSync(local(file),options);},

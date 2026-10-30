@@ -65,8 +65,8 @@ def main():
   result=command(arguments)
   if result.returncode: raise RuntimeError('Owned Docker operation failed')
   return result
- nonce=str(uuid.uuid4());name='dvaia-authenticated-runs-'+nonce
- labels={'dvaia.qualification':'authenticated_agent_run_ownership','dvaia.owner-uid':str(os.getuid()),'dvaia.run-nonce':nonce}
+ nonce=str(uuid.uuid4());name='owasp-ai-goat-authenticated-runs-'+nonce
+ labels={'owasp-ai-goat.qualification':'authenticated_agent_run_ownership','owasp-ai-goat.owner-uid':str(os.getuid()),'owasp-ai-goat.run-nonce':nonce}
  processes=OwnedProcesses(stop_group,lambda value:record('process-'+value['name']+'.json',value))
  intended=False;captured=None;failures=[];passed=False
  processes.install()
@@ -91,9 +91,9 @@ def main():
    time.sleep(.25)
   else:raise RuntimeError('Database readiness deadline')
   def sql(statement):run(['exec',captured,'psql','-U','ownership_test_admin','-d','postgres','-v','ON_ERROR_STOP=1','-c',statement])
-  env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',PG_AUTHENTICATED_RUN_READS='1',AWS_EC2_METADATA_DISABLED='true',DVAIA_ISOLATED_TEST_WORKSPACE=str(source))
+  env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',PG_AUTHENTICATED_RUN_READS='1',AWS_EC2_METADATA_DISABLED='true',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(source))
   for family,prefix in [('identity','PG_READS_TEST'),('secureshop_agents','PG_SECURESHOP_AGENTS_TEST')]:
-   migration='dvaia_'+family+'_migration';runtime='dvaia_'+family+'_runtime';database='dvaia_test_authenticated_runs_'+family
+   migration='dvaia_'+family+'_migration';runtime='dvaia_'+family+'_runtime';database='owasp_ai_goat_test_authenticated_runs_'+family
    for role in [migration,runtime]:sql(f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS')
    sql(f'CREATE DATABASE {database} OWNER {migration}')
    sql(f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}')

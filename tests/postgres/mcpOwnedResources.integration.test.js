@@ -21,7 +21,7 @@ const signed = body => ({ ...body, receiptSha256: createHash('sha256').update(JS
 test('native MCP resource repository binds mail intent, retirement cleanup and immutable replay', { skip: !enabled }, async t => {
   for (const value of [migrationUrl, runtimeUrl]) {
     const url = new URL(value);
-    assert.match(url.pathname, /^\/dvaia_test_mcp_owned_resources$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_mcp_owned_resources$/);
     assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
   }
   const migration = new Pool({ connectionString: migrationUrl, max: 2 });
@@ -67,14 +67,14 @@ test('native MCP resource repository binds mail intent, retirement cleanup and i
   assert.deepEqual(receiptB, receiptA, 'concurrent completion returns the committed receipt');
   assert.equal(receiptA.intentCount, 2);
   assert.equal(mailbox.has(first.messageId), false);
-  assert.equal(mailbox.has(`mcp-${aliceIntentB}@dvaia.local`), false);
-  assert.equal(mailbox.has(`mcp-${siblingIntent}@dvaia.local`), true);
+  assert.equal(mailbox.has(`mcp-${aliceIntentB}@owasp-ai-goat.local`), false);
+  assert.equal(mailbox.has(`mcp-${siblingIntent}@owasp-ai-goat.local`), true);
   const cleanupRow = (await runtime.query(`SELECT operation_id,status,message_ids,receipt_json FROM mcp.mail_cleanups
     WHERE target_id=$1`, [alice.targetId])).rows[0];
   assert.equal(cleanupRow.operation_id, operationId);
   assert.equal(cleanupRow.status, 'completed');
   assert.deepEqual(cleanupRow.receipt_json, receiptA);
-  assert.deepEqual([...cleanupRow.message_ids].sort(), [`mcp-${aliceIntentA}@dvaia.local`, `mcp-${aliceIntentB}@dvaia.local`].sort());
+  assert.deepEqual([...cleanupRow.message_ids].sort(), [`mcp-${aliceIntentA}@owasp-ai-goat.local`, `mcp-${aliceIntentB}@owasp-ai-goat.local`].sort());
 
   const differentOperation = randomUUID();
   await assert.rejects(concurrent.cleanup({ scope: alice, operationId: differentOperation }), { code: 'MCP_RESOURCE_CONFLICT' });

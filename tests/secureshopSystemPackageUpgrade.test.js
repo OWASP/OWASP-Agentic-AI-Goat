@@ -15,10 +15,10 @@ function fixture(t){
  const manifest=JSON.parse(fs.readFileSync(path.join(ROOT,relative,'local-package-manifest.json'),'utf8'));
  for(const name of Object.keys(manifest.files)){const bytes=Buffer.from('synthetic controlled package: '+name+'\n');fs.mkdirSync(path.dirname(path.join(directory,name)),{recursive:true});fs.writeFileSync(path.join(directory,name),bytes);manifest.files[name]=hash(bytes);}
  fs.writeFileSync(path.join(directory,'local-package-manifest.json'),JSON.stringify(manifest));
- const apparmor=path.join(root,'sidecars/sandbox-runner/apparmor');fs.mkdirSync(apparmor,{recursive:true});fs.writeFileSync(path.join(apparmor,'dvaia-mcp-sandbox.apparmor.in'),'profile @@SUPERVISOR_PROFILE@@ { # synthetic controlled profile\n}\n');
- const id=workspaceId(root),dir=path.join(home,'.dvaia',id);fs.mkdirSync(dir,{recursive:true,mode:0o700});
+ const apparmor=path.join(root,'sidecars/sandbox-runner/apparmor');fs.mkdirSync(apparmor,{recursive:true});fs.writeFileSync(path.join(apparmor,'owasp-ai-goat-mcp-sandbox.apparmor.in'),'profile @@SUPERVISOR_PROFILE@@ { # synthetic controlled profile\n}\n');
+ const id=workspaceId(root),dir=path.join(home,'.owasp-ai-goat',id);fs.mkdirSync(dir,{recursive:true,mode:0o700});
  fs.writeFileSync(path.join(dir,'local-docker.json'),JSON.stringify({version:1,workspaceId:id,host:'unix:///var/run/docker.sock',daemonId:'controlled-daemon',source:'environment-host'}),{mode:0o600});
- const profileSha=hash(renderMcpSandboxAppArmor(fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'),'utf8'),'dvaia-mcp-sandbox'));
+ const profileSha=hash(renderMcpSandboxAppArmor(fs.readFileSync(path.join(root,'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'),'utf8'),'owasp-ai-goat-mcp-sandbox'));
  const calls=[],envFiles=[],images=new Map([[BASE,{Id:BASE,Architecture:'arm64'}]]),networks=new Map(),volumes=new Map(),containers=new Map();
  let builds=0,serial=0;
  const controls={unknownCreate:false,missingCreate:false,readiness:false,profileSha,profileEnforced:true,buildHook:null};
@@ -26,7 +26,7 @@ function fixture(t){
  const inspect=(value,kind)=>value?{exitCode:0,stdout:JSON.stringify([value]),stderr:''}:{exitCode:1,stdout:'',stderr:kind==='volume'?'Error response from daemon: no such volume':'No such object'};
  const run=async(file,args,options)=>{
   calls.push({file,args:[...args],options});controls.hook?.(file,args);assert.ok(options.timeoutMs<=300000);assert.ok(options.maxOutputBytes<=1048576);
-  if(file==='sudo'){if(args[1]==='sha256sum')return{exitCode:0,stdout:controls.profileSha+'  /etc/apparmor.d/dvaia-mcp-sandbox\n'};return{exitCode:0,stdout:controls.profileEnforced?'dvaia-mcp-sandbox (enforce)\n':'dvaia-mcp-sandbox (complain)\n'};}
+  if(file==='sudo'){if(args[1]==='sha256sum')return{exitCode:0,stdout:controls.profileSha+'  /etc/apparmor.d/owasp-ai-goat-mcp-sandbox\n'};return{exitCode:0,stdout:controls.profileEnforced?'owasp-ai-goat-mcp-sandbox (enforce)\n':'owasp-ai-goat-mcp-sandbox (complain)\n'};}
   assert.equal(file,'docker');assert.deepEqual(args.slice(0,2),['--host','unix:///var/run/docker.sock']);args=args.slice(2);
   if(args[0]==='info')return{exitCode:0,stdout:'"controlled-daemon"'};
   if(args[1]==='inspect')return inspect(args[0]==='container'
@@ -37,7 +37,7 @@ function fixture(t){
    const manifest=JSON.parse(fs.readFileSync(path.join(root,'sidecars/sandbox-runner/owned-system/local-package-manifest.json')));
    for(const [name,digest]of Object.entries(manifest.files))assert.equal(hash(fs.readFileSync(path.join(context,name))),digest);
    controls.buildHook?.(context);
-   const image={Id:'sha256:'+String(++builds).repeat(64),Architecture:'arm64',Os:'linux',Config:{Labels:labels(args),User:'10001:10001',Env:['PATH=/usr/bin'],Entrypoint:['/usr/local/bin/node','/opt/dvaia-owned-system/local-listener-entry.js'],Cmd:null}};
+   const image={Id:'sha256:'+String(++builds).repeat(64),Architecture:'arm64',Os:'linux',Config:{Labels:labels(args),User:'10001:10001',Env:['PATH=/usr/bin'],Entrypoint:['/usr/local/bin/node','/opt/owasp-ai-goat-owned-system/local-listener-entry.js'],Cmd:null}};
    images.set(args[args.indexOf('-t')+1],image);images.set(image.Id,image);return{exitCode:0,stdout:''};
   }
   if(args[0]==='volume'&&args[1]==='create'){volumes.set(args.at(-1),{Name:args.at(-1),Driver:'local',Options:null,CreatedAt:'2026-10-11',Mountpoint:'/owned/volume',Labels:labels(args)});return{exitCode:0,stdout:''};}
@@ -49,8 +49,8 @@ function fixture(t){
    if(controls.missingCreate)throw Error('controlled uncertain create');
    const port=args[args.indexOf('--publish')+1].split(':')[1];
    let tmpfs={};for(let i=0;i<args.length;i++)if(args[i]==='--tmpfs'){const [mount,...options]=args[i+1].split(':');tmpfs[mount]=options.join(':');}if(mode==='restart')tmpfs=Object.fromEntries(Object.entries(tmpfs).reverse());
-   const mountIndex=args.indexOf('--mount'),mount=mountIndex<0?[]:[{Type:'volume',Name:args[mountIndex+1].match(/source=([^,]+)/)[1],Destination:'/var/lib/dvaia-owned-restart',RW:true}];
-   containers.set(name,{Id:String(++serial).padStart(64,'0'),Name:'/'+name,Image:args.at(-2),Mounts:mount,Config:{Labels:labels(args),User:'10001:10001',Entrypoint:images.get(args.at(-2)).Config.Entrypoint,Cmd:[mode],Env:['PATH=/usr/bin',...env]},State:{Running:false,Status:'created'},HostConfig:{Privileged:false,ReadonlyRootfs:true,Memory:536870912,NanoCpus:1000000000,PidsLimit:128,Tmpfs:tmpfs,Binds:null,Devices:[],DeviceRequests:null,PidMode:'',IpcMode:'private',UsernsMode:'',CapAdd:null,SecurityOpt:['seccomp=unconfined','apparmor=dvaia-mcp-sandbox'],NetworkMode:network,PortBindings:{'8090/tcp':[{HostIp:'127.0.0.1',HostPort:port}]}},NetworkSettings:{Networks:{[network]:{}},Ports:null}});
+   const mountIndex=args.indexOf('--mount'),mount=mountIndex<0?[]:[{Type:'volume',Name:args[mountIndex+1].match(/source=([^,]+)/)[1],Destination:'/var/lib/owasp-ai-goat-owned-restart',RW:true}];
+   containers.set(name,{Id:String(++serial).padStart(64,'0'),Name:'/'+name,Image:args.at(-2),Mounts:mount,Config:{Labels:labels(args),User:'10001:10001',Entrypoint:images.get(args.at(-2)).Config.Entrypoint,Cmd:[mode],Env:['PATH=/usr/bin',...env]},State:{Running:false,Status:'created'},HostConfig:{Privileged:false,ReadonlyRootfs:true,Memory:536870912,NanoCpus:1000000000,PidsLimit:128,Tmpfs:tmpfs,Binds:null,Devices:[],DeviceRequests:null,PidMode:'',IpcMode:'private',UsernsMode:'',CapAdd:null,SecurityOpt:['seccomp=unconfined','apparmor=owasp-ai-goat-mcp-sandbox'],NetworkMode:network,PortBindings:{'8090/tcp':[{HostIp:'127.0.0.1',HostPort:port}]}},NetworkSettings:{Networks:{[network]:{}},Ports:null}});
    if(controls.unknownCreate)throw Error('controlled lost create acknowledgment');return{exitCode:0,stdout:'id'};
   }
   if(args[0]==='start'){const c=containers.get(args[1])||[...containers.values()].find(row=>row.Id===args[1]);assert.ok(c);c.State.Running=true;c.State.Status='running';c.NetworkSettings.Ports=c.HostConfig.PortBindings;return{exitCode:0,stdout:''};}
@@ -104,7 +104,7 @@ test('rollback preserves originally stopped containers',async t=>{
 });
 
 test('foreign old container, network, volume and image fail before mutation',async t=>{
- for(const change of [f=>f.containers.values().next().value.Mounts.push({Type:'bind',Source:'/private'}),f=>f.networks.values().next().value.Labels['dvaia.system.source']='f'.repeat(64),f=>f.volumes.values().next().value.Driver='nfs',f=>f.images.get(f.original.value.imageId).Config.User='0']){
+ for(const change of [f=>f.containers.values().next().value.Mounts.push({Type:'bind',Source:'/private'}),f=>f.networks.values().next().value.Labels['owasp-ai-goat.system.source']='f'.repeat(64),f=>f.volumes.values().next().value.Driver='nfs',f=>f.images.get(f.original.value.imageId).Config.User='0']){
   const f=await installed(t);change(f);const count=mutations(f).length;await assert.rejects(upgrade(f.options));assert.equal(mutations(f).length,count);assert.deepEqual(managed.capture({filePath:f.file}),f.original);
  }
 });
@@ -143,8 +143,8 @@ test('live activation lock and malformed journal fail closed without mutation',a
 });
 
 test('resource provenance field is strictly bounded and legacy encoding remains identical',()=>{
- const legacy={version:1,workspaceId:'a'.repeat(12),enabled:false,architecture:'arm64',dockerAuthoritySha256:'b'.repeat(64),imageId:'sha256:'+'c'.repeat(64),sourceManifestSha256:'d'.repeat(64),profile:{name:'dvaia-mcp-sandbox',sha256:'e'.repeat(64)}};
- for(const [index,mode]of ['config','diagnostic','restart'].entries())legacy[mode]={container:'dvaia-owned-system-'+legacy.workspaceId+'-'+mode,url:'http://127.0.0.1:'+(8090+index),token:String(index).repeat(64)};
+ const legacy={version:1,workspaceId:'a'.repeat(12),enabled:false,architecture:'arm64',dockerAuthoritySha256:'b'.repeat(64),imageId:'sha256:'+'c'.repeat(64),sourceManifestSha256:'d'.repeat(64),profile:{name:'owasp-ai-goat-mcp-sandbox',sha256:'e'.repeat(64)}};
+ for(const [index,mode]of ['config','diagnostic','restart'].entries())legacy[mode]={container:'owasp-ai-goat-owned-system-'+legacy.workspaceId+'-'+mode,url:'http://127.0.0.1:'+(8090+index),token:String(index).repeat(64)};
  assert.ok(!managed.encode(legacy).includes('resourceSource'));const next={...legacy,resourceSourceManifestSha256:'f'.repeat(64)};assert.deepEqual(JSON.parse(managed.encode(next)),next);
  for(const value of [null,undefined,'',true,'f'.repeat(63)])assert.throws(()=>managed.validate({...legacy,resourceSourceManifestSha256:value}),{code:'SYSTEM_MANAGED_INVALID'});
 });
@@ -153,7 +153,7 @@ test('resource provenance field is strictly bounded and legacy encoding remains 
 test('stopped-app admission blocks owned launcher and occupied configured ports before mutations',async t=>{
  const f=await installed(t),launcher=path.join(f.dir,'launcher.json');fs.writeFileSync(launcher,'{}',{mode:0o600});let count=mutations(f).length;
  await assert.rejects(upgrade(f.options),{code:'SYSTEM_UPGRADE_APPLICATION_RUNNING'});assert.equal(mutations(f).length,count);fs.unlinkSync(launcher);
- fs.writeFileSync(path.join(f.root,'.env'),'PORT=18181\nDVAIA_CLIENT_PORT=18182\nSS_AGENT_HOST_PORT=18183\n');
+ fs.writeFileSync(path.join(f.root,'.env'),'PORT=18181\nOWASP_AI_GOAT_CLIENT_PORT=18182\nSS_AGENT_HOST_PORT=18183\n');
  const probed=[];await assert.rejects(upgrade({...f.options,probeApplicationPorts:async env=>{probed.push(env.PORT);throw Error('occupied');}}),{code:'SYSTEM_UPGRADE_APPLICATION_RUNNING'});assert.deepEqual(probed,['18181']);assert.equal(mutations(f).length,count);
 });
 
@@ -170,10 +170,10 @@ test('explicit preview upgrade adds exactly one selected mode and preserves prio
  assert.equal(result.ready,true);assert.equal(f.containers.size,4);
  for(const mode of ['config','diagnostic','restart'])assert.deepEqual(next[mode],f.original.value[mode]);
  assert.equal(JSON.stringify([[...f.networks],[...f.volumes]]),resources);
- assert.equal(next.uploadPreview.container,`dvaia-owned-system-${f.id}-upload-preview`);
+ assert.equal(next.uploadPreview.container,`owasp-ai-goat-owned-system-${f.id}-upload-preview`);
  assert.equal(next.uploadPreview.url,'http://127.0.0.1:8093');
  const preview=f.containers.get(next.uploadPreview.container);assert.deepEqual(preview.Config.Cmd,['upload-preview']);
- assert.equal(preview.Mounts.length,0);assert.equal(preview.HostConfig.Tmpfs['/var/lib/dvaia-owned-upload-preview'],'rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001');
+ assert.equal(preview.Mounts.length,0);assert.equal(preview.HostConfig.Tmpfs['/var/lib/owasp-ai-goat-owned-upload-preview'],'rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001');
  await startExisting(f.options);await provision({...f.options,reconcileEnabled:true,uploadPreviewPort:8093});
  const count=mutations(f).length;await assert.rejects(upgrade({...f.options,uploadPreviewPort:8093}),{code:'SYSTEM_UPGRADE_PREVIEW_ADMISSION_INVALID'});assert.equal(mutations(f).length,count);
 });

@@ -175,7 +175,7 @@ function sourceHashManifest(root) {
 
 function validateOwnedContainerInspection(value, { container, owner }) {
   if (!value || value.Name !== `/${container}` || value.Image !== POSTGRES_IMAGE_ID
-      || value.Config?.Labels?.['dvaia.backup.owner'] !== owner
+      || value.Config?.Labels?.['owasp-ai-goat.backup.owner'] !== owner
       || value.HostConfig?.Memory !== 2147483648 || value.HostConfig?.NanoCpus !== 2000000000
       || value.HostConfig?.PidsLimit !== 256 || !String(value.HostConfig?.Tmpfs?.['/var/lib/postgresql']).includes('size=1073741824')
       || !Array.isArray(value.Mounts) || value.Mounts.length !== 0) {
@@ -495,13 +495,13 @@ async function installPreservationBaseline(env, tables) {
   if (hasExercises !== hasObjectives) {
     throw new Error('Partial workshop catalog schema cannot be preservation-qualified');
   }
-  await run(TOOLS.psql.path, ['-X','-v','ON_ERROR_STOP=1','-c',`CREATE SCHEMA dvaia_qualification;
-    CREATE TABLE dvaia_qualification.preexisting_rows(table_name text NOT NULL,row_value jsonb NOT NULL,multiplicity bigint NOT NULL);
-    CREATE TABLE dvaia_qualification.columns(table_name text PRIMARY KEY,column_names jsonb NOT NULL,ignored_columns jsonb NOT NULL);
-    CREATE TABLE dvaia_qualification.catalog_fields(entity_kind text NOT NULL,workshop_key text NOT NULL,
+  await run(TOOLS.psql.path, ['-X','-v','ON_ERROR_STOP=1','-c',`CREATE SCHEMA owasp_ai_goat_qualification;
+    CREATE TABLE owasp_ai_goat_qualification.preexisting_rows(table_name text NOT NULL,row_value jsonb NOT NULL,multiplicity bigint NOT NULL);
+    CREATE TABLE owasp_ai_goat_qualification.columns(table_name text PRIMARY KEY,column_names jsonb NOT NULL,ignored_columns jsonb NOT NULL);
+    CREATE TABLE owasp_ai_goat_qualification.catalog_fields(entity_kind text NOT NULL,workshop_key text NOT NULL,
       objective_id text NOT NULL,field_name text NOT NULL,provenance jsonb,target_value jsonb,updated_by bigint,
       PRIMARY KEY(entity_kind,workshop_key,objective_id,field_name));
-    CREATE TABLE dvaia_qualification.revision_rows(row_value jsonb NOT NULL);`], { env });
+    CREATE TABLE owasp_ai_goat_qualification.revision_rows(row_value jsonb NOT NULL);`], { env });
   for (const tableName of Object.keys(tables).filter(name => name !== 'dvaia_migrations.ledger'
       && !MANAGED_RECONCILIATION_TABLES.has(name)).sort()) {
     const [schema, table] = tableName.split('.');
@@ -510,8 +510,8 @@ async function installPreservationBaseline(env, tables) {
     const ignored = (CATALOG_MANAGED_COLUMNS[tableName] || []).filter(column => columns.includes(column));
     const projection = ignored.length ? `to_jsonb(t)-ARRAY[${ignored.map(quoteLiteral).join(',')}]` : 'to_jsonb(t)';
     await run(TOOLS.psql.path, ['-X','-v','ON_ERROR_STOP=1','-c',
-      `INSERT INTO dvaia_qualification.columns VALUES(${quoteLiteral(tableName)},${quoteLiteral(JSON.stringify(columns))}::jsonb,${quoteLiteral(JSON.stringify(ignored))}::jsonb);
-       INSERT INTO dvaia_qualification.preexisting_rows SELECT ${quoteLiteral(tableName)},${projection},count(*) FROM ${quoteIdentifier(schema)}.${quoteIdentifier(table)} t GROUP BY ${projection};`], { env });
+      `INSERT INTO owasp_ai_goat_qualification.columns VALUES(${quoteLiteral(tableName)},${quoteLiteral(JSON.stringify(columns))}::jsonb,${quoteLiteral(JSON.stringify(ignored))}::jsonb);
+       INSERT INTO owasp_ai_goat_qualification.preexisting_rows SELECT ${quoteLiteral(tableName)},${projection},count(*) FROM ${quoteIdentifier(schema)}.${quoteIdentifier(table)} t GROUP BY ${projection};`], { env });
   }
   if (hasExercises && hasObjectives) {
     const hasProvenance = !!tables['workshop_platform.catalog_field_defaults'];
@@ -524,7 +524,7 @@ async function installPreservationBaseline(env, tables) {
         AND p.workshop_key=o.workshop_key AND p.objective_id=o.objective_id AND p.field_name=v.field_name`
       : 'LEFT JOIN LATERAL (SELECT NULL::text provenance_state) p ON true';
     await run(TOOLS.psql.path,
-    ['-X','-v','ON_ERROR_STOP=1','-c',`INSERT INTO dvaia_qualification.catalog_fields
+    ['-X','-v','ON_ERROR_STOP=1','-c',`INSERT INTO owasp_ai_goat_qualification.catalog_fields
       SELECT 'exercise',e.workshop_key,'',v.field_name,
         CASE WHEN p.provenance_state IS NULL THEN NULL ELSE to_jsonb(p) END,v.target_value,e.updated_by
       FROM workshop_platform.exercises e
@@ -533,7 +533,7 @@ async function installPreservationBaseline(env, tables) {
         ('category',to_jsonb(e.category)),('difficulty',to_jsonb(e.difficulty)),('route',to_jsonb(e.route))
       ) v(field_name,target_value)
       ${exerciseProvenance};
-      INSERT INTO dvaia_qualification.catalog_fields
+      INSERT INTO owasp_ai_goat_qualification.catalog_fields
       SELECT 'objective',o.workshop_key,o.objective_id,v.field_name,
         CASE WHEN p.provenance_state IS NULL THEN NULL ELSE to_jsonb(p) END,v.target_value,o.updated_by
       FROM workshop_platform.objectives o
@@ -542,7 +542,7 @@ async function installPreservationBaseline(env, tables) {
       ${objectiveProvenance};`], { env });
   }
   if (tables['workshop_platform.revisions']) await run(TOOLS.psql.path,
-    ['-X','-v','ON_ERROR_STOP=1','-c',`INSERT INTO dvaia_qualification.revision_rows
+    ['-X','-v','ON_ERROR_STOP=1','-c',`INSERT INTO owasp_ai_goat_qualification.revision_rows
       SELECT to_jsonb(r) FROM workshop_platform.revisions r;`], { env });
 }
 
@@ -698,7 +698,7 @@ function assessRevisionTransitions(beforeRows, afterRows, maxGlobalAdvance = MAX
 
 async function verifyCatalogTransitions(env,{query=sqlJson}={}) {
   const catalogQuery=async statement=>{try{return await query(env,statement);}catch(error){throw annotatePreservationDiagnostic(error,'catalog-transition',statement);}};
-  const countStatement="SELECT json_build_object('count',count(*))::text FROM dvaia_qualification.catalog_fields";
+  const countStatement="SELECT json_build_object('count',count(*))::text FROM owasp_ai_goat_qualification.catalog_fields";
   const baselineCount = await catalogQuery(countStatement);
   const count=Number(baselineCount.count);
   if(!Number.isSafeInteger(count)||count<0)throw new Error('Catalog transition count invalid');
@@ -720,7 +720,7 @@ async function verifyCatalogTransitions(env,{query=sqlJson}={}) {
         CASE WHEN b.entity_kind='exercise' THEN to_jsonb(e)->b.field_name ELSE to_jsonb(o)->b.field_name END,
         'updatedBy',CASE WHEN b.entity_kind='exercise' THEN e.updated_by ELSE o.updated_by END,
         'targetExists',CASE WHEN b.entity_kind='exercise' THEN e.workshop_key IS NOT NULL ELSE o.workshop_key IS NOT NULL END))::text
-      FROM dvaia_qualification.catalog_fields b
+      FROM owasp_ai_goat_qualification.catalog_fields b
       ${provenanceJoin}
       LEFT JOIN workshop_platform.exercises e ON b.entity_kind='exercise' AND e.workshop_key=b.workshop_key
       LEFT JOIN workshop_platform.objectives o ON b.entity_kind='objective' AND o.workshop_key=b.workshop_key AND o.objective_id=b.objective_id
@@ -738,12 +738,12 @@ async function verifyCatalogTransitions(env,{query=sqlJson}={}) {
 
 async function verifyRevisionTransitions(env) {
   const baselineCount = await sqlJson(env,
-    "SELECT json_build_object('count',count(*))::text FROM dvaia_qualification.revision_rows");
+    "SELECT json_build_object('count',count(*))::text FROM owasp_ai_goat_qualification.revision_rows");
   if (Number(baselineCount.count) === 0) {
     return { globalRevisionAdvanced:0, scopedRowsPreserved:0 };
   }
   const value = await sqlJson(env, `SELECT json_build_object(
-    'before',COALESCE((SELECT json_agg(row_value ORDER BY row_value::text) FROM dvaia_qualification.revision_rows),'[]'::json),
+    'before',COALESCE((SELECT json_agg(row_value ORDER BY row_value::text) FROM owasp_ai_goat_qualification.revision_rows),'[]'::json),
     'after',COALESCE((SELECT json_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text) FROM workshop_platform.revisions r),'[]'::json))::text`);
   return assessRevisionTransitions(value.before, value.after);
 }
@@ -776,7 +776,7 @@ async function verifyPreservedRows(env, { aggregate = false, maxComparisons = 32
   if (typeof aggregate !== 'boolean' || !Number.isSafeInteger(maxComparisons) || maxComparisons < 0 || maxComparisons > 32) {
     throw new Error('Invalid preservation aggregation request');
   }
-  const specs = await preservedSqlJson(env,'comparison', `SELECT COALESCE(json_agg(json_build_object('table',table_name,'columns',column_names,'ignored',ignored_columns) ORDER BY table_name),'[]'::json)::text FROM dvaia_qualification.columns`);
+  const specs = await preservedSqlJson(env,'comparison', `SELECT COALESCE(json_agg(json_build_object('table',table_name,'columns',column_names,'ignored',ignored_columns) ORDER BY table_name),'[]'::json)::text FROM owasp_ai_goat_qualification.columns`);
   const additions = {}, comparisons = [];
   let omitted = 0;
   for (const spec of specs) {
@@ -785,7 +785,7 @@ async function verifyPreservedRows(env, { aggregate = false, maxComparisons = 32
     if (spec.columns.some(column => !current.includes(column))) throw new Error(`Preexisting column removed from ${spec.table}`);
     const remove = [...new Set([...current.filter(column => !spec.columns.includes(column)),...spec.ignored])];
     const projection = remove.length ? `to_jsonb(t)-ARRAY[${remove.map(quoteLiteral).join(',')}]` : 'to_jsonb(t)';
-    const comparison = await preservedSqlJson(env,'comparison', `WITH current_rows AS (SELECT ${projection} row_value,count(*)::bigint multiplicity FROM ${quoteIdentifier(schema)}.${quoteIdentifier(table)} t GROUP BY ${projection}), baseline AS (SELECT row_value,multiplicity FROM dvaia_qualification.preexisting_rows WHERE table_name=${quoteLiteral(spec.table)}) SELECT json_build_object('missing',COALESCE((SELECT sum(GREATEST(b.multiplicity-COALESCE(c.multiplicity,0),0)) FROM baseline b LEFT JOIN current_rows c USING(row_value)),0),'added',COALESCE((SELECT sum(GREATEST(c.multiplicity-COALESCE(b.multiplicity,0),0)) FROM current_rows c LEFT JOIN baseline b USING(row_value)),0))::text`);
+    const comparison = await preservedSqlJson(env,'comparison', `WITH current_rows AS (SELECT ${projection} row_value,count(*)::bigint multiplicity FROM ${quoteIdentifier(schema)}.${quoteIdentifier(table)} t GROUP BY ${projection}), baseline AS (SELECT row_value,multiplicity FROM owasp_ai_goat_qualification.preexisting_rows WHERE table_name=${quoteLiteral(spec.table)}) SELECT json_build_object('missing',COALESCE((SELECT sum(GREATEST(b.multiplicity-COALESCE(c.multiplicity,0),0)) FROM baseline b LEFT JOIN current_rows c USING(row_value)),0),'added',COALESCE((SELECT sum(GREATEST(c.multiplicity-COALESCE(b.multiplicity,0),0)) FROM current_rows c LEFT JOIN baseline b USING(row_value)),0))::text`);
     let added;
     try {
       added = assessPreservation(spec.table, comparison);
@@ -801,7 +801,7 @@ async function verifyPreservedRows(env, { aggregate = false, maxComparisons = 32
   let catalogTransitions,revisionTransitions;
   try{catalogTransitions=await verifyCatalogTransitions(env);}catch(error){throw annotatePreservationDiagnostic(error,'catalog-transition','verifyCatalogTransitions');}
   try{revisionTransitions=await verifyRevisionTransitions(env);}catch(error){throw annotatePreservationDiagnostic(error,'revision-transition','verifyRevisionTransitions');}
-  const dropStatement='DROP SCHEMA dvaia_qualification CASCADE';
+  const dropStatement='DROP SCHEMA owasp_ai_goat_qualification CASCADE';
   try{await run(TOOLS.psql.path, ['-X','-v','ON_ERROR_STOP=1','-c',dropStatement], { env });}catch(error){throw annotatePreservationDiagnostic(error,'baseline-drop',dropStatement);}
   return { additions, catalogTransitions, revisionTransitions };
 }
@@ -812,7 +812,7 @@ async function qualify({ dockerHost, migrationRehearsal = false, onlineRehearsal
   }
   process.umask(0o077);
   const workspaceId = digest(fs.realpathSync(ROOT)).slice(0, 12);
-  const parent = path.join(os.homedir(), '.dvaia', workspaceId, 'activation-backups');
+  const parent = path.join(os.homedir(), '.owasp-ai-goat', workspaceId, 'activation-backups');
   fs.mkdirSync(parent, { recursive: true, mode: 0o700 });
   fs.chmodSync(parent, 0o700);
   const parentStat = fs.lstatSync(parent);
@@ -823,7 +823,7 @@ async function qualify({ dockerHost, migrationRehearsal = false, onlineRehearsal
   const evidence = fs.mkdtempSync(path.join(parent, 'qualification-'));
   fs.chmodSync(evidence, 0o700);
   const nonce = crypto.randomBytes(6).toString('hex');
-  const container = `dvaia-backup-verify-${nonce}`;
+  const container = `owasp-ai-goat-backup-verify-${nonce}`;
   const owner = digest(`${process.pid}:${nonce}`).slice(0, 32);
   const initializerRoot = path.join(evidence, 'initializer-source');
   const dockerEnv = Object.fromEntries(['HOME', 'TMPDIR']
@@ -961,7 +961,7 @@ async function qualify({ dockerHost, migrationRehearsal = false, onlineRehearsal
     if (preexisting.code === 0) throw new Error('Owned disposable PostgreSQL name already exists');
     cleanupRequired = true;
     await docker('run', '--detach', '--name', container,
-      '--label', `dvaia.backup.owner=${owner}`,
+      '--label', `owasp-ai-goat.backup.owner=${owner}`,
       '--memory', '2g', '--cpus', '2', '--pids-limit', '256',
       '--tmpfs', '/var/lib/postgresql:rw,size=1073741824',
       '-e', 'POSTGRES_USER=backup_verify_admin', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust',
@@ -983,7 +983,7 @@ async function qualify({ dockerHost, migrationRehearsal = false, onlineRehearsal
       PGUSER: 'backup_verify_admin', PGDATABASE: 'postgres', PGTZ: 'UTC' };
     await waitForPostgres(admin);
     for (const [name, spec] of Object.entries(STORES)) {
-      const database = `dvaia_backup_verify_${name}_${nonce}`;
+      const database = `owasp_ai_goat_backup_verify_${name}_${nonce}`;
       const roles = [spec.migrationRole, spec.runtimeRole]
         .map(role => `CREATE ROLE ${quoteIdentifier(role)} LOGIN`).join('; ');
       await run(TOOLS.psql.path, ['-X', '-v', 'ON_ERROR_STOP=1', '-c', roles], { env: admin });
@@ -1007,7 +1007,7 @@ async function qualify({ dockerHost, migrationRehearsal = false, onlineRehearsal
       for (const [name, value] of Object.entries(restoredStores)) await installPreservationBaseline(value.migration, manifest.stores[name].source.tables);
       const initializerEnv = { PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin`, HOME: evidence, TMPDIR: evidence,
         NODE_ENV: 'test', PLATFORM_DATABASE_ENGINE: 'postgres', WORKSHOP_DATABASE_ENGINE: 'postgres',
-        PG_TEST_DISPOSABLE: 'yes', DVAIA_ISOLATED_TEST_WORKSPACE: initializerRoot };
+        PG_TEST_DISPOSABLE: 'yes', OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE: initializerRoot };
       for (const [name, spec] of Object.entries(STORES)) {
         const database = restoredStores[name].database;
         initializerEnv[spec.variable] = `postgresql://${spec.migrationRole}@127.0.0.1:${port}/${database}`;

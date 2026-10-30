@@ -253,7 +253,7 @@ function createOwnerCapabilityCodec(options = {}) {
     fail('INVALID_CONFIGURATION', 'allowed capability audiences are required');
   }
   const allowedAudiences = new Set(options.allowedAudiences.map((value) => boundedString(value, 'aud')));
-  const issuer = options.issuer === undefined ? 'dvaia-backend' : boundedString(options.issuer, 'iss');
+  const issuer = options.issuer === undefined ? 'owasp-ai-goat-backend' : boundedString(options.issuer, 'iss');
   const maxTtlSeconds = options.maxTtlSeconds === undefined ? DEFAULT_MAX_TTL_SECONDS : options.maxTtlSeconds;
   const maxArgumentBytes = options.maxArgumentBytes === undefined ? DEFAULT_MAX_ARGUMENT_BYTES : options.maxArgumentBytes;
   integer(maxTtlSeconds, 'maxTtlSeconds', 1);

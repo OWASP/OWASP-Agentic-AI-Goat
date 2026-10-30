@@ -82,7 +82,7 @@ function disposableUrls() {
       const database = D16_ENABLED || MODEL_REGISTRY_ENABLED
         ? `agent_host_([a-f0-9]{12})_${basename}`
         : `mcp_assembly_([a-f0-9]{12})_${db}`;
-      const match = new RegExp(`^/dvaia_test_${database}$`).exec(url.pathname);
+      const match = new RegExp(`^/owasp_ai_goat_test_${database}$`).exec(url.pathname);
       assert.ok(match, `disposable owned MCP database required for ${key}`);
       assert.equal(url.username, `dvaia_${basename}_${role.toLowerCase()}`);
       nonce ??= match[1]; port ??= url.port;
@@ -149,7 +149,7 @@ function admitPrivateCurrentHostEvidence({ env, source, evidencePath, enabled, m
   const parent = path.join(source, 'tasks', 'qualification');
   const run = env[rootName];
   assert.equal(typeof run, 'string');
-  assert.match(path.basename(run), /^dvaia-mcp-assembly-[a-z0-9_]{8}$/);
+  assert.match(path.basename(run), /^owasp-ai-goat-mcp-assembly-[a-z0-9_]{8}$/);
   assert.equal(path.dirname(run), parent);
   assert.equal(evidencePath, path.join(run, 'candidate-result.json'));
   assert.equal(env.TMPDIR, path.join(run, 'tmp'));
@@ -490,7 +490,7 @@ function privateCurrentHostBrowserOptions({ directory, origin, profile, executab
   assert.match(target.port, /^[1-9][0-9]{0,4}$/);
   assert.equal(target.pathname, '/'); assert.equal(target.search, ''); assert.equal(target.hash, '');
   assert.equal(path.dirname(profile), path.join(directory, 'tmp'));
-  assert.match(path.basename(profile), /^dvaia-mcp-registry-rendered-[A-Za-z0-9_-]+$/);
+  assert.match(path.basename(profile), /^owasp-ai-goat-mcp-registry-rendered-[A-Za-z0-9_-]+$/);
   const info = fsSync.lstatSync(profile);
   assert.ok(info.isDirectory() && !info.isSymbolicLink());
   assert.equal(info.uid, process.getuid()); assert.equal(info.mode & 0o777, 0o700);
@@ -659,7 +659,7 @@ if (!D16_ENABLED) test(V42_ENABLED
     ? 'standalone admin replaces a trusted MCP server and genuinely invokes its impersonated tool with canonical Judge evidence'
     : 'standalone admin registers, inspects, recovers, and removes an owned MCP server in the rendered UI',
   { skip: !ENABLED, timeout: 240000 }, async () => {
-    const root = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
+    const root = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/');
     assert.equal(root, process.cwd(), 'reviewed current-main source required');
     const evidencePath = Q05_HANDOFF_ENABLED ? process.env.MCP_REGISTERED_HANDOFF_Q05_RESULT || ''
       : V42_ENABLED ? process.env.MCP_REGISTRY_SSRF_V42_RESULT || ''
@@ -1001,7 +1001,7 @@ if (!D16_ENABLED) test(V42_ENABLED
         }
         if (request.method === 'POST' && request.path === '/api/secureshop/admin/mcp/register') {
           requestHeaders = { authorization: request.headers.authorization,
-            'x-dvaia-secureshop-launch': request.headers['x-dvaia-secureshop-launch'],
+            'x-owasp-ai-goat-secureshop-launch': request.headers['x-owasp-ai-goat-secureshop-launch'],
             cookie: request.headers.cookie, 'content-type': 'application/json' };
         }
         next();
@@ -1029,7 +1029,7 @@ if (!D16_ENABLED) test(V42_ENABLED
       app.use('/api', (_request, response) => response.status(404).json({ error: 'Outside registry qualifier' }));
       app.use(express.static(build, { setHeaders: response => response.set('Access-Control-Allow-Origin', '*') }));
       app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
-      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mcp-registry-rendered-'));
+      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mcp-registry-rendered-'));
       assert.ok(profile.startsWith(`${path.resolve(process.env.TMPDIR || os.tmpdir())}${path.sep}`));
       status.browserCalls = 1;
       browser = await require('puppeteer').launch(q05Directory
@@ -1074,9 +1074,9 @@ if (!D16_ENABLED) test(V42_ENABLED
           .createConversationBinding(scope, { role: 'admin', id: actor.user.id });
         const personaSession = { sessionId: actor.sessionId, authorityVersion: actor.authorityVersion };
         const headers = { authorization: `Bearer ${issued.persona.token}`,
-          'x-dvaia-secureshop-launch': issued.bearer };
+          'x-owasp-ai-goat-secureshop-launch': issued.bearer };
         const cookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-          .find(value => value.name === 'dvaia_shop_session');
+          .find(value => value.name === 'owasp_ai_goat_shop_session');
         assert.ok(cookie?.httpOnly);
         const ownerBase = await auth.authenticate(cookie.value);
         const principal = await auth.establishTenantContext(ownerBase);
@@ -1228,7 +1228,7 @@ if (!D16_ENABLED) test(V42_ENABLED
               url: 'http://benign.training/mcp', stdio_cmd: '' } });
           assert.equal(peerSetup.state, 'completed');
           const peerHeaders = { authorization: `Bearer ${peerIssued.persona.token}`,
-            'x-dvaia-secureshop-launch': peerIssued.bearer };
+            'x-owasp-ai-goat-secureshop-launch': peerIssued.bearer };
           const peerBefore = await readRegistryFor(peerScope);
           assert.equal(peerBefore.entries.length, 1);
           assert.equal(peerBefore.operations.length, 1);
@@ -1351,9 +1351,9 @@ if (!D16_ENABLED) test(V42_ENABLED
             const nextSession = { sessionId: nextActor.sessionId,
               authorityVersion: nextActor.authorityVersion };
             const nextHeaders = { authorization: `Bearer ${nextIssued.persona.token}`,
-              'x-dvaia-secureshop-launch': nextIssued.bearer };
+              'x-owasp-ai-goat-secureshop-launch': nextIssued.bearer };
             const nextCookie = (await page.cookies(`${origin}/api/secureshop/auth/session`))
-              .find(value => value.name === 'dvaia_shop_session');
+              .find(value => value.name === 'owasp_ai_goat_shop_session');
             assert.ok(nextCookie?.httpOnly);
             const nextOwnerBase = await auth.authenticate(nextCookie.value);
             const nextPrincipal = await auth.establishTenantContext(nextOwnerBase);
@@ -1430,7 +1430,7 @@ if (!D16_ENABLED) test(V42_ENABLED
         const peerActor = await composition.personaAuth.authenticateBoundToken({ scope: peerScope,
           token: peerIssued.persona.token });
         const peerHeaders = { authorization: `Bearer ${peerIssued.persona.token}`,
-          'x-dvaia-secureshop-launch': peerIssued.bearer };
+          'x-owasp-ai-goat-secureshop-launch': peerIssued.bearer };
         const peerSession = { sessionId: peerActor.sessionId, authorityVersion: peerActor.authorityVersion };
         const peerSetup = await registry.service.mutate({ scope: peerScope,
           persona: { id: peerActor.user.id, role: 'admin' }, personaSession: peerSession,
@@ -1524,7 +1524,7 @@ if (!D16_ENABLED) test(V42_ENABLED
               assert.equal((await protectedGet(savedPath, headers)).status, 401);
               const renewed = await bootstrap(ownerBase);
               const renewedHeaders = { authorization: `Bearer ${renewed.persona.token}`,
-                'x-dvaia-secureshop-launch': renewed.bearer };
+                'x-owasp-ai-goat-secureshop-launch': renewed.bearer };
               assert.equal((await protectedGet('/api/secureshop/v2/auth/users/me', renewedHeaders)).status, 200);
               const immutableBefore = (await identity.query(`SELECT * FROM secureshop_auth.assessment_completions
                 WHERE tenant_id=$1 AND principal_id=$2 ORDER BY evaluation_id`,
@@ -1607,7 +1607,7 @@ if (!D16_ENABLED) test(V42_ENABLED
       const { ok: _routeEnvelope, ...publicReceipt } = captured.receipt;
       assert.deepEqual(publicReceipt, { ...rows[0].receipt_json, replayed: false });
       assert.match(rows[0].receipt_sha256.toString('hex'), HEX);
-      const firstScope = await composition.launches.resolveCapability(requestHeaders['x-dvaia-secureshop-launch']);
+      const firstScope = await composition.launches.resolveCapability(requestHeaders['x-owasp-ai-goat-secureshop-launch']);
       assert.ok(firstScope);
       assert.equal(rows[0].platform_launch_id, firstScope.launchId);
       assert.equal(rows[0].platform_scenario_id, firstScope.scenarioId);
@@ -1629,7 +1629,7 @@ if (!D16_ENABLED) test(V42_ENABLED
         && row.path === `/api/secureshop/admin/mcp/operations/${operationId}` && row.status === 200));
       assert.equal(observedOperations.filter(item => item.action === 'register').length, 1,
         'rendered recovery is GET-only after remount');
-      assert.ok(requestHeaders?.authorization && requestHeaders['x-dvaia-secureshop-launch']);
+      assert.ok(requestHeaders?.authorization && requestHeaders['x-owasp-ai-goat-secureshop-launch']);
       const replay = await fetch(`${origin}/api/secureshop/admin/mcp/register`, { method: 'POST',
         headers: requestHeaders, body: JSON.stringify(captured.request) });
       assert.equal(replay.status, 200);
@@ -1780,8 +1780,8 @@ if (!D16_ENABLED) test(V42_ENABLED
       const secondScope = await composition.launches.resolveCapability(second.bearer);
       assert.notEqual(secondScope.launchId, rows[0].platform_launch_id);
       const siblingHeaders = { authorization: `Bearer ${second.persona.token}`,
-        'x-dvaia-secureshop-launch': second.bearer,
-        cookie: `dvaia_shop_session=${adminSecond.token}` };
+        'x-owasp-ai-goat-secureshop-launch': second.bearer,
+        cookie: `owasp_ai_goat_shop_session=${adminSecond.token}` };
       const other = await fetch(`${origin}/api/secureshop/admin/mcp/servers`, { headers: siblingHeaders });
       assert.equal(other.status, 200);
       assert.deepEqual((await other.json()).servers, []);
@@ -1794,8 +1794,8 @@ if (!D16_ENABLED) test(V42_ENABLED
       const customerReady = await bootstrap(customer.context);
       const denied = await fetch(`${origin}/api/secureshop/admin/mcp/servers`, { headers: {
         authorization: `Bearer ${customerReady.persona.token}`,
-        'x-dvaia-secureshop-launch': customerReady.bearer,
-        cookie: `dvaia_shop_session=${customer.token}` } });
+        'x-owasp-ai-goat-secureshop-launch': customerReady.bearer,
+        cookie: `owasp_ai_goat_shop_session=${customer.token}` } });
       assert.equal(denied.status, 403);
       assert.equal((await identity.query(`SELECT count(*)::integer AS n FROM identity.users WHERE id=$1`,
         [rows[0].original_platform_owner_id])).rows[0].n, 0);
@@ -1955,7 +1955,7 @@ module.exports = { admitV39CurrentHostEvidence, createV39PrivateWriter,
 
 if (D16_ENABLED) test('standalone MCP trust physically selects rogue and changed tools with registered Judge evidence and reset isolation',
   { timeout: 360000 }, async () => {
-    const root = path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/');
+    const root = path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/');
     assert.equal(root, process.cwd(), 'reviewed current-main source required');
     const build = path.resolve(process.env.MCP_TRUST_STANDALONE_RENDERED_BUILD || '/');
     assert.equal(build, path.join(root, 'client/build'));
@@ -2202,7 +2202,7 @@ if (D16_ENABLED) test('standalone MCP trust physically selects rogue and changed
         app.get(/.*/, (_request, response) => response.sendFile('index.html', { root: build }));
         originApps.push({ origin, server: opened });
       }
-      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-mcp-trust-rendered-'));
+      profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-mcp-trust-rendered-'));
       browser = await require('puppeteer').launch({ headless: true, userDataDir: profile, executablePath });
       ownerContext = await browser.createBrowserContext(); peerContext = await browser.createBrowserContext();
       const openAdmin = async (context, origin, username, password) => {
@@ -2237,7 +2237,7 @@ if (D16_ENABLED) test('standalone MCP trust physically selects rogue and changed
         const issued = await observed.response.json();
         assert.ok(issued.bearer && issued.persona?.token);
         const trustReadiness = await fetch(`${origin}/api/secureshop/v2/mcp-trust/readiness`, {
-          headers: { 'x-dvaia-secureshop-launch': issued.bearer,
+          headers: { 'x-owasp-ai-goat-secureshop-launch': issued.bearer,
             authorization: `Bearer ${issued.persona.token}` },
           signal: AbortSignal.timeout(10000) });
         const trustStatus = trustReadiness.status;
@@ -2282,7 +2282,7 @@ if (D16_ENABLED) test('standalone MCP trust physically selects rogue and changed
       peerPage = peerUi.page;
       const session = async (ui, service, origin) => {
         const cookie = (await ui.page.cookies(`${origin}/api/secureshop/auth/session`))
-          .find(row => row.name === 'dvaia_shop_session');
+          .find(row => row.name === 'owasp_ai_goat_shop_session');
         assert.equal(cookie?.httpOnly, true);
         const principal = await service.authenticate(cookie.value);
         assert.ok(principal && principal.role === 'admin');
@@ -2295,7 +2295,7 @@ if (D16_ENABLED) test('standalone MCP trust physically selects rogue and changed
           binding: { ...scope, shopUserId: actor.user.id, role: actor.user.role },
           personaSessionId: actor.sessionId,
           personaAuthorityVersion: actor.authorityVersion,
-          headers: { 'x-dvaia-secureshop-launch': ui.issued.bearer,
+          headers: { 'x-owasp-ai-goat-secureshop-launch': ui.issued.bearer,
             authorization: `Bearer ${ui.issued.persona.token}` }, principal };
       };
       const owner = await session(ownerUi, auth, originApps[0].origin);
@@ -2304,10 +2304,10 @@ if (D16_ENABLED) test('standalone MCP trust physically selects rogue and changed
       assert.notEqual(owner.binding.launchId, sibling.binding.launchId);
       if (V40_ENABLED) {
         const cookie = (await owner.page.cookies(`${originApps[0].origin}/api/secureshop/auth/mode`))
-          .find(row => row.name === 'dvaia_shop_session');
+          .find(row => row.name === 'owasp_ai_goat_shop_session');
         assert.ok(cookie?.value, 'authenticated owner mode preflight requires the real shop session');
         const modeRead = await fetch(`${originApps[0].origin}/api/secureshop/auth/mode`, {
-          headers: { cookie: `dvaia_shop_session=${cookie.value}` }, signal: AbortSignal.timeout(10000) });
+          headers: { cookie: `owasp_ai_goat_shop_session=${cookie.value}` }, signal: AbortSignal.timeout(10000) });
         assert.equal(modeRead.status, 200, 'standalone mode route must be mounted before model turns');
         const modeState = await modeRead.json();
         assert.equal(modeState.mode, 'vuln');

@@ -51,9 +51,9 @@ test('stage 2 remains prompt-only refusal with the shipped learner technique', a
 test('mounted stage 2 records real failures and one genuine visible-secret win, then resets only its owner', {
   skip: !enabled, timeout: 720_000,
 }, async t => {
-  ownedUrl('IDENTITY_DATABASE_URL', 'dvaia_test_ctf_stage2_identity');
-  ownedUrl('CTF_DATABASE_URL', 'dvaia_test_ctf_stage2_store');
-  assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
+  ownedUrl('IDENTITY_DATABASE_URL', 'owasp_ai_goat_test_ctf_stage2_identity');
+  ownedUrl('CTF_DATABASE_URL', 'owasp_ai_goat_test_ctf_stage2_store');
+  assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
   const tags = await (await fetch(`${process.env.OLLAMA_BASE_URL}/api/tags`)).json();
   assert.ok(tags.models.some(row => row.name === 'llama3.1:8b'));
   const resultsPath = process.env.CTF_STAGE2_EVIDENCE_PATH;

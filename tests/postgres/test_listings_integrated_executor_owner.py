@@ -16,15 +16,15 @@ class Phase:
         if name=='listingsManagerCreate':self.input=value
         if name=='listingsManagerStart':
             workspace_id=hashlib.sha256(str(ROOT.resolve()).encode()).hexdigest()[:12]
-            profile='dvaia-owned-listings-'+workspace_id
+            profile='owasp-ai-goat-owned-listings-'+workspace_id
             policy=(ROOT/'sidecars/sandbox-runner/owned-listings/profile.apparmor.in').read_text().replace('@@SUPERVISOR_PROFILE@@',profile)
             env=['LISTINGS_MANAGER_ENABLED=true','LISTINGS_PROFILE='+profile,'LISTINGS_PUBLIC_ORIGIN='+self.input['origin'],'LISTINGS_CONTROL_TOKEN='+self.input['token']]
-            return json.dumps(dict(runId=RUN,root='/var/tmp/dvaia-v23-build-'+RUN+'/fs',filesystemDevice=1792,filesystemInode=2,
+            return json.dumps(dict(runId=RUN,root='/var/tmp/owasp-ai-goat-v23-build-'+RUN+'/fs',filesystemDevice=1792,filesystemInode=2,
                 namespaceInode=123,holderPid=200,holderStart=300,containerPid=400,containerStart=500,containerId='c'*64,
                 imageId='sha256:'+'d'*64,sourceSha256='e'*64,runtimeSha256='f'*64,
                 environmentSha256=hashlib.sha256('\n'.join(sorted(env)).encode()).hexdigest(),publicOrigin=self.input['origin'],
                 workspaceId=workspace_id,profileName=profile,profileSha256=hashlib.sha256(policy.encode()).hexdigest(),containerName=profile,
-                privateDockerHost='unix:///var/tmp/dvaia-v23-build-'+RUN+'/fs/docker.sock',daemonId='d'*36))
+                privateDockerHost='unix:///var/tmp/owasp-ai-goat-v23-build-'+RUN+'/fs/docker.sock',daemonId='d'*36))
         if name=='listingsManagerChannels':return json.dumps(dict(runId=RUN,remoteChannelsAbsent=True,channels=[]))
         return 'absent'
     def confirm_retired(self):self.events.append('confirm')
@@ -309,7 +309,7 @@ if(mode==='prehello-clean-failure'){
 const {serveListingsPhases}=require('./tests/postgres/listingsPhaseEndpoint');
 const adapter=require('./tests/postgres/ownedMcpOriginalBuildAdapter');
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
-const workspaceId=hash(fs.realpathSync(process.cwd())).slice(0,12),profile='dvaia-owned-listings-'+workspaceId;
+const workspaceId=hash(fs.realpathSync(process.cwd())).slice(0,12),profile='owasp-ai-goat-owned-listings-'+workspaceId;
 const profileSha256=hash(fs.readFileSync('sidecars/sandbox-runner/owned-listings/profile.apparmor.in','utf8').replaceAll('@@SUPERVISOR_PROFILE@@',profile));
 let create,confirmed=false;
 const base={assertOpen(){},assertActive(){},assertRetirementAdmission(){},joinPhase:fn=>fn(),confirmRetired(){confirmed=true;},expireWork(){},
@@ -319,11 +319,11 @@ const lifetime=adapter._internals.listingsLifetime(base,{spec:{runId},listingsCo
  if(name==='listingsManagerStart'){
   if(mode==='start-failure')throw Error('controlled guest start failure');
   const env=['LISTINGS_MANAGER_ENABLED=true','LISTINGS_PROFILE='+profile,'LISTINGS_PUBLIC_ORIGIN='+create.origin,'LISTINGS_CONTROL_TOKEN='+create.token];
-  return JSON.stringify({runId,root:'/var/tmp/dvaia-v23-build-'+runId+'/fs',filesystemDevice:1792,filesystemInode:2,
+  return JSON.stringify({runId,root:'/var/tmp/owasp-ai-goat-v23-build-'+runId+'/fs',filesystemDevice:1792,filesystemInode:2,
    namespaceInode:123,holderPid:200,holderStart:300,containerPid:400,containerStart:500,containerId:'c'.repeat(64),
    imageId:'sha256:'+'d'.repeat(64),sourceSha256:'e'.repeat(64),runtimeSha256:'f'.repeat(64),environmentSha256:hash(env.sort().join('\n')),
    publicOrigin:create.origin,workspaceId,profileName:profile,profileSha256,containerName:profile,
-   privateDockerHost:'unix:///var/tmp/dvaia-v23-build-'+runId+'/fs/docker.sock',daemonId:'d'.repeat(36)});
+   privateDockerHost:'unix:///var/tmp/owasp-ai-goat-v23-build-'+runId+'/fs/docker.sock',daemonId:'d'.repeat(36)});
  }
  return name==='listingsManagerChannels'?JSON.stringify({version:1,runId,remoteChannelsAbsent:true,channels:[]}):name.includes('Retire')?'absent':'controlled';
 });

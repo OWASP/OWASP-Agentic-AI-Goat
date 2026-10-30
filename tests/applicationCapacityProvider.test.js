@@ -10,7 +10,7 @@ test('expired or advanced hold cannot establish an invalidation-before-effects b
 test('real Ollama adapter generation and chat use the owned controlled wire contract', {timeout:15000}, async()=>{
  const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{spawn}=require('node:child_process');
  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'capacity-wire-')));
- const child=spawn(process.execPath,[path.join(__dirname,'fixtures/applicationCapacityProviderProcess.cjs')],{env:{...process.env,DVAIA_CAPACITY_ROOT:root},stdio:'ignore'});
+ const child=spawn(process.execPath,[path.join(__dirname,'fixtures/applicationCapacityProviderProcess.cjs')],{env:{...process.env,OWASP_AI_GOAT_CAPACITY_ROOT:root},stdio:'ignore'});
  const exited=new Promise(resolve=>child.once('exit',resolve));
  try{
   const deadline=Date.now()+3000;while(!fs.existsSync(path.join(root,'capacity-provider.json'))){assert(Date.now()<deadline,'provider readiness deadline');await new Promise(r=>setTimeout(r,20));}

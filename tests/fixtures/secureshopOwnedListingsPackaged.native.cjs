@@ -21,7 +21,7 @@ const fs = require('node:fs/promises');
  assert.equal(internal.products[0].name, 'Internal synthetic catalog');
  await assert.rejects(execute(request('http://10.0.1.100:8080/catalog.json'), 'fixed'), {code:'LISTING_RESOURCE_DENIED'});
  const file = await execute(request(null,'http://192.0.2.10/file.xml'));
- assert.match(file.products[0].description,/DVAIA synthetic supplier secret/);
+ assert.match(file.products[0].description,/OWASP-AI-GOAT synthetic supplier secret/);
  const http = await execute(request(null,'http://192.0.2.10/http.xml'));
  assert.equal(http.products[0].description,'Owned HTTP entity');
  await assert.rejects(execute(request(null,'http://192.0.2.10/file.xml'),'fixed'), {code:'LISTING_XML_ENTITIES_DISABLED'});

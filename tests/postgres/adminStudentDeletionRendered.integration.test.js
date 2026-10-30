@@ -47,7 +47,7 @@ function deletionPaths(env, repo = REPO) {
   for (const key of ['ADMIN_STUDENT_DELETION_BUILD_SHA256',
     'ADMIN_STUDENT_DELETION_SNAPSHOT_SHA256', 'ADMIN_STUDENT_DELETION_STORE_PLAN_SHA256'])
     assert(SHA256.test(env[key] || ''), `${key} pin required`);
-  assert.equal(env.PUPPETEER_EXECUTABLE_PATH, env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE);
+  assert.equal(env.PUPPETEER_EXECUTABLE_PATH, env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE);
   assert(path.isAbsolute(env.PUPPETEER_EXECUTABLE_PATH));
   return { run, runtime, temp, evidence, buildDirectory };
 }
@@ -68,10 +68,10 @@ function validateDeletionGrant(grant, { env, paths, repo = REPO,
   assert.equal(grant.snapshotSha256, env.ADMIN_STUDENT_DELETION_SNAPSHOT_SHA256);
   assert.equal(grant.storePlanSha256, env.ADMIN_STUDENT_DELETION_STORE_PLAN_SHA256);
   assert.equal(grant.outerSandbox, 'repository-only');
-  assert.equal(grant.chromium, env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE);
+  assert.equal(grant.chromium, env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE);
   assert.equal(path.dirname(grant.profile), paths.temp);
-  assert(/^dvaia-student-deletion-browser-[0-9a-f]{12}$/.test(path.basename(grant.profile)));
-  assert.equal(path.basename(grant.profile), `dvaia-student-deletion-browser-${grant.nonce}`);
+  assert(/^owasp-ai-goat-student-deletion-browser-[0-9a-f]{12}$/.test(path.basename(grant.profile)));
+  assert.equal(path.basename(grant.profile), `owasp-ai-goat-student-deletion-browser-${grant.nonce}`);
   return { admitted: true, nonceSha256: sha(grant.nonce), profile: grant.profile };
 }
 
@@ -113,7 +113,7 @@ async function admitDeletionCurrentHost(env = process.env, repo = REPO) {
       assert(Number.isSafeInteger(ack.startSec) && ack.startSec > 0);
       assert(Number.isSafeInteger(ack.startUsec) && ack.startUsec >= 0);
       assert.equal(ack.profile, admitted.profile);
-      assert.equal(ack.executable, env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE);
+      assert.equal(ack.executable, env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE);
       return { acknowledged: true, pid };
     }
     throw new Error('Student deletion live browser birth ACK timed out');
@@ -428,7 +428,7 @@ function deletionRequestFor(principal, adapter) {
 
 async function prepareDeletionOwnedState({ infra, principals, admitted, recordStage, signal }) {
   assert.equal(typeof recordStage, 'function', 'A durable pre-effect artifact journal is mandatory');
-  assert.equal(admitted?.runtime, process.env.DVAIA_APP_DATA_ROOT);
+  assert.equal(admitted?.runtime, process.env.OWASP_AI_GOAT_APP_DATA_ROOT);
   assert.equal(infra?.runtime?.identity, infra?.adapter?.pool);
   assert.equal(new Set([principals?.actor?.id, principals?.target?.id,
     principals?.sibling?.id]).size, 3);
@@ -530,7 +530,7 @@ async function preserveFailedDeletionSeedJournal({ error, artifacts, ctf }) {
 
 async function assertDeletionOwnedEffects({ infra, principals, admitted, prepared, jobId }) {
   assert(UUID_V4.test(jobId || ''));
-  assert.equal(admitted?.runtime, process.env.DVAIA_APP_DATA_ROOT);
+  assert.equal(admitted?.runtime, process.env.OWASP_AI_GOAT_APP_DATA_ROOT);
   assert.equal(prepared?.coveredStores?.size, 16);
   const seed = require('./adminStudentDeletionSeedSupport');
   const ctfSupport = require('./adminStudentDeletionCtfSupport');
@@ -587,7 +587,7 @@ async function assertDeletionOwnedEffects({ infra, principals, admitted, prepare
 }
 
 async function assertDeletionStillUnchanged({ infra, principals, admitted, prepared }) {
-  assert.equal(admitted?.runtime, process.env.DVAIA_APP_DATA_ROOT);
+  assert.equal(admitted?.runtime, process.env.OWASP_AI_GOAT_APP_DATA_ROOT);
   const seed = require('./adminStudentDeletionSeedSupport');
   const ctfSupport = require('./adminStudentDeletionCtfSupport');
   const shopSupport = require('./adminStudentDeletionSecureShopSupport');
@@ -617,7 +617,7 @@ async function assertDeletionStillUnchanged({ infra, principals, admitted, prepa
 }
 
 async function openDeletionArtifactJournal(admitted) {
-  assert.equal(admitted?.runtime, process.env.DVAIA_APP_DATA_ROOT);
+  assert.equal(admitted?.runtime, process.env.OWASP_AI_GOAT_APP_DATA_ROOT);
   const file = path.join(admitted.run, 'student-deletion-artifact-stages.jsonl');
   const handle = await fs.open(file, 'wx', 0o600);
   const directory = await fs.open(admitted.run, 'r');
@@ -764,7 +764,7 @@ async function openDeletionResourceJournal(admitted) {
     async reserveBrowserProfile() {
       assert.equal(payload.resources.browser, null);
       payload.resources.browser = { pid: null, profile: admitted.profile,
-        executable: process.env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE };
+        executable: process.env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE };
       payload.status = 'browser_profile_reserved';
       await persist();
     },
@@ -777,9 +777,9 @@ async function openDeletionResourceJournal(admitted) {
     async browser(pid) {
       assert(Number.isSafeInteger(pid) && pid > 0);
       assert.deepEqual(payload.resources.browser, { pid: null, profile: admitted.profile,
-        executable: process.env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE });
+        executable: process.env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE });
       payload.resources.browser = { pid, profile: admitted.profile,
-        executable: process.env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE };
+        executable: process.env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE };
       payload.status = 'browser_launched';
       await persist();
     },
@@ -1445,7 +1445,7 @@ test('student deletion rendered current-host cohort performs one real scoped del
     const postgresPort = Number(new URL(process.env.IDENTITY_DATABASE_URL).port);
     networkGuard = require('./adminStudentDeletionNetworkGuard')
       .installDeletionNetworkGuard({ postgresPort,
-        chromium: process.env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE });
+        chromium: process.env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE });
     await advance('open-sixteen-owned-stores');
     infra = await openDeletionSeedInfrastructure();
     principals = await seedDeletionPrincipals({ adapter: infra.adapter,

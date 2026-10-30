@@ -8,7 +8,7 @@ const {
   verifyArchiveOwnerBinding,
 } = require('../../../db/postgres/archive-owner-binding');
 
-const TEST_DATABASE = /^dvaia_test_[a-z0-9_]+$/;
+const TEST_DATABASE = /^owasp_ai_goat_test_[a-z0-9_]+$/;
 const MAX_TARGET_ID = 2147483647;
 
 function fixtureError(code) {

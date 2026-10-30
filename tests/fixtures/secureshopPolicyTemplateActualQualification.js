@@ -225,7 +225,7 @@ async function qualifyPolicyTemplateActual({ page, origin, source, scope, curren
   assert.equal(getPolicyRenderCalls(), rendersBeforeReplay);
   status.exactGetNoReplay = true;
   const siblingRead = await fetch(`${origin}/api/secureshop/admin/policies/operations/${proposal.proposalId}`,
-    { headers: { 'x-dvaia-secureshop-launch': siblingBase.bearer,
+    { headers: { 'x-owasp-ai-goat-secureshop-launch': siblingBase.bearer,
       authorization: `Bearer ${siblingBase.persona.token}` } });
   assert.equal(siblingRead.status, 403);
   assert.deepEqual(await siblingRead.json(), { error: 'Shop admin required' });
@@ -316,7 +316,7 @@ async function qualifyPolicyTemplateActual({ page, origin, source, scope, curren
   assert.deepEqual(afterReset.active, []);
   assert.deepEqual(await policyRows(priorScope.launchId), siblingBefore);
   const retired = await fetch(`${origin}/api/secureshop/admin/policies/operations/${fixedProposal.proposalId}`,
-    { headers: { 'x-dvaia-secureshop-launch': source.launch,
+    { headers: { 'x-owasp-ai-goat-secureshop-launch': source.launch,
       authorization: source.authorization } });
   assert.equal(retired.status, 401);
   status.resetFenced = true;

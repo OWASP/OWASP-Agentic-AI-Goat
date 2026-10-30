@@ -25,14 +25,14 @@ const enabled = process.env.SECURESHOP_OWNER_RESET_REPLAY_NATIVE === '1'
 function url(key) {
   const value = new URL(process.env[PREFIX + key]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 
 test('student deletion recovers real bound conversations, reviews, and instance progress without reactivation', {
   skip: !enabled, timeout: 60000,
 }, async t => {
-  assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), process.cwd(),
+  assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), process.cwd(),
     'the native cohort must execute in the current source checkout');
   assert.ok(path.isAbsolute(process.env.WORKSHOP_RAG_EVIDENCE_PATH || ''));
   assert.ok(!path.resolve(process.env.WORKSHOP_RAG_EVIDENCE_PATH).startsWith(`${process.cwd()}${path.sep}`),

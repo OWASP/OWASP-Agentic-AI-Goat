@@ -4,7 +4,7 @@ const {createPool}=require('../../server/database/postgres');
 const {createLegacyChallengeDb}=require('../../server/database/postgres/legacyChallengeDb');
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_LEGACY_CHALLENGE_TEST_RUNTIME_URL;
 test('native generic challenge preserves raw SQLi, stored HTML, commerce and isolated conversations',{skip:!enabled},async()=>{
- for(const name of ['PG_LEGACY_CHALLENGE_TEST_RUNTIME_URL','PG_LEGACY_CHALLENGE_TEST_MIGRATION_URL'])assert.match(new URL(process.env[name]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const name of ['PG_LEGACY_CHALLENGE_TEST_RUNTIME_URL','PG_LEGACY_CHALLENGE_TEST_MIGRATION_URL'])assert.match(new URL(process.env[name]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const pool=createPool(process.env,'PG_LEGACY_CHALLENGE_TEST_RUNTIME_URL'),migration=createPool(process.env,'PG_LEGACY_CHALLENGE_TEST_MIGRATION_URL');
  try{
   const db=createLegacyChallengeDb(pool);await db.initializeLegacyChallengeDb(migration);

@@ -68,7 +68,7 @@ function admit(env,root,label){
   assert.equal(env.CTF_RENDERED_EVIDENCE,root);
   const run=path.dirname(root),qualification=path.join(ROOT,'tasks/qualification');
   assert.equal(path.dirname(run),qualification);
-  assert.match(path.basename(run),/^dvaia-ctf-stages-route-[A-Za-z0-9_-]+$/);
+  assert.match(path.basename(run),/^owasp-ai-goat-ctf-stages-route-[A-Za-z0-9_-]+$/);
   assert.equal(path.basename(root),'rendered-evidence');
   const runtime=path.join(run,'runtime'),profile=path.join(root,scope.profile);
   assert.equal(env.CTF_CONTENT_RUNTIME_DIRECTORY,runtime);

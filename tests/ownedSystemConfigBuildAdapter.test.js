@@ -69,7 +69,7 @@ print('empty-partial-provenance-and-denials')
 });
 test('actual paired plan controller and both emitted children compile and enforce phase-specific barriers',async()=>{
  const plan=await adapter.systemPolicyBuildPlan(C.ROOT,'e'.repeat(32),await recipe());
- const match=/<<'DVAIA_RELAY_LIFECYCLE'\n([\s\S]*?)\nDVAIA_RELAY_LIFECYCLE\n/.exec(plan.commands.relayStart);
+ const match=/<<'OWASP_AI_GOAT_RELAY_LIFECYCLE'\n([\s\S]*?)\nOWASP_AI_GOAT_RELAY_LIFECYCLE\n/.exec(plan.commands.relayStart);
  assert(match,'real plan must contain its fixed controller');
  const source=match[1]+'\n';
  const program=String.raw`
@@ -236,7 +236,7 @@ test('fixed emitted build uses exact recipe outside context and private offline-
  assert(commands.handoff.includes("process('daemon','/usr/bin/dockerd')"));
  const producer=await fs.readFile(path.join(C.ROOT,'tests/postgres/ownedMcpBoundedBuild.js'),'utf8');
  assert(producer.includes('time.monotonic()+300'));assert(producer.includes('$root/fs/daemon.start'));
- assert(!commands.build.includes('npm_ca'));assert(!commands.build.includes('dvaia.registry'));
+ assert(!commands.build.includes('npm_ca'));assert(!commands.build.includes('owasp-ai-goat.registry'));
  assert.throws(()=>I.commandsFor({...metadataPlan(),commands:{inspect:'changed'}},{},captured,{sha256:'f'.repeat(64)}),/GUARD_SHAPE/);
 });
 test('serialized loader compiles with closed shared module inventory, not registry plan or consumer',async()=>{
@@ -261,7 +261,7 @@ test('actual inert System plan binds current metadata policy, original context a
 async function guestCase(fault='',mode='legacy',seed=null,target='v24-system'){
  const events=[],files=new Map([['/metadata-retained/result.json',Buffer.from('{}')]]),proc=new EventEmitter();
  if(seed)files.set('/system-closure/closure.json',Buffer.from(JSON.stringify(seed)));
- proc.env={DVAIA_ARTIFACT_DEADLINE_SECONDS:String(Number(process.hrtime.bigint())/1e9+30),DVAIA_ARTIFACT_PROXY_PORT:'1234'};
+ proc.env={OWASP_AI_GOAT_ARTIFACT_DEADLINE_SECONDS:String(Number(process.hrtime.bigint())/1e9+30),OWASP_AI_GOAT_ARTIFACT_PROXY_PORT:'1234'};
  proc.hrtime=process.hrtime;proc.exitCode=undefined;
  const published=()=>Object.fromEntries([...files].filter(([name])=>name.endsWith('.json')).map(([name,b])=>[path.basename(name),JSON.parse(b)]));
  const fakeFs={
@@ -472,7 +472,7 @@ async function pairObservationFixture(){
   values[slot+'MetadataRetire']='absent\n';values[slot+'AcquireRetire']='absent\n';values[slot+'ReplayRetire']='absent\n';values[slot+'Replay']=JSON.stringify(ready);
   values[slot+'Evidence']=[JSON.stringify(packet),JSON.stringify({...packet,'ready.json':JSON.stringify(ready),'terminal.json':JSON.stringify(terminal)})];
   values[slot+'Image']=JSON.stringify([{Id:'sha256:'+(slot==='system'?'1':'2').repeat(64),Architecture:'arm64',Os:'linux',Config:{User:plan.slots[slot].captured.recipe.user,
-   Entrypoint:plan.slots[slot].captured.recipe.entrypoint,Labels:{['dvaia.'+slot+'.inputs']:plan.slots[slot].captured.inputSha256,'dvaia.build-run':plan.runId}}}]);
+   Entrypoint:plan.slots[slot].captured.recipe.entrypoint,Labels:{['owasp-ai-goat.'+slot+'.inputs']:plan.slots[slot].captured.inputSha256,'owasp-ai-goat.build-run':plan.runId}}}]);
  }
  const policy=plan.connectionPolicy.name,phases=['system-overhead','system-artifacts','policy-overhead','policy-artifacts','sealed'];
  let credit={version:1,policy,runId:plan.runId,sequence:0,phase:phases[0],allocation:32,starts:{adapter:0,connector:0},quota:32,artifactCount:0},connections=0,sequence=0;
@@ -777,8 +777,8 @@ async function pipelineCase(fault='',diagnostic=false){
  const inventory=JSON.parse(await fs.readFile(path.join(C.ROOT,RETAINED,'inventory-before.json'),'utf8')).text;
  const daemon={ID:'controlled-private-id',DockerRootDir:spec.mount+'/data',Driver:'overlay2',Architecture:'arm64'};
  const image={Id:'sha256:'+'d'.repeat(64),Architecture:'arm64',Os:'linux',Config:{User:'10001:10001',Entrypoint:[...captured.recipe.entrypoint],
- Labels:{[diagnostic?'dvaia.diagnostic.inputs':'dvaia.system.inputs']:captured.inputSha256,'dvaia.build-run':plan.runId}}};
- if(fault==='diagnostic-label')image.Config.Labels={'dvaia.system.inputs':captured.inputSha256,'dvaia.build-run':plan.runId};
+ Labels:{[diagnostic?'owasp-ai-goat.diagnostic.inputs':'owasp-ai-goat.system.inputs']:captured.inputSha256,'owasp-ai-goat.build-run':plan.runId}}};
+ if(fault==='diagnostic-label')image.Config.Labels={'owasp-ai-goat.system.inputs':captured.inputSha256,'owasp-ai-goat.build-run':plan.runId};
  const calls=[],records=[];let inspect=0;
  const phase=async(name,{input})=>{
   calls.push(name);

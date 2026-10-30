@@ -11,7 +11,7 @@ function loadConfiguration({root=path.resolve(__dirname,'../..'),home=os.homedir
 function createListingsRuntime({configuration,launches,products,reviewPool,mode='vuln',modeAuthority,createManager=require('./secureshopListingsTargetManager').createListingsTargetManager}={}){
  const value=managed.validate(configuration);if(!['vuln','fixed'].includes(mode)||typeof reviewPool?.query!=='function')throw fail('LISTINGS_RUNTIME_CONFIGURATION');
  const manager=createManager({origin:value.manager.url,controlToken:value.manager.token,runtimeDigest:value.runtimeDigest,launches,products,resolveMode:async scope=>(await require('./secureshopFeatureModeAuthority').captureFeatureMode(modeAuthority,scope,'listings',mode)).snapshot.mode});
- const capabilityKey=Buffer.from(crypto.hkdfSync('sha256',Buffer.from(value.manager.token),Buffer.from(value.runtimeDigest,'hex'),Buffer.from('dvaia/listings/journal-capability/v1'),32));
+ const capabilityKey=Buffer.from(crypto.hkdfSync('sha256',Buffer.from(value.manager.token),Buffer.from(value.runtimeDigest,'hex'),Buffer.from('owasp-ai-goat/listings/journal-capability/v1'),32));
  const retirementListeners=new Set();
  async function reconcile(raw,options={}){
   const scope=createLaunchScope(raw),targetId=raw.targetId;

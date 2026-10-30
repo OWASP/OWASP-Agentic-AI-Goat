@@ -111,7 +111,7 @@ export function SecureShopLoginForm({ login, isAuthed = false, user = null,
             Sign in.
           </h1>
           <p style={{ fontSize: 16, opacity: 0.75, maxWidth: '38ch', marginBottom: 28 }}>
-            SecureShop v2 is an agentic e-commerce demo. Use a demo account or your own if you already registered.
+            OWASP AI SecureShop is an agentic e-commerce demo. Use a demo account or your own if you already registered.
           </p>
 
           <form onSubmit={handleSubmit} className="ss-form" style={{ maxWidth: 380 }}>

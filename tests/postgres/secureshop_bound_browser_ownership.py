@@ -23,9 +23,9 @@ except ModuleNotFoundError:  # Package import in focused unit tests.
 
 
 def capture_live(record, parent_birth, runtime, *, api=None, getsid=os.getsid,
-                 profile_prefix="dvaia-similar-browser-"):
+                 profile_prefix="owasp-ai-goat-similar-browser-"):
     """Only a live independently checked direct child grants signaling authority."""
-    if profile_prefix not in ("dvaia-similar-browser-", "dvaia-manual-rag-browser-"):
+    if profile_prefix not in ("owasp-ai-goat-similar-browser-", "owasp-ai-goat-manual-rag-browser-"):
         raise RuntimeError('Explicit supported browser profile prefix required')
     api = LibProc() if api is None else api
     def parent_current():

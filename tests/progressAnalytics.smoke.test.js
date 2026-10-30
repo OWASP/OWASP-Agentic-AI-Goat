@@ -41,7 +41,7 @@ async function run() {
   // Login as admin
   const login = await req('POST', '/api/auth/login', {
     username: process.env.TEST_ADMIN_USERNAME || 'Abhinav',
-    password: process.env.TEST_ADMIN_PASSWORD || 'Abh1nav@DVAIA#2026',
+    password: process.env.TEST_ADMIN_PASSWORD || 'Abh1nav@OWASP-AI-GOAT#2026',
   });
   assert(login.status === 200 && login.data.token, 'Admin login succeeds');
   const auth = { Authorization: `Bearer ${login.data.token}` };

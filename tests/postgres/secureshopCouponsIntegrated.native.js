@@ -4,17 +4,17 @@ const {migrate}=require('../../db/postgres/migrate');
 const {hash:analyticsHash}=require('../../sidecars/analytics-sql-target/contract');
 (async()=>{
  assert.equal(process.env.COUPON_NATIVE,'1');assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');const pools=[],checks=[];
- const pool=(label,role)=>{const u=new URL(process.env[`LISTINGS_${label}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_listings_[a-f0-9]+_/);const p=new Pool({connectionString:u.href,max:5,statement_timeout:10000});p.on('error',()=>{});pools.push(p);return p;};
+ const pool=(label,role)=>{const u=new URL(process.env[`LISTINGS_${label}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_listings_[a-f0-9]+_/);const p=new Pool({connectionString:u.href,max:5,statement_timeout:10000});p.on('error',()=>{});pools.push(p);return p;};
  let reset,service;
  try{
  const identity=pool('IDENTITY','RUNTIME'),im=pool('IDENTITY','MIGRATION'),agents=pool('AGENTS','RUNTIME'),am=pool('AGENTS','MIGRATION'),commerce=pool('COMMERCE','RUNTIME'),cm=pool('COMMERCE','MIGRATION'),review=pool('REVIEW','RUNTIME'),rm=pool('REVIEW','MIGRATION'),leases=pool('IDENTITY','RUNTIME');
  await migrate(im,'db/postgres/identity-migrations');await require('../../server/database/postgres/workshopPlatformSeed').seedWorkshopPlatform(im);await migrate(cm,'db/postgres/workshop-migrations/secureshop');await require('../../server/database/postgres/secureshopSeed').seedSecureShop(cm);await migrate(am,'db/postgres/workshop-migrations/secureshop_agents');await migrate(rm,process.env.COUPON_BASELINE_MIGRATIONS);
  const migration=fs.readFileSync('docs/modernization/drafts/secureshop-bound-coupons/0025_bound_coupon_commerce.sql','utf8');const fresh=await rm.connect();try{await fresh.query('BEGIN');await fresh.query(migration);assert.ok((await fresh.query("SELECT to_regclass('secureshop_review.bound_commerce_operations') AS r")).rows[0].r);await fresh.query('ROLLBACK');}finally{fresh.release();}checks.push('fresh migration transaction');
- const nonce=process.env.COUPON_OWNER,database=process.env.COUPON_SQL_DATABASE;assert.equal(database,'dvaia_analytics_control_'+nonce);const connection={host:'127.0.0.1',port:Number(process.env.COUPON_SQL_PORT),user:'postgres',database,connectionTimeoutMillis:2000};
+ const nonce=process.env.COUPON_OWNER,database=process.env.COUPON_SQL_DATABASE;assert.equal(database,'owasp_ai_goat_analytics_control_'+nonce);const connection={host:'127.0.0.1',port:Number(process.env.COUPON_SQL_PORT),user:'postgres',database,connectionTimeoutMillis:2000};
  const control=new Pool({...connection,max:5});pools.push(control);control.on('error',()=>{});await control.query(fs.readFileSync('docs/modernization/drafts/secureshop-bound-analytics/control-schema.candidate.sql','utf8'));
  const systemIdentifier=(await control.query('SELECT system_identifier::text FROM pg_control_system()')).rows[0].system_identifier;
  for(const name of ['postgres','template1',database])await control.query('REVOKE CONNECT ON DATABASE '+name+' FROM PUBLIC');
- service=require('../../sidecars/analytics-sql-target/service').createOwnedAnalyticsService({controlPool:control,createPool:config=>new Pool(config),identity:{systemIdentifier,controlDatabase:database,clusterName:'dvaia-owned-analytics-'+nonce},connection});
+ service=require('../../sidecars/analytics-sql-target/service').createOwnedAnalyticsService({controlPool:control,createPool:config=>new Pool(config),identity:{systemIdentifier,controlDatabase:database,clusterName:'owasp-ai-goat-owned-analytics-'+nonce},connection});
  const launches=require('../../server/database/postgres/secureshopLaunchRepository').createSecureShopLaunchRepository(identity),checkCurrent=s=>launches.assertCurrent(s);
  const personaAuthority=require('../../server/database/postgres/secureshopBoundPersonaAuthority').createSecureShopBoundPersonaAuthority({pool:agents,checkCurrent});
  const audit=require('../../server/services/secureshopBoundAuditComposition').createSecureShopBoundAuditComposition({agentsPool:agents,reviewPool:review,includeRunArtifacts:true});

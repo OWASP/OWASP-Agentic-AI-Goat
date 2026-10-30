@@ -8,7 +8,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 test('built opaque frame posts, renders, and assesses the exact learner review once', {
-  skip: process.env.DVAIA_VERIFY_BUILT_SHOP_FRAME !== '1', timeout: 45000,
+  skip: process.env.OWASP_AI_GOAT_VERIFY_BUILT_SHOP_FRAME !== '1', timeout: 45000,
 }, async t => {
   let server, browser, profile;
   t.after(async () => {
@@ -37,7 +37,7 @@ test('built opaque frame posts, renders, and assesses the exact learner review o
     import {compileBridgeOperation} from '/bridge/compiler.mjs';
     import {createScopedShopStateStore} from '/bridge/stateStore.mjs';
     const scenario=${JSON.stringify(scenarioId)};
-    localStorage.setItem('dvaia:secureshop:'+scenario+':1',JSON.stringify({secureshop_v2_token:${JSON.stringify(token)},ss_guest_cart:null}));
+    localStorage.setItem('owasp-ai-goat:secureshop:'+scenario+':1',JSON.stringify({secureshop_v2_token:${JSON.stringify(token)},ss_guest_cart:null}));
     const frame=document.createElement('iframe');frame.id='shop';
     const stateStore=createScopedShopStateStore({storage:localStorage,scenarioId:scenario,generation:1,isCurrent:()=>true});
     window.host=mountShopFrame({frame,url:'/secureshop-frame.html',origin:location.origin,
@@ -46,8 +46,8 @@ test('built opaque frame posts, renders, and assesses the exact learner review o
   </script></body>`));
   app.use('/api/secureshop', (req, res, next) => {
     requests.push({ method: req.method, path: req.path,
-      launch: req.get('x-dvaia-secureshop-launch'), cookie: req.get('cookie') });
-    if (req.get('x-dvaia-secureshop-launch') !== launch) return res.sendStatus(401);
+      launch: req.get('x-owasp-ai-goat-secureshop-launch'), cookie: req.get('cookie') });
+    if (req.get('x-owasp-ai-goat-secureshop-launch') !== launch) return res.sendStatus(401);
     return next();
   });
   app.get('/api/secureshop/v2/auth/whoami', (req, res) => req.get('authorization') === `Bearer ${token}`
@@ -78,7 +78,7 @@ test('built opaque frame posts, renders, and assesses the exact learner review o
   }));
   server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
   const origin = `http://127.0.0.1:${server.address().port}`;
-  profile = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-stored-browser-frame-'));
+  profile = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-stored-browser-frame-'));
   browser = await require('puppeteer').launch({ headless: true, userDataDir: profile,
     ...(process.env.PUPPETEER_EXECUTABLE_PATH ? { executablePath: process.env.PUPPETEER_EXECUTABLE_PATH } : {}) });
   const page = await browser.newPage(); await page.setRequestInterception(true);

@@ -26,8 +26,8 @@ async function runOwnedSetup({source,root,environment},{spawn=require('node:chil
 }
 function validateConfiguration(configuration,manifest,port){
  const expected=[];assert.equal(manifest.length,16);
- for(const row of manifest)for(const [key,role]of [[row.runtimeVariable,row.runtimeRole],[row.migrationVariable,'dvaia_'+row.schema+'_migration']])expected.push([key,role,'dvaia_'+row.schema]);
- expected.push(['CTF_DELIVERY_DATABASE_URL','dvaia_ctf_delivery','dvaia_ctf']);
+ for(const row of manifest)for(const [key,role]of [[row.runtimeVariable,row.runtimeRole],[row.migrationVariable,'dvaia_'+row.schema+'_migration']])expected.push([key,role,'owasp_ai_goat_'+row.schema]);
+ expected.push(['CTF_DELIVERY_DATABASE_URL','dvaia_ctf_delivery','owasp_ai_goat_ctf']);
  assert.deepEqual(Object.keys(configuration).sort(),expected.map(r=>r[0]).sort());
  for(const [key,role,database]of expected){const u=new URL(configuration[key]);assert.equal(u.protocol,'postgresql:');assert.equal(u.hostname,'127.0.0.1');assert.equal(u.port,String(port));assert.equal(u.pathname,'/'+database);assert.equal(decodeURIComponent(u.username),role);assert.ok(u.password);assert.equal(u.search,'');assert.equal(u.hash,'');}
  return configuration;
@@ -46,7 +46,7 @@ module.exports={prepare,runOwnedSetup,validateConfiguration,readResult};
 async function main(){
  const owned=require('./mainBackendAuthAdmission').admit(process.env,{nativePid:process.ppid});
  const admin=new URL(process.env.PG_ADMIN_DATABASE_URL);assert.equal(admin.protocol,'postgresql:');assert.equal(admin.hostname,'127.0.0.1');assert.equal(admin.port,String(owned.port));assert.equal(admin.pathname,'/postgres');assert.equal(admin.username,'postgres');assert.equal(admin.password,'');assert.equal(admin.search,'');assert.equal(admin.hash,'');
- const result=await prepare({owned,adminUrl:admin.href,environment:{PATH:process.env.PATH,HOME:owned.root,LOGS_DIR:path.join(owned.evidence,'setup-logs'),LEGACY_SENSITIVE_FILES_ROOT:path.join(owned.evidence,'setup-sensitive'),NODE_ENV:'test',PG_TLS:'disable',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',DVAIA_APP_DATA_ROOT:owned.appData,MCP_SIDECARS_AUTOSTART:'false',MCP_WORKSHOP_AUTOSTART:'false',AI_PROVIDER:'mock'}});
+ const result=await prepare({owned,adminUrl:admin.href,environment:{PATH:process.env.PATH,HOME:owned.root,LOGS_DIR:path.join(owned.evidence,'setup-logs'),LEGACY_SENSITIVE_FILES_ROOT:path.join(owned.evidence,'setup-sensitive'),NODE_ENV:'test',PG_TLS:'disable',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',OWASP_AI_GOAT_APP_DATA_ROOT:owned.appData,MCP_SIDECARS_AUTOSTART:'false',MCP_WORKSHOP_AUTOSTART:'false',AI_PROVIDER:'mock'}});
  const handle=await fs.open(path.join(owned.appData,'setup-result.json'),'wx',0o600);try{await handle.writeFile(JSON.stringify(result));await handle.sync();}finally{await handle.close();}
 }
 if(require.main===module)main().catch(()=>{console.error(JSON.stringify({code:'OWNED_CTF_SETUP_FAILED'}));process.exitCode=1;});

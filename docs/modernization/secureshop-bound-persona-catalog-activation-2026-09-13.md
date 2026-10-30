@@ -34,8 +34,8 @@ persona mutation after admission, target provenance, own and decoy merchant
 projections, cross-owner token denial, review/product identity, persona renewal,
 logout/reset races, product and review receipts, reset replay, and sibling
 retention. Retained evidence is under
-`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-secureshop-bound-review-composition-4objgae1/result.log`
-and `.../dvaia-secureshop-bound-review-composition-ji7m549t/result.log`; both
+`/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-secureshop-bound-review-composition-4objgae1/result.log`
+and `.../owasp-ai-goat-secureshop-bound-review-composition-ji7m549t/result.log`; both
 owned containers were removed.
 
 ## Verified current behavior

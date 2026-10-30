@@ -16,7 +16,7 @@ const personaSession=Object.freeze({sessionId:'60000000-0000-4000-8000-000000000
 function invoke(router,path,{body,token='admin'}={}){
  const route=router.stack.find(layer=>layer.route?.path===path&&layer.route.methods.post)?.route;
  assert.ok(route,`mounted ${path} route required`);
- const req=new EventEmitter();Object.assign(req,{body,params:{},query:{},headers:{'x-dvaia-secureshop-launch':'a'.repeat(43),authorization:`Bearer ${token}`},rawHeaders:['x-dvaia-secureshop-launch','a'.repeat(43),'authorization',`Bearer ${token}`],is:type=>type==='application/json'});
+ const req=new EventEmitter();Object.assign(req,{body,params:{},query:{},headers:{'x-owasp-ai-goat-secureshop-launch':'a'.repeat(43),authorization:`Bearer ${token}`},rawHeaders:['x-owasp-ai-goat-secureshop-launch','a'.repeat(43),'authorization',`Bearer ${token}`],is:type=>type==='application/json'});
  const res=new EventEmitter();Object.assign(res,{statusCode:200,writableEnded:false,destroyed:false,
   setHeader(){},set(){return this;},status(value){this.statusCode=value;return this;}});
  return new Promise((resolve,reject)=>{

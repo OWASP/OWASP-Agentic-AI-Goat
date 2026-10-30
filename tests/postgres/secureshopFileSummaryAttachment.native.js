@@ -12,14 +12,14 @@ test('file summary attachment uses one real persona lease without re-entering it
   { skip: process.env.PG_TEST_DISPOSABLE !== 'yes', timeout: 60000 }, async t => {
     assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
     const sourceRoot = await fs.realpath(path.resolve(__dirname, '../..'));
-    const isolatedWorkspace = await fs.realpath(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+    const isolatedWorkspace = await fs.realpath(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
     assert.equal(await fs.realpath(process.cwd()), sourceRoot);
     assert.notEqual(isolatedWorkspace, sourceRoot);
     const pools = [];
     const pool = (store, role) => {
       const url = new URL(process.env[`V19_ATTACHMENT_${store}_${role}_URL`]);
       assert.equal(url.hostname, '127.0.0.1');
-      assert.match(url.pathname, /^\/dvaia_test_persona_(identity|agents|commerce|review)_[a-f0-9]{12}$/);
+      assert.match(url.pathname, /^\/owasp_ai_goat_test_persona_(identity|agents|commerce|review)_[a-f0-9]{12}$/);
       const value = new Pool({ connectionString: url.href, max: 4, statement_timeout: 3000,
         connectionTimeoutMillis: 3000 });
       pools.push(value); return value;
@@ -76,7 +76,7 @@ test('file summary attachment uses one real persona lease without re-entering it
     await personas.createSession({ scope, sessionId: personaSession.sessionId, jti: randomUUID(), persona,
       authorityVersion: personaSession.authorityVersion,
       expiresAt: new Date(Date.now() + 600000).toISOString() });
-    const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-v19-attachment-native-')));
+    const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-v19-attachment-native-')));
     t.after(() => fs.rm(root, { recursive: true, force: true }));
     const priorUploadRoot = process.env.SECURESHOP_UPLOAD_ROOT;
     process.env.SECURESHOP_UPLOAD_ROOT = path.join(root, 'uploads');

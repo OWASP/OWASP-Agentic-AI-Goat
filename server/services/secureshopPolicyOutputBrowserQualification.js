@@ -58,7 +58,7 @@ function createSecureShopPolicyOutputBrowserQualification({ connectBrowser, pupp
       signal?.throwIfAborted();
       await page.addScriptTag({ content: loaded.script });
       signal?.throwIfAborted();
-      await page.evaluate(value => globalThis.__DVAIA_POLICY_OUTPUT_MOUNT__(value),
+      await page.evaluate(value => globalThis.__OWASP_AI_GOAT_POLICY_OUTPUT_MOUNT__(value),
         { html, modeCapability: selectedMode });
       signal?.throwIfAborted();
     } });

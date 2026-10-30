@@ -151,7 +151,7 @@ function createFinflowBackupFileStore({ root, fileSystem = fs, makeNonce = crypt
   const configuredRoot = path.resolve(root);
   if (configuredRoot === path.parse(configuredRoot).root) throw new TypeError('FinFlow artifact root must be a private subdirectory');
   const uid = typeof process.getuid === 'function' ? process.getuid() : null;
-  const markerName = '.dvaia-finflow-backup-root.json';
+  const markerName = '.owasp-ai-goat-finflow-backup-root.json';
   let canonicalRoot;
   let artifactRoot;
   const markerValue = absolute => `${JSON.stringify({ version:1,kind:'finflow-backup-root',uid,canonicalRoot:absolute })}\n`;

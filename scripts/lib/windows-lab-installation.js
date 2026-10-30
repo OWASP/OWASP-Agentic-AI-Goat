@@ -32,7 +32,7 @@ function createWindowsLabInstallation({ platform = process.platform, fileSystem 
       const canonicalRoot = normalize(fileSystem.realpathSync(normalize(root)));
       const canonicalHome = normalize(fileSystem.realpathSync(normalize(homeDirectory)));
       const id = workspaceId(canonicalRoot, { realpath: () => canonicalRoot });
-      const base = normalize(path.win32.join(canonicalHome, '.dvaia'));
+      const base = normalize(path.win32.join(canonicalHome, '.owasp-ai-goat'));
       const directory = normalize(path.win32.join(base, id));
       const configPath = normalize(path.win32.join(directory, CONFIG_NAME));
       const lowerRoot = canonicalRoot.toLowerCase(), lowerDirectory = directory.toLowerCase();
@@ -59,7 +59,7 @@ function createWindowsLabInstallation({ platform = process.platform, fileSystem 
         if (!Buffer.isBuffer(bytes) || bytes.length > 4096) throw denied();
         config = JSON.parse(bytes);
         if (!exact(config, CONFIG_KEYS) || config.version !== 1 || config.workspaceId !== id
-          || config.workspaceRoot !== canonicalRoot || config.instanceName !== 'dvaia-lab-' + id
+          || config.workspaceRoot !== canonicalRoot || config.instanceName !== 'owasp-ai-goat-lab-' + id
           || !uuid(config.installationId) || !uuid(config.operationId) || config.image !== '24.04'
           || normalize(config.multipassExecutable) !== config.multipassExecutable
           || normalize(config.sshExecutable) !== config.sshExecutable
@@ -68,13 +68,13 @@ function createWindowsLabInstallation({ platform = process.platform, fileSystem 
       } else {
         // Only an explicit fresh installation may mint lab identity. Publication
         // precedes VM creation; a later fresh retry reuses these exact bytes.
-        const multipassExecutable = normalize(environment.DVAIA_WINDOWS_MULTIPASS_EXECUTABLE);
-        const sshExecutable = normalize(environment.DVAIA_WINDOWS_SSH_EXECUTABLE);
+        const multipassExecutable = normalize(environment.OWASP_AI_GOAT_WINDOWS_MULTIPASS_EXECUTABLE);
+        const sshExecutable = normalize(environment.OWASP_AI_GOAT_WINDOWS_SSH_EXECUTABLE);
         if (!executable(multipassExecutable, 'multipass.exe') || !executable(sshExecutable, 'ssh.exe')) throw denied();
         const installationId = randomUUID(), operationId = randomUUID();
         if (!uuid(installationId) || !uuid(operationId)) throw denied();
         config = { version: 1, workspaceId: id, workspaceRoot: canonicalRoot, installationId, operationId,
-          instanceName: 'dvaia-lab-' + id, multipassExecutable, sshExecutable, image: '24.04' };
+          instanceName: 'owasp-ai-goat-lab-' + id, multipassExecutable, sshExecutable, image: '24.04' };
         verifyDirectories();
         journal.createJournal({ filePath: configPath, bytes: encode(config) });
       }

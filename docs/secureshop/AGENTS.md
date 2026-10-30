@@ -1,4 +1,4 @@
-# SecureShop v2 — Task Agent Catalog
+# OWASP AI SecureShop v2 — Task Agent Catalog
 
 Every task agent is one MCP server registered under
 `agent-host/agents/<name>/server.js` and mounted at `GET /mcp/<name>` on the

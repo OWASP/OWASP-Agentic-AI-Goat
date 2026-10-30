@@ -6,10 +6,10 @@ from pathlib import Path
 from urllib.parse import quote
 from sensitive_info_recovery_safety import SignalGate
 
-EXPECTED_DOCKER = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+EXPECTED_DOCKER = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 OWNER = '/root/secureshop_architecture'
 SOURCE = Path(__file__).resolve().parents[2]
-NODE_BIN = Path('/Users/averma5/.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin')
+NODE_BIN = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin')
 
 parser=argparse.ArgumentParser()
 parser.add_argument('--docker-host',required=True);parser.add_argument('--grant-file',required=True)
@@ -19,9 +19,9 @@ grant_path=Path(args.grant_file).resolve()
 if grant_path != (SOURCE/'tasks/native-verification-slot.json').resolve():
     raise SystemExit('the durable repository grant file is required')
 
-evidence=Path(tempfile.mkdtemp(prefix='dvaia-secureshop-persona-current-'));os.chmod(evidence,0o700)
+evidence=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-secureshop-persona-current-'));os.chmod(evidence,0o700)
 workspace=evidence/'source';workspace.mkdir()
-container=f'dvaia-secureshop-persona-current-{uuid.uuid4().hex[:12]}'
+container=f'owasp-ai-goat-secureshop-persona-current-{uuid.uuid4().hex[:12]}'
 ownership_path=evidence/'ownership.json';result_path=evidence/'result.log'
 base_env={key:os.environ[key] for key in ('PATH','HOME','TMPDIR') if key in os.environ}
 base_env['PATH']=f'{NODE_BIN}:{base_env.get("PATH","")}'
@@ -129,13 +129,13 @@ try:
     for variant in ('fresh','populated'):
         urls[variant]={}
         for store,migration_role,runtime_role in (('identity',roles[0],roles[1]),('agents',roles[2],roles[3])):
-            database=f'dvaia_test_secureshop_persona_current_{variant}_{store}'
+            database=f'owasp_ai_goat_test_secureshop_persona_current_{variant}_{store}'
             run(admin+['-c',f'CREATE DATABASE {database} OWNER {migration_role}'],stdout=subprocess.DEVNULL)
             run(admin+['-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration_role},{runtime_role}'],stdout=subprocess.DEVNULL)
             urls[variant][store]={'migration':f'postgresql://{quote(migration_role)}@127.0.0.1:{port}/{database}',
                                   'runtime':f'postgresql://{quote(runtime_role)}@127.0.0.1:{port}/{database}'}
     env=dict(base_env,NODE_ENV='test',PLATFORM_DATABASE_ENGINE='postgres',PG_TEST_DISPOSABLE='yes',
-      DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace))
+      OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace))
     for variant in ('fresh','populated'):
         prefix=f'PG_SECURESHOP_PERSONA_CURRENT_{variant.upper()}_'
         env.update({prefix+'IDENTITY_MIGRATION_URL':urls[variant]['identity']['migration'],

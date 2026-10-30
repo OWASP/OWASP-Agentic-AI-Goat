@@ -40,7 +40,7 @@ function createBoundManualRagAssessmentRouter({ launches, authenticatePersona, a
   const launch = requireSecureShopLaunch({ launches });
   const select = (req, res, next) => {
     const headers = (req.rawHeaders || []).filter((_, index) => index % 2 === 0)
-      .filter(name => String(name).toLowerCase() === 'x-dvaia-secureshop-launch');
+      .filter(name => String(name).toLowerCase() === 'x-owasp-ai-goat-secureshop-launch');
     return headers.length === 1 ? launch(req, res, next) : next('route');
   };
   const customer = (req, res, next) => {

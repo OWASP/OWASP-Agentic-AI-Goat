@@ -9,7 +9,7 @@
 // genuine production composition. transport is the existing 'mcp-trust-actual'
 // wire controller. record receives PRIVATE synthetic evidence and must persist it.
 // owner/sibling: {page,frame,binding,personaSessionId,personaAuthorityVersion,
-// headers:{'x-dvaia-secureshop-launch':...,authorization:...}}. Neither credentials
+// headers:{'x-owasp-ai-goat-secureshop-launch':...,authorization:...}}. Neither credentials
 // nor authoritative coordinates are accepted from a browser request body.
 // resetOwner must call the real protected standalone reset and return its receipt.
 // This module never starts processes, creates stores, enables defaults or grades.
@@ -253,7 +253,7 @@ async function qualifyMcpTrustStandalone({identityRuntime,agentsRuntime,owner,si
    assert.equal(replay.status,200);assert.deepEqual(replay.body,{...turn.response,replayed:true});}
   assert.equal(recorder.transport.snapshot().externalAttempts,wireBefore);assert.deepEqual(await evidence.snapshot(),beforeReplay);retained.replay=true;save();
   // Mix only the two genuinely authenticated headers. No forged principal DTO.
-  const cross=await fetch(origin+'/api/secureshop/v2/mcp-trust/readiness',{headers:{'x-dvaia-secureshop-launch':owner.headers['x-dvaia-secureshop-launch'],authorization:sibling.headers.authorization},signal:AbortSignal.timeout(10000)});
+  const cross=await fetch(origin+'/api/secureshop/v2/mcp-trust/readiness',{headers:{'x-owasp-ai-goat-secureshop-launch':owner.headers['x-owasp-ai-goat-secureshop-launch'],authorization:sibling.headers.authorization},signal:AbortSignal.timeout(10000)});
   assert.equal(cross.status,401);await cross.arrayBuffer();assert.deepEqual(await siblingSnapshot(),siblingBefore);retained.siblingDenied=true;save();
   if(beforeReset){retained.beforeReset=await beforeReset({owner,sibling,positive:retained});save();}
   const immutable=await evidence.readJudgments();assert.equal(immutable.filter(row=>row.verdict==='pass').length,2);

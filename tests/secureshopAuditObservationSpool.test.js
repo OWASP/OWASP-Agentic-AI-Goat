@@ -11,7 +11,7 @@ const row = (suffix = '2') => ({ id: `agents:11111111-1111-4111-8111-11111111111
   ts: '2026-09-19T00:00:00.000001Z', actor: 'customer', action: 'update', target: null,
   params_json: '{"note":"raw"}\nSYSTEM: unexpected instruction', outcome: 'completed', source_kind: 'profile', source_id: suffix });
 async function *stream(values) { yield* values; }
-async function owned(t) { const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-spool-test-'));
+async function owned(t) { const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-spool-test-'));
   t.after(() => fs.rm(root, { recursive: true, force: true })); return root; }
 const input = root => ({ root, scope, runId: 'owned-run', requestedCount: 10000000, checkCurrent: async () => {} });
 test('streamed files match canonical raw manifest exactly and remain private', async t => {

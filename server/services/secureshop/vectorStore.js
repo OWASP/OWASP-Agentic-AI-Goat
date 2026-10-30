@@ -107,8 +107,8 @@ class VectorStore {
       identity: {
         provider: provider || 'hash',
         model: provider === 'ollama' ? EMBED_MODEL
-          : provider === 'lmstudio' ? LMSTUDIO_EMBED_MODEL : 'dvaia-bow-hash-v1',
-        algorithm: provider ? 'float32-l2-v1' : 'dvaia-bow-hash-v1',
+          : provider === 'lmstudio' ? LMSTUDIO_EMBED_MODEL : 'owasp-ai-goat-bow-hash-v1',
+        algorithm: provider ? 'float32-l2-v1' : 'owasp-ai-goat-bow-hash-v1',
         dimension: this.dim,
       },
     };

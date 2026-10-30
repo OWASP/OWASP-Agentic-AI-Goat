@@ -44,7 +44,7 @@ function ownedUrl(store, role) {
   assert.equal(value.password, '');
   assert.equal(value.search, '');
   assert.equal(value.hash, '');
-  assert.match(value.pathname, new RegExp(`^/dvaia_test_persona_${store.toLowerCase()}_[a-f0-9]{12}$`));
+  assert.match(value.pathname, new RegExp(`^/owasp_ai_goat_test_persona_${store.toLowerCase()}_[a-f0-9]{12}$`));
   return value;
 }
 
@@ -64,7 +64,7 @@ test('review0046 preserves populated customer commerce and admits hash-only prof
   assert.equal(new Set(Object.values(urls).map(url => url.pathname)).size, 2);
   const pools = Object.fromEntries(Object.entries(urls).map(([key, url]) =>
     [key, new Pool({ connectionString: url.href, max: 3, statement_timeout: 15000,
-      lock_timeout: 3000, application_name: 'dvaia-profile-migration-native' })]));
+      lock_timeout: 3000, application_name: 'owasp-ai-goat-profile-migration-native' })]));
   t.after(async () => Promise.allSettled(Object.values(pools).map(pool => pool.end())));
 
   const names = (await readMigrations(DIRECTORY)).map(value => value.name);

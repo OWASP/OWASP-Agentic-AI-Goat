@@ -84,7 +84,7 @@ manifest=validate_inputs(args)
 from sql_nosql_process_ownership import OwnedProcesses
 from sql_nosql_docker_ownership import verify_daemon, verify_image, inspect_owned, validate_container_layout, cleanup_owned
 source=MAIN
-if not args.docker_host.startswith('unix:///') or not args.container.startswith('dvaia-dpi-live-'):
+if not args.docker_host.startswith('unix:///') or not args.container.startswith('owasp-ai-goat-dpi-live-'):
  raise RuntimeError('Owned local Docker authority required')
 if args.plan:
  print(json.dumps({'mode':'main-checkout-no-copy','scope':args.scope,'allocation':False,'sourcePins':len(manifest['sourcePins']),'dependencyEntries':len(manifest['dependencyInventory']),'childWaitSeconds':child_wait_timeout(args.db_route_preflight)}))
@@ -142,7 +142,7 @@ processes=OwnedProcesses(stop_group,lambda row:(state['children'].append(row),sa
 processes.install()
 workspace=source
 state['sourceSha256']=digest(workspace/'tests/postgres/dpiLiveWorkflow.integration.test.js');save_ownership()
-labels={'dvaia.test.cohort':'dpi-live-workflow-main','dvaia.test.grant':args.grant_id}
+labels={'owasp-ai-goat.test.cohort':'dpi-live-workflow-main','owasp-ai-goat.test.grant':args.grant_id}
 captured_id=None
 def docker_command(argv):
  return subprocess.run(docker+argv,env=base_env,capture_output=True,text=True,timeout=30)
@@ -160,7 +160,7 @@ try:
  verify_model()
  if inspect_owned(docker_command,name=container,labels=labels,image=args.image_id) is not None:raise RuntimeError('Owned container name occupied')
  update_grant(consume)
- response=docker_command(['run','--detach','--pull','never','--name',container,'--label','dvaia.test.cohort=dpi-live-workflow-main','--label','dvaia.test.grant='+args.grant_id,'--memory','512m','--cpus','2','--pids-limit','256','--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_USER=dpi_live_owner','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',args.image_id,'-c','shared_buffers=16MB','-c','max_connections=32','-c','max_wal_size=16MB','-c','min_wal_size=4MB'])
+ response=docker_command(['run','--detach','--pull','never','--name',container,'--label','owasp-ai-goat.test.cohort=dpi-live-workflow-main','--label','owasp-ai-goat.test.grant='+args.grant_id,'--memory','512m','--cpus','2','--pids-limit','256','--tmpfs','/var/lib/postgresql:rw,size=268435456','-e','POSTGRES_USER=dpi_live_owner','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1','-p','127.0.0.1::5432',args.image_id,'-c','shared_buffers=16MB','-c','max_connections=32','-c','max_wal_size=16MB','-c','min_wal_size=4MB'])
  if response.returncode:raise RuntimeError('Owned PostgreSQL container creation failed')
  started=True
  inspected=inspect_owned(docker_command,name=container,labels=labels,image=args.image_id)
@@ -176,7 +176,7 @@ try:
   created=docker_command(['exec',captured_id,'psql','-h','127.0.0.1','-U','dpi_live_owner','-d','postgres','-v','ON_ERROR_STOP=1','-c',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'])
   if created.returncode:raise RuntimeError('Owned PostgreSQL role creation failed')
  url=f'postgresql://dpi_live_owner@127.0.0.1:{port}/postgres'
- env=dict(base_env,NODE_ENV='test',RUN_LIVE_DPI_WORKFLOW='1',PG_TEST_DISPOSABLE='yes',DPI_LIVE_ISOLATED='1',DPI_LIVE_SCOPE=args.scope,PG_LIVE_ADMIN_URL=url,DPI_LIVE_DIAGNOSTICS_PATH=str(diagnostics_path),PLATFORM_DATABASE_ENGINE='postgres',JWT_SECRET=secrets.token_hex(32),AI_PROVIDER='ollama',OLLAMA_BASE_URL='http://127.0.0.1:11434',OLLAMA_MODEL='llama3.1:8b',JUDGE_PROVIDER='ollama',JUDGE_MODEL='llama3.1:8b',AWS_EC2_METADATA_DISABLED='true',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),LOGS_DIR=str(evidence/'logs'),DVAIA_APP_DATA_ROOT=str(evidence/'appdata'),LEGACY_SENSITIVE_FILES_ROOT=str(evidence/'assets'))
+ env=dict(base_env,NODE_ENV='test',RUN_LIVE_DPI_WORKFLOW='1',PG_TEST_DISPOSABLE='yes',DPI_LIVE_ISOLATED='1',DPI_LIVE_SCOPE=args.scope,PG_LIVE_ADMIN_URL=url,DPI_LIVE_DIAGNOSTICS_PATH=str(diagnostics_path),PLATFORM_DATABASE_ENGINE='postgres',JWT_SECRET=secrets.token_hex(32),AI_PROVIDER='ollama',OLLAMA_BASE_URL='http://127.0.0.1:11434',OLLAMA_MODEL='llama3.1:8b',JUDGE_PROVIDER='ollama',JUDGE_MODEL='llama3.1:8b',AWS_EC2_METADATA_DISABLED='true',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),LOGS_DIR=str(evidence/'logs'),OWASP_AI_GOAT_APP_DATA_ROOT=str(evidence/'appdata'),LEGACY_SENSITIVE_FILES_ROOT=str(evidence/'assets'))
  if args.db_route_preflight:env['DPI_LIVE_BOOT_ONLY']='1'
  for name in ('appdata','assets'):(evidence/name).mkdir(mode=0o700)
  with result_path.open('x') as log:

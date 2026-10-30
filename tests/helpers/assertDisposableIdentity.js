@@ -10,7 +10,7 @@ module.exports = function assertDisposableIdentity(env = process.env) {
   } catch { throw new Error('Disposable identity database URLs required'); }
   for (const value of [runtime, migration]) {
     if (!['postgres:', 'postgresql:'].includes(value.protocol) || value.hostname !== '127.0.0.1'
-        || !/^\/dvaia_test_[a-z0-9_]+$/.test(value.pathname) || value.search || value.hash) {
+        || !/^\/owasp_ai_goat_test_[a-z0-9_]+$/.test(value.pathname) || value.search || value.hash) {
       throw new Error('Only explicit loopback test identity databases are permitted');
     }
   }

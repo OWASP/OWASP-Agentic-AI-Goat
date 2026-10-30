@@ -15,12 +15,12 @@ test('private configuration digest is mandatory and byte exact', () => {
   const bytes = Buffer.from('private qualification configuration');
   const expected = crypto.createHash('sha256').update(bytes).digest('hex');
   assert.doesNotThrow(() => verifier.assertPrivateConfigBytes({
-    DVAIA_EXPECTED_PRIVATE_CONFIG_SHA256: expected,
+    OWASP_AI_GOAT_EXPECTED_PRIVATE_CONFIG_SHA256: expected,
   }, { readFile: () => bytes }));
   assert.throws(() => verifier.assertPrivateConfigBytes({}, { readFile: () => bytes }),
     error => error.code === 'PRIVATE_CONFIG_DIGEST_REQUIRED');
   assert.throws(() => verifier.assertPrivateConfigBytes({
-    DVAIA_EXPECTED_PRIVATE_CONFIG_SHA256: '0'.repeat(64),
+    OWASP_AI_GOAT_EXPECTED_PRIVATE_CONFIG_SHA256: '0'.repeat(64),
   }, { readFile: () => bytes }), error => error.code === 'PRIVATE_CONFIG_CHANGED');
 });
 

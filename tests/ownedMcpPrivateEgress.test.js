@@ -7,7 +7,7 @@ test('closed specification stays disconnected from builder and accepts no arbitr
  assert.deepEqual(HOSTS,['registry-1.docker.io','auth.docker.io','deb.debian.org']);
  assert.equal(LIMITS.wholeSeconds,300);assert.equal(LIMITS.concurrency,4);
  for(const spec of [{runId:'../escape',uid:501,mode:'connector'},{runId:'a'.repeat(32),uid:0,mode:'connector'},{runId:'a'.repeat(32),uid:501,mode:'proxy'}])assert.throws(()=>guestProgram(spec));
- assert.match(guestProgram({runId:'a'.repeat(32),uid:501,mode:'adapter',deadlineFromArgv:true}),/dvaia-v23-relay-aaaaaaaa/);
+ assert.match(guestProgram({runId:'a'.repeat(32),uid:501,mode:'adapter',deadlineFromArgv:true}),/owasp-ai-goat-v23-relay-aaaaaaaa/);
  assert.throws(()=>guestProgram({runId:'a'.repeat(32),uid:501,mode:'adapter'}));
  assert.doesNotMatch(program,/CERT_NONE|check_hostname\s*=\s*False|iptables|ip link|docker.sock/);
 });

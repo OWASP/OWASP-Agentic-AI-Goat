@@ -8,7 +8,7 @@ test('DPI lesson metadata exposes browser ESM exports through the development tr
   const root = path.resolve(__dirname, '../client');
   const { default: configure } = await import(pathToFileURL(path.join(root, 'vite.config.mjs')));
   const config = configure({ command: 'serve', mode: 'development' });
-  const compatibility = config.plugins.find(plugin => plugin.name === 'dvaia-local-commonjs-compatibility');
+  const compatibility = config.plugins.find(plugin => plugin.name === 'owasp-ai-goat-local-commonjs-compatibility');
   const filename = path.join(root, 'src/utils/dpiSelectedLesson.js');
   const result = compatibility.transform(fs.readFileSync(filename, 'utf8'), filename + '?t=123');
   assert.ok(result);

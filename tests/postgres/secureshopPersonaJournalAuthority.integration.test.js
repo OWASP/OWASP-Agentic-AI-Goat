@@ -4,10 +4,10 @@ const {randomUUID}=require('node:crypto'),{Pool}=require('pg');
 
 test('persona authority and turn completion have one PostgreSQL linearization boundary',{skip:process.env.PERSONA_REVIEW_CANONICAL_NATIVE!=='1',timeout:90000},async t=>{
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');
- assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+ assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
  const url=new URL(process.env.PERSONA_FRESH_RUNTIME_URL);assert.equal(url.hostname,'127.0.0.1');
- assert.match(url.pathname,/^\/dvaia_test_persona_[a-f0-9]+_fresh$/);
- const pool=(store,role,max=4)=>{const value=new URL(process.env[`PERSONA_${store}_${role}_URL`]);assert.equal(value.hostname,'127.0.0.1');assert.match(value.pathname,/^\/dvaia_test_persona_[a-f0-9]+_(identity|fresh|commerce)$/);const p=new Pool({connectionString:value.href,max,statement_timeout:8000});t.after(()=>p.end());return p;};
+ assert.match(url.pathname,/^\/owasp_ai_goat_test_persona_[a-f0-9]+_fresh$/);
+ const pool=(store,role,max=4)=>{const value=new URL(process.env[`PERSONA_${store}_${role}_URL`]);assert.equal(value.hostname,'127.0.0.1');assert.match(value.pathname,/^\/owasp_ai_goat_test_persona_[a-f0-9]+_(identity|fresh|commerce)$/);const p=new Pool({connectionString:value.href,max,statement_timeout:8000});t.after(()=>p.end());return p;};
  const identity=pool('IDENTITY','RUNTIME'),im=pool('IDENTITY','MIGRATION'),agents=pool('FRESH','RUNTIME',8),am=pool('FRESH','MIGRATION'),commerce=pool('COMMERCE','RUNTIME'),cm=pool('COMMERCE','MIGRATION');
  const waiterUrl=new URL(process.env.PERSONA_FRESH_RUNTIME_URL);waiterUrl.searchParams.set('application_name','persona_journal_revoke_waiter');
  const waiterPool=new Pool({connectionString:waiterUrl.href,max:2,statement_timeout:8000});t.after(()=>waiterPool.end());

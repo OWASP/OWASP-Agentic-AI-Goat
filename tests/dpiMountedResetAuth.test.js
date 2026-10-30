@@ -11,7 +11,7 @@ test('mounted DPI reset rechecks its admitted session after the reset queue wait
   Object.assign(process.env, {
     PLATFORM_DATABASE_ENGINE: 'postgres', WORKSHOP_DATABASE_ENGINE: 'postgres',
     JWT_SECRET: require('node:crypto').randomBytes(48).toString('base64url'),
-    IDENTITY_DATABASE_URL: 'postgresql://fixture@127.0.0.1:1/dvaia_test_dpi_reset',
+    IDENTITY_DATABASE_URL: 'postgresql://fixture@127.0.0.1:1/owasp_ai_goat_test_dpi_reset',
   });
   const Module = require('node:module');
   const originalLoad = Module._load;

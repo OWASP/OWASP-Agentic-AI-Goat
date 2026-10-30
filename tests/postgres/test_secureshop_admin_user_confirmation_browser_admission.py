@@ -54,7 +54,7 @@ def environment():
         L.NATIVE_ENV: '1', L.EVIDENCE_ENV: str(run / L.RECEIPT),
         'LIVE_OLLAMA_TEST': '1', 'PG_TEST_DISPOSABLE': 'yes', 'NODE_ENV': 'test',
         'LAB_MODE': 'vuln', 'TMPDIR': str(run / 'runtime/tmp'),
-        'DVAIA_CURRENT_MAIN_WORKSPACE': str(L.ROOT),
+        'OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE': str(L.ROOT),
         'OLLAMA_BASE_URL': 'http://127.0.0.1:11434', 'OLLAMA_MODEL': 'llama3.1:8b',
         'PUPPETEER_EXECUTABLE_PATH': parsed().browser,
         'SECURESHOP_ADMIN_USER_CHAT_BROWSER_BUILD': str(L.ROOT / 'client/build'),
@@ -367,7 +367,7 @@ class Admission(unittest.TestCase):
     def test_mail_profile_cleanup_rejects_other_mail_or_commerce_prefix(self):
         helpers = L.lifecycle_helpers()
         runtime = L.ROOT / 'tasks/qualification/run-controlled/runtime'
-        for prefix in ('dvaia-role-mail-', 'dvaia-standalone-commerce-'):
+        for prefix in ('owasp-ai-goat-role-mail-', 'owasp-ai-goat-standalone-commerce-'):
             value = SimpleNamespace(profile=str(runtime / 'tmp' / (prefix + 'controlled')))
             ownership = SimpleNamespace(capture_live_v36=Mock(return_value=value),
                                         retire_live_v36=Mock())

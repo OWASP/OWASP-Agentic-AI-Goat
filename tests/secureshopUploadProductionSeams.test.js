@@ -680,7 +680,7 @@ test('application CORS rejects the asset origin before bound upload authority, m
   const server=http.createServer(app);
   t.after(()=>new Promise((resolve,reject)=>server.close(error=>error?reject(error):resolve())));
   await new Promise((resolve,reject)=>server.once('error',reject).listen(0,'127.0.0.1',resolve));
-  const response=await fetch(`http://127.0.0.1:${server.address().port}/api/secureshop/agents/agents/customer/avatar-upload/run`,{method:'POST',headers:{Origin:'http://[::1]:9083','x-dvaia-secureshop-launch':'x'.repeat(43)}});
+  const response=await fetch(`http://127.0.0.1:${server.address().port}/api/secureshop/agents/agents/customer/avatar-upload/run`,{method:'POST',headers:{Origin:'http://[::1]:9083','x-owasp-ai-goat-secureshop-launch':'x'.repeat(43)}});
   assert.equal(response.status,403);
   assert.deepEqual(await response.json(),{error:'Origin not allowed by SecureShop CORS policy'});
   assert.deepEqual(counters,{launch:0,persona:0,model:0,effect:0,mint:0});

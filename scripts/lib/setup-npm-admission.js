@@ -3,7 +3,7 @@ const fs=require('node:fs/promises'),path=require('node:path');
 const {prepareSetupCommandEnv}=require('./setup-command');
 const policy=path.join(__dirname,'../install/runtime-version-policy.sh');
 async function admitSetupNpm({environment=process.env,execute,node=process.execPath,platform=process.platform}){
- const minimum=(await fs.readFile(policy,'utf8')).match(/^DVAIA_MINIMUM_NPM_VERSION=(\d+\.\d+\.\d+)$/m)?.[1];
+ const minimum=(await fs.readFile(policy,'utf8')).match(/^OWASP_AI_GOAT_MINIMUM_NPM_VERSION=(\d+\.\d+\.\d+)$/m)?.[1];
  const instruction=platform==='darwin'?'bash scripts/install/Mac/install-macos.sh':platform==='linux'?'bash scripts/install/Linux/install-linux.sh':'Install the supported Node.js runtime and npm before rerunning setup';
  const fail=()=>Object.assign(Error(`Compatible npm ${minimum}+ is required before setup. Run: ${instruction}`),{code:'SETUP_NPM_UNAVAILABLE'});
  if(!minimum)throw fail();

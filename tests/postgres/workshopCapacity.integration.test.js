@@ -17,14 +17,14 @@ const { createPostgresAdminAuth } = require('../../server/middleware/postgresAdm
 const { createPostgresWorkshopRouter } = require('../../server/routes/postgresWorkshop');
 
 const enabled = process.env.PG_TEST_DISPOSABLE === 'yes'
-  && process.env.DVAIA_CAPACITY_QUALIFICATION === 'yes';
+  && process.env.OWASP_AI_GOAT_CAPACITY_QUALIFICATION === 'yes';
 
 test('200 real PostgreSQL sessions preserve dashboard ownership and projection parity under a burst',
   { skip: !enabled, timeout: 180000 }, async () => {
     const urls = ['PG_CAPACITY_MIGRATION_URL', 'PG_CAPACITY_RUNTIME_URL'].map(key => new URL(process.env[key]));
     for (const url of urls) {
       assert.equal(url.hostname, '127.0.0.1');
-      assert.match(url.pathname, /^\/dvaia_test_capacity_[a-z0-9_]+$/);
+      assert.match(url.pathname, /^\/owasp_ai_goat_test_capacity_[a-z0-9_]+$/);
     }
     assert.equal(urls[0].host, urls[1].host);
     assert.equal(urls[0].pathname, urls[1].pathname);

@@ -4,8 +4,8 @@ const DEFAULT_TIMEOUT_MS = 5000;
 const DEFAULT_MAX_RESPONSE_BYTES = 512 * 1024;
 const DEFAULT_MAX_MESSAGE_BYTES = 512 * 1024;
 const DEFAULT_MAX_MESSAGES = 50;
-const FIXED_SENDER = 'attacker@dvaia.invalid';
-const OWNER_ADDRESS = /^xss-([1-9][0-9]*)@dvaia\.invalid$/;
+const FIXED_SENDER = 'attacker@owasp-ai-goat.invalid';
+const OWNER_ADDRESS = /^xss-([1-9][0-9]*)@owasp-ai-goat\.invalid$/;
 
 class XssLocalMailError extends Error {
   constructor(code, message) {

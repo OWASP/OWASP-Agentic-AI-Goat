@@ -47,7 +47,7 @@ function admittedUrl(environment, key, expectedRole) {
     database = decodeURIComponent(url.pathname.slice(1));
   } catch { fail('SECURESHOP_E2E_DATABASE_URL_INVALID'); }
   if (username !== expectedRole) fail('SECURESHOP_E2E_DATABASE_ROLE_DENIED');
-  if (!/^dvaia_test_[a-z0-9_]+$/.test(database)) fail('SECURESHOP_E2E_DATABASE_NAME_DENIED');
+  if (!/^owasp_ai_goat_test_[a-z0-9_]+$/.test(database)) fail('SECURESHOP_E2E_DATABASE_NAME_DENIED');
   return Object.freeze({value, hostname:url.hostname, port:url.port, database});
 }
 

@@ -23,7 +23,7 @@ async function provisionOwnedShadowForSetup({root=path.resolve(__dirname,'../..'
   await require('../../server/database/postgres/mcpShadowReceiptRepository').createMcpShadowReceiptRepository(identityPool).checkReadiness();
   await require('../../server/database/postgres/mcpShadowLeaseRepository').createMcpShadowLeaseRepository(resourcePool).checkReadiness();
   const staged=await provisionService({root,home:homeDirectory,platform,ownedLabSession,
-   colimaProfile:platform==='darwin'?(environment.DVAIA_MCP_OWNED_COLIMA_PROFILE||'colima-default'):undefined,commandEnv:environment});
+   colimaProfile:platform==='darwin'?(environment.OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE||'colima-default'):undefined,commandEnv:environment});
   if(staged?.ok!==true)throw Error('MCP_SHADOW_PROVISION_FAILED');
   const result=await activate({file:staged.managedPath,identityPool,resourcePool,identityMigrationPool,resourceMigrationPool,cli});
   if(result?.activationEnabled!==true)throw Error('MCP_SHADOW_ACTIVATION_FAILED');

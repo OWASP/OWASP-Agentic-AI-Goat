@@ -4,10 +4,10 @@ import argparse, hashlib, json, os, signal, subprocess, tempfile, time
 from datetime import datetime, timezone
 from pathlib import Path
 
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 SOURCE=Path(__file__).resolve().parents[1]
 test_name='tests/ragCanonicalWarningActual8b.test.js'
-root=Path(tempfile.mkdtemp(prefix='dvaia-rag-warning-'));os.chmod(root,0o700);workspace=root/'source'
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-rag-warning-'));os.chmod(root,0o700);workspace=root/'source'
 env={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(root)}
 state={'version':1,'mode':'canonical_warning_boundary','scope':'Actual actor/Judge graph boundary; controlled retrieval/completion callbacks; no database/application/startup mutation','evidence':str(root),'launcherPid':os.getpid(),'child':None,'runStatus':'preparing','createdAt':datetime.now(timezone.utc).isoformat(),'cleanup':None}
 ownership=root/'ownership.json';log_path=root/'tests.log';log_path.touch(mode=0o600)

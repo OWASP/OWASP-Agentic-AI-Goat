@@ -1,4 +1,4 @@
-# DVAIA Workshops
+# OWASP Agentic AI GOAT Workshops
 
 Hands-on labs for AI security, LLM application security, and classic web
 security. Each workshop is self-contained and can be run in a session or

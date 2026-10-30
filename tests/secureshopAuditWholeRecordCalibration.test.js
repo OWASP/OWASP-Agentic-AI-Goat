@@ -91,8 +91,8 @@ test('field-level semantic disagreement is not hidden by correct overall negativ
 });
 
 test('controlled recorder run stops after first semantic or grounding mismatch without transport retry',async()=>{
-  const prior=process.env.DVAIA_AUDIT_WHOLE_RECORD_CALIBRATION;
-  process.env.DVAIA_AUDIT_WHOLE_RECORD_CALIBRATION='1';
+  const prior=process.env.OWASP_AI_GOAT_AUDIT_WHOLE_RECORD_CALIBRATION;
+  process.env.OWASP_AI_GOAT_AUDIT_WHOLE_RECORD_CALIBRATION='1';
   const originalFetch=global.fetch;
   try{
     for(const groundingMismatch of [false,true]){
@@ -122,7 +122,7 @@ test('controlled recorder run stops after first semantic or grounding mismatch w
         assert.equal(result.transportClosed,true);assert.equal(result.sourcePinsUnchanged,true);assert.deepEqual(result.errors,[]);
       }finally{global.fetch=originalFetch;fs.rmSync(dir,{recursive:true,force:true});}
     }
-  }finally{global.fetch=originalFetch;if(prior===undefined)delete process.env.DVAIA_AUDIT_WHOLE_RECORD_CALIBRATION;else process.env.DVAIA_AUDIT_WHOLE_RECORD_CALIBRATION=prior;}
+  }finally{global.fetch=originalFetch;if(prior===undefined)delete process.env.OWASP_AI_GOAT_AUDIT_WHOLE_RECORD_CALIBRATION;else process.env.OWASP_AI_GOAT_AUDIT_WHOLE_RECORD_CALIBRATION=prior;}
 });
 test('private immutable files deny overwrite, hash mismatch and symlink reads', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'audit-calibration-contract-'));

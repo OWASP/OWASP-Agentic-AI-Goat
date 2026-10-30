@@ -36,19 +36,19 @@ const env = {
   ADMIN_STUDENT_DELETION_SNAPSHOT_SHA256: SHA,
   ADMIN_STUDENT_DELETION_STORE_PLAN_SHA256: SHA,
   PUPPETEER_EXECUTABLE_PATH: '/repo/browser/chrome',
-  DVAIA_CHROMIUM_ACTUAL_EXECUTABLE: '/repo/browser/chrome',
+  OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE: '/repo/browser/chrome',
 };
 
 test('deletion admission binds exact private run, sixteen identities and one closed grant', () => {
   const rows = STORES.map(store => ({ schema: store.schema,
-    database: `dvaia_test_student_deletion_${NONCE}_${store.schema}` }));
+    database: `owasp_ai_goat_test_student_deletion_${NONCE}_${store.schema}` }));
   assert.match(deletionStorePlanSha256(rows), /^[0-9a-f]{64}$/);
   assert.notEqual(deletionStorePlanSha256(rows), deletionStorePlanSha256([...rows].reverse()));
   const paths = deletionPaths(env, REPO);
   const grant = { version: 1, cohort: COHORT, launcherPid: 101, workerPid: 102,
     nonce: NONCE, workspace: REPO, buildSha256: SHA, snapshotSha256: SHA,
     outerSandbox: 'repository-only', chromium: '/repo/browser/chrome',
-    profile: `${run}/runtime/tmp/dvaia-student-deletion-browser-${NONCE}`,
+    profile: `${run}/runtime/tmp/owasp-ai-goat-student-deletion-browser-${NONCE}`,
     storePlanSha256: SHA };
   assert.deepEqual(validateDeletionGrant(grant, { env, paths, repo: REPO,
     launcherPid: 101, workerPid: 102 }), {
@@ -58,7 +58,7 @@ test('deletion admission binds exact private run, sixteen identities and one clo
     { ...grant, cohort: 'admin-q05-current-host' },
     { ...grant, workerPid: 103 },
     { ...grant, outerSandbox: 'unrestricted' },
-    { ...grant, profile: `${run}/runtime/tmp/dvaia-student-deletion-browser-other` },
+    { ...grant, profile: `${run}/runtime/tmp/owasp-ai-goat-student-deletion-browser-other` },
     { ...grant, storePlanSha256: '2'.repeat(64) },
     { ...grant, extra: true },
   ]) assert.throws(() => validateDeletionGrant(changed, { env, paths, repo: REPO,

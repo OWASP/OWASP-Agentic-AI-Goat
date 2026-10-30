@@ -29,7 +29,7 @@ async function fixture(t, personaSession) {
     legacy: () => legacy };
 }
 const headers = (role = 'customer', launch = bearer) => ({ authorization: `Bearer ${role}-9`,
-  'x-dvaia-secureshop-launch': launch, 'content-type': 'application/json' });
+  'x-owasp-ai-goat-secureshop-launch': launch, 'content-type': 'application/json' });
 
 test('bound browser route accepts only exact owner-authenticated source identifiers', async t => {
   const f = await fixture(t);

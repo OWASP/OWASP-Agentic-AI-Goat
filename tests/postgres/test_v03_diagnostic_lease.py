@@ -22,7 +22,7 @@ from unittest.mock import patch
 SOURCE=Path(__file__).with_name('ownedV03DiagnosticDerivation.js').read_text().split('const LEASE_PY=String.raw`',1)[1].split('`;\nfunction replaceOnce',1)[0]
 PARENT='a'*32
 RUN=hashlib.sha256((PARENT+':v03-diagnostic').encode()).hexdigest()[:32]
-ROOT='/var/tmp/dvaia-v23-build-'+RUN
+ROOT='/var/tmp/owasp-ai-goat-v23-build-'+RUN
 REPOSITORY=Path(__file__).resolve().parents[2]
 BOOT='01234567-0123-0123-0123-012345678901'
 

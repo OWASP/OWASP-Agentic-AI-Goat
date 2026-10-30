@@ -44,7 +44,7 @@ const sha = value => crypto.createHash('sha256').update(value).digest();
 function checked(key) {
   const url = new URL(process.env[PREFIX + key]);
   assert.ok(['localhost','127.0.0.1'].includes(url.hostname));
-  assert.match(url.pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(url.pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return url.href;
 }
 async function assertCanonicalInboxSchema(pool, workspace, migration, relations) {
@@ -96,16 +96,16 @@ async function waitForAdvisoryWaiter(pool, lockKey) {
 test('native persona inbox persists scoped ACL effects, cleanup proofs, and canonical advisory contribution', {
   skip: !enabled, timeout: 60000,
 }, async () => {
-  const currentMain = process.env.DVAIA_CURRENT_MAIN_WORKSPACE;
+  const currentMain = process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE;
   let workspace;
   if (currentMain) {
     assert.ok(path.isAbsolute(currentMain));
-    assert.equal(process.env.DVAIA_ISOLATED_TEST_WORKSPACE,undefined);
+    assert.equal(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE,undefined);
     workspace = await fs.realpath(currentMain);
     assert.equal(workspace,await fs.realpath(process.cwd()));
   } else {
-    workspace = path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
-    assert.match(path.basename(path.dirname(workspace)),/^dvaia-secureshop-persona-inbox-/);
+    workspace = path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
+    assert.match(path.basename(path.dirname(workspace)),/^owasp-ai-goat-secureshop-persona-inbox-/);
   }
   const identityMigration = new Pool({connectionString:checked('IDENTITY_MIGRATION_URL'),max:2});
   const identity = new Pool({connectionString:checked('IDENTITY_RUNTIME_URL'),max:8});

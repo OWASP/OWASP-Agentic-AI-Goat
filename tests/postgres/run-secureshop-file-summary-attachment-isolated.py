@@ -64,7 +64,7 @@ def validate_fixture_contract():
   "principalANext.trusted", "principalARefreshed = await bootstrap",
   "await assertStored(principalBFile)", "SET seed_merchant_id=$2",
   "catalog.prepareTarget({ scope: peer.trusted, persona: peer.actor.user })",
-  "^\\/dvaia_test_persona_(identity|agents|commerce|review)_[a-f0-9]{12}$")
+  "^\\/owasp_ai_goat_test_persona_(identity|agents|commerce|review)_[a-f0-9]{12}$")
  if any(value not in source for value in required): raise RuntimeError('V19 attachment launcher/fixture contract mismatch')
  return True
 def configure(shared, *, run):

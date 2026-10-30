@@ -15,7 +15,7 @@ function shadowMigrationView() {
 }
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&process.env.PG_SHADOW_RUNTIME_URL&&process.env.PG_SHADOW_MIGRATION_URL;
 test('shadow central registration then distinct invocation, replay, schema corruption, reset fencing and immutable sibling receipts',{skip:!enabled},async t=>{
- for(const key of ['PG_SHADOW_RUNTIME_URL','PG_SHADOW_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_shadow_[a-f0-9]+$/);
+ for(const key of ['PG_SHADOW_RUNTIME_URL','PG_SHADOW_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_shadow_[a-f0-9]+$/);
  const runtime=new Pool({connectionString:process.env.PG_SHADOW_RUNTIME_URL}),migration=new Pool({connectionString:process.env.PG_SHADOW_MIGRATION_URL});t.after(async()=>{await runtime.end();await migration.end();});
  const view=shadowMigrationView(),copy=view.directory,{migrate,readMigrations}=view.migrator;
  const canonical=await require('../../db/postgres/migrate').readMigrations(copy),candidateName='0089_mcp_shadow_operations.sql';

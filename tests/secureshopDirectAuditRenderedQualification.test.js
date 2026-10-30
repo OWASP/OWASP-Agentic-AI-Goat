@@ -24,9 +24,9 @@ test('direct Audit qualification requires a genuine current-scoped caller-owned 
   const stub = { page: { waitForResponse() {} }, frame: { waitForSelector() {} },
     origin: 'http://127.0.0.1:12345', scope: { platformOwnerId: 1 },
     principal: { user: { role: 'admin' } },
-    headers: { 'x-dvaia-secureshop-launch': 'owned-launch', authorization: 'Bearer owned-persona' },
+    headers: { 'x-owasp-ai-goat-secureshop-launch': 'owned-launch', authorization: 'Bearer owned-persona' },
     peer: { scope: { platformOwnerId: 2 }, headers: {
-      'x-dvaia-secureshop-launch': 'peer-launch', authorization: 'Bearer peer-persona' } },
+      'x-owasp-ai-goat-secureshop-launch': 'peer-launch', authorization: 'Bearer peer-persona' } },
     identity: { query() {} }, agents: { query() {} }, control: { query() {} },
     audit: { agents: { append() {} } }, backend: { target() {} },
     launches: { beginReset() {} }, modeAuthority: { capture() {}, assertToken() {} },

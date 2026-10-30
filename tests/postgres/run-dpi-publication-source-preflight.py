@@ -2,10 +2,10 @@
 """Source-only owned decoder controls; never provisions databases or invokes real models."""
 import hashlib,json,os,pathlib,subprocess,tempfile
 source=pathlib.Path(__file__).resolve().parents[2]
-node=pathlib.Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+node=pathlib.Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 digest=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 assert digest(node)=='56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
-root=pathlib.Path(tempfile.mkdtemp(prefix='dvaia-dpi-publication-source-'));os.chmod(root,0o700)
+root=pathlib.Path(tempfile.mkdtemp(prefix='owasp-ai-goat-dpi-publication-source-'));os.chmod(root,0o700)
 tests=['dpiPublicationDefense','dpiObfuscationGraph','dpiAnswerComparison','dpiStructuredJudge','dpiScopedAlignment','objectiveJudge','objectiveJudgmentRepositoryMetadata','secureshopMailReplyComparison','secureshopMailGroundedComparison']
 subprocess.run([str(node),'-e',"const fs=require('node:fs'),path=require('node:path'),{createCopyFilter}=require('./scripts/lib/isolated-source-copy');for(const name of ['server','shared','db/postgres','tests/fixtures'])if(fs.existsSync(path.join(process.argv[1],name)))fs.cpSync(path.join(process.argv[1],name),path.join(process.argv[2],name),{recursive:true,filter:createCopyFilter(process.argv[1])});",str(source),str(root)],cwd=source,check=True,timeout=30)
 for name in [*[f'tests/{x}.test.js' for x in tests],'tests/postgres/run-dpi-publication-source-preflight.py','package.json','package-lock.json']:

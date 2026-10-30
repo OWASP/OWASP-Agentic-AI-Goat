@@ -23,7 +23,7 @@ function response(products, status = 200) {
   return { ok: status >= 200 && status < 300, status, json: async () => ({ products }) };
 }
 
-describe('SecureShop landing shelves', () => {
+describe('OWASP AI SecureShop landing shelves', () => {
   let container;
   let root;
   const originalFetch = global.fetch;

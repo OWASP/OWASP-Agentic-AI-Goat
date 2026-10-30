@@ -15,7 +15,7 @@ const { promisify } = require('node:util');
 const exec = promisify(execFile);
 const ROOT = path.resolve(__dirname, '..');
 const DOCKER = '/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker';
-const DOCKER_HOST = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock';
+const DOCKER_HOST = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock';
 const BUILDER_ID = 'sha256:b02aa7a4e02c967c34e0441b516dca784e40dc0ca1094aebfd705c56623d52bb';
 const RUNTIME_ID = 'sha256:ccfb045c4b44eab09151b67b8a9d960a5a34eb2e6340bfafb499b5da6c7080dc';
 const EXPECTED_OUTER_BOUNDING = '00000000a80425fb';
@@ -41,12 +41,12 @@ function sourceHashes() {
   }));
 }
 const suffix = crypto.randomBytes(6).toString('hex');
-const container = `dvaia-policy-render-${suffix}`;
-const image = `dvaia-policy-render-qual:${suffix}`;
-const builderAlias = `dvaia-policy-render-builder:${suffix}`;
-const runtimeAlias = `dvaia-policy-render-runtime:${suffix}`;
-const evidenceParent = path.join(os.homedir(), '.dvaia', 'native-verification');
-const evidence = path.join(evidenceParent, `dvaia-policy-render-${suffix}`);
+const container = `owasp-ai-goat-policy-render-${suffix}`;
+const image = `owasp-ai-goat-policy-render-qual:${suffix}`;
+const builderAlias = `owasp-ai-goat-policy-render-builder:${suffix}`;
+const runtimeAlias = `owasp-ai-goat-policy-render-runtime:${suffix}`;
+const evidenceParent = path.join(os.homedir(), '.owasp-ai-goat', 'native-verification');
+const evidence = path.join(evidenceParent, `owasp-ai-goat-policy-render-${suffix}`);
 const buildContext = path.join(evidence, 'build');
 const resultFile = path.join(ROOT, 'tasks', `secureshop-policy-renderer-native-${suffix}.json`);
 const before = sourceHashes();
@@ -86,12 +86,12 @@ async function prepareContext() {
     'COPY sidecars/sandbox-runner/policy-render/policy-init.c /build/policy-init.c',
     'RUN gcc -static -O2 -Wall -Wextra -Werror /build/process-supervisor.c -o /out-policy-render-supervisor && gcc -static -O2 -Wall -Wextra -Werror /build/policy-init.c -o /out-policy-render-init && chmod 0555 /out-policy-render-supervisor /out-policy-render-init',
     `FROM ${runtimeAlias}`,
-    `LABEL dvaia.qualification.policy-render=${suffix}`,
-    'COPY --from=builder /out-policy-render-supervisor /usr/local/libexec/dvaia-policy-render-supervisor',
-    'COPY --from=builder /out-policy-render-init /usr/local/libexec/dvaia-policy-render-init',
+    `LABEL owasp-ai-goat.qualification.policy-render=${suffix}`,
+    'COPY --from=builder /out-policy-render-supervisor /usr/local/libexec/owasp-ai-goat-policy-render-supervisor',
+    'COPY --from=builder /out-policy-render-init /usr/local/libexec/owasp-ai-goat-policy-render-init',
     'COPY sidecars/sandbox-runner/policy-render /app/sidecars/sandbox-runner/policy-render',
     'COPY server/services/secureshopPromptPolicyContract.js /app/server/services/secureshopPromptPolicyContract.js',
-    'RUN chown 0:0 /usr/bin/bwrap /usr/local/libexec/dvaia-policy-render-supervisor /usr/local/libexec/dvaia-policy-render-init && chmod 0755 /usr/bin/bwrap && chmod 0555 /usr/local/libexec/dvaia-policy-render-supervisor /usr/local/libexec/dvaia-policy-render-init && chmod -R a+rX /app/sidecars/sandbox-runner/policy-render /app/server/services/secureshopPromptPolicyContract.js',
+    'RUN chown 0:0 /usr/bin/bwrap /usr/local/libexec/owasp-ai-goat-policy-render-supervisor /usr/local/libexec/owasp-ai-goat-policy-render-init && chmod 0755 /usr/bin/bwrap && chmod 0555 /usr/local/libexec/owasp-ai-goat-policy-render-supervisor /usr/local/libexec/owasp-ai-goat-policy-render-init && chmod -R a+rX /app/sidecars/sandbox-runner/policy-render /app/server/services/secureshopPromptPolicyContract.js',
   ].join('\n') + '\n';
   await fsp.writeFile(path.join(buildContext, 'Dockerfile'), dockerfile, { mode: 0o600 });
   result.dockerfileSha256 = digest(Buffer.from(dockerfile));
@@ -141,7 +141,7 @@ async function main() {
   let buildAttempted = false, containerAttempted = false, aliasesAttempted = false;
   try {
     const daemon = JSON.parse((await docker(['info','--format','{{json .}}'], { timeout: 30000 })).stdout);
-    if (daemon.Name !== 'colima-dvaia-pg-verify' || daemon.Architecture !== 'aarch64') throw new Error('Reviewed Docker daemon identity mismatch');
+    if (daemon.Name !== 'colima-owasp-ai-goat-pg-verify' || daemon.Architecture !== 'aarch64') throw new Error('Reviewed Docker daemon identity mismatch');
     result.daemon = { name: daemon.Name, architecture: daemon.Architecture, serverVersion: daemon.ServerVersion };
     result.baseImages = {
       builder: await inspectBase(BUILDER_ID, BUILDER_ID), runtime: await inspectBase(RUNTIME_ID, RUNTIME_ID),
@@ -168,29 +168,29 @@ async function main() {
     }
     result.buildLogSha256 = digest(fs.readFileSync(buildLog));
     const builtImage = JSON.parse((await docker(['inspect',image])).stdout)[0];
-    if (builtImage.Config?.Labels?.['dvaia.qualification.policy-render'] !== suffix) {
+    if (builtImage.Config?.Labels?.['owasp-ai-goat.qualification.policy-render'] !== suffix) {
       throw new Error('Disposable renderer image ownership label mismatch');
     }
     result.builtImage = { id: builtImage.Id,
-      ownershipLabel: builtImage.Config.Labels['dvaia.qualification.policy-render'] };
+      ownershipLabel: builtImage.Config.Labels['owasp-ai-goat.qualification.policy-render'] };
     containerAttempted = true;
-    await docker(['run','--detach','--name',container,'--label',`dvaia.qualification=${suffix}`,
+    await docker(['run','--detach','--name',container,'--label',`owasp-ai-goat.qualification=${suffix}`,
       '--user','10001:10001','--network','none','--read-only','--tmpfs','/tmp:rw,nosuid,nodev,size=16777216',
-      '--security-opt','seccomp=unconfined','--security-opt','apparmor=dvaia-mcp-sandbox',
+      '--security-opt','seccomp=unconfined','--security-opt','apparmor=owasp-ai-goat-mcp-sandbox',
       '--entrypoint','/bin/sh',image,'-c','while :; do sleep 3600; done']);
     const inspected = JSON.parse((await docker(['inspect',container])).stdout)[0];
     const tmpfs = inspected.HostConfig.Tmpfs || {};
     if ((inspected.Mounts || []).some(mount => mount.Type !== 'tmpfs')
         || JSON.stringify(Object.keys(tmpfs)) !== JSON.stringify(['/tmp'])
         || tmpfs['/tmp'] !== 'rw,nosuid,nodev,size=16777216'
-        || inspected.Config?.Labels?.['dvaia.qualification'] !== suffix
+        || inspected.Config?.Labels?.['owasp-ai-goat.qualification'] !== suffix
         || inspected.Image !== result.builtImage.id
         || inspected.HostConfig.NetworkMode !== 'none'
         || inspected.HostConfig.ReadonlyRootfs !== true
         || (inspected.HostConfig.CapDrop || []).length !== 0
         || (inspected.HostConfig.CapAdd || []).length !== 0
         || !new Set(inspected.HostConfig.SecurityOpt || []).has('seccomp=unconfined')
-        || !new Set(inspected.HostConfig.SecurityOpt || []).has('apparmor=dvaia-mcp-sandbox')) {
+        || !new Set(inspected.HostConfig.SecurityOpt || []).has('apparmor=owasp-ai-goat-mcp-sandbox')) {
       throw new Error('Disposable renderer container boundary mismatch');
     }
     const outerStatus = (await docker(['exec','--user','10001:10001',container,'/bin/cat','/proc/1/status'], { timeout: 20000 })).stdout;
@@ -211,11 +211,11 @@ async function main() {
       bwrapIdentity: (await docker(['exec','--user','10001:10001',container,'/usr/bin/stat','-c','%a:%u:%g',
         '/usr/bin/bwrap'], { timeout: 20000 })).stdout.trim(),
       supervisorIdentity: (await docker(['exec','--user','10001:10001',container,'/usr/bin/stat','-c','%a:%u:%g',
-        '/usr/local/libexec/dvaia-policy-render-supervisor'], { timeout: 20000 })).stdout.trim(),
+        '/usr/local/libexec/owasp-ai-goat-policy-render-supervisor'], { timeout: 20000 })).stdout.trim(),
       supervisorSha256: (await docker(['exec','--user','10001:10001',container,'/usr/bin/sha256sum',
-        '/usr/local/libexec/dvaia-policy-render-supervisor'], { timeout: 20000 })).stdout.trim().split(/\s+/)[0],
+        '/usr/local/libexec/owasp-ai-goat-policy-render-supervisor'], { timeout: 20000 })).stdout.trim().split(/\s+/)[0],
       initSha256: (await docker(['exec','--user','10001:10001',container,'/usr/bin/sha256sum',
-        '/usr/local/libexec/dvaia-policy-render-init'], { timeout: 20000 })).stdout.trim().split(/\s+/)[0],
+        '/usr/local/libexec/owasp-ai-goat-policy-render-init'], { timeout: 20000 })).stdout.trim().split(/\s+/)[0],
       outerIdentity: { uid: outerUid, gid: outerGid, capabilities: outerCaps },
     };
     if (result.runtime.bwrapIdentity !== '755:0:0' || result.runtime.supervisorIdentity !== '555:0:0') {

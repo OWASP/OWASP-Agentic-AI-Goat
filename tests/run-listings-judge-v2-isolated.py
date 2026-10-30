@@ -2,9 +2,9 @@
 """Bounded actual Judge calibration only; no DB, browser, actor or completion write."""
 import pathlib,subprocess,tempfile,os,signal,json,hashlib,time
 REPO=pathlib.Path(__file__).resolve().parents[1]
-NODE=pathlib.Path.home()/'.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node'
+NODE=pathlib.Path.home()/'.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node'
 assert subprocess.check_output([str(NODE),'--version'],text=True).strip()=='v26.9.0'
-root=pathlib.Path(tempfile.mkdtemp(prefix='dvaia-listings-judge-v2-')).resolve();source=root/'source'
+root=pathlib.Path(tempfile.mkdtemp(prefix='owasp-ai-goat-listings-judge-v2-')).resolve();source=root/'source'
 subprocess.run([str(NODE),'-e',"require('./scripts/lib/isolated-source-copy').copyIsolatedSource(process.argv[1],process.argv[2])",str(REPO),str(source)],cwd=REPO,check=True,timeout=30)
 os.symlink(REPO/'node_modules',source/'node_modules',target_is_directory=True)
 hashfile=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()

@@ -16,8 +16,8 @@ from pathlib import Path
 
 SCOPE = 'identity-live-tail-native-v1'
 POSTGRES_IMAGE_ID = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
-LEGACY_NODE = Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
-CURRENT_MAIN_NODE = Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+LEGACY_NODE = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+CURRENT_MAIN_NODE = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 DOCKER = Path('/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker')
 PSQL = Path('/Users/averma5/.local/opt/agentic-ai-goat/Postgres-2.9.6-18.app/Contents/Versions/18/bin/psql')
 EXECUTABLE_HASHES = {
@@ -61,7 +61,7 @@ owner_handle = int(handle_path.read_text().strip())
 
 source = ROOT
 grant_path = Path(args.grant_file).resolve()
-evidence = Path(tempfile.mkdtemp(prefix='dvaia-identity-live-tail-'))
+evidence = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-identity-live-tail-'))
 workspace = source if args.current_main else evidence / 'source'
 if not args.current_main:
     workspace.mkdir(mode=0o700)
@@ -75,7 +75,7 @@ base_env['PATH'] = '/usr/bin:/bin:/usr/sbin:/sbin'
 base_env['NODE_PATH'] = str(workspace / 'node_modules')
 docker = [str(DOCKER), '--host', args.docker_host]
 nonce = uuid.uuid4().hex[:12]
-container = f'dvaia-identity-tail-{nonce}'
+container = f'owasp-ai-goat-identity-tail-{nonce}'
 ownership_path = evidence / 'ownership.json'
 result_path = evidence / 'result.tap'
 state = {
@@ -397,8 +397,8 @@ try:
         run(admin + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],
             stdout=subprocess.DEVNULL)
     databases = {
-        'qualification': (f'dvaia_test_identity_qualification_{nonce}', 'dvaia_identity_migration', 'dvaia_identity_runtime'),
-        'fresh': (f'dvaia_test_identity_fresh_{nonce}', 'dvaia_identity_migration', 'dvaia_identity_runtime'),
+        'qualification': (f'owasp_ai_goat_test_identity_qualification_{nonce}', 'dvaia_identity_migration', 'dvaia_identity_runtime'),
+        'fresh': (f'owasp_ai_goat_test_identity_fresh_{nonce}', 'dvaia_identity_migration', 'dvaia_identity_runtime'),
     }
     urls = {}
     for key, (database, migration_role, runtime_role) in databases.items():
@@ -409,12 +409,12 @@ try:
         urls[(key, 'migration')] = f'postgresql://{migration_role}@127.0.0.1:{port}/{database}'
         urls[(key, 'runtime')] = f'postgresql://{runtime_role}@127.0.0.1:{port}/{database}'
     env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes',
-               DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true',
-               DVAIA_IDENTITY_LAUNCHER='1',
-               DVAIA_IDENTITY_QUALIFICATION_MIGRATION_URL=urls[('qualification', 'migration')],
-               DVAIA_IDENTITY_QUALIFICATION_RUNTIME_URL=urls[('qualification', 'runtime')],
-               DVAIA_IDENTITY_FRESH_MIGRATION_URL=urls[('fresh', 'migration')],
-               DVAIA_IDENTITY_FRESH_RUNTIME_URL=urls[('fresh', 'runtime')])
+               OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true',
+               OWASP_AI_GOAT_IDENTITY_LAUNCHER='1',
+               OWASP_AI_GOAT_IDENTITY_QUALIFICATION_MIGRATION_URL=urls[('qualification', 'migration')],
+               OWASP_AI_GOAT_IDENTITY_QUALIFICATION_RUNTIME_URL=urls[('qualification', 'runtime')],
+               OWASP_AI_GOAT_IDENTITY_FRESH_MIGRATION_URL=urls[('fresh', 'migration')],
+               OWASP_AI_GOAT_IDENTITY_FRESH_RUNTIME_URL=urls[('fresh', 'runtime')])
     state['nodeVersion'] = run([str(NODE), '--version'], capture_output=True, text=True).stdout.strip()
     if state['nodeVersion'] != ('v26.10.0' if args.current_main else 'v26.9.0'):
         raise RuntimeError('pinned managed Node version mismatch')

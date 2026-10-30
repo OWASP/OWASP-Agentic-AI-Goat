@@ -10,7 +10,7 @@ const REPO = path.resolve(__dirname, '..');
 const REGISTRY_PATH = path.join(REPO, 'docs/modernization/learning-dependencies.json');
 
 function withRegistryMutation(t, mutate) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-learning-deps-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-learning-deps-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const registry = JSON.parse(fs.readFileSync(REGISTRY_PATH, 'utf8'));
   mutate(registry);

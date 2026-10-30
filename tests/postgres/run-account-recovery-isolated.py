@@ -19,7 +19,7 @@ parser.add_argument('--docker-host', required=True)
 parser.add_argument('--grant-file', required=True)
 parser.add_argument('--grant-id', required=True)
 args = parser.parse_args()
-expected_docker_host = 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+expected_docker_host = 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 if args.docker_host != expected_docker_host:
     raise SystemExit('the reviewed isolated PostgreSQL Docker daemon is required')
 
@@ -27,15 +27,15 @@ source = Path(__file__).resolve().parents[2]
 grant_path = Path(args.grant_file).resolve()
 if grant_path != (source / 'tasks/native-verification-slot.json').resolve():
     raise SystemExit('the durable repository grant file is required')
-evidence = Path(tempfile.mkdtemp(prefix='dvaia-account-recovery-'))
+evidence = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-account-recovery-'))
 workspace = evidence / 'source'
 workspace.mkdir()
 os.chmod(evidence, 0o700)
-node_bin = Path('/Users/averma5/.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin')
+node_bin = Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin')
 base_env = {key: os.environ[key] for key in ('PATH', 'HOME', 'TMPDIR') if key in os.environ}
 base_env['PATH'] = f'{node_bin}:{base_env.get("PATH", "")}'
 docker = ['docker', '--host', args.docker_host]
-container = f'dvaia-account-recovery-{uuid.uuid4().hex[:12]}'
+container = f'owasp-ai-goat-account-recovery-{uuid.uuid4().hex[:12]}'
 ownership_path = evidence / 'ownership.json'
 result_path = evidence / 'result.log'
 state = {
@@ -167,12 +167,12 @@ try:
     psql = ['psql', '-h', '127.0.0.1', '-p', str(port), '-U', 'account_recovery_admin',
             '-d', 'postgres', '-v', 'ON_ERROR_STOP=1']
     run(psql + ['-c', "CREATE ROLE dvaia_identity_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE dvaia_identity_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;"])
-    database = 'dvaia_test_account_recovery'
+    database = 'owasp_ai_goat_test_account_recovery'
     run(psql + ['-c', f'CREATE DATABASE {database} OWNER dvaia_identity_migration'])
     run(psql + ['-c', f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO dvaia_identity_migration,dvaia_identity_runtime'])
 
     env = dict(base_env, NODE_ENV='test', PG_TEST_DISPOSABLE='yes', AWS_EC2_METADATA_DISABLED='true',
-               DVAIA_ISOLATED_TEST_WORKSPACE=str(evidence),
+               OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(evidence),
                PG_ACCOUNT_RECOVERY_MIGRATION_URL=f'postgresql://dvaia_identity_migration@127.0.0.1:{port}/{database}',
                PG_ACCOUNT_RECOVERY_RUNTIME_URL=f'postgresql://dvaia_identity_runtime@127.0.0.1:{port}/{database}')
     state['runStatus'] = 'running'; write_state()

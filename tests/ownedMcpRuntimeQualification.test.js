@@ -13,7 +13,7 @@ async function harness(t,fault={}){
   let exists=false,profile=false,running=false,started=false,finished=false;
   const id='c'.repeat(64);
   const receipt={status:'passed',modelCalls:0,runtimeDigest:RUNTIME_DIGEST,qualificationComplete:false};
-  const row=()=>({Id:id,Name:'/'+spec.name,Image:RUNTIME_IMAGE,Config:{Labels:{'dvaia.runtime':nonce},User:'10001:10001',OpenStdin:true,Entrypoint:['node'],Cmd:['-'],Env:['SECURESHOP_MCP_REGISTRY_PROFILE='+spec.profile]},HostConfig:{NetworkMode:'none',ReadonlyRootfs:true,Privileged:false,CapDrop:['ALL'],Memory:536870912,NanoCpus:1000000000,PidsLimit:128,LogConfig:{Type:'none'},SecurityOpt:['apparmor='+spec.profile,'seccomp=unconfined'],Tmpfs:{'/tmp':'rw,nosuid,nodev,noexec,size=16m'}},Mounts:[],State:{Running:running,ExitCode:0}});
+  const row=()=>({Id:id,Name:'/'+spec.name,Image:RUNTIME_IMAGE,Config:{Labels:{'owasp-ai-goat.runtime':nonce},User:'10001:10001',OpenStdin:true,Entrypoint:['node'],Cmd:['-'],Env:['SECURESHOP_MCP_REGISTRY_PROFILE='+spec.profile]},HostConfig:{NetworkMode:'none',ReadonlyRootfs:true,Privileged:false,CapDrop:['ALL'],Memory:536870912,NanoCpus:1000000000,PidsLimit:128,LogConfig:{Type:'none'},SecurityOpt:['apparmor='+spec.profile,'seccomp=unconfined'],Tmpfs:{'/tmp':'rw,nosuid,nodev,noexec,size=16m'}},Mounts:[],State:{Running:running,ExitCode:0}});
   const journal=async name=>JSON.parse(await fs.readFile(path.join(spec.directory,name+'.json')));
   const docker=async(s,args,options={})=>{
     assert.equal(s.root,temporary);calls.push(args);
@@ -27,7 +27,7 @@ async function harness(t,fault={}){
       exists=true;if(fault.lostCreate)throw Object.assign(Error('lost create'),{code:'ADMISSION_COMMAND_TIMEOUT'});return id;
     }
     if(args[0]==='container'){
-      const value=row();if(fault.foreign)value.Config.Labels['dvaia.runtime']='foreign';
+      const value=row();if(fault.foreign)value.Config.Labels['owasp-ai-goat.runtime']='foreign';
       if(fault.mount)value.Mounts=[{Type:'bind',Destination:'/tmp'}];
       if(fault.memory)value.HostConfig.Memory=0;
       return JSON.stringify([value]);
@@ -103,7 +103,7 @@ test('unknown guest operation is rejected before spawning',async()=>{
 async function shellPolicyHarness(t){
   const directory=await fs.mkdtemp(path.join(require('node:os').tmpdir(),'runtime-policy-control-'));
   t.after(()=>fs.rm(directory,{recursive:true,force:true}));
-  const nonce='a'.repeat(12),profile='dvaia-owned-mcp-registry-'+nonce,guest=path.join(directory,'guest-'+nonce),labels=path.join(directory,'labels');
+  const nonce='a'.repeat(12),profile='owasp-ai-goat-owned-mcp-registry-'+nonce,guest=path.join(directory,'guest-'+nonce),labels=path.join(directory,'labels');
   const policy='controlled policy bytes',digest=crypto.createHash('sha256').update(policy).digest('hex');await fs.writeFile(labels,'');
   const stubs=`sha256sum() { /usr/bin/shasum -a 256 "$1"; }
 apparmor_parser() {
@@ -118,7 +118,7 @@ apparmor_parser() {
   const run=(operation,env={})=>new Promise((resolve,reject)=>{
     // Only path and kernel adapter substitutions: all ownership/marker checks
     // and removal statements execute unchanged against private test files.
-    const script=stubs+i.scripts[operation].replace('/var/tmp/dvaia-v23-runtime-','$TEST_GUEST_PREFIX')
+    const script=stubs+i.scripts[operation].replace('/var/tmp/owasp-ai-goat-v23-runtime-','$TEST_GUEST_PREFIX')
       .replace('cat /sys/kernel/security/apparmor/profiles','[ "${TEST_READ_FAILURE:-0}" = 0 ] && cat "$TEST_LABELS"');
     const child=require('node:child_process').spawn('/bin/sh',['-c',script,'test-policy',guest,nonce,profile,digest],{env:{PATH:process.env.PATH,TMPDIR:process.env.TMPDIR,TEST_LABELS:labels,TEST_GUEST_PREFIX:path.join(directory,'guest-'),...env},stdio:['pipe','pipe','pipe']});
     child.on('error',reject);child.stdout.resume();child.stderr.resume();child.on('close',code=>resolve(code));child.stdin.end(operation==='install'?policy:undefined);

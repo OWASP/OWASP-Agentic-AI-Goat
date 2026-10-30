@@ -8,7 +8,7 @@ const path = require('node:path');
 const { selectIsolatedTests } = require('../scripts/lib/isolated-test-selection');
 
 test('focused selection accepts explicit test files and rejects escapes and unsupported modes', () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-test-selection-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-test-selection-'));
   try {
     fs.mkdirSync(path.join(root, 'tests'));
     fs.writeFileSync(path.join(root, 'tests', 'safe.test.js'), '');

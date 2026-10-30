@@ -131,7 +131,7 @@ test('each confirmed save changes exactly its key and supported restore returns 
 test('Config fixture admits only the two exact Python-provisioned owned database pairs', () => {
   const nonce='a1b2c3d4e5f6';
   for (const state of ['FRESH','POPULATED']) for (const kind of ['IDENTITY','CTF']) {
-    const name=`/dvaia_test_ctf_config_${state[0].toLowerCase()}_${kind[0].toLowerCase()}_${nonce}`;
+    const name=`/owasp_ai_goat_test_ctf_config_${state[0].toLowerCase()}_${kind[0].toLowerCase()}_${nonce}`;
     assert.equal(assertConfigDatabaseName(name,state,kind,nonce),nonce);
     assert.throws(()=>assertConfigDatabaseName(name,state==='FRESH'?'POPULATED':'FRESH',kind,nonce));
     assert.throws(()=>assertConfigDatabaseName(name,state,kind==='CTF'?'IDENTITY':'CTF',nonce));

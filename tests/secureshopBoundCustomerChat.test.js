@@ -30,7 +30,7 @@ test('mid-stream stale launch sends bounded error without writing a sent header'
  t.after(()=>new Promise(resolve=>server.close(resolve)));
  await new Promise(resolve=>server.once('listening',resolve));
  const response=await fetch(`http://127.0.0.1:${server.address().port}/api/secureshop/agents/customer/chat`,{
-  method:'POST',headers:{'content-type':'application/json','x-dvaia-secureshop-launch':'a'.repeat(43)},
+  method:'POST',headers:{'content-type':'application/json','x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)},
   body:JSON.stringify({sessionId:session.sessionId,requestId,message:'hello'})});
  assert.equal(response.status,200);
  const body=await response.text();assert.match(body,/event: tool_call/);assert.match(body,/event: error/);
@@ -82,9 +82,9 @@ test('saved customer turn denies a replacement persona session without retiring 
  const server=app.listen(0,'127.0.0.1');t.after(()=>new Promise(resolve=>server.close(resolve)));
  await new Promise(resolve=>server.once('listening',resolve));
  const url=`http://127.0.0.1:${server.address().port}/api/secureshop/agents/customer/operations/${conversation.id}/${requestId}`;
- const options={headers:{'x-dvaia-secureshop-launch':'a'.repeat(43)}};
+ const options={headers:{'x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)}};
  const denied=await fetch(url,options);
- assert.equal(denied.status,401);assert.equal(denied.headers.get('x-dvaia-secureshop-launch-state'),null);
+ assert.equal(denied.status,401);assert.equal(denied.headers.get('x-owasp-ai-goat-secureshop-launch-state'),null);
  assert.deepEqual(await denied.json(),{error:'Shop session unavailable'});
  admittedSession=session;
  const original=await fetch(url,options);assert.equal(original.status,200);
@@ -100,14 +100,14 @@ test('saved customer route retains launch-wide fences for genuine stale authorit
  const server=app.listen(0,'127.0.0.1');t.after(()=>new Promise(resolve=>server.close(resolve)));
  await new Promise(resolve=>server.once('listening',resolve));
  const url=`http://127.0.0.1:${server.address().port}/api/secureshop/agents/customer/operations/${session.sessionId}/${requestId}`;
- const options={headers:{'x-dvaia-secureshop-launch':'a'.repeat(43)}};
+ const options={headers:{'x-owasp-ai-goat-secureshop-launch':'a'.repeat(43)}};
  for(const code of ['STALE_LAUNCH','LAUNCH_UNAVAILABLE','SESSION_UNAVAILABLE','CONVERSATION_UNAVAILABLE','SHOP_AUTH_INVALID','SHOP_SCENE_STALE']){
   errorCode=code;const response=await fetch(url,options);
-  assert.equal(response.status,401,code);assert.equal(response.headers.get('x-dvaia-secureshop-launch-state'),'unavailable',code);
+  assert.equal(response.status,401,code);assert.equal(response.headers.get('x-owasp-ai-goat-secureshop-launch-state'),'unavailable',code);
   assert.deepEqual(await response.json(),{error:'Shop session unavailable'});
  }
  current=false;const before=reads,response=await fetch(url,options);
- assert.equal(response.status,401);assert.equal(response.headers.get('x-dvaia-secureshop-launch-state'),'unavailable');
+ assert.equal(response.status,401);assert.equal(response.headers.get('x-owasp-ai-goat-secureshop-launch-state'),'unavailable');
  assert.equal(reads,before);assert.deepEqual(await response.json(),{error:'SecureShop launch unavailable'});
 });
 test('scene change after journal commit cannot publish stale terminal success',async()=>{

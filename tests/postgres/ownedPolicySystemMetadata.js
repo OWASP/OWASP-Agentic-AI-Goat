@@ -548,7 +548,7 @@ async function guestMetadataMain(canonicalSources,binding,metadataAptOptions,adm
  let compressed=0,expanded=0,diagnostic=0,failed=null,sourceSnapshot=null,commandFailure=null,retention=null;
  const children=new Set(),requests=new Set(),allRequests=new Set(),controller=new AbortController();
  const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
- const stage=value=>process.stderr.write('DVAIA_METADATA_STAGE='+value+'\n');
+ const stage=value=>process.stderr.write('OWASP_AI_GOAT_METADATA_STAGE='+value+'\n');
  function emit(ok,candidate,errorCode){
   const encoded=JSON.stringify({version:packageSelection.retention?3:2,kind:'owned-policy-system-metadata-result',binding,ok,candidate,errorCode,sourceSnapshot,commandFailure});
   if(Buffer.byteLength(encoded)>limit.report)throw Error('METADATA_REPORT_LIMIT');
@@ -557,8 +557,8 @@ async function guestMetadataMain(canonicalSources,binding,metadataAptOptions,adm
  }
  function stop(error){failed ||= error;controller.abort();for(const r of requests)r.destroy();for(const child of children)child.kill('SIGKILL');}
  const timer=setTimeout(()=>stop(Error('METADATA_DEADLINE')),290000);
- const proxyPort=Number(process.env.DVAIA_METADATA_PROXY_PORT);
- if(!/^[1-9]\d{0,4}$/.test(process.env.DVAIA_METADATA_PROXY_PORT||'')||proxyPort>65535)
+ const proxyPort=Number(process.env.OWASP_AI_GOAT_METADATA_PROXY_PORT);
+ if(!/^[1-9]\d{0,4}$/.test(process.env.OWASP_AI_GOAT_METADATA_PROXY_PORT||'')||proxyPort>65535)
   throw Error('METADATA_UPSTREAM_AUTHORITY');
  const upstreamAuthority=Object.freeze({host:'127.0.0.1',port:proxyPort});
  const roots=new Set(['deb.debian.org']);
@@ -740,7 +740,7 @@ async function guestMetadataMain(canonicalSources,binding,metadataAptOptions,adm
  }catch(error){
   const allowed=new Set(['EACCES','ENOENT','ENOSPC','ECONNRESET','ECONNREFUSED','ETIMEDOUT','CERT_HAS_EXPIRED','UNABLE_TO_VERIFY_LEAF_SIGNATURE','ERR_TLS_CERT_ALTNAME_INVALID']);
   const code=allowed.has(error.code)?error.code:/^METADATA_[A-Z_]{1,64}$/.test(error.message)?error.message:'METADATA_FAILED';
-  process.stderr.write('DVAIA_METADATA_ERROR='+code+'\n');outcome={ok:false,candidate:null,errorCode:code};
+  process.stderr.write('OWASP_AI_GOAT_METADATA_ERROR='+code+'\n');outcome={ok:false,candidate:null,errorCode:code};
  }
  finally{
   clearTimeout(timer);stop(Error('METADATA_FINISHED'));proxy.close();

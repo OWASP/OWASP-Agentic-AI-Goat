@@ -5,17 +5,17 @@ const {Pool}=require('pg');
 const enabled=process.env.WORKSHOP_COOKIE_AUTHORITY_NATIVE==='1';
 test('mounted backend fences stale teaching cookies from MCP and XSS platform ownership', {skip:!enabled,timeout:120000},async()=>{
  assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');const source=fs.realpathSync(path.resolve(__dirname,'../..'));
- assert.equal(source,fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));let root=process.env.COOKIE_AUTHORITY_EVIDENCE_ROOT;
+ assert.equal(source,fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));let root=process.env.COOKIE_AUTHORITY_EVIDENCE_ROOT;
  assert.ok(path.isAbsolute(root)&&!root.startsWith(source+'/'));fs.mkdirSync(root,{recursive:true,mode:0o700});root=fs.realpathSync(root);
  const {requiredStoreManifest}=require('../../db/postgres/initialize-application');const endpoint=new URL(process.env.IDENTITY_DATABASE_URL);
  const env={PATH:process.env.PATH,NODE_ENV:'test',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',
   SS_ENABLE:'false',SS_ENABLE_REAL_MCP_SPAWN:'false',MCP_SIDECARS_AUTOSTART:'false',MCP_WORKSHOP_AUTOSTART:'false',
   AI_PROVIDER:'mock',OLLAMA_BASE_URL:'http://127.0.0.1:1',AWS_EC2_METADATA_DISABLED:'true',HF_HUB_OFFLINE:'1',TRANSFORMERS_OFFLINE:'1',
   EVENT_GATE_ENABLED:'false',JWT_SECRET:randomUUID()+randomUUID(),LANGCHAIN_TRACING_V2:'false',LANGSMITH_TRACING:'false',
-  HOME:path.join(root,'home'),LOGS_DIR:path.join(root,'logs'),DVAIA_APP_DATA_ROOT:path.join(root,'app-data'),
+  HOME:path.join(root,'home'),LOGS_DIR:path.join(root,'logs'),OWASP_AI_GOAT_APP_DATA_ROOT:path.join(root,'app-data'),
   LEGACY_SENSITIVE_FILES_ROOT:path.join(root,'legacy-files')};
- for(const row of requiredStoreManifest)for(const key of [row.runtimeVariable,row.migrationVariable]){const url=new URL(process.env[key]);assert.equal(url.hostname,'127.0.0.1');assert.equal(url.host,endpoint.host);assert.match(url.pathname,new RegExp('^/dvaia_test_guidance_'+row.schema+'_[a-f0-9]{12}$'));env[key]=url.href;}
- for(const key of ['HOME','LOGS_DIR','DVAIA_APP_DATA_ROOT'])fs.mkdirSync(env[key],{recursive:true,mode:0o700});
+ for(const row of requiredStoreManifest)for(const key of [row.runtimeVariable,row.migrationVariable]){const url=new URL(process.env[key]);assert.equal(url.hostname,'127.0.0.1');assert.equal(url.host,endpoint.host);assert.match(url.pathname,new RegExp('^/owasp_ai_goat_test_guidance_'+row.schema+'_[a-f0-9]{12}$'));env[key]=url.href;}
+ for(const key of ['HOME','LOGS_DIR','OWASP_AI_GOAT_APP_DATA_ROOT'])fs.mkdirSync(env[key],{recursive:true,mode:0o700});
  const {networkGuardSource,createOwnedChildren,waitForChild}=require('../fixtures/fullBackendBootControls');const owned=createOwnedChildren(spawn);
  const guard=path.join(root,'network-guard.cjs');fs.writeFileSync(guard,networkGuardSource({host:'127.0.0.1',port:Number(endpoint.port)}),{mode:0o600});env.NODE_OPTIONS='--require='+guard;
  const runtime=new Pool({connectionString:env.IDENTITY_DATABASE_URL}),migration=new Pool({connectionString:env.IDENTITY_MIGRATION_DATABASE_URL}),xss=new Pool({connectionString:env.XSS_WORKSHOP_MIGRATION_DATABASE_URL});

@@ -1,6 +1,6 @@
 # Repository Change Instructions
 
-These are standing rules for agents and contributors making changes in DVAIA.
+These are standing rules for agents and contributors making changes in OWASP Agentic AI GOAT.
 They supplement `CLAUDE.md`; the security-lab do-not-fix rules there still
 apply.
 

@@ -12,7 +12,7 @@ const {createStudentDeletionStoreCleanup}=require('../../server/services/student
 const PREFIX='PG_STUDENT_DELETION_FINALIZER_';
 const keys=['IDENTITY_MIGRATION_URL','IDENTITY_RUNTIME_URL','XSS_MIGRATION_URL','XSS_RUNTIME_URL','FINFLOW_MIGRATION_URL','FINFLOW_RUNTIME_URL'];
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&keys.every(key=>process.env[PREFIX+key]);
-function url(key){const value=new URL(process.env[PREFIX+key]);assert.ok(['127.0.0.1','localhost'].includes(value.hostname));assert.match(value.pathname,/^\/dvaia_test_[a-z0-9_]+$/);return value.href;}
+function url(key){const value=new URL(process.env[PREFIX+key]);assert.ok(['127.0.0.1','localhost'].includes(value.hostname));assert.match(value.pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);return value.href;}
 test('native deletion finalizers remove exact owner content, preserve siblings, and replay safely',{skip:!enabled,timeout:60000},async()=>{
  const im=new Pool({connectionString:url('IDENTITY_MIGRATION_URL')}),i=new Pool({connectionString:url('IDENTITY_RUNTIME_URL')});
  const xm=new Pool({connectionString:url('XSS_MIGRATION_URL')}),x=new Pool({connectionString:url('XSS_RUNTIME_URL')});

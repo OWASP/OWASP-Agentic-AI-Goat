@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {seedWorkshopPlatform,solutionFixtures}=require('../../server/database/postgres/workshopPlatformSeed');
 const curriculum=require('../../server/config/secureshopCurriculum'),prior=require('../fixtures/secureshopMailReplyPriorDefaults.json');
 test('reply native managed-default transition preserves instructor and sibling catalog state', {timeout:120000},async()=>{
- assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(process.env.MAIL_REPLY_SEED_ONLY,'1');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(process.env.MAIL_REPLY_SEED_ONLY,'1');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
  const runtime=new Pool({connectionString:process.env.IDENTITY_DATABASE_URL,max:2}),migration=new Pool({connectionString:process.env.IDENTITY_MIGRATION_DATABASE_URL,max:2});
  const id='ss_mail_reply_redirect',key=curriculum.WORKSHOP_KEY;
  const snapshot=async()=>({objectives:(await runtime.query('SELECT * FROM workshop_platform.objectives ORDER BY workshop_key,objective_id')).rows,exercises:(await runtime.query('SELECT * FROM workshop_platform.exercises ORDER BY workshop_key')).rows,defaults:(await migration.query('SELECT * FROM workshop_platform.catalog_field_defaults ORDER BY entity_kind,workshop_key,objective_id,field_name')).rows,revision:(await runtime.query('SELECT * FROM workshop_platform.config_revision ORDER BY id')).rows});

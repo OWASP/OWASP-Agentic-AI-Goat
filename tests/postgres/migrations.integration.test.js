@@ -11,9 +11,9 @@ const { migrate } = require('../../db/postgres/migrate');
 const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && Boolean(process.env.PG_TEST_DATABASE_URL);
 test('real PostgreSQL: repeatable migrations, rollback, history integrity and concurrent boot', { skip: !enabled }, async () => {
   const url = new URL(process.env.PG_TEST_DATABASE_URL);
-  assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   const pool = createPool(process.env, 'PG_TEST_DATABASE_URL');
-  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-pg-migrations-'));
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-pg-migrations-'));
   try {
     const existing = await pool.query("SELECT to_regnamespace('dvaia_migrations') AS schema");
     assert.equal(existing.rows[0].schema, null, 'Test requires a fresh disposable database');

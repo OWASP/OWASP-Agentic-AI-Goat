@@ -12,7 +12,7 @@ async function acquireLifecycleBarrier({environment,runId,ownerKey,observeQuery,
  if(typeof runId!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(runId)||typeof ownerKey!=='string'||ownerKey.length>512||typeof observeQuery!=='function')throw fail('LIFECYCLE_BARRIER_ARGUMENTS');
  let parsed;try{parsed=JSON.parse(ownerKey);}catch{}if(!Array.isArray(parsed)||parsed.length!==2||parsed[0]!=='ARIA'||typeof parsed[1]!=='string'||! /^[1-9][0-9]*$/.test(parsed[1])||JSON.stringify(parsed)!==ownerKey)throw fail('LIFECYCLE_BARRIER_ARGUMENTS');
  signal?.throwIfAborted();
- const client=new Client({...poolConfig(environment,'IDENTITY_DATABASE_URL'),application_name:'dvaia-capacity-lifecycle-barrier',connectionTimeoutMillis:2000,query_timeout:2000});
+ const client=new Client({...poolConfig(environment,'IDENTITY_DATABASE_URL'),application_name:'owasp-ai-goat-capacity-lifecycle-barrier',connectionTimeoutMillis:2000,query_timeout:2000});
  let transaction=false,released=false,releasePromise,timer,invalid=null,identity;
  const onError=()=>{invalid??=fail('LIFECYCLE_BARRIER_CONNECTION_LOST');};client.on('error',onError);
  async function bounded(work){let t;try{return await Promise.race([Promise.resolve().then(work),new Promise((_,reject)=>{t=setTimeout(()=>reject(fail('LIFECYCLE_BARRIER_CLEANUP_UNKNOWN')),2500);})]);}finally{clearTimeout(t);}}

@@ -8,7 +8,7 @@ const {TABLES,importCtfSnapshot}=require('../../server/database/postgres/ctfImpo
 const {stageDigest}=require('../../server/agent-runtime/ctfStageJudge');
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_CTF_TEST_RUNTIME_URL;
 test('CTF native PostgreSQL retains ten stages, atomic judgments, restart/reset fencing and administration',{skip:!enabled},async()=>{
- for(const key of ['PG_CTF_TEST_RUNTIME_URL','PG_CTF_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const key of ['PG_CTF_TEST_RUNTIME_URL','PG_CTF_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const pool=createPool(process.env,'PG_CTF_TEST_RUNTIME_URL'),migration=createPool(process.env,'PG_CTF_TEST_MIGRATION_URL');
  try{
  const store=createCtfDb(pool);await store.initialize(migration);

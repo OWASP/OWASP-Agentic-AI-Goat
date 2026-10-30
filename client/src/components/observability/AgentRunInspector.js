@@ -104,7 +104,7 @@ const FAMILY_LABELS = Object.freeze({
   XSS_EMAIL: 'XSS email builder', DPI: 'Direct prompt injection', IndirectEmail: 'Indirect email',
   ExcessiveAgency: 'Excessive agency', FinFlow: 'FinFlow · Sensitive info',
   LegacySensitiveInfo: 'Legacy sensitive info', SensitiveLookup: 'Sensitive lookup',
-  SecureShopBoundConversation: 'SecureShop bound conversation',
+  SecureShopBoundConversation: 'OWASP AI SecureShop bound conversation',
 });
 const DETAIL_ACCESS_DENIAL_STATUSES = new Set([401, 403, 404]);
 

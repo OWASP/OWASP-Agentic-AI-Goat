@@ -31,7 +31,7 @@ async function fixture(t, personaSession) {
   return { base: `http://127.0.0.1:${server.address().port}/api/secureshop`, calls };
 }
 function headers(role = 'merchant', token = bearer) {
-  return { authorization: `Bearer ${role}-12`, 'x-dvaia-secureshop-launch': token,
+  return { authorization: `Bearer ${role}-12`, 'x-owasp-ai-goat-secureshop-launch': token,
     'content-type': 'application/json' };
 }
 

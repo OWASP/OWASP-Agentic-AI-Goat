@@ -30,10 +30,10 @@ def validate_upload_preview_native(receipt):
  return receipt
 
 parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--docker-host',required=True);parser.add_argument('--upload-preview',action='store_true');parser.add_argument('--plan',action='store_true');args=parser.parse_args()
-HOST='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+HOST='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 if args.docker_host!=HOST:parser.error('reviewed owned Docker daemon required')
 SOURCE=Path(__file__).resolve().parents[1]
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 assert hashlib.sha256(NODE.read_bytes()).hexdigest()=='56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 if args.upload_preview:
  subprocess.run([str(NODE),'-e',"require('./scripts/install/secureshop-owned-system').sourceManifest(process.cwd())"],cwd=SOURCE,check=True,capture_output=True,text=True,timeout=10)
@@ -45,9 +45,9 @@ if args.plan:
   assert file.is_file() and not file.is_symlink() and hashlib.sha256(file.read_bytes()).hexdigest()==digest
  print(json.dumps({'plan':True,'mutating':False,'mode':'upload-preview' if args.upload_preview else 'system-local','architecture':'arm64','sourceRoot':str(SOURCE),'packageManifestSha256':hashlib.sha256((package/'local-package-manifest.json').read_bytes()).hexdigest(),'sourceHashes':manifest['files'],'launcherSha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'nodeSha256':hashlib.sha256(NODE.read_bytes()).hexdigest(),'modelCalls':0,'databases':0,'sourceCopy':False if args.upload_preview else 'legacy-default'}))
  raise SystemExit(0)
-OUT=Path(tempfile.mkdtemp(prefix='dvaia-system-local-package-')).resolve();OUT.chmod(0o700)
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node');DOCKER=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host',HOST]
-BASE='sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1';OWNER=uuid.uuid4().hex;PREFIX='dvaia-system-package-'+OWNER[:12];TAG=PREFIX+':owned';NETWORK=PREFIX+'-bridge'
+OUT=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-system-local-package-')).resolve();OUT.chmod(0o700)
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node');DOCKER=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host',HOST]
+BASE='sha256:ec7758ee051e457b468b32bde57b0879010b325bb9862718e9615225ce4aaae1';OWNER=uuid.uuid4().hex;PREFIX='owasp-ai-goat-system-package-'+OWNER[:12];TAG=PREFIX+':owned';NETWORK=PREFIX+'-bridge'
 ENV={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(OUT)}
 state={'out':str(OUT),'owner':OWNER,'tag':TAG,'network':NETWORK,'base':BASE,'status':'preparing','sourceHashes':{},'containers':[],'children':[]};handles=[];image=None;network=False;building=False;tokens=[]
 def persist():(OUT/'result.json').write_text(json.dumps(state,indent=2)+'\n')
@@ -85,7 +85,7 @@ def tracked(command,cwd,environment,log,timeout):
 def remove_container(name):
  if not absent('container',name):
   info=inspect('container',name)
-  if info['Config']['Labels'].get('dvaia.test.owner')!=OWNER:raise RuntimeError('foreign container')
+  if info['Config']['Labels'].get('owasp-ai-goat.test.owner')!=OWNER:raise RuntimeError('foreign container')
   if info['State']['Running']:run(['stop','--time','25',name],timeout=35)
   info=inspect('container',name);state.setdefault('containerExits',{})[name]=info['State']['ExitCode']
   logs=run(['logs',name],check=False);text=logs.stdout+logs.stderr
@@ -98,7 +98,7 @@ signal.signal(signal.SIGTERM,interrupted);signal.signal(signal.SIGINT,interrupte
 try:
  assert sha(Path(DOCKER[0]))=='95fab203ab36bd2b4f3cd8a1d0dc6d084252f2ec224dc76bfbaebe1540cdd15e'
  assert run(['info','--format','{{.ID}}']).stdout.strip()=='2c9da9a7-1f8c-490b-af98-87bbf6bf83db'
- assert run(['info','--format','{{.Name}}']).stdout.strip()=='colima-dvaia-pg-verify'
+ assert run(['info','--format','{{.Name}}']).stdout.strip()=='colima-owasp-ai-goat-pg-verify'
  base=inspect('image',BASE);assert base['Id']==BASE and base['Architecture']=='arm64'
  assert absent('image',TAG) and absent('network',NETWORK)
  workspace=SOURCE if args.upload_preview else OUT/'source';package=OUT/'package-context' if args.upload_preview else workspace/'sidecars/sandbox-runner/owned-system';package.mkdir(parents=True)
@@ -125,15 +125,15 @@ try:
   if '-----BEGIN CERTIFICATE-----' not in certificates or len(certificates.encode())>1048576:raise RuntimeError('Bounded build CA unavailable')
   ca=OUT/'build-ca.pem';ca.write_text(certificates);ca.chmod(0o600);state['buildCaSha256']=sha(ca);persist();build_secrets=['--secret','id=npm_ca,src='+str(ca)]
  building=True
- tracked(DOCKER+['build',*build_secrets,'--pull=false','--network=default','--label','dvaia.test.owner='+OWNER,'-f','Dockerfile.local','-t',TAG,'.'],package,ENV,OUT/'build.log',300)
- image=inspect('image',TAG);assert image['Config']['Labels'].get('dvaia.test.owner')==OWNER;assert image['Architecture']=='arm64';state['imageId']=image['Id'];persist()
+ tracked(DOCKER+['build',*build_secrets,'--pull=false','--network=default','--label','owasp-ai-goat.test.owner='+OWNER,'-f','Dockerfile.local','-t',TAG,'.'],package,ENV,OUT/'build.log',300)
+ image=inspect('image',TAG);assert image['Config']['Labels'].get('owasp-ai-goat.test.owner')==OWNER;assert image['Architecture']=='arm64';state['imageId']=image['Id'];persist()
  if not args.upload_preview:
-  network=True;run(['network','create','--label','dvaia.test.owner='+OWNER,NETWORK]);ni=inspect('network',NETWORK);assert ni['Internal'] is False and ni['Labels'].get('dvaia.test.owner')==OWNER
+  network=True;run(['network','create','--label','owasp-ai-goat.test.owner='+OWNER,NETWORK]);ni=inspect('network',NETWORK);assert ni['Internal'] is False and ni['Labels'].get('owasp-ai-goat.test.owner')==OWNER
  state['outerEgressIsolationEstablished']=args.upload_preview
  for mode in (['upload-preview-native'] if args.upload_preview else ['invalid','missing-enable','config','diagnostic']):
   name=PREFIX+'-'+mode;assert absent('container',name);state['containers'].append(name);persist();token=secrets.token_urlsafe(32);tokens.append(token)
   if args.upload_preview:
-   run(['run','--detach','--pull','never','--name',name,'--label','dvaia.test.owner='+OWNER,'--network','none','--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--tmpfs','/var/lib/dvaia-owned-upload-preview:rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001','--security-opt','seccomp=unconfined','--security-opt','apparmor=dvaia-mcp-sandbox','--env','UPLOAD_PREVIEW_NATIVE_QUALIFICATION=1','--entrypoint','/usr/local/bin/node',image['Id'],'/opt/dvaia-owned-system/upload-preview-native-qualification.js'])
+   run(['run','--detach','--pull','never','--name',name,'--label','owasp-ai-goat.test.owner='+OWNER,'--network','none','--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--tmpfs','/var/lib/owasp-ai-goat-owned-upload-preview:rw,nosuid,nodev,size=32m,mode=0700,uid=10001,gid=10001','--security-opt','seccomp=unconfined','--security-opt','apparmor=owasp-ai-goat-mcp-sandbox','--env','UPLOAD_PREVIEW_NATIVE_QUALIFICATION=1','--entrypoint','/usr/local/bin/node',image['Id'],'/opt/owasp-ai-goat-owned-system/upload-preview-native-qualification.js'])
    actual=inspect('container',name);hc=actual['HostConfig']
    assert actual['Config']['User']=='10001:10001' and hc['ReadonlyRootfs'] is True and hc['NetworkMode']=='none' and not actual.get('Mounts') and hc['Memory']==536870912 and hc['NanoCpus']==1000000000 and hc['PidsLimit']==128
    code=run(['wait',name],timeout=180).stdout.strip();logs=run(['logs',name],check=False)
@@ -146,7 +146,7 @@ try:
   if mode in ['config','diagnostic']:
    prefix='SECURESHOP_SYSTEM_'+mode.upper();private.write_text(prefix+'_HTTP_ENABLED=true\n'+prefix+'_TOKEN='+token+'\n'+prefix+'_HOST=0.0.0.0\n'+prefix+'_PORT=8090\n')
   commandMode='config' if mode=='missing-enable' else mode
-  run(['run','--detach','--pull','never','--name',name,'--label','dvaia.test.owner='+OWNER,'--network',NETWORK,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--security-opt','seccomp=unconfined','--security-opt','apparmor=dvaia-mcp-sandbox','-p','127.0.0.1::8090','--env-file',str(private),image['Id'],commandMode]);private.unlink()
+  run(['run','--detach','--pull','never','--name',name,'--label','owasp-ai-goat.test.owner='+OWNER,'--network',NETWORK,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--security-opt','seccomp=unconfined','--security-opt','apparmor=owasp-ai-goat-mcp-sandbox','-p','127.0.0.1::8090','--env-file',str(private),image['Id'],commandMode]);private.unlink()
   deadline=time.monotonic()+5
   while True:
    actual=inspect('container',name);ports=actual['NetworkSettings']['Ports'] or {};bindings=ports.get('8090/tcp') or []
@@ -174,7 +174,7 @@ try:
    output=OUT/(mode+'-result.json');childenv={**ENV,'OWNED_PACKAGE_MODE':mode,'OWNED_PACKAGE_URL':url,'OWNED_PACKAGE_TOKEN':token,'OWNED_PACKAGE_RESULT':str(output)}
    tracked([str(NODE),'tests/fixtures/secureshopSystemLocalPackageNative.js'],workspace,childenv,OUT/(mode+'-client.log'),25)
    state.setdefault('modes',{})[mode]=json.loads(output.read_text())
-   run(['cp',name+':/opt/dvaia-owned-system/packages.txt',str(OUT/'packages.txt')]);state['packagesSha256']=sha(OUT/'packages.txt')
+   run(['cp',name+':/opt/owasp-ai-goat-owned-system/packages.txt',str(OUT/'packages.txt')]);state['packagesSha256']=sha(OUT/'packages.txt')
   remove_container(name);persist()
  state['sourceUnchanged']=all(sha(SOURCE/name)==digest for name,digest in state['sourceHashes'].items()) if args.upload_preview else True
  state['nodeUnchanged']=sha(NODE)==state['nodeSha256']
@@ -193,12 +193,12 @@ finally:
  if network:
   try:
    if not absent('network',NETWORK):
-    assert inspect('network',NETWORK)['Labels'].get('dvaia.test.owner')==OWNER;run(['network','rm',NETWORK])
+    assert inspect('network',NETWORK)['Labels'].get('owasp-ai-goat.test.owner')==OWNER;run(['network','rm',NETWORK])
   except BaseException as error:errors.append('network:'+type(error).__name__)
  if building:
   try:
    if not absent('image',TAG):
-    actual=inspect('image',TAG);assert actual['Config']['Labels'].get('dvaia.test.owner')==OWNER;state['imageId']=actual['Id'];run(['image','rm',TAG])
+    actual=inspect('image',TAG);assert actual['Config']['Labels'].get('owasp-ai-goat.test.owner')==OWNER;state['imageId']=actual['Id'];run(['image','rm',TAG])
   except BaseException as error:errors.append('image:'+type(error).__name__)
  private=OUT/'private.env'
  if private.exists():private.unlink()

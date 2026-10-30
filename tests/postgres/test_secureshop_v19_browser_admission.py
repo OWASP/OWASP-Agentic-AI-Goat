@@ -47,7 +47,7 @@ class Admission(unittest.TestCase):
         self.assertEqual(watcher.direct_command([parsed.node, '--test', '--test-reporter=tap',
             '--test-concurrency=1', L.TEST], parsed), [parsed.node, '--test-reporter=tap', L.TEST])
         self.assertEqual(watcher.KIND, 'v19_file_summary_browser')
-        self.assertEqual(ownership.PROFILE_PREFIX, 'dvaia-v19-browser-')
+        self.assertEqual(ownership.PROFILE_PREFIX, 'owasp-ai-goat-v19-browser-')
         original = L.load(L.LIFECYCLE, 'v12_unmodified_control')
         self.assertNotEqual(original.TEST, watcher.TEST)
         self.assertEqual(original.KIND, 'idor_lesson_browser')

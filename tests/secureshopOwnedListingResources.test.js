@@ -34,7 +34,7 @@ test('actual HTTP entities resolve owned bytes; redirect, status, limits and sta
 });
 
 test('file reader accepts owned synthetic files and denies sibling paths and symlinks', async () => {
-  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-listing-resources-'));
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-listing-resources-'));
   try {
     const root = path.join(temporary, 'owned'); await fs.mkdir(root);
     const file = path.join(root, 'synthetic.txt'), sibling = path.join(temporary, 'sibling.txt');
@@ -49,7 +49,7 @@ test('file reader accepts owned synthetic files and denies sibling paths and sym
   } finally { await fs.rm(temporary, { recursive: true, force: true }); }
 });
 test('owned named pipes are rejected without blocking on open', {timeout:2000}, async()=>{
- const temporary=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-listing-fifo-'));
+ const temporary=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-listing-fifo-'));
  try{
   const fifo=path.join(temporary,'synthetic-pipe');
   require('node:child_process').execFileSync('mkfifo',[fifo]);

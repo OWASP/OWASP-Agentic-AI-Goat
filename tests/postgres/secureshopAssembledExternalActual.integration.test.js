@@ -19,7 +19,7 @@ function checked(store, role) {
   const value = new URL(process.env[`PERSONA_${store}_${role}_URL`]);
   assert.equal(value.hostname, '127.0.0.1');
   assert.match(value.pathname,
-    /^\/dvaia_test_persona_[a-f0-9]+_(commerce|fresh|review|identity|identityfresh)$/);
+    /^\/owasp_ai_goat_test_persona_[a-f0-9]+_(commerce|fresh|review|identity|identityfresh)$/);
   return value.href;
 }
 
@@ -27,7 +27,7 @@ test('assembled MCP and SSRF actual actor and Judge retain startup persona autho
   skip: !enabled,
   timeout: 600000,
 }, async t => {
-  const workspace = fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
+  const workspace = fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
   assert.equal(fs.realpathSync(process.cwd()), workspace);
   const pools = Object.fromEntries(STORES.flatMap(store => ['MIGRATION', 'RUNTIME'].map(role => {
     const pool = new Pool({ connectionString: checked(store, role), max: 3,

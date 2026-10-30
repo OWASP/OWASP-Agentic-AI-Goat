@@ -9,7 +9,7 @@ const {createSecureShopAccountRepository}=require('../../server/database/postgre
 const buildAuthRouter=require('../../server/routes/secureshop/postgres/auth');
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_SECURESHOP_TEST_RUNTIME_URL;
 test('native SecureShop account routes preserve contracts and atomic owner address changes',{skip:!enabled},async()=>{
-  for(const key of ['PG_SECURESHOP_TEST_RUNTIME_URL','PG_SECURESHOP_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_/);
+  for(const key of ['PG_SECURESHOP_TEST_RUNTIME_URL','PG_SECURESHOP_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_/);
   const pool=createPool(process.env,'PG_SECURESHOP_TEST_RUNTIME_URL');
   const migration=createPool(process.env,'PG_SECURESHOP_TEST_MIGRATION_URL');
   const previousSecret=process.env.JWT_SECRET;process.env.JWT_SECRET='disposable-secureshop-http-test-secret';

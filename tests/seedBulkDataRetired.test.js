@@ -8,7 +8,7 @@ const path = require('node:path');
 const script = path.resolve(__dirname, '../scripts/seed-bulk-data.js');
 
 test('retired bulk operator command fails closed for default, new and existing targets', () => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-seed-bulk-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-seed-bulk-'));
   const absent = path.join(directory, 'new.db');
   const existing = path.join(directory, 'existing.db');
   const sentinel = Buffer.from('owned synthetic fixture sentinel\n');

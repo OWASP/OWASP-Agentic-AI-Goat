@@ -21,7 +21,7 @@ if args.suite == 'capacity':
 root=Path(args.evidence_dir).resolve();root.mkdir(parents=True,exist_ok=False);os.chmod(root,0o700)
 workspace=root/'source';workspace.mkdir()
 container=args.container
-prefix = 'dvaia-admin-http-' if args.suite == 'admin' else 'dvaia-capacity-'
+prefix = 'owasp-ai-goat-admin-http-' if args.suite == 'admin' else 'owasp-ai-goat-capacity-'
 if not container.startswith(prefix):raise SystemExit('owned container prefix required')
 base_env={key:os.environ[key] for key in ['PATH','HOME','TMPDIR'] if key in os.environ}
 docker=['docker','--host',args.docker_host];started=False;child=None
@@ -65,16 +65,16 @@ try:
  port=int(run(docker+['port',container,'5432'],capture_output=True,text=True).stdout.strip().rsplit(':',1)[1])
  psql=['psql','-h','127.0.0.1','-p',str(port),'-U','admin_http_owner','-d','postgres','-v','ON_ERROR_STOP=1']
  migration='dvaia_identity_migration';runtime='dvaia_identity_runtime'
- database='dvaia_test_admin_http' if args.suite == 'admin' else 'dvaia_test_capacity_owned'
+ database='owasp_ai_goat_test_admin_http' if args.suite == 'admin' else 'owasp_ai_goat_test_capacity_owned'
  for role in [migration,runtime]:run(psql+['-c',f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'],stdout=subprocess.DEVNULL)
  run(psql+['-c',f'CREATE DATABASE {database} OWNER {migration}'],stdout=subprocess.DEVNULL)
  run(psql+['-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO {migration},{runtime}'],stdout=subprocess.DEVNULL)
- env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),AWS_EC2_METADATA_DISABLED='true',
+ env=dict(base_env,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),AWS_EC2_METADATA_DISABLED='true',
   PG_ADMIN_TEST_MIGRATION_URL=f'postgresql://{quote(migration)}@127.0.0.1:{port}/{database}',
   PG_ADMIN_TEST_RUNTIME_URL=f'postgresql://{quote(runtime)}@127.0.0.1:{port}/{database}')
  test_file='tests/postgres/adminHttp.integration.test.js'
  if args.suite == 'capacity':
-  env.update(DVAIA_CAPACITY_QUALIFICATION='yes',
+  env.update(OWASP_AI_GOAT_CAPACITY_QUALIFICATION='yes',
    PG_CAPACITY_MIGRATION_URL=env['PG_ADMIN_TEST_MIGRATION_URL'],
    PG_CAPACITY_RUNTIME_URL=env['PG_ADMIN_TEST_RUNTIME_URL'])
   test_file='tests/postgres/workshopCapacity.integration.test.js'

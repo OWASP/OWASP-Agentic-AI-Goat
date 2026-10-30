@@ -40,7 +40,7 @@ async function snapshot(pool) {
 
 test('FinFlow-first and Legacy Sensitive imports coexist and survive migration restart', { skip: !enabled }, async () => {
   const url = new URL(process.env[URL_ENV]);
-  assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   const pool = createPool(process.env, URL_ENV);
   let ownerFixture;
   try {

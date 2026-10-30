@@ -6,7 +6,7 @@ current counts are 31, 7, 3 and 4, respectively. All nine qualified draft file
 checksums still match the consolidated promotion manifest.
 
 Four private custom-format PostgreSQL archives are retained outside the repository
-at `/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-consolidated-prepromotion-tyEiSG`.
+at `/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-consolidated-prepromotion-tyEiSG`.
 The directory is mode 0700; archives and manifest are mode 0600. The private
 manifest records sizes, SHA-256 checksums, restoration scope and time. No
 credentials or learner rows are copied into this document.

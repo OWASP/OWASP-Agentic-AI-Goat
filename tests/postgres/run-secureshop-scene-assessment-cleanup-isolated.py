@@ -31,7 +31,7 @@ def configured_source(source):
       "               AI_PROVIDER='mock', AWS_EC2_METADATA_DISABLED='true', HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1',\n"
       "               MCP_WORKSHOP_AUTOSTART='false', MCP_SIDECARS_AUTOSTART='false', SS_ENABLE='false')")
     if source.count(environment) != 1: raise RuntimeError('Shared isolated environment seam changed')
-    source = source.replace(environment, environment + "\n    env.update(SECURESHOP_SCENE_ASSESSMENT_NATIVE='1', DVAIA_CURRENT_MAIN_WORKSPACE=str(ROOT))")
+    source = source.replace(environment, environment + "\n    env.update(SECURESHOP_SCENE_ASSESSMENT_NATIVE='1', OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(ROOT))")
     save = "    def save(): lifecycle.helpers.write_private_json(evidence/'result.json', result)"
     if source.count(save) != 1: raise RuntimeError('Shared isolated result seam changed')
     return source.replace(save,

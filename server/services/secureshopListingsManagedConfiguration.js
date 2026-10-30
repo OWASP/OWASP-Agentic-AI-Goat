@@ -14,7 +14,7 @@ const hex = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 const image = value => typeof value === 'string' && /^sha256:[a-f0-9]{64}$/.test(value);
 function managedPath({ root, home } = {}) {
   if (!path.isAbsolute(root || '') || !path.isAbsolute(home || '')) throw fail('LISTINGS_MANAGED_PATH_INVALID');
-  return path.join(home, '.dvaia', workspaceId(root), FILE);
+  return path.join(home, '.owasp-ai-goat', workspaceId(root), FILE);
 }
 function validate(value) {
   if (!exact(value, ['version','workspaceId','enabled','architecture','dockerAuthoritySha256','imageId',
@@ -22,9 +22,9 @@ function validate(value) {
       || !/^[a-f0-9]{12}$/.test(value.workspaceId || '') || typeof value.enabled !== 'boolean'
       || value.architecture !== 'arm64' || !hex(value.dockerAuthoritySha256) || !image(value.imageId)
       || !hex(value.sourceManifestSha256) || !hex(value.runtimeDigest) || !exact(value.profile, ['name','sha256'])
-      || value.profile.name !== 'dvaia-owned-listings-'+value.workspaceId || !hex(value.profile.sha256)) throw fail('LISTINGS_MANAGED_INVALID');
+      || value.profile.name !== 'owasp-ai-goat-owned-listings-'+value.workspaceId || !hex(value.profile.sha256)) throw fail('LISTINGS_MANAGED_INVALID');
   const row=value.manager;
-  if (!exact(row,['container','url','token']) || row.container !== `dvaia-owned-listings-${value.workspaceId}`
+  if (!exact(row,['container','url','token']) || row.container !== `owasp-ai-goat-owned-listings-${value.workspaceId}`
       || typeof row.token !== 'string' || !/^[A-Za-z0-9_-]{43,128}$/.test(row.token)
       || typeof row.url !== 'string' || !/^http:\/\/127\.0\.0\.1:[1-9][0-9]{3,4}$/.test(row.url)) throw fail('LISTINGS_MANAGED_INVALID');
   const port=Number(new URL(row.url).port);

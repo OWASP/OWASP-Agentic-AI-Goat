@@ -16,7 +16,7 @@ test('native owner proof fixture uses actual binding SQL and keeps source user u
   skip: !enabled,
 }, async () => {
   const url = new URL(process.env.PG_ARCHIVE_OWNER_FIXTURE_TEST_URL);
-  assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   const pool = createPool(process.env, 'PG_ARCHIVE_OWNER_FIXTURE_TEST_URL');
   let fixture;
   try {

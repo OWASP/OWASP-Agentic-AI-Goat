@@ -132,7 +132,7 @@ async function exercisePanel({ page, recipient, principalId, deadlineAt, signal,
     await page.waitForFunction(() => [...document.querySelectorAll('button')]
       .some(e => e.textContent.trim() === 'Cancel prepared send'), { timeout: remaining() });
     const ref = await page.evaluate(id => JSON.parse(sessionStorage.getItem(
-      `dvaia:secureshop:external-mail:v1:${id}`)), principalId);
+      `owasp-ai-goat:secureshop:external-mail:v1:${id}`)), principalId);
     assert.equal(ref.phase, 'prepared'); assert.ok(C.UUID.test(ref.operationId));
     return ref;
   }

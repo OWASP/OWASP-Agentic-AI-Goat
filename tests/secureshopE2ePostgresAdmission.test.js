@@ -6,10 +6,10 @@ const {admitSecureShopE2ePostgres}=require('../scripts/lib/secureshop-e2e-postgr
 const valid=()=>({
   PG_TEST_DISPOSABLE:'yes',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',
   SS_DISABLE_OLLAMA:'true',SS_ENABLE_REAL_LLM_TESTS:'false',AI_PROVIDER:'mock',
-  SECURESHOP_DATABASE_URL:'postgresql://dvaia_secureshop_runtime@127.0.0.1:55432/dvaia_test_browser_commerce',
-  SECURESHOP_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_migration@127.0.0.1:55432/dvaia_test_browser_commerce',
-  SECURESHOP_AGENTS_DATABASE_URL:'postgresql://dvaia_secureshop_agents_runtime@127.0.0.1:55432/dvaia_test_browser_agents',
-  SECURESHOP_AGENTS_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_agents_migration@127.0.0.1:55432/dvaia_test_browser_agents',
+  SECURESHOP_DATABASE_URL:'postgresql://dvaia_secureshop_runtime@127.0.0.1:55432/owasp_ai_goat_test_browser_commerce',
+  SECURESHOP_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_migration@127.0.0.1:55432/owasp_ai_goat_test_browser_commerce',
+  SECURESHOP_AGENTS_DATABASE_URL:'postgresql://dvaia_secureshop_agents_runtime@127.0.0.1:55432/owasp_ai_goat_test_browser_agents',
+  SECURESHOP_AGENTS_MIGRATION_DATABASE_URL:'postgresql://dvaia_secureshop_agents_migration@127.0.0.1:55432/owasp_ai_goat_test_browser_agents',
 });
 
 test('SecureShop E2E PostgreSQL admission returns only the closed disposable worker environment',()=>{
@@ -32,11 +32,11 @@ test('SecureShop E2E PostgreSQL admission rejects flags that could enable applic
 
 test('SecureShop E2E PostgreSQL admission rejects noncanonical URLs and never includes their value in errors',()=>{
   const cases=[
-    ['SECURESHOP_DATABASE_URL','postgresql://dvaia_secureshop_runtime@localhost:55432/dvaia_test_browser_commerce','SECURESHOP_E2E_DATABASE_HOST_DENIED'],
-    ['SECURESHOP_DATABASE_URL','postgresql://wrong_role@127.0.0.1:55432/dvaia_test_browser_commerce','SECURESHOP_E2E_DATABASE_ROLE_DENIED'],
-    ['SECURESHOP_DATABASE_URL','postgresql://dvaia_secureshop_runtime@127.0.0.1/dvaia_test_browser_commerce','SECURESHOP_E2E_DATABASE_PORT_INVALID'],
+    ['SECURESHOP_DATABASE_URL','postgresql://dvaia_secureshop_runtime@localhost:55432/owasp_ai_goat_test_browser_commerce','SECURESHOP_E2E_DATABASE_HOST_DENIED'],
+    ['SECURESHOP_DATABASE_URL','postgresql://wrong_role@127.0.0.1:55432/owasp_ai_goat_test_browser_commerce','SECURESHOP_E2E_DATABASE_ROLE_DENIED'],
+    ['SECURESHOP_DATABASE_URL','postgresql://dvaia_secureshop_runtime@127.0.0.1/owasp_ai_goat_test_browser_commerce','SECURESHOP_E2E_DATABASE_PORT_INVALID'],
     ['SECURESHOP_DATABASE_URL','postgresql://dvaia_secureshop_runtime@127.0.0.1:55432/application','SECURESHOP_E2E_DATABASE_NAME_DENIED'],
-    ['SECURESHOP_DATABASE_URL','postgresql://dvaia_secureshop_runtime@127.0.0.1:55432/dvaia_test_browser_commerce?sslmode=disable','SECURESHOP_E2E_DATABASE_OPTIONS_DENIED'],
+    ['SECURESHOP_DATABASE_URL','postgresql://dvaia_secureshop_runtime@127.0.0.1:55432/owasp_ai_goat_test_browser_commerce?sslmode=disable','SECURESHOP_E2E_DATABASE_OPTIONS_DENIED'],
   ];
   for(const [key,value,code] of cases){
     const environment=valid();environment[key]=value;

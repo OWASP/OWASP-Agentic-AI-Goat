@@ -47,7 +47,7 @@ async function setup(options = {}) {
   }}); } finally { authority.prepareCtfAuthority=originalAuthority; }
 }
 async function temporary(t) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-setup-test-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-setup-test-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   return root;
 }
@@ -79,8 +79,8 @@ test('generated environment round trips without allowing extra lines', () => {
 test('owned runner setup selects the local Linux path and an explicit macOS Colima profile', () => {
   assert.deepEqual(ownedRunnerOptions({ platform: 'linux' }), { platform: 'linux', colimaProfile: undefined });
   assert.deepEqual(ownedRunnerOptions({ platform: 'darwin' }), { platform: 'darwin', colimaProfile: 'colima-default' });
-  assert.deepEqual(ownedRunnerOptions({ platform: 'darwin', environment: { DVAIA_MCP_OWNED_COLIMA_PROFILE: 'colima-dvaia-lab' } }),
-    { platform: 'darwin', colimaProfile: 'colima-dvaia-lab' });
+  assert.deepEqual(ownedRunnerOptions({ platform: 'darwin', environment: { OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE: 'colima-owasp-ai-goat-lab' } }),
+    { platform: 'darwin', colimaProfile: 'colima-owasp-ai-goat-lab' });
 });
 test('local sidecar Docker binding is skipped only for disabled or externally managed sidecars', () => {
   assert.equal(shouldBindLocalSidecarDocker({}), true);
@@ -93,7 +93,7 @@ test('local sidecar Docker binding is skipped only for disabled or externally ma
   assert.equal(shouldBindLocalSidecarDocker({ SANDBOX_RUNNER_URL: 'http://[::1]:8090' }), true);
 });
 test('owned runner setup reports disabled availability honestly when provisioning fails', async t => {
-  const root = await temporary(t), homeDirectory = await temporary(t), directory = path.join(homeDirectory, '.dvaia', 'workspace');
+  const root = await temporary(t), homeDirectory = await temporary(t), directory = path.join(homeDirectory, '.owasp-ai-goat', 'workspace');
   await fs.mkdir(directory, { recursive: true });
   const unavailable = await provisionOwnedRunnerForSetup({ root, directory, homeDirectory, environment: {}, platform: 'darwin',
     provisionFromEnvironment: async options => {
@@ -110,7 +110,7 @@ test('owned runner setup reports disabled availability honestly when provisionin
   });
 });
 test('owned runner setup reports activation only when the strict provisioner confirms it', async t => {
-  const root = await temporary(t), homeDirectory = await temporary(t), directory = path.join(homeDirectory, '.dvaia', 'workspace');
+  const root = await temporary(t), homeDirectory = await temporary(t), directory = path.join(homeDirectory, '.owasp-ai-goat', 'workspace');
   await fs.mkdir(directory, { recursive: true });
   const result = await provisionOwnedRunnerForSetup({ root, directory, homeDirectory, environment: {}, platform: 'linux',
     provisionFromEnvironment: async options => {
@@ -119,18 +119,18 @@ test('owned runner setup reports activation only when the strict provisioner con
       assert.equal(options.activateIndirectInjection, true);
       assert.equal(options.activateSupplyChain, true);
       assert.equal(options.colimaProfile, undefined);
-      return { ok: true, profile: 'dvaia-mcp-sandbox', managedPath: options.managedPath, activationEnabled: true };
+      return { ok: true, profile: 'owasp-ai-goat-mcp-sandbox', managedPath: options.managedPath, activationEnabled: true };
     } });
   assert.deepEqual(result, {
-    available: true, activationEnabled: true, profile: 'dvaia-mcp-sandbox',
+    available: true, activationEnabled: true, profile: 'owasp-ai-goat-mcp-sandbox',
     managedPath: path.join(directory, 'mcp-owned.env'), code: null, stage: null,
   });
 });
 test('owned runner setup rejects incomplete, failed and foreign-path provisioning results', async t => {
   const root = await temporary(t), homeDirectory = await temporary(t);
-  const directory = path.join(homeDirectory, '.dvaia', 'workspace');
+  const directory = path.join(homeDirectory, '.owasp-ai-goat', 'workspace');
   const managedPath = path.join(directory, 'mcp-owned.env');
-  const valid = { ok: true, profile: 'dvaia-mcp-sandbox', managedPath, activationEnabled: false };
+  const valid = { ok: true, profile: 'owasp-ai-goat-mcp-sandbox', managedPath, activationEnabled: false };
   for (const result of [null, {}, { available: false }, { ...valid, ok: false },
     { ...valid, available: false }, { ...valid, managedPath: '/foreign/mcp-owned.env' },
     { ...valid, profile: '' }, { ...valid, activationEnabled: 'true' }]) {
@@ -162,7 +162,7 @@ function configurationFor(plan) {
 }
 async function upgradeFixture(t, manifestPlan = provisioningPlan().slice(0, -1)) {
   const root = await fs.realpath(await temporary(t)), homeDirectory = await temporary(t);
-  const directory = path.join(homeDirectory, '.dvaia', require('../scripts/setup-application').workspaceId(root));
+  const directory = path.join(homeDirectory, '.owasp-ai-goat', require('../scripts/setup-application').workspaceId(root));
   await fs.mkdir(directory, { recursive: true, mode: 0o700 });
   const configuration = configurationFor(manifestPlan);
   const manifestPath = path.join(directory, 'provisioning.json');
@@ -239,7 +239,7 @@ test('Analytics opt-in upgrade preserves existing credentials and disabled prefe
  await fs.appendFile(envPath,encodeEnv({SS_ENABLE:'true',SS_BOUND_REVIEWS_ENABLED:'true',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres'}));
  let calls=0;const options={root:value.root,homeDirectory:value.homeDirectory,upgrade:true,ownedAnalytics:true,processEnvironment:{},
   adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',ensureDockerAuthority:existingDockerAuthority,
-  provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision:async()=>({status:'existing',plan,configuration:value.configuration}),
+  provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision:async()=>({status:'existing',plan,configuration:value.configuration}),
   provisionAuditSql:async()=>({activationEnabled:false,preserved:true}),
   runCommand:async()=>assert.fail('no unrelated initializer or package changes'),
   setupOwnedAnalytics:async args=>{calls++;assert.equal(args.requested,true);assert.equal(args.applicationEnvironment.JWT_SECRET,'unchanged secret');assert.equal(args.applicationEnvironment.SECURESHOP_AGENTS_DATABASE_URL,value.configuration.SECURESHOP_AGENTS_DATABASE_URL);return{requested:true,activationEnabled:false,changed:false};}};
@@ -252,7 +252,7 @@ test('Analytics opt-in upgrade preserves existing credentials and disabled prefe
 });
 test('Analytics opt-in prerequisites fail before provisioning or fresh setup writes',async t=>{
  const root=await temporary(t),homeDirectory=await temporary(t);let touched=false;
- await assert.rejects(setup({root,homeDirectory,ownedAnalytics:true,processEnvironment:{},provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision:async()=>{touched=true;},runCommand:async()=>{touched=true;}}),{code:'ANALYTICS_SETUP_PREREQUISITES'});
+ await assert.rejects(setup({root,homeDirectory,ownedAnalytics:true,processEnvironment:{},provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision:async()=>{touched=true;},runCommand:async()=>{touched=true;}}),{code:'ANALYTICS_SETUP_PREREQUISITES'});
  assert.equal(touched,false);assert.deepEqual(await fs.readdir(root),[]);
 });
 test('additive setup preserves the old environment and initializes all stores including missing suffix stores', async t => {
@@ -262,7 +262,7 @@ test('additive setup preserves the old environment and initializes all stores in
   const result = await setup({ root: value.root, homeDirectory: value.homeDirectory, upgrade: true,
     adminUrl: 'postgresql://admin:secret@127.0.0.1:5432/postgres', install: true, ensureModel: true,
     ensureDockerAuthority: existingDockerAuthority,
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async options => { calls.push(['provision', options]);return { status: 'upgraded', plan, configuration: complete }; },
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async options => { calls.push(['provision', options]);return { status: 'upgraded', plan, configuration: complete }; },
     initializeApplication: async ({maintenanceScope}) => { maintenanceScope.assertHeld(); calls.push(['initialize', provisioningPlan().map(row => row.schema), {...process.env}]); },
     runCommand: async () => assert.fail('upgrade must not install packages or run the fresh initializer'),
     loadPuppeteer: () => assert.fail('upgrade must not verify a browser'),
@@ -274,7 +274,7 @@ test('additive setup preserves the old environment and initializes all stores in
   assert.equal(calls[1][2].JWT_SECRET, 'unchanged secret');
   const upgraded = await fs.readFile(path.join(value.root, '.env'));
   assert.equal(upgraded.subarray(0, value.original.length).equals(value.original), true);
-  assert.deepEqual(require('dotenv').parse(upgraded), { JWT_SECRET: 'unchanged secret', ...complete, CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf', ...CONTROLLED_UPLOAD_ASSETS,
+  assert.deepEqual(require('dotenv').parse(upgraded), { JWT_SECRET: 'unchanged secret', ...complete, CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf', ...CONTROLLED_UPLOAD_ASSETS,
     SS_PASSWORD_RESET_KEY_PATH: path.join(value.directory, 'secureshop-reset-key.json') });
   assert.equal((await fs.stat(path.join(value.root, '.env'))).mode & 0o777, 0o600);
   await assert.rejects(fs.lstat(path.join(value.directory, 'administrator.json')), { code: 'ENOENT' });
@@ -293,7 +293,7 @@ test('local SecureShop upgrade activates owned audit and defaults summary only w
     const result = await setup({root:value.root,homeDirectory:value.homeDirectory,upgrade:true,processEnvironment:{},
       adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',
       ensureDockerAuthority:existingDockerAuthority,
-      provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),
+      provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),
       provision:async()=>({status:'existing',plan,configuration:value.configuration}),
       initializeApplication:async({maintenanceScope})=>maintenanceScope.assertHeld(),
       provisionAuditSql:async options=>{provisioned++;assert.equal(options.applicationEnvironment.SS_ENABLE,'true');return{provisioned:true,activationEnabled:activated};},
@@ -313,7 +313,7 @@ test('additive setup preserves a fourteen-store environment while initializing b
   const result = await setup({ root: value.root, homeDirectory: value.homeDirectory, upgrade: true,
     adminUrl: 'postgresql://admin:secret@127.0.0.1:5432/postgres',
     ensureDockerAuthority: existingDockerAuthority,
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async options => { calls.push(['provision', options]);return { status: 'upgraded', plan, configuration: complete }; },
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async options => { calls.push(['provision', options]);return { status: 'upgraded', plan, configuration: complete }; },
     initializeApplication: async ({maintenanceScope}) => { maintenanceScope.assertHeld(); calls.push(['initialize', provisioningPlan().map(row => row.schema), {...process.env}]); },
   });
   assert.deepEqual(result.upgradedSchemas, ['session_disclosure', 'secureshop_review']);
@@ -321,7 +321,7 @@ test('additive setup preserves a fourteen-store environment while initializing b
   assert.equal(calls[1][2].JWT_SECRET, 'unchanged secret');
   const upgraded = await fs.readFile(path.join(value.root, '.env'));
   assert.equal(upgraded.subarray(0, value.original.length).equals(value.original), true);
-  assert.deepEqual(require('dotenv').parse(upgraded), { JWT_SECRET: 'unchanged secret', ...complete, CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf', ...CONTROLLED_UPLOAD_ASSETS,
+  assert.deepEqual(require('dotenv').parse(upgraded), { JWT_SECRET: 'unchanged secret', ...complete, CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf', ...CONTROLLED_UPLOAD_ASSETS,
     SS_PASSWORD_RESET_KEY_PATH: path.join(value.directory, 'secureshop-reset-key.json') });
 });
 test('completed manifest plus old environment safely retries the additive initialization', async t => {
@@ -336,12 +336,12 @@ test('completed manifest plus old environment safely retries the additive initia
   await setup({ root: value.root, homeDirectory: value.homeDirectory, upgrade: true,
     adminUrl: 'postgresql://admin:secret@127.0.0.1:5432/postgres',
     ensureDockerAuthority: existingDockerAuthority,
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async () => ({ status: 'existing', plan, configuration: value.configuration }),
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async () => ({ status: 'existing', plan, configuration: value.configuration }),
     initializeApplication: async ({maintenanceScope}) => { initialized += 1; maintenanceScope.assertHeld(); },
   });
   assert.equal(initialized, 1);
   assert.deepEqual(require('dotenv').parse(await fs.readFile(path.join(value.root, '.env'))),
-    { JWT_SECRET: 'unchanged secret', ...value.configuration, CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf', ...CONTROLLED_UPLOAD_ASSETS,
+    { JWT_SECRET: 'unchanged secret', ...value.configuration, CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf', ...CONTROLLED_UPLOAD_ASSETS,
       SS_PASSWORD_RESET_KEY_PATH: path.join(value.directory, 'secureshop-reset-key.json') });
 });
 test('additive setup rejects environment conflicts and ambiguous staging before provisioning', async t => {
@@ -350,14 +350,14 @@ test('additive setup rejects environment conflicts and ambiguous staging before 
   let provisioned = false;
   await assert.rejects(setup({ root: value.root, homeDirectory: value.homeDirectory, upgrade: true,
     adminUrl: 'postgresql://admin@127.0.0.1/postgres', ensureDockerAuthority: existingDockerAuthority,
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async () => { provisioned = true; } }),
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async () => { provisioned = true; } }),
   error => error.code === 'UPGRADE_ENV_CONFLICT');
   assert.equal(provisioned, false);
   await fs.writeFile(path.join(value.root, '.env'), value.original, { mode: 0o600 });
   await fs.writeFile(path.join(value.root, '.env.upgrade'), 'ambiguous', { mode: 0o600 });
   await assert.rejects(setup({ root: value.root, homeDirectory: value.homeDirectory, upgrade: true,
     adminUrl: 'postgresql://admin@127.0.0.1/postgres', ensureDockerAuthority: existingDockerAuthority,
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async () => { provisioned = true; } }),
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async () => { provisioned = true; } }),
   error => error.code === 'UPGRADE_ENV_RECOVERY_REQUIRED');
   assert.equal(provisioned, false);
 });
@@ -369,7 +369,7 @@ test('initial upgrade refuses a missing credential pair from the prior manifest'
   let provisioned = false;
   await assert.rejects(setup({ root: value.root, homeDirectory: value.homeDirectory, upgrade: true,
     adminUrl: 'postgresql://admin@127.0.0.1/postgres', ensureDockerAuthority: existingDockerAuthority,
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async () => { provisioned = true; } }),
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async () => { provisioned = true; } }),
   error => error.code === 'UPGRADE_ENV_MANIFEST_MISMATCH');
   assert.equal(provisioned, false);
 });
@@ -379,7 +379,7 @@ test('failed additive initialization leaves the original environment retryable',
   await assert.rejects(setup({ root: value.root, homeDirectory: value.homeDirectory, upgrade: true,
     adminUrl: 'postgresql://admin@127.0.0.1/postgres',
     ensureDockerAuthority: existingDockerAuthority,
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async () => ({ status: 'upgraded', plan, configuration: complete }),
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async () => ({ status: 'upgraded', plan, configuration: complete }),
     initializeApplication: async () => { throw new Error('fixture migration failure'); },
   }), {code:'APPLICATION_INITIALIZATION_REQUIRES_EXIT'});
   assert.equal((await fs.readFile(path.join(value.root, '.env'))).equals(value.original), true);
@@ -395,7 +395,7 @@ test('external PostgreSQL upgrade records the selected local sidecar daemon befo
       calls.push({ args, env: options.env });
       return { stdout: '"daemon-desktop"' };
     },
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async () => ({ status: 'existing', plan, configuration: value.configuration }),
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async () => ({ status: 'existing', plan, configuration: value.configuration }),
   });
   const statePath = path.join(value.directory, 'local-docker.json');
   const state = JSON.parse(await fs.readFile(statePath, 'utf8'));
@@ -412,7 +412,7 @@ test('externally managed AWS upgrade does not inspect or record local Docker aut
   await setup({ root: value.root, homeDirectory: value.homeDirectory, upgrade: true,
     adminUrl: 'postgresql://admin@postgres.internal/postgres', processEnvironment: { TEAM_ID: 'fixture' },
     ensureDockerAuthority: async () => assert.fail('externally managed setup must not bind a local daemon'),
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async () => ({ status: 'existing', plan, configuration: value.configuration }),
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async () => ({ status: 'existing', plan, configuration: value.configuration }),
   });
   await assert.rejects(fs.lstat(path.join(value.directory, 'local-docker.json')), { code: 'ENOENT' });
 });
@@ -426,7 +426,7 @@ test('upgrade honors existing environment sidecar ownership before requiring loc
     await setup({ root: value.root, homeDirectory: value.homeDirectory, upgrade: true,
       adminUrl: 'postgresql://admin@postgres.internal/postgres', processEnvironment: {},
       ensureDockerAuthority: async () => assert.fail('effective existing environment manages sidecars without local Docker'),
-      provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async () => ({ status: 'existing', plan, configuration: value.configuration }),
+      provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async () => ({ status: 'existing', plan, configuration: value.configuration }),
     });
     await assert.rejects(fs.lstat(path.join(value.directory, 'local-docker.json')), { code: 'ENOENT' });
   }
@@ -473,8 +473,8 @@ test('fresh local PostgreSQL retry reuses an existing matching Docker authority'
     daemonId: 'daemon-fixture', source: 'environment-host', platform: process.platform } });
   let containerCreated = false;
   const container = {
-    Config: { Labels: { 'org.dvaia.workspace': id } }, State: { Running: true },
-    Mounts: [{ Type: 'volume', Name: `dvaia-postgres-${id}`, Destination: '/var/lib/postgresql' }],
+    Config: { Labels: { 'org.owasp-ai-goat.workspace': id } }, State: { Running: true },
+    Mounts: [{ Type: 'volume', Name: `owasp-ai-goat-postgres-${id}`, Destination: '/var/lib/postgresql' }],
     HostConfig: { PortBindings: { '5432/tcp': [] } },
     NetworkSettings: { Ports: { '5432/tcp': [{ HostIp: '127.0.0.1', HostPort: null }] } },
   };
@@ -489,8 +489,8 @@ test('fresh local PostgreSQL retry reuses an existing matching Docker authority'
         container.NetworkSettings.Ports['5432/tcp'][0].HostPort = String(state.port);
         return { stdout: JSON.stringify([container]) };
       }
-      if (args[2] === 'volume' && args[3] === 'create') return { stdout: `dvaia-postgres-${id}` };
-      if (args[2] === 'run') { containerCreated = true;return { stdout: `dvaia-postgres-${id}` }; }
+      if (args[2] === 'volume' && args[3] === 'create') return { stdout: `owasp-ai-goat-postgres-${id}` };
+      if (args[2] === 'run') { containerCreated = true;return { stdout: `owasp-ai-goat-postgres-${id}` }; }
       if (args[2] === 'exec') return { stdout: 'accepting connections' };
       assert.fail(`unexpected Docker call: ${args.join(' ')}`);
     } });
@@ -506,11 +506,11 @@ test('additive local PostgreSQL lookup never creates missing setup state', async
   assert.deepEqual(await fs.readdir(directory), []);
 });
 test('legacy local PostgreSQL state adopts an exact owned container and volume before reuse', async t => {
-  const directory = await temporary(t), id = 'fixture', name = `dvaia-postgres-${id}`;
+  const directory = await temporary(t), id = 'fixture', name = `owasp-ai-goat-postgres-${id}`;
   const legacy = { version: 1, id, name, port: 55432, password: 'a'.repeat(64) };
   await fs.writeFile(path.join(directory, 'local-postgres.json'), JSON.stringify(legacy), { mode: 0o600 });
   const container = {
-    Config: { Labels: { 'org.dvaia.workspace': id } },
+    Config: { Labels: { 'org.owasp-ai-goat.workspace': id } },
     State: { Running: true },
     Mounts: [{ Type: 'volume', Name: name, Destination: '/var/lib/postgresql' }],
     HostConfig: { PortBindings: { '5432/tcp': [{ HostIp: '127.0.0.1', HostPort: '55432' }] } },
@@ -521,7 +521,7 @@ test('legacy local PostgreSQL state adopts an exact owned container and volume b
     execute: async (_command, args, options) => {
       calls.push({ args, env: options.env });
       if (args[2] === 'info') return { stdout: '"daemon-fixture"' };
-      if (args[2] === 'volume') return { stdout: JSON.stringify([{ Labels: { 'org.dvaia.workspace': id } }]) };
+      if (args[2] === 'volume') return { stdout: JSON.stringify([{ Labels: { 'org.owasp-ai-goat.workspace': id } }]) };
       if (args[2] === 'inspect') return { stdout: JSON.stringify([container]) };
       if (args[2] === 'exec') return { stdout: 'accepting connections' };
       assert.fail(`unexpected Docker call: ${args.join(' ')}`);
@@ -537,13 +537,13 @@ test('legacy local PostgreSQL state adopts an exact owned container and volume b
   assert.ok(calls.every(call => call.env.DOCKER_HOST === undefined && call.env.DOCKER_CONTEXT === undefined));
 });
 test('legacy local PostgreSQL state preserves an owned volume when recreating its missing container', async t => {
-  const directory = await temporary(t), id = 'fixture', name = `dvaia-postgres-${id}`;
+  const directory = await temporary(t), id = 'fixture', name = `owasp-ai-goat-postgres-${id}`;
   const legacy = { version: 1, id, name, port: 55432, password: 'd'.repeat(64) };
   await fs.writeFile(path.join(directory, 'local-postgres.json'), JSON.stringify(legacy), { mode: 0o600 });
   let containerCreated = false;
   const calls = [];
   const container = {
-    Config: { Labels: { 'org.dvaia.workspace': id } }, State: { Running: true },
+    Config: { Labels: { 'org.owasp-ai-goat.workspace': id } }, State: { Running: true },
     Mounts: [{ Type: 'volume', Name: name, Destination: '/var/lib/postgresql' }],
     HostConfig: { PortBindings: { '5432/tcp': [{ HostIp: '127.0.0.1', HostPort: '55432' }] } },
     NetworkSettings: { Ports: { '5432/tcp': [{ HostIp: '127.0.0.1', HostPort: '55432' }] } },
@@ -553,7 +553,7 @@ test('legacy local PostgreSQL state preserves an owned volume when recreating it
     execute: async (_command, args) => {
       calls.push(args);
       if (args[2] === 'info') return { stdout: '"daemon-fixture"' };
-      if (args[2] === 'volume') return { stdout: JSON.stringify([{ Labels: { 'org.dvaia.workspace': id } }]) };
+      if (args[2] === 'volume') return { stdout: JSON.stringify([{ Labels: { 'org.owasp-ai-goat.workspace': id } }]) };
       if (args[2] === 'inspect') {
         if (!containerCreated) throw Object.assign(new Error('missing'), { code: 1 });
         return { stdout: JSON.stringify([container]) };
@@ -567,7 +567,7 @@ test('legacy local PostgreSQL state preserves an owned volume when recreating it
   assert.equal(JSON.parse(await fs.readFile(path.join(directory, 'local-postgres.json'), 'utf8')).version, 2);
 });
 test('legacy local PostgreSQL state without an owned volume is not adopted or mutated', async t => {
-  const directory = await temporary(t), id = 'fixture', name = `dvaia-postgres-${id}`;
+  const directory = await temporary(t), id = 'fixture', name = `owasp-ai-goat-postgres-${id}`;
   const legacyBytes = Buffer.from(JSON.stringify({ version: 1, id, name, port: 55432, password: 'b'.repeat(64) }));
   await fs.writeFile(path.join(directory, 'local-postgres.json'), legacyBytes, { mode: 0o600 });
   const calls = [];
@@ -582,11 +582,11 @@ test('legacy local PostgreSQL state without an owned volume is not adopted or mu
   assert.equal(calls.some(args => ['start', 'run', 'create'].includes(args[2])), false);
 });
 test('legacy authority adoption rejects an owned container with a mismatched mount', async t => {
-  const directory = await temporary(t), id = 'fixture', name = `dvaia-postgres-${id}`;
+  const directory = await temporary(t), id = 'fixture', name = `owasp-ai-goat-postgres-${id}`;
   const legacyBytes = Buffer.from(JSON.stringify({ version: 1, id, name, port: 55432, password: 'c'.repeat(64) }));
   await fs.writeFile(path.join(directory, 'local-postgres.json'), legacyBytes, { mode: 0o600 });
   const container = {
-    Config: { Labels: { 'org.dvaia.workspace': id } }, State: { Running: false },
+    Config: { Labels: { 'org.owasp-ai-goat.workspace': id } }, State: { Running: false },
     Mounts: [{ Type: 'volume', Name: 'another-volume', Destination: '/var/lib/postgresql' }],
     HostConfig: { PortBindings: { '5432/tcp': [{ HostIp: '127.0.0.1', HostPort: '55432' }] } },
   };
@@ -594,7 +594,7 @@ test('legacy authority adoption rejects an owned container with a mismatched mou
     execute: async (_command, args) => {
       if (args[2] === 'info') return { stdout: '"daemon-fixture"' };
       if (args[2] === 'inspect') return { stdout: JSON.stringify([container]) };
-      if (args[2] === 'volume') return { stdout: JSON.stringify([{ Labels: { 'org.dvaia.workspace': id } }]) };
+      if (args[2] === 'volume') return { stdout: JSON.stringify([{ Labels: { 'org.owasp-ai-goat.workspace': id } }]) };
       assert.fail('no mutating Docker command is allowed');
     } }), /does not match the owned PostgreSQL state/);
   assert.equal((await fs.readFile(path.join(directory, 'local-postgres.json'))).equals(legacyBytes), true);
@@ -727,7 +727,7 @@ test('failed real-model readiness stops fresh setup before database provisioning
       throw Object.assign(new Error('fixture timeout'), { code: 'ETIMEDOUT' });
     },
     loadPuppeteer: () => assert.fail('browser verification must follow model readiness'),
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async () => { provisioned = true;assert.fail('database provisioning must not run'); },
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async () => { provisioned = true;assert.fail('database provisioning must not run'); },
   }), /inference timed out/);
   assert.equal(provisioned, false);
 });
@@ -795,7 +795,7 @@ test('fresh setup seeds generated files after databases and publishes an explici
   const originalPool = postgres.createPool, originalBootstrap = bootstrap.bootstrapAdmin;
   let closed = false;
   postgres.createPool = () => ({ end: async () => { closed = true; } });
-  bootstrap.bootstrapAdmin = async ({pool, ...credentials}) => { assert.ok(pool);assert.deepEqual(credentials,{username:'admin',email:'admin@dvaia.local',password:'admin123',initialTrainingProfile:true});commands.push({ args: ['controlled-bootstrap'] }); };
+  bootstrap.bootstrapAdmin = async ({pool, ...credentials}) => { assert.ok(pool);assert.deepEqual(credentials,{username:'admin',email:'admin@owasp-ai-goat.local',password:'admin123',initialTrainingProfile:true});commands.push({ args: ['controlled-bootstrap'] }); };
   try {
     const result = await setup({ root, homeDirectory, install: false, ensureModel: false, ownedMcpRegistry:true,
       ownedPolicyRenderer:true,enableOwnedPolicyRenderer:true,
@@ -811,7 +811,7 @@ test('fresh setup seeds generated files after databases and publishes an explici
     loadProductRenderer: () => ({ componentId: 'SecureShop.Product.Description', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64), renderProductDescription: async product => `<div>${product.description_html}</div>` }), loadMailRenderer: () => ({ component: { id: 'SecureShop.MailMessageBody', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64) } }),
       loadRenderer: () => ({ sourceSha256: 'source', artifactSha256: 'artifact', renderReviewCard: async ({ body }) => `<article>${body}</article>` }),
       loadPuppeteer: () => ({ launch: async () => ({ close: async () => {} }) }),
-      provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async () => ({ configuration: { IDENTITY_DATABASE_URL: 'postgresql://controlled.invalid/identity', IDENTITY_MIGRATION_DATABASE_URL: 'postgresql://controlled.invalid/identity' } }),
+      provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async () => ({ configuration: { IDENTITY_DATABASE_URL: 'postgresql://controlled.invalid/identity', IDENTITY_MIGRATION_DATABASE_URL: 'postgresql://controlled.invalid/identity' } }),
       provisionOwnedRunner: async () => ({ available: false }),
       runCommand: async (_command, args, _cwd, env) => { commands.push({ args, env }); },
     });
@@ -835,7 +835,7 @@ test('fresh setup seeds generated files after databases and publishes an explici
     assert.equal(closed, true);
     assert.deepEqual(result.policyRenderer,{requested:true,ready:true,enabled:true});
     assert.deepEqual(result.ownedRunner, { available: false, activationEnabled: false, profile: null,
-      managedPath: path.join(homeDirectory, '.dvaia', require('../scripts/setup-application').workspaceId(await fs.realpath(root)), 'mcp-owned.env'),
+      managedPath: path.join(homeDirectory, '.owasp-ai-goat', require('../scripts/setup-application').workspaceId(await fs.realpath(root)), 'mcp-owned.env'),
       code: 'MCP_INSTALL_EXPLICITLY_DISABLED', stage: null });
   } finally { postgres.createPool = originalPool;bootstrap.bootstrapAdmin = originalBootstrap; }
 });
@@ -860,7 +860,7 @@ test('fresh setup cannot succeed when its required owned runner is unavailable',
       loadRenderer: () => ({ sourceSha256: 'source', artifactSha256: 'artifact',
         renderReviewCard: async ({ body }) => `<article>${body}</article>` }),
       loadPuppeteer: () => ({ launch: async () => ({ close: async () => {} }) }),
-      provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async () => ({ configuration: {
+      provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async () => ({ configuration: {
         IDENTITY_DATABASE_URL: 'postgresql://controlled.invalid/identity',
         IDENTITY_MIGRATION_DATABASE_URL: 'postgresql://controlled.invalid/identity',
       } }),
@@ -871,7 +871,7 @@ test('fresh setup cannot succeed when its required owned runner is unavailable',
     }), error => error.code === 'APPLICATION_INITIALIZATION_REQUIRES_EXIT'&&error.errors.some(c=>c.code==='MCP_INSTALL_REQUIRED_UNAVAILABLE'));
     const envPath = path.join(root, '.env');
     await assert.rejects(fs.stat(envPath), {code:'ENOENT'});
-    assert.equal((await fs.stat(path.join(homeDirectory,'.dvaia',require('../scripts/setup-application').workspaceId(await fs.realpath(root)),'administrator.json'))).mode & 0o777, 0o600);
+    assert.equal((await fs.stat(path.join(homeDirectory,'.owasp-ai-goat',require('../scripts/setup-application').workspaceId(await fs.realpath(root)),'administrator.json'))).mode & 0o777, 0o600);
   } finally { postgres.createPool = originalPool;bootstrap.bootstrapAdmin = originalBootstrap; }
 });
 test('fresh supported setup requires HTTP after CLI and preserves configuration on HTTP failure', async t => {
@@ -886,7 +886,7 @@ test('fresh supported setup requires HTTP after CLI and preserves configuration 
       await writeInstalledComponentFixture(root);
       const options = { root, homeDirectory, install: false, ensureModel: false, platform: 'darwin',
         adminUrl: 'postgresql://controlled.invalid/postgres',
-        processEnvironment: { IPI_EMAIL_PROVIDER: 'gmail', DVAIA_MCP_OWNED_COLIMA_PROFILE: 'colima-controlled', SS_BOUND_UPLOAD_ASSETS_ENABLED:'false' },
+        processEnvironment: { IPI_EMAIL_PROVIDER: 'gmail', OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE: 'colima-controlled', SS_BOUND_UPLOAD_ASSETS_ENABLED:'false' },
         ensureDockerAuthority: async () => ({}),
         loadTicketRenderer: () => ({ component: { id: 'SecureShop.AdminTicketBody', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64) } }),
         loadSearchEchoRenderer: () => ({ component: { id: 'SecureShop.SearchEcho', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64) } }),
@@ -894,26 +894,26 @@ test('fresh supported setup requires HTTP after CLI and preserves configuration 
     loadProductRenderer: () => ({ componentId: 'SecureShop.Product.Description', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64), renderProductDescription: async product => `<div>${product.description_html}</div>` }), loadMailRenderer: () => ({ component: { id: 'SecureShop.MailMessageBody', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64) } }),
       loadRenderer: () => ({ sourceSha256: 'source', artifactSha256: 'artifact', renderReviewCard: async ({ body }) => `<article>${body}</article>` }),
         loadPuppeteer: () => ({ launch: async () => ({ close: async () => {} }) }),
-        provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision: async () => ({ configuration: { IDENTITY_DATABASE_URL: 'postgresql://controlled.invalid/identity', IDENTITY_MIGRATION_DATABASE_URL: 'postgresql://controlled.invalid/identity' } }),
+        provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision: async () => ({ configuration: { IDENTITY_DATABASE_URL: 'postgresql://controlled.invalid/identity', IDENTITY_MIGRATION_DATABASE_URL: 'postgresql://controlled.invalid/identity' } }),
         runCommand: async (_command, args) => { if (args[0] === 'controlled-scoped-initializer') order.push('schema'); },
-        provisionOwnedRunner: async ({ managedPath }) => { order.push('cli'); return { ok: true, profile: 'dvaia-mcp-sandbox', activationEnabled: true, managedPath }; },
+        provisionOwnedRunner: async ({ managedPath }) => { order.push('cli'); return { ok: true, profile: 'owasp-ai-goat-mcp-sandbox', activationEnabled: true, managedPath }; },
         provisionOwnedShadow: async () => { order.push('shadow'); if(failure==='shadow')throw Error('controlled shadow prerequisite failure');return {available:true,activationEnabled:true}; },
         provisionAuditSql: async () => { order.push('audit-sql'); if (failure === 'audit') throw Error('controlled audit prerequisite failure'); return { candidateOnly: true }; },
-        provisionOwnedHttp: async ({ applicationEnvironment }) => { order.push('http'); assert.equal(applicationEnvironment.DVAIA_MCP_OWNED_COLIMA_PROFILE, 'colima-controlled');
+        provisionOwnedHttp: async ({ applicationEnvironment }) => { order.push('http'); assert.equal(applicationEnvironment.OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE, 'colima-controlled');
           if (failHttp) throw Error('controlled service unavailable'); return { available: true, activationEnabled: true }; },
       };
       if (failHttp) await assert.rejects(setup(options), e=>e.code==='APPLICATION_INITIALIZATION_REQUIRES_EXIT'&&e.errors.some(c=>c.code==='MCP_HTTP_SETUP_REQUIRED'));
       else if (failure === 'shadow') await assert.rejects(setup(options), e=>e.code==='APPLICATION_INITIALIZATION_REQUIRES_EXIT'&&e.errors.some(c=>c.code==='MCP_SHADOW_SETUP_REQUIRED'));
       else if (failure === 'audit') await assert.rejects(setup(options), e=>e.code==='APPLICATION_INITIALIZATION_REQUIRES_EXIT'&&e.errors.some(c=>c.code==='AUDIT_SQL_SETUP_REQUIRED'));
       else { const configured = await setup(options); assert.equal(configured.ownedHttp.activationEnabled, true); assert.equal(configured.auditSql.activationEnabled, false); }
-      assert.deepEqual(order, failHttp ? ['schema', 'cli', 'http'] : failure==='shadow'?['schema','cli','http','shadow']:['schema', 'cli', 'http', 'shadow', 'audit-sql']); if(failure==='none'){const saved=require('dotenv').parse(await fs.readFile(path.join(root, '.env')));assert.equal(saved.DVAIA_MCP_OWNED_COLIMA_PROFILE,'colima-controlled');assert.equal(saved.SS_BOUND_UPLOAD_ASSETS_ENABLED,'false');assert.equal(Object.hasOwn(saved,'SS_UPLOAD_ASSET_CAPABILITY_SECRET'),false);}else await assert.rejects(fs.stat(path.join(root,'.env')),{code:'ENOENT'});
+      assert.deepEqual(order, failHttp ? ['schema', 'cli', 'http'] : failure==='shadow'?['schema','cli','http','shadow']:['schema', 'cli', 'http', 'shadow', 'audit-sql']); if(failure==='none'){const saved=require('dotenv').parse(await fs.readFile(path.join(root, '.env')));assert.equal(saved.OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE,'colima-controlled');assert.equal(saved.SS_BOUND_UPLOAD_ASSETS_ENABLED,'false');assert.equal(Object.hasOwn(saved,'SS_UPLOAD_ASSET_CAPABILITY_SECRET'),false);}else await assert.rejects(fs.stat(path.join(root,'.env')),{code:'ENOENT'});
     }
   } finally { postgres.createPool = originalPool; bootstrap.bootstrapAdmin = originalBootstrap; }
 });
 test('coupon opt-in setup automatically prepares Analytics before schema activation and preserves private environment',async t=>{
  const plan=provisioningPlan(),value=await upgradeFixture(t,plan),envPath=path.join(value.root,'.env');
  await fs.appendFile(envPath,encodeEnv({SS_ENABLE:'true',SS_BOUND_REVIEWS_ENABLED:'true',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres'}));
- const calls=[],options={root:value.root,homeDirectory:value.homeDirectory,upgrade:true,ownedCoupons:true,processEnvironment:{},adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',ensureDockerAuthority:existingDockerAuthority,provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),provision:async()=>({status:'existing',plan,configuration:value.configuration}),provisionAuditSql:async()=>({activationEnabled:false,preserved:true}),runCommand:async()=>assert.fail('unrelated setup command'),setupOwnedAnalytics:async args=>{calls.push('analytics');assert.equal(args.explicitActivation,false);return{requested:true,activationEnabled:true};},setupOwnedCoupons:async args=>{calls.push('coupons');assert.equal(args.applicationEnvironment.SECURESHOP_REVIEW_MIGRATION_DATABASE_URL,value.configuration.SECURESHOP_REVIEW_MIGRATION_DATABASE_URL);return{requested:true,activationEnabled:true};}};
+ const calls=[],options={root:value.root,homeDirectory:value.homeDirectory,upgrade:true,ownedCoupons:true,processEnvironment:{},adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',ensureDockerAuthority:existingDockerAuthority,provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),provision:async()=>({status:'existing',plan,configuration:value.configuration}),provisionAuditSql:async()=>({activationEnabled:false,preserved:true}),runCommand:async()=>assert.fail('unrelated setup command'),setupOwnedAnalytics:async args=>{calls.push('analytics');assert.equal(args.explicitActivation,false);return{requested:true,activationEnabled:true};},setupOwnedCoupons:async args=>{calls.push('coupons');assert.equal(args.applicationEnvironment.SECURESHOP_REVIEW_MIGRATION_DATABASE_URL,value.configuration.SECURESHOP_REVIEW_MIGRATION_DATABASE_URL);return{requested:true,activationEnabled:true};}};
  const first=await setup(options);assert.equal(first.coupons.activationEnabled,true);assert.deepEqual(calls,['analytics','coupons']);const bytes=await fs.readFile(envPath);await setup(options);assert.deepEqual(await fs.readFile(envPath),bytes);
  await assert.rejects(setup({...options,setupOwnedCoupons:async()=>{throw Object.assign(Error('coupon unavailable'),{code:'COUPON_SCHEMA_UNAVAILABLE'});}}),e=>e.code==='APPLICATION_INITIALIZATION_REQUIRES_EXIT'&&e.errors.some(c=>c.code==='COUPON_SCHEMA_UNAVAILABLE'));assert.deepEqual(await fs.readFile(envPath),bytes);
 });
@@ -946,7 +946,7 @@ test('CTF delivery extension preserves existing private TLS policy on upgrade',a
  let observed;
  await setup({root:value.root,homeDirectory:value.homeDirectory,upgrade:true,processEnvironment:{},adminUrl:'postgresql://admin:synthetic@remote.example/postgres',ensureDockerAuthority:existingDockerAuthority,
   provision:async()=>({status:'existing',plan,configuration:value.configuration}),
-  provisionDelivery:async options=>{observed=options.env.PG_TLS;return{configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@remote.example/dvaia_ctf'}};},
+  provisionDelivery:async options=>{observed=options.env.PG_TLS;return{configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@remote.example/owasp_ai_goat_ctf'}};},
   runCommand:async()=>assert.fail('no store initialization')});
  assert.equal(observed,'require');assert.equal(require('dotenv').parse(await fs.readFile(path.join(value.root,'.env'))).PG_TLS,'require');
 });
@@ -955,7 +955,7 @@ test('CTF activation failure prevents additive private environment publication',
  const plan=provisioningPlan(),value=await upgradeFixture(t,plan),before=await fs.readFile(path.join(value.root,'.env'));
  await assert.rejects(setup({root:value.root,homeDirectory:value.homeDirectory,upgrade:true,controlledCtfFailure:true,
   adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',ensureDockerAuthority:existingDockerAuthority,
-  provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),
+  provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),
   provision:async()=>({status:'existing',plan,configuration:value.configuration}),
  }));
  assert.equal((await fs.readFile(path.join(value.root,'.env'))).equals(before),true,'private original bytes must remain exact');
@@ -966,7 +966,7 @@ test('upgrade with every store configured still initializes before CTF and prese
   const options={root:value.root,homeDirectory:value.homeDirectory,upgrade:true,processEnvironment:{},observeControlledCtf:()=>{ctfCalls++;assert.equal(initialized,2);},
     adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',ensureDockerAuthority:existingDockerAuthority,
     provision:async()=>({status:'existing',plan,configuration:value.configuration}),
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),
     initializeApplication:async({maintenanceScope})=>{initialized++;maintenanceScope.assertHeld();for(const row of plan)assert.equal(process.env[row.runtimeVariable],value.configuration[row.runtimeVariable]);throw Object.assign(Error('controlled'),{code:'MIGRATION_FAILED'});}};
   await assert.rejects(setup(options),e=>e.code==='APPLICATION_INITIALIZATION_REQUIRES_EXIT'&&e.errors.some(x=>x.code==='MIGRATION_FAILED'));
   assert.equal(initialized,1);assert.equal(ctfCalls,0);assert.deepEqual(await fs.readFile(path.join(value.root,'.env')),value.original);
@@ -981,7 +981,7 @@ test('registry setup follows migrations, preserves disabled preference and fails
   const options={root:value.root,homeDirectory:value.homeDirectory,upgrade:true,ownedMcpRegistry:true,processEnvironment:{},
     adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',ensureDockerAuthority:existingDockerAuthority,
     preflightOwnedMcpRegistryArchitecture:async()=>({architecture:'arm64',dockerHost:'unix:///tmp/docker-fixture.sock'}),
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),
     provision:async()=>({status:'existing',plan,configuration:value.configuration}),initializeApplication:async()=>{initialized=true;},
     setupOwnedMcpRegistry:async args=>{calls++;assert.equal(initialized,true);assert.equal(args.requested,true);assert.equal(args.explicitActivation,false);assert.equal(args.root,value.root);assert.equal(args.homeDirectory,value.homeDirectory);assert.equal(args.applicationEnvironment.SECURESHOP_AGENTS_DATABASE_URL,value.configuration.SECURESHOP_AGENTS_DATABASE_URL);return{requested:true,activationEnabled:false};}};
   const first=await setup(options);assert.equal(first.ownedRegistry.activationEnabled,false);
@@ -1046,7 +1046,7 @@ test('policy renderer setup preserves disabled state and publishes activation on
   let initialized=false,calls=0;
   const base={root:value.root,homeDirectory:value.homeDirectory,upgrade:true,ownedPolicyRenderer:true,processEnvironment:{},
     adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',ensureDockerAuthority:existingDockerAuthority,
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),
     provision:async()=>({status:'existing',plan,configuration:value.configuration}),initializeApplication:async()=>{initialized=true;}};
   const disabled=await setup({...base,provisionOwnedPolicyRenderer:async args=>{calls++;assert.equal(initialized,true);assert.deepEqual(Object.keys(args).sort(),['activate','architecture','environment','home','platform','root']);assert.equal(args.root,value.root);assert.equal(args.home,value.homeDirectory);assert.equal(args.platform,process.platform);assert.equal(args.architecture,process.arch);assert.deepEqual(args.environment,{});assert.equal(args.activate,false);return{ready:false,enabled:false,preservedDisabled:true};}});
   assert.deepEqual(disabled.policyRenderer,{requested:true,ready:false,enabled:false,preservedDisabled:true});
@@ -1070,7 +1070,7 @@ test('Listings template setup stages disabled and activates only after exact own
   let initialized=false,calls=0;
   const base={root:value.root,homeDirectory:value.homeDirectory,upgrade:true,ownedListingTemplate:true,processEnvironment:{},
     adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',ensureDockerAuthority:existingDockerAuthority,
-    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/dvaia_ctf'}}),
+    provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@localhost/owasp_ai_goat_ctf'}}),
     provision:async()=>({status:'existing',plan,configuration:value.configuration}),initializeApplication:async()=>{initialized=true;}};
   const disabled=await setup({...base,provisionOwnedListingTemplate:async args=>{
     calls++;assert.equal(initialized,true);assert.deepEqual(Object.keys(args).sort(),['activate','architecture','environment','home','platform','root']);

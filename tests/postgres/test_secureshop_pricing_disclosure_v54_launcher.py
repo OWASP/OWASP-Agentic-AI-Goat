@@ -18,7 +18,7 @@ sys.path.insert(0,str(HERE))
 SPEC=importlib.util.spec_from_file_location('v54_launcher',HERE/'run-secureshop-agent-host-transport-main.py')
 L=importlib.util.module_from_spec(SPEC);SPEC.loader.exec_module(L)
 COHORT='merchant-pricing-disclosure-v54-browser'
-NODE='/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node'
+NODE='/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node'
 
 class PricingV54Launcher(unittest.TestCase):
     def value(self,**changes):

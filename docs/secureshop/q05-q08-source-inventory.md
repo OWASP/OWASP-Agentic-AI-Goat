@@ -7,7 +7,7 @@ reads source only. Its focused contract is
 `node --test tests/secureshopQ05Q08Inventory.contract.test.js`.
 
 The original seven surfaces remain: bound RoleChat tool descriptors,
-task-agent MCP tool descriptors, literal mutating SecureShop route registrations,
+task-agent MCP tool descriptors, literal mutating OWASP AI SecureShop route registrations,
 dynamic router verb registrations, literal confirmation terminals, storefront
 fetch callsites (including direct customer, merchant and admin panels), and
 `@intentional-vulnerability` annotations in server and agent code. Every row has

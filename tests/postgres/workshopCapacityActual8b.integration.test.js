@@ -20,7 +20,7 @@ const MODEL = 'llama3.1:8b';
 const ENDPOINT = 'http://127.0.0.1:11434';
 const MAX_PROVIDER_CALLS = 10; // one warmup + eight successes + one reset abort
 const enabled = process.env.PG_TEST_DISPOSABLE === 'yes'
-  && process.env.DVAIA_CAPACITY_ACTUAL8B === 'yes'
+  && process.env.OWASP_AI_GOAT_CAPACITY_ACTUAL8B === 'yes'
   && Boolean(process.env.PG_CAPACITY_ACTUAL8B_IDENTITY_MIGRATION_URL)
   && Boolean(process.env.PG_CAPACITY_ACTUAL8B_IDENTITY_RUNTIME_URL);
 
@@ -167,7 +167,7 @@ test('bounded actual local-8B cohort exercises PostgreSQL leases, queue cancella
     for (const key of ['PG_CAPACITY_ACTUAL8B_IDENTITY_MIGRATION_URL', 'PG_CAPACITY_ACTUAL8B_IDENTITY_RUNTIME_URL']) {
       const url = new URL(process.env[key]);
       assert.equal(url.hostname, '127.0.0.1');
-      assert.match(url.pathname, /^\/dvaia_test_capacity_actual_8b_[a-z0-9_]+$/);
+      assert.match(url.pathname, /^\/owasp_ai_goat_test_capacity_actual_8b_[a-z0-9_]+$/);
     }
     const env = {
       ...process.env,

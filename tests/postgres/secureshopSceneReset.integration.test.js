@@ -42,7 +42,7 @@ const directory = store => path.join(ROOT, 'db/postgres', store === 'IDENTITY'
 function url(store, role) {
   const value = new URL(process.env[`${PREFIX}${store}_${role}_URL`]);
   assert.equal(value.protocol, 'postgresql:'); assert.equal(value.hostname, '127.0.0.1');
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   assert.equal(value.username, `dvaia_${STORES[store]}_${role.toLowerCase()}`);
   for (const key of ['password', 'search', 'hash']) assert.equal(value[key], '');
   return value.href;
@@ -66,7 +66,7 @@ function historical(directoryPath, ceiling) {
 
 test('aggregate scene reset commits distinct birth targets and resumes exact interrupted review claims',
   { skip: !enabled, timeout: 220000 }, async t => {
-    assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE || '/'), process.cwd());
+    assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE || '/'), process.cwd());
     assert.equal(process.cwd(), ROOT);
     const evidence = process.env.SECURESHOP_SCENE_RESET_EVIDENCE_PATH || '';
     assert.ok(path.isAbsolute(evidence));
@@ -433,8 +433,8 @@ test('aggregate scene reset commits distinct birth targets and resumes exact int
         assert.equal(response.status, 200);
         assert.equal((await response.json()).user.role, 'admin');
         const cookie = response.headers.get('set-cookie')?.split(';')[0];
-        assert.match(cookie, /^dvaia_shop_session=[A-Za-z0-9_-]{43}$/);
-        const basePrincipal = await auth.authenticate(cookie.slice('dvaia_shop_session='.length));
+        assert.match(cookie, /^owasp_ai_goat_shop_session=[A-Za-z0-9_-]{43}$/);
+        const basePrincipal = await auth.authenticate(cookie.slice('owasp_ai_goat_shop_session='.length));
         assert.equal(basePrincipal.principalId, adminPrincipalId);
         return { cookie, context: await auth.establishTenantContext(basePrincipal) };
       };
@@ -451,7 +451,7 @@ test('aggregate scene reset commits distinct birth targets and resumes exact int
       const ready = await (await get('/reset-readiness', firstAdmin.cookie)).json();
       assert.deepEqual({ launchId: ready.launchId, generation: ready.generation, sceneId: ready.scene.id },
         { launchId: adminScope.launchId, generation: adminScope.generation, sceneId: adminScene.sceneId });
-      const customerCookie = `dvaia_shop_session=${secondLogin.token}`;
+      const customerCookie = `owasp_ai_goat_shop_session=${secondLogin.token}`;
       assert.equal((await get('/reset-readiness', customerCookie)).status, 403);
       const protectedKey = randomUUID();
       const resetInput = { launchId: ready.launchId, expectedGeneration: ready.generation,

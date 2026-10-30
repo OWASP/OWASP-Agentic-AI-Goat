@@ -46,12 +46,12 @@ $runner = { param($Request)
 $caller = New-Object 'System.Collections.Generic.Dictionary[string,string]'
 $caller.Add('PATH',(Join-Path $base 'prior tools')); $caller.Add('Path',(Join-Path $base 'other tools'))
 $caller.Add('TOKEN','synthetic private caller token'); $caller.Add('PYTHON','conflicting python'); $caller.Add('VCINSTALLDIR','conflicting VS')
-$caller.Add('dvaia_windows_multipass_executable','conflicting multipass'); $caller.Add('Dvaia_Windows_Ssh_Executable','conflicting ssh')
+$caller.Add('owasp_ai_goat_windows_multipass_executable','conflicting multipass'); $caller.Add('OwaspAiGoat_Windows_Ssh_Executable','conflicting ssh')
 ${steer}
-$result = Invoke-DvaiaWindowsDependencies -ExecuteMode $${execute} -RepoRoot ${quote(root)} -UserProfile $base -SystemRoot $base -Bootstrap $bootstrap -Packages $packages -Runner $runner -ProcessEnvironment $caller
+$result = Invoke-OwaspAiGoatWindowsDependencies -ExecuteMode $${execute} -RepoRoot ${quote(root)} -UserProfile $base -SystemRoot $base -Bootstrap $bootstrap -Packages $packages -Runner $runner -ProcessEnvironment $caller
 $childSummary = $null
-if ($result.childEnvironment) { $childSummary = @{ path = $result.childEnvironment['Path']; pathKeys = @($result.childEnvironment.Keys | Where-Object { $_ -ieq 'Path' }); npm = $result.childEnvironment['npm_execpath']; python = $result.childEnvironment['PYTHON']; forcedPython = $result.childEnvironment['NODE_GYP_FORCE_PYTHON']; vs = $result.childEnvironment['npm_package_config_node_gyp_msvs_version']; multipass = $result.childEnvironment['DVAIA_WINDOWS_MULTIPASS_EXECUTABLE']; ssh = $result.childEnvironment['DVAIA_WINDOWS_SSH_EXECUTABLE']; labKeys = @($result.childEnvironment.Keys | Where-Object { $_ -ieq 'DVAIA_WINDOWS_MULTIPASS_EXECUTABLE' -or $_ -ieq 'DVAIA_WINDOWS_SSH_EXECUTABLE' }); secretPreserved = ($result.childEnvironment['TOKEN'] -ceq $caller['TOKEN']); inheritedVsRemoved = (-not $result.childEnvironment.ContainsKey('VCINSTALLDIR')) } }
-@{ result = (ConvertTo-DvaiaWindowsDependenciesPublicResult $result); events = @($script:events); child = $childSummary; callerPreserved = ($caller['PYTHON'] -ceq 'conflicting python' -and $caller['VCINSTALLDIR'] -ceq 'conflicting VS' -and $caller['dvaia_windows_multipass_executable'] -ceq 'conflicting multipass' -and $caller['Dvaia_Windows_Ssh_Executable'] -ceq 'conflicting ssh' -and $caller.ContainsKey('PATH') -and $caller.ContainsKey('Path')) } | ConvertTo-Json -Depth 8 -Compress
+if ($result.childEnvironment) { $childSummary = @{ path = $result.childEnvironment['Path']; pathKeys = @($result.childEnvironment.Keys | Where-Object { $_ -ieq 'Path' }); npm = $result.childEnvironment['npm_execpath']; python = $result.childEnvironment['PYTHON']; forcedPython = $result.childEnvironment['NODE_GYP_FORCE_PYTHON']; vs = $result.childEnvironment['npm_package_config_node_gyp_msvs_version']; multipass = $result.childEnvironment['OWASP_AI_GOAT_WINDOWS_MULTIPASS_EXECUTABLE']; ssh = $result.childEnvironment['OWASP_AI_GOAT_WINDOWS_SSH_EXECUTABLE']; labKeys = @($result.childEnvironment.Keys | Where-Object { $_ -ieq 'OWASP_AI_GOAT_WINDOWS_MULTIPASS_EXECUTABLE' -or $_ -ieq 'OWASP_AI_GOAT_WINDOWS_SSH_EXECUTABLE' }); secretPreserved = ($result.childEnvironment['TOKEN'] -ceq $caller['TOKEN']); inheritedVsRemoved = (-not $result.childEnvironment.ContainsKey('VCINSTALLDIR')) } }
+@{ result = (ConvertTo-OwaspAiGoatWindowsDependenciesPublicResult $result); events = @($script:events); child = $childSummary; callerPreserved = ($caller['PYTHON'] -ceq 'conflicting python' -and $caller['VCINSTALLDIR'] -ceq 'conflicting VS' -and $caller['owasp_ai_goat_windows_multipass_executable'] -ceq 'conflicting multipass' -and $caller['OwaspAiGoat_Windows_Ssh_Executable'] -ceq 'conflicting ssh' -and $caller.ContainsKey('PATH') -and $caller.ContainsKey('Path')) } | ConvertTo-Json -Depth 8 -Compress
 `;
   const run = spawnSync(interpreter, ['-NoProfile', '-NonInteractive', '-Command', program], { encoding: 'utf8', timeout: 10000 });
   assert.equal(run.status, 0, run.stderr);
@@ -135,10 +135,10 @@ test('provider exceptions are sanitized and package binding failure cannot claim
 
 
 test('child environment is integrated before success and CLI uses explicit public projection', () => {
-  assert.match(source, /function New-DvaiaWindowsDependencyEnvironment/);
-  assert.ok(source.indexOf('$result.childEnvironment = New-DvaiaWindowsDependencyEnvironment') < source.indexOf('$result.componentSucceeded = $true'));
-  assert.match(source, /ConvertTo-DvaiaWindowsDependenciesPublicResult \$output \| ConvertTo-Json/);
-  const projection = source.slice(source.indexOf('function ConvertTo-DvaiaWindowsDependenciesPublicResult'),source.indexOf('function Invoke-DvaiaWindowsDependencies'));
+  assert.match(source, /function New-OwaspAiGoatWindowsDependencyEnvironment/);
+  assert.ok(source.indexOf('$result.childEnvironment = New-OwaspAiGoatWindowsDependencyEnvironment') < source.indexOf('$result.componentSucceeded = $true'));
+  assert.match(source, /ConvertTo-OwaspAiGoatWindowsDependenciesPublicResult \$output \| ConvertTo-Json/);
+  const projection = source.slice(source.indexOf('function ConvertTo-OwaspAiGoatWindowsDependenciesPublicResult'),source.indexOf('function Invoke-OwaspAiGoatWindowsDependencies'));
   assert.doesNotMatch(projection.match(/foreach \(\$key in @\((.*)\)/)[1], /childEnvironment/);
   assert.match(source, /NODE_GYP_FORCE_PYTHON/);
   assert.match(source, /npm_package_config_node_gyp_msvs_version/);
@@ -160,11 +160,11 @@ test('coordinator admits explicit Multipass and OpenSSH bindings and child-only 
   assert.match(source, /id = 'multipass'; key = 'multipassExecutable'/);
   assert.match(source, /id = 'opensshClient'; key = 'sshExecutable'/);
   assert.match(source, /multipassExecutable = \$paths.multipassExecutable; sshExecutable = \$paths.sshExecutable/);
-  assert.match(source, /'DVAIA_WINDOWS_MULTIPASS_EXECUTABLE',\$Bindings.multipassExecutable/);
-  assert.match(source, /'DVAIA_WINDOWS_SSH_EXECUTABLE',\$Bindings.sshExecutable/);
+  assert.match(source, /'OWASP_AI_GOAT_WINDOWS_MULTIPASS_EXECUTABLE',\$Bindings.multipassExecutable/);
+  assert.match(source, /'OWASP_AI_GOAT_WINDOWS_SSH_EXECUTABLE',\$Bindings.sshExecutable/);
   assert.match(source, /replace the child's inherited environment \(Clear \+/);
   assert.match(source, /WINDOWS_PROTECTED_LAB_INTEGRATION_PENDING/);
-  assert.doesNotMatch(source, /DVAIA_WINDOWS_.*=|BACKEND_UNDECIDED|Docker\/Compose and protected lab backend decision/);
+  assert.doesNotMatch(source, /OWASP_AI_GOAT_WINDOWS_.*=|BACKEND_UNDECIDED|Docker\/Compose and protected lab backend decision/);
 });
 
 test('missing duplicate unsupported relative or control-containing lab handoff bindings deny component completion', { skip }, () => {
@@ -190,7 +190,7 @@ test('controlled copied child environment preserves secrets and spaces, collapse
   assert.equal(value.child.vs,value.result.bindings.visualStudioInstallation);
   assert.equal(value.child.multipass,value.result.bindings.multipassExecutable);
   assert.equal(value.child.ssh,value.result.bindings.sshExecutable);
-  assert.deepEqual(value.child.labKeys.sort(),['DVAIA_WINDOWS_MULTIPASS_EXECUTABLE','DVAIA_WINDOWS_SSH_EXECUTABLE']);
+  assert.deepEqual(value.child.labKeys.sort(),['OWASP_AI_GOAT_WINDOWS_MULTIPASS_EXECUTABLE','OWASP_AI_GOAT_WINDOWS_SSH_EXECUTABLE']);
   assert.equal(value.child.secretPreserved,true);
   assert.equal(value.child.inheritedVsRemoved,true);
   assert.equal(value.callerPreserved,true);
@@ -206,7 +206,7 @@ $codes = @()
 foreach ($case in @('missing','relative','control','mismatch','type','missingLab','relativeLab','controlLab')) {
  $value = $valid.Clone()
  switch ($case) { 'missing' { $value.Remove('gitExecutable') }; 'relative' { $value.pythonExecutable = 'relative.exe' }; 'control' { $value.ollamaExecutable += [char]0 }; 'mismatch' { $value.npmExecpath = $value.nodeExecutable }; 'type' { $value.nodeExecutable = 42 }; 'missingLab' { $value.Remove('multipassExecutable') }; 'relativeLab' { $value.sshExecutable = 'relative ssh.exe' }; 'controlLab' { $value.multipassExecutable += [char]0 } }
- try { New-DvaiaWindowsDependencyEnvironment -Bindings $value -Environment @{ TOKEN = 'synthetic caller token' } | Out-Null; $codes += 'accepted' } catch { $codes += $_.Exception.Message }
+ try { New-OwaspAiGoatWindowsDependencyEnvironment -Bindings $value -Environment @{ TOKEN = 'synthetic caller token' } | Out-Null; $codes += 'accepted' } catch { $codes += $_.Exception.Message }
 }
 $codes | ConvertTo-Json -Compress
 `;

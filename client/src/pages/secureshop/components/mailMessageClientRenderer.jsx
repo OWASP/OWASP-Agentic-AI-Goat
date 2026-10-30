@@ -4,7 +4,7 @@ import { flushSync } from 'react-dom';
 import MailMessageBody from './MailMessageBody.jsx';
 
 let root;
-Object.defineProperty(globalThis, '__DVAIA_MAIL_MOUNT__', { value: html => {
+Object.defineProperty(globalThis, '__OWASP_AI_GOAT_MAIL_MOUNT__', { value: html => {
   if (typeof html !== 'string' || root) throw new Error('Invalid mail mount');
   root = createRoot(document.getElementById('sink'));
   flushSync(() => root.render(<MailMessageBody html={html} />));

@@ -16,7 +16,7 @@ test('Vite serves built assets locally and proxies only workshop sample director
     res.end(`owned backend ${req.url}`);
   });
   await new Promise(resolve => backend.listen(0, '127.0.0.1', resolve));
-  const output = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-vite-routing-'));
+  const output = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-vite-routing-'));
   const previousPort = process.env.PORT;
   let server;
   try {

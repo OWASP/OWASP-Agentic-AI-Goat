@@ -39,7 +39,7 @@ function assertLearnerDatabaseName(pathname, state, kind, nonce = null) {
   assert(['FRESH', 'POPULATED'].includes(state));
   assert(['IDENTITY', 'CTF'].includes(kind));
   const match = pathname.match(new RegExp(
-    `^/dvaia_test_ctf_learner_entry_hint_${state[0].toLowerCase()}_${kind[0].toLowerCase()}_([a-f0-9]{12})$`));
+    `^/owasp_ai_goat_test_ctf_learner_entry_hint_${state[0].toLowerCase()}_${kind[0].toLowerCase()}_([a-f0-9]{12})$`));
   assert(match, 'Exact disposable learner database name required');
   if (nonce !== null) assert.equal(match[1], nonce);
   return match[1];

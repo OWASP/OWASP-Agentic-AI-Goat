@@ -26,7 +26,7 @@ function assertMcpMailpitAdmission(env, sourceRoot) {
   ]) {
     let url; try { url = new URL(env[name]); } catch { fail(); }
     if (url.protocol !== 'postgresql:' || url.hostname !== '127.0.0.1' || url.port !== pgPort
-        || url.pathname !== '/dvaia_test_mcp_owned_mailpit' || url.username !== role
+        || url.pathname !== '/owasp_ai_goat_test_mcp_owned_mailpit' || url.username !== role
         || url.search || url.hash) fail();
   }
   if (env.MAILPIT_SMTP_HOST !== '127.0.0.1' || env.MAILPIT_SMTP_PORT !== smtpPort

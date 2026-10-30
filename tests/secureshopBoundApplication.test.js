@@ -130,10 +130,10 @@ test('MCP trust mounting is explicitly default-off and carries the owned fixture
     const disabled=fixture();let disabledOptions;await createSecureShopBoundApplication({...disabled.options,
       getComposition:async options=>{disabledOptions=options;return disabled.composition;}});
     assert.equal(disabledOptions.mcpTrustFeature,false);assert.equal(Object.hasOwn(disabledOptions,'mcpTrustFixtureRoot'),false);
-    process.env.SS_MCP_TRUST_READY='true';process.env.SS_MCP_TRUST_FIXTURE_ROOT='/tmp/dvaia-owned-mcp-trust';
+    process.env.SS_MCP_TRUST_READY='true';process.env.SS_MCP_TRUST_FIXTURE_ROOT='/tmp/owasp-ai-goat-owned-mcp-trust';
     const enabled=fixture();enabled.composition.mcpTrust={ready:true,router:express.Router()};let enabledOptions;
     await createSecureShopBoundApplication({...enabled.options,getComposition:async options=>{enabledOptions=options;return enabled.composition;}});
-    assert.equal(enabledOptions.mcpTrustFeature,true);assert.equal(enabledOptions.mcpTrustFixtureRoot,'/tmp/dvaia-owned-mcp-trust');
+    assert.equal(enabledOptions.mcpTrustFeature,true);assert.equal(enabledOptions.mcpTrustFixtureRoot,'/tmp/owasp-ai-goat-owned-mcp-trust');
   } finally {for(const [key,value] of [['PLATFORM_DATABASE_ENGINE',prior.platform],['WORKSHOP_DATABASE_ENGINE',prior.workshop],
     ['SS_MCP_TRUST_READY',prior.flag],['SS_MCP_TRUST_FIXTURE_ROOT',prior.root]]){
     if(value===undefined)delete process.env[key];else process.env[key]=value;}}
@@ -155,7 +155,7 @@ test('controlled SSRF mounting is explicit and exposes its router only through t
     assert.equal(Object.hasOwn(disabledOptions, 'ssrfFixtureRoot'), false);
 
     process.env.SS_CONTROLLED_SSRF_READY = 'true';
-    process.env.SS_CONTROLLED_SSRF_FIXTURE_ROOT = '/tmp/dvaia-owned-ssrf';
+    process.env.SS_CONTROLLED_SSRF_FIXTURE_ROOT = '/tmp/owasp-ai-goat-owned-ssrf';
     const enabled = fixture(); let enabledOptions;
     enabled.binding.scenarioId = '40000000-0000-4000-8000-000000000071';
     enabled.composition.launches.resolveCapability = async () => enabled.binding;
@@ -173,7 +173,7 @@ test('controlled SSRF mounting is explicit and exposes its router only through t
     const application = await createSecureShopBoundApplication({ ...enabled.options,
       getComposition: async options => { enabledOptions = options; return enabled.composition; } });
     assert.equal(enabledOptions.ssrfFeature, true);
-    assert.equal(enabledOptions.ssrfFixtureRoot, '/tmp/dvaia-owned-ssrf');
+    assert.equal(enabledOptions.ssrfFixtureRoot, '/tmp/owasp-ai-goat-owned-ssrf');
     let observedPersona;
     const app = express();
     app.use('/api/secureshop', (req, res, next) => {
@@ -185,7 +185,7 @@ test('controlled SSRF mounting is explicit and exposes its router only through t
     });
     t.after(() => new Promise(resolve => server.close(() => resolve())));
     const response = await fetch(`http://127.0.0.1:${server.address().port}/api/secureshop/v2/controlled-ssrf/readiness`, {
-      headers: { 'x-dvaia-secureshop-launch': 'a'.repeat(43) },
+      headers: { 'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43) },
     });
     const body = await response.json();
     assert.equal(response.status, 200, JSON.stringify(body));
@@ -221,7 +221,7 @@ test('composed public launch reset uses platform authority and preserves the leg
   const resetCall = f.calls.find(item => !Array.isArray(item));
   assert.equal(resetCall.platformOwnerId, 17); assert.equal(resetCall.platformSessionId, 23);
   const unknown = await fetch(`${origin}/api/secureshop/unscoped-write`, {
-    headers: { 'x-dvaia-secureshop-launch': 'invalid' } });
+    headers: { 'x-owasp-ai-goat-secureshop-launch': 'invalid' } });
   assert.notEqual(unknown.status, 200); await unknown.arrayBuffer();
   assert.equal(legacyEffects, 0);
 });
@@ -433,7 +433,7 @@ test('actual application projects composed unbounded and timing audit readiness 
   });
   t.after(() => new Promise(resolve => server.close(resolve)));
   const response = await fetch(`http://127.0.0.1:${server.address().port}/api/secureshop/admin/audit/capabilities`, {
-    headers: { 'x-dvaia-secureshop-launch': 'a'.repeat(43) },
+    headers: { 'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43) },
   });
   assert.equal(response.status, 200);
   const body = await response.json();

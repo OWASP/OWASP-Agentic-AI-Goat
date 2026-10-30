@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),{createRequire}=require('node:module'),{randomUUID}=require('node:crypto');
 const file=path.resolve('server/database/postgres/applicationMaintenanceRecoveryControl.js'),realRequire=createRequire(file);
 const {requiredStoreManifest}=require('../db/postgres/initialize-application');
-function input(){return{version:1,profile:'upgrade-canonical16-v1',workspaceRoot:process.cwd(),publicationId:randomUUID(),publicationSha256:'b'.repeat(64),sourceManifestSha256:'c'.repeat(64),stores:requiredStoreManifest.map((s,i)=>({storeKey:s.schema,clusterIdentifier:'123',databaseOid:i+1,databaseName:'dvaia_'+s.schema,runtimeRole:s.runtimeRole,migrationRole:'dvaia_'+s.schema+'_migration',deliveryRole:s.schema==='ctf'?'dvaia_ctf_delivery':null,endpointPolicySha256:'d'.repeat(64)}))};}
+function input(){return{version:1,profile:'upgrade-canonical16-v1',workspaceRoot:process.cwd(),publicationId:randomUUID(),publicationSha256:'b'.repeat(64),sourceManifestSha256:'c'.repeat(64),stores:requiredStoreManifest.map((s,i)=>({storeKey:s.schema,clusterIdentifier:'123',databaseOid:i+1,databaseName:'owasp_ai_goat_'+s.schema,runtimeRole:s.runtimeRole,migrationRole:'dvaia_'+s.schema+'_migration',deliveryRole:s.schema==='ctf'?'dvaia_ctf_delivery':null,endpointPolicySha256:'d'.repeat(64)}))};}
 function fixture({badOwner=false,failStore=0,allowProof=false,failReceipt=false}={}){
  let state={epoch:'1',operation_id:randomUUID(),installation_id:randomUUID(),state:'clean'},binding,stores=[],attempts=[],calls=[],proofContext;let reserved=false;
  const module={exports:{}};

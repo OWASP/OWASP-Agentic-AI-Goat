@@ -36,7 +36,7 @@ function assertFullBackendSecureShopAdmission(env, { sourceRoot, evidenceRoot, e
     'AWS_SESSION_TOKEN','AWS_PROFILE','AWS_REGION','BEDROCK_MODEL_ID','GOOGLE_API_KEY','GEMINI_API_KEY']) if (env[key]) fail();
   const source = directory(sourceRoot, false), evidence = directory(evidenceRoot, true);
   if (source === evidence || inside(evidence, source) || inside(source, evidence)
-      || env.DVAIA_ISOLATED_TEST_WORKSPACE !== source || env.DVAIA_FULL_BACKEND_RUNTIME_ROOT !== evidence) fail();
+      || env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE !== source || env.OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT !== evidence) fail();
   const roots = {};
   for (const key of ['SS_MCP_TRUST_FIXTURE_ROOT','SS_CONTROLLED_SSRF_FIXTURE_ROOT']) {
     roots[key] = directory(env[key], true);if (!inside(roots[key], evidence)) fail();
@@ -62,7 +62,7 @@ function assertFullBackendSecureShopAdmission(env, { sourceRoot, evidenceRoot, e
       [store.migrationVariable, `dvaia_${store.schema}_migration`]]) {
       let url;try { url = new URL(env[variable]); } catch { fail(); }
       if (url.protocol !== 'postgresql:' || url.hostname !== postgres.host || url.port !== String(postgres.port)
-          || url.pathname !== `/dvaia_test_full_backend_${store.schema}` || url.username !== role
+          || url.pathname !== `/owasp_ai_goat_test_full_backend_${store.schema}` || url.username !== role
           || url.search || url.hash) fail();
     }
   }

@@ -25,7 +25,7 @@ async function createResetSupport({ runtime, migration, progress, appDataRoot })
   const migrationUrl = new URL(process.env.FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL);
   const identityUrl = new URL(process.env.PG_ADMIN_BROWSER_TEST_RUNTIME_URL);
   assert.equal(runtimeUrl.hostname, '127.0.0.1');
-  assert.match(runtimeUrl.pathname, /^\/dvaia_test_student_reset_finflow_[a-f0-9]{12}$/);
+  assert.match(runtimeUrl.pathname, /^\/owasp_ai_goat_test_student_reset_finflow_[a-f0-9]{12}$/);
   assert.equal(runtimeUrl.pathname, migrationUrl.pathname);
   assert.notEqual(runtimeUrl.pathname, identityUrl.pathname);
   assert.equal(runtimeUrl.username, 'dvaia_finflow_runtime');

@@ -13,7 +13,7 @@ function createBoundTicketAdminRouter({ launches, authenticatePersona, administr
   const launch = requireSecureShopLaunch({ launches });
   const select = (req, res, next) => {
     const count = (req.rawHeaders || []).filter((_, index) => index % 2 === 0)
-      .filter(name => name.toLowerCase() === 'x-dvaia-secureshop-launch').length;
+      .filter(name => name.toLowerCase() === 'x-owasp-ai-goat-secureshop-launch').length;
     return count === 1 ? launch(req, res, next) : next('route');
   };
   const admin = (req, res, next) => {

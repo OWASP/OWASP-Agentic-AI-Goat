@@ -33,7 +33,7 @@ class OrderStatusBrowserCleanup(unittest.TestCase):
             with patch.object(LAUNCHER.subprocess, 'run', return_value=SimpleNamespace(stdout='')):
                 self.assertEqual(LAUNCHER.standalone_browser_cleanup_state(runtime),
                                  {'browserProfilesAbsent': True, 'browserProcessesAbsent': True})
-                (temporary / 'dvaia-order-status-browser-residual').mkdir()
+                (temporary / 'owasp-ai-goat-order-status-browser-residual').mkdir()
                 self.assertEqual(LAUNCHER.standalone_browser_cleanup_state(runtime),
                                  {'browserProfilesAbsent': False, 'browserProcessesAbsent': True})
 

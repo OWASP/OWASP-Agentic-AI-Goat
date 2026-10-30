@@ -10,7 +10,7 @@ const fail=()=>Object.assign(Error('Owned Pricing provisioning stage conflict'),
 function validate(value,root){
  if(!value||Object.getPrototypeOf(value)!==Object.prototype||Object.keys(value).sort().join()!==[...KEYS].sort().join())throw fail();
  const id=workspaceId(root);
- managed.validate({...value,enabled:false,containerName:'dvaia-pricing-'+id,containerId:'0'.repeat(64),profile:'dvaia-owned-pricing-http-'+id},{root});
+ managed.validate({...value,enabled:false,containerName:'owasp-ai-goat-pricing-'+id,containerId:'0'.repeat(64),profile:'owasp-ai-goat-owned-pricing-http-'+id},{root});
  return Object.freeze(Object.fromEntries(KEYS.map(key=>[key,value[key]])));
 }
 function location(options){return path.join(managed.paths(options).directory,'pricing-provisioning.json');}

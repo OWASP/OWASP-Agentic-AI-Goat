@@ -42,7 +42,7 @@ def private_lifetime_plan(run_id, source_sha256, runtime_digest):
             or not HEX.fullmatch(source_sha256 or '')
             or not HEX.fullmatch(runtime_digest or '')):
         raise RuntimeError('Exact Listings private lifetime identity required')
-    root = '/var/tmp/dvaia-v23-build-' + run_id
+    root = '/var/tmp/owasp-ai-goat-v23-build-' + run_id
     return {'version': 1, 'target': 'listings-package', 'runId': run_id,
         'sourceSha256': source_sha256, 'runtimeDigest': runtime_digest,
         'guestRoot': root, 'privateDockerHost': 'unix://' + root + '/fs/docker.sock',
@@ -185,7 +185,7 @@ class CurrentHost:
             raise RuntimeError('Exact Listings build operation required')
         # The daemon's default builder has shared cache without an exact owned
         # retirement path. A separately proved nonce-owned builder is mandatory.
-        if not re.fullmatch(r'dvaia-listings-builder-[a-f0-9]{12}', builder or ''):
+        if not re.fullmatch(r'owasp-ai-goat-listings-builder-[a-f0-9]{12}', builder or ''):
             raise RuntimeError('Exact nonce-owned BuildKit builder required')
         return self.argv([*GUEST_ENV, GUEST_BUILDX, 'build', '--builder', builder,
                           '--load', '--no-cache', *parts[1:]])
@@ -193,7 +193,7 @@ class CurrentHost:
     def profile_plan(self, nonce):
         if not re.fullmatch(r'[a-f0-9]{12}', nonce or ''):
             raise RuntimeError('Fresh Listings profile nonce required')
-        name = 'dvaia-owned-listings-' + nonce
+        name = 'owasp-ai-goat-owned-listings-' + nonce
         template = self.source / 'sidecars/sandbox-runner/owned-listings/profile.apparmor.in'
         if template.is_symlink() or template.resolve() != template or template.stat().st_size > 65536:
             raise RuntimeError('Canonical Listings profile template required')

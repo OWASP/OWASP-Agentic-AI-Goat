@@ -5,9 +5,10 @@ const crypto=require('node:crypto');
 const {repositories}=require('./initialize-application');
 const {provisioningExtension}=require('./provisioning-extension');
 const repositoryRoot=path.resolve(__dirname,'../..');
-function provisioningPlan(){return repositories.map(([schema,prefix])=>({schema,database:`dvaia_${schema}`,runtimeRole:`dvaia_${schema}_runtime`,migrationRole:`dvaia_${schema}_migration`,runtimeVariable:`${prefix}_DATABASE_URL`,migrationVariable:`${prefix}_MIGRATION_DATABASE_URL`}));}
+// SQL role names are immutable migration contracts; fresh database names use the new brand.
+function provisioningPlan(){return repositories.map(([schema,prefix])=>({schema,database:`owasp_ai_goat_${schema}`,runtimeRole:`dvaia_${schema}_runtime`,migrationRole:`dvaia_${schema}_migration`,runtimeVariable:`${prefix}_DATABASE_URL`,migrationVariable:`${prefix}_MIGRATION_DATABASE_URL`}));}
 function failure(code){const error=new Error(code);error.code=code;return error;}
-function identifier(value){if(!/^dvaia_[a-z_]+$/.test(value))throw failure('INVALID_PROVISIONING_IDENTIFIER');return '"'+value+'"';}
+function identifier(value){if(!/^(?:owasp_ai_goat_[a-z_]+|dvaia_[a-z_]+_(?:runtime|migration))$/.test(value))throw failure('INVALID_PROVISIONING_IDENTIFIER');return '"'+value+'"';}
 function credentialUrl(adminUrl,role,password,database){const url=new URL(adminUrl);url.username=role;url.password=password;url.pathname='/'+database;return url.href;}
 async function privateDestination(outputPath,{platform=process.platform,fileSystem=fs,repositoryDirectory=repositoryRoot}={}){
  if(platform==='win32'){
@@ -138,7 +139,7 @@ async function provisionApplication({adminUrl=process.env.PG_ADMIN_DATABASE_URL,
   try{previousBytes=platform==='win32'?privateJournal.readJournal({filePath:destination}):await fs.readFile(destination);if(!Buffer.isBuffer(previousBytes)||platform==='win32'&&previousBytes.length>1024*1024)throw Error();previous=JSON.parse(previousBytes.toString('utf8'));if(platform==='win32'&&(!previous||typeof previous!=='object'||Array.isArray(previous)))throw Error();}
   catch(error){throw failure(platform==='win32'?'MANIFEST_NOT_PRIVATE':error.code||'INVALID_MANIFEST');}
  }
- const client=clientFactory?clientFactory({connectionString:adminUrl,ssl}):new(require('pg').Client)({connectionString:adminUrl,ssl,application_name:'dvaia-provision',connectionTimeoutMillis:10000});
+ const client=clientFactory?clientFactory({connectionString:adminUrl,ssl}):new(require('pg').Client)({connectionString:adminUrl,ssl,application_name:'owasp-ai-goat-provision',connectionTimeoutMillis:10000});
  let handle,locked=false;
  try{
   await client.connect();

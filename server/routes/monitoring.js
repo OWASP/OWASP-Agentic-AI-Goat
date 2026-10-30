@@ -7,7 +7,7 @@ const performanceMonitor = require('../middleware/performanceMonitor');
 const ollamaService = require('../services/ollamaService');
 const { hasAdminLevel } = require('../middleware/postgresAdminAuth');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dvaia-secret-key-2024';
+const JWT_SECRET = process.env.JWT_SECRET || 'owasp-ai-goat-secret-key-2024';
 
 
 // Fast liveness ping — used by ALB health checks (no external deps)
@@ -63,7 +63,7 @@ function renderAuthGate() {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>DVAIA — System Health</title>
+<title>OWASP Agentic AI GOAT — System Health</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;align-items:center;justify-content:center}

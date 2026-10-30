@@ -4,11 +4,11 @@ import sys
 sys.dont_write_bytecode = True
 import argparse, hashlib, importlib.util, json, os, pathlib, re, signal, stat, subprocess, tempfile, time, uuid
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-NODE = pathlib.Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+NODE = pathlib.Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 NODE_SHA = '56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 IMAGE = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 DAEMON = '2c9da9a7-1f8c-490b-af98-87bbf6bf83db'
-DOCKER = ['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker', '--host', 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock']
+DOCKER = ['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker', '--host', 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock']
 ACL_CURRENT_NODE = ROOT/'tasks/runtime/node/node_modules/node/bin/node'
 ACL_CURRENT_DOCKER = ROOT/'tasks/runtime/container/bin/docker'
 ACL_CURRENT_SOCKET = ROOT/'.qualification/goat-q/docker.sock'
@@ -189,13 +189,13 @@ def main():
         (None if args.suite=='pricing-journal' else ROOT/'tests/release-inputs'))
     evidence = pathlib.Path(tempfile.mkdtemp(prefix='persona-transition-main-', dir=evidence_parent)).resolve(); evidence.chmod(0o700)
     env = lifecycle.owned_environment(evidence, node)
-    if current_host:env.update(DOCKER_HOST='unix://'+str(ACL_CURRENT_SOCKET),DVAIA_CURRENT_MAIN_WORKSPACE=str(ROOT))
+    if current_host:env.update(DOCKER_HOST='unix://'+str(ACL_CURRENT_SOCKET),OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(ROOT))
     if not (ROOT/fixture).is_file():raise RuntimeError('Exact selected fixture missing')
     workspace=evidence/'runtime'/'workspace'; workspace.mkdir(mode=0o700)
-    env['DVAIA_ISOLATED_TEST_WORKSPACE']=str(ROOT if args.suite=='persona-product-canonical' else workspace)
+    env['OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE']=str(ROOT if args.suite=='persona-product-canonical' else workspace)
     if args.suite=='pricing-journal':
-        env['DVAIA_ISOLATED_TEST_WORKSPACE']=str(ROOT)
-        env['DVAIA_PRICING_OWNED_OUTPUT_ROOT']=str(workspace)
+        env['OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE']=str(ROOT)
+        env['OWASP_AI_GOAT_PRICING_OWNED_OUTPUT_ROOT']=str(workspace)
         env['PERSONA_PRICING_NATIVE']='1'
         env['PERSONA_PRICING_CANONICAL']='1'
         if args.pricing_cohort=='canonical-current':env.pop('PERSONA_PRICING_BLOCKED_NATIVE',None)
@@ -210,7 +210,7 @@ def main():
             docker_ownership.verify_daemon(docker_command,daemon_id)
         elif run(docker+['info','--format','{{.ID}}']).stdout.strip() != daemon_id:
             raise RuntimeError('Docker daemon mismatch')
-    nonce=uuid.uuid4().hex; name='dvaia-persona-transition-'+nonce[:12]; children=[]; attempted=False; container_id=None
+    nonce=uuid.uuid4().hex; name='owasp-ai-goat-persona-transition-'+nonce[:12]; children=[]; attempted=False; container_id=None
     inventory_path=ROOT/'tests/postgres/run-mail-browser-main.py'
     spec=importlib.util.spec_from_file_location('persona_dependency_inventory',inventory_path)
     inventories=importlib.util.module_from_spec(spec);spec.loader.exec_module(inventories)
@@ -320,7 +320,7 @@ def main():
         if len(ids)!=1:raise RuntimeError('Ambiguous container')
         row=json.loads(run(docker+['inspect',ids[0]]).stdout)[0]
         ports=row.get('HostConfig',{}).get('PortBindings',{}).get('5432/tcp',[])
-        if (row['Name']!='/'+name or row['Image']!=image or row['Config'].get('Labels',{}).get('dvaia.owner')!=nonce
+        if (row['Name']!='/'+name or row['Image']!=image or row['Config'].get('Labels',{}).get('owasp-ai-goat.owner')!=nonce
             or (container_id is not None and row['Id']!=container_id) or len(ports)!=1 or ports[0]['HostIp']!='127.0.0.1'
             or row.get('HostConfig',{}).get('Memory')!=536870912
             or row.get('HostConfig',{}).get('NanoCpus')!=2000000000
@@ -339,7 +339,7 @@ def main():
         elif run(docker+['image','inspect',image,'--format','{{.Id}}']).stdout.strip()!=image:raise RuntimeError('Postgres image mismatch')
         if run(docker+['ps','-aq','--filter','name=^/'+name+'$']).stdout.strip():raise RuntimeError('Container namespace occupied')
         attempted=True
-        run(docker+['run','-d','--pull','never','--name',name,'--label','dvaia.owner='+nonce,'--memory','512m','--cpus','2','--pids-limit','256','--tmpfs','/var/lib/postgresql:rw,size=536870912',
+        run(docker+['run','-d','--pull','never','--name',name,'--label','owasp-ai-goat.owner='+nonce,'--memory','512m','--cpus','2','--pids-limit','256','--tmpfs','/var/lib/postgresql:rw,size=536870912',
                     '-e','POSTGRES_USER=merchant_admin','-e','POSTGRES_HOST_AUTH_METHOD=trust','-e','POSTGRES_INITDB_ARGS=--wal-segsize=1',
                     '-p','127.0.0.1::5432',image,'-c','max_connections=64','-c','shared_buffers=16MB','-c','max_wal_size=16MB','-c','min_wal_size=4MB'])
         container_id=inspect_owned(); result['containerId']=container_id; save()
@@ -354,12 +354,12 @@ def main():
             sql=' '.join(f'CREATE ROLE dvaia_{family}_{role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;' for role in ('migration','runtime'))
             run(docker+['exec',container_id,'psql','-U','merchant_admin','-d','postgres','-v','ON_ERROR_STOP=1','-c',sql])
         for store,family in stores:
-            database=('dvaia_test_persona_'+nonce[:12]+'_'+store.lower()) if args.suite in ('password-reset','owned-user-lookup','acl-foundation','acl-foundation-v38','acl-foundation-v39','pricing-journal','persona-product-canonical') else ('dvaia_test_persona_'+store.lower()+'_'+nonce[:12])
-            if args.suite=='ctf-reset-memory-0154':database='dvaia_test_ctf_reset_memory_'+nonce[:12]+'_'+store.lower()
-            if args.suite=='bound-mail':database='dvaia_test_mail_'+nonce[:12]+'_'+store.lower()
-            if args.suite=='graph-validation':database='dvaia_test_graph_validation_'+nonce[:12]
-            if args.suite=='finflow-integrated':database='dvaia_test_finflow_traversal_identity'+('_populated' if store=='POPULATED' else '')
-            if args.suite=='mcp-protected':database='dvaia_test_mcp_protected_'+store.lower()+'_'+nonce[:12]
+            database=('owasp_ai_goat_test_persona_'+nonce[:12]+'_'+store.lower()) if args.suite in ('password-reset','owned-user-lookup','acl-foundation','acl-foundation-v38','acl-foundation-v39','pricing-journal','persona-product-canonical') else ('owasp_ai_goat_test_persona_'+store.lower()+'_'+nonce[:12])
+            if args.suite=='ctf-reset-memory-0154':database='owasp_ai_goat_test_ctf_reset_memory_'+nonce[:12]+'_'+store.lower()
+            if args.suite=='bound-mail':database='owasp_ai_goat_test_mail_'+nonce[:12]+'_'+store.lower()
+            if args.suite=='graph-validation':database='owasp_ai_goat_test_graph_validation_'+nonce[:12]
+            if args.suite=='finflow-integrated':database='owasp_ai_goat_test_finflow_traversal_identity'+('_populated' if store=='POPULATED' else '')
+            if args.suite=='mcp-protected':database='owasp_ai_goat_test_mcp_protected_'+store.lower()+'_'+nonce[:12]
             run(docker+['exec',container_id,'psql','-U','merchant_admin','-d','postgres','-v','ON_ERROR_STOP=1','-c',f'CREATE DATABASE {database} OWNER dvaia_{family}_migration'])
             run(docker+['exec',container_id,'psql','-U','merchant_admin','-d','postgres','-v','ON_ERROR_STOP=1','-c',f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO dvaia_{family}_migration,dvaia_{family}_runtime'])
             for role in ('migration','runtime'):env[prefix+store+'_'+role.upper()+'_URL']=f'postgresql://dvaia_{family}_{role}@127.0.0.1:{port}/{database}'

@@ -17,13 +17,13 @@ parser.add_argument('--docker-host', required=True)
 parser.add_argument('--live', action='store_true')
 args = parser.parse_args()
 source = Path(__file__).resolve().parents[2]
-root = Path(tempfile.mkdtemp(prefix='dvaia-secureshop-bound-review-runtime-'))
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-secureshop-bound-review-runtime-'))
 workspace = root / 'source'
 workspace.mkdir()
 os.chmod(root, 0o700)
 base_env = {key: os.environ[key] for key in ['PATH', 'HOME', 'TMPDIR'] if key in os.environ}
 docker = ['docker', '--host', args.docker_host]
-container = 'dvaia-secureshop-bound-review-runtime-' + uuid.uuid4().hex[:12]
+container = 'owasp-ai-goat-secureshop-bound-review-runtime-' + uuid.uuid4().hex[:12]
 started = False
 child = None
 
@@ -96,7 +96,7 @@ try:
         for role in [migration_role, runtime_role]:
             run(psql + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE '
                               'NOREPLICATION NOBYPASSRLS'], stdout=subprocess.DEVNULL)
-        database = f'dvaia_test_bound_review_runtime_{label}'
+        database = f'owasp_ai_goat_test_bound_review_runtime_{label}'
         run(psql + ['-c', f'CREATE DATABASE {database} OWNER {migration_role}'], stdout=subprocess.DEVNULL)
         run(psql + ['-c', f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; '
                           f'GRANT CONNECT ON DATABASE {database} TO {migration_role}, {runtime_role}'],
@@ -106,7 +106,7 @@ try:
             'runtime': f'postgresql://{quote(runtime_role)}@127.0.0.1:{port}/{database}',
         }
     env = dict(base_env, NODE_ENV='test', PLATFORM_DATABASE_ENGINE='postgres', AI_PROVIDER='mock',
-               PG_TEST_DISPOSABLE='yes', DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace),
+               PG_TEST_DISPOSABLE='yes', OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace),
                AWS_EC2_METADATA_DISABLED='true',
                PG_SECURESHOP_BOUND_REVIEW_RUNTIME_IDENTITY_MIGRATION_URL=urls['identity']['migration'],
                PG_SECURESHOP_BOUND_REVIEW_RUNTIME_IDENTITY_RUNTIME_URL=urls['identity']['runtime'],

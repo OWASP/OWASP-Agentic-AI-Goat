@@ -40,16 +40,16 @@ async function plan({root=path.resolve(__dirname,'../..'),home=os.homedir(),plat
   for(const port of ports)if(!Number.isInteger(port)||port<1024||port>65535)throw fail('SYSTEM_INSTALL_PORT_INVALID');
   if(new Set(ports).size!==ports.length)throw fail('SYSTEM_INSTALL_PORT_CONFLICT');
   if(imageId!==undefined&&!/^sha256:[a-f0-9]{64}$/.test(imageId))throw fail('SYSTEM_INSTALL_IMAGE_INVALID');
-  const id=workspaceId(root),directory=path.join(home,'.dvaia',id);
+  const id=workspaceId(root),directory=path.join(home,'.owasp-ai-goat',id);
   // Read recorded authority only: never discover or create an ambient selection.
   const authority=await readLocalDockerAuthority({directory,workspaceId:id,platform});
   if(!authority)throw fail('SYSTEM_INSTALL_AUTHORITY_REQUIRED');
   await verifyDockerAuthority({authority,execute,environment});
   const source=sourceManifest(root),dockerAuthoritySha256=authorityDigest(authority);
-  const profileBytes=renderMcpSandboxAppArmor(readRegular(path.join(root,'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in'),65536).toString('utf8'),'dvaia-mcp-sandbox');
-  const profile=Object.freeze({name:'dvaia-mcp-sandbox',sha256:sha(profileBytes)});
+  const profileBytes=renderMcpSandboxAppArmor(readRegular(path.join(root,'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in'),65536).toString('utf8'),'owasp-ai-goat-mcp-sandbox');
+  const profile=Object.freeze({name:'owasp-ai-goat-mcp-sandbox',sha256:sha(profileBytes)});
   const filePath=managed.managedPath({root,home}),existing=managed.load({filePath});
-  const modes=Object.fromEntries([['config',configPort],['diagnostic',diagnosticPort],['restart',restartPort],...(uploadPreviewPort===undefined?[]:[['uploadPreview',uploadPreviewPort]])].map(([mode,port])=>[mode,Object.freeze({container:`dvaia-owned-system-${id}-${mode==='uploadPreview'?'upload-preview':mode}`,url:`http://127.0.0.1:${port}`})]));
+  const modes=Object.fromEntries([['config',configPort],['diagnostic',diagnosticPort],['restart',restartPort],...(uploadPreviewPort===undefined?[]:[['uploadPreview',uploadPreviewPort]])].map(([mode,port])=>[mode,Object.freeze({container:`owasp-ai-goat-owned-system-${id}-${mode==='uploadPreview'?'upload-preview':mode}`,url:`http://127.0.0.1:${port}`})]));
   if(existing&&(existing.workspaceId!==id||existing.dockerAuthoritySha256!==dockerAuthoritySha256
     ||existing.sourceManifestSha256!==source.sha256||existing.profile.name!==profile.name||existing.profile.sha256!==profile.sha256
     ||(imageId!==undefined&&existing.imageId!==imageId)

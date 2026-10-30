@@ -8,7 +8,7 @@ const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 
 const exec = promisify(execFile);
-const MARKER = '.dvaia-owned-local-postgres.json';
+const MARKER = '.owasp-ai-goat-owned-local-postgres.json';
 const POSTGRES_IMAGE = 'postgres:18';
 const AUTHORITY_ENV_KEYS = ['DOCKER_HOST', 'DOCKER_CONTEXT', 'DOCKER_TLS_VERIFY', 'DOCKER_CERT_PATH'];
 const FORBIDDEN_JOURNAL_KEY = /(password|credential|secret|token|url)/i;
@@ -74,7 +74,7 @@ function labelsFor(kind, resource) {
 }
 
 function assertOwned(kind, resource, id, name) {
-  if (resource && labelsFor(kind, resource)?.['org.dvaia.workspace'] !== id) {
+  if (resource && labelsFor(kind, resource)?.['org.owasp-ai-goat.workspace'] !== id) {
     throw new Error(`Refusing to remove ${kind} ${name} without exact fixture ownership`);
   }
 }
@@ -91,7 +91,7 @@ async function inspectPinnedPostgresImage(ownedDocker) {
 }
 
 async function createOwnedDirectory({ id, nonce, baseDirectory = os.tmpdir() } = {}) {
-  const directory = await fs.mkdtemp(path.join(baseDirectory, 'dvaia-local-pg-'));
+  const directory = await fs.mkdtemp(path.join(baseDirectory, 'owasp-ai-goat-local-pg-'));
   await fs.chmod(directory, 0o700);
   await fs.writeFile(path.join(directory, MARKER), `${JSON.stringify({ version: 1, id, nonce })}\n`, {
     flag: 'wx', mode: 0o600,
@@ -191,7 +191,7 @@ async function removeOwnedDirectory({ directory, id, nonce } = {}) {
   const realBase = await fs.realpath(os.tmpdir());
   const realDirectory = await fs.realpath(directory);
   assert.equal(path.dirname(realDirectory), realBase, 'Fixture directory must be a direct child of the system temporary directory');
-  assert.ok(path.basename(realDirectory).startsWith('dvaia-local-pg-'), 'Fixture directory prefix must match');
+  assert.ok(path.basename(realDirectory).startsWith('owasp-ai-goat-local-pg-'), 'Fixture directory prefix must match');
   const marker = JSON.parse(await fs.readFile(markerPath, 'utf8'));
   assert.deepEqual(marker, { version: 1, id, nonce }, 'Fixture cleanup marker must match');
   await fs.rm(realDirectory, { recursive: true });

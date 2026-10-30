@@ -3,12 +3,12 @@
 import argparse,hashlib,json,os,signal,subprocess,tempfile,time
 from pathlib import Path
 SOURCE=Path(__file__).resolve().parents[2]
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.10.0-darwin-arm64/bin/node')
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.10.0-darwin-arm64/bin/node')
 NODE_SHA='56d28b39a8048f0cd1af7ad7e09f6cbe1c04439b6dfeb6c8d9090c082af60861'
 p=argparse.ArgumentParser();p.add_argument('--prepared-root');args=p.parse_args()
 sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
 assert sha(NODE)==NODE_SHA
-root=Path(args.prepared_root).resolve() if args.prepared_root else Path(tempfile.mkdtemp(prefix='dvaia-header-judge-'))
+root=Path(args.prepared_root).resolve() if args.prepared_root else Path(tempfile.mkdtemp(prefix='owasp-ai-goat-header-judge-'))
 child=None;state={}
 def persist(): (root/'ownership.json').write_text(json.dumps(state,indent=2)+'\n')
 def interrupted(*_):raise TimeoutError('Header Judge parent interrupted/deadline')

@@ -44,12 +44,12 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes'
 
 function pool(url, max = 8) {
   return new Pool({ connectionString: url, max, statement_timeout: 15000,
-    lock_timeout: 3000, application_name: 'dvaia-merchant-listings-native' });
+    lock_timeout: 3000, application_name: 'owasp-ai-goat-merchant-listings-native' });
 }
 function assertDisposable(url) {
   const parsed = new URL(url);
   assert.ok(['127.0.0.1', 'localhost'].includes(parsed.hostname));
-  assert.match(parsed.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(parsed.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
 }
 function binding(owner = 7101) {
   return Object.freeze({ targetId: randomUUID(), launchId: randomUUID(), scenarioId: randomUUID(),
@@ -68,7 +68,7 @@ async function seedTarget(client, scope, name = 'Immutable source') {
   [scope.targetId, Buffer.alloc(32, 2), name]);
 }
 function migrationFixture(t, names, label) {
-  const workspace = process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
+  const workspace = process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
   assert.equal(typeof workspace, 'string');
   const directory = fs.mkdtempSync(path.join(workspace, label));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
@@ -93,11 +93,11 @@ function repository(runtime) {
 test('merchant migration fixtures isolate historical 0007 and retain the complete current directory', t => {
   const workspace = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'merchant-fixtures-'));
   t.after(() => fs.rmSync(workspace, { recursive: true, force: true }));
-  const prior = process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
-  process.env.DVAIA_ISOLATED_TEST_WORKSPACE = workspace;
+  const prior = process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
+  process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE = workspace;
   t.after(() => {
-    if (prior === undefined) delete process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
-    else process.env.DVAIA_ISOLATED_TEST_WORKSPACE = prior;
+    if (prior === undefined) delete process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
+    else process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE = prior;
   });
   assert.deepEqual(fs.readdirSync(prefixThrough0006(t)).sort(),
     HISTORICAL_MIGRATIONS.slice(0, -1));

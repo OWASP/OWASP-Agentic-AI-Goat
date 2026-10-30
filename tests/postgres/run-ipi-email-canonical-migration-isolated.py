@@ -95,8 +95,8 @@ def main():
         if result.returncode: raise RuntimeError('Owned Docker operation failed')
         return result
     def record(name,value): write_json(root/name,value)
-    nonce = str(uuid.uuid4()); name = 'dvaia-ipi-email-0065-'+nonce
-    labels = {'dvaia.qualification':SCOPE,'dvaia.owner-uid':str(os.getuid()),'dvaia.run-nonce':nonce}
+    nonce = str(uuid.uuid4()); name = 'owasp-ai-goat-ipi-email-0065-'+nonce
+    labels = {'owasp-ai-goat.qualification':SCOPE,'owasp-ai-goat.owner-uid':str(os.getuid()),'owasp-ai-goat.run-nonce':nonce}
     processes = OwnedProcesses(shared.stop_group,lambda value:record('process-'+value['name']+'.json',value))
     intended = False; captured = None; passed = False; failures = []; children = []
     processes.install()
@@ -127,9 +127,9 @@ def main():
         runtime = root/'runtime'; runtime.mkdir(mode=0o700)
         env = dict(BASE_ENV,NODE_ENV='test',PG_TEST_DISPOSABLE='yes',IPI_EMAIL_0065_ISOLATED='1',
             PLATFORM_DATABASE_ENGINE='postgres',IPI_EMAIL_0065_RUNTIME_ROOT=str(runtime),
-            DVAIA_ISOLATED_TEST_WORKSPACE=str(source),HOME=str(runtime),AWS_EC2_METADATA_DISABLED='true')
+            OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(source),HOME=str(runtime),AWS_EC2_METADATA_DISABLED='true')
         for variant in DATABASES:
-            database = 'dvaia_test_ipi_email_0065_'+variant
+            database = 'owasp_ai_goat_test_ipi_email_0065_'+variant
             sql(f'CREATE DATABASE {database} OWNER dvaia_identity_migration')
             sql(f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; GRANT CONNECT ON DATABASE {database} TO dvaia_identity_migration,dvaia_identity_runtime')
             for role in ['migration','runtime']:

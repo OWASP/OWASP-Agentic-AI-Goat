@@ -26,13 +26,13 @@ test('pointer readiness rejects covered and fading controls after geometry resol
 test('coupon helper reaches real installer authority with isolated endpoint and executable path',async()=>{
  const setup=require('../scripts/install/analytics-setup'),target=require('../scripts/install/analytics-target'),original=setup.setupOwnedAnalytics;
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'coupon-install-contract-')),home=path.join(root,'home');fs.mkdirSync(home,{mode:0o700});
- const source=fs.realpathSync(path.resolve(__dirname,'..')),host='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock',dockerDir='/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin';
- const keys=['PG_TEST_DISPOSABLE','DVAIA_ISOLATED_TEST_WORKSPACE','DOCKER_HOST'],prior=Object.fromEntries(keys.map(k=>[k,process.env[k]]));let called=0,validated=false;
+ const source=fs.realpathSync(path.resolve(__dirname,'..')),host='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock',dockerDir='/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin';
+ const keys=['PG_TEST_DISPOSABLE','OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE','DOCKER_HOST'],prior=Object.fromEntries(keys.map(k=>[k,process.env[k]]));let called=0,validated=false;
  const env={PATH:dockerDir+path.delimiter+process.env.PATH,HOME:home,SS_ENABLE:'true',SS_BOUND_REVIEWS_ENABLED:'true',PLATFORM_DATABASE_ENGINE:'postgres',WORKSHOP_DATABASE_ENGINE:'postgres',SECURESHOP_AGENTS_DATABASE_URL:'postgres://fixture:fixture@127.0.0.1:1/unused'};
  fs.mkdirSync(target.plan({root:source,homeDirectory:home}).directory,{recursive:true,mode:0o700});
  const stop=Object.assign(Error('controlled authority boundary; no Docker execution'),{code:'CONTROLLED_STOP'});
  try{
-  process.env.PG_TEST_DISPOSABLE='yes';process.env.DVAIA_ISOLATED_TEST_WORKSPACE=source;process.env.DOCKER_HOST=host;
+  process.env.PG_TEST_DISPOSABLE='yes';process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=source;process.env.DOCKER_HOST=host;
   setup.setupOwnedAnalytics=options=>original({...options,provisionService:p=>target.provision({...p,execute:async(file,args,options)=>{called++;assert.equal(file,'docker');assert.deepEqual(args.slice(0,3),['--host',host,'info']);assert.equal(options.env.DOCKER_HOST,undefined);assert.equal(options.env.HOME,home);const executable=options.env.PATH.split(path.delimiter).map(dir=>path.join(dir,file)).find(p=>fs.existsSync(p));assert.equal(executable,path.join(dockerDir,'docker'));validated=true;throw stop;}})});
   await assert.rejects(require('./fixtures/secureshopCouponFullAppSupport').prepareCouponFullApp({source,root,home,env}),error=>{assert.equal(called,1, String(error.code)+': '+error.message);return true;});assert.equal(called,1);assert.equal(validated,true);
   delete process.env.DOCKER_HOST;await assert.rejects(require('./fixtures/secureshopCouponFullAppSupport').prepareCouponFullApp({source,root,home,env}),error=>{assert.equal(called,1, String(error.code)+': '+error.message);return true;});assert.equal(called,1);assert.equal(validated,true);

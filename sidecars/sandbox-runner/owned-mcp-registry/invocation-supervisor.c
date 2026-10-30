@@ -27,8 +27,8 @@
 #define MAX_INPUT 196608
 #define MAX_OUTPUT 65536
 #define ROWS 64
-#define STATE_ROOT "/var/lib/dvaia-invocation"
-#define CONTROL "/run/dvaia-invocation/control.sock"
+#define STATE_ROOT "/var/lib/owasp-ai-goat-invocation"
+#define CONTROL "/run/owasp-ai-goat-invocation/control.sock"
 static volatile sig_atomic_t stopping=0;
 static pid_t listener=-1,worker=-1;
 static int worker_fd=-1,output_fd=-1,active=-1,start_fd=-1;
@@ -65,7 +65,7 @@ static int start_worker(const unsigned char *payload,size_t length){
  pid_t pid=fork();
  if(pid<0){close(sendfd);close(channel[1]);attest_close(&attestation);close(input);close(pipes[0]);close(pipes[1]);return -1;}
  if(pid==0){
-  int filter=open("/usr/share/dvaia/invocation-target.seccomp.bpf",O_RDONLY|O_NOFOLLOW);
+  int filter=open("/usr/share/owasp-ai-goat/invocation-target.seccomp.bpf",O_RDONLY|O_NOFOLLOW);
   if(filter<0||dup2(input,0)<0||dup2(pipes[1],1)<0||dup2(pipes[1],2)<0||dup2(filter,3)<0||dup2(sendfd,4)<0)_exit(70);
   if(fcntl(1,F_SETFL,0)||fcntl(2,F_SETFL,0)||syscall(SYS_close_range,5,~0U,0))_exit(70);
   char *args[]={"/usr/bin/bwrap","--unshare-all","--die-with-parent","--new-session","--clearenv","--tmpfs","/","--ro-bind","/usr","/usr","--ro-bind","/lib","/lib","--ro-bind-try","/lib64","/lib64","--dev","/dev","--dir","/proc","--tmpfs","/proc","--remount-ro","/proc","--dir","/tmp","--chdir","/tmp","--seccomp","3",ATTEST_BINARY,NULL};
@@ -105,7 +105,7 @@ int main(int argc,char **argv){if(argc!=4||getpid()!=1||getuid()!=10001||strlen(
   read_output();if(active>=0&&now_ms()>deadline)stop_worker();
   if(active>=0&&forced&&now_ms()>forced_at+2000){stopping=1;break;}
   int status;pid_t pid;while((pid=waitpid(-1,&status,WNOHANG))>0){if(pid==listener){listener=-1;if(++restarts>2){stopping=1;break;}listener=start_listener(lock,argv[1],argv[2],argv[3]);if(listener<1)stopping=1;}else if(pid==worker){worker_done=1;worker_status=status;}}
-  if(active>=0&&worker_done){int remaining=descendants();if(remaining<0){stopping=1;break;}if(!remaining){read_output();if(!output_eof)continue;struct row *r=&rows[active];r->state=attested&&!forced&&WIFEXITED(worker_status)&&WEXITSTATUS(worker_status)==0&&r->size?1:3;if(r->state!=1){const char *diagnostic=getenv("DVAIA_INVOCATION_PRIVATE_DIAGNOSTICS");if(diagnostic&&!strcmp(diagnostic,"1")){int directory=open(STATE_ROOT,O_RDONLY|O_DIRECTORY|O_NOFOLLOW);if(directory>=0){(void)retain_private_failure(1,directory,r->output,r->size);close(directory);}}int phase=0;for(int candidate=1;candidate<=5;candidate++){char marker[64];int length=snprintf(marker,sizeof(marker),"DVAIA_WORKER_FAILURE phase=%d category=1\n",candidate);if(r->size>=(size_t)length&&!memcmp(r->output+r->size-length,marker,(size_t)length))phase=candidate;}fprintf(stderr,"DVAIA_SUPERVISOR_RESULT exit=%d signal=%d forced=%d outputBytes=%zu eof=%d workerPhase=%d workerCategory=%d\n",WIFEXITED(worker_status)?WEXITSTATUS(worker_status):-1,WIFSIGNALED(worker_status)?WTERMSIG(worker_status):0,forced?1:0,r->size,output_eof?1:0,phase,phase?1:0);r->size=4;memcpy(r->output,"null",4);}if(start_fd>=0)respond(start_fd,start_header,r);if(drain_fd>=0)respond(drain_fd,drain_header,r);drain_fd=-1;start_fd=-1;attest_close(&attestation);close(output_fd);close(worker_fd);output_fd=-1;worker_fd=-1;worker=-1;active=-1;worker_done=0;}}
+  if(active>=0&&worker_done){int remaining=descendants();if(remaining<0){stopping=1;break;}if(!remaining){read_output();if(!output_eof)continue;struct row *r=&rows[active];r->state=attested&&!forced&&WIFEXITED(worker_status)&&WEXITSTATUS(worker_status)==0&&r->size?1:3;if(r->state!=1){const char *diagnostic=getenv("OWASP_AI_GOAT_INVOCATION_PRIVATE_DIAGNOSTICS");if(diagnostic&&!strcmp(diagnostic,"1")){int directory=open(STATE_ROOT,O_RDONLY|O_DIRECTORY|O_NOFOLLOW);if(directory>=0){(void)retain_private_failure(1,directory,r->output,r->size);close(directory);}}int phase=0;for(int candidate=1;candidate<=5;candidate++){char marker[64];int length=snprintf(marker,sizeof(marker),"OWASP_AI_GOAT_WORKER_FAILURE phase=%d category=1\n",candidate);if(r->size>=(size_t)length&&!memcmp(r->output+r->size-length,marker,(size_t)length))phase=candidate;}fprintf(stderr,"OWASP_AI_GOAT_SUPERVISOR_RESULT exit=%d signal=%d forced=%d outputBytes=%zu eof=%d workerPhase=%d workerCategory=%d\n",WIFEXITED(worker_status)?WEXITSTATUS(worker_status):-1,WIFSIGNALED(worker_status)?WTERMSIG(worker_status):0,forced?1:0,r->size,output_eof?1:0,phase,phase?1:0);r->size=4;memcpy(r->output,"null",4);}if(start_fd>=0)respond(start_fd,start_header,r);if(drain_fd>=0)respond(drain_fd,drain_header,r);drain_fd=-1;start_fd=-1;attest_close(&attestation);close(output_fd);close(worker_fd);output_fd=-1;worker_fd=-1;worker=-1;active=-1;worker_done=0;}}
  }
  stop_worker();if(listener>0)kill(listener,SIGTERM);long end=now_ms()+2000;while(now_ms()<end){int status;while(waitpid(-1,&status,WNOHANG)>0){}if(descendants()==0)break;usleep(10000);}close(server);unlink(CONTROL);return 70;
 }

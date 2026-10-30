@@ -23,7 +23,7 @@ jest.mock('../components/observability/AgentRunInspector', () => () => null);
 
 const challenge = {
   id: 'secureshop_agent_security', key: 'secureshop_agent_security', workshopKey: 'secureshop_agent_security',
-  name: 'SecureShop Agent Security', description: 'SecureShop', category: 'ai', difficulty: 'advanced',
+  name: 'OWASP AI SecureShop Agent Security', description: 'OWASP AI SecureShop', category: 'ai', difficulty: 'advanced',
   enabled: false, showHints: false, showSolutions: false, completions: 0,
 };
 const objective = {
@@ -47,7 +47,7 @@ const flush = async () => act(async () => {
   await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
 });
 
-test('SecureShop Manage Objectives exposes the pending audit solution controls through the generic ledger', async () => {
+test('OWASP AI SecureShop Manage Objectives exposes the pending audit solution controls through the generic ledger', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.setItem('token', 'fixture');
   axios.get.mockImplementation(url => {
@@ -107,7 +107,7 @@ test('SecureShop Manage Objectives exposes the pending audit solution controls t
 });
 
 
-test('visible SecureShop with disabled objectives explains student availability without enabling anything', async () => {
+test('visible OWASP AI SecureShop with disabled objectives explains student availability without enabling anything', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.setItem('token', 'fixture');
   mockSnapshot = { exercises: { secureshop_agent_security: { isVisible: true, showHints: false, showSolutions: false, objectives: { ss_audit_instruction_followed: { isVisible: false } } } } };

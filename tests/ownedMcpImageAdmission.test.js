@@ -15,7 +15,7 @@ async function fixture(t,change={}){
   const root=await fs.mkdtemp(path.join(os.tmpdir(),'image-admission-control-'));
   t.after(()=>fs.rm(root,{recursive:true,force:true}));
   const runId='a'.repeat(32),packageDigest='b'.repeat(64),layer=Buffer.from('synthetic layer, never executed');
-  const config=Buffer.from(JSON.stringify({architecture:'arm64',os:'linux',rootfs:{type:'layers',diff_ids:['sha256:'+sha(layer)]},config:{User:'10001:10001',Entrypoint:['node','sidecars/sandbox-runner/owned-mcp-registry/http-listener.js'],Labels:{'dvaia.registry.package':packageDigest,'dvaia.build-run':runId}},...change.config}));
+  const config=Buffer.from(JSON.stringify({architecture:'arm64',os:'linux',rootfs:{type:'layers',diff_ids:['sha256:'+sha(layer)]},config:{User:'10001:10001',Entrypoint:['node','sidecars/sandbox-runner/owned-mcp-registry/http-listener.js'],Labels:{'owasp-ai-goat.registry.package':packageDigest,'owasp-ai-goat.build-run':runId}},...change.config}));
   const imageId='sha256:'+sha(config),configPath='blobs/sha256/'+sha(config),layerPath='blobs/sha256/'+sha(layer);
   const descriptor={mediaType:'application/vnd.oci.image.config.v1+json',digest:imageId,size:config.length};
   const oci=Buffer.from(JSON.stringify({schemaVersion:2,config:descriptor,layers:[{mediaType:'application/vnd.oci.image.layer.v1.tar',digest:'sha256:'+sha(layer),size:layer.length}]}));
@@ -34,7 +34,7 @@ async function fixture(t,change={}){
   const spec=i.specification(root,expected);await fs.mkdir(spec.directory,{recursive:true});await fs.writeFile(spec.archive,archive,{mode:0o600});
   const calls=[];let loaded=false,probeId=null,token,finished=false;
   const cid='c'.repeat(64),digest='d'.repeat(64);
-  const row=()=>({Id:cid,Name:'/dvaia-v23-assets-'+runId,Image:change.runtimePresent?runtimeImageId:imageId,Config:{User:'10001:10001',Labels:{'dvaia.admission':token},Entrypoint:['node'],Cmd:['-e',IMAGE_PROBE]},HostConfig:{NetworkMode:'none',ReadonlyRootfs:true,Privileged:false,CapDrop:['ALL'],Memory:536870912,NanoCpus:1000000000,PidsLimit:32,LogConfig:{Type:'none'},SecurityOpt:['no-new-privileges']},Mounts:[],State:{Running:false,ExitCode:0}});
+  const row=()=>({Id:cid,Name:'/owasp-ai-goat-v23-assets-'+runId,Image:change.runtimePresent?runtimeImageId:imageId,Config:{User:'10001:10001',Labels:{'owasp-ai-goat.admission':token},Entrypoint:['node'],Cmd:['-e',IMAGE_PROBE]},HostConfig:{NetworkMode:'none',ReadonlyRootfs:true,Privileged:false,CapDrop:['ALL'],Memory:536870912,NanoCpus:1000000000,PidsLimit:32,LogConfig:{Type:'none'},SecurityOpt:['no-new-privileges']},Mounts:[],State:{Running:false,ExitCode:0}});
   const run=async(actual,args,options={})=>{
     assert.equal(actual.archive,spec.archive);calls.push(args);
     if(args[0]==='info')return JSON.stringify(change.daemon||PINS.daemon);
@@ -56,7 +56,7 @@ async function fixture(t,change={}){
       token=args[args.indexOf('--label')+1].split('=')[1];
       const intent=JSON.parse(await fs.readFile(path.join(actual.directory,'probe-intent.json')));
       assert.deepEqual(intent.argv,['--host',spec.host,...args]);assert.equal(intent.token,token);
-      assert.equal(intent.name,'dvaia-v23-assets-'+runId);assert.equal(intent.imageId,actual.expected.imageId);
+      assert.equal(intent.name,'owasp-ai-goat-v23-assets-'+runId);assert.equal(intent.imageId,actual.expected.imageId);
       assert.equal(intent.daemon,PINS.daemon);assert.equal(intent.executable,spec.docker);
       assert.equal((await fs.stat(path.join(actual.directory,'probe-intent.json'))).mode&0o777,0o600);
       await assert.rejects(fs.access(path.join(actual.directory,'probe-created.json')));
@@ -64,7 +64,7 @@ async function fixture(t,change={}){
       if(change.createdJournalFailure)await fs.mkdir(path.join(actual.directory,'probe-created.json'));
       return cid;
     }
-    if(args[0]==='container'){const value=row();if(change.foreignProbe)value.Config.Labels['dvaia.admission']='foreign';if(change.probeMemory)value.HostConfig.Memory=0;return JSON.stringify([value]);}
+    if(args[0]==='container'){const value=row();if(change.foreignProbe)value.Config.Labels['owasp-ai-goat.admission']='foreign';if(change.probeMemory)value.HostConfig.Memory=0;return JSON.stringify([value]);}
     if(args[0]==='start'){assert.equal(JSON.parse(await fs.readFile(path.join(actual.directory,'probe-created.json'))).id,cid);finished=true;return digest;}
     if(args[0]==='rm'){assert.equal(args[1],cid);if(change.removeFailure)throw Error('remove refused');probeId=null;return cid;}
     assert.fail('unexpected '+args.join(' '));

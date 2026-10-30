@@ -8,7 +8,7 @@ const path = require('node:path');
 const { createLegacySensitiveTools } = require('../server/services/legacySensitiveTools');
 
 function fixture() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-legacy-sensitive-tools-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-legacy-sensitive-tools-'));
   const publicDir = path.join(root, 'public');
   fs.mkdirSync(publicDir);
   fs.mkdirSync(path.join(root, 'secret'));
@@ -34,7 +34,7 @@ test('teaching-file reader preserves the mapped traversal and records the real b
 
 test('teaching reader rejects lexical and symlink escapes without reading host bytes', t => {
   const { root, tools } = fixture();
-  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-legacy-sensitive-outside-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-legacy-sensitive-outside-'));
   t.after(() => { fs.rmSync(root, { recursive: true, force: true }); fs.rmSync(outside, { recursive: true, force: true }); });
   fs.writeFileSync(path.join(outside, 'private.txt'), 'host-private-fixture');
   fs.symlinkSync(path.join(outside, 'private.txt'), path.join(root, 'public', 'escape.txt'));
@@ -100,7 +100,7 @@ test('Fixed tools deny protected and symlinked files and never expand SSI', t =>
 
 test('tool configuration cannot manufacture a public boundary outside its teaching root', t => {
   const { root, publicDir } = fixture();
-  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-legacy-sensitive-config-'));
+  const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-legacy-sensitive-config-'));
   t.after(() => { fs.rmSync(root, { recursive: true, force: true }); fs.rmSync(outside, { recursive: true, force: true }); });
   fs.symlinkSync(outside, path.join(root, 'outside-public'));
   for (const invalidPublic of [outside, path.join(root, 'outside-public'), root]) {

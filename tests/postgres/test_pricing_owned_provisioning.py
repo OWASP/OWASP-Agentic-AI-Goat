@@ -579,8 +579,8 @@ class PricingPrivateProvisioning(unittest.TestCase):
         cid = 'a'*64; image = 'sha256:'+'b'*64
         row = dict(Id=cid, Image=image, Name='/'+self.spec.name, Mounts=[],
             Config=dict(User='10001:10001', Entrypoint=['node', 'sidecars/sandbox-runner/owned-pricing-http/http-listener.js'],
-                Labels={'dvaia.pricing.owner':self.spec.owner_id,'dvaia.pricing.workspace':self.spec.workspace_id,
-                        'dvaia.pricing.package':self.package['sha256']}),
+                Labels={'owasp-ai-goat.pricing.owner':self.spec.owner_id,'owasp-ai-goat.pricing.workspace':self.spec.workspace_id,
+                        'owasp-ai-goat.pricing.package':self.package['sha256']}),
             AppArmorProfile=self.spec.profile, State={'Running':False,'Pid':0},
             HostConfig=dict(NetworkMode='host', PortBindings={}, Binds=[], ReadonlyRootfs=True,
                 Privileged=False, CapDrop=['ALL'], CapAdd=[], Memory=536870912, NanoCpus=1000000000,

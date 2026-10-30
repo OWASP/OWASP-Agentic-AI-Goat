@@ -3,7 +3,7 @@
 
 // Compatibility entry point for application initialization. Fresh provisioning
 // belongs to setup-application.js; existing learner data must remain intact.
-const HELP = `DVAIA application initialization
+const HELP = `OWASP-AI-GOAT application initialization
 Usage: node scripts/deploy-fresh.js [init|full|help]
 
 init / initialize / full / comprehensive

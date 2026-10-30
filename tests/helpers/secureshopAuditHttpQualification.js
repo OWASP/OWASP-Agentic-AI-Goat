@@ -48,7 +48,7 @@ async function qualifyAuditHttp({ identity, commerce, agents, auditStore, launch
   });
   try {
     const base = `http://127.0.0.1:${server.address().port}/api/secureshop`;
-    const launchHeaders = { 'x-dvaia-secureshop-launch': launchBearer,
+    const launchHeaders = { 'x-owasp-ai-goat-secureshop-launch': launchBearer,
       'content-type': 'application/json' };
     const loginResponse = await fetch(`${base}/v2/auth/login`, { method: 'POST', headers: launchHeaders,
       body: JSON.stringify({ username: 'student_admin', password: 'student123' }) });

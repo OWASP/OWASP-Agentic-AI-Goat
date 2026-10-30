@@ -10,7 +10,7 @@ Root-owned `finflow-traversal-model-20260914-01` passed all9 phases (three objec
 
 Normal transaction/statement reads succeeded without protected-target creation or credit. Identical protected paths in fixed mode were blocked without credit. Every phase used canonical reset and advanced the generation; positive targets were retired and their files removed. Sibling progress/reset requests preserved the original owner's resources, credit and history. Historical Judge packets remained identical after subsequent resets. These are real synthetic files inside a controlled virtual filesystem, not the host's secrets or system password file.
 
-Evidence: `/Users/averma5/.dvaia/native-verification/dvaia-finflow-traversal-zcl9ztwq`.
+Evidence: `/Users/averma5/.owasp-ai-goat/native-verification/owasp-ai-goat-finflow-traversal-zcl9ztwq`.
 - model.log: `7b95c016334a51b65fe9c5f7ad2596e9056882d63ce296153cb81a9ce78ef55a`
 - model-cohort.json: `36965fe0c9648f2c9aa013d8510980e84183e4ea5ac693ff1ca153192fb6f3fd`
 - ownership.json: `b0014684b2a11c7ee5c0c42166a55dca35f09176f0d69173324151134a171486`

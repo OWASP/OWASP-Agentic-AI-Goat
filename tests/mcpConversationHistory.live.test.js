@@ -4,7 +4,7 @@ const {randomUUID}=require('node:crypto');
 test('local 8B resolves a follow-up filename from bound prior dialogue',{
  skip:process.env.RUN_LIVE_MCP_HISTORY!=='1',timeout:60000,
 },async()=>{
- const root=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-history-file-'));
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-history-file-'));
  try{
   const filename=`note-${randomUUID()}.txt`,marker=randomUUID();
   await fs.writeFile(path.join(root,filename),marker);

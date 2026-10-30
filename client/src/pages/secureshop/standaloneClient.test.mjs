@@ -25,15 +25,18 @@ test('shop login and bootstrap use only shop cookie endpoints, with launch secre
   expect(fetchImpl.mock.calls[0][1]).toEqual(expect.objectContaining({ credentials: 'include',
     body: JSON.stringify({ username: 'student_customer', password: 'student123' }) }));
   expect(fetchImpl.mock.calls[2][1]).toEqual(expect.objectContaining({ credentials: 'omit',
-    headers: expect.objectContaining({ 'X-DVAIA-SecureShop-Launch': bootstrap.bearer }) }));
+    headers: expect.objectContaining({
+      'X-OWASP-AI-GOAT-SecureShop-Launch': bootstrap.bearer,
+      'X-DVAIA-SecureShop-Launch': bootstrap.bearer,
+    }) }));
 });
 
 test('external test send requires cookie and parent launch/persona together and accepts only bound receipts', async () => {
   const operationId = '11111111-1111-4111-8111-111111111111';
   const scopeKey = 'a'.repeat(64), requestSha256 = 'b'.repeat(64);
   const preview = { sender: 'merchant@gmail.com', recipient: 'person@sharklasers.com',
-    subject: 'SecureShop synthetic delivery test',
-    text: `This is a manually requested SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n` };
+    subject: 'OWASP AI SecureShop synthetic delivery test',
+    text: `This is a manually requested OWASP AI SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n` };
   const prepared = { version: 1, operationId, scopeKey, requestSha256, state: 'prepared',
     preview, expiresAt: expiry, smtp: null };
   const ready = { version: 1, available: true, scopeKey, sender: preview.sender,
@@ -59,7 +62,7 @@ test('external test send requires cookie and parent launch/persona together and 
   ]);
   for (const [, options] of fetchImpl.mock.calls) {
     expect(options).toMatchObject({ credentials: 'include', redirect: 'error', headers: {
-      'X-DVAIA-SecureShop-Launch': bootstrap.bearer,
+      'X-OWASP-AI-GOAT-SecureShop-Launch': bootstrap.bearer,
       Authorization: `Bearer ${bootstrap.persona.token}` } });
   }
   expect(JSON.parse(fetchImpl.mock.calls[3][1].body)).toEqual({ version: 1, operationId, requestSha256 });
@@ -71,8 +74,8 @@ test('external test send rejects forged acknowledgment and never sends an invali
   const client = createStandaloneShopClient({ fetchImpl: jest.fn().mockResolvedValue(response({
     version: 1, operationId, scopeKey, requestSha256: 'b'.repeat(64), state: 'smtp_accepted',
     preview: { sender: 'merchant@gmail.com', recipient: 'person@sharklasers.com',
-      subject: 'SecureShop synthetic delivery test',
-      text: `This is a manually requested SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n` },
+      subject: 'OWASP AI SecureShop synthetic delivery test',
+      text: `This is a manually requested OWASP AI SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n` },
     expiresAt: expiry, smtp: { smtpAccepted: true, deliveryConfirmed: true,
       messageId: 'provider-id', acceptedRecipient: 'person@sharklasers.com' },
   })) });
@@ -87,8 +90,8 @@ test('external test send accepts only the server terminal expiry DTO, not a clie
   const expiryPast = new Date(Date.now() - 60000).toISOString();
   const row = { version: 1, operationId, scopeKey, requestSha256: 'b'.repeat(64), state: 'expired',
     preview: { sender: 'merchant@gmail.com', recipient: 'person@sharklasers.com',
-      subject: 'SecureShop synthetic delivery test',
-      text: `This is a manually requested SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n` },
+      subject: 'OWASP AI SecureShop synthetic delivery test',
+      text: `This is a manually requested OWASP AI SecureShop synthetic delivery test.\nNo shop, inbox, account or private document content is included.\nTest operation: ${operationId}\n` },
     expiresAt: expiryPast, smtp: null };
   const fetchImpl = jest.fn().mockResolvedValueOnce(response(row))
     .mockResolvedValueOnce(response({ ...row, state: 'prepared' }));
@@ -118,7 +121,7 @@ test('new practice uses the shop cookie and accepts only an exact saved operatio
     '/api/secureshop/auth/practices', `/api/secureshop/auth/practices/${operationId}`]);
   expect(fetchImpl.mock.calls[0][1]).toEqual(expect.objectContaining({ method: 'POST',
     credentials: 'include', body: JSON.stringify({ operationId }) }));
-  expect(fetchImpl.mock.calls[0][1].headers).not.toHaveProperty('X-DVAIA-SecureShop-Launch');
+  expect(fetchImpl.mock.calls[0][1].headers).not.toHaveProperty('X-OWASP-AI-GOAT-SecureShop-Launch');
 });
 
 test('new practice rejects mismatched or ambiguous status and preserves exact capacity reference', async () => {
@@ -161,7 +164,7 @@ test('progress GETs use cookie authority and reject malformed or foreign project
   ]);
   expect(fetchImpl.mock.calls.slice(0, 3).every(([, options]) => options.credentials === 'include'
     && !Object.hasOwn(options.headers, 'Authorization')
-    && !Object.hasOwn(options.headers, 'X-DVAIA-SecureShop-Launch'))).toBe(true);
+    && !Object.hasOwn(options.headers, 'X-OWASP-AI-GOAT-SecureShop-Launch'))).toBe(true);
   await expect(client.getProgress()).rejects.toThrow('Invalid shop progress response');
   await expect(client.getAdminProgressLearners()).rejects.toThrow('Invalid shop progress response');
   await expect(client.getAdminProgress('invalid')).rejects.toThrow('Shop learner required');
@@ -422,7 +425,7 @@ test('private teaching reset uses original bound authority and exact receipt wit
   for (const [, options] of fetchImpl.mock.calls) {
     expect(options.credentials).toBe('omit');
     expect(options.headers).toMatchObject({ Authorization: `Bearer ${bootstrap.persona.token}`,
-      'X-DVAIA-SecureShop-Launch': bootstrap.bearer });
+      'X-OWASP-AI-GOAT-SecureShop-Launch': bootstrap.bearer });
   }
   expect(fetchImpl.mock.calls[2][1].body).toBe(JSON.stringify({ operationId,
     expectedCredentialVersion: '3', expectedAuthorityVersion: '5' }));

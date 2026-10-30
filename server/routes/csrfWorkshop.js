@@ -140,7 +140,7 @@ function createClassifiedEmailRouteAdapter({ workflow, contextFor = currentGradi
       const grading = context();
       return workflow.run({ execution: grading.execution, userId: grading.userId,
         sessionId: `csrf_${grading.userId}`, retrievedMail, summary, selectedRead, gadgetHtml,
-        victimCookie: { name: 'dvaia_csrf_email', value: makeCookie() },
+        victimCookie: { name: 'owasp_ai_goat_csrf_email', value: makeCookie() },
         victimOrigin, recordActivity: record });
     },
     async note({ proof, retrievedMail, summary, selectedRead, browserReceipt, activity } = {}) {

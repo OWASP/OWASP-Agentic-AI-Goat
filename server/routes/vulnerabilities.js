@@ -324,7 +324,7 @@ router.post('/ssrf', (req, res) => {
     });
 });
 
-const LAB_SESSION_COOKIE = 'dvaia_lab_session';
+const LAB_SESSION_COOKIE = 'owasp_ai_goat_lab_session';
 const LAB_COOKIE_OPTIONS = Object.freeze({
   httpOnly: false, // Deliberately readable challenge-only credential.
   sameSite: 'lax',

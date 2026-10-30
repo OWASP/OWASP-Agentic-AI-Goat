@@ -468,7 +468,7 @@ def test_v03_launcher_owns_current_source_listings_manager_and_cleanup():
     ]: assert phrase in wrapper
     for phrase in [
       "validate_v03_listings_image(row,args.listings_image_id,manifest['sha256'],args.listings_runtime_digest)",
-      "'dvaia.listings.runtime':args.listings_runtime_digest",
+      "'owasp-ai-goat.listings.runtime':args.listings_runtime_digest",
       "wait_v03_listings_manager(manager_origin,manager_token,args.listings_runtime_digest)",
       "SECURESHOP_LISTINGS_TEST_MANAGER_RUNTIME_DIGEST=args.listings_runtime_digest",
     ]: assert phrase in source
@@ -519,7 +519,7 @@ def test_v03_manager_readiness_is_authenticated_closed_and_bounded():
 def test_v03_manager_environment_is_exactly_bound_before_container_admission():
     launcher=load_launcher('v03_manager_environment')
     value=('LISTINGS_MANAGER_ENABLED=true\n'
-      'LISTINGS_PROFILE=dvaia-owned-listings-0123456789ab\n'
+      'LISTINGS_PROFILE=owasp-ai-goat-owned-listings-0123456789ab\n'
       'LISTINGS_PUBLIC_ORIGIN=http://127.0.0.1:18095\n'
       'LISTINGS_CONTROL_TOKEN='+'a'*64+'\n')
     expected=__import__('hashlib').sha256('\n'.join(sorted(value.splitlines())).encode()).hexdigest()
@@ -539,11 +539,11 @@ def test_v03_package_image_identity_accepts_absent_or_exact_runtime_label_only()
     launcher=load_launcher('v03_image_identity')
     image='sha256:'+'1'*64;source='2'*64;runtime='3'*64
     def row(runtime_label_marker):
-        labels={'dvaia.listings.source':source}
-        if runtime_label_marker is not None: labels['dvaia.listings.runtime']=runtime_label_marker
+        labels={'owasp-ai-goat.listings.source':source}
+        if runtime_label_marker is not None: labels['owasp-ai-goat.listings.runtime']=runtime_label_marker
         return {'Id':image,'Architecture':'arm64','Os':'linux','Config':{'Labels':labels}}
-    assert launcher.validate_v03_listings_image(row(None),image,source,runtime)=={'dvaia.listings.source':source}
-    assert launcher.validate_v03_listings_image(row(runtime),image,source,runtime)['dvaia.listings.runtime']==runtime
+    assert launcher.validate_v03_listings_image(row(None),image,source,runtime)=={'owasp-ai-goat.listings.source':source}
+    assert launcher.validate_v03_listings_image(row(runtime),image,source,runtime)['owasp-ai-goat.listings.runtime']==runtime
     try: launcher.validate_v03_listings_image(row('4'*64),image,source,runtime)
     except RuntimeError as error: assert str(error)=='Qualified V03 Listings image identity mismatch'
     else: raise AssertionError('wrong package runtime label admitted')

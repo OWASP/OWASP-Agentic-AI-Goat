@@ -79,7 +79,7 @@ def validate_descriptor(value, expected):
     require(re.fullmatch(r'[a-f0-9]{64}', value['containerId'])
         and re.fullmatch(r'sha256:[a-f0-9]{64}', value['imageId'])
         and re.fullmatch(r'[a-f0-9]{64}', value['packageSha256']), 'V33_EXECUTOR_DIGEST')
-    require(value['profile'] == 'dvaia-owned-pricing-http-' + value['qualificationNonce'], 'V33_PROFILE')
+    require(value['profile'] == 'owasp-ai-goat-owned-pricing-http-' + value['qualificationNonce'], 'V33_PROFILE')
     origin = urlsplit(value['origin'])
     require(origin.scheme == 'http' and origin.hostname == '127.0.0.1' and origin.port
         and origin.netloc == '127.0.0.1:' + str(origin.port)
@@ -98,8 +98,8 @@ def validate_borrowed_container(row, identity):
     require(row.get('State', {}).get('Running') is True, 'V33_EXECUTOR_UNAVAILABLE')
     labels = row.get('Config', {}).get('Labels', {})
     require(all(labels.get(key) == value for key, value in {
-        'dvaia.pricing.owner': identity['ownerId'], 'dvaia.pricing.workspace': identity['workspaceId'],
-        'dvaia.pricing.package': identity['packageSha256']}.items()), 'V33_BORROWED_LABELS')
+        'owasp-ai-goat.pricing.owner': identity['ownerId'], 'owasp-ai-goat.pricing.workspace': identity['workspaceId'],
+        'owasp-ai-goat.pricing.package': identity['packageSha256']}.items()), 'V33_BORROWED_LABELS')
     host = row.get('HostConfig', {})
     publication = {'8093/tcp': [{'HostIp': '127.0.0.1', 'HostPort': str(urlsplit(identity['origin']).port)}]}
     require(host.get('PortBindings') == publication
@@ -116,7 +116,7 @@ def validate_borrowed_container(row, identity):
 def database_pair(nonce, store, port):
     require(re.fullmatch(r'[a-f0-9]{12}', nonce) and store in STORES
         and type(port) is int and 0 < port <= 65535, 'V33_STORE_ADMISSION')
-    name = 'dvaia_test_agent_host_' + nonce + '_' + store
+    name = 'owasp_ai_goat_test_agent_host_' + nonce + '_' + store
     require(len(name.encode()) <= 63, 'V33_DATABASE_NAME')
     return {role: f'postgresql://dvaia_{store}_{role}@127.0.0.1:{port}/{name}'
         for role in ('runtime', 'migration')}
@@ -353,7 +353,7 @@ class CurrentHostRuntime:
             'PG_TEST_DISPOSABLE': 'yes', 'PLATFORM_DATABASE_ENGINE': 'postgres',
             'WORKSHOP_DATABASE_ENGINE': 'postgres', 'PG_TLS': 'disable', 'PG_POOL_BUDGET': '78',
             'AWS_EC2_METADATA_DISABLED': 'true', 'MCP_SIDECARS_AUTOSTART': 'false',
-            'DVAIA_CURRENT_MAIN_WORKSPACE': str(ROOT), 'PYTHONDONTWRITEBYTECODE': '1'}
+            'OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE': str(ROOT), 'PYTHONDONTWRITEBYTECODE': '1'}
         for key, name in (('TMPDIR', 'tmp'), ('XDG_CACHE_HOME', 'cache'), ('XDG_CONFIG_HOME', 'config'),
                 ('DOCKER_CONFIG', 'docker-config'), ('npm_config_cache', 'npm')):
             path = self.run / name; path.mkdir(mode=0o700); self.env[key] = str(path)
@@ -467,8 +467,8 @@ class CurrentHostRuntime:
     def open_postgres(self, nonce):
         require(not self.attempted and re.fullmatch(r'[a-f0-9]{12}', nonce), 'V33_PG_ALREADY_ATTEMPTED')
         self.docker_owner.verify_image(self.command, IMAGE)
-        self.name = 'dvaia-v33-' + nonce
-        self.labels = {'dvaia.qualification': SCOPE, 'dvaia.owner-uid': str(os.getuid()), 'dvaia.run-nonce': nonce}
+        self.name = 'owasp-ai-goat-v33-' + nonce
+        self.labels = {'owasp-ai-goat.qualification': SCOPE, 'owasp-ai-goat.owner-uid': str(os.getuid()), 'owasp-ai-goat.run-nonce': nonce}
         require(self.docker_owner.inspect_owned(self.command, name=self.name, labels=self.labels, image=IMAGE) is None,
             'V33_PG_NAME_OCCUPIED')
         private_json(self.run / 'postgres-intent.json', {'name': self.name, 'labels': self.labels, 'image': IMAGE, 'daemon': DAEMON})
@@ -491,7 +491,7 @@ class CurrentHostRuntime:
     def create_store(self, pg, nonce, store):
         pair = database_pair(nonce, store, pg['port'])
         require(pg['containerId'] == self.captured, 'V33_PG_ID')
-        name = 'dvaia_test_agent_host_' + nonce + '_' + store
+        name = 'owasp_ai_goat_test_agent_host_' + nonce + '_' + store
         statements = [f'CREATE ROLE dvaia_{store}_{role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS'
             for role in ('migration', 'runtime')]
         statements += [f'CREATE DATABASE {name} OWNER dvaia_{store}_migration',

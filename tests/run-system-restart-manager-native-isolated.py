@@ -1,10 +1,10 @@
 """Disposable multi-target owned System restart manager qualification; no model or application stores."""
 import argparse,concurrent.futures,hashlib,http.client,json,os,secrets,shutil,subprocess,tempfile,time,uuid
 from pathlib import Path
-p=argparse.ArgumentParser();p.add_argument('--docker-host',required=True);a=p.parse_args();HOST='unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock'
+p=argparse.ArgumentParser();p.add_argument('--docker-host',required=True);a=p.parse_args();HOST='unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock'
 if a.docker_host!=HOST:p.error('reviewed owned daemon required')
-ROOT=Path(__file__).resolve().parents[1];OUT=Path(tempfile.mkdtemp(prefix='dvaia-system-restart-manager-native-')).resolve();OUT.chmod(0o700)
-DOCKER=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host',HOST];NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node');OWNER=uuid.uuid4().hex;PREFIX='dvaia-system-restart-manager-'+OWNER[:12];TAG=PREFIX+':owned';NET=PREFIX+'-bridge';NAME=PREFIX+'-listener';VOLUME=PREFIX+'-state';BASE='sha256:3a771f83944bb763050c23c0225c260638c4b7899e7a72485ef75e5e570499e5';ENV={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(OUT)}
+ROOT=Path(__file__).resolve().parents[1];OUT=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-system-restart-manager-native-')).resolve();OUT.chmod(0o700)
+DOCKER=['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker','--host',HOST];NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node');OWNER=uuid.uuid4().hex;PREFIX='owasp-ai-goat-system-restart-manager-'+OWNER[:12];TAG=PREFIX+':owned';NET=PREFIX+'-bridge';NAME=PREFIX+'-listener';VOLUME=PREFIX+'-state';BASE='sha256:3a771f83944bb763050c23c0225c260638c4b7899e7a72485ef75e5e570499e5';ENV={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':os.environ['HOME'],'TMPDIR':str(OUT)}
 state={'status':'preparing','evidence':str(OUT),'owner':OWNER,'tag':TAG,'network':NET,'container':NAME,'volume':VOLUME,'base':BASE,'sourceHashes':{}};child=None;image=None;network=False;container=False;volume=False
 def save():(OUT/'result.json').write_text(json.dumps(state,indent=2)+'\n')
 def run(x,timeout=30,check=True):
@@ -38,19 +38,19 @@ def cleanup():
  save()
 save()
 try:
- assert run(['info','--format','{{.Name}}']).stdout.strip()=='colima-dvaia-pg-verify';base=inspect('image',BASE);assert base['Architecture']=='arm64'
+ assert run(['info','--format','{{.Name}}']).stdout.strip()=='colima-owasp-ai-goat-pg-verify';base=inspect('image',BASE);assert base['Architecture']=='arm64'
  ws=OUT/'source';pkg=ws/'sidecars/sandbox-runner/owned-system';pkg.mkdir(parents=True)
  for f in (ROOT/'sidecars/sandbox-runner/owned-system').iterdir():
   if f.is_file():shutil.copy2(f,pkg/f.name)
  state['sourceHashes']={str(f.relative_to(ws)):hashlib.sha256(f.read_bytes()).hexdigest() for f in ws.rglob('*') if f.is_file()};save()
  with (OUT/'build.log').open('w') as log:
-  child=subprocess.Popen(DOCKER+['build','--pull=false','--network=default','--label','dvaia.test.owner='+OWNER,'-f','Dockerfile.local','-t',TAG,'.'],cwd=pkg,env=ENV,stdout=log,stderr=subprocess.STDOUT,start_new_session=True);code=child.wait(timeout=300)
+  child=subprocess.Popen(DOCKER+['build','--pull=false','--network=default','--label','owasp-ai-goat.test.owner='+OWNER,'-f','Dockerfile.local','-t',TAG,'.'],cwd=pkg,env=ENV,stdout=log,stderr=subprocess.STDOUT,start_new_session=True);code=child.wait(timeout=300)
  if code:raise RuntimeError('build failed')
- image=inspect('image',TAG);state['imageId']=image['Id'];assert image['Architecture']=='arm64' and image['Config']['Labels']['dvaia.test.owner']==OWNER
- run(['network','create','--label','dvaia.test.owner='+OWNER,NET]);network=True
- run(['volume','create','--label','dvaia.test.owner='+OWNER,VOLUME]);volume=True
+ image=inspect('image',TAG);state['imageId']=image['Id'];assert image['Architecture']=='arm64' and image['Config']['Labels']['owasp-ai-goat.test.owner']==OWNER
+ run(['network','create','--label','owasp-ai-goat.test.owner='+OWNER,NET]);network=True
+ run(['volume','create','--label','owasp-ai-goat.test.owner='+OWNER,VOLUME]);volume=True
  token=secrets.token_urlsafe(32);envfile=OUT/'private.env';envfile.write_text('SECURESHOP_SYSTEM_RESTART_HTTP_ENABLED=true\nSECURESHOP_SYSTEM_RESTART_TOKEN='+token+'\nSECURESHOP_SYSTEM_RESTART_HOST=0.0.0.0\nSECURESHOP_SYSTEM_RESTART_PORT=8090\n');envfile.chmod(0o600)
- run(['run','-d','--pull','never','--name',NAME,'--label','dvaia.test.owner='+OWNER,'--network',NET,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--tmpfs','/owned-restart:rw,nosuid,nodev,size=8m,mode=0700,uid=10001,gid=10001','--mount','type=volume,source='+VOLUME+',target=/var/lib/dvaia-owned-restart','--security-opt','seccomp=unconfined','--security-opt','apparmor=dvaia-mcp-sandbox','-p','127.0.0.1::8090','--env-file',str(envfile),image['Id'],'restart']);container=True;envfile.unlink()
+ run(['run','-d','--pull','never','--name',NAME,'--label','owasp-ai-goat.test.owner='+OWNER,'--network',NET,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128','--tmpfs','/tmp:rw,nosuid,nodev,size=128m','--tmpfs','/owned-restart:rw,nosuid,nodev,size=8m,mode=0700,uid=10001,gid=10001','--mount','type=volume,source='+VOLUME+',target=/var/lib/owasp-ai-goat-owned-restart','--security-opt','seccomp=unconfined','--security-opt','apparmor=owasp-ai-goat-mcp-sandbox','-p','127.0.0.1::8090','--env-file',str(envfile),image['Id'],'restart']);container=True;envfile.unlink()
  deadline=time.monotonic()+45;port=None
  while time.monotonic()<deadline:
   info=inspect('container',NAME);bindings=(info['NetworkSettings']['Ports'] or {}).get('8090/tcp') or []
@@ -66,7 +66,7 @@ try:
  targets=[str(uuid.uuid4()) for _ in range(200)];initial={}
  for target in targets:
   status,value=request(port,'POST','/secureshop/system/restart-target',token,{'targetId':target});assert status==200 and value['resident'] is True;initial[target]=value
- metrics=json.loads(run(['exec',NAME,'node','-e',"const m=require('/opt/dvaia-owned-system/restart-manager');const fs=require('fs');console.log(JSON.stringify({pids:Number(fs.readFileSync('/sys/fs/cgroup/pids.current')),memory:Number(fs.readFileSync('/sys/fs/cgroup/memory.current'))}))"]).stdout)
+ metrics=json.loads(run(['exec',NAME,'node','-e',"const m=require('/opt/owasp-ai-goat-owned-system/restart-manager');const fs=require('fs');console.log(JSON.stringify({pids:Number(fs.readFileSync('/sys/fs/cgroup/pids.current')),memory:Number(fs.readFileSync('/sys/fs/cgroup/memory.current'))}))"]).stdout)
  assert metrics['pids']<=128 and metrics['memory']<=536870912
  target=targets[0];status,resumed=request(port,'POST','/secureshop/system/restart-target',token,{'targetId':target});assert status==200 and resumed['instanceId']==initial[target]['instanceId'] and resumed['generation']==1
  op=str(uuid.uuid4());status,receipt=request(port,'POST','/secureshop/system/restart',token,{'targetId':target,'request':{'version':1,'operationId':op,'name':'nginx; whoami'}},25)
@@ -100,7 +100,7 @@ try:
  status,recovered2=request(port,'POST','/secureshop/system/restart-retirement',token,{'targetId':target,'operationId':retire_op});assert status==200 and recovered2['receiptSha256']==retired['receiptSha256']
  canonical_cleanup_sha256='e'*64;status,forgotten=request(port,'POST','/secureshop/system/restart-forget',token,{'targetId':target,'operationId':retire_op,'canonicalReceiptSha256':canonical_cleanup_sha256});assert status==200 and forgotten=={'version':1,'targetId':target,'operationId':retire_op,'forgotten':True,'replayed':False,'canonicalReceiptSha256':canonical_cleanup_sha256}
  status,forgotten_replay=request(port,'POST','/secureshop/system/restart-forget',token,{'targetId':target,'operationId':retire_op,'canonicalReceiptSha256':canonical_cleanup_sha256});assert status==200 and forgotten_replay['replayed'] is True
- info=inspect('container',NAME);hc=info['HostConfig'];mounts=info['Mounts'];assert info['Config']['User']=='10001:10001' and hc['ReadonlyRootfs'] and hc['Memory']==536870912 and hc['PidsLimit']==128 and len(mounts)==1 and mounts[0]['Name']==VOLUME and mounts[0]['Destination']=='/var/lib/dvaia-owned-restart'
+ info=inspect('container',NAME);hc=info['HostConfig'];mounts=info['Mounts'];assert info['Config']['User']=='10001:10001' and hc['ReadonlyRootfs'] and hc['Memory']==536870912 and hc['PidsLimit']==128 and len(mounts)==1 and mounts[0]['Name']==VOLUME and mounts[0]['Destination']=='/var/lib/owasp-ai-goat-owned-restart'
  state['runtime']={'imageArchitecture':image['Architecture'],'outerUser':info['Config']['User'],'memoryLimit':hc['Memory'],'pidsLimit':hc['PidsLimit'],'initialMeasured':metrics,'concurrentMeasured':high,'persistedTargets':200,'residentLimit':32,'acceptedConcurrent':sum(status==200 for status,_ in results),'capacityRefusals':sum(status==429 for status,_ in results)}
  state['receipt']=receipt;state['retirement']=retired;state['retirementForget']={'acknowledgement':forgotten,'replay':forgotten_replay,'authorityBoundary':'private transport mechanics only; canonical cleanup receipt validation is qualified at the backend/storage boundary'};state['durableSibling']={'before':sibling_before,'after':sibling_after};state['status']='passed';save()
 except BaseException as e:

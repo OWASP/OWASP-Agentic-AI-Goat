@@ -6,7 +6,7 @@ const {initializeIdentityRepository,createIdentityRepository}=require('../../ser
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_ADMIN_PERMISSIONS_TEST_ADMIN_URL;
 test('bootstrap and existing admin grants preserve revocations and deny demoted/student accounts',{skip:!enabled},async()=>{
  const url=new URL(process.env.PG_ADMIN_PERMISSIONS_TEST_ADMIN_URL);assert.ok(['127.0.0.1','localhost','[::1]'].includes(url.hostname));assert.equal(url.pathname,'/postgres');
- const admin=new Pool({connectionString:url.href}),name=`dvaia_test_permissions_${process.pid}_${Date.now()}`;let runtime,migration;
+ const admin=new Pool({connectionString:url.href}),name=`owasp_ai_goat_test_permissions_${process.pid}_${Date.now()}`;let runtime,migration;
  try{
   await admin.query(`CREATE DATABASE ${name} OWNER dvaia_identity_migration`);
   await admin.query(`REVOKE CONNECT ON DATABASE ${name} FROM PUBLIC`);await admin.query(`GRANT CONNECT ON DATABASE ${name} TO dvaia_identity_runtime`);

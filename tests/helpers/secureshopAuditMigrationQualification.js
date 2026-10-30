@@ -6,7 +6,7 @@ const os=require('node:os');
 const {migrate}=require('../../db/postgres/migrate');
 
 async function qualifyAuditMigration({migration,root}){
-  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-audit-ledger-'));
+  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-audit-ledger-'));
   const baseline=path.join(root,'db/postgres/workshop-migrations/secureshop_agents');
   const name='0021_secureshop_audit_run_storage.sql';
   const snapshot=async()=>{

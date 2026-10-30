@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),{randomUUID}=require('node:crypto');
 const {createRestartManager}=require('../sidecars/sandbox-runner/owned-system/restart-manager');
 test('concurrent inspections of the same target create one owned child',async t=>{
- const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-manager-concurrency-'));let created=0;
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-manager-concurrency-'));let created=0;
  const manager=createRestartManager({stateRoot:dir,executeOwnedCommand:async()=>{},targetFactory:({targetId,onState})=>{
   created++;let state={targetId,instanceId:randomUUID(),generation:1,resident:false};
   return {state:()=>({...state}),start:async()=>{state.resident=true;onState(state);return {...state};},hibernate:async()=>{state.resident=false;onState(state);},close:async()=>{state.resident=false;}};

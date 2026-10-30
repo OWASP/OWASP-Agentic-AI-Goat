@@ -36,7 +36,7 @@ const SSv2NotFound = lazy(() => import('./pages/NotFound'));
 function SuspenseFallback() {
   return (
     <div className="ss-root" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-      <Spinner label="Opening SecureShop page" />
+      <Spinner label="Opening OWASP AI SecureShop page" />
     </div>
   );
 }

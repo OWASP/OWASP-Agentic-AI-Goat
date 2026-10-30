@@ -1,7 +1,7 @@
 # MCP Vulnerable Server Lab — local sidecar topology.
 #
 # The 4 sidecars run by default and publish their ports on localhost, so you can
-# run the DVAIA app on the host (npm run server) and point it at them:
+# run the OWASP-AI-GOAT app on the host (npm run server) and point it at them:
 #
 #   docker compose up -d mcp-sandbox mailpit ssrf-target rogue-mcp
 #   # then, on the host:
@@ -40,11 +40,11 @@ services:
     restart: unless-stopped
     security_opt:
       - seccomp:unconfined
-      - apparmor:${MCP_OWNED_TARGET_APPARMOR_PROFILE:-dvaia-mcp-sandbox}
+      - apparmor:${MCP_OWNED_TARGET_APPARMOR_PROFILE:-owasp-ai-goat-mcp-sandbox}
     environment:
       MCP_OWNED_TARGETS_ENABLED: "true"
       MCP_OWNED_TARGET_TOKEN: ${MCP_OWNED_TARGET_TOKEN:-}
-      MCP_OWNED_TARGET_APPARMOR_PROFILE: ${MCP_OWNED_TARGET_APPARMOR_PROFILE:-dvaia-mcp-sandbox}
+      MCP_OWNED_TARGET_APPARMOR_PROFILE: ${MCP_OWNED_TARGET_APPARMOR_PROFILE:-owasp-ai-goat-mcp-sandbox}
       MCP_OWNED_TARGET_ROOT: /sandbox/owned-targets
     volumes:
       - mcp-owned-targets:/sandbox/owned-targets

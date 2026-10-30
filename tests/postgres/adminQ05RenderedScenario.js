@@ -293,10 +293,10 @@ function admitQ05({ env, repo, journalPath, tempRoot,
     'Q05 browser runtime must be private under the run root');
   const ackPath = path.join(path.dirname(tempRoot), '..', 'browser-ack.json');
   assert.equal(env.ADMIN_Q05_BROWSER_ACK, path.normalize(ackPath), 'Q05 ACK path must be exact');
-  assert.equal(env.PUPPETEER_EXECUTABLE_PATH, env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE,
+  assert.equal(env.PUPPETEER_EXECUTABLE_PATH, env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE,
     'Q05 must launch the pinned actual Chromium executable');
-  assert.equal(typeof env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE, 'string');
-  assert(path.isAbsolute(env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE));
+  assert.equal(typeof env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE, 'string');
+  assert(path.isAbsolute(env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE));
   assert(hex(env.ADMIN_Q05_SNAPSHOT_SHA256), 'Q05 current-source snapshot pin required');
   assert(/^(0|[1-9]\d*)$/.test(env.ADMIN_Q05_ADMISSION_FD || '')
     && Number.isSafeInteger(Number(env.ADMIN_Q05_ADMISSION_FD))
@@ -327,7 +327,7 @@ function admitQ05({ env, repo, journalPath, tempRoot,
       assert(Number.isInteger(ack.startSec) && ack.startSec > 0);
       assert(Number.isInteger(ack.startUsec) && ack.startUsec >= 0);
       assert.equal(ack.profile, profile);
-      assert.equal(ack.executable, env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE);
+      assert.equal(ack.executable, env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE);
       return { acknowledged: true, pid, profile };
     }
     throw new Error('Q05 live Chromium birth ACK timed out');
@@ -337,7 +337,7 @@ function admitQ05({ env, repo, journalPath, tempRoot,
     const grant = await readInheritedFifoGrant(env, 'ADMIN_Q05_ADMISSION_FD', 'Q05');
     return validateLaunchGrant(grant, { repo, buildSha256: env.ADMIN_Q05_BUILD_SHA256,
       snapshotSha256: env.ADMIN_Q05_SNAPSHOT_SHA256,
-      chromium: env.DVAIA_CHROMIUM_ACTUAL_EXECUTABLE, profile,
+      chromium: env.OWASP_AI_GOAT_CHROMIUM_ACTUAL_EXECUTABLE, profile,
       launcherPid: process.ppid, workerPid: process.pid, expectedCohort });
   }
   return { buildDirectory, buildSha256: env.ADMIN_Q05_BUILD_SHA256,

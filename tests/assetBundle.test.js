@@ -11,7 +11,7 @@ const {
 } = require('../db/postgres/asset-bundle');
 
 async function workspace() {
-  return fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-asset-bundle-'));
+  return fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-asset-bundle-'));
 }
 
 async function sourceWithPayload(root) {

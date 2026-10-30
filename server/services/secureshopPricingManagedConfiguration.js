@@ -9,7 +9,7 @@ const capturedRecords=new WeakSet();
 const FIELDS=['version','enabled','workspaceId','ownerId','dockerAuthoritySha256','containerName','containerId','imageId','packageSha256','profile','port','token'];
 function validate(value,{root}){
  const id=workspaceId(root);
- if(!value||Object.getPrototypeOf(value)!==Object.prototype||Object.keys(value).sort().join()!==[...FIELDS].sort().join()||value.version!==1||typeof value.enabled!=='boolean'||value.workspaceId!==id||value.containerName!=='dvaia-pricing-'+id||value.profile!=='dvaia-owned-pricing-http-'+id||!['containerId','dockerAuthoritySha256','packageSha256'].every(k=>/^[a-f0-9]{64}$/.test(value[k]))||!/^sha256:[a-f0-9]{64}$/.test(value.imageId)||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value.ownerId)||!Number.isInteger(value.port)||value.port<1024||value.port>65535||!/^[A-Za-z0-9_-]{43,128}$/.test(value.token))throw fail();
+ if(!value||Object.getPrototypeOf(value)!==Object.prototype||Object.keys(value).sort().join()!==[...FIELDS].sort().join()||value.version!==1||typeof value.enabled!=='boolean'||value.workspaceId!==id||value.containerName!=='owasp-ai-goat-pricing-'+id||value.profile!=='owasp-ai-goat-owned-pricing-http-'+id||!['containerId','dockerAuthoritySha256','packageSha256'].every(k=>/^[a-f0-9]{64}$/.test(value[k]))||!/^sha256:[a-f0-9]{64}$/.test(value.imageId)||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(value.ownerId)||!Number.isInteger(value.port)||value.port<1024||value.port>65535||!/^[A-Za-z0-9_-]{43,128}$/.test(value.token))throw fail();
  return Object.freeze(Object.fromEntries(FIELDS.map(key=>[key,value[key]])));
 }
 function captureFile(filename,limit){
@@ -24,7 +24,7 @@ function captureFile(filename,limit){
 }
 function load({root=path.resolve(__dirname,'../..'),home=os.homedir()}={}){
  if(process.platform==='win32'){try{root=normalizePrivatePath(root);home=normalizePrivatePath(home);}catch{throw fail();}}
- const directory=path.join(home,'.dvaia',workspaceId(root)),filename=path.join(directory,'pricing-managed.json');
+ const directory=path.join(home,'.owasp-ai-goat',workspaceId(root)),filename=path.join(directory,'pricing-managed.json');
  // Absence is optional; admission/read failures after this observation are not.
  try{const named=fs.lstatSync(filename);if(!named.isFile()||named.isSymbolicLink())throw fail();}catch(error){if(error.code==='ENOENT')return null;throw fail();}
  // Present Pricing state also supplies POSIX identity to activation/CAS. Native
@@ -39,7 +39,7 @@ function load({root=path.resolve(__dirname,'../..'),home=os.homedir()}={}){
 function environment(options={}){const record=load(options);if(!record?.config.enabled)return Object.freeze({});const env=options.environment||process.env;if(env.SS_BOUND_PRICING_ENABLED!==undefined&&env.SS_BOUND_PRICING_ENABLED!=='true')throw fail();return Object.freeze({SS_BOUND_PRICING_ENABLED:'true'});}
 function paths({root=path.resolve(__dirname,'../..'),home=os.homedir()}={}) {
  if(!path.isAbsolute(root)||!path.isAbsolute(home))throw fail();
- const directory=path.join(home,'.dvaia',workspaceId(root));return {directory,filename:path.join(directory,'pricing-managed.json')};
+ const directory=path.join(home,'.owasp-ai-goat',workspaceId(root));return {directory,filename:path.join(directory,'pricing-managed.json')};
 }
 function assertPrivateDirectory(directory){const stat=fs.lstatSync(directory);if(!stat.isDirectory()||stat.isSymbolicLink()||stat.uid!==process.getuid()||(stat.mode&0o077))throw fail();return stat;}
 function syncParent(directory){const fd=fs.openSync(directory,fs.constants.O_RDONLY);try{fs.fsyncSync(fd);}finally{fs.closeSync(fd);}}

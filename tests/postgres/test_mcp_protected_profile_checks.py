@@ -2,7 +2,7 @@ import unittest
 from mcp_protected_profile_checks import expected_profiles, assert_enforcing, assert_absent
 class ProfileChecks(unittest.TestCase):
  def setUp(self):
-  self.parent='dvaia-mcp-sandbox-123456abcdef'
+  self.parent='owasp-ai-goat-mcp-sandbox-123456abcdef'
   self.expected=expected_profiles('profile "'+self.parent+'" flags=(x) {\n profile bwrap flags=(x) {\n }\n}',self.parent)
  def test_exact_tree(self):
   listing='other (enforce)\n'+self.parent+'//bwrap (enforce)\n'+self.parent+' (enforce)\n'

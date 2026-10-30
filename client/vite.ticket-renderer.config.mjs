@@ -32,6 +32,6 @@ export default defineConfig(({ command }) => {
         artifactSha256: sha(await fs.readFile(path.join(outDir, artifact))) }) + '\n');
     } }], define: { 'process.env.NODE_ENV': JSON.stringify('production') },
     build: { copyPublicDir: false, target: 'es2022', outDir, emptyOutDir: true,
-      lib: { entry: path.join(root, '..', entry), name: 'DvaiaTicketRenderer',
+      lib: { entry: path.join(root, '..', entry), name: 'OwaspAiGoatTicketRenderer',
         formats: ['iife'], fileName: () => 'renderer.js' } } };
 });

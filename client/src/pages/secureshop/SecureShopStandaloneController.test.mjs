@@ -7,7 +7,7 @@ import { SHOP_TOKEN_KEY, SHOP_CART_KEY, SHOP_REVIEW_DECISION_KEY,
   SHOP_CHAT_CART_KEY } from './utils/shopStorage.mjs';
 import { decodeListingsReferences, replaceListingsScope } from './pages/merchant/listingsReferences.mjs';
 
-const savedScope = 'dvaia:secureshop:c0672486-9095-4433-ae75-2db7c40be0e5:1';
+const savedScope = 'owasp-ai-goat:secureshop:c0672486-9095-4433-ae75-2db7c40be0e5:1';
 const cleanSnapshot = () => ({ [SHOP_TOKEN_KEY]: null, [SHOP_CART_KEY]: '[{"id":125,"quantity":2}]' });
 
 const expiry = new Date(Date.now() + 30 * 60 * 1000).toISOString();
@@ -41,7 +41,113 @@ function harness(list, shopRole = 'customer', options = {}) {
 
 const practiceOperationId = '33333333-3333-4333-8333-333333333333';
 const principalId = '4a792aa0-026b-4e76-9520-17ee0252c9aa';
-const practiceRefKey = `dvaia:secureshop:practice-admission:v1:${principalId}`;
+const practiceRefKey = `owasp-ai-goat:secureshop:practice-admission:v1:${principalId}`;
+
+test('initial unloaded frame gets one fresh frame with the same credential and no request replay', async () => {
+  const h = harness([{ ...scenes[0], isDefault: true }]);
+  const firstClose = jest.fn();
+  h.mountFrame.mockImplementationOnce(({ frame, url }) => {
+    frame.src = url;
+    return { ready: Promise.reject(Object.assign(new Error('Frame load timed out'),
+      { code: 'SHOP_FRAME_LOAD_TIMEOUT' })), close: firstClose };
+  });
+  try {
+    await h.controller.start(h.host);
+    expect(h.states.at(-1).status).toBe('ready');
+    expect(h.mountFrame).toHaveBeenCalledTimes(2);
+    expect(h.mountFrame.mock.calls[0][0].frame).not.toBe(h.mountFrame.mock.calls[1][0].frame);
+    expect(h.mountFrame.mock.calls[0][0].frame.isConnected).toBe(false);
+    expect(firstClose).toHaveBeenCalledTimes(1);
+    expect(h.client.bootstrap).toHaveBeenCalledTimes(1);
+    expect(h.client.scenes).toHaveBeenCalledTimes(1);
+    expect(h.mountFrame.mock.calls[1][0].getLaunchBearer()).toBe(credential.bearer);
+    expect(h.client.renew).not.toHaveBeenCalled();
+    expect(h.client.selectScene).not.toHaveBeenCalled();
+    expect(h.client.resetPractice).not.toHaveBeenCalled();
+    expect(h.client.createPractice).not.toHaveBeenCalled();
+  } finally { h.close(); }
+});
+
+test.each([
+  ['SHOP_FRAME_LOAD_TIMEOUT', 2],
+  ['SHOP_FRAME_HANDSHAKE_TIMEOUT', 1],
+  [undefined, 1],
+])('initial frame failure %s stops after %s attempts', async (code, count) => {
+  const h = harness([{ ...scenes[0], isDefault: true }]);
+  const failure = Object.assign(new Error('Frame unavailable'), code ? { code } : {});
+  h.mountFrame.mockImplementation(() => ({ ready: Promise.reject(failure), close: jest.fn() }));
+  try {
+    await expect(h.controller.start(h.host)).rejects.toBe(failure);
+    expect(h.mountFrame).toHaveBeenCalledTimes(count);
+    expect(h.states.at(-1).status).toBe('error');
+    expect(h.host.childElementCount).toBe(0);
+    expect(h.client.bootstrap).toHaveBeenCalledTimes(1);
+    expect(h.client.scenes).toHaveBeenCalledTimes(1);
+    expect(h.client.renew).not.toHaveBeenCalled();
+  } finally { h.close(); }
+});
+
+test('disposed startup does not retry its late initial frame load failure', async () => {
+  const h = harness([{ ...scenes[0], isDefault: true }]);
+  let rejectLoad;
+  h.mountFrame.mockImplementationOnce(() => ({
+    ready: new Promise((resolve, reject) => { rejectLoad = reject; }), close: jest.fn(),
+  }));
+  try {
+    const pending = h.controller.start(h.host);
+    for (let turn = 0; turn < 10 && !rejectLoad; turn++) await Promise.resolve();
+    expect(rejectLoad).toEqual(expect.any(Function));
+    h.controller.close();
+    rejectLoad(Object.assign(new Error('Frame load timed out'), { code: 'SHOP_FRAME_LOAD_TIMEOUT' }));
+    await expect(pending).rejects.toThrow('Frame load timed out');
+    expect(h.mountFrame).toHaveBeenCalledTimes(1);
+  } finally { h.close(); }
+});
+
+test('post-ready frame disconnect disposes its bridge and offers retry without replaying requests', async () => {
+  const h = harness([{ ...scenes[0], isDefault: true }]);
+  try {
+    await h.controller.start(h.host);
+    expect(h.states.at(-1).status).toBe('ready');
+    const disconnect = h.mountFrame.mock.calls[0][0].onDisconnect;
+    expect(disconnect).toEqual(expect.any(Function));
+    disconnect();
+    expect(h.host.childElementCount).toBe(0);
+    expect(h.mountFrame.mock.results[0].value.close).toHaveBeenCalledTimes(1);
+    expect(h.createStateStore.mock.results[0].value.close).toHaveBeenCalledTimes(1);
+    expect(h.states.at(-1)).toMatchObject({ status: 'error', message: expect.stringMatching(/reconnect/i) });
+    expect(h.client.bootstrap).toHaveBeenCalledTimes(1);
+    expect(h.client.renew).not.toHaveBeenCalled();
+    expect(h.client.selectScene).not.toHaveBeenCalled();
+    expect(h.client.createPractice).not.toHaveBeenCalled();
+    const count = h.states.length;
+    disconnect();
+    expect(h.states).toHaveLength(count);
+  } finally { h.close(); }
+});
+
+test('disconnected callbacks from disposed and superseded frames cannot change the current UI', async () => {
+  const h = harness([{ ...scenes[0], isDefault: true }]);
+  try {
+    await h.controller.start(h.host);
+    const oldDisconnect = h.mountFrame.mock.calls[0][0].onDisconnect;
+    expect(oldDisconnect).toEqual(expect.any(Function));
+    h.client.scenes.mockResolvedValue(scenes);
+    await h.controller.choosePractice();
+    await h.controller.selectScene(scenes[1].id);
+    const currentFrame = h.host.firstElementChild;
+    const count = h.states.length;
+    oldDisconnect();
+    expect(h.host.firstElementChild).toBe(currentFrame);
+    expect(h.states).toHaveLength(count);
+    expect(h.states.at(-1).status).toBe('ready');
+    const currentDisconnect = h.mountFrame.mock.calls.at(-1)[0].onDisconnect;
+    h.controller.close();
+    const closedCount = h.states.length;
+    currentDisconnect();
+    expect(h.states).toHaveLength(closedCount);
+  } finally { h.close(); }
+});
 
 test('parent merchant external send fences a retired practice before dispatch but can read old operation status', async () => {
   const merchantCredential = { ...credential, persona: { ...credential.persona,
@@ -195,7 +301,7 @@ test('new execution keeps only the old owned scene cart across launches and neve
   Object.defineProperty(global.crypto, 'randomUUID', { configurable: true, value: () => practiceOperationId });
   const nextCredential = { ...credential, launch: { ...credential.launch,
     launchId: '44444444-4444-4444-8444-444444444444' } };
-  const newScope = 'dvaia:secureshop:44444444-4444-4444-8444-444444444444:1';
+  const newScope = 'owasp-ai-goat:secureshop:44444444-4444-4444-8444-444444444444:1';
   const oldList = [{ ...scenes[0], isDefault: true }];
   const newList = [scenes[0], { ...scenes[1], isDefault: true }];
   const h = harness(oldList, 'customer', { principalId });
@@ -223,7 +329,7 @@ test('new execution keeps only the old owned scene cart across launches and neve
         launchId: '55555555-5555-4555-8555-555555555555' } });
       await retired.controller.start(retired.host);
       expect(retired.createStateStore.mock.calls.at(-1)[0].storage.getItem(
-        'dvaia:secureshop:55555555-5555-4555-8555-555555555555:1')).toBe(null);
+        'owasp-ai-goat:secureshop:55555555-5555-4555-8555-555555555555:1')).toBe(null);
       await expect(retired.controller.selectScene(scenes[0].id)).rejects.toThrow('Listed');
     } finally { retired.close(); }
   } finally {
@@ -463,7 +569,7 @@ test('capacity before admission clears exact ref and failed old remount leaves a
     await expect(h.controller.newPractice()).rejects.toThrow('capacity');
     expect(localStorage.getItem(practiceRefKey)).toBe(null);
     expect(h.states.at(-1)).toEqual(expect.objectContaining({ status: 'error',
-      message: expect.stringContaining('Reopen SecureShop') }));
+      message: expect.stringContaining('Reopen OWASP AI SecureShop') }));
   } finally {
     h.close(); localStorage.clear();
     if (originalUuid) Object.defineProperty(global.crypto, 'randomUUID', originalUuid);
@@ -511,7 +617,7 @@ test('bootstrap capacity without a bearer gives retained-resource guidance and n
 test('explicit retained practice switch fences the old frame and isolates storage across return and reload', async () => {
   localStorage.clear();
   const original = JSON.stringify(cleanSnapshot());
-  const siblingKey = 'dvaia:secureshop:11111111-1111-4111-8111-111111111111:1';
+  const siblingKey = 'owasp-ai-goat:secureshop:11111111-1111-4111-8111-111111111111:1';
   localStorage.setItem(savedScope, original); localStorage.setItem(siblingKey, 'sibling bytes');
   const list = [{ ...scenes[0], isDefault: true }, scenes[1]];
   const h = harness(list);

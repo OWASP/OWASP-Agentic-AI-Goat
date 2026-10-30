@@ -6,7 +6,7 @@ const { PRODUCT_RETRIEVAL_MODES } = require('../../services/secureshopProductExe
 const { requireSecureShopLaunch, markSecureShopLaunchUnavailable }
   = require('../../middleware/secureshopLaunch');
 
-const HEADER = 'x-dvaia-secureshop-launch';
+const HEADER = 'x-owasp-ai-goat-secureshop-launch';
 const API_KEY_HEADER = 'x-api-key';
 const ROLES = new Set(['customer', 'merchant', 'admin']);
 const PRODUCT_FIELDS = Object.freeze(['id', 'name', 'description', 'description_html', 'price',

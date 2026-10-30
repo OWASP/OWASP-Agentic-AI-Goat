@@ -19,13 +19,13 @@ const enabledFor = store => process.env.PG_TEST_DISPOSABLE === 'yes'
 function pool(url, applicationName) {
   const parsed = new URL(url);
   assert.equal(parsed.hostname, '127.0.0.1');
-  assert.match(parsed.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(parsed.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return new Pool({ connectionString: parsed.href, max: 3, application_name: applicationName,
     statement_timeout: 30000, lock_timeout: 5000, idle_in_transaction_session_timeout: 30000 });
 }
 
 function copyPrefix(t, migrationDirectory, lastName, label) {
-  const workspace = process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
+  const workspace = process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
   assert.equal(typeof workspace, 'string');
   const directory = fs.mkdtempSync(path.join(workspace, `${label}-prefix-`));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));

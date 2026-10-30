@@ -4,7 +4,7 @@ const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-
 const SHA = /^[a-f0-9]{64}$/;
 const ADDRESS = /^[a-z0-9][a-z0-9._+-]{0,63}@sharklasers\.com$/;
 const validAddress = value => ADDRESS.test(value) && !value.split('@')[0].endsWith('.') && !value.includes('..');
-const keyFor = principalId => `dvaia:secureshop:external-mail:v1:${principalId}`;
+const keyFor = principalId => `owasp-ai-goat:secureshop:external-mail:v1:${principalId}`;
 const terminal = state => ['cancelled', 'expired', 'rejected_before_dispatch', 'smtp_accepted'].includes(state);
 
 function readReference(storage, principalId) {

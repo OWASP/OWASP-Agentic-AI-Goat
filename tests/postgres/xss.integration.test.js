@@ -5,7 +5,7 @@ const { createPool } = require('../../server/database/postgres');
 const { createXssWorkshopDb } = require('../../server/database/postgres/xssWorkshopDb');
 const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && !!process.env.PG_XSS_TEST_RUNTIME_URL;
 test('PostgreSQL XSS preserves raw HTML, owner isolation, scoped resets and restart state', { skip: !enabled }, async () => {
-  for (const key of ['PG_XSS_TEST_RUNTIME_URL','PG_XSS_TEST_MIGRATION_URL']) assert.match(new URL(process.env[key]).pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  for (const key of ['PG_XSS_TEST_RUNTIME_URL','PG_XSS_TEST_MIGRATION_URL']) assert.match(new URL(process.env[key]).pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   const pool = createPool(process.env, 'PG_XSS_TEST_RUNTIME_URL');
   const migration = createPool(process.env, 'PG_XSS_TEST_MIGRATION_URL');
   try {

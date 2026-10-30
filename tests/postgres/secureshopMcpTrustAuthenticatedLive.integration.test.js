@@ -21,7 +21,7 @@ const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&process.env.LIVE_OLLAMA_TE
   &&STORES.every(store=>['MIGRATION','RUNTIME'].every(role=>process.env[`${PREFIX}${store}_${role}_URL`]));
 const WORKSHOP='secureshop_agent_security',OBJECTIVES=['ss_rogue_tool_selected','ss_rug_pull_invoked'];
 function checked(name){const value=new URL(process.env[`${PREFIX}${name}_URL`]);assert.ok(['127.0.0.1','localhost'].includes(value.hostname));
-  assert.match(value.pathname,/^\/dvaia_test_[a-z0-9_]+$/);return value.href;}
+  assert.match(value.pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);return value.href;}
 async function json(response,status=200){assert.equal(response.status,status);return response.json();}
 const parse=value=>{if(value&&typeof value==='object')return value;try{return JSON.parse(value);}catch{return null;}};
 async function assertLedger(pool,directory){const expected=await readMigrations(directory),actual=(await pool.query(
@@ -30,12 +30,12 @@ async function assertLedger(pool,directory){const expected=await readMigrations(
 
 test('mounted MCP trust binds real launch and admin JWT to SDK actor/Judge, replay, restart and reset',
   {skip:!enabled,timeout:360000},async t=>{
-  const workspace=path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE||'');
-  assert.match(path.basename(path.dirname(workspace)),/^dvaia-secureshop-mcp-trust-auth-/);
+  const workspace=path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE||'');
+  assert.match(path.basename(path.dirname(workspace)),/^owasp-ai-goat-secureshop-mcp-trust-auth-/);
   const pools=Object.fromEntries(STORES.flatMap(store=>['MIGRATION','RUNTIME'].map(role=>[`${store}_${role}`,
     new Pool({connectionString:checked(`${store}_${role}`),max:store==='IDENTITY'&&role==='RUNTIME'?14:6})])));
   const leases=new Pool({connectionString:checked('IDENTITY_RUNTIME'),max:4,application_name:'mcp-trust-auth-lease'});
-  const fixtureRoot=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-trust-auth-fixture-'));
+  const fixtureRoot=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-trust-auth-fixture-'));
   const semantic=[],requests=[],scopes=[],judgeInputs=[];let server,composition,resetComposition,judgeCalls=0,primaryError;
   const verify=(label,callback)=>{try{callback();}catch(error){semantic.push({label,message:error.message});}};
   const stop=async()=>{const failures=[];if(server){const current=server;server=null;try{await new Promise((resolve,reject)=>current.close(error=>error?reject(error):resolve()));}catch(error){failures.push(error);}}
@@ -105,7 +105,7 @@ test('mounted MCP trust binds real launch and admin JWT to SDK actor/Judge, repl
       await pools.IDENTITY_RUNTIME.query(`INSERT INTO workshop_platform.user_modes(user_id,workshop_key,mode) VALUES($1,$2,'vuln') ON CONFLICT DO NOTHING`,[user.id,WORKSHOP]);
       return{user,session,launch};}
     let base=await build();const primary=await owner('mcp-auth-primary'),sibling=await owner('mcp-auth-sibling');scopes.push(primary,sibling);
-    async function login(owner){const launch={'x-dvaia-secureshop-launch':owner.launch.bearer};const value=await json(await fetch(`${base}/v2/auth/login`,{method:'POST',headers:{...launch,'content-type':'application/json'},
+    async function login(owner){const launch={'x-owasp-ai-goat-secureshop-launch':owner.launch.bearer};const value=await json(await fetch(`${base}/v2/auth/login`,{method:'POST',headers:{...launch,'content-type':'application/json'},
         body:JSON.stringify({username:'student_admin',password:'student123'})}));assert.equal(value.user.role,'admin');return{...launch,authorization:`Bearer ${value.token}`,'content-type':'application/json'};}
     let headers=await login(primary),siblingHeaders=await login(sibling);
     const readiness=await json(await fetch(`${base}/v2/mcp-trust/readiness`,{headers}));assert.deepEqual(readiness,{ready:true,scenarios:{rogue_registration:true,rug_pull:true}});

@@ -4,7 +4,7 @@ const{createPool}=require('../../server/database/postgres');
 const{initializeIdentityRepository}=require('../../server/database/postgres/identityRepository');
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_PROVENANCE_TEST_RUNTIME_URL;
 test('historical import provenance survives owner deletion and denies runtime mutation',{skip:!enabled},async()=>{
- for(const key of ['PG_PROVENANCE_TEST_RUNTIME_URL','PG_PROVENANCE_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ for(const key of ['PG_PROVENANCE_TEST_RUNTIME_URL','PG_PROVENANCE_TEST_MIGRATION_URL'])assert.match(new URL(process.env[key]).pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  const runtime=createPool(process.env,'PG_PROVENANCE_TEST_RUNTIME_URL'),migration=createPool(process.env,'PG_PROVENANCE_TEST_MIGRATION_URL');
  try{
   await initializeIdentityRepository(runtime,migration);

@@ -4,7 +4,7 @@ const fs = require('node:fs'), path = require('node:path'), { spawnSync } = requ
 const { createWindowsOwnedHyperVObserver } = require('../scripts/lib/windows-owned-hyperv-observer');
 const root = path.resolve(__dirname, '..'), helper = path.join(root, 'scripts/install/Windows/owned-hyperv-observer.ps1');
 const source = fs.readFileSync(helper,'utf8');
-const name = 'dvaia-lab-workspace-123', vmId = '12345678-1234-4321-abcd-123456789abc';
+const name = 'owasp-ai-goat-lab-workspace-123', vmId = '12345678-1234-4321-abcd-123456789abc';
 const dto = state => ({version:1,operation:'observeOwnedHyperVVm',name,vmId,state});
 const deny = fn => assert.throws(fn,{code:'WINDOWS_OWNED_HYPERV_OBSERVATION_DENIED'});
 function fixture(response = dto('Off'), overrides = {}) {
@@ -25,13 +25,13 @@ test('explicit owned name produces bounded local read-only PowerShell request an
   }
 });
 test('foreign, wildcard, command-like and overlong VM names reject before spawning', () => {
-  const f=fixture();for(const value of ['',null,[],{},'foreign-vm','DVAIA-LAB-a','dvaia-lab-a*','dvaia-lab-[a]','dvaia-lab-a;Stop-VM','dvaia-lab-a\n','dvaia-lab--','dvaia-lab-'+ 'a'.repeat(48)])deny(()=>f.api.observeOwnedHyperVVm(value));
+  const f=fixture();for(const value of ['',null,[],{},'foreign-vm','OWASP-AI-GOAT-LAB-a','owasp-ai-goat-lab-a*','owasp-ai-goat-lab-[a]','owasp-ai-goat-lab-a;Stop-VM','owasp-ai-goat-lab-a\n','owasp-ai-goat-lab--','owasp-ai-goat-lab-'+ 'a'.repeat(48)])deny(()=>f.api.observeOwnedHyperVVm(value));
   assert.equal(f.calls.length,0);
-  const longest='dvaia-lab-'+ 'a'.repeat(47);
+  const longest='owasp-ai-goat-lab-'+ 'a'.repeat(47);
   assert.deepEqual(fixture({...dto('Off'),name:longest}).api.observeOwnedHyperVVm(longest),{...dto('Off'),name:longest});
 });
 test('wire protocol denies foreign VMId shape, zero id, extra fields and unstable/unknown states', () => {
-  for(const response of [{...dto('Off'),name:'dvaia-lab-other'}, {...dto('Off'),version:2}, {...dto('Off'),vmId:vmId.toUpperCase()},
+  for(const response of [{...dto('Off'),name:'owasp-ai-goat-lab-other'}, {...dto('Off'),version:2}, {...dto('Off'),vmId:vmId.toUpperCase()},
     {...dto('Off'),vmId:'00000000-0000-0000-0000-000000000000'}, {...dto('Off'),vmId:'not-a-guid'}, {...dto('Off'),vmId:vmId+'\n'},
     {...dto('Off'),diskIdentity:'fabricated'}, dto('Starting'),dto('Unknown'),dto('off'),[],null,
     {version:1,ok:false,code:'WINDOWS_OWNED_HYPERV_OBSERVATION_DENIED'},'not-json',' '.repeat(4097)])deny(()=>fixture(response).api.observeOwnedHyperVVm(name));
@@ -54,7 +54,7 @@ test('native source limits name query to local read-only exact Get-VM and two st
 const interpreter=['pwsh','powershell'].find(command=>spawnSync(command,['-NoLogo','-NoProfile','-NonInteractive','-Command','$PSVersionTable.PSVersion.Major'],{encoding:'utf8',timeout:5000}).status===0);
 const quote=value=>"'"+value.replaceAll("'","''")+"'";
 function controlled(probe,nameArg=name) {
-  const command=`. ${quote(helper)}; try { Get-DvaiaOwnedHyperVObservation -Name ${quote(nameArg)} -Probe { param($name) ${probe} } | ConvertTo-Json -Compress } catch { [Console]::Out.WriteLine('DENIED'); exit 7 }`;
+  const command=`. ${quote(helper)}; try { Get-OwaspAiGoatOwnedHyperVObservation -Name ${quote(nameArg)} -Probe { param($name) ${probe} } | ConvertTo-Json -Compress } catch { [Console]::Out.WriteLine('DENIED'); exit 7 }`;
   return spawnSync(interpreter,['-NoLogo','-NoProfile','-NonInteractive','-Command',command],{encoding:'utf8',timeout:10000});
 }
 test('controlled PowerShell snapshots accept stable Off/Saved/Running IDs without any Hyper-V invocation', {skip:!interpreter&&'PowerShell unavailable; native Hyper-V not run'},()=>{
@@ -65,7 +65,7 @@ test('controlled PowerShell snapshots accept stable Off/Saved/Running IDs withou
 });
 test('controlled PowerShell rejects missing/multiple/foreign/transitional/replaced identity observations', {skip:!interpreter&&'PowerShell unavailable; native Hyper-V not run'},()=>{
   const row=`[pscustomobject]@{Name=$name;Id=[Guid]'${vmId}';State='Off'}`;
-  for(const probe of ['@()',`${row}; ${row}`,`[pscustomobject]@{Name='dvaia-lab-other';Id=[Guid]'${vmId}';State='Off'}`,`[pscustomobject]@{Name=$name;Id=[Guid]'${vmId}';State='Starting'}`,`if($script:seen){[pscustomobject]@{Name=$name;Id=[Guid]'22345678-1234-4321-abcd-123456789abc';State='Off'}}else{$script:seen=$true;${row}}`,`throw 'PRIVATE_NATIVE_OUTPUT'`]) {
+  for(const probe of ['@()',`${row}; ${row}`,`[pscustomobject]@{Name='owasp-ai-goat-lab-other';Id=[Guid]'${vmId}';State='Off'}`,`[pscustomobject]@{Name=$name;Id=[Guid]'${vmId}';State='Starting'}`,`if($script:seen){[pscustomobject]@{Name=$name;Id=[Guid]'22345678-1234-4321-abcd-123456789abc';State='Off'}}else{$script:seen=$true;${row}}`,`throw 'PRIVATE_NATIVE_OUTPUT'`]) {
     const value=controlled(probe);assert.equal(value.status,7);assert.equal(value.stdout.trim(),'DENIED');assert.ok(!value.stdout.includes('PRIVATE_NATIVE_OUTPUT'));
   }
 });

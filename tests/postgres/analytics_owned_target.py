@@ -22,14 +22,14 @@ class OwnedAnalyticsTarget:
             raise ValueError('Owned Analytics labels required')
         self.command, self.absent, self.persist, self.pause = command, absent, persist, pause
         self.daemon_id, self.image = daemon_id, image
-        self.name = 'dvaia-coupon-analytics-' + nonce
-        self.labels = {'dvaia.owner': owner, 'dvaia.cohort': cohort,
-                       'dvaia.role': 'coupon-analytics-target'}
+        self.name = 'owasp-ai-goat-coupon-analytics-' + nonce
+        self.labels = {'owasp-ai-goat.owner': owner, 'owasp-ai-goat.cohort': cohort,
+                       'owasp-ai-goat.role': 'coupon-analytics-target'}
         self.state = {'name': self.name, 'labels': self.labels, 'image': image,
                       'daemonId': daemon_id, 'owner': nonce, 'attempted': False,
                       'containerId': None, 'port': None,
-                      'database': 'dvaia_analytics_control_' + nonce,
-                      'cluster': 'dvaia-owned-analytics-' + nonce,
+                      'database': 'owasp_ai_goat_analytics_control_' + nonce,
+                      'cluster': 'owasp-ai-goat-owned-analytics-' + nonce,
                       'systemIdentifier': None, 'ready': False}
 
     def _inspect(self):

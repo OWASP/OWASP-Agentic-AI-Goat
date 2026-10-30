@@ -11,9 +11,9 @@ function fixture(t,realSource=false){
  const home=fs.mkdtempSync(path.join(os.tmpdir(),'listings-install-test-'));t.after(()=>fs.rmSync(home,{recursive:true,force:true}));const root=realSource?ROOT:path.join(home,'checkout');if(!realSource)fs.mkdirSync(root);
  // Mocked Docker builds copy only synthetic fixture data, never checked-in source.
  if(!realSource)for(const name of Object.keys(sourceManifest(ROOT).files)){const dest=path.join(root,name);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,`synthetic package fixture: ${name} @@SUPERVISOR_PROFILE@@\n`);}
- const id=workspaceId(root),dir=path.join(home,'.dvaia',id);fs.mkdirSync(dir,{recursive:true,mode:0o700});
+ const id=workspaceId(root),dir=path.join(home,'.owasp-ai-goat',id);fs.mkdirSync(dir,{recursive:true,mode:0o700});
  fs.writeFileSync(path.join(dir,'local-docker.json'),JSON.stringify({version:1,workspaceId:id,host:'unix:///var/run/docker.sock',daemonId:'controlled-daemon',source:'environment-host'}),{mode:0o600});
- const profile='dvaia-owned-listings-'+id,profileSha=hash(fs.readFileSync(path.join(root,'sidecars/sandbox-runner/owned-listings/profile.apparmor.in'),'utf8').replaceAll('@@SUPERVISOR_PROFILE@@',profile));
+ const profile='owasp-ai-goat-owned-listings-'+id,profileSha=hash(fs.readFileSync(path.join(root,'sidecars/sandbox-runner/owned-listings/profile.apparmor.in'),'utf8').replaceAll('@@SUPERVISOR_PROFILE@@',profile));
  const calls=[],envFiles=[],images=new Map(),networks=new Map(),volumes=new Map(),containers=new Map(),controls={badHealth:false,healthCalls:0,healthTransportFailures:0,lostCreate:false,missingCreate:false,badProfile:false,createdForeignNetwork:false,omitStartNetwork:false,lostConnect:false,connectNoEffect:false,nonemptyJournal:false};
  const labels=args=>Object.fromEntries(args.flatMap((v,i)=>v==='--label'?[args[i+1].split('=')]:[]));
  const run=async(file,args,options)=>{calls.push({file,args:[...args]});assert.ok(options.timeoutMs<=300000);assert.ok(options.maxOutputBytes<=1048576);
@@ -59,7 +59,7 @@ test('disabled 8095 collision retains original, journals interrupted successor, 
  f.controls.nonemptyJournal=false;f.controls.missingCreate=true;
  await assert.rejects(provision({...f.options,...repair}),{code:'LISTINGS_PORT_RECOVERY_UNAVAILABLE'});
  const journal=require('../scripts/install/secureshop-owned-listings-port-recovery')._internals.readJournal(file);
- assert.ok(journal);assert.equal(original.State.Running,false);assert.match(original.Name,/^-?\/dvaia-owned-listings-[a-f0-9]{12}-recovery-[a-f0-9]{12}$/);
+ assert.ok(journal);assert.equal(original.State.Running,false);assert.match(original.Name,/^-?\/owasp-ai-goat-owned-listings-[a-f0-9]{12}-recovery-[a-f0-9]{12}$/);
  assert.deepEqual(Buffer.from(journal.value.managedBytes,'base64'),originalBytes);
  assert.equal(f.containers.size,1);assert.deepEqual(fs.readFileSync(file),originalBytes);
  const lock=file+'.activation.lock';fs.writeFileSync(lock,'0'.repeat(64)+'\n',{mode:0o600});
@@ -154,12 +154,12 @@ test('enabled manager recovers only its retained container ID and detects source
 });
 test('qualified predecessor existing-only verification preserves journal, credentials and exact resource identity',async t=>{
  const f=fixture(t,true),file=path.join(f.dir,managed.FILE),source='cc8faa6a5afd6533eebbe5885d112324da5c4ea04a583c4a6607adf0dcf19a2f',runtime='514a0b7cc6d2eadcc515ce7a96af139f7161f3c3989a271d931c068a18812e13';
- const profile='dvaia-owned-listings-'+f.id,network=profile+'-bridge',volume=profile+'-journal';
+ const profile='owasp-ai-goat-owned-listings-'+f.id,network=profile+'-bridge',volume=profile+'-journal';
  const authority=require('../scripts/local-docker-authority').authorityDigest(JSON.parse(fs.readFileSync(path.join(f.dir,'local-docker.json'))));
  const value=managed.validate({version:1,workspaceId:f.id,enabled:false,architecture:'arm64',dockerAuthoritySha256:authority,imageId:IMAGE,sourceManifestSha256:source,runtimeDigest:runtime,
   profile:{name:profile,sha256:hash(fs.readFileSync(path.join(ROOT,'sidecars/sandbox-runner/owned-listings/profile.apparmor.in'),'utf8').replaceAll('@@SUPERVISOR_PROFILE@@',profile))},manager:{container:profile,url:'http://127.0.0.1:8099',token:'t'.repeat(64)}});
  managed.stage({filePath:file,value});await managed.activate({filePath:file,expected:managed.capture({filePath:file}),verify:async()=>true});
- const labels={'dvaia.listings.workspace':f.id,'dvaia.listings.authority':authority,'dvaia.listings.source':source,'dvaia.listings.runtime':runtime};
+ const labels={'owasp-ai-goat.listings.workspace':f.id,'owasp-ai-goat.listings.authority':authority,'owasp-ai-goat.listings.source':source,'owasp-ai-goat.listings.runtime':runtime};
  const image={Id:IMAGE,Architecture:'arm64',Os:'linux',Config:{Labels:labels,User:'10001:10001',WorkingDir:'/app',Env:['PATH=/usr/bin'],Entrypoint:['node','sidecars/sandbox-runner/owned-listings/manager-entry.js'],Cmd:null}};
  f.images.set(IMAGE,image);f.networks.set(network,{Id:'d'.repeat(64),Name:network,Labels:labels,Driver:'bridge',Internal:false,Containers:{['c'.repeat(64)]:{}}});
  // The only volume contents are deliberately opaque to verification.
@@ -175,7 +175,7 @@ test('qualified predecessor existing-only verification preserves journal, creden
  assert.deepEqual(fs.readFileSync(file),before);assert.equal(healthCalls,2);
  assert.deepEqual(f.calls.filter(c=>c.args[2]==='start').map(c=>c.args[3]),[container.Id]);
  assert.ok(!f.calls.some(c=>['create','build','rm','stop','rename','exec'].includes(c.args[2])));
- image.Config.Labels={...labels,'dvaia.listings.source':'0'.repeat(64)};
+ image.Config.Labels={...labels,'owasp-ai-goat.listings.source':'0'.repeat(64)};
  await assert.rejects(verifyExisting(options),{code:'LISTINGS_INSTALL_IMAGE_CONFLICT'});image.Config.Labels=labels;
  f.networks.get(network).Containers['f'.repeat(64)]={};
  await assert.rejects(verifyExisting(options),{code:'LISTINGS_INSTALL_NETWORK_FOREIGN_ENDPOINT'});delete f.networks.get(network).Containers['f'.repeat(64)];
@@ -237,7 +237,7 @@ test('supported upgrade dispatch preserves private application values on repeat 
  const f=fixture(t),{setup,encodeEnv}=require('../scripts/setup-application'),{provisioningPlan}=require('../db/postgres/provision-application');
  const manifest=provisioningPlan(),configuration=Object.fromEntries(manifest.flatMap(r=>[[r.runtimeVariable,`postgresql://${r.runtimeRole}:runtime@127.0.0.1:5432/${r.database}`],[r.migrationVariable,`postgresql://${r.migrationRole}:migration@127.0.0.1:5432/${r.database}`]]));
  fs.writeFileSync(path.join(f.dir,'provisioning.json'),JSON.stringify({version:1,status:'complete',plan:manifest,configuration,created:[]}),{mode:0o600});const envPath=path.join(f.root,'.env');fs.writeFileSync(envPath,"# preserved operator configuration\nJWT_SECRET='unchanged secret'\n"+encodeEnv(configuration),{mode:0o600});
- let calls=0;const options={root:f.root,homeDirectory:f.home,upgrade:true,ownedListings:true,processEnvironment:{},adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',ensureDockerAuthority:async()=>({authority:{version:1,workspaceId:f.id,host:'unix:///var/run/docker.sock',daemonId:'controlled-daemon',source:'environment-host'},persisted:true}),provision:async()=>({status:'existing',plan:manifest,configuration}),provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@127.0.0.1:5432/dvaia_ctf'}}),runCommand:async()=>assert.fail('no unrelated initializer or package mutation'),preflightOwnedListings:async()=>({runtimeDigest:DIGEST}),setupOwnedListings:async o=>{calls++;assert.equal(o.requested,true);assert.equal(o.qualification.runtimeDigest,DIGEST);return{requested:true,managerReady:true,ready:false,capabilityAvailable:false,activationEnabled:false};}};
+ let calls=0;const options={root:f.root,homeDirectory:f.home,upgrade:true,ownedListings:true,processEnvironment:{},adminUrl:'postgresql://admin:secret@127.0.0.1:5432/postgres',ensureDockerAuthority:async()=>({authority:{version:1,workspaceId:f.id,host:'unix:///var/run/docker.sock',daemonId:'controlled-daemon',source:'environment-host'},persisted:true}),provision:async()=>({status:'existing',plan:manifest,configuration}),provisionDelivery:async()=>({configuration:{CTF_DELIVERY_DATABASE_URL:'postgresql://dvaia_ctf_delivery:synthetic@127.0.0.1:5432/owasp_ai_goat_ctf'}}),runCommand:async()=>assert.fail('no unrelated initializer or package mutation'),preflightOwnedListings:async()=>({runtimeDigest:DIGEST}),setupOwnedListings:async o=>{calls++;assert.equal(o.requested,true);assert.equal(o.qualification.runtimeDigest,DIGEST);return{requested:true,managerReady:true,ready:false,capabilityAvailable:false,activationEnabled:false};}};
  const first=await controlledUpgrade(options);assert.equal(first.listings.activationEnabled,false);const bytes=fs.readFileSync(envPath),reset=fs.readFileSync(path.join(f.dir,'secureshop-reset-key.json'));await controlledUpgrade(options);assert.equal(calls,2);assert.deepEqual(fs.readFileSync(envPath),bytes);assert.deepEqual(fs.readFileSync(path.join(f.dir,'secureshop-reset-key.json')),reset);
  await controlledUpgrade({...options,enableOwnedListings:true,setupOwnedListings:async o=>{assert.equal(o.explicitActivation,true);assert.ok(o.applicationEnvironment);assert.ok(o.maintenanceScope);return{requested:true,managerReady:true,ready:true,capabilityAvailable:true,activationEnabled:true,restartRequired:true};}});
  assert.deepEqual(fs.readFileSync(envPath),bytes);
@@ -254,7 +254,7 @@ test('checked-in automatic candidate binds exact native-qualified source and den
  const report=path.join(f.root,'scripts/install/qualification/secureshop-listings-package-2026-10-17.json'),originalReport=fs.readFileSync(report);
  assert.equal(hash(originalReport),'6fbd2ab59428a6507ab80394b43cdc1b4360d06b7919b53d3ad4a3fcdaf0dd03');
  const qualified=candidate.qualifiedPackage({root:f.root,architecture:'arm64'});assert.equal(qualified.qualifiedSourceSha256,f.options.qualifiedSourceSha256);assert.throws(()=>candidate.qualifiedPackage({root:f.root,architecture:'x64'}),{code:'LISTINGS_INSTALL_PLATFORM_UNQUALIFIED'});
- let installed=0,provisioned=0;const result=await candidate.prepare({...f.options,provisionProfile:async({p})=>{installed++;assert.equal(p.profile.name,'dvaia-owned-listings-'+f.id);},provision:async o=>{provisioned++;assert.equal(o.runtimeDigest,qualified.runtimeDigest);return{managerReady:true,activationEnabled:false};}});assert.equal(installed,1);assert.equal(provisioned,1);assert.equal(result.activationEnabled,false);
+ let installed=0,provisioned=0;const result=await candidate.prepare({...f.options,provisionProfile:async({p})=>{installed++;assert.equal(p.profile.name,'owasp-ai-goat-owned-listings-'+f.id);},provision:async o=>{provisioned++;assert.equal(o.runtimeDigest,qualified.runtimeDigest);return{managerReady:true,activationEnabled:false};}});assert.equal(installed,1);assert.equal(provisioned,1);assert.equal(result.activationEnabled,false);
  const target=path.join(f.root,'sidecars/sandbox-runner/owned-listings/manager-entry.js'),originalRead=fs.readFileSync;
  const before=originalRead(target);
  const drift=t.mock.method(fs,'readFileSync',function(file,...args){const bytes=originalRead.call(this,file,...args);return file===target?(Buffer.isBuffer(bytes)?Buffer.concat([bytes,Buffer.from('\n')]):bytes+'\n'):bytes;});
@@ -266,7 +266,7 @@ test('checked-in automatic candidate binds exact native-qualified source and den
  changedReport.mock.restore();assert.deepEqual(originalRead(report),originalReport);
 });
 test('automatic profile candidate limits destination and quotes the remote helper as one command',async t=>{
- const f=fixture(t),candidate=require('../scripts/install/secureshop-owned-listings-qualified-candidate'),profile='dvaia-owned-listings-'+f.id;
+ const f=fixture(t),candidate=require('../scripts/install/secureshop-owned-listings-qualified-candidate'),profile='owasp-ai-goat-owned-listings-'+f.id;
  const p={workspaceId:f.id,profile:{name:profile,sha256:hash(fs.readFileSync(path.join(f.root,'sidecars/sandbox-runner/owned-listings/profile.apparmor.in'),'utf8').replaceAll('@@SUPERVISOR_PROFILE@@',profile))}};
  let command;await candidate.provisionProfile({p,root:f.root,home:f.home,platform:'darwin',authority:{host:'unix:///Users/owned/.colima/reviewed/docker.sock'},run:async(file,args)=>{command={file,args};return{exitCode:0};}});assert.equal(command.file,'ssh');assert.equal(command.args.length,4);assert.equal(command.args[1],'/Users/owned/.colima/_lima/colima-reviewed/ssh.config');assert.match(command.args[3],/^'sudo' '--non-interactive' 'python3' '-c'/);assert.ok(command.args[3].includes('O_NONBLOCK'));assert.ok(command.args[3].includes('flock'));assert.ok(command.args[3].includes('os.link'));assert.ok(command.args[3].includes('--skip-kernel-load'));
  const py=spawnSync('python3',['-c','import ast,sys; ast.parse(sys.stdin.read())'],{input:candidate._internals.PROFILE_PROGRAM,encoding:'utf8',timeout:3000});assert.equal(py.status,0,py.stderr);

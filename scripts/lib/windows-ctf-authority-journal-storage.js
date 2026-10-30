@@ -24,7 +24,7 @@ function createWindowsCtfAuthorityJournalStorage({directory,filesystemPlatform=p
   const journalPath=normalize(path.win32.join(directory,'ctf-authority.json')),lockPath=normalize(journalPath+'.lock');
   // Reserve every native transition name before acquiring any lock.
   const reserveId='00000000-0000-4000-8000-000000000000';
-  normalize(journalPath+`.dvaia-${reserveId}.stage`);
+  normalize(journalPath+`.owasp-ai-goat-${reserveId}.stage`);
   normalize(path.win32.join(directory,`ctf-journal-${reserveId}.intent.original`));
   const receipts=new WeakMap();let initialDirectory;
   function verifyDirectory(){
@@ -56,7 +56,7 @@ function createWindowsCtfAuthorityJournalStorage({directory,filesystemPlatform=p
    if(present(lockPath))throw fail();
   }
   function transition(original,result){
-   const digest=createHash('sha256').update('dvaia:windows-ctf-authority-journal:1\0');
+   const digest=createHash('sha256').update('owasp-ai-goat:windows-ctf-authority-journal:1\0');
    const frame=bytes=>{const n=Buffer.alloc(4);n.writeUInt32BE(bytes.length);digest.update(n).update(bytes);};
    frame(Buffer.from(journalPath));digest.update(original===null?'create\0':'replace\0');if(original!==null)frame(original);frame(result);
    const hash=digest.digest('hex'),operationId=hash.slice(0,8)+'-'+hash.slice(8,12)+'-4'+hash.slice(13,16)+'-'+((parseInt(hash[16],16)&3)|8).toString(16)+hash.slice(17,20)+'-'+hash.slice(20,32);

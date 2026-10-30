@@ -13,7 +13,7 @@ const { launchOwnedAssessmentBrowserForTest, createAssessmentDenyProxy,
   PROFILE_NAME, PROCESS_RECEIPT, CLEANUP_RECEIPT } = require('./fixtures/fullBackendAssessmentBrowser');
 
 function controlledBrowserFixture(t, { newPageError, stopError, absent = true } = {}) {
-  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-assessment-browser-')));
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-assessment-browser-')));
   fs.chmodSync(root, 0o700);
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const executable = path.join(root, 'pinned-browser');

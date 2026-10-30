@@ -97,7 +97,7 @@ function leafStrings(value) {
 function admitDisposableEnvironment(env = process.env) {
   const repository = path.resolve(__dirname, '../..');
   assert.equal(fs.realpathSync(process.cwd()), fs.realpathSync(repository), 'Native fixture must run in original repository checkout');
-  assert.equal(env.DVAIA_CURRENT_MAIN_WORKSPACE, repository, 'Native fixture workspace binding missing');
+  assert.equal(env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, repository, 'Native fixture workspace binding missing');
   assert.equal(env.PG_TEST_DISPOSABLE, 'yes', 'Disposable PostgreSQL admission required');
   assert.equal(env.SECURESHOP_DIRECT_NATIVE, '1', 'Explicit V14 native gate required');
   assert.equal(env.LIVE_OLLAMA_TEST, '1', 'Explicit live-model gate required');
@@ -120,7 +120,7 @@ function admitDisposableEnvironment(env = process.env) {
     assert.ok(/^\d+$/.test(url.port) && Number(url.port) > 0 && Number(url.port) <= 65535);
     assert.equal(url.username, `dvaia_${family}_${role.toLowerCase()}`);
     assert.equal(url.password + url.search + url.hash, '');
-    const match = new RegExp(`^/dvaia_test_v14_([a-f0-9]{12})_${family}$`).exec(url.pathname);
+    const match = new RegExp(`^/owasp_ai_goat_test_v14_([a-f0-9]{12})_${family}$`).exec(url.pathname);
     assert.ok(match, 'Unexpected disposable database name');
     sameHost ??= url.host; sameNonce ??= match[1];
     assert.equal(url.host, sameHost); assert.equal(match[1], sameNonce);

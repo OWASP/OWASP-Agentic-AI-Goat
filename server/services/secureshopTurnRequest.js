@@ -14,7 +14,7 @@ function createTurnRequest({ sessionId, requestId, binding, message, version = 1
   const trusted = createConversationBinding(binding, { id: binding.shopUserId, role: binding.role });
   // JSON arrays encode field boundaries unambiguously without normalizing the
   // raw teaching message. Persist only the digest, never this input packet.
-  const encoded = JSON.stringify(['dvaia-secureshop-turn', version, sessionId.toLowerCase(),
+  const encoded = JSON.stringify(['owasp-ai-goat-secureshop-turn', version, sessionId.toLowerCase(),
     trusted.launchId, trusted.scenarioId, trusted.generation, trusted.platformOwnerId,
     trusted.platformSessionId, trusted.shopUserId, trusted.role, message]);
   return Object.freeze({ sessionId: sessionId.toLowerCase(), requestId: requestId.toLowerCase(),

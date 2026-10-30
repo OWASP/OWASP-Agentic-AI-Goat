@@ -11,7 +11,7 @@ const {OBJECTIVE,MAX_HTTP_CALLS,assertSemanticNegative,controlledResponse}=requi
  const record=()=>{fs.writeFileSync(process.env.MAIL_RESULT,JSON.stringify(state,null,2),{mode:0o600});fs.chmodSync(process.env.MAIL_RESULT,0o600);};record();
  const stage=name=>{state.assertionStage=name;record();};
  const pools=[];let transport,server,controlledServer,failure;const built=[];
- const pool=(label,role)=>{const u=new URL(process.env[`MAIL_${label}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_mail_[a-f0-9]+_/);const p=new Pool({connectionString:u.href,max:4,statement_timeout:10000,connectionTimeoutMillis:5000});pools.push(p);return p;};
+ const pool=(label,role)=>{const u=new URL(process.env[`MAIL_${label}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_mail_[a-f0-9]+_/);const p=new Pool({connectionString:u.href,max:4,statement_timeout:10000,connectionTimeoutMillis:5000});pools.push(p);return p;};
  try{
  const populatedState=process.env.MAIL_DISCLOSURE_STATE==='populated';
  const agentsDirectory='db/postgres/workshop-migrations/secureshop_agents';

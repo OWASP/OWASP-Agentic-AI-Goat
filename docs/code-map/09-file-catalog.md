@@ -152,7 +152,7 @@ and the visibility-filtered attendee activity feed.
 |---|---|
 | `database/sqliteTuning.js` | global sqlite3 WAL/busy-timeout patch |
 | `database/authDb.js` | users_auth connection, schema/migration/default/security utilities |
-| `database/init.js` | legacy dvaia DB |
+| `database/init.js` | legacy owasp-ai-goat DB |
 | `database/adminSchema.js`, `initAdmin.js` | legacy/admin schema/default init |
 | `database/ctfDb.js` | CTF schema/migrations/seeds |
 | `database/secureshop.js` | baseline SecureShop tables |

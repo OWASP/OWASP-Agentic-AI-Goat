@@ -17,7 +17,7 @@ function createWindowsProvisioningJournal({platform=process.platform,privateStat
   // Admission reserves the fixed-length native names before a caller connects
   // to PostgreSQL. No payload-dependent transition name can exceed these.
   const reservedId='00000000-0000-4000-8000-000000000000';
-  normalizePrivatePath(targetPath+`.dvaia-${reservedId}.stage`);
+  normalizePrivatePath(targetPath+`.owasp-ai-goat-${reservedId}.stage`);
   normalizePrivatePath(path.win32.join(parent,`provisioning-${reservedId}.intent.result`));
   return {targetPath,parent};
  }
@@ -26,12 +26,12 @@ function createWindowsProvisioningJournal({platform=process.platform,privateStat
   const {targetPath,parent}=admitted(filePath);
   // Length frames keep path/payload boundaries unambiguous. CREATE and UPDATE
   // have separate domains; identical retries retain exactly the same intent.
-  const digest=createHash('sha256').update('dvaia:windows-provisioning-journal:1\0');
+  const digest=createHash('sha256').update('owasp-ai-goat:windows-provisioning-journal:1\0');
   const frame=value=>{const length=Buffer.alloc(4);length.writeUInt32BE(value.length);digest.update(length).update(value);};
   frame(Buffer.from(targetPath));digest.update(original===null?'create\0':'update\0');if(original!==null)frame(original);frame(result);
   const hash=digest.digest('hex'),operationId=hash.slice(0,8)+'-'+hash.slice(8,12)+'-4'+hash.slice(13,16)+'-'+((parseInt(hash[16],16)&3)|8).toString(16)+hash.slice(17,20)+'-'+hash.slice(20,32);
   const intentPath=normalizePrivatePath(path.win32.join(parent,`provisioning-${operationId}.intent`));
-  const artifacts=[targetPath,intentPath,targetPath+`.dvaia-${operationId}.stage`,intentPath+'.original',intentPath+'.result'];
+  const artifacts=[targetPath,intentPath,targetPath+`.owasp-ai-goat-${operationId}.stage`,intentPath+'.original',intentPath+'.result'];
   for(const artifact of artifacts)normalizePrivatePath(artifact);
   if(new Set(artifacts.map(p=>p.toUpperCase())).size!==artifacts.length)throw denied();
   privateState.inspectPrivateDirectory(parent);

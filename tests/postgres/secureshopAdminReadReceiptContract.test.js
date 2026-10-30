@@ -440,7 +440,7 @@ test('V41 actual auth mount supplies the real progress service and repository be
   const server=await new Promise(resolve=>{const value=app.listen(0,'127.0.0.1',()=>resolve(value));});
   t.after(()=>new Promise(resolve=>server.close(resolve)));
   const origin=`http://127.0.0.1:${server.address().port}`;
-  const cookie={Cookie:`dvaia_shop_session=${token}`};
+  const cookie={Cookie:`owasp_ai_goat_shop_session=${token}`};
   const missing=await fetch(origin+'/prior-fixture/progress',{headers:cookie});
   assert.equal(missing.status,503);assert.deepEqual(await missing.json(),{error:'Shop service unavailable'});
   const before=sessionReads;
@@ -572,7 +572,7 @@ test('lookup caller installs its real bootstrap observer before the mounted auth
     nested.use('/api/secureshop/auth',require('./secureshopStandaloneRoleChoicesRendered.integration.test').createRoleChoicesAuthRouter({service,
       bootstrap:async principal=>{assert.deepEqual(principal,{principalId:'owned-admin'});bootstraps++;return packet;},allowedOrigins:[origin]}));
     app.use(path,nested);
-    const response=await fetch(origin+path+'/api/secureshop/auth/bootstrap',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json',Cookie:`dvaia_shop_session=${token}`},body:'{}'});
+    const response=await fetch(origin+path+'/api/secureshop/auth/bootstrap',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json',Cookie:`owasp_ai_goat_shop_session=${token}`},body:'{}'});
     assert.equal(response.status,200);assert.deepEqual(await response.json(),packet);
     assert.deepEqual(observed,enabled||system?[{username:'student_admin',launch:packet.bearer,authorization:`Bearer ${packet.persona.token}`}]:[]);
     const rejected=await fetch(origin+path+'/api/secureshop/auth/bootstrap',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:'{}'});

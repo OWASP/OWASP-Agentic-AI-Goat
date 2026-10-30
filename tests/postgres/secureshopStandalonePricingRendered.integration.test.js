@@ -108,7 +108,7 @@ function urls(){
    assert.match(u.port,/^[1-9][0-9]{0,4}$/);assert.ok(Number(u.port)<=65535);
    assert.equal(u.username,`dvaia_${name}_${role.toLowerCase()}`);
    assert.equal(u.password,'');assert.equal(u.search,'');assert.equal(u.hash,'');
-   const match=new RegExp(`^/dvaia_test_agent_host_([0-9a-f]{12})_${name}$`).exec(u.pathname);
+   const match=new RegExp(`^/owasp_ai_goat_test_agent_host_([0-9a-f]{12})_${name}$`).exec(u.pathname);
    assert.ok(match,'closed disposable Pricing database required');
    nonce??=match[1];port??=u.port;assert.equal(match[1],nonce);assert.equal(u.port,port);
    result[key]=u.href;
@@ -307,7 +307,7 @@ async function qualifyPricingChatBrowser({origin,username,password,profile,produ
   page.on('request',request=>{const url=new URL(request.url());
    if(url.origin!==origin){void request.abort();return}
    if(url.pathname.endsWith('/agents/merchant/assistant/chat')){
-    browserLaunch=request.headers()['x-dvaia-secureshop-launch']||browserLaunch;
+    browserLaunch=request.headers()['x-owasp-ai-goat-secureshop-launch']||browserLaunch;
     browserAuthorization=request.headers().authorization||browserAuthorization;}
    if(url.pathname.startsWith('/api/secureshop/')&&requests.length<100){
     let body;try{if(request.method()==='POST'&&request.postData())body=JSON.parse(request.postData())}catch{}
@@ -352,7 +352,7 @@ async function qualifyPricingChatBrowser({origin,username,password,profile,produ
    await f.waitForFunction(name=>[...document.querySelectorAll('button[aria-label^="Use "]')]
     .some(node=>node.getAttribute('aria-label')===`Use ${name} in next message`&&!node.disabled),
    {timeout:30000},productName);
-   const headers={authorization:browserAuthorization,'x-dvaia-secureshop-launch':browserLaunch};
+   const headers={authorization:browserAuthorization,'x-owasp-ai-goat-secureshop-launch':browserLaunch};
    const get=await fetch(origin+`/api/secureshop/agents/merchant/assistant/operations/${request.body.sessionId}/${request.body.requestId}`,
     {headers,signal:AbortSignal.timeout(30000)});
    const saved=await get.json();
@@ -633,7 +633,7 @@ async function qualifyPricingChatBrowser({origin,username,password,profile,produ
    status.terminalBlockedVisible=true;status.exactBlockedGetNoReplay=true;
    const resetResult=await resetOriginal({bearer:browserLaunch,binding:searchBinding});
    assert.equal(resetResult.status,'committed');
-   const oldHeaders={authorization:browserAuthorization,'x-dvaia-secureshop-launch':browserLaunch};
+   const oldHeaders={authorization:browserAuthorization,'x-owasp-ai-goat-secureshop-launch':browserLaunch};
    const sessionId=selectedPost.body.sessionId,requestId=selectedPost.body.requestId;
    const paths=[`/api/secureshop/agents/merchant/assistant/operations/${sessionId}/${requestId}`,
     `/api/secureshop/merchant/pricing/operations/${proposal.proposalId}`];
@@ -643,7 +643,7 @@ async function qualifyPricingChatBrowser({origin,username,password,profile,produ
     body:JSON.stringify({sessionId,requestId,proposalId:proposal.proposalId})});
    for(const response of [...deniedReads,deniedConfirm]){
     assert.equal(response.status,401,'old shop session must be rejected after launch reset');
-    assert.equal(response.headers.get('x-dvaia-secureshop-launch-state'),null);
+    assert.equal(response.headers.get('x-owasp-ai-goat-secureshop-launch-state'),null);
     assert.deepEqual(await response.json(),{error:'Shop authentication required'});
    }
    assert.equal(modelCalls.length,counts.model);assert.deepEqual(sidecarCalls,counts.sidecar);
@@ -941,7 +941,7 @@ async function qualifyPricingChatBrowser({origin,username,password,profile,produ
     status.truthfulComparisonVisible=true;compareOperationId=proposal.proposalId;
    }else status[`${action}ExactGetNoReplay`]=true;
    if(v34){
-    const originalHeaders={authorization:browserAuthorization,'x-dvaia-secureshop-launch':browserLaunch};
+    const originalHeaders={authorization:browserAuthorization,'x-owasp-ai-goat-secureshop-launch':browserLaunch};
     const selectedCase={mode,proposal,search,searchPost,selectedPost,binding:selectedBinding,page,
      admission:admission[0],committed,recovered,originalHeaders,...(savedAnswer?{savedAnswer}:{})};
     v34Cases.push(selectedCase);await v34.onCase(selectedCase);
@@ -1051,7 +1051,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
  PRICING_EXPERIMENT_FIXED?FIXED_EXPERIMENT_ASSERTION:PRICING_EXPERIMENT?EXPERIMENT_ASSERTION:
  'detached merchant Pricing uses configured model, owned HTTP and exact v2 experiment',
  {skip:!enabled,timeout:PRICING_V34?900000:360000},async()=>{
-  const workspace=path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE||'/');
+  const workspace=path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE||'/');
   assert.equal(workspace,process.cwd(),'current main source required');
   assert.equal(process.env.LAB_MODE,'vuln');
   assert.equal(process.env.SS_BOUND_PRICING_ENABLED,'true');
@@ -1105,7 +1105,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
   assert.match(descriptor.containerId,/^[a-f0-9]{64}$/);
   assert.match(descriptor.imageId,/^sha256:[a-f0-9]{64}$/);
   assert.match(descriptor.packageSha256,/^[a-f0-9]{64}$/);
-  assert.equal(descriptor.profile,`dvaia-owned-pricing-http-${descriptor.qualificationNonce}`);
+  assert.equal(descriptor.profile,`owasp-ai-goat-owned-pricing-http-${descriptor.qualificationNonce}`);
   const sidecarOrigin=new URL(descriptor.origin);
   assert.equal(sidecarOrigin.protocol,'http:');assert.equal(sidecarOrigin.hostname,'127.0.0.1');
   assert.match(sidecarOrigin.port,/^[1-9][0-9]{0,4}$/);
@@ -1177,7 +1177,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
    for(const [store,folder] of [['IDENTITY','identity-migrations'],['AGENTS','workshop-migrations/secureshop_agents'],
     ['REVIEW','workshop-migrations/secureshop_review'],['COMMERCE','workshop-migrations/secureshop']])
     if(ROLE_PRICING||store!=='REVIEW')await migrate(pools[store+'_MIGRATION'],path.join(workspace,'db/postgres',folder));
-   if(!ROLE_PRICING){migrationScratch=await fs.promises.mkdtemp(path.join(os.tmpdir(),'dvaia-pricing-migrations-'));
+   if(!ROLE_PRICING){migrationScratch=await fs.promises.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-pricing-migrations-'));
    populatedHistory=await require('../fixtures/secureshopPricingHistoryNative').qualifyPopulatedPriceHistoryMigration({
     migrationPool:pools.REVIEW_MIGRATION,runtimePool:pools.REVIEW_RUNTIME,
     directory:path.join(workspace,'db/postgres/workshop-migrations/secureshop_review'),
@@ -1227,7 +1227,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
     assert.equal(process.env.XENOVA_CACHE,process.env.TRANSFORMERS_CACHE);
     const fingerprint=await require('../../server/services/embeddingRuntimeFingerprint').createEmbeddingRuntimeFingerprinter().snapshot();
     assert.equal(fingerprint.fingerprint,process.env.SECURESHOP_PRODUCT_MANUAL_EMBEDDING_FINGERPRINT);v34Capture.embeddingRuntime=fingerprint;
-    v34ManualRoot=await fs.promises.mkdtemp(path.join(os.tmpdir(),'dvaia-v34-manual-files-'));
+    v34ManualRoot=await fs.promises.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-v34-manual-files-'));
     v34Files=require('../../sidecars/sandbox-runner/secureshopFiles').createSecureShopFiles({root:v34ManualRoot,maxReadBytes:20*1024*1024,maxWriteBytes:20*1024*1024});
     v34RagStore=require('../../server/services/ragVectorStore');v34EmbedOriginal=v34RagStore.embedText;
     v34RagStore.embedText=async function(text,...rest){v34EmbeddingCalls++;v34Capture.embeddingCalls.push({index:v34EmbeddingCalls,textSha256:createHash('sha256').update(text).digest('hex'),textBytes:Buffer.byteLength(text)});saveV34();return v34EmbedOriginal.call(this,text,...rest);};
@@ -1472,7 +1472,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
     app.use(express.static(build,{setHeaders:response=>response.set('Access-Control-Allow-Origin','*')}));
     app.get(/.*/,(_request,response)=>response.sendFile('index.html',{root:build}));
     if(retainedAdmission){profile=retainedAdmission.profilePath;await fs.promises.mkdir(profile,{mode:0o700});}
-    else profile=await fs.promises.mkdtemp(path.join(os.tmpdir(),'dvaia-pricing-chat-'));
+    else profile=await fs.promises.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-pricing-chat-'));
     phase='pricing_chat_browser';
     let siblingUsername=null;
     if(PRICING_COMPARE_CHAT){siblingUsername='pricing_compare_sibling_'+suffix;
@@ -1572,7 +1572,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
      const savedPath=`/api/secureshop/merchant/pricing/operations/${result.vulnerable.body.operationId}`;
      const beforeFences=await counters();
      const peerRead=await fetch(origin+savedPath,{headers:{authorization:`Bearer ${peer.persona.token}`,
-      'x-dvaia-secureshop-launch':peer.bearer}});
+      'x-owasp-ai-goat-secureshop-launch':peer.bearer}});
      assert.equal(peerRead.status,404);assert.equal((await peerRead.json()).state,'not_found');
      assert.equal((await judgments()).length,1);assert.equal(await completions(),1);
      assert.deepEqual(await counters(),beforeFences,'sibling read must not repeat an effect or Judge');
@@ -1626,7 +1626,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
      assert.equal(originalSaved.operationId,result.vulnerable.body.operationId);
      assert.deepEqual(originalSaved.receipt,result.vulnerable.body.receipt);
      assert.deepEqual(await counters(),beforeFences,'pre-reset read must not repeat an effect or Judge');
-     const current=await composition.launches.resolveCapability(result.originalHeaders['x-dvaia-secureshop-launch']);
+     const current=await composition.launches.resolveCapability(result.originalHeaders['x-owasp-ai-goat-secureshop-launch']);
      const resetResult=await reset.launchResetCoordinator.reset({...current,
       expectedGeneration:current.generation,idempotencyKey:randomUUID()});
      assert.equal(resetResult.status,'committed');
@@ -1677,7 +1677,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
           assert.equal(rows[0].product_id,productId);assert.equal(rows[0].filename,source.filename);
           assert.equal(rows[0].file_sha256.toString('hex'),source.sha256);return rows[0];}});
         status.manualUpload={status:uploaded.response.status,operationId:uploaded.response.body.operationId};
-        const uploadScope=await composition.launches.resolveCapability(uploaded.request.headers['x-dvaia-secureshop-launch']);
+        const uploadScope=await composition.launches.resolveCapability(uploaded.request.headers['x-owasp-ai-goat-secureshop-launch']);
         const uploadActor=await composition.personaAuth.authenticateBoundToken({scope:uploadScope,
          token:uploaded.request.headers.authorization.slice(7)});
         uploadExecution={scope:uploadScope,merchantId:uploadActor.user.id,sessionId:uploadActor.sessionId};
@@ -1685,7 +1685,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
        result:async observation=>{
         const {headers,...publicObservation}=observation;status.roleReceipt=publicObservation;
         assert.match(headers.authorization||'',/^Bearer [A-Za-z0-9._-]+$/);
-        const browserScope=await composition.launches.resolveCapability(headers['x-dvaia-secureshop-launch']);
+        const browserScope=await composition.launches.resolveCapability(headers['x-owasp-ai-goat-secureshop-launch']);
         const browserActor=await composition.personaAuth.authenticateBoundToken({scope:browserScope,
          token:headers.authorization.slice(7)});
         assert.ok(uploadExecution,'physical upload execution required before merchant search');
@@ -1734,7 +1734,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
        FROM secureshop_review.product_target_manual_ingests WHERE operation_id=$1 AND product_id=$2`,
        [response.body.operationId,productId])).rows;
       assert.equal(original.length,1);const row=original[0];
-      const uploadScope=await composition.launches.resolveCapability(request.headers['x-dvaia-secureshop-launch']);
+      const uploadScope=await composition.launches.resolveCapability(request.headers['x-owasp-ai-goat-secureshop-launch']);
       const uploadActor=await composition.personaAuth.authenticateBoundToken({scope:uploadScope,
        token:request.headers.authorization.slice(7)});
       assert.equal(row.target_id,firstTarget.targetId);assert.equal(row.filename,source.filename);
@@ -1772,7 +1772,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
          platformSessionId:row.execution_platform_session_id},merchantId:row.merchant_id},
        uploadRequest:{method:request.method,path:request.path,
         bearerPresent:Boolean(request.headers.authorization),
-        launchPresent:Boolean(request.headers['x-dvaia-secureshop-launch'])},response};
+        launchPresent:Boolean(request.headers['x-owasp-ai-goat-secureshop-launch'])},response};
       v34Capture.manual=captured;saveV34();status.originalManualSource=true;return captured;
      };
      const originalPrice=Number((await review.query(`SELECT price FROM secureshop_review.product_target_products
@@ -1851,7 +1851,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
         const headers=selectedCase.originalHeaders;
         const savedPath=`/api/secureshop/merchant/pricing/operations/${selectedCase.proposal.proposalId}`;
         const before=await counters();
-        const current=await composition.launches.resolveCapability(headers['x-dvaia-secureshop-launch']);
+        const current=await composition.launches.resolveCapability(headers['x-owasp-ai-goat-secureshop-launch']);
         const actual=await composition.personaAuth.authenticateBoundToken({scope:current,
          token:headers.authorization.slice(7)});
         assert.equal(actual.user.id,persona.id);
@@ -1867,7 +1867,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
           headers:{'content-type':'application/json'},body:'{}',signal:AbortSignal.timeout(10000)});
          return{status:response.status,body:await response.json()};});
         assert.equal(refreshed.status,200);
-        assert.equal(refreshed.body.bearer,headers['x-dvaia-secureshop-launch']);
+        assert.equal(refreshed.body.bearer,headers['x-owasp-ai-goat-secureshop-launch']);
         assert.notEqual(refreshed.body.persona.token,headers.authorization.slice(7));
         const renewed=await composition.personaAuth.authenticateBoundToken({scope:current,
          token:refreshed.body.persona.token});
@@ -1914,12 +1914,12 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
         assert.equal(siblingProductBefore.current_price,9.25);
         const siblingBefore=await assessmentProgress.readSelf(sibling.context);
         const foreign=await fetch(origin+path,{headers:{authorization:`Bearer ${peer.persona.token}`,
-         'x-dvaia-secureshop-launch':peer.bearer}});
+         'x-owasp-ai-goat-secureshop-launch':peer.bearer}});
         assert.equal(foreign.status,404);await foreign.arrayBuffer();status.siblingDenied=true;
         assert.deepEqual(await counters(),before.counters);
         assert.deepEqual(await assessmentProgress.readSelf(sibling.context),siblingBefore);
         assert.deepEqual(await counters(),before.counters);
-        const current=await composition.launches.resolveCapability(originalHeaders['x-dvaia-secureshop-launch']);
+        const current=await composition.launches.resolveCapability(originalHeaders['x-owasp-ai-goat-secureshop-launch']);
         const resetResult=await reset.launchResetCoordinator.reset({...current,
          expectedGeneration:current.generation,idempotencyKey:randomUUID()});
         assert.equal(resetResult.status,'committed');
@@ -2111,7 +2111,7 @@ test(V34_TRANSITION_PREFLIGHT?V34_TRANSITION_ASSERTION:PRICING_V34?(PRICING_V34_
    app.use('/api',(_request,response)=>response.status(404).json({error:'Outside Pricing qualifier'}));
    app.use(express.static(build,{setHeaders:response=>response.set('Access-Control-Allow-Origin','*')}));
    app.get(/.*/,(_request,response)=>response.sendFile('index.html',{root:build}));
-   profile=await fs.promises.mkdtemp(path.join(os.tmpdir(),'dvaia-pricing-rendered-'));
+   profile=await fs.promises.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-pricing-rendered-'));
    phase='rendered_pricing';
    const browserResult=await require('../fixtures/secureshopPricingRenderedBrowser')
     .qualifyDetachedActualPricing({origin,username,password,root:profile,productId,

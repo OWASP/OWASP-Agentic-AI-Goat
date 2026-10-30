@@ -7,8 +7,8 @@ const { createHash, randomBytes } = require('node:crypto');
 const { verifyAssetBundle, MAX_FILE_BYTES, readBounded } = require('./asset-bundle');
 const { restoreAssetBundle, verifyRestoredAssetBundle } = require('./restore-asset-bundle');
 
-const REVIEW_FORMAT = 'dvaia-fixed-tree-asset-review-v1';
-const RECEIPT_FORMAT = 'dvaia-fixed-tree-asset-receipt-v1';
+const REVIEW_FORMAT = 'owasp-ai-goat-fixed-tree-asset-review-v1';
+const RECEIPT_FORMAT = 'owasp-ai-goat-fixed-tree-asset-receipt-v1';
 const MARKER = 'COPY_INCOMPLETE';
 const RECEIPT = 'fixed-tree-receipt.json';
 const RECEIPT_KEYS = ['applicationActivated', 'bundleManifestDigest', 'candidateFilesInstalled', 'candidateStateDigest', 'complete', 'crossFileAtomic', 'files', 'format', 'includeFinflow', 'restoreManifestDigest'];
@@ -238,7 +238,7 @@ async function mkdirParents(root, relativePath) {
 async function atomicWrite(root, relativePath, bytes) {
   await mkdirParents(root, relativePath);
   const target = path.join(root, ...relativePath.split('/'));
-  const temporary = `${target}.dvaia-${randomBytes(8).toString('hex')}.tmp`;
+  const temporary = `${target}.owasp-ai-goat-${randomBytes(8).toString('hex')}.tmp`;
   let handle;
   try {
     handle = await fs.open(temporary, WRITE_FLAGS, 0o600);

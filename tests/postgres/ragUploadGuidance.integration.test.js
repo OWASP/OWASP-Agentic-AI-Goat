@@ -71,10 +71,10 @@ test('0042 production loader handles fresh and populated RAG guidance without ov
     runtime: new Pool({ connectionString: process.env[`PG_RAG_GUIDANCE_${kind}_RUNTIME_URL`], max: 2 }),
   }]));
   const baselineDir = await fs.mkdtemp(path.join(
-    process.env.DVAIA_ISOLATED_TEST_WORKSPACE || os.tmpdir(), 'rag-guidance-baseline-',
+    process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || os.tmpdir(), 'rag-guidance-baseline-',
   ));
   const fullDir = await fs.mkdtemp(path.join(
-    process.env.DVAIA_ISOLATED_TEST_WORKSPACE || os.tmpdir(), 'rag-guidance-full-',
+    process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || os.tmpdir(), 'rag-guidance-full-',
   ));
   try {
     const baseline = await copyMigrations(baselineDir);

@@ -70,7 +70,7 @@ function storeEnvironment() {
   for (const [prefix, name] of [['IDENTITY', 'identity'], ['SECURESHOP_AGENTS', 'secureshop_agents'],
     ['SECURESHOP_REVIEW', 'secureshop_review'], ['SECURESHOP', 'secureshop']]) for (const role of ['runtime', 'migration']) {
     env[prefix + (role === 'runtime' ? '_DATABASE_URL' : '_MIGRATION_DATABASE_URL')] =
-      `postgresql://dvaia_${name}_${role}@127.0.0.1:54321/dvaia_test_agent_host_0123456789ab_${name}`;
+      `postgresql://dvaia_${name}_${role}@127.0.0.1:54321/owasp_ai_goat_test_agent_host_0123456789ab_${name}`;
   }
   return env;
 }
@@ -164,7 +164,7 @@ async function candidateCatalogFixture() {
   for (const [key, database] of [['IDENTITY','identity'],['AGENTS','secureshop_agents'],['REVIEW','secureshop_review'],['COMMERCE','secureshop']]) {
     const entry = entries[key.toLowerCase()] = {};
     for (const role of ['runtime', 'migration']) {
-      const url = `postgresql://dvaia_${database}_${role}@127.0.0.1:54321/dvaia_test_agent_host_0123456789ab_${database}`;
+      const url = `postgresql://dvaia_${database}_${role}@127.0.0.1:54321/owasp_ai_goat_test_agent_host_0123456789ab_${database}`;
       const identity = { database: new URL(url).pathname.slice(1), role: new URL(url).username, session_role: new URL(url).username,
         server_address: '172.20.0.2', server_port: 5432, server_started: 'controlled-server-birth' };
       const pool = { options: { connectionString: url }, async query(sql, params) {
@@ -442,7 +442,7 @@ test('four-store admission requires exact disposable namespace, role pairs and o
     env => { env.SECURESHOP_DATABASE_URL = env.SECURESHOP_DATABASE_URL.replace('54321', '54322'); },
     env => { env.SECURESHOP_DATABASE_URL += '?options=unsafe'; },
     env => { env.SECURESHOP_DATABASE_URL = env.SECURESHOP_DATABASE_URL.replace('127.0.0.1', 'example.invalid'); },
-    env => { env.SECURESHOP_DATABASE_URL = env.SECURESHOP_DATABASE_URL.replace('dvaia_test_agent_host_', 'application_'); }]) {
+    env => { env.SECURESHOP_DATABASE_URL = env.SECURESHOP_DATABASE_URL.replace('owasp_ai_goat_test_agent_host_', 'application_'); }]) {
     const env = storeEnvironment(); change(env); assert.throws(() => admitStoreEnvironment(env));
   }
 });
@@ -450,7 +450,7 @@ test('pricing executor descriptor binds the exact borrowed service without URL o
   const { validatePricingDescriptor } = require('./postgres/secureshopCustomerPricingActual.integration.test');
   const descriptor = { version: 1, ownerId: '11111111-1111-4111-8111-111111111111', workspaceId: 'controlled-workspace',
     qualificationNonce: '0123456789ab', containerId: 'a'.repeat(64), imageId: 'sha256:' + 'b'.repeat(64),
-    packageSha256: 'c'.repeat(64), profile: 'dvaia-owned-pricing-http-0123456789ab', origin: 'http://127.0.0.1:54322', token: 'a'.repeat(43) };
+    packageSha256: 'c'.repeat(64), profile: 'owasp-ai-goat-owned-pricing-http-0123456789ab', origin: 'http://127.0.0.1:54322', token: 'a'.repeat(43) };
   const { version, token, ...expected } = descriptor;
   assert.deepEqual(validatePricingDescriptor(descriptor, expected), descriptor);
   for (const alter of [value => { value.origin = 'https://example.invalid'; }, value => { value.origin += '/extra'; },
@@ -715,9 +715,9 @@ test('owned HTTP gateway closes its real loopback listener and proves endpoint a
   const runtime = await openCanonicalHttp({ bound: { gateway, standaloneReadiness: { ready: true } } });
   try {
     const response = await runtime.request('GET', '/pricing/advisor/operations/' + id,
-      { authorization: 'Bearer controlled', 'x-dvaia-secureshop-launch': 'controlled' }, undefined, new AbortController().signal);
+      { authorization: 'Bearer controlled', 'x-owasp-ai-goat-secureshop-launch': 'controlled' }, undefined, new AbortController().signal);
     assert.equal(response.status, 200); assert.equal(response.body.operationId, id);
-    const agent = runtime.agent({ authorization: 'Bearer controlled', 'x-dvaia-secureshop-launch': 'controlled' });
+    const agent = runtime.agent({ authorization: 'Bearer controlled', 'x-owasp-ai-goat-secureshop-launch': 'controlled' });
     const failed = await agent.post('/pricing/advisor/run').send({ controlled: true }).timeout({ deadline: 1000 });
     assert.equal(failed.status, 503); assert.equal(posts, 1);
     const aborted = agent.post('/pricing/advisor/run').send({ controlled: true }).timeout({ deadline: 1000 });
@@ -735,7 +735,7 @@ test('owned HTTP adapter bounds stalled and oversized responses without retry', 
   });
   const runtime = await openCanonicalHttp({ bound: { gateway, standaloneReadiness: { ready: true } } });
   try {
-    const agent = runtime.agent({ authorization: 'Bearer controlled', 'x-dvaia-secureshop-launch': 'controlled' });
+    const agent = runtime.agent({ authorization: 'Bearer controlled', 'x-owasp-ai-goat-secureshop-launch': 'controlled' });
     await assert.rejects(Promise.resolve(agent.post('/pricing/advisor/run').send({ large: true }).timeout({ deadline: 1000 })), /RESPONSE_LIMIT/);
     await assert.rejects(Promise.resolve(agent.post('/pricing/advisor/run').send({ large: false }).timeout({ deadline: 50 })), /REQUEST_DEADLINE/);
     assert.equal(requests, 2);
@@ -747,7 +747,7 @@ test('owned HTTP cleanup requires endpoint refusal and rejects unknown retiremen
   const http = require('node:http'), net = require('node:net'), { EventEmitter } = require('node:events');
   const createServer = http.createServer, createConnection = net.createConnection;
   const id = '11111111-1111-4111-8111-111111111111';
-  const headers = { authorization: 'Bearer controlled', 'x-dvaia-secureshop-launch': 'controlled' };
+  const headers = { authorization: 'Bearer controlled', 'x-owasp-ai-goat-secureshop-launch': 'controlled' };
   try {
     for (const outcome of ['ECONNREFUSED', 'EACCES', 'connect']) {
       let destroyed = 0, closed = 0;
@@ -790,7 +790,7 @@ test('HTTP retirement joins actual async route completion after client timeout',
   const runtime = await openCanonicalHttp({ bound: { gateway, standaloneReadiness: { ready: true } } });
   try {
     const failed = assert.rejects(Promise.resolve(runtime.agent({ authorization: 'controlled',
-      'x-dvaia-secureshop-launch': 'controlled' }).post('/pricing/advisor/run').send({}).timeout({ deadline: 30 })), /DEADLINE/);
+      'x-owasp-ai-goat-secureshop-launch': 'controlled' }).post('/pricing/advisor/run').send({}).timeout({ deadline: 30 })), /DEADLINE/);
     await entered; await failed;
     assert.equal(runtime.retirement().handlersDrained, false);
     let closed = false; const closing = runtime.close().then(() => { closed = true; });
@@ -834,7 +834,7 @@ test('callback-style auth returning undefined remains owned after socket close a
     const runtime = await openCanonicalHttp({ bound: { gateway, standaloneReadiness: { ready: true } } });
     try {
       const failed = assert.rejects(Promise.resolve(runtime.agent({ authorization: 'controlled',
-        'x-dvaia-secureshop-launch': 'controlled' }).post('/pricing/advisor/run').send({}).timeout({ deadline: 30 })), /DEADLINE/);
+        'x-owasp-ai-goat-secureshop-launch': 'controlled' }).post('/pricing/advisor/run').send({}).timeout({ deadline: 30 })), /DEADLINE/);
       await entered; await failed;
       let closed = false; const closing = runtime.close().then(() => { closed = true; });
       await new Promise(resolve => setTimeout(resolve, 20));
@@ -1202,7 +1202,7 @@ test('lifecycle driver checks saved ownership, revocation, canonical reset, immu
     const peer = { platformOwnerId: 2, platformSessionId: 20, launchId: 'peer', generation: 1 };
     const context = which => ({ ownerId: which === 'owner' ? 1 : 2, sessionId: which === 'owner' ? 10 : 20,
       tenantId: which, principalId: which });
-    const headers = which => ({ authorization: 'Bearer ' + which, 'x-dvaia-secureshop-launch': which === 'peer' ? 'peer' : 'owner' });
+    const headers = which => ({ authorization: 'Bearer ' + which, 'x-owasp-ai-goat-secureshop-launch': which === 'peer' ? 'peer' : 'owner' });
     const composition = {
       launches: { async resolveCapability(token) { return token === 'peer' ? peer : owner; } },
       personaAuth: {

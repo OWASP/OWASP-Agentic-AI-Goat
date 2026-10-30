@@ -19,17 +19,17 @@ function harness({ platform = 'win32', channel = 'ipc', shell = 'direct', spawnE
     },
   });
   const hello = () => {
-    runtime.emit('message', { type: 'dvaia-owned-guardian-hello' });
+    runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-hello' });
     return messages.at(-1).challenge;
   };
   const prove = () => {
     const challenge = hello(), nonce = 'ab'.repeat(32);
-    runtime.emit('message', { type: 'dvaia-owned-guardian-probe', challenge, nonce });
+    runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-probe', challenge, nonce });
     return { challenge, nonce };
   };
   const activate = () => {
     const proof = prove();
-    runtime.emit('message', { type: 'dvaia-owned-guardian-activate', ...proof });
+    runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-activate', ...proof });
     return proof;
   };
   return { runtime, child, messages, callbacks, exits, kills, spawns, hello, prove, activate };
@@ -40,12 +40,12 @@ test('controlled Windows guardian launches only after activation delivery follow
   assert.deepEqual(h.spawns, []); assert.deepEqual(h.messages, []);
   const challenge = h.hello(), nonce = '12'.repeat(32);
   assert.match(challenge, /^[a-f0-9]{64}$/);
-  assert.deepEqual(h.messages.at(-1), { type: 'dvaia-owned-guardian-ready', pid: 314, challenge });
-  h.runtime.emit('message', { type: 'dvaia-owned-guardian-probe', challenge, nonce });
-  assert.deepEqual(h.messages.at(-1), { type: 'dvaia-owned-guardian-proof', pid: 314, challenge, nonce });
+  assert.deepEqual(h.messages.at(-1), { type: 'owasp-ai-goat-owned-guardian-ready', pid: 314, challenge });
+  h.runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-probe', challenge, nonce });
+  assert.deepEqual(h.messages.at(-1), { type: 'owasp-ai-goat-owned-guardian-proof', pid: 314, challenge, nonce });
   assert.deepEqual(h.spawns, []);
-  h.runtime.emit('message', { type: 'dvaia-owned-guardian-activate', challenge, nonce });
-  assert.deepEqual(h.messages.at(-1), { type: 'dvaia-owned-guardian-active', pid: 314, challenge, nonce });
+  h.runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-activate', challenge, nonce });
+  assert.deepEqual(h.messages.at(-1), { type: 'owasp-ai-goat-owned-guardian-active', pid: 314, challenge, nonce });
   assert.deepEqual(h.spawns, []);
   h.callbacks.shift()();
   assert.deepEqual(h.spawns, [['controlled-node', ['controlled-application.js'], {
@@ -61,7 +61,7 @@ test('controlled Windows disconnect or stop at every admission stage never launc
       if (phase === 'proof') h.prove();
       if (phase === 'activation-delivery') h.activate();
       if (termination === 'disconnect') { h.runtime.connected = false; h.runtime.emit('disconnect'); }
-      else h.runtime.emit('message', { type: 'dvaia-owned-guardian-stop' });
+      else h.runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-stop' });
       for (const callback of h.callbacks) callback();
       assert.deepEqual(h.spawns, []); assert.deepEqual(h.exits, [0]); assert.deepEqual(h.kills, []);
     }
@@ -70,12 +70,12 @@ test('controlled Windows disconnect or stop at every admission stage never launc
 
 test('controlled Windows invalid, stale and out-of-order admission messages fail closed', () => {
   const cases = [
-    h => h.runtime.emit('message', { type: 'dvaia-owned-guardian-activate', challenge: 'a'.repeat(64), nonce: 'b'.repeat(64) }),
-    h => h.runtime.emit('message', { type: 'dvaia-owned-guardian-hello', extra: true }),
-    h => { const challenge = h.hello(); h.runtime.emit('message', { type: 'dvaia-owned-guardian-probe', challenge, nonce: 'short' }); },
-    h => { h.hello(); h.runtime.emit('message', { type: 'dvaia-owned-guardian-probe', challenge: 'wrong', nonce: 'a'.repeat(64) }); },
-    h => { const proof = h.prove(); h.runtime.emit('message', { type: 'dvaia-owned-guardian-activate', ...proof, nonce: 'f'.repeat(64) }); },
-    h => { const proof = h.prove(); h.runtime.emit('message', { type: 'dvaia-owned-guardian-activate', ...proof, extra: true }); },
+    h => h.runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-activate', challenge: 'a'.repeat(64), nonce: 'b'.repeat(64) }),
+    h => h.runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-hello', extra: true }),
+    h => { const challenge = h.hello(); h.runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-probe', challenge, nonce: 'short' }); },
+    h => { h.hello(); h.runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-probe', challenge: 'wrong', nonce: 'a'.repeat(64) }); },
+    h => { const proof = h.prove(); h.runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-activate', ...proof, nonce: 'f'.repeat(64) }); },
+    h => { const proof = h.prove(); h.runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-activate', ...proof, extra: true }); },
     h => { h.hello(); h.hello(); },
   ];
   for (const invalid of cases) { const h = harness(); invalid(h); assert.deepEqual(h.spawns, []); assert.deepEqual(h.exits, [2]); }
@@ -85,25 +85,25 @@ test('controlled Windows activation IPC failure never launches work', () => {
   const h = harness(); h.activate(); h.callbacks.shift()(Error('controlled IPC loss'));
   assert.deepEqual(h.spawns, []); assert.deepEqual(h.exits, [2]);
   const thrown = harness(); const proof = thrown.prove(); thrown.runtime.send = () => { throw Error('closed IPC'); };
-  thrown.runtime.emit('message', { type: 'dvaia-owned-guardian-activate', ...proof });
+  thrown.runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-activate', ...proof });
   assert.deepEqual(thrown.spawns, []); assert.deepEqual(thrown.exits, [2]);
 });
 
 test('controlled activated guardian forwards backend readiness and one child outcome', () => {
   const h = harness(); h.activate(); h.callbacks.shift()();
   h.child.emit('message', { type: 'other' });
-  h.child.emit('message', { type: 'dvaia-backend-ready', pid: 999, port: 8081 });
-  assert.deepEqual(h.messages.at(-1), { type: 'dvaia-backend-ready', pid: 314, port: 8081 });
+  h.child.emit('message', { type: 'owasp-ai-goat-backend-ready', pid: 999, port: 8081 });
+  assert.deepEqual(h.messages.at(-1), { type: 'owasp-ai-goat-backend-ready', pid: 314, port: 8081 });
   h.child.emit('exit', 7, null); h.child.emit('error', Error('late failure'));
-  assert.deepEqual(h.messages.filter(message => message.type === 'dvaia-owned-child-outcome'),
-    [{ type: 'dvaia-owned-child-outcome', outcome: { type: 'exit', code: 7, signal: null } }]);
+  assert.deepEqual(h.messages.filter(message => message.type === 'owasp-ai-goat-owned-child-outcome'),
+    [{ type: 'owasp-ai-goat-owned-child-outcome', outcome: { type: 'exit', code: 7, signal: null } }]);
   assert.deepEqual(h.exits, []);
 });
 
 test('controlled activated guardian requests direct child stop then exits for owning job drain', () => {
   for (const event of ['stop', 'disconnect', 'SIGTERM']) {
     const h = harness(); h.activate(); h.callbacks.shift()();
-    if (event === 'stop') h.runtime.emit('message', { type: 'dvaia-owned-guardian-stop' });
+    if (event === 'stop') h.runtime.emit('message', { type: 'owasp-ai-goat-owned-guardian-stop' });
     else h.runtime.emit(event);
     assert.deepEqual(h.kills, ['SIGTERM']); assert.deepEqual(h.exits, [0]);
     h.runtime.emit('disconnect'); assert.deepEqual(h.kills, ['SIGTERM']);
@@ -113,7 +113,7 @@ test('controlled activated guardian requests direct child stop then exits for ow
 test('controlled spawn failures report outcomes only after activation and retain guardian', () => {
   const h = harness({ spawnError: true }); assert.deepEqual(h.messages, []);
   h.activate(); h.callbacks.shift()();
-  assert.deepEqual(h.messages.at(-1), { type: 'dvaia-owned-child-outcome', outcome: { type: 'error' } });
+  assert.deepEqual(h.messages.at(-1), { type: 'owasp-ai-goat-owned-child-outcome', outcome: { type: 'error' } });
   assert.deepEqual(h.exits, []);
 });
 

@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path'),{createRequire}=require('node:module');
 function fixture({endFailure=false,endHangs=false,extraLease=false,lost=false,inspection}={}){
- const file=path.resolve('server/database/postgres/index.js'),req=createRequire(file),module={exports:{}},identity={},admission={},env={IDENTITY_DATABASE_URL:'postgres://runtime:owned@127.0.0.1/dvaia_identity',IDENTITY_MIGRATION_DATABASE_URL:'postgres://migration:owned@127.0.0.1/dvaia_identity',PG_ADMIN_DATABASE_URL:'postgres://admin:owned@127.0.0.1/postgres',PG_POOL_BUDGET:'32'},controller=new AbortController();let leaseReservation,inspected=0,closed=0,now=0;
+ const file=path.resolve('server/database/postgres/index.js'),req=createRequire(file),module={exports:{}},identity={},admission={},env={IDENTITY_DATABASE_URL:'postgres://runtime:owned@127.0.0.1/owasp_ai_goat_identity',IDENTITY_MIGRATION_DATABASE_URL:'postgres://migration:owned@127.0.0.1/owasp_ai_goat_identity',PG_ADMIN_DATABASE_URL:'postgres://admin:owned@127.0.0.1/postgres',PG_POOL_BUDGET:'32'},controller=new AbortController();let leaseReservation,inspected=0,closed=0,now=0;
  const lease=Object.freeze({signal:controller.signal,assertHeld(){if(controller.signal.aborted)throw Error('lost');}});
  class Pool{on(){}end(){closed++;if(lost)controller.abort();if(endFailure)throw Error('private');return endHangs?new Promise(()=>{}):Promise.resolve();}}
  const fakeDate={now:()=>now};

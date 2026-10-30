@@ -8,8 +8,8 @@ const os = require('node:os');
 const path = require('node:path');
 
 test('trusted sendFile root serves an SPA below a hidden ancestor while denying a hidden leaf', async t => {
-  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-sendfile-root-'));
-  const build = path.join(temporary, '.dvaia', 'candidate', 'client', 'build');
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-sendfile-root-'));
+  const build = path.join(temporary, '.owasp-ai-goat', 'candidate', 'client', 'build');
   await fs.mkdir(build, { recursive: true });
   await fs.writeFile(path.join(build, 'index.html'), '<!doctype html><title>Owned SPA</title>');
   await fs.writeFile(path.join(build, '.private'), 'must not be served');

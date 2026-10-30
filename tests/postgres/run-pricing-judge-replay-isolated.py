@@ -17,7 +17,7 @@ def run_directive_groups(args,source):
  node,donor,cache=work.run(lambda:validate(args,source))
  if donor!=source or cache!=source/'tests/fixtures/fullBackendModelCache':raise ValueError('Canonical frozen package dependency/cache layout required')
  work.run(lambda:validate_package(source,args.manifest,args.manifest_sha256,node,args.node_sha256))
- root=Path(tempfile.mkdtemp(prefix='dvaia-pricing-directive-judge-')).resolve();root.chmod(0o700)
+ root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-pricing-directive-judge-')).resolve();root.chmod(0o700)
  workspace=root/'source';(root/'home').mkdir(mode=0o700)
  env={'PATH':str(node.parent)+':/usr/bin:/bin','HOME':str(root/'home'),'TMPDIR':str(root),'NODE_ENV':'test','AI_PROVIDER':'ollama','JUDGE_PROVIDER':'ollama','OLLAMA_MODEL':'llama3.1:8b','JUDGE_MODEL':'llama3.1:8b','OLLAMA_BASE_URL':'http://127.0.0.1:11434','JUDGE_BASE_URL':'http://127.0.0.1:11434','HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1','AWS_EC2_METADATA_DISABLED':'true','LANGCHAIN_TRACING_V2':'false','LANGSMITH_TRACING':'false','PYTHONDONTWRITEBYTECODE':'1','PRICING_DIRECTIVE_GROUPS_ACTUAL':'1','PRICING_DIRECTIVE_GROUPS_RESULT':str(root/'result.json')}
  if diagnostic:env['WHOLE_EVIDENCE_DIAGNOSTIC']='1'
@@ -76,10 +76,10 @@ SOURCE=Path(__file__).resolve().parents[2]
 if args.directive_groups or args.whole_evidence_diagnostic:
  run_directive_groups(args,SOURCE)
  raise SystemExit(0)
-NODE=Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
-RETAINED=Path('/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/dvaia-pricing-journal-zhi_1b2b/pricing-actual-result.json')
+NODE=Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+RETAINED=Path('/var/folders/p2/dchrxd612l9_58pkt64n41gc0000gp/T/owasp-ai-goat-pricing-journal-zhi_1b2b/pricing-actual-result.json')
 EXPECTED='d3135bbdaddfe9429ceef9d164fdbdc30ad1657337a1fed452ca8b3924305fbc'
-root=Path(tempfile.mkdtemp(prefix='dvaia-pricing-judge-replay-'));root.chmod(0o700);workspace=root/'source'
+root=Path(tempfile.mkdtemp(prefix='owasp-ai-goat-pricing-judge-replay-'));root.chmod(0o700);workspace=root/'source'
 env={'PATH':str(NODE.parent)+':/usr/bin:/bin','HOME':str(root/'home'),'TMPDIR':str(root),'NODE_ENV':'test','AI_PROVIDER':'ollama','OLLAMA_BASE_URL':'http://127.0.0.1:11434','OLLAMA_MODEL':'llama3.1:8b','HF_HUB_OFFLINE':'1','TRANSFORMERS_OFFLINE':'1','AWS_EC2_METADATA_DISABLED':'true','LANGCHAIN_TRACING_V2':'false','LANGSMITH_TRACING':'false'}
 (root/'home').mkdir(mode=0o700)
 if args.synthetic_positive:env['PRICING_JUDGE_REPLAY_RESPONSE']='synthetic-positive'

@@ -213,9 +213,9 @@ class V03PrivateExecutors:
     def postgres_create_intent(self, expected_image, expected_daemon):
         if self.state!='ready' or self.pg_intent is not None:raise RuntimeError('V03_PG_INTENT_ONCE')
         result,_=self._exchange('pg-create-intent',{},min(120,self.work_deadline-self.now()))
-        name='dvaia-merchant-listing-image-optimize-v03-browser-'+hashlib.sha256((self.run_id+':v03-postgres').encode()).hexdigest()[:12]
+        name='owasp-ai-goat-merchant-listing-image-optimize-v03-browser-'+hashlib.sha256((self.run_id+':v03-postgres').encode()).hexdigest()[:12]
         expected=dict(version=1,target='original-v03-parent-postgres-v1',runId=self.run_id,planSha256=self.plan_sha256,
-            name=name,labels={'dvaia.owner':self.run_id,'dvaia.cohort':'secureshop-merchant-listing-image-optimize-v03-browser-current-main-v1'},
+            name=name,labels={'owasp-ai-goat.owner':self.run_id,'owasp-ai-goat.cohort':'secureshop-merchant-listing-image-optimize-v03-browser-current-main-v1'},
             image=expected_image,daemonId=expected_daemon)
         if type(result) is not dict or set(result)!={'intent','publication'} or result['intent']!=expected:
             self.debt=True;raise ValueError('V03_PG_INTENT_BINDING')
@@ -247,7 +247,7 @@ class V03PrivateExecutors:
         if not re.fullmatch('sha256:[a-f0-9]{64}',env['SECURESHOP_LISTINGS_TEST_MANAGER_IMAGE_ID']):
             self.debt=True;raise ValueError('V03_MANAGER_IMAGE')
         child_run=hashlib.sha256((self.run_id+':v03-listings').encode('ascii')).hexdigest()[:32]
-        if env['SECURESHOP_LISTINGS_TEST_DOCKER_HOST']!='unix:///var/tmp/dvaia-v23-build-'+child_run+'/fs/docker.sock':
+        if env['SECURESHOP_LISTINGS_TEST_DOCKER_HOST']!='unix:///var/tmp/owasp-ai-goat-v23-build-'+child_run+'/fs/docker.sock':
             self.debt=True;raise ValueError('V03_PRIVATE_DOCKER')
         if not re.fullmatch('[A-Za-z0-9:-]{20,128}',env['SECURESHOP_LISTINGS_TEST_DOCKER_DAEMON_ID']):
             self.debt=True;raise ValueError('V03_PRIVATE_DAEMON')

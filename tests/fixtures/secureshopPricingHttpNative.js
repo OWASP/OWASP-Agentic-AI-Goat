@@ -57,7 +57,7 @@ async function main() {
     const abandoned = fetch(baseURL+'/secureshop/pricing/observe',{method:'POST',signal:disconnect.signal,headers:{authorization:'Bearer '+token,'content-type':'application/json'},body:JSON.stringify({...request,...binding()})});
     await started; disconnect.abort(); await assert.rejects(abandoned); onDispatch=undefined;
     assert.equal(dispatches,3);
-    for (const path of ['/usr/local/libexec/dvaia-owned-pricing-http-worker.js','/usr/share/dvaia/owned-pricing-http-assets.json']) {
+    for (const path of ['/usr/local/libexec/owasp-ai-goat-owned-pricing-http-worker.js','/usr/share/owasp-ai-goat/owned-pricing-http-assets.json']) {
       assert.throws(()=>fs.openSync(path,'w'),error=>['EACCES','EROFS'].includes(error.code));
     }
   } finally { await handler.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve)); }
@@ -65,6 +65,6 @@ async function main() {
   assert.deepEqual(descendants,[], 'namespace helper processes must be reaped');
   console.log(JSON.stringify({status:'passed',proofs,actualHttpDispatches:dispatches,readinessSeparate:true,fixedDenied:true,wrapperMismatchDenied:true,
     malformedDenied:true,wrongBearerDenied:true,concurrencyDenied:true,disconnectDrained:true,checkedAssetsReadOnly:true,preAbort:true,timeoutDrained:true,descendantsAbsent:true,actualModelCalls:0,
-    packages:fs.readFileSync('/usr/share/dvaia/pricing-packages.txt','utf8'),assets:JSON.parse(fs.readFileSync('/usr/share/dvaia/owned-pricing-http-assets.json','utf8'))}));
+    packages:fs.readFileSync('/usr/share/owasp-ai-goat/pricing-packages.txt','utf8'),assets:JSON.parse(fs.readFileSync('/usr/share/owasp-ai-goat/owned-pricing-http-assets.json','utf8'))}));
 }
 main().catch(error=>{console.error(JSON.stringify({status:'failed',code:error.code||error.name,message:error.message,diagnostic:error.diagnostic,stack:error.stack?.split('\n').slice(0,5)}));process.exitCode=1;});

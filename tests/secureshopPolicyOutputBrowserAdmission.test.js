@@ -5,7 +5,7 @@ const ROOT=path.resolve(__dirname,'..'),run=path.join(ROOT,'tasks/qualification/
  evidence=path.join(run,'standalone-ssrf-rendered'),runtime=path.join(evidence,'runtime');
 function setup({failure=null}={}){
  const events=[],files=new Map(),child=new EventEmitter();child.pid=456;
- const env={DVAIA_CURRENT_MAIN_WORKSPACE:ROOT,PG_TEST_DISPOSABLE:'yes',
+ const env={OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE:ROOT,PG_TEST_DISPOSABLE:'yes',
   SECURESHOP_POLICY_OUTPUT_TEST_NO_SANDBOX:'1',SECURESHOP_POLICY_OUTPUT_BROWSER_NATIVE:'1',
   SECURESHOP_STANDALONE_SSRF_RENDERED_NATIVE:'1',SECURESHOP_POLICY_OUTPUT_REPOSITORY_EVIDENCE:'1',
   SECURESHOP_STANDALONE_SSRF_RENDERED_EVIDENCE_PATH:path.join(evidence,'result.json'),

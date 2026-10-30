@@ -157,7 +157,7 @@ const AIAssistant = () => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "Hello! I'm your SecureShop AI Assistant. I can help you update your profile information or answer questions about your orders. Try asking me to update your name or inquire about your order history!",
+      text: "Hello! I'm your OWASP AI SecureShop AI Assistant. I can help you update your profile information or answer questions about your orders. Try asking me to update your name or inquire about your order history!",
       isUser: false,
       timestamp: new Date()
     }
@@ -412,7 +412,7 @@ const AIAssistant = () => {
     <ChatContainer>
       <ChatHeader>
         <FiCpu />
-        <h2>SecureShop AI Assistant</h2>
+        <h2>OWASP AI SecureShop AI Assistant</h2>
         <VulnerabilityAlert style={{ marginLeft: 'auto', background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white' }}>
           <FiAlertTriangle />
           SQL Injection Challenge

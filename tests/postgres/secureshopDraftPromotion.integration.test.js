@@ -25,7 +25,7 @@ const storeDefinition={
  review:{baseline:'db/postgres/workshop-migrations/secureshop_review',manifestStore:'secureshop_review'},
 };
 async function stageMigrations(manifest){
- const stage=await fs.mkdtemp(path.join(process.env.DVAIA_ISOLATED_TEST_WORKSPACE||os.tmpdir(),'secureshop-promotion-migrations-'));
+ const stage=await fs.mkdtemp(path.join(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE||os.tmpdir(),'secureshop-promotion-migrations-'));
  for(const [store,definition] of Object.entries(storeDefinition)){
   const destination=path.join(stage,store);await fs.mkdir(destination);
   for(const name of await fs.readdir(path.join(root,definition.baseline))){

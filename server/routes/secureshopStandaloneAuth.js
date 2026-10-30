@@ -3,7 +3,7 @@
 const express = require('express');
 const { rateLimit } = require('express-rate-limit');
 
-const COOKIE = 'dvaia_shop_session';
+const COOKIE = 'owasp_ai_goat_shop_session';
 const TOKEN = /^[A-Za-z0-9_-]{43}$/;
 const ROLES = new Set(['customer', 'merchant', 'admin']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

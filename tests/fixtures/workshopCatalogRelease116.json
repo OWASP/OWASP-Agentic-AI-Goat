@@ -1,6 +1,6 @@
 {
   "provenance": {
-    "root": "dvaia-workshop-catalog-release-0i69aob9/source",
+    "root": "owasp-ai-goat-workshop-catalog-release-0i69aob9/source",
     "ownershipSha256": "795426786a26a83eae6277a15dccf1d52ecdfe29d746fbbd2e48c37e1018a8c1",
     "sourceHashes": {
       "server/database/postgres/workshopPlatformSeed.js": "6c26c5333633891593fb56597751fc0a9e877d6086fdf88171cb3c78b35e66db",

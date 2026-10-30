@@ -46,7 +46,7 @@ function traceShape(row) {
 function checked(name) {
   const value = new URL(process.env[`${PREFIX}${name}_URL`]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 async function json(response, status = 200) {
@@ -63,8 +63,8 @@ async function assertLedger(pool, directory) {
 test('production gateway binds actual persona JWT to mounted actual 8B inbox effects and reset', {
   skip: !enabled, timeout: 300000,
 }, async t => {
-  const workspace = path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-secureshop-persona-inbox-auth-/);
+  const workspace = path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-secureshop-persona-inbox-auth-/);
   const pools = Object.fromEntries(STORES.flatMap(store => ['MIGRATION', 'RUNTIME'].map(role => {
     const max = store === 'IDENTITY' && role === 'RUNTIME' ? 12 : 5;
     return [`${store}_${role}`, new Pool({ connectionString: checked(`${store}_${role}`), max })];
@@ -144,7 +144,7 @@ test('production gateway binds actual persona JWT to mounted actual 8B inbox eff
     const issued = await composition.launches.issueOrRenew({ platformOwnerId: ownerUser.id,
       platformSessionId: ownerPlatformSession.id, expiresAt });
     failureScope.launchId = issued.binding.launchId;
-    const launch = { 'x-dvaia-secureshop-launch': issued.bearer };
+    const launch = { 'x-owasp-ai-goat-secureshop-launch': issued.bearer };
     const login = await json(await fetch(`${base}/v2/auth/login`, { method: 'POST', headers: {
       ...launch, 'content-type': 'application/json' },
     body: JSON.stringify({ username: 'student_merchant', password: 'student123' }) }));
@@ -345,7 +345,7 @@ test('production gateway binds actual persona JWT to mounted actual 8B inbox eff
       expiresAt, expectedPasswordHash: passwordHash });
     const siblingLaunch = await composition.launches.issueOrRenew({ platformOwnerId: siblingUser.id,
       platformSessionId: siblingPlatformSession.id, expiresAt });
-    const siblingHeader = { 'x-dvaia-secureshop-launch': siblingLaunch.bearer };
+    const siblingHeader = { 'x-owasp-ai-goat-secureshop-launch': siblingLaunch.bearer };
     const siblingLogin = await json(await fetch(`${base}/v2/auth/login`, { method: 'POST', headers: {
       ...siblingHeader, 'content-type': 'application/json' },
     body: JSON.stringify({ username: 'student_merchant', password: 'student123' }) }));

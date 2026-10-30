@@ -56,7 +56,7 @@ async function admitV25FromInheritedOwner() {
     PERSONA_PRICING_ACTUAL: '1', PERSONA_PRICING_MANUAL_ONLY: '1',
     PERSONA_PRICING_ACTUAL_REMAINING: '0', PERSONA_PRICING_CANONICAL: '1',
     PERSONA_PRICING_COHORT: 'baseline', PG_TEST_DISPOSABLE: 'yes',
-    DVAIA_ISOLATED_TEST_WORKSPACE: ROOT
+    OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE: ROOT
   })) assert.equal(env[key], value);
   assert.equal(process.cwd(), ROOT);
   const readyText = env.SECURESHOP_PRICING_V25_READY_FD;
@@ -86,7 +86,7 @@ async function admitV25FromInheritedOwner() {
   const run = path.join(ROOT, 'tasks/qualification', 'pricing-private-' + grant.runId);
   const directory = path.join(run, 'cohort'), outputRoot = path.join(directory, 'output');
   assert.equal(grant.directory, directory); assert.equal(grant.descriptorPath, path.join(directory, 'private-executor.json'));
-  assert.equal(grant.outputRoot, outputRoot); assert.equal(env.DVAIA_PRICING_OWNED_OUTPUT_ROOT, outputRoot);
+  assert.equal(grant.outputRoot, outputRoot); assert.equal(env.OWASP_AI_GOAT_PRICING_OWNED_OUTPUT_ROOT, outputRoot);
   privateDirectory(run); privateDirectory(directory);
   exact(grant.outputIdentity, ['dev', 'ino', 'uid', 'mode']);
   for (const key of ['dev', 'ino', 'uid', 'mode']) assert(Number.isSafeInteger(grant.outputIdentity[key]));
@@ -121,7 +121,7 @@ function v25Admission() {
 function isV25Admission(value) { return admittedV25 !== null && value === admittedV25.publicAdmission; }
 
 function pricingOwnedOutputRoot() {
-  const configured = process.env.DVAIA_PRICING_OWNED_OUTPUT_ROOT;
+  const configured = process.env.OWASP_AI_GOAT_PRICING_OWNED_OUTPUT_ROOT;
   if (process.env.SECURESHOP_PRICING_V25_MANUAL_NATIVE === '1') {
     assert(admittedV25, 'V25 inherited owner admission required');
     assert.equal(configured, admittedV25.outputRoot);
@@ -138,7 +138,7 @@ function pricingOwnedOutputRoot() {
   if (!stat.isDirectory() || stat.isSymbolicLink() || stat.uid !== process.getuid() || (stat.mode & 0o077) !== 0) {
     throw Error('Pricing output root ownership or permissions mismatch');
   }
-  const source = fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || process.cwd());
+  const source = fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || process.cwd());
   if (configured === source || configured.startsWith(source + path.sep)) {
     throw Error('Pricing output root must be outside source');
   }

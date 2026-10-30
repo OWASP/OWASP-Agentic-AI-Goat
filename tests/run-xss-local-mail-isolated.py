@@ -16,13 +16,13 @@ parser.add_argument('--docker-host', required=True)
 args = parser.parse_args()
 
 source = Path(__file__).resolve().parents[1]
-root = Path(tempfile.mkdtemp(prefix='dvaia-xss-local-mail-'))
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-xss-local-mail-'))
 workspace = root / 'source'
 workspace.mkdir()
 os.chmod(root, 0o700)
 base_env = {key: os.environ[key] for key in ['PATH', 'HOME', 'TMPDIR'] if key in os.environ}
 docker = ['docker', '--host', args.docker_host]
-container = 'dvaia-xss-local-mail-' + uuid.uuid4().hex[:12]
+container = 'owasp-ai-goat-xss-local-mail-' + uuid.uuid4().hex[:12]
 child = None
 child_pgid = None
 child_session_id = None

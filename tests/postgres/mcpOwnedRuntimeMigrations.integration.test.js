@@ -22,7 +22,7 @@ test('reserved identity0050 and MCP0004 load normally, preserve populated state 
 }, async t => {
   for (const key of ['PG_MCP_INTEGRATION_IDENTITY_RUNTIME_URL','PG_MCP_INTEGRATION_IDENTITY_MIGRATION_URL',
     'PG_MCP_INTEGRATION_RUNTIME_URL','PG_MCP_INTEGRATION_MIGRATION_URL']) {
-    const url = new URL(process.env[key]); assert.match(url.pathname, /^\/dvaia_test_mcp_integration_[a-z0-9_]+$/);
+    const url = new URL(process.env[key]); assert.match(url.pathname, /^\/owasp_ai_goat_test_mcp_integration_[a-z0-9_]+$/);
   }
   const identityRuntime = new Pool({ connectionString: process.env.PG_MCP_INTEGRATION_IDENTITY_RUNTIME_URL, max: 4 });
   const identityMigration = new Pool({ connectionString: process.env.PG_MCP_INTEGRATION_IDENTITY_MIGRATION_URL, max: 2 });
@@ -173,7 +173,7 @@ test('reserved identity0050 and MCP0004 load normally, preserve populated state 
     let targetEffects = 0;
     const targets = {
       async readiness() { return { ready: true, runnerReady: true, version: 'mcp-owned-target-http.v1',
-        isolation: 'bwrap-seccomp-v1', supervisorProfile: 'dvaia-mcp-sandbox (enforce)' }; },
+        isolation: 'bwrap-seccomp-v1', supervisorProfile: 'owasp-ai-goat-mcp-sandbox (enforce)' }; },
       async admit() { targetEffects += 1; throw new Error('PG-only gate must not admit a target'); },
       async retire() { targetEffects += 1; throw new Error('PG-only gate must not retire a target'); },
     };

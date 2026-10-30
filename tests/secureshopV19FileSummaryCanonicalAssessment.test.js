@@ -267,7 +267,7 @@ async function fixture({
   };
   const sourceDirectories = globalThis.__v19SourceDirectories ||= [];
   const fsp = require('node:fs/promises'), os = require('node:os'), path = require('node:path');
-  const directory = await fsp.realpath(await fsp.mkdtemp(path.join(os.tmpdir(), 'dvaia-v19-canonical-control-')));
+  const directory = await fsp.realpath(await fsp.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-v19-canonical-control-')));
   sourceDirectories.push(directory);
   const targetId = randomUUID();
   const launches = { assertCurrent: check, async reserveFilesTarget() { await check(); return { ...scope, targetId, kind: 'files' }; },

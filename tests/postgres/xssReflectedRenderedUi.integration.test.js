@@ -13,21 +13,21 @@ const KEYS = ['PG_XSS_EMAIL_ROUTE_IDENTITY_RUNTIME_URL', 'PG_XSS_EMAIL_ROUTE_IDE
   'PG_XSS_EMAIL_ROUTE_XSS_RUNTIME_URL', 'PG_XSS_EMAIL_ROUTE_XSS_MIGRATION_URL',
   'PG_XSS_EMAIL_ROUTE_CTF_RUNTIME_URL', 'PG_XSS_EMAIL_ROUTE_CTF_MIGRATION_URL'];
 const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && process.env.XSS_REFLECTED_ROUTE_UI === 'yes'
-  && KEYS.every(key => process.env[key]) && process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
+  && KEYS.every(key => process.env[key]) && process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
 
 function verifyInputs() {
   const current = require('./xssCurrentCheckoutAdmission').verifyCurrentCheckout({ keys: KEYS, cohort: 'reflected' });
   if (current) return current;
-  const workspace = fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  const workspace = fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   assert.equal(fs.realpathSync(process.cwd()), workspace);
   assert.equal(path.basename(workspace), 'source');
-  assert.match(path.basename(path.dirname(workspace)), /^dvaia-xss-email-route-/);
+  assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-xss-email-route-/);
   assert.ok(fs.existsSync(path.join(workspace, 'client', 'package.json')));
   assert.ok(fs.existsSync(path.join(workspace, 'client', 'node_modules')));
   for (const key of KEYS) {
     const url = new URL(process.env[key]);
     assert.equal(url.hostname, '127.0.0.1');
-    assert.match(url.pathname, /^\/dvaia_test_xss_email_route_(?:identity|xss|ctf)$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_xss_email_route_(?:identity|xss|ctf)$/);
   }
   return workspace;
 }
@@ -96,8 +96,8 @@ test('rendered reflected XSS proves r1-r3 positive, inert negative, native Judge
   const pageErrors = []; const unexpectedResponses = []; const blockedExternalRequests = []; const sendBodies = [];
   const dialogs = [];
   try {
-    assert.ok(process.env.DVAIA_XSS_RENDERED_RUNTIME_ROOT);
-    runtimeRoot = fs.realpathSync(process.env.DVAIA_XSS_RENDERED_RUNTIME_ROOT);
+    assert.ok(process.env.OWASP_AI_GOAT_XSS_RENDERED_RUNTIME_ROOT);
+    runtimeRoot = fs.realpathSync(process.env.OWASP_AI_GOAT_XSS_RENDERED_RUNTIME_ROOT);
     assert.equal(fs.realpathSync(path.join(runtimeRoot, 'logs')), path.join(runtimeRoot, 'logs'));
     assert.equal(fs.realpathSync(path.join(runtimeRoot, 'artifacts')), path.join(runtimeRoot, 'artifacts'));
     assert.equal(fs.realpathSync(path.join(runtimeRoot, 'vite-cache')), path.join(runtimeRoot, 'vite-cache'));

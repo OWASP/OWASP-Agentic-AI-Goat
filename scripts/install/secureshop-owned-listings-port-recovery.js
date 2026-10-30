@@ -25,7 +25,7 @@ function readJournal(filePath){
    ||!/^[a-f0-9]{64}$/.test(value.originalId||'')||!/^[a-f0-9]{64}$/.test(value.networkId||'')
    ||!/^[a-f0-9]{64}$/.test(value.managedSha256||'')||!/^[a-f0-9]{64}$/.test(value.authoritySha256||'')
    ||!/^[a-f0-9]{64}$/.test(value.sourceSha256||'')||!/^[a-f0-9]{64}$/.test(value.runtimeDigest||'')
-   ||value.originalName!=='dvaia-owned-listings-'+value.workspaceId
+   ||value.originalName!=='owasp-ai-goat-owned-listings-'+value.workspaceId
    ||value.volumeName!==value.originalName+'-journal'
    ||value.originalUrl!=='http://127.0.0.1:8095'||value.successorUrl!=='http://127.0.0.1:8099'
    ||!Number.isSafeInteger(value.managedDev)||!Number.isSafeInteger(value.managedIno)
@@ -150,14 +150,14 @@ async function recover({p,value,image,labels,network,volume,docker,inspect,inspe
  inspectContainer(oldForCheck,{...expected,value:{...value,manager:{...value.manager,url:j.originalUrl}}},
   {allowRunningUnattached:true,allowStoppedUnattached:true});
  const bridge=await inspect('network',network);
- const candidateId=named?.Id!==j.originalId&&named?.Config?.Labels?.['dvaia.listings.portRecovery']===saved.sha256?named.Id:null;
+ const candidateId=named?.Id!==j.originalId&&named?.Config?.Labels?.['owasp-ai-goat.listings.portRecovery']===saved.sha256?named.Id:null;
  if(!bridge||bridge.Id!==j.networkId||bridge.Name!==network
   ||bridge.Containers&&Object.keys(bridge.Containers).some(id=>id!==j.originalId&&id!==candidateId))throw fail();
  // A completed repair is read-only and remains disabled until activation.
  if(value.manager.url===j.successorUrl){
   if(original.Name!=='/'+backupName||original.State.Running)throw fail();
   const published=await inspect('container',j.originalName);
-  if(!published||published.Id===j.originalId||published.Config?.Labels?.['dvaia.listings.portRecovery']!==saved.sha256)throw fail();
+  if(!published||published.Id===j.originalId||published.Config?.Labels?.['owasp-ai-goat.listings.portRecovery']!==saved.sha256)throw fail();
   inspectContainer(published,{...expected,value:next});
   return false;
  }
@@ -181,7 +181,7 @@ async function recover({p,value,image,labels,network,volume,docker,inspect,inspe
  const successorExpected={...expected,value:next};
  let candidate=await inspect('container',j.originalName);
  if(candidate){
-  if(candidate.Id===j.originalId||candidate.Config?.Labels?.['dvaia.listings.portRecovery']!==saved.sha256)throw fail();
+  if(candidate.Id===j.originalId||candidate.Config?.Labels?.['owasp-ai-goat.listings.portRecovery']!==saved.sha256)throw fail();
   inspectContainer(candidate,successorExpected,{allowCreatedUnattached:true,allowRunningUnattached:true});
  }else{
   await checkPort(8099);await assertDockerPortFree(docker,inspect,8099);held();
@@ -192,19 +192,19 @@ async function recover({p,value,image,labels,network,volume,docker,inspect,inspe
    fs.writeFileSync(fd,`LISTINGS_MANAGER_ENABLED=true\nLISTINGS_PROFILE=${next.profile.name}\nLISTINGS_PUBLIC_ORIGIN=${next.manager.url}\nLISTINGS_CONTROL_TOKEN=${next.manager.token}\n`);
    fs.fsyncSync(fd);fs.closeSync(fd);fd=undefined;
    try{await docker(['create','--name',j.originalName,
-    ...Object.entries({...labels,'dvaia.listings.portRecovery':saved.sha256}).flatMap(([k,v])=>['--label',k+'='+v]),
+    ...Object.entries({...labels,'owasp-ai-goat.listings.portRecovery':saved.sha256}).flatMap(([k,v])=>['--label',k+'='+v]),
     '--network',network,'--read-only','--user','10001:10001','--memory','512m','--cpus','1','--pids-limit','128',
     '--cap-drop','ALL','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--mount',`type=volume,source=${volume},target=/journal`,
     '--security-opt','seccomp=unconfined','--security-opt','apparmor='+next.profile.name,
     '--publish','127.0.0.1:8099:8095','--env-file',envFile,image.Id]);}catch{}
   }finally{if(fd!==undefined)fs.closeSync(fd);try{fs.unlinkSync(envFile);}catch(error){if(error.code!=='ENOENT')throw fail();}}
   candidate=await inspect('container',j.originalName);
-  if(!candidate||candidate.Config?.Labels?.['dvaia.listings.portRecovery']!==saved.sha256)throw fail();
+  if(!candidate||candidate.Config?.Labels?.['owasp-ai-goat.listings.portRecovery']!==saved.sha256)throw fail();
   inspectContainer(candidate,successorExpected,{allowCreatedUnattached:true});
  }
  const successorId=candidate.Id;
  const assertSuccessor=row=>{
-  if(row?.Id!==successorId||row.Config?.Labels?.['dvaia.listings.portRecovery']!==saved.sha256)throw fail();
+  if(row?.Id!==successorId||row.Config?.Labels?.['owasp-ai-goat.listings.portRecovery']!==saved.sha256)throw fail();
   return row;
  };
  if(!candidate.State.Running){

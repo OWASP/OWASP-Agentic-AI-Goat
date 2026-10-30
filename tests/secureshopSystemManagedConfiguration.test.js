@@ -7,7 +7,7 @@ const {workspaceId}=require('../scripts/application-data-root');
 const {authorityDigest}=require('../scripts/local-docker-authority');
 const installer=require('../scripts/install/secureshop-owned-system');
 function fixture(t){const directory=fs.mkdtempSync(path.join(os.tmpdir(),'system-managed-test-'));fs.chmodSync(directory,0o700);t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));const filePath=path.join(directory,'record.json');return{directory,filePath};}
-function value(){return{version:1,workspaceId:'a'.repeat(12),enabled:false,architecture:'arm64',dockerAuthoritySha256:'b'.repeat(64),imageId:'sha256:'+'c'.repeat(64),sourceManifestSha256:'d'.repeat(64),profile:{name:'dvaia-mcp-sandbox',sha256:'e'.repeat(64)},config:{container:'dvaia-owned-system-'+ 'a'.repeat(12)+'-config',url:'http://127.0.0.1:8090',token:'A'.repeat(43)},diagnostic:{container:'dvaia-owned-system-'+ 'a'.repeat(12)+'-diagnostic',url:'http://127.0.0.1:8091',token:'B'.repeat(43)},restart:{container:'dvaia-owned-system-'+ 'a'.repeat(12)+'-restart',url:'http://127.0.0.1:8092',token:'C'.repeat(43)}};}
+function value(){return{version:1,workspaceId:'a'.repeat(12),enabled:false,architecture:'arm64',dockerAuthoritySha256:'b'.repeat(64),imageId:'sha256:'+'c'.repeat(64),sourceManifestSha256:'d'.repeat(64),profile:{name:'owasp-ai-goat-mcp-sandbox',sha256:'e'.repeat(64)},config:{container:'owasp-ai-goat-owned-system-'+ 'a'.repeat(12)+'-config',url:'http://127.0.0.1:8090',token:'A'.repeat(43)},diagnostic:{container:'owasp-ai-goat-owned-system-'+ 'a'.repeat(12)+'-diagnostic',url:'http://127.0.0.1:8091',token:'B'.repeat(43)},restart:{container:'owasp-ai-goat-owned-system-'+ 'a'.repeat(12)+'-restart',url:'http://127.0.0.1:8092',token:'C'.repeat(43)}};}
 
 test('exclusive staging publishes complete private record; exact repeat preserves bytes and tokens',t=>{
  const{filePath,directory}=fixture(t);assert.equal(managed.load({filePath}),null);
@@ -47,7 +47,7 @@ test('concurrent identical initial staging never replaces or truncates the winne
  const results=await Promise.all([execute(),execute(),execute()]);assert.equal(results.filter(r=>r.created).length,1);assert.deepEqual(managed.load({filePath}),value());assert.equal(fs.statSync(filePath).nlink,1);
 });
 
-async function planFixture(t){const {directory:home}=fixture(t);const id=workspaceId(root),directory=path.join(home,'.dvaia',id);fs.mkdirSync(directory,{recursive:true,mode:0o700});const authority={version:1,workspaceId:id,host:'unix:///tmp/owned-system-test.sock',daemonId:'controlled-daemon',source:'environment-host'};fs.writeFileSync(path.join(directory,'local-docker.json'),JSON.stringify(authority),{mode:0o600});const calls=[];const execute=async(file,args,options)=>{calls.push({file,args,options});assert.deepEqual(args,['--host',authority.host,'info','--format','{{json .ID}}']);return{stdout:JSON.stringify(authority.daemonId)};};return{home,id,directory,authority,calls,execute};}
+async function planFixture(t){const {directory:home}=fixture(t);const id=workspaceId(root),directory=path.join(home,'.owasp-ai-goat',id);fs.mkdirSync(directory,{recursive:true,mode:0o700});const authority={version:1,workspaceId:id,host:'unix:///tmp/owned-system-test.sock',daemonId:'controlled-daemon',source:'environment-host'};fs.writeFileSync(path.join(directory,'local-docker.json'),JSON.stringify(authority),{mode:0o600});const calls=[];const execute=async(file,args,options)=>{calls.push({file,args,options});assert.deepEqual(args,['--host',authority.host,'info','--format','{{json .ID}}']);return{stdout:JSON.stringify(authority.daemonId)};};return{home,id,directory,authority,calls,execute};}
 
 test('plan verifies only recorded authority, reports ARM64 source binding and never exposes secrets or writes',async t=>{
  const f=await planFixture(t),before=fs.readdirSync(f.directory);const options={root,home:f.home,platform:'darwin',architecture:'arm64',execute:f.execute,environment:{DOCKER_HOST:'tcp://foreign',DOCKER_CONTEXT:'foreign'}};
@@ -81,7 +81,7 @@ test('closed package manifest detects source tamper before any provisioning',t=>
 
 test('optional upload preview is closed, separately bound and preserves historical three-mode encoding',t=>{
  const legacy=value(),bytes=managed.encode(legacy);assert.equal(managed.encode(managed.validate(legacy)),bytes);
- const v={...legacy,uploadPreview:{container:`dvaia-owned-system-${legacy.workspaceId}-upload-preview`,url:'http://127.0.0.1:8093',token:'P'.repeat(43)}};
+ const v={...legacy,uploadPreview:{container:`owasp-ai-goat-owned-system-${legacy.workspaceId}-upload-preview`,url:'http://127.0.0.1:8093',token:'P'.repeat(43)}};
  const {filePath}=fixture(t);managed.stage({filePath,value:v});assert.deepEqual(managed.load({filePath}),v);
  assert.deepEqual(managed.modesFor(v),['config','diagnostic','restart','uploadPreview']);
  for(const mutate of [x=>x.uploadPreview.token=x.config.token,x=>x.uploadPreview.url=x.restart.url,x=>x.uploadPreview.extra=true,x=>x.uploadPreview.container+='-foreign']){

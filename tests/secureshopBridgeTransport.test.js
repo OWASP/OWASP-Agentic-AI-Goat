@@ -42,7 +42,7 @@ test('named request carries shop token and private launch separately; response s
   assert.deepEqual(await response.json(), { products: [] });
   assert.equal(request.url, 'https://app.invalid/api/secureshop/products');
   assert.equal(request.headers.get('authorization'), 'Bearer learner-crafted-jwt');
-  assert.equal(request.headers.get('x-dvaia-secureshop-launch'), 'a'.repeat(43));
+  assert.equal(request.headers.get('x-owasp-ai-goat-secureshop-launch'), 'a'.repeat(43));
   assert.equal(request.credentials, 'omit');assert.equal(request.redirect, 'error');
   assert.deepEqual([...response.headers.keys()], ['content-type']);
 });
@@ -79,7 +79,7 @@ test('only a trusted marked launch rejection reports the captured launch to the 
     onLaunchUnavailable: launch => observed.push(launch),
     fetchImpl: async () => new Response('{"error":"SecureShop launch unavailable"}', { status: 401,
       headers: { 'content-type': 'application/json',
-        'x-dvaia-secureshop-launch-state': 'unavailable' } }),
+        'x-owasp-ai-goat-secureshop-launch-state': 'unavailable' } }),
   });
   const stale = await marked.frame.request('catalog.list');
   assert.equal(stale.status, 401);
@@ -261,7 +261,7 @@ test('Listings readiness, durable mutation and recovery traverse actual compiler
   for(let index=0;index<calls.length;index++){
     const [name,input]=calls[index],expected=registry('merchant.listings.'+name,input),request=requests[index];
     assert.equal(request.url,'https://app.invalid'+expected.path);assert.equal(request.method,expected.method);
-    assert.equal(request.headers.get('x-dvaia-secureshop-launch'),'a'.repeat(43));
+    assert.equal(request.headers.get('x-owasp-ai-goat-secureshop-launch'),'a'.repeat(43));
     assert.equal(request.headers.get('authorization'),'Bearer synthetic-shop-token');
     assert.equal(await request.text(),expected.body===undefined?'':JSON.stringify(expected.body));
   }

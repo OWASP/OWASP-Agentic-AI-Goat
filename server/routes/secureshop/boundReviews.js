@@ -28,7 +28,7 @@ function exactObject(value, keys, required = keys) {
 function headerOccurrences(req) {
   let count = 0;
   for (let index = 0; index < (req.rawHeaders || []).length; index += 2) {
-    if (String(req.rawHeaders[index]).toLowerCase() === 'x-dvaia-secureshop-launch') count += 1;
+    if (String(req.rawHeaders[index]).toLowerCase() === 'x-owasp-ai-goat-secureshop-launch') count += 1;
   }
   return count;
 }

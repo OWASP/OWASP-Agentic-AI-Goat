@@ -1,7 +1,7 @@
 'use strict';
 
 // Root-only qualification for the unregistered identity0068 draft. The gated
-// branch accepts only newly created local dvaia_test PostgreSQL databases.
+// branch accepts only newly created local owasp_ai_goat_test PostgreSQL databases.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -18,7 +18,7 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes'
   && process.env.PG_FINFLOW_0068_MIGRATION_URL
   && process.env.PG_FINFLOW_0068_RUNTIME_URL;
 const WORKSHOP = 'sensitive_info_disclosure';
-const DATABASE = 'dvaia_test_finflow_0068';
+const DATABASE = 'owasp_ai_goat_test_finflow_0068';
 const OWNED_PATH = new RegExp(`^/${DATABASE}$`);
 
 function ownedUrl(key) {
@@ -166,8 +166,8 @@ test('identity0068 PostgreSQL qualification preserves catalog and learner state'
   const runtimeUrl = new URL(ownedUrl('PG_FINFLOW_0068_RUNTIME_URL'));
   assert.equal(runtimeUrl.host, migrationUrl.host);
   assert.equal(runtimeUrl.pathname, migrationUrl.pathname);
-  const migration = pool(migrationUrl.href, 'dvaia-finflow-0068-migration');
-  const runtime = pool(runtimeUrl.href, 'dvaia-finflow-0068-runtime');
+  const migration = pool(migrationUrl.href, 'owasp-ai-goat-finflow-0068-migration');
+  const runtime = pool(runtimeUrl.href, 'owasp-ai-goat-finflow-0068-runtime');
   t.after(async () => Promise.allSettled([runtime.end(), migration.end()]));
   const rows = generator.buildRows();
 

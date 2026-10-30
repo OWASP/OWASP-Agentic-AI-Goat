@@ -5,7 +5,7 @@ const {customerSelection}=require('../../services/secureshopBoundCustomerCommerc
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const exact=(v,keys,required=keys)=>v&&Object.getPrototypeOf(v)===Object.prototype
  &&Object.keys(v).every(k=>keys.includes(k))&&required.every(k=>Object.hasOwn(v,k));
-const header=req=>(req.rawHeaders||[]).filter((_,i)=>i%2===0).filter(x=>String(x).toLowerCase()==='x-dvaia-secureshop-launch').length===1;
+const header=req=>(req.rawHeaders||[]).filter((_,i)=>i%2===0).filter(x=>String(x).toLowerCase()==='x-owasp-ai-goat-secureshop-launch').length===1;
 function publicError(error){
  if(['STALE_LAUNCH','LAUNCH_UNAVAILABLE','SESSION_UNAVAILABLE','CONVERSATION_UNAVAILABLE','SHOP_AUTH_INVALID','SHOP_SCENE_STALE'].includes(error?.code))return[401,true,'Shop session unavailable'];
  if(['INVALID_ARGUMENT','INVALID_TURN_REQUEST'].includes(error?.code))return[400,false,'Invalid customer chat request'];

@@ -16,12 +16,12 @@ class FullBackendMcpResources:
                  runner_image, nonce, build_receipt, context_sha256, model_digest):
         self.command, self.record = command, record
         self.daemon_id, self.model_digest = daemon_id, model_digest
-        self.mail = dict(name='dvaia-full-mcp-mailpit-' + nonce, image=mailpit_image,
-                         labels={'dvaia.qualification': 'full_backend_mcp_indirect',
-                                 'dvaia.owner-uid': str(os.getuid()), 'dvaia.run-nonce': nonce},
+        self.mail = dict(name='owasp-ai-goat-full-mcp-mailpit-' + nonce, image=mailpit_image,
+                         labels={'owasp-ai-goat.qualification': 'full_backend_mcp_indirect',
+                                 'owasp-ai-goat.owner-uid': str(os.getuid()), 'owasp-ai-goat.run-nonce': nonce},
                          intended=False, captured=None)
-        template = (Path(source) / 'sidecars/sandbox-runner/apparmor/dvaia-mcp-sandbox.apparmor.in').read_bytes()
-        profile = 'dvaia-mcp-sandbox-' + nonce[:12]
+        template = (Path(source) / 'sidecars/sandbox-runner/apparmor/owasp-ai-goat-mcp-sandbox.apparmor.in').read_bytes()
+        profile = 'owasp-ai-goat-mcp-sandbox-' + nonce[:12]
         policy = template.replace(b'@@SUPERVISOR_PROFILE@@', profile.encode())
         self.runner = StrictRunner(docker=command, remote=remote,
             record=lambda name, value: record(name + '.json', value), daemon_id=daemon_id,

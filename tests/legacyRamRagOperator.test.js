@@ -9,7 +9,7 @@ async function stopChild(child){if(child.exitCode!==null||child.signalCode!==nul
 async function port(){const server=net.createServer();try{await bounded(new Promise((resolve,reject)=>server.listen(0,'127.0.0.1',resolve).once('error',reject)),'port listen');return server.address().port;}finally{await bounded(new Promise((resolve,reject)=>server.close(error=>error&&error.code!=='ERR_SERVER_NOT_RUNNING'?reject(error):resolve())),'port close');}}
 async function ready(url){for(let attempt=0;attempt<100;attempt++){try{await operator.health(url);return;}catch{}await new Promise(resolve=>setTimeout(resolve,20));}throw Error('Fixture health timeout');}
 operatorTest('operator binds exact process identity, captures once, closes inspector and writes private receipt', async t => {
-  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'dvaia-rag-operator-')));fs.chmodSync(root,0o700);let child;
+  const root=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'owasp-ai-goat-rag-operator-')));fs.chmodSync(root,0o700);let child;
   t.after(async()=>{if(child)await stopChild(child);if(!child||child.exitCode!==null||child.signalCode!==null)fs.rmSync(root,{recursive:true,force:true});});
   const healthPort=await port(),inspectorPort=await port();
   child=fork(path.join(__dirname,'fixtures/legacyRamRagOperatorTarget.js'),[],{execPath:executable,execArgv:[`--inspect-port=127.0.0.1:${inspectorPort}`],cwd:path.resolve(__dirname,'..'),stdio:['ignore','ignore','ignore','ipc'],env:{PATH:path.dirname(executable),HOME:root,TMPDIR:root,LOGS_DIR:root,OWNED_HEALTH_PORT:String(healthPort)}});

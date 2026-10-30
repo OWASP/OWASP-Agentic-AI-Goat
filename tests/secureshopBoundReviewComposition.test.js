@@ -479,7 +479,7 @@ test('composition exposes the one coordinator and accepts only a branded prepare
   try{
     const operationId='40000000-0000-4000-8000-000000000001';
     const base=`http://127.0.0.1:${server.address().port}/api/secureshop/agents/merchant/assistant/listing-create`;
-    const headers={'x-dvaia-secureshop-launch':'a'.repeat(43),'content-type':'application/json'};
+    const headers={'x-owasp-ai-goat-secureshop-launch':'a'.repeat(43),'content-type':'application/json'};
     const assessed=await fetch(`${base}/assess`,{method:'POST',headers,body:JSON.stringify({operationId})});
     assert.equal(assessed.status,200);assert.equal(assessed.headers.get('cache-control'),'no-store');
     assert.deepEqual(await assessed.json(),rawIneligible(operationId));

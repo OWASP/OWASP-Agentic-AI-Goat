@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { createHash } = require('node:crypto');
 
 test('local 8B summary preserves actual provider text without reconstruction', {
-  skip: process.env.DVAIA_HTML_SUMMARY_LIVE !== '1', timeout: 45000,
+  skip: process.env.OWASP_AI_GOAT_HTML_SUMMARY_LIVE !== '1', timeout: 45000,
 }, async t => {
   const base = 'http://127.0.0.1:11434';
   const model = 'llama3.1:8b';

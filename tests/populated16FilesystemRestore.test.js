@@ -21,7 +21,7 @@ test('populated restore retains ordinary manager state and regenerates cluster-b
     const backup = path.join(root, 'backup');
     const installation = path.join(root, 'installation');
     const home = path.join(root, 'home');
-    const directory = path.join(home, '.dvaia', 'controlled');
+    const directory = path.join(home, '.owasp-ai-goat', 'controlled');
     fs.mkdirSync(backup, { mode: 0o700 });
     fs.mkdirSync(installation, { mode: 0o700 });
     fs.mkdirSync(directory, { recursive: true, mode: 0o700 });

@@ -19,7 +19,7 @@ function admittedUrls(state) {
   const urls = names.map(name => new URL(process.env[name]));
   for (const url of urls) {
     assert.equal(url.hostname, '127.0.0.1');
-    assert.match(url.pathname, /^\/dvaia_test_ctf_reset_memory_[a-f0-9]{12}_(fresh|populated)$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_ctf_reset_memory_[a-f0-9]{12}_(fresh|populated)$/);
     assert.equal(url.search, ''); assert.equal(url.hash, '');
   }
   assert.equal(urls[0].pathname, urls[1].pathname);
@@ -92,7 +92,7 @@ async function acknowledge(pool, prepared) {
 test('identity 0154 Full Reset ACK clears adaptive memory only on ordered first application',
   { skip: !ENABLED, timeout: 180000 }, async t => {
     assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-    assert.equal(process.env.DVAIA_CURRENT_MAIN_WORKSPACE, ROOT);
+    assert.equal(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE, ROOT);
     const pools = [], paths = new Set();
     t.after(async () => {
       const results = await Promise.allSettled(pools.map(pool => pool.end()));

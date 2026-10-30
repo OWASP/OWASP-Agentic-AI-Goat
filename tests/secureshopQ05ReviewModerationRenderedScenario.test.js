@@ -375,7 +375,7 @@ test('physical refreshed credentials are checked by live launch and persona auth
     return { user: persona, ...personaSession };
   } } };
   const input = { headers: { authorization: 'Bearer refreshed-persona',
-    'x-dvaia-secureshop-launch': 'refreshed-launch' }, composition, scope,
+    'x-owasp-ai-goat-secureshop-launch': 'refreshed-launch' }, composition, scope,
   persona, personaSession };
   await scenario.assertPhysicalAuthority(input);
   assert.deepEqual(seen, [['launch', 'refreshed-launch'], ['persona', 'refreshed-persona']]);

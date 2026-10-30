@@ -20,7 +20,7 @@ class LauncherContract(unittest.TestCase):
         compile(source, str(LAUNCHER), 'exec')
         for token in ("'grant-file'", "'grant-id'", "'owner-handle-file'", "'package-root'",
                       "'manifest'", "'managed-node'", "'postgres-image-id'", "'container-nonce'",
-                      "'run', '--detach', '--pull', 'never'", "'127.0.0.1::5432'", 'dvaia.owner',
+                      "'run', '--detach', '--pull', 'never'", "'127.0.0.1::5432'", 'owasp-ai-goat.owner',
                       'WAITING_OWNER_HANDLE', 'canonicalWorkspaceRoot', 'candidateSourceRoot',
                       'sourceFilesSha256', 'terminal_pass_cleaned', 'unowned container cleanup refused',
                       'grant already consumed', "NODE_VERSION = 'v26.8.2'",
@@ -56,13 +56,13 @@ class LauncherContract(unittest.TestCase):
             calls.append(command)
             return SimpleNamespace(returncode=0, stdout=json.dumps([{
                 'Id': good_id, 'Name': '/review', 'Image': 'sha256:' + 'b' * 64,
-                'Config': {'Labels': {'dvaia.owner': '/root'}}}]), stderr='')
+                'Config': {'Labels': {'owasp-ai-goat.owner': '/root'}}}]), stderr='')
 
         LAUNCHER_MODULE.run = fake_run
         try:
             with self.assertRaisesRegex(RuntimeError, 'unowned container cleanup refused'):
                 LAUNCHER_MODULE.remove_owned_container(
-                    ['docker'], 'review', good_id, {'dvaia.owner': '/root'},
+                    ['docker'], 'review', good_id, {'owasp-ai-goat.owner': '/root'},
                     expected_image='sha256:' + 'c' * 64)
         finally:
             LAUNCHER_MODULE.run = original

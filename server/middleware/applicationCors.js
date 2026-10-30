@@ -23,7 +23,7 @@ const PLATFORM_ORIGIN_PREFIXES = Object.freeze([
 const matchesPrefix = (pathname, prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`);
 const TRUSTED_METHODS = Object.freeze(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']);
 const TRUSTED_HEADERS = Object.freeze(['authorization', 'content-type', 'accept', 'x-request-id']);
-const SHOP_HEADERS = Object.freeze([...TRUSTED_HEADERS, 'x-dvaia-secureshop-launch', 'x-api-key']);
+const SHOP_HEADERS = Object.freeze([...TRUSTED_HEADERS, 'x-owasp-ai-goat-secureshop-launch', 'x-api-key']);
 
 // Select one policy before cors can end an OPTIONS request or set response
 // headers. Other challenge routes retain their intentional reflective policy.

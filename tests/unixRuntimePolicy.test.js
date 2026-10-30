@@ -39,5 +39,5 @@ test('actual runtime admission matches the centralized floor without claiming qu
   assert.equal(policy('node(){ echo v26.10.0; }; npm(){ echo 12.1.0; }; validate_node && echo ready'), 'ready');
   assert.equal(policy('node(){ echo v26.7.0; }; npm(){ echo 12.1.0; }; if validate_node; then echo ready; else echo rejected; fi'), 'rejected');
   assert.equal(policy('PATH=/nonexistent; node(){ echo v26.10.0; }; if validate_node; then echo ready; else echo rejected; fi'), 'rejected');
-  assert.equal(policy('printf "%s %s" "$DVAIA_MINIMUM_NODE_VERSION" "$DVAIA_MINIMUM_NPM_VERSION"'), '26.10.0 12.1.0');
+  assert.equal(policy('printf "%s %s" "$OWASP_AI_GOAT_MINIMUM_NODE_VERSION" "$OWASP_AI_GOAT_MINIMUM_NPM_VERSION"'), '26.10.0 12.1.0');
 });

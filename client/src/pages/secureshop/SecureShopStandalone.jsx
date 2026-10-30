@@ -11,11 +11,11 @@ import { STANDALONE_SESSION_CHANNEL } from './bridge/standaloneIntents.mjs';
 import Spinner from './components/Spinner.jsx';
 import './theme.css';
 
-function ShopOpening({ message = 'Opening SecureShop…', error, onRetry }) {
+function ShopOpening({ message = 'Opening OWASP AI SecureShop…', error, onRetry }) {
   return <main className="ss-root" style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center',
     background: 'var(--paper, #f8f6f1)' }}>
     <div style={{ textAlign: 'center', padding: 24 }}>
-      <div className="ss-mono" style={{ fontSize: 12, letterSpacing: '0.12em' }}>SECURESHOP</div>
+      <div className="ss-mono" style={{ fontSize: 12, letterSpacing: '0.12em' }}>OWASP AI SecureShop</div>
       {!error && <Spinner aria-hidden="true" style={{ display: 'block', margin: '20px auto 0' }} />}
       <p role={error ? 'alert' : 'status'}>{error || message}</p>
       {error && <button type="button" className="ss-btn ss-btn--ghost" onClick={onRetry}>Retry</button>}
@@ -64,7 +64,7 @@ export default function SecureShopStandalone({ client: suppliedClient }) {
       if (!controller.signal.aborted && isCurrentSession(generation)) setSession(error.status === 401
         ? { status: 'ready', user: null, expiresAt: null, error: null }
         : { status: 'error', user: null, expiresAt: null,
-          error: 'Unable to verify the shop session right now. Retry when SecureShop is ready.', retry: 'session' });
+          error: 'Unable to verify the shop session right now. Retry when OWASP AI SecureShop is ready.', retry: 'session' });
     });
     return () => controller.abort();
   }, [client, check, isCurrentSession]);
@@ -85,7 +85,7 @@ export default function SecureShopStandalone({ client: suppliedClient }) {
         setSession({ status: 'ready', user: null, expiresAt: null, error: null });
         navigate(`/secureshop/login?next=${encodeURIComponent(safeShopRoute(routeRef.current, { publicOnly: false }) || '/secureshop')}`);
       } else setSession({ status: 'error', user: null, expiresAt: null,
-        error: 'Unable to renew the shop session right now. Retry when SecureShop is ready.', retry: 'renew' });
+        error: 'Unable to renew the shop session right now. Retry when OWASP AI SecureShop is ready.', retry: 'renew' });
     } finally { renewalPending.current = false; }
   }, [client, navigate, isCurrentSession]);
 
@@ -121,7 +121,7 @@ export default function SecureShopStandalone({ client: suppliedClient }) {
         if (!isCurrentSession(generation)) return;
         if (error.status !== 401) {
           setSession({ status: 'error', user: null, expiresAt: null,
-            error: 'Unable to verify the shop session right now. Retry when SecureShop is ready.', retry: 'session' });
+            error: 'Unable to verify the shop session right now. Retry when OWASP AI SecureShop is ready.', retry: 'session' });
           return;
         }
       }

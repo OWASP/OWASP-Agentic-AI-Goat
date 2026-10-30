@@ -212,7 +212,7 @@ function SecurityTab() {
       <Card padded style={{ padding: 24 }}>
         <h3 style={{ fontFamily: 'var(--display)', fontSize: 20, marginTop: 0 }}>Change password</h3>
         {standalone ? <>
-          <p style={{ fontSize: 13, opacity: 0.75 }}>Change your password on the SecureShop account page.</p>
+          <p style={{ fontSize: 13, opacity: 0.75 }}>Change your password on the OWASP AI SecureShop account page.</p>
           <Button onClick={() => window.parent.postMessage({ channel: STANDALONE_SESSION_CHANNEL,
             type: 'password-route', nonce: window.location.hash.slice(1) }, new URL(document.baseURI).origin)}>
             Change password
@@ -730,7 +730,7 @@ function APIKeysTab() {
       <Card padded style={{ padding: 24, maxWidth: 640 }}>
         <h3 style={{ fontFamily: 'var(--display)', fontSize: 20, marginTop: 0 }}>Live API key</h3>
         <p style={{ fontSize: 13, opacity: 0.75 }}>
-          Use this key to authenticate against the SecureShop v2 API. Never commit it to source control.
+          Use this key to authenticate against the OWASP AI SecureShop API. Never commit it to source control.
         </p>
         {loading || !inScope ? (
           <div className="ss-mono" style={{ opacity: 0.6 }}>Loading…</div>
@@ -955,7 +955,7 @@ function SessionsTab() {
         && pendingRevoke.generation === scopeGeneration.current.version
         && <AccountConsequenceConfirmation title="Revoke session?"
           consequence={`${pendingRevoke.userAgent} (${pendingRevoke.ip}), session ${pendingRevoke.id}. ${pendingRevoke.isCurrent
-            ? 'This is your current session. Revoking it will sign you out of SecureShop.'
+            ? 'This is your current session. Revoking it will sign you out of OWASP AI SecureShop.'
             : 'This other session will stop working. Your current session will remain signed in.'}`}
           confirmLabel="Confirm revoke" busy={Boolean(revokingRef.current)}
           onCancel={() => setPendingRevoke(null)} onConfirm={revoke} />}

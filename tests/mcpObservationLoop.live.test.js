@@ -7,7 +7,7 @@ const {createLangChainProvider}=require('../server/agent-runtime/providers/langc
 test('real 8B uses an observed filename for its next graph action',{
  skip:process.env.RUN_LIVE_MCP_LOOP!=='1',timeout:120000,
 },async t=>{
- const root=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-mcp-loop-'));
+ const root=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-mcp-loop-'));
  try{
   const name=`receipt-${randomUUID()}.txt`,marker=randomUUID();
   await fs.writeFile(path.join(root,'index.txt'),`The requested receipt is in ${name}. Read that file next.`);

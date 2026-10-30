@@ -11,7 +11,7 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes' && process.env[prefix +
 function url(kind) {
   const value = new URL(process.env[prefix + kind + '_URL']);
   assert.equal(value.hostname, '127.0.0.1');
-  assert.match(value.pathname, /^\/dvaia_test_history_cleanup_[a-f0-9]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_history_cleanup_[a-f0-9]+$/);
   assert.equal(value.username, 'dvaia_legacy_challenge_' + kind.toLowerCase());
   assert.equal(value.search, ''); assert.equal(value.hash, '');
   return value.href;
@@ -19,7 +19,7 @@ function url(kind) {
 test('source cleanup compares exact rows atomically and denies runtime callers and stale replay', { skip: !enabled, timeout: 30000 }, async () => {
   const migration = new Pool({ connectionString: url('MIGRATION') });
   const runtime = new Pool({ connectionString: url('RUNTIME') });
-  const prefixDirectory = await fs.mkdtemp(path.join(require('node:os').tmpdir(),'dvaia-source-upgrade-'));
+  const prefixDirectory = await fs.mkdtemp(path.join(require('node:os').tmpdir(),'owasp-ai-goat-source-upgrade-'));
   try {
     const directory = path.resolve(__dirname, '../../db/postgres/workshop-migrations/legacy_challenge');
     await fs.cp(directory,prefixDirectory,{recursive:true});
@@ -79,7 +79,7 @@ test('two-store coordinator retains quarantine through source commit and recover
   const targetUrl = new URL(process.env[prefix + 'TARGET_MIGRATION_URL']);
   assert.equal(targetUrl.hostname, '127.0.0.1');
   assert.equal(targetUrl.username, 'dvaia_identity_migration');
-  assert.match(targetUrl.pathname, /^\/dvaia_test_history_cleanup_[a-f0-9]+$/);
+  assert.match(targetUrl.pathname, /^\/owasp_ai_goat_test_history_cleanup_[a-f0-9]+$/);
   const source = new Pool({ connectionString: url('MIGRATION') });
   const target = new Pool({ connectionString: targetUrl.href });
   try {
@@ -185,7 +185,7 @@ test('killed migration worker recovers from committed source journal without los
   const sourceUrl = url('MIGRATION'), targetUrl = new URL(process.env[prefix + 'TARGET_MIGRATION_URL']);
   assert.equal(targetUrl.hostname, '127.0.0.1');
   assert.equal(targetUrl.username, 'dvaia_identity_migration');
-  assert.match(targetUrl.pathname, /^\/dvaia_test_history_cleanup_[a-f0-9]+$/);
+  assert.match(targetUrl.pathname, /^\/owasp_ai_goat_test_history_cleanup_[a-f0-9]+$/);
   const source = new Pool({ connectionString: sourceUrl }), target = new Pool({ connectionString: targetUrl.href });
   let child, exited;
   try {

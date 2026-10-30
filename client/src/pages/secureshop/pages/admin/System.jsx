@@ -989,7 +989,7 @@ export default function AdminSystem() {
           style={{ marginTop: 24, padding: 12, border: '1px solid var(--signal)', color: 'var(--signal)', fontFamily: 'var(--mono)', fontSize: 11 }}
         >
           {attachedBridge
-            ? 'Diagnostic ran in the isolated SecureShop practice; inspect its verified receipt.'
+            ? 'Diagnostic ran in the isolated OWASP AI SecureShop practice; inspect its verified receipt.'
             : 'exec surface is LIVE (SS_SYSTEM_ALLOW_EXEC=true) — you are running real shell commands.'}
         </motion.div>
       )}

@@ -87,7 +87,7 @@ def child_environment(source, evidence, stores, policy_output=False, repository_
     else:
         require(source not in evidence.parents, 'private external evidence required')
     require(set(stores) == set(STORES), 'four owned stores required')
-    result = {'PG_TEST_DISPOSABLE': 'yes', 'DVAIA_CURRENT_MAIN_WORKSPACE': str(source),
+    result = {'PG_TEST_DISPOSABLE': 'yes', 'OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE': str(source),
               'SECURESHOP_STANDALONE_SSRF_RENDERED_NATIVE': '1',
               'SECURESHOP_STANDALONE_SSRF_RENDERED_BUILD': str(source / 'client/build'),
               'SECURESHOP_STANDALONE_SSRF_RENDERED_EVIDENCE_PATH': str(evidence / 'result.json')}
@@ -105,7 +105,7 @@ def child_environment(source, evidence, stores, policy_output=False, repository_
             require(url.scheme == 'postgresql' and url.hostname == '127.0.0.1'
                     and url.username == f'dvaia_{name}_{role.lower()}' and not url.password
                     and not url.query and not url.fragment
-                    and re.fullmatch(r'/dvaia_test_[a-z0-9_]+', url.path), 'owned URL boundary invalid')
+                    and re.fullmatch(r'/owasp_ai_goat_test_[a-z0-9_]+', url.path), 'owned URL boundary invalid')
             pair.append((url.hostname, url.port, url.path))
             result[PREFIX + key + '_' + role + '_URL'] = value
         require(pair[0] == pair[1], 'runtime/migration database mismatch')

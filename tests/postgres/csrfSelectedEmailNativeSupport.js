@@ -4,8 +4,8 @@
 const assert=require('node:assert/strict'),fs=require('node:fs');
 async function createSelectedEmailApp({actual=false}={}){
  assert.equal(typeof actual,'boolean');if(actual)assert.equal(process.env.CSRF_SELECTED_ACTUAL,'1');
- assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
- const {Pool}=require('pg'),pools=[];const pool=(store,role)=>{const url=new URL(process.env[`PG_CSRF_EMAIL_COMPOSED_${store.toUpperCase()}_${role.toUpperCase()}_URL`]);assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,new RegExp(`^/dvaia_test_csrf_email_${store}_[a-f0-9]+$`));assert.equal(url.username,`dvaia_${store}_${role}`);const value=new Pool({connectionString:url.href,max:6,statement_timeout:10000});pools.push(value);return value;};
+ assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
+ const {Pool}=require('pg'),pools=[];const pool=(store,role)=>{const url=new URL(process.env[`PG_CSRF_EMAIL_COMPOSED_${store.toUpperCase()}_${role.toUpperCase()}_URL`]);assert.equal(url.hostname,'127.0.0.1');assert.match(url.pathname,new RegExp(`^/owasp_ai_goat_test_csrf_email_${store}_[a-f0-9]+$`));assert.equal(url.username,`dvaia_${store}_${role}`);const value=new Pool({connectionString:url.href,max:6,statement_timeout:10000});pools.push(value);return value;};
  const identityPool=pool('identity','runtime'),migration=pool('identity','migration'),csrfPool=pool('csrf','runtime'),csrfMigration=pool('csrf','migration');
  let runtime,route,server,restoreBrowser,transport;const originalFetch=global.fetch;
  // No inference endpoint is allowed in this controlled cohort.

@@ -3,18 +3,18 @@
 # CLI parameter blocks never overwrite wrapper switches. No global environment
 # writes or policy changes. Plan starts no package/runtime provider.
 
-function Invoke-DvaiaWindowsWrapperHost {
+function Invoke-OwaspAiGoatWindowsWrapperHost {
     . (Join-Path $PSScriptRoot 'host-preflight.ps1')
-    return Invoke-DvaiaWindowsHostPreflight
+    return Invoke-OwaspAiGoatWindowsHostPreflight
 }
 
-function Invoke-DvaiaWindowsWrapperProvision {
+function Invoke-OwaspAiGoatWindowsWrapperProvision {
     param($Request)
     . (Join-Path $PSScriptRoot 'dependencies.ps1')
-    return Invoke-DvaiaWindowsDependencies -ExecuteMode $true -RepoRoot $Request.repoRoot -UserProfile $Request.userProfile -SystemRoot $Request.systemRoot -ProcessEnvironment $Request.environment
+    return Invoke-OwaspAiGoatWindowsDependencies -ExecuteMode $true -RepoRoot $Request.repoRoot -UserProfile $Request.userProfile -SystemRoot $Request.systemRoot -ProcessEnvironment $Request.environment
 }
 
-function Get-DvaiaWindowsWrapperBindings {
+function Get-OwaspAiGoatWindowsWrapperBindings {
     param($Request,
         [scriptblock]$Runner = $null,
         [scriptblock]$Probe = $null,
@@ -24,10 +24,10 @@ function Get-DvaiaWindowsWrapperBindings {
     )
     . (Join-Path $PSScriptRoot 'dependencies.ps1')
     . (Join-Path $PSScriptRoot 'packages.ps1')
-    if (-not $Runner) { $Runner = ${function:Invoke-DvaiaPrerequisiteProcess} }
-    if (-not $Probe) { $Probe = ${function:Get-DvaiaNativePackageProbe} }
-    $policy = Get-DvaiaDependencyCoordinatorPolicy $Request.repoRoot
-    $tools = Join-Path $Request.userProfile '.dvaia\tools'
+    if (-not $Runner) { $Runner = ${function:Invoke-OwaspAiGoatPrerequisiteProcess} }
+    if (-not $Probe) { $Probe = ${function:Get-OwaspAiGoatNativePackageProbe} }
+    $policy = Get-OwaspAiGoatDependencyCoordinatorPolicy $Request.repoRoot
+    $tools = Join-Path $Request.userProfile '.owasp-ai-goat\tools'
     foreach ($name in @('npm-bootstrap-operation.json','windows-package-operation.json','windows-package-restart.json')) { if (& $Exists (Join-Path $tools $name)) { throw 'WINDOWS_WRAPPER_OPERATION_RETAINED' } }
     $candidates = @(); try { $found = & $Find; if ($found) { $candidates += [string]$found } } catch { }
     $candidates += Join-Path $tools ('node-v' + $policy.nodeMinimum + '-win-x64\node.exe')
@@ -54,10 +54,10 @@ function Get-DvaiaWindowsWrapperBindings {
         $bindings[$spec.key] = $checked.path
     }
     if ((& $Probe 'ollamaService' $Runner).status -cne 'present') { throw 'WINDOWS_WRAPPER_OLLAMA_UNAVAILABLE' }
-    return [pscustomobject]@{ componentSucceeded = $true; restartRequired = $false; operationRetained = $false; operationUncertain = $false; bindings = $bindings; childEnvironment = (New-DvaiaWindowsDependencyEnvironment -Bindings $bindings -Environment $Request.environment) }
+    return [pscustomobject]@{ componentSucceeded = $true; restartRequired = $false; operationRetained = $false; operationUncertain = $false; bindings = $bindings; childEnvironment = (New-OwaspAiGoatWindowsDependencyEnvironment -Bindings $bindings -Environment $Request.environment) }
 }
 
-function New-DvaiaWindowsCanonicalProcessInfo {
+function New-OwaspAiGoatWindowsCanonicalProcessInfo {
     param($Request)
     . (Join-Path $PSScriptRoot 'dependencies.ps1')
     . (Join-Path $PSScriptRoot 'prerequisites.ps1')
@@ -65,7 +65,7 @@ function New-DvaiaWindowsCanonicalProcessInfo {
     if ($Request.arguments[0] -cne $expected -or -not [IO.Path]::IsPathRooted($Request.executable) -or $Request.environment -isnot [System.Collections.IDictionary]) { throw 'WINDOWS_WRAPPER_PROCESS_DENIED' }
     $info = New-Object Diagnostics.ProcessStartInfo
     $info.FileName = $Request.executable; $info.UseShellExecute = $false; $info.WorkingDirectory = $Request.repoRoot
-    $info.Arguments = @($Request.arguments | ForEach-Object { ConvertTo-DvaiaProcessArgument $_ }) -join ' '
+    $info.Arguments = @($Request.arguments | ForEach-Object { ConvertTo-OwaspAiGoatProcessArgument $_ }) -join ' '
     # Replacement is essential: overlay leaves inherited VCINSTALLDIR or stale
     # executable bindings in place. Caller secrets stay inside this child only.
     $info.EnvironmentVariables.Clear()
@@ -73,9 +73,9 @@ function New-DvaiaWindowsCanonicalProcessInfo {
     return $info
 }
 
-function Invoke-DvaiaWindowsCanonicalProcess {
+function Invoke-OwaspAiGoatWindowsCanonicalProcess {
     param($Request)
-    $info = New-DvaiaWindowsCanonicalProcessInfo $Request
+    $info = New-OwaspAiGoatWindowsCanonicalProcessInfo $Request
     $child = [Diagnostics.Process]::Start($info)
     try {
         if ($Request.kind -ceq 'start') {
@@ -91,18 +91,18 @@ function Invoke-DvaiaWindowsCanonicalProcess {
     } finally { $child.Dispose() }
 }
 
-function Invoke-DvaiaWindowsWrapperHandoff {
+function Invoke-OwaspAiGoatWindowsWrapperHandoff {
     param([ValidateSet('setup','start')][string]$Kind,
         [bool]$PlanMode = $false, [bool]$NoInstall = $false, [bool]$Upgrade = $false, [bool]$Repair = $false, [bool]$InitDb = $false,
         [bool]$CompositionReady = $false,
         [string]$RepoRoot = (Join-Path $PSScriptRoot '..\..\..'), [string]$UserProfile = $env:USERPROFILE, [string]$SystemRoot = $env:SystemRoot,
         [System.Collections.IDictionary]$Environment = $null,
-        [scriptblock]$ObserveHost = ${function:Invoke-DvaiaWindowsWrapperHost},
+        [scriptblock]$ObserveHost = ${function:Invoke-OwaspAiGoatWindowsWrapperHost},
         [scriptblock]$RootEnvironmentExists = { param($File) Test-Path -LiteralPath $File },
         [scriptblock]$IsElevated = { ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator) },
-        [scriptblock]$Provision = ${function:Invoke-DvaiaWindowsWrapperProvision},
-        [scriptblock]$Discover = ${function:Get-DvaiaWindowsWrapperBindings},
-        [scriptblock]$Runner = ${function:Invoke-DvaiaWindowsCanonicalProcess}
+        [scriptblock]$Provision = ${function:Invoke-OwaspAiGoatWindowsWrapperProvision},
+        [scriptblock]$Discover = ${function:Get-OwaspAiGoatWindowsWrapperBindings},
+        [scriptblock]$Runner = ${function:Invoke-OwaspAiGoatWindowsCanonicalProcess}
     )
     $RepoRoot = [IO.Path]::GetFullPath($RepoRoot)
     $arguments = @((Join-Path $RepoRoot $(if ($Kind -ceq 'setup') { 'scripts\setup-application.js' } else { 'scripts\start-application.js' })))
@@ -131,7 +131,7 @@ function Invoke-DvaiaWindowsWrapperHandoff {
         }
         # Rebuild from admitted bindings, never trust a provider-supplied full env.
         . (Join-Path $PSScriptRoot 'dependencies.ps1')
-        $child = New-DvaiaWindowsDependencyEnvironment -Bindings $dependency.bindings -Environment $Environment
+        $child = New-OwaspAiGoatWindowsDependencyEnvironment -Bindings $dependency.bindings -Environment $Environment
         $result.bindings = $dependency.bindings
         $outcome = & $Runner @{ kind = $Kind; repoRoot = $RepoRoot; executable = $dependency.bindings.nodeExecutable; arguments = $arguments; environment = $child }
         if ($outcome.exitCode -isnot [int] -or $outcome.exitCode -ne 0) { throw 'WINDOWS_WRAPPER_CANONICAL_FAILED' }

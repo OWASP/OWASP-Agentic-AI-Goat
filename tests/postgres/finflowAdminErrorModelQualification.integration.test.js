@@ -157,10 +157,10 @@ async function request(base, endpoint, token, body, method = 'POST') {
 test('actual local8B qualifies config, directory, and durable error effects with controls and reset',
   { skip: !enabled, timeout: 1800000 }, async t => {
     const databaseBindings = [
-      ['IDENTITY_DATABASE_URL', 'dvaia_test_finflow_admin_error_identity'],
-      ['IDENTITY_MIGRATION_DATABASE_URL', 'dvaia_test_finflow_admin_error_identity'],
-      ['FINFLOW_WORKSHOP_DATABASE_URL', 'dvaia_test_finflow_admin_error_store'],
-      ['FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL', 'dvaia_test_finflow_admin_error_store'],
+      ['IDENTITY_DATABASE_URL', 'owasp_ai_goat_test_finflow_admin_error_identity'],
+      ['IDENTITY_MIGRATION_DATABASE_URL', 'owasp_ai_goat_test_finflow_admin_error_identity'],
+      ['FINFLOW_WORKSHOP_DATABASE_URL', 'owasp_ai_goat_test_finflow_admin_error_store'],
+      ['FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL', 'owasp_ai_goat_test_finflow_admin_error_store'],
     ];
     const databaseUrls = Object.fromEntries(databaseBindings.map(([name]) =>
       [name, new URL(process.env[name])]));
@@ -173,7 +173,7 @@ test('actual local8B qualifies config, directory, and durable error effects with
       databaseUrls.IDENTITY_MIGRATION_DATABASE_URL.username);
     assert.notEqual(databaseUrls.FINFLOW_WORKSHOP_DATABASE_URL.username,
       databaseUrls.FINFLOW_WORKSHOP_MIGRATION_DATABASE_URL.username);
-    assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE),
+    assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE),
       fs.realpathSync(process.cwd()));
     assert.deepEqual(String(process.env.FINFLOW_ROUTE_OBJECTIVES).split(',').sort(),
       MATRIX.map(item => item.id).sort());
@@ -181,8 +181,8 @@ test('actual local8B qualifies config, directory, and durable error effects with
     assert.equal(path.isAbsolute(process.env.FINFLOW_ADMIN_ERROR_EVIDENCE_PATH || ''), true);
     assert.equal(evidencePath.startsWith(`${path.resolve(process.cwd())}${path.sep}`), false,
       'evidence must survive staged-source cleanup');
-    const appDataRoot = path.resolve(process.env.DVAIA_APP_DATA_ROOT || '');
-    assert.equal(path.isAbsolute(process.env.DVAIA_APP_DATA_ROOT || ''), true);
+    const appDataRoot = path.resolve(process.env.OWASP_AI_GOAT_APP_DATA_ROOT || '');
+    assert.equal(path.isAbsolute(process.env.OWASP_AI_GOAT_APP_DATA_ROOT || ''), true);
     const targetRoot = path.join(appDataRoot, TARGET_ROOT_NAME);
     assert.equal(path.resolve(process.env.FINFLOW_TRAVERSAL_TARGET_ROOT || ''), targetRoot);
     assert.equal(path.resolve(process.env.FINFLOW_BACKUP_ROOT || ''),
@@ -357,7 +357,7 @@ test('actual local8B qualifies config, directory, and durable error effects with
         const directoryPath = directory ? path.join(directory, 'config') : null;
         const listing = directoryPath && fs.existsSync(directoryPath)
           ? fs.readdirSync(directoryPath, { withFileTypes: true })
-            .filter(entry => !entry.name.startsWith('.dvaia-'))
+            .filter(entry => !entry.name.startsWith('.owasp-ai-goat-'))
             .map(entry => `${entry.name}${entry.isDirectory() ? '/' : ''}`).sort() : null;
         return { kind: item.kind, rows, directory, directoryPath,
           exists: Boolean(directoryPath && fs.existsSync(directoryPath)), listing,

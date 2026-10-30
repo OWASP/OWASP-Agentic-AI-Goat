@@ -34,7 +34,7 @@ const IDS = ['ss_cross_persona_effect','ss_acl_advisory_effect','ss_acl_enforced
 function ownedUrl(key) {
   const value = new URL(process.env[key]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 async function seed(pool, curriculum) {
@@ -66,7 +66,7 @@ async function snapshot(pool, userId) {
 }
 
 test('historical release fixture retains the root-bound116 catalog and Persona predecessor', () => {
-  assert.equal(historical116.provenance.root, 'dvaia-workshop-catalog-release-0i69aob9/source');
+  assert.equal(historical116.provenance.root, 'owasp-ai-goat-workshop-catalog-release-0i69aob9/source');
   assert.equal(historical116.provenance.sourceHashes['server/config/workshopCatalog.js'],
     '54be1234e42d524e8090fe334bfb24538b8f0442b04b25d326169d75b0ceaa32');
   assert.equal(historical116.provenance.sourceHashes['server/database/postgres/workshopPlatformSeed.js'],

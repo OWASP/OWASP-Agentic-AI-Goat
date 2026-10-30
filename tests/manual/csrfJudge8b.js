@@ -38,7 +38,7 @@ const { fixtures } = require('../fixtures/csrfJudgeCases');
      : 'synthetic server observation; no browser executed',
     explanation: result.judgment.explanation, model: result.judgment.model, judgeVersion: result.judgment.judgeVersion, rubricVersion: result.judgment.rubricVersion };
    rows.push(row); console.log(JSON.stringify(row));
-   fs.writeFileSync('/tmp/dvaia-csrf-8b-results.json', JSON.stringify(rows, null, 2));
+   fs.writeFileSync('/tmp/owasp-ai-goat-csrf-8b-results.json', JSON.stringify(rows, null, 2));
   }
  }
 })().catch(error => { console.error(error); process.exitCode = 1; });

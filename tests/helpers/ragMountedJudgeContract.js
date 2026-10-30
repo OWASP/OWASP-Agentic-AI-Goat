@@ -4,7 +4,7 @@ const C = require('../../server/agent-runtime/pricingEvidenceCatalogue');
 const V = require('../../server/agent-runtime/ragSemanticDecompositionVerifier');
 
 // Exact legacy rubric data recovered from same-root indirectObjectiveJudge.js.
-// root: dvaia-codebot-parity-0t0oi6kk/source; archived SHA256 below.
+// root: owasp-ai-goat-codebot-parity-0t0oi6kk/source; archived SHA256 below.
 const LEGACY_RUBRIC_SOURCE_SHA256 = '3e623aabab45014e7ba205284aae591fb54863320eb738ebd3cc07f6a32fa36d';
 function legacyRubric(objectiveId) {
   const defense = objectiveId === 'rag_injected_doc';

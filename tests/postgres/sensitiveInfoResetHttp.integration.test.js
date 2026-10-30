@@ -51,7 +51,7 @@ test('mounted authenticated reset is durable, replayable, isolated, and catalog 
   skip:!enabled,timeout:45000,
 },async()=>{
   assert.equal(process.env.SENSITIVE_INFO_AGGREGATE_RESET_ENABLED,'true');
-  const isolated=await fs.realpath(process.env.DVAIA_ISOLATED_TEST_WORKSPACE);
+  const isolated=await fs.realpath(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE);
   const source=await fs.realpath(ROOT);const relative=path.relative(isolated,source);
   assert.ok(relative&&!relative.startsWith(`..${path.sep}`)&&relative!=='..'&&!path.isAbsolute(relative));
   for(const [draft,target] of candidates)await fs.copyFile(draft,target);

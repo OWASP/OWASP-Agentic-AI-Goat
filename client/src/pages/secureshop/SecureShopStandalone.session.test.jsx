@@ -81,7 +81,7 @@ test('shop session loading uses the original spinner and status', async () => {
   const spinner = container.querySelector('.ss-spinner');
   expect(spinner).not.toBeNull();
   expect(spinner.getAttribute('aria-hidden')).toBe('true');
-  expect(container.querySelector('p[role="status"]').textContent).toContain('Opening SecureShop');
+  expect(container.querySelector('p[role="status"]').textContent).toContain('Opening OWASP AI SecureShop');
   await act(async () => pending.resolve(null));
   expect(container.querySelector('.ss-spinner')).toBeNull();
 });

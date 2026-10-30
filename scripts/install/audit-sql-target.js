@@ -7,8 +7,8 @@ const partialHostRecovery=Symbol('verified partial audit host recovery');
 function plan({root=path.resolve(__dirname,'../..'),home=os.homedir(),dockerHost,port=8097,platform=process.platform,ownedLabSession}={}){
  let labBinding;if(platform==='win32'){labBinding=require('../lib/windows-owned-lab').describeOwnedLab(ownedLabSession);if(labBinding.workspaceId!==workspaceId(root)||!labBinding.daemonId||labBinding.daemonId==='unbound')throw Error('Owned local Docker authority required');dockerHost=labBinding.host;}
  if((platform!=='win32'&&(typeof dockerHost!=='string'||!dockerHost.startsWith('unix:///')))||!Number.isInteger(port)||port<1024||port>65535)throw Error('Owned local Docker authority required');
- const id=workspaceId(root),name=`dvaia-audit-sql-${id}`;
- return{root,id,name,volume:name+'-data',database:'dvaia_audit_control_'+id,dockerHost,port,platform,labBinding,file:path.join(home,'.dvaia',id,'audit-sql-target.json')};
+ const id=workspaceId(root),name=`owasp-ai-goat-audit-sql-${id}`;
+ return{root,id,name,volume:name+'-data',database:'owasp_ai_goat_audit_control_'+id,dockerHost,port,platform,labBinding,file:path.join(home,'.owasp-ai-goat',id,'audit-sql-target.json')};
 }
 async function provision(options={}){
  let p=plan(options);const run=options.run||createCommandRunner({cwd:p.root,env:options.commandEnv||process.env});
@@ -52,7 +52,7 @@ async function provision(options={}){
   if(!localImage.trim())await docker(['pull','postgres:18']);
   const inspected=await docker(['image','inspect','postgres:18']);
   config.image=JSON.parse(inspected)[0].Id;if(!/^sha256:[a-f0-9]{64}$/.test(config.image))throw Error('Immutable image required');await save(config);}
- const assertContainer=inspected=>{if(!inspected||inspected.Config?.Labels?.['dvaia.workspace']!==p.id||inspected.Config?.Labels?.['dvaia.purpose']!=='owned-audit-sql'||inspected.Image!==config.image||!inspected.Mounts?.some(m=>m.Type==='volume'&&m.Name===p.volume&&m.Destination==='/var/lib/postgresql')||inspected.HostConfig?.PortBindings?.['5432/tcp']?.length!==1||inspected.HostConfig.PortBindings['5432/tcp'][0].HostIp!=='127.0.0.1')throw Error('AUDIT_SQL_OWNERSHIP_CONFLICT');};
+ const assertContainer=inspected=>{if(!inspected||inspected.Config?.Labels?.['owasp-ai-goat.workspace']!==p.id||inspected.Config?.Labels?.['owasp-ai-goat.purpose']!=='owned-audit-sql'||inspected.Image!==config.image||!inspected.Mounts?.some(m=>m.Type==='volume'&&m.Name===p.volume&&m.Destination==='/var/lib/postgresql')||inspected.HostConfig?.PortBindings?.['5432/tcp']?.length!==1||inspected.HostConfig.PortBindings['5432/tcp'][0].HostIp!=='127.0.0.1')throw Error('AUDIT_SQL_OWNERSHIP_CONFLICT');};
  const finish=async(created)=>{
   let databasePort;
   if(windows){const inspected=JSON.parse(await docker(['inspect',p.name]))[0];assertContainer(inspected);if(inspected.State?.Running!==true)throw Error('AUDIT_SQL_RETAINED_CONTAINER_REQUIRED');const mapped=inspected.NetworkSettings?.Ports?.['5432/tcp'];if(!Array.isArray(mapped)||mapped.length!==1||mapped[0].HostIp!=='127.0.0.1')throw Error('Invalid local database binding');databasePort=Number(mapped[0].HostPort);if(config.databasePort!==undefined&&config.databasePort!==databasePort)throw Error('AUDIT_SQL_OWNERSHIP_CONFLICT');}
@@ -72,12 +72,12 @@ async function provision(options={}){
  if(existing){const inspected=JSON.parse(await docker(['inspect',p.name]))[0];assertContainer(inspected);if(inspected.State?.Running===false){if(windows&&!/^[a-f0-9]{64}$/.test(inspected.Id||''))throw Error('AUDIT_SQL_OWNERSHIP_CONFLICT');await docker(['start',windows?inspected.Id:p.name]);}return finish(false);}
  if(options.existingOnly)throw Error('AUDIT_SQL_RETAINED_CONTAINER_REQUIRED');
  let volumes;if(windows){try{volumes=JSON.parse(await docker(['volume','inspect',p.volume]))[0]?p.volume:'';}catch(error){if(error.code!==1)throw error;volumes='';}}else volumes=(await docker(['volume','ls','--filter','name=^'+p.volume+'$','--format','{{.Name}}'])).trim();
- if(volumes){const volume=JSON.parse(await docker(['volume','inspect',p.volume]))[0];if(volume.Labels?.['dvaia.workspace']!==p.id||volume.Labels?.['dvaia.purpose']!=='owned-audit-sql')throw Error('AUDIT_SQL_VOLUME_CONFLICT');}
- else await docker(['volume','create','--label','dvaia.workspace='+p.id,'--label','dvaia.purpose=owned-audit-sql',p.volume]);
+ if(volumes){const volume=JSON.parse(await docker(['volume','inspect',p.volume]))[0];if(volume.Labels?.['owasp-ai-goat.workspace']!==p.id||volume.Labels?.['owasp-ai-goat.purpose']!=='owned-audit-sql')throw Error('AUDIT_SQL_VOLUME_CONFLICT');}
+ else await docker(['volume','create','--label','owasp-ai-goat.workspace='+p.id,'--label','owasp-ai-goat.purpose=owned-audit-sql',p.volume]);
  const envBytes=Buffer.from(`POSTGRES_USER=audit_service_admin\nPOSTGRES_PASSWORD=${config.password}\nPOSTGRES_DB=${p.database}\n`);
- const temp=windows?null:await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-audit-env-'));const envFile=windows?await options.ownedLabSession.stagePrivateEnvironment({bytes:envBytes,sha256:crypto.createHash('sha256').update(envBytes).digest('hex')}):path.join(temp,'postgres.env');
+ const temp=windows?null:await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-audit-env-'));const envFile=windows?await options.ownedLabSession.stagePrivateEnvironment({bytes:envBytes,sha256:crypto.createHash('sha256').update(envBytes).digest('hex')}):path.join(temp,'postgres.env');
  try{if(!windows)await fs.writeFile(envFile,envBytes,{mode:0o600,flag:'wx'});
- await docker(['run','-d','--pull','never','--restart','unless-stopped','--name',p.name,'--label','dvaia.workspace='+p.id,'--label','dvaia.purpose=owned-audit-sql','--env-file',envFile,'-p',windows&&config.databasePort!==undefined?`127.0.0.1:${config.databasePort}:5432`:'127.0.0.1::5432','--mount',`type=volume,src=${p.volume},dst=/var/lib/postgresql`,config.image]);
+ await docker(['run','-d','--pull','never','--restart','unless-stopped','--name',p.name,'--label','owasp-ai-goat.workspace='+p.id,'--label','owasp-ai-goat.purpose=owned-audit-sql','--env-file',envFile,'-p',windows&&config.databasePort!==undefined?`127.0.0.1:${config.databasePort}:5432`:'127.0.0.1::5432','--mount',`type=volume,src=${p.volume},dst=/var/lib/postgresql`,config.image]);
  }finally{if(temp)await fs.rm(temp,{recursive:true,force:true});}
  return finish(true);
 }
@@ -89,7 +89,7 @@ async function provisionForSetup({root,homeDirectory=os.homedir(),platform=proce
  provisionTarget=provision,activate=require('./audit-sql-activate').activateForSetup,
  resolveAuthority=require('../local-docker-authority').resolveDockerAuthority}={}){
  const {_internals}=require('./mcp-owned-provision');
- const verified=await resolveAuthority({directory:path.join(homeDirectory,'.dvaia',workspaceId(root)),workspaceId:workspaceId(root),environment,platform,persist:false,
+ const verified=await resolveAuthority({directory:path.join(homeDirectory,'.owasp-ai-goat',workspaceId(root)),workspaceId:workspaceId(root),environment,platform,persist:false,
   ...(ownedLabSession?{ownedLabSession}:{})});
  if(verified.persisted!==true||verified.authority?.workspaceId!==workspaceId(root)||verified.authority.version!==(platform==='win32'?2:1))throw Error('AUDIT_SQL_DOCKER_AUTHORITY_INVALID');
  const dockerHost=verified.authority.host;

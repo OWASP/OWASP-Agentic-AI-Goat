@@ -45,13 +45,13 @@ test('disposable pricing package freezes every local dependency and exact native
  const sources=['server/services/secureshopPricingHttpClient.js','server/services/secureshopOwnedCompetitorObservation.js','server/services/secureshopPricingReceipt.js','server/services/secureshopPricingContract.js','server/services/secureshopPricingExecutionConfig.js','server/services/mcp/protocolContext.js'];
  for(const source of sources){assert.ok(docker.includes(source));require(path.join(root,source));}
  const {ASSETS}=require('../sidecars/sandbox-runner/owned-pricing-http/executor');
- assert.ok(ASSETS.includes('/usr/local/libexec/dvaia-owned-pricing-http-input.js'));
- assert.ok(ASSETS.includes('/usr/local/libexec/dvaia-owned-pricing-http-worker.js'));
+ assert.ok(ASSETS.includes('/usr/local/libexec/owasp-ai-goat-owned-pricing-http-input.js'));
+ assert.ok(ASSETS.includes('/usr/local/libexec/owasp-ai-goat-owned-pricing-http-worker.js'));
 });
 test('dedicated profile refuses arbitrary names and declares only owned parent/bwrap child',()=>{
  const {renderOwnedPricingHttpProfile}=require('../sidecars/sandbox-runner/owned-pricing-http/profile');
  assert.throws(()=>renderOwnedPricingHttpProfile('docker-default'));
- const name='dvaia-owned-pricing-http-012345abcdef',profile=renderOwnedPricingHttpProfile(name);
+ const name='owasp-ai-goat-owned-pricing-http-012345abcdef',profile=renderOwnedPricingHttpProfile(name);
  assert.ok(!profile.includes('@@'));assert.match(profile,/\/usr\/bin\/bwrap Cx -> bwrap/);
  assert.equal((profile.match(/^\s*profile /gm)||[]).length,2);
  assert.match(profile,new RegExp('profile "'+name+'"'));

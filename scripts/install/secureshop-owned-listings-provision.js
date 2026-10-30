@@ -79,11 +79,11 @@ async function provision(options={}){
   if(!selected)throw fail('LISTINGS_INSTALL_PORT_UNAVAILABLE');
   if(selected!==Number(new URL(p.manager.url).port))p=await plan({...options,root,home,platform,environment,execute,port:selected});
  }
- const labels={'dvaia.listings.workspace':p.workspaceId,'dvaia.listings.authority':p.dockerAuthoritySha256,'dvaia.listings.source':p.source.sha256,'dvaia.listings.runtime':p.runtimeDigest};
+ const labels={'owasp-ai-goat.listings.workspace':p.workspaceId,'owasp-ai-goat.listings.authority':p.dockerAuthoritySha256,'owasp-ai-goat.listings.source':p.source.sha256,'owasp-ai-goat.listings.runtime':p.runtimeDigest};
  const labelArgs=Object.entries(labels).flatMap(([k,v])=>['--label',k+'='+v]);
- const temp=await fs.mkdtemp(path.join(os.tmpdir(),'dvaia-listings-install-'));await fs.chmod(temp,0o700);const tempStat=await fs.lstat(temp);
+ const temp=await fs.mkdtemp(path.join(os.tmpdir(),'owasp-ai-goat-listings-install-'));await fs.chmod(temp,0o700);const tempStat=await fs.lstat(temp);
  try{
-  const existing=managed.load({filePath:p.managedPath}),tag=`dvaia-owned-listings-${p.workspaceId}:local`;
+  const existing=managed.load({filePath:p.managedPath}),tag=`owasp-ai-goat-owned-listings-${p.workspaceId}:local`;
   let image=await inspect('image',existing?.imageId||tag);if(!image&&existing)throw fail('LISTINGS_INSTALL_IMAGE_MISSING');
   if(!image){
    const context=path.join(temp,'build');await fs.mkdir(context,{mode:0o700});
@@ -185,7 +185,7 @@ async function verifyExisting(options={}){
   if(result.exitCode!==0)throw fail('LISTINGS_INSTALL_RESOURCE_MISSING');return result.stdout;}
  async function inspect(kind,name){let rows;try{rows=JSON.parse(await docker([kind,'inspect',name]));}catch{throw fail('LISTINGS_INSTALL_INSPECT_INVALID');}
   if(!Array.isArray(rows)||rows.length!==1)return null;return rows[0];}
- const labels={'dvaia.listings.workspace':p.workspaceId,'dvaia.listings.authority':p.dockerAuthoritySha256,'dvaia.listings.source':p.source.sha256,'dvaia.listings.runtime':p.runtimeDigest};
+ const labels={'owasp-ai-goat.listings.workspace':p.workspaceId,'owasp-ai-goat.listings.authority':p.dockerAuthoritySha256,'owasp-ai-goat.listings.source':p.source.sha256,'owasp-ai-goat.listings.runtime':p.runtimeDigest};
  const networkName=value.manager.container+'-bridge',volumeName=value.manager.container+'-journal';
  let retainedNetworkId,retainedVolumeMountpoint;
  const checkPrivate=async()=>{const current=managed.capture({filePath}),a=await authorityIdentity(authorityPath);

@@ -37,7 +37,7 @@ async function assertApplicationPortsAvailable(environment = process.env) {
     ? require('../server/services/secureshopUploadAssetProduction').activationPolicy(environment) : null;
   const ports = [
     ['backend', port(environment.PORT || 8081, 'PORT'), undefined],
-    ['frontend', port(environment.DVAIA_CLIENT_PORT || 3000, 'DVAIA_CLIENT_PORT'), undefined],
+    ['frontend', port(environment.OWASP_AI_GOAT_CLIENT_PORT || 3000, 'OWASP_AI_GOAT_CLIENT_PORT'), undefined],
     ...(environment.SS_ENABLE === 'true'
       ? [['SecureShop agent host', port(environment.SS_AGENT_HOST_PORT || 8082, 'SS_AGENT_HOST_PORT'), undefined]] : []),
     ...(uploadAssets?.enabled
@@ -126,13 +126,13 @@ function observeChild({ name, command, args, options, readiness, spawnProcess = 
   }
   child.stderr?.on('data', chunk => stderr?.write?.(chunk));
   child.on('message', message => {
-    if (message?.type === 'dvaia-owned-child-outcome'
+    if (message?.type === 'owasp-ai-goat-owned-child-outcome'
         && message.outcome && ['error', 'exit'].includes(message.outcome.type)) {
       outcome.resolve(message.outcome);
       return;
     }
     if (readiness.type === 'ipc') {
-      if (message?.type === 'dvaia-backend-ready'
+      if (message?.type === 'owasp-ai-goat-backend-ready'
           && message.token === readiness.token
           && message.pid === child.pid
           && message.port === readiness.port) markReady();
@@ -217,7 +217,7 @@ function createApplicationSupervisor({ workspace = root, environment = process.e
     throw new TypeError('startupTimeoutMs must be a positive integer');
   }
   const backendPort = port(environment.PORT || 8081, 'PORT');
-  const clientPort = port(environment.DVAIA_CLIENT_PORT || 3000, 'DVAIA_CLIENT_PORT');
+  const clientPort = port(environment.OWASP_AI_GOAT_CLIENT_PORT || 3000, 'OWASP_AI_GOAT_CLIENT_PORT');
   const token = crypto.randomBytes(32).toString('base64url');
   const children = [];
   const stopRequested = deferred();
@@ -325,7 +325,7 @@ function createApplicationSupervisor({ workspace = root, environment = process.e
         args: backendLaunch.args,
         options: {
           cwd: workspace,
-          env: { ...environment, DVAIA_LAUNCH_READINESS_TOKEN: token },
+          env: { ...environment, OWASP_AI_GOAT_LAUNCH_READINESS_TOKEN: token },
           stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
           detached: platform !== 'win32',
           shell: backendLaunch.shell,
@@ -477,7 +477,7 @@ async function runWindowsStartup({ workspace = root, environment = process.env,
   createSupervisor = createApplicationSupervisor, runApplication = runControlledApplication,
 } = {}) {
   const id = require('./application-data-root').workspaceId(workspace);
-  const directory = path.win32.join(home, '.dvaia', id);
+  const directory = path.win32.join(home, '.owasp-ai-goat', id);
   const retained = name => {
     try { fileSystem.lstatSync(path.win32.join(directory, name)); return true; }
     catch (error) { if (error.code !== 'ENOENT') throw error; return false; }
@@ -648,7 +648,7 @@ async function main(args = process.argv.slice(2), { nodeVersion = process.versio
     const missing = configurationPlan(process.env).filter(item => !item.configured);
     if (missing.length) throw new Error(`Missing PostgreSQL URL pairs: ${missing.map(item => item.schema).join(', ')}`);
     await windowsStartup({ environment: process.env, startupTimeoutMs, prepareApplication: async () => {
-      process.env.DVAIA_APP_DATA_ROOT = require('./application-data-root')
+      process.env.OWASP_AI_GOAT_APP_DATA_ROOT = require('./application-data-root')
         .ensureApplicationDataRoot({ workspace: root, environment: process.env });
       if (args.includes('--init-db')) {
         if (profile !== require('./application-journal-bound-maintenance').PROFILE) throw new Error('Unsupported maintenance profile');
@@ -659,7 +659,7 @@ async function main(args = process.argv.slice(2), { nodeVersion = process.versio
     } });
     return;
   }
-  process.env.DVAIA_APP_DATA_ROOT = require('./application-data-root')
+  process.env.OWASP_AI_GOAT_APP_DATA_ROOT = require('./application-data-root')
     .ensureApplicationDataRoot({ workspace: root, environment: process.env });
   if (process.env.IPI_EMAIL_PROVIDER === 'mailpit' && process.env.MAILPIT_STATE_PATH) {
     await assertLocalMailpitReady({ statePath: process.env.MAILPIT_STATE_PATH, execute: exec, environment: process.env });

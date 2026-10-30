@@ -15,7 +15,7 @@ test(TITLE,{skip:process.env.PERSONA_ACL_V38_FOUNDATION_NATIVE!=='1',timeout:180
  const pool=(store,role)=>{
   const key=`PERSONA_${store}_${role}_URL`,u=new URL(process.env[key]);
   assert.equal(u.protocol,'postgresql:');assert.equal(u.hostname,'127.0.0.1');
-  assert.match(u.pathname,/^\/dvaia_test_persona_[a-f0-9]+_(identity|fresh|commerce|aclfresh)$/);
+  assert.match(u.pathname,/^\/owasp_ai_goat_test_persona_[a-f0-9]+_(identity|fresh|commerce|aclfresh)$/);
   assert.equal(u.pathname.endsWith('_'+store.toLowerCase()),true);
   assert.equal(u.username,`dvaia_${store==='IDENTITY'?'identity':store==='COMMERCE'?'secureshop':'secureshop_agents'}_${role.toLowerCase()}`);
   assert.equal(u.password,'');assert.equal(u.search,'');assert.equal(u.hash,'');

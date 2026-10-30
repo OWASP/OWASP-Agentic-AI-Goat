@@ -44,7 +44,7 @@ function createMcpProtocolSessionManager({ createServer = createMcpServer, catal
       const { Client, InMemoryTransport } = await loadSdk();
       const { server, sandbox } = await createServer(sessionId);
       const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-      const client = new Client({ name: 'dvaia-mcp-workshop-agent', version: '1.0.0' });
+      const client = new Client({ name: 'owasp-ai-goat-mcp-workshop-agent', version: '1.0.0' });
       await server.connect(serverTransport);
       await client.connect(clientTransport);
       return { sessionId, server, sandbox, client, clientTransport, serverTransport, retired: false };

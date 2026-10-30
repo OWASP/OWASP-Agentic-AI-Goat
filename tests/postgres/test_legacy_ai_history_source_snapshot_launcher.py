@@ -20,7 +20,7 @@ class SourceSnapshotLauncherContract(unittest.TestCase):
         compile(source, str(LAUNCHER), 'exec')
         for token in ("'grant-file'", "'grant-id'", "'owner-handle-file'", "'package-root'",
                       "'manifest'", "'managed-node'", "'postgres-image-id'", "'container-nonce'",
-                      "'run', '--detach', '--pull', 'never'", "'127.0.0.1::5432'", 'dvaia.owner',
+                      "'run', '--detach', '--pull', 'never'", "'127.0.0.1::5432'", 'owasp-ai-goat.owner',
                       'WAITING_OWNER_HANDLE', 'canonicalWorkspaceRoot', 'candidateSourceRoot',
                       'sourceFilesSha256', 'terminal_pass_cleaned', 'unowned container cleanup refused',
                       'grant already consumed', "NODE_VERSION = 'v26.8.2'",
@@ -35,7 +35,7 @@ class SourceSnapshotLauncherContract(unittest.TestCase):
 
     def test_database_and_manifest_closure_are_exact(self):
         self.assertEqual(LAUNCHER_MODULE.database_name('a' * 12),
-                         'dvaia_test_legacy_ai_snapshot_' + 'a' * 12)
+                         'owasp_ai_goat_test_legacy_ai_snapshot_' + 'a' * 12)
         for nonce in ('A' * 12, 'a' * 11, 'g' * 12):
             with self.assertRaisesRegex(ValueError, 'lowercase hexadecimal'):
                 LAUNCHER_MODULE.database_name(nonce)
@@ -114,13 +114,13 @@ class SourceSnapshotLauncherContract(unittest.TestCase):
             calls.append(command)
             return SimpleNamespace(returncode=0, stdout=json.dumps([{
                 'Id': good_id, 'Name': '/review', 'Image': 'sha256:' + 'b' * 64,
-                'Config': {'Labels': {'dvaia.owner': '/root'}}}]), stderr='')
+                'Config': {'Labels': {'owasp-ai-goat.owner': '/root'}}}]), stderr='')
 
         LAUNCHER_MODULE.run = fake_run
         try:
             with self.assertRaisesRegex(RuntimeError, 'unowned container cleanup refused'):
                 LAUNCHER_MODULE.remove_owned_container(
-                    ['docker'], 'review', good_id, {'dvaia.owner': '/root'},
+                    ['docker'], 'review', good_id, {'owasp-ai-goat.owner': '/root'},
                     expected_image='sha256:' + 'c' * 64)
         finally:
             LAUNCHER_MODULE.run = original

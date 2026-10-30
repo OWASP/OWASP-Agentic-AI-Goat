@@ -120,7 +120,7 @@ test('CSV export names its current-page scope in the visible and accessible butt
   expect(exportButton.getAttribute('aria-label')).toBeNull();
   expect(exportButton.textContent).toBe('Export current page');
   await act(async () => exportButton.click());
-  expect(container.querySelector('[role="alert"]')?.textContent).toContain('CSV export is available in standalone SecureShop');
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain('CSV export is available in standalone OWASP AI SecureShop');
 });
 
 test('unavailable audit capabilities disable dependent controls without attempting mutations', async () => {

@@ -4,7 +4,7 @@ This is a source-only retirement record. `server/secureServer.js` remains in
 the repository so the historical isolated teaching sinks and their tests stay
 available as source evidence. It is no longer a runnable application
 entrypoint. Its guard runs before any import and rejects both direct execution
-and `require()` with `ERR_DVAIA_LEGACY_ENTRYPOINT_RETIRED`.
+and `require()` with `ERR_OWASP_AI_GOAT_LEGACY_ENTRYPOINT_RETIRED`.
 
 The supported process is `server/index.js`, launched by `npm run server`,
 `npm run dev`, or `npm start` with the PostgreSQL engine selected. This keeps

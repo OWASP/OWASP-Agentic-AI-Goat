@@ -465,10 +465,10 @@ AGENT_HOST_STORE_NAMES = {"IDENTITY": "identity", "AGENTS": "secureshop_agents",
 
 
 def database_name(suite, store, run_id):
-    value = (f"dvaia_sql_copy_{run_id}" if suite == "sql-teaching-copy"
-             else f"dvaia_test_v14_{run_id}_{AGENT_HOST_STORE_NAMES[store]}" if suite == "direct-injection-actual"
-             else f"dvaia_test_agent_host_{run_id}_{AGENT_HOST_STORE_NAMES[store]}" if suite in ("product-similar-browser", "product-summary-browser", "manual-rag-browser", "manual-rag-fixed-browser", "manual-rag-paired-browser", "manual-private-model", "manual-ranking-model", "review-moderation-recovery", "analytics-resource", "tool-output-actual")
-             else f"dvaia_test_{DATABASE_FAMILIES[suite]}_{store.lower()}_{run_id}")
+    value = (f"owasp_ai_goat_sql_copy_{run_id}" if suite == "sql-teaching-copy"
+             else f"owasp_ai_goat_test_v14_{run_id}_{AGENT_HOST_STORE_NAMES[store]}" if suite == "direct-injection-actual"
+             else f"owasp_ai_goat_test_agent_host_{run_id}_{AGENT_HOST_STORE_NAMES[store]}" if suite in ("product-similar-browser", "product-summary-browser", "manual-rag-browser", "manual-rag-fixed-browser", "manual-rag-paired-browser", "manual-private-model", "manual-ranking-model", "review-moderation-recovery", "analytics-resource", "tool-output-actual")
+             else f"owasp_ai_goat_test_{DATABASE_FAMILIES[suite]}_{store.lower()}_{run_id}")
     if len(value.encode("utf-8")) > 63:
         raise RuntimeError(f"PostgreSQL database identifier exceeds 63 bytes: {suite}/{store}")
     return value
@@ -727,7 +727,7 @@ def validate_current_host_selection(args):
 
 def private_run_root(args, source):
     if args.current_host_profile is None:
-        return Path(tempfile.mkdtemp(prefix="dvaia-secureshop-bound-review-composition-"))
+        return Path(tempfile.mkdtemp(prefix="owasp-ai-goat-secureshop-bound-review-composition-"))
     parent = current_host_evidence_parent(source, args.evidence_parent)
     parent.mkdir(mode=0o700, exist_ok=True)
     current_host_evidence_parent(source, args.evidence_parent)
@@ -2590,7 +2590,7 @@ def cleanup_current_host_containers(intents, docker, base_env, daemon_id, *, run
                 if by_id.returncode == 0 or by_id.stderr.strip() not in missing:
                     raise RuntimeError("Owned current-host container ID remains or cannot be verified")
             by_label = runner(docker + ["ps", "-a", "--filter",
-                                        f"label=dvaia.run={intent['labels']['dvaia.run']}",
+                                        f"label=owasp-ai-goat.run={intent['labels']['owasp-ai-goat.run']}",
                                         "--format", "{{.ID}}"], env=base_env,
                               capture_output=True, text=True, timeout=30)
             if by_label.returncode != 0 or by_label.stdout.strip():
@@ -2824,7 +2824,7 @@ def run_qualification(args):
         "refund-actual-8b": "bound-refund-actual-8b",
         "migration-tails": "migration-tails",
     }[args.suite]
-    container = f"dvaia-secureshop-{container_family}-{run_id}"
+    container = f"owasp-ai-goat-secureshop-{container_family}-{run_id}"
     container_intents, children, logs = [], [], []
     child = None
     captured_browser = None
@@ -2881,8 +2881,8 @@ def run_qualification(args):
                     stage="docker-image-inspect", capture_output=True, text=True).stdout.strip()
         if image != active_image_id:
             raise RuntimeError("Pinned PostgreSQL image is unavailable")
-        current_labels = ({"dvaia.qualifier": "bound-review-current-host",
-                           "dvaia.run": run_id, "dvaia.suite": args.suite}
+        current_labels = ({"owasp-ai-goat.qualifier": "bound-review-current-host",
+                           "owasp-ai-goat.run": run_id, "owasp-ai-goat.suite": args.suite}
                           if args.current_host_profile is not None else None)
         intent = {"name": container, "image": active_image_id}
         if current_labels is not None:
@@ -2923,7 +2923,7 @@ def run_qualification(args):
                 run(psql + ["-c", f"CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS"], stdout=subprocess.DEVNULL)
         env = dict(base_env, NODE_ENV="test", PLATFORM_DATABASE_ENGINE="postgres",
                    WORKSHOP_DATABASE_ENGINE="postgres", SS_PERSONA_INBOX_READY="false",
-                   PG_TEST_DISPOSABLE="yes", DVAIA_ISOLATED_TEST_WORKSPACE=str(root if args.main_checkout else workspace),
+                   PG_TEST_DISPOSABLE="yes", OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(root if args.main_checkout else workspace),
                    AWS_EC2_METADATA_DISABLED="true", JWT_SECRET="owned-composition-secret-at-least-32-bytes")
         if inspector is not None:
             env.update(SECURESHOP_BOUND_BROWSER_BIRTH_SCRIPT=str(source /
@@ -2946,51 +2946,51 @@ def run_qualification(args):
             env["EMBEDDING_REVISION_NATIVE"] = "1"
         if args.suite == "manual-rag-source":
             env["SECURESHOP_MANUAL_RAG_SOURCE_NATIVE"] = "1"
-            env["DVAIA_CURRENT_MAIN_WORKSPACE"] = str(source)
+            env["OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE"] = str(source)
         if args.suite == "manual-private-model":
             env.update(SECURESHOP_PRIVATE_MANUAL_NATIVE="1", LIVE_OLLAMA_TEST="1",
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_PRIVATE_MANUAL_EVIDENCE_PATH=str(root / "manual-private-model-evidence.json"),
                 AI_PROVIDER="ollama", OLLAMA_MODEL=REFUND_MODEL,
                 OLLAMA_BASE_URL=REFUND_OLLAMA_BASE_URL, LAB_MODE="vuln")
         if args.suite == "manual-ranking-model":
             env.update(SECURESHOP_MANUAL_RANKING_NATIVE="1", LIVE_OLLAMA_TEST="1",
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_MANUAL_RANKING_EVIDENCE_PATH=str(root / "manual-ranking-model-evidence.json"),
                 AI_PROVIDER="ollama", OLLAMA_MODEL=REFUND_MODEL,
                 OLLAMA_BASE_URL=REFUND_OLLAMA_BASE_URL, LAB_MODE="vuln",
                 TRANSFORMERS_OFFLINE="1")
         if args.suite == "direct-injection-actual":
             env.update(SECURESHOP_DIRECT_NATIVE="1", LIVE_OLLAMA_TEST="1",
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source), PG_TEST_ROOT=str(root),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source), PG_TEST_ROOT=str(root),
                 SECURESHOP_DIRECT_EVIDENCE_PATH=str(root / "direct-injection-evidence.json"),
                 AI_PROVIDER="ollama", OLLAMA_MODEL=REFUND_MODEL,
                 OLLAMA_BASE_URL=REFUND_OLLAMA_BASE_URL, LAB_MODE="vuln")
         if args.suite == "tool-output-actual":
             env.update(SECURESHOP_TOOL_OUTPUT_NATIVE="1", LIVE_OLLAMA_TEST="1",
                 SECURESHOP_TOOL_OUTPUT_SOURCE_VARIANT=tool_output_source_variant(args),
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_TOOL_OUTPUT_EVIDENCE_PATH=str(root / "tool-output-evidence.json"),
                 AI_PROVIDER="ollama", OLLAMA_MODEL=REFUND_MODEL,
                 OLLAMA_BASE_URL=REFUND_OLLAMA_BASE_URL, LAB_MODE="vuln")
         if args.suite == "analytics-resource":
             env.update(SECURESHOP_ANALYTICS_RESOURCE_NATIVE="1", LIVE_OLLAMA_TEST="1",
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_ANALYTICS_RESOURCE_EVIDENCE_PATH=str(root / "analytics-resource-evidence.json"),
                 AI_PROVIDER="ollama", OLLAMA_MODEL=REFUND_MODEL,
                 OLLAMA_BASE_URL=REFUND_OLLAMA_BASE_URL, LAB_MODE="vuln")
         if args.suite == "review-moderation-recovery":
             env.update(SECURESHOP_REVIEW_RECOVERY_NATIVE="1", LIVE_OLLAMA_TEST="1",
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_REVIEW_RECOVERY_EVIDENCE_PATH=str(root / "review-moderation-recovery-evidence.json"),
                 AI_PROVIDER="ollama", OLLAMA_MODEL=REFUND_MODEL,
                 OLLAMA_BASE_URL=REFUND_OLLAMA_BASE_URL, LAB_MODE="vuln")
         if args.suite == "manual-rag-preimages":
             env["SECURESHOP_MANUAL_RAG_PREIMAGES_NATIVE"] = "1"
-            env["DVAIA_CURRENT_MAIN_WORKSPACE"] = str(source)
+            env["OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE"] = str(source)
         if args.suite in ("product-similar-browser", "product-summary-browser"):
             env.update(LIVE_OLLAMA_TEST="1",
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_PRODUCT_SIMILAR_BROWSER_BUILD=str(source / "client/build"),
                 SECURESHOP_PRODUCT_SIMILAR_EVIDENCE_PATH=str(root / "product-similar-evidence.json"),
                 SECURESHOP_PRODUCT_SIMILAR_BROWSER_RECORD_PATH=str(root / "product-similar-browser.json"),
@@ -3007,7 +3007,7 @@ def run_qualification(args):
             if args.manual_rag_test_no_sandbox:
                 env["SECURESHOP_MANUAL_RAG_TEST_NO_SANDBOX"] = "1"
             env.update(SECURESHOP_MANUAL_RAG_BROWSER_NATIVE="1", LIVE_OLLAMA_TEST="1",
-                DVAIA_CURRENT_MAIN_WORKSPACE=str(source),
+                OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE=str(source),
                 SECURESHOP_MANUAL_RAG_BROWSER_BUILD=str(source / "client/build"),
                 SECURESHOP_MANUAL_RAG_EVIDENCE_PATH=str(root / ("manual-upload-q05-evidence.json"
                     if getattr(args, "manual_upload_q05", False) else "manual-rag-evidence.json")),
@@ -3061,10 +3061,10 @@ def run_qualification(args):
             env.update(SS_REFUND_LIVE_MODEL="1", OLLAMA_MODEL=REFUND_MODEL,
                        OLLAMA_BASE_URL=REFUND_OLLAMA_BASE_URL)
         if args.suite == "capacity":
-            env["DVAIA_CAPACITY_QUALIFICATION"] = "yes"
+            env["OWASP_AI_GOAT_CAPACITY_QUALIFICATION"] = "yes"
         if args.suite == "capacity-actual-8b":
             model_identity_before = read_capacity_model_digest()
-            env.update(DVAIA_CAPACITY_ACTUAL8B="yes", OLLAMA_MODEL=REFUND_MODEL,
+            env.update(OWASP_AI_GOAT_CAPACITY_ACTUAL8B="yes", OLLAMA_MODEL=REFUND_MODEL,
                        OLLAMA_BASE_URL=REFUND_OLLAMA_BASE_URL,
                        AI_OLLAMA_CONCURRENCY="2", AI_OLLAMA_QUEUE_LIMIT="256",
                        PG_POOL_MAX_LEASE="6")
@@ -3120,8 +3120,8 @@ def run_qualification(args):
                     if records:
                         captured_browser = _browser_ownership.capture_live(
                             records[0], parent_birth, root / "runtime", api=api,
-                            profile_prefix="dvaia-manual-rag-browser-" if args.suite in ("manual-rag-browser", "manual-rag-fixed-browser", "manual-rag-paired-browser")
-                                else "dvaia-similar-browser-")
+                            profile_prefix="owasp-ai-goat-manual-rag-browser-" if args.suite in ("manual-rag-browser", "manual-rag-fixed-browser", "manual-rag-paired-browser")
+                                else "owasp-ai-goat-similar-browser-")
                         if captured_browser is not None:
                             write_private_json(root / "browser-live-capture.json", {
                                 "schemaVersion": 1, "process": captured_browser.record,

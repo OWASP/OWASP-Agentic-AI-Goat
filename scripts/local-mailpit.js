@@ -38,10 +38,10 @@ function validateMailpitState(state, { id, name, requireContainerId = true }) {
 
 function assertOwnedContainer(container, { id, name, state }) {
   if (!container) throw new MailpitSetupError(`Owned Mailpit container ${name} is unavailable`);
-  if (container.Config?.Labels?.['org.dvaia.workspace'] !== id) {
+  if (container.Config?.Labels?.['org.owasp-ai-goat.workspace'] !== id) {
     throw new MailpitSetupError(`Container ${name} already exists without matching setup ownership`);
   }
-  if (container.Config?.Labels?.['org.dvaia.mailpit.nonce'] !== state.nonce) {
+  if (container.Config?.Labels?.['org.owasp-ai-goat.mailpit.nonce'] !== state.nonce) {
     throw new MailpitSetupError(`Container ${name} does not carry the owned Mailpit nonce`);
   }
   const ports = container.HostConfig?.PortBindings || {};
@@ -188,7 +188,7 @@ async function ensureLocalMailpit({ directory, id, environment = process.env, ex
   wait = ms => new Promise(resolve => setTimeout(resolve, ms)), readinessAttempts = 60, pullImage = true } = {}) {
   if (typeof execute !== 'function') throw new TypeError('A Docker command adapter is required');
   if (ownedLabSession !== undefined) assertOwnedMailpitLab(ownedLabSession, ownLabChild, platform, id);
-  const name = `dvaia-mailpit-${id}`;
+  const name = `owasp-ai-goat-mailpit-${id}`;
   const file = stateStorage.path.join(directory, 'mailpit.json');
   let state = null;
   let originalBytes = null;
@@ -234,7 +234,7 @@ async function ensureLocalMailpit({ directory, id, environment = process.env, ex
         imageVersion: MAILPIT_IMAGE_VERSION, imageDigest: MAILPIT_IMAGE_DIGEST, dockerAuthorityDigest: state.dockerAuthorityDigest });
       creationAttempted = true;
       await docker(['run', '--detach', '--restart', 'unless-stopped', '--name', name,
-        '--label', `org.dvaia.workspace=${id}`, '--label', `org.dvaia.mailpit.nonce=${state.nonce}`, '--read-only', '--tmpfs', '/tmp:rw,noexec,nosuid,size=16777216',
+        '--label', `org.owasp-ai-goat.workspace=${id}`, '--label', `org.owasp-ai-goat.mailpit.nonce=${state.nonce}`, '--read-only', '--tmpfs', '/tmp:rw,noexec,nosuid,size=16777216',
         '--publish', `127.0.0.1:${state.smtpPort}:1025`, '--publish', `127.0.0.1:${state.apiPort}:8025`, MAILPIT_IMAGE]);
       const created = await inspect(['inspect', name]);
       assertOwnedContainer(created, { id, name, state });

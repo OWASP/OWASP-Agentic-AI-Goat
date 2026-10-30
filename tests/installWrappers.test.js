@@ -11,7 +11,7 @@ const root = path.resolve(__dirname, '..');
 const read = (relative) => fs.readFileSync(path.join(root, relative), 'utf8');
 const unixInstallers = [
   'scripts/install/Mac/install-macos.sh',
-  'scripts/install/Ubuntu/install-dvaia-ubuntu.sh',
+  'scripts/install/Ubuntu/install-owasp-ai-goat-ubuntu.sh',
 ];
 const unixBootstrap = read('scripts/install/bootstrap-unix.sh');
 const macPrerequisites = read('scripts/install/macos-prerequisites.sh');
@@ -64,7 +64,7 @@ test('Windows PowerShell plan runs without Node and performs no Execute operatio
   const shell = path.join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
   const installer = path.join(root, 'scripts/install/Windows/install-windows.ps1');
   const startup = path.join(root, 'scripts/install/Windows/start_all.ps1');
-  const noNodeEnv = { ...process.env, PATH: path.join(os.tmpdir(), 'dvaia-empty-path') };
+  const noNodeEnv = { ...process.env, PATH: path.join(os.tmpdir(), 'owasp-ai-goat-empty-path') };
   const run = (script, args) => spawnSync(shell, ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script, ...args],
     { cwd: os.tmpdir(), env: noNodeEnv, encoding: 'utf8', windowsHide: true });
   for (const [script, args] of [[installer, ['-Plan', '-Repair']], [startup, ['-Plan', '-InitDb']]]) {
@@ -77,17 +77,17 @@ test('Windows PowerShell plan runs without Node and performs no Execute operatio
 test('Windows setup/start share read-only host admission before execution while Stop remains owned cleanup', () => {
   const shared = read('scripts/install/Windows/wrapper-handoff.ps1');
   assert.match(shared, /Join-Path \$PSScriptRoot 'host-preflight\.ps1'/);
-  assert.match(shared, /Invoke-DvaiaWindowsHostPreflight/);
+  assert.match(shared, /Invoke-OwaspAiGoatWindowsHostPreflight/);
   assert.match(shared, /\$result.hostAdmission = & \$ObserveHost/);
   assert.ok(shared.indexOf('$result.hostAdmission = & $ObserveHost') < shared.indexOf('& $Provision $request'));
   for (const filename of ['install-windows.ps1', 'start_all.ps1']) {
     const source = read('scripts/install/Windows/' + filename);
     assert.match(source, /Join-Path \$PSScriptRoot 'wrapper-handoff\.ps1'/);
-    assert.match(source, /Invoke-DvaiaWindowsWrapperHandoff/);
+    assert.match(source, /Invoke-OwaspAiGoatWindowsWrapperHandoff/);
     assert.match(source, /WINDOWS_HOST_PREFLIGHT_DENIED/);
-    assert.ok(source.indexOf('Invoke-DvaiaWindowsWrapperHandoff') < source.indexOf('if ($Plan)'));
-    assert.ok(source.indexOf('Invoke-DvaiaWindowsWrapperHandoff') < source.indexOf("throw 'WINDOWS_HOST_PREFLIGHT_DENIED"));
-    if (filename === 'start_all.ps1') assert.ok(source.indexOf('if ($Stop)') < source.indexOf('Invoke-DvaiaWindowsWrapperHandoff'));
+    assert.ok(source.indexOf('Invoke-OwaspAiGoatWindowsWrapperHandoff') < source.indexOf('if ($Plan)'));
+    assert.ok(source.indexOf('Invoke-OwaspAiGoatWindowsWrapperHandoff') < source.indexOf("throw 'WINDOWS_HOST_PREFLIGHT_DENIED"));
+    if (filename === 'start_all.ps1') assert.ok(source.indexOf('if ($Stop)') < source.indexOf('Invoke-OwaspAiGoatWindowsWrapperHandoff'));
   }
 });
 
@@ -107,7 +107,7 @@ test('compatibility Unix launchers contain no destructive reset', () => {
   const quick = read('scripts/install/Ubuntu/quick-start.sh');
   const macDev = read('scripts/install/Mac/macos-dev-setup.sh');
 
-  assert.match(quick, /install-dvaia-ubuntu\.sh/);
+  assert.match(quick, /install-owasp-ai-goat-ubuntu\.sh/);
   assert.match(macDev, /start_all\.sh --init-db/);
   for (const [relative, source] of [['quick-start.sh', quick], ['macos-dev-setup.sh', macDev]]) {
     assert.doesNotMatch(source, /rm\s+-f[^\n]*\.db|Remove-Item[^\n]*\.db|server\/database\/init|db:legacy:initialize/i, relative);

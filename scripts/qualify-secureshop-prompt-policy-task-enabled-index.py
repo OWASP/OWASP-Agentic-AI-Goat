@@ -14,9 +14,9 @@ import tempfile
 import time
 
 REPO = pathlib.Path(__file__).resolve().parents[1]
-NODE = pathlib.Path('/Users/averma5/.dvaia/runtimes/node-v26.9.0-darwin-arm64/bin/node')
+NODE = pathlib.Path('/Users/averma5/.owasp-ai-goat/runtimes/node-v26.9.0-darwin-arm64/bin/node')
 DOCKER = ['/Applications/Rancher Desktop.app/Contents/Resources/resources/darwin/bin/docker',
-          '--host', 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock']
+          '--host', 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock']
 PG_IMAGE = 'sha256:4ef4dbc939d61acea57712655ddb4b4ab27419c913f94cca0cd57cb3ea3c2280'
 CANONICAL = pathlib.Path('db/postgres/workshop-migrations/secureshop_agents/0027_bound_prompt_policies.sql')
 CANONICAL_SHA256 = '1c7d4f120b2b7081103fc165597b555ddaf7c9ea472456a0458df31050761f58'
@@ -25,11 +25,11 @@ if len(sys.argv) != 2 or sys.argv[1] not in ('--plan', '--run'):
     raise SystemExit('Usage: qualify-secureshop-prompt-policy-task-enabled-index.py --plan|--run')
 
 suffix = secrets.token_hex(6)
-pg_name = f'dvaia-policy-task-index-pg-{suffix}'
-renderer_name = f'dvaia-policy-task-index-renderer-{suffix}'
-renderer_image = f'dvaia-policy-task-index-renderer:{suffix}'
-renderer_network = f'dvaia-policy-task-index-net-{suffix}'
-evidence = pathlib.Path.home() / '.dvaia/native-verification' / f'dvaia-policy-task-enabled-index-{suffix}'
+pg_name = f'owasp-ai-goat-policy-task-index-pg-{suffix}'
+renderer_name = f'owasp-ai-goat-policy-task-index-renderer-{suffix}'
+renderer_image = f'owasp-ai-goat-policy-task-index-renderer:{suffix}'
+renderer_network = f'owasp-ai-goat-policy-task-index-net-{suffix}'
+evidence = pathlib.Path.home() / '.owasp-ai-goat/native-verification' / f'owasp-ai-goat-policy-task-enabled-index-{suffix}'
 task_result = REPO / 'tasks' / f'secureshop-policy-task-enabled-index-native-{suffix}.json'
 
 if sys.argv[1] == '--plan':
@@ -45,7 +45,7 @@ if sys.argv[1] == '--plan':
 sys.path.insert(0, str(REPO / 'tests/postgres'))
 from sensitive_info_recovery_safety import SignalGate
 
-root = pathlib.Path(tempfile.mkdtemp(prefix='dvaia-policy-task-enabled-index-'))
+root = pathlib.Path(tempfile.mkdtemp(prefix='owasp-ai-goat-policy-task-enabled-index-'))
 os.chmod(root, 0o700)
 workspace = root / 'source'
 runtime = root / 'runtime'
@@ -96,7 +96,7 @@ exit_code = 1
 try:
     evidence.mkdir(parents=True, mode=0o700)
     info = json.loads(docker(['info', '--format', '{{json .}}'], timeout=30))
-    if info.get('Name') != 'colima-dvaia-pg-verify' or info.get('Architecture') != 'aarch64':
+    if info.get('Name') != 'colima-owasp-ai-goat-pg-verify' or info.get('Architecture') != 'aarch64':
         raise RuntimeError('Docker authority or architecture mismatch')
     if run([str(NODE), '--version']) != 'v26.9.0':
         raise RuntimeError('Node 26.9.0 is required')
@@ -130,7 +130,7 @@ try:
     # The host entry point needs a loopback-published HTTP origin. The outer
     # service network is transport only; every untrusted template still enters
     # the separately attested empty network namespace in the packaged executor.
-    docker(['network', 'create', '--label', f'dvaia.qualification={suffix}', renderer_network])
+    docker(['network', 'create', '--label', f'owasp-ai-goat.qualification={suffix}', renderer_network])
     created.add(('network', renderer_network))
     image_build = subprocess.run(DOCKER + ['build', '--pull=false', '-f',
       'sidecars/sandbox-runner/Dockerfile', '-t', renderer_image, 'sidecars/sandbox-runner'], cwd=workspace,
@@ -141,10 +141,10 @@ try:
         raise RuntimeError('packaged renderer image build failed')
     created.add(('image', renderer_image))
     renderer_id = json.loads(docker(['image', 'inspect', renderer_image]))[0]['Id']
-    docker(['run', '--detach', '--name', renderer_name, '--label', f'dvaia.qualification={suffix}',
+    docker(['run', '--detach', '--name', renderer_name, '--label', f'owasp-ai-goat.qualification={suffix}',
       '--network', renderer_network, '--memory', '512m', '--cpus', '1', '--pids-limit', '128',
       '--tmpfs', '/tmp:rw,noexec,nosuid,size=32m',
-      '--security-opt', 'seccomp=unconfined', '--security-opt', 'apparmor=dvaia-mcp-sandbox',
+      '--security-opt', 'seccomp=unconfined', '--security-opt', 'apparmor=owasp-ai-goat-mcp-sandbox',
       '--env', 'SECURESHOP_POLICY_RENDER_ENABLED=true', '--env', 'SECURESHOP_POLICY_RENDER_MAX_CONCURRENT=2',
       '-p', '127.0.0.1::8090', renderer_image])
     created.add(('container', renderer_name))
@@ -154,7 +154,7 @@ try:
     renderer_health = json.loads(run([str(NODE), '-e', health_program, renderer_origin], timeout=25))
 
     docker(['run', '--detach', '--pull', 'never', '--name', pg_name,
-      '--label', f'dvaia.qualification={suffix}', '--memory', '1g', '--cpus', '2', '--pids-limit', '256',
+      '--label', f'owasp-ai-goat.qualification={suffix}', '--memory', '1g', '--cpus', '2', '--pids-limit', '256',
       '--tmpfs', '/var/lib/postgresql:rw,size=1073741824', '-e', 'POSTGRES_HOST_AUTH_METHOD=trust',
       '-p', '127.0.0.1::5432', PG_IMAGE, '-c', 'max_connections=100', '-c', 'max_wal_size=64MB',
       '-c', 'min_wal_size=32MB'])
@@ -173,7 +173,7 @@ try:
     if len(manifest) != 16:
         raise RuntimeError('expected exact sixteen-store manifest')
     for row in manifest:
-        schema, database = row['schema'], f'dvaia_test_full_backend_{row["schema"]}'
+        schema, database = row['schema'], f'owasp_ai_goat_test_full_backend_{row["schema"]}'
         run(base + [f'CREATE ROLE dvaia_{schema}_migration LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; CREATE ROLE {row["runtimeRole"]} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS;'])
         run(base + [f'CREATE DATABASE {database} OWNER dvaia_{schema}_migration'])
         env[row['runtimeVariable']] = f'postgresql://{row["runtimeRole"]}@127.0.0.1:{pg_port}/{database}'
@@ -183,8 +183,8 @@ try:
     env.update(PG_TEST_DISPOSABLE='yes', PG_SECURESHOP_POLICY_TASK_ENABLED_INDEX='1',
       PG_SECURESHOP_POLICY_RENDERER_ORIGIN=renderer_origin,
       PG_SECURESHOP_POLICY_CANONICAL_SHA256=CANONICAL_SHA256,
-      DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace.resolve()),
-      DVAIA_FULL_BACKEND_RUNTIME_ROOT=str(runtime.resolve()), PG_POOL_BUDGET='78')
+      OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace.resolve()),
+      OWASP_AI_GOAT_FULL_BACKEND_RUNTIME_ROOT=str(runtime.resolve()), PG_POOL_BUDGET='78')
     source_hashes = {str(p.relative_to(workspace)): sha(p) for p in workspace.rglob('*') if p.is_file() and not p.is_symlink()}
     write(evidence / 'source-hashes.json', source_hashes)
     for item in workspace.rglob('*'):
@@ -245,7 +245,7 @@ finally:
                 cleanup_errors.append(f'{name}:diagnostics:{type(error).__name__}:{str(error)[:500]}')
             try:
                 details = json.loads(docker(['inspect', name]))[0]
-                if details['Config']['Labels'].get('dvaia.qualification') != suffix:
+                if details['Config']['Labels'].get('owasp-ai-goat.qualification') != suffix:
                     raise RuntimeError('refusing foreign container cleanup')
                 docker(['rm', '--force', '--volumes', name], timeout=30)
             except Exception as error: cleanup_errors.append(f'{name}:{type(error).__name__}')

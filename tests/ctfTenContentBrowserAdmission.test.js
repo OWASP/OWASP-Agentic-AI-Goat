@@ -10,7 +10,7 @@ const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 
 test('learner browser has a distinct private profile, birth kind and selector',async t=>{
   const parent=path.join(ROOT,'tasks/qualification');
-  const run=fs.mkdtempSync(path.join(parent,'dvaia-ctf-stages-route-control-'));
+  const run=fs.mkdtempSync(path.join(parent,'owasp-ai-goat-ctf-stages-route-control-'));
   const short=path.join(ROOT,'tasks/tmp','l-'+createHash('sha256').update(run).digest('hex').slice(0,8));
   t.after(()=>{fs.rmSync(short,{recursive:true,force:true});fs.rmSync(run,{recursive:true,force:true});});
   fs.chmodSync(run,0o700);
@@ -56,7 +56,7 @@ test('learner browser has a distinct private profile, birth kind and selector',a
 
 test('CTF browser adapter admits only a private exact current-host scope',t=>{
   const parent=path.join(ROOT,'tasks/qualification');
-  const run=fs.mkdtempSync(path.join(parent,'dvaia-ctf-stages-route-control-'));
+  const run=fs.mkdtempSync(path.join(parent,'owasp-ai-goat-ctf-stages-route-control-'));
   const short=path.join(ROOT,'tasks/tmp','c-'+createHash('sha256').update(run).digest('hex').slice(0,8));
   t.after(()=>{fs.rmSync(short,{recursive:true,force:true});fs.rmSync(run,{recursive:true,force:true});});
   fs.chmodSync(run,0o700);
@@ -121,7 +121,7 @@ test('CTF page admission waits for exact independent birth ACK',async t=>{
 
 test('CTF Config browser admission is separate and rejects ten-content credentials',t=>{
   const parent=path.join(ROOT,'tasks/qualification');
-  const run=fs.mkdtempSync(path.join(parent,'dvaia-ctf-stages-route-control-'));
+  const run=fs.mkdtempSync(path.join(parent,'owasp-ai-goat-ctf-stages-route-control-'));
   const short=path.join(ROOT,'tasks/tmp','g-'+createHash('sha256').update(run).digest('hex').slice(0,8));
   t.after(()=>{fs.rmSync(short,{recursive:true,force:true});fs.rmSync(run,{recursive:true,force:true});});
   fs.chmodSync(run,0o700);
@@ -177,7 +177,7 @@ test('CTF Config birth ACK is bound to its own kind, record, and profile',async 
 
 test('CTF Preview browser admission is disjoint from Config and content',t=>{
   const parent=path.join(ROOT,'tasks/qualification');
-  const run=fs.mkdtempSync(path.join(parent,'dvaia-ctf-stages-route-control-'));
+  const run=fs.mkdtempSync(path.join(parent,'owasp-ai-goat-ctf-stages-route-control-'));
   const short=path.join(ROOT,'tasks/tmp','p-'+createHash('sha256').update(run).digest('hex').slice(0,8));
   t.after(()=>{fs.rmSync(short,{recursive:true,force:true});fs.rmSync(run,{recursive:true,force:true});});
   fs.chmodSync(run,0o700);
@@ -234,7 +234,7 @@ test('CTF Preview birth ACK uses a distinct kind and exact private record',async
 
 test('scored learner browser admission is disjoint and pins its owned profile',t=>{
   const parent=path.join(ROOT,'tasks/qualification');
-  const run=fs.mkdtempSync(path.join(parent,'dvaia-ctf-stages-route-control-'));
+  const run=fs.mkdtempSync(path.join(parent,'owasp-ai-goat-ctf-stages-route-control-'));
   const short=path.join(ROOT,'tasks/tmp','a-'+createHash('sha256').update(run).digest('hex').slice(0,8));
   t.after(()=>{fs.rmSync(short,{recursive:true,force:true});fs.rmSync(run,{recursive:true,force:true});});
   fs.chmodSync(run,0o700);
@@ -264,7 +264,7 @@ test('scored learner browser admission is disjoint and pins its owned profile',t
 });
 
 test('Fixed-practice browser admission has a disjoint exact birth and private profile',t=>{
-  const run=fs.mkdtempSync(path.join(ROOT,'tasks/qualification/dvaia-ctf-stages-route-control-'));
+  const run=fs.mkdtempSync(path.join(ROOT,'tasks/qualification/owasp-ai-goat-ctf-stages-route-control-'));
   const short=path.join(ROOT,'tasks/tmp','f-'+createHash('sha256').update(run).digest('hex').slice(0,8));
   t.after(()=>{fs.rmSync(short,{recursive:true,force:true});fs.rmSync(run,{recursive:true,force:true});});
   fs.chmodSync(run,0o700);

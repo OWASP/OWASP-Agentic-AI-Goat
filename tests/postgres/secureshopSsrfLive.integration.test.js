@@ -19,7 +19,7 @@ const uuid = crypto.randomUUID;
 function checked(key) {
   const value = new URL(process.env[PREFIX + key]);
   assert.ok(['127.0.0.1', 'localhost'].includes(value.hostname));
-  assert.match(value.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(value.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return value.href;
 }
 
@@ -27,8 +27,8 @@ test(deterministic
   ? 'mounted bridge and persona JWT bind scripted SSRF to real HTTP effects without model credit'
   : 'mounted bridge and persona JWT bind actual 8B SSRF effects and Judge credit to replay and reset',
   { skip: !enabled, timeout: 300000 }, async t => {
-    const workspace = path.resolve(process.env.DVAIA_ISOLATED_TEST_WORKSPACE || '');
-    assert.match(path.basename(path.dirname(workspace)), /^dvaia-secureshop-ssrf-live-/);
+    const workspace = path.resolve(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE || '');
+    assert.match(path.basename(path.dirname(workspace)), /^owasp-ai-goat-secureshop-ssrf-live-/);
     const { Pool } = require('pg');
     const identityMigration = new Pool({ connectionString: checked('IDENTITY_MIGRATION_URL'), max: 2 });
     const identity = new Pool({ connectionString: checked('IDENTITY_RUNTIME_URL'), max: 12 });
@@ -37,7 +37,7 @@ test(deterministic
     const agents = new Pool({ connectionString: checked('AGENTS_RUNTIME_URL'), max: 10 });
     const commerceMigration = new Pool({ connectionString: checked('COMMERCE_MIGRATION_URL'), max: 2 });
     const commerce = new Pool({ connectionString: checked('COMMERCE_RUNTIME_URL'), max: 4 });
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-ssrf-live-fixture-'));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ssrf-live-fixture-'));
     const captures = [], failures = [], targets = [];
     let scriptedActorCalls = 0, scriptedJudgeCalls = 0;
     const actualModelCalls = deterministic ? 0 : null;
@@ -165,7 +165,7 @@ test(deterministic
       });
       const origin = `http://127.0.0.1:${mountedServer.address().port}`;
       async function browserBridge(owner) {
-        const launchHeaders = { 'x-dvaia-secureshop-launch': owner.launch.bearer, 'content-type': 'application/json' };
+        const launchHeaders = { 'x-owasp-ai-goat-secureshop-launch': owner.launch.bearer, 'content-type': 'application/json' };
         const loginResponse = await fetch(`${origin}/api/secureshop/v2/auth/login`, { method: 'POST', headers: launchHeaders,
           body: JSON.stringify({ username: 'student_customer', password: 'student123' }) });
         assert.equal(loginResponse.status, 200); const login = await loginResponse.json();
@@ -175,7 +175,7 @@ test(deterministic
         return createBridgeFetch({ origin, getToken: () => login.token, bridge: { async request(name, bridgeInput, options) {
           const operation = compileBridgeOperation(name, bridgeInput);
           return networkFetch(`${origin}${operation.path}`, { method: operation.method, signal: options.signal,
-            headers: { accept: 'application/json', 'x-dvaia-secureshop-launch': owner.launch.bearer,
+            headers: { accept: 'application/json', 'x-owasp-ai-goat-secureshop-launch': owner.launch.bearer,
               authorization: `Bearer ${options.shopBearer}`,
               ...(operation.body === undefined ? {} : { 'content-type': 'application/json' }) },
             ...(operation.body === undefined ? {} : { body: JSON.stringify(operation.body) }) });

@@ -2,7 +2,7 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),crypto=require('node:crypto'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path'),http=require('node:http');
 const {Pool}=require('pg');
 test('fresh recovery process reads exact original durable receipt under current real lifecycle without effect replay',{skip:process.env.PG_TEST_DISPOSABLE!=='yes'||!process.env.PG_MCP_RUNTIME_URL,timeout:60000},async t=>{
- const pools=[];function pool(key,extra={}){const url=process.env[key];assert.match(new URL(url).pathname,/^\/dvaia_test_/);const p=new Pool({connectionString:url,...extra});pools.push(p);return p;}
+ const pools=[];function pool(key,extra={}){const url=process.env[key];assert.match(new URL(url).pathname,/^\/owasp_ai_goat_test_/);const p=new Pool({connectionString:url,...extra});pools.push(p);return p;}
  const identity=pool('PG_GRAPH_TEST_RUNTIME_URL'),migration=pool('PG_GRAPH_TEST_MIGRATION_URL'),resource=pool('PG_MCP_RUNTIME_URL'),resourceMigration=pool('PG_MCP_MIGRATION_URL'),lease=pool('PG_MCP_RUNTIME_URL',{max:2,connectionTimeoutMillis:1000});t.after(()=>Promise.all(pools.map(p=>p.end())));
  await require('../../server/database/postgres/identityRepository').initializeIdentityRepository(identity,migration);await require('../../server/database/postgres/mcpWorkshopDb').createMcpWorkshopDb(resource).initialize(resourceMigration);
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'protected-admission-migration-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));await fs.cp('db/postgres/identity-migrations',dir,{recursive:true});await fs.copyFile('docs/modernization/drafts/mcp-protected-recovery/protected_reconciliation.candidate.sql',path.join(dir,'0097_mcp_protected_reconciliation.sql'));await require('../../db/postgres/migrate').migrate(migration,dir);
@@ -11,7 +11,7 @@ test('fresh recovery process reads exact original durable receipt under current 
  const a=await owner(),b=await owner();let sockets=0,mode='drop',held,release;
  const realState=require('../../sidecars/sandbox-runner/mcpProtectedState').createMcpProtectedState();let rotations=0;
  const f=await require('../helpers/mcpProtectedTargetFixture').fixture(t,{protectedState:{...realState,async rotateKeys(input){const v=await realState.rotateKeys(input);rotations++;return v;}}});
- const token=crypto.randomBytes(32).toString('base64url');const api=require('../../sidecars/sandbox-runner/ownedTargetApi').createOwnedTargetApi({token,store:{...f.store,checkReadiness:async()=>({ready:true})},expectedSupervisorProfile:'dvaia-mcp-sandbox',readSupervisorProfile:async()=> 'dvaia-mcp-sandbox (enforce)'});
+ const token=crypto.randomBytes(32).toString('base64url');const api=require('../../sidecars/sandbox-runner/ownedTargetApi').createOwnedTargetApi({token,store:{...f.store,checkReadiness:async()=>({ready:true})},expectedSupervisorProfile:'owasp-ai-goat-mcp-sandbox',readSupervisorProfile:async()=> 'owasp-ai-goat-mcp-sandbox (enforce)'});
  let serverFailure;
  const server=http.createServer(async(req,res)=>{try{let bytes='';for await(const c of req)bytes+=c;const body=bytes?JSON.parse(bytes):undefined;
   if(req.url==='/owned-targets/protected-operation'){

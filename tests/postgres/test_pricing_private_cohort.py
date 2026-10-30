@@ -19,7 +19,7 @@ class PrivatePricingCohort(unittest.TestCase):
         interrupted = [False]
         descriptor = dict(version=1,ownerId='10000000-0000-4000-8000-000000000001',workspaceId='a'*12,
             qualificationNonce='b'*12,containerId='c'*64,imageId='sha256:'+'d'*64,packageSha256='e'*64,
-            profile='dvaia-owned-pricing-http-'+'b'*12,origin='http://127.0.0.1:18093',token='t'*43)
+            profile='owasp-ai-goat-owned-pricing-http-'+'b'*12,origin='http://127.0.0.1:18093',token='t'*43)
 
         def operation(name, value=None):
             calls.append(name)

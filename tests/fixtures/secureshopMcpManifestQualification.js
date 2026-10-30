@@ -546,7 +546,7 @@ async function qualifyRegistryOperation(input,discovery){
   token:peerIssued.persona.token});
  const peerSession={sessionId:peerActor.sessionId,authorityVersion:peerActor.authorityVersion};
  const peerHeaders={authorization:`Bearer ${peerIssued.persona.token}`,
-  'x-dvaia-secureshop-launch':peerIssued.bearer};
+  'x-owasp-ai-goat-secureshop-launch':peerIssued.bearer};
  const peerSetup=await (discovery?input.getRegistry():registry).service.mutate({scope:peerScope,
   persona:{id:peerActor.user.id,role:'admin'},personaSession:peerSession,
   request:{version:1,action:'register',operationId:randomUUID(),expectedVersion:'0',

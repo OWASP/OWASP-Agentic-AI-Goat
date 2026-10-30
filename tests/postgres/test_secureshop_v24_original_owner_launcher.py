@@ -52,7 +52,7 @@ class OriginalOwner(unittest.TestCase):
         run = 'a' * 32
         state = dict(pid=42,birth=[1,2],reaped=True,groupAbsent=True,browserProcessesAbsent=True,profilesAbsent=True,errors=[])
         browser = dict(pid=43,birth=[2,3],pgid=43,workerPid=44,
-                       profilePath=str(ROOT/'tasks/qualification'/('system-original-owner-'+run)/'runtime/tmp/dvaia-role-policy-instruction-abc123'),
+                       profilePath=str(ROOT/'tasks/qualification'/('system-original-owner-'+run)/'runtime/tmp/owasp-ai-goat-role-policy-instruction-abc123'),
                        birthSha256='b'*64,acknowledged=True,groupAbsent=True,processAbsent=True,profileAbsent=True,errors=[])
         child = dict(version=1,runId=run,exitCode=0,child=state,browser=browser,cleanupVerified=True,failure=None,tap={'bytes':0,'sha256':'c'*64})
         driver = dict(localCleanupVerified=True,remoteCleanupVerified=True,guestResourcesAbsent=True,sharedStateUnchanged=True,debts=[])

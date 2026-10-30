@@ -1,7 +1,7 @@
-# SecureShop v2 — Overview
+# OWASP AI SecureShop — Overview
 
-SecureShop v2 is a deliberately-vulnerable, LLM-driven e-commerce app used by
-DVAIA to teach the intersection of OWASP LLM Top 10, OWASP MCP Top 10, and
+OWASP AI SecureShop is a deliberately-vulnerable, LLM-driven e-commerce app used by
+OWASP Agentic AI GOAT to teach the intersection of OWASP LLM Top 10, OWASP MCP Top 10, and
 classic OWASP Web Top 10 attack surfaces. It is intentionally insecure by
 design.
 
@@ -23,7 +23,7 @@ The generated vulnerability map retains historical identifiers, while its MCP me
 | Supervisor loop     | `server/services/secureshop/supervisors/*` | customer / merchant / admin supervisors — run the LLM ⇄ tool dispatch cycle                    |
 | Provider ladder     | `server/services/secureshop/providers/*`   | Ollama → Anthropic → OpenAI → Bedrock → mock, with a configured override moved to the front |
 | Task agents (17)    | `agent-host/agents/*`                      | One MCP server per task agent. Each exposes 1–5 tools.                                        |
-| Agent Host process  | `agent-host/index.js`                      | When SecureShop is enabled, boots 17 MCP servers over SSE on port `8082` by default |
+| Agent Host process  | `agent-host/index.js`                      | When OWASP AI SecureShop is enabled, boots 17 MCP servers over SSE on port `8082` by default |
 | PostgreSQL stores   | `secureshop`, `secureshop_agents`, `secureshop_review` | Commerce, agent lifecycle and owner-bound review state; legacy SQLite files are fixtures only |
 | Vuln map            | `docs/secureshop/VULNERABILITIES.md`       | Auto-generated table of every `@intentional-vulnerability` annotation                          |
 
@@ -33,7 +33,7 @@ Every file under the paths above may contain code annotated with
 `@intentional-vulnerability <id>`. These annotations mark **deliberate**
 teaching sinks. They are NOT bugs.
 
-**Before "fixing" any code in a SecureShop v2 file:**
+**Before "fixing" any code in a OWASP AI SecureShop file:**
 1. Run `npm run docs:secureshop:vuln-map` and check the vuln map.
 2. If the code you're about to edit carries an `@intentional-vulnerability`
    tag, **STOP**. It is meant to be exploitable.
@@ -55,16 +55,34 @@ npm run setup
 npm run verify:secureshop
 ```
 
-SecureShop has its own sign-in at `/secureshop/login`; workshop credentials do
+OWASP AI SecureShop has its own sign-in at `/secureshop/login`; workshop credentials do
 not authenticate the shop. The launcher does not start Ollama. Start the
 configured provider separately before launch when the selected provider is not
 already running. With `SS_ENABLE=true`, the backend supervises the Agent Host.
 
 ## Testing
 
-### SecureShop renderer builds
+The storefront runs in an isolated frame. If that frame reloads after
+connecting, its old bridge is closed and the host shows **Retry**. Retry creates
+a fresh frame and connection; it does not reuse the old message ports or replay
+shop writes. This also provides recovery after a development-server reload.
 
-Fresh setup builds and verifies the five SecureShop renderer artifacts: ReviewCard,
+New storefront frames finish their initial empty-document load before navigating
+to the shop entry. The empty document receives no message ports or shop authority.
+
+After customer, merchant or administrator login, an initial frame-loading timeout
+before any ports are transferred gets one automatic reconnect using the same
+launch and practice. A second failure shows Retry. Connected-frame failures,
+practice resets, selection, checkout and agent requests are not automatically
+retried by this startup recovery.
+
+During the project rename, the trusted host sends the current launch header and
+its historical alias with the same value. This keeps an already-running backend
+compatible with the renamed frontend; public catalog requests send neither.
+
+### OWASP AI SecureShop renderer builds
+
+Fresh setup builds and verifies the five OWASP AI SecureShop renderer artifacts: ReviewCard,
 product description, mail, ticket and search echo. The canonical application
 build is `npm --prefix client run build`; setup invokes the five pinned renderer
 build scripts individually before runtime readiness. For an immutable-source

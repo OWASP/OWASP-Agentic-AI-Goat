@@ -12,7 +12,7 @@ const {
   createLegacyAiProtectedHistoryComposition,
 } = require('../server/services/legacyAiProtectedHistoryComposition');
 
-const DATABASE = 'dvaia_identity_disposable';
+const DATABASE = 'owasp_ai_goat_identity_disposable';
 
 function readinessPool(overrides = {}) {
   const calls = [];

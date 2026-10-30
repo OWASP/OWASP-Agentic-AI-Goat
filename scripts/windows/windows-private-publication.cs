@@ -16,7 +16,7 @@ using System.Threading;
 using System.Web.Script.Serialization;
 using Microsoft.Win32.SafeHandles;
 
-namespace Dvaia {
+namespace OwaspAiGoat {
  public static class WindowsPrivatePublication {
   const int MaxBytes=1024*1024;
   const uint GenericRead=0x80000000, GenericWrite=0x40000000, ReadControl=0x20000, ReadAttributes=0x80, Delete=0x10000;
@@ -193,7 +193,7 @@ namespace Dvaia {
   static Intent Parse(byte[] bytes,string target,string intentPath,string id,string user) {
    JavaScriptSerializer serializer=new JavaScriptSerializer();serializer.MaxJsonLength=MaxBytes;serializer.RecursionLimit=8;
    Intent intent=serializer.Deserialize<Intent>(Utf8.GetString(bytes));Require(intent!=null && Equal(Encode(intent),bytes));
-   Require(intent.version==1 && intent.kind=="windows-private-publication" && intent.userSid==user && intent.operationId==id && intent.targetPath==target && intent.intentPath==intentPath && intent.stagePath==Normalize(target+".dvaia-"+id+".stage") && intent.result!=null && intent.resultBackup!=null && intent.resultPath==Normalize(intentPath+".result"));
+   Require(intent.version==1 && intent.kind=="windows-private-publication" && intent.userSid==user && intent.operationId==id && intent.targetPath==target && intent.intentPath==intentPath && intent.stagePath==Normalize(target+".owasp-ai-goat-"+id+".stage") && intent.result!=null && intent.resultBackup!=null && intent.resultPath==Normalize(intentPath+".result"));
    Require((intent.originalTarget==null)==(intent.originalBackup==null));
    Require(intent.originalPath==(intent.originalTarget==null?null:Normalize(intentPath+".original")));
    Require(intent.result.size>=0 && intent.result.size<=MaxBytes && intent.result.size==intent.resultBackup.size && intent.result.sha256==intent.resultBackup.sha256);
@@ -203,7 +203,7 @@ namespace Dvaia {
   static Mutex Locked(string target,string user) {
    MutexSecurity security=new MutexSecurity();SecurityIdentifier owner=new SecurityIdentifier(user),system=new SecurityIdentifier(SystemSid);
    security.SetOwner(owner);security.SetAccessRuleProtection(true,false);security.AddAccessRule(new MutexAccessRule(owner,MutexRights.FullControl,AccessControlType.Allow));security.AddAccessRule(new MutexAccessRule(system,MutexRights.FullControl,AccessControlType.Allow));
-   bool created;Mutex mutex=new Mutex(false,"Global\\Dvaia.PrivatePublication."+Hash(Utf8.GetBytes(user+"\n"+target.ToUpperInvariant())),out created,security);
+   bool created;Mutex mutex=new Mutex(false,"Global\\OwaspAiGoat.PrivatePublication."+Hash(Utf8.GetBytes(user+"\n"+target.ToUpperInvariant())),out created,security);
    try {
     MutexSecurity actual=mutex.GetAccessControl();Require(((SecurityIdentifier)actual.GetOwner(typeof(SecurityIdentifier))).Value==user && actual.AreAccessRulesProtected);bool userFull=false;
     foreach(MutexAccessRule rule in actual.GetAccessRules(true,true,typeof(SecurityIdentifier))){string sid=((SecurityIdentifier)rule.IdentityReference).Value;Require(!rule.IsInherited && rule.AccessControlType==AccessControlType.Allow && (sid==user || sid==SystemSid) && rule.MutexRights==MutexRights.FullControl);if(sid==user)userFull=true;}
@@ -225,7 +225,7 @@ namespace Dvaia {
   public static Dictionary<string,object> Invoke(string operation,string inputTarget,string inputIntent,string id,string originalBase64,string resultBase64) {
    Require(operation=="preparePrivatePublication" || operation=="inspectPrivatePublication" || operation=="publishPrivatePublication");
    Require(id!=null && Regex.IsMatch(id,@"^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$"));
-   string targetPath=Normalize(inputTarget),intentPath=Normalize(inputIntent),stagePath=Normalize(targetPath+".dvaia-"+id+".stage"),originalPath=Normalize(intentPath+".original"),resultPath=Normalize(intentPath+".result");
+   string targetPath=Normalize(inputTarget),intentPath=Normalize(inputIntent),stagePath=Normalize(targetPath+".owasp-ai-goat-"+id+".stage"),originalPath=Normalize(intentPath+".original"),resultPath=Normalize(intentPath+".result");
    Require(new HashSet<string>(new string[]{targetPath,intentPath,stagePath,originalPath,resultPath},StringComparer.OrdinalIgnoreCase).Count==5);
    bool prepare=operation=="preparePrivatePublication";byte[] requestedOriginal=originalBase64==null?null:Decode(originalBase64),requestedResult=resultBase64==null?null:Decode(resultBase64);
    Require(prepare?requestedResult!=null:requestedOriginal==null && requestedResult==null);

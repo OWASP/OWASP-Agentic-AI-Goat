@@ -15,15 +15,15 @@ function awaitWindowsMaintenanceActivation({runtime=process,timeoutMs=10000}={})
   const challenge=randomBytes(32).toString('hex');let phase='waiting',nonce,done=false;
   const fail=()=>{if(done)return;done=true;clearTimeout(timer);runtime.removeListener('message',message);runtime.removeListener('disconnect',fail);reject(denied());};
   const message=value=>{try{
-   if(exact(value,['type'])&&value.type==='dvaia-owned-guardian-stop')return fail();
-   if(phase==='waiting'&&exact(value,['type'])&&value.type==='dvaia-owned-guardian-hello'){
-    phase='ready';runtime.send({type:'dvaia-owned-guardian-ready',pid:runtime.pid,challenge},error=>{if(error)fail();});return;
+   if(exact(value,['type'])&&value.type==='owasp-ai-goat-owned-guardian-stop')return fail();
+   if(phase==='waiting'&&exact(value,['type'])&&value.type==='owasp-ai-goat-owned-guardian-hello'){
+    phase='ready';runtime.send({type:'owasp-ai-goat-owned-guardian-ready',pid:runtime.pid,challenge},error=>{if(error)fail();});return;
    }
-   if(phase==='ready'&&exact(value,['type','challenge','nonce'])&&value.type==='dvaia-owned-guardian-probe'&&value.challenge===challenge&&token(value.nonce)){
-    phase='proved';nonce=value.nonce;runtime.send({type:'dvaia-owned-guardian-proof',pid:runtime.pid,challenge,nonce},error=>{if(error)fail();});return;
+   if(phase==='ready'&&exact(value,['type','challenge','nonce'])&&value.type==='owasp-ai-goat-owned-guardian-probe'&&value.challenge===challenge&&token(value.nonce)){
+    phase='proved';nonce=value.nonce;runtime.send({type:'owasp-ai-goat-owned-guardian-proof',pid:runtime.pid,challenge,nonce},error=>{if(error)fail();});return;
    }
-   if(phase==='proved'&&exact(value,['type','challenge','nonce'])&&value.type==='dvaia-owned-guardian-activate'&&value.challenge===challenge&&value.nonce===nonce){
-    phase='activating';runtime.send({type:'dvaia-owned-guardian-active',pid:runtime.pid,challenge,nonce},error=>{if(error)return fail();if(done)return;done=true;clearTimeout(timer);runtime.removeListener('message',message);runtime.removeListener('disconnect',fail);resolve();});return;
+   if(phase==='proved'&&exact(value,['type','challenge','nonce'])&&value.type==='owasp-ai-goat-owned-guardian-activate'&&value.challenge===challenge&&value.nonce===nonce){
+    phase='activating';runtime.send({type:'owasp-ai-goat-owned-guardian-active',pid:runtime.pid,challenge,nonce},error=>{if(error)return fail();if(done)return;done=true;clearTimeout(timer);runtime.removeListener('message',message);runtime.removeListener('disconnect',fail);resolve();});return;
    }
    fail();
   }catch{fail();}};
@@ -37,7 +37,7 @@ function completeWindowsMaintenance({runtime=process,timeoutMs=10000,result}={})
   const finish=error=>{if(done)return;done=true;clearTimeout(timer);runtime.removeListener('message',message);runtime.removeListener('disconnect',disconnect);error?reject(denied()):resolve();};
   const disconnect=()=>finish(true),message=value=>{
    if(value?.type==='journal-bound-completion-approved')finish(!exact(value,['type','nonce'])||value.nonce!==nonce);
-   else if(value?.type==='dvaia-owned-guardian-stop')finish(true);
+   else if(value?.type==='owasp-ai-goat-owned-guardian-stop')finish(true);
   };
   const timer=setTimeout(disconnect,timeoutMs);runtime.on('message',message);runtime.once('disconnect',disconnect);
   if(!runtime.connected)return disconnect();

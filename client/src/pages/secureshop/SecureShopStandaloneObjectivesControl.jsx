@@ -70,7 +70,7 @@ export default function SecureShopStandaloneObjectivesControl({ client }) {
     marginTop: 20, paddingTop: 16 }}>
     <strong style={{ fontFamily: 'var(--display)', fontSize: 17 }}>Assessment objectives</strong>
     <p style={{ margin: '6px 0 12px', fontSize: 12, opacity: 0.72 }}>
-      Only qualified objectives can be enabled for this SecureShop account.
+      Only qualified objectives can be enabled for this OWASP AI SecureShop account.
     </p>
     {status === 'loading' && <p role="status" style={{ fontSize: 13 }}>Loading objectives…</p>}
     {rows && <>

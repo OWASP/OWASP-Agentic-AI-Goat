@@ -22,12 +22,12 @@ test('late successful leak observation cannot extend entry deadline',async()=>{c
 test('only explicit same-owned CTF delivery tuple augments legacy pairs',()=>{
  const {authorizedCapacityPairs}=require('./fixtures/applicationCapacityTransactionObserver.cjs');
  const manifest=[{runtimeVariable:'IDENTITY_DATABASE_URL',migrationVariable:'IDENTITY_MIGRATION_DATABASE_URL'},{runtimeVariable:'CTF_DATABASE_URL',migrationVariable:'CTF_MIGRATION_DATABASE_URL'}];
- const env={IDENTITY_DATABASE_URL:'postgresql://dvaia_identity_runtime@127.0.0.1:55432/dvaia_identity',IDENTITY_MIGRATION_DATABASE_URL:'postgresql://dvaia_identity_migration@127.0.0.1:55432/dvaia_identity',CTF_DATABASE_URL:'postgresql://dvaia_ctf_runtime@127.0.0.1:55432/dvaia_ctf',CTF_MIGRATION_DATABASE_URL:'postgresql://dvaia_ctf_migration@127.0.0.1:55432/dvaia_ctf'};
+ const env={IDENTITY_DATABASE_URL:'postgresql://dvaia_identity_runtime@127.0.0.1:55432/owasp_ai_goat_identity',IDENTITY_MIGRATION_DATABASE_URL:'postgresql://dvaia_identity_migration@127.0.0.1:55432/owasp_ai_goat_identity',CTF_DATABASE_URL:'postgresql://dvaia_ctf_runtime@127.0.0.1:55432/owasp_ai_goat_ctf',CTF_MIGRATION_DATABASE_URL:'postgresql://dvaia_ctf_migration@127.0.0.1:55432/owasp_ai_goat_ctf'};
  assert.equal(authorizedCapacityPairs(manifest,env).length,4);
- env.CTF_DELIVERY_DATABASE_URL='postgresql://dvaia_ctf_delivery:synthetic@127.0.0.1:55432/dvaia_ctf';const pairs=authorizedCapacityPairs(manifest,env);assert.equal(pairs.length,5);
- assert.equal(createTransactionObserver(pairs).inspect(snapshot({database:'dvaia_ctf',role:'dvaia_ctf_delivery'})).openTransactions,1);
- assert.throws(()=>createTransactionObserver(pairs).inspect(snapshot({database:'dvaia_ctf',role:'unrelated'})),{code:'PG_METADATA_INVALID',predicate:'ROLE_OR_STATE'});
- for(const value of ['postgresql://dvaia_ctf_delivery:synthetic@127.0.0.1:5432/dvaia_ctf','postgresql://postgres:synthetic@127.0.0.1:55432/dvaia_ctf','postgresql://dvaia_ctf_delivery:synthetic@127.0.0.1:55432/dvaia_identity','postgresql://dvaia_ctf_delivery@127.0.0.1:55432/dvaia_ctf',env.CTF_DELIVERY_DATABASE_URL+'?sslmode=disable'])assert.throws(()=>authorizedCapacityPairs(manifest,{...env,CTF_DELIVERY_DATABASE_URL:value}),{code:'PG_DELIVERY_TARGET_INVALID'});
+ env.CTF_DELIVERY_DATABASE_URL='postgresql://dvaia_ctf_delivery:synthetic@127.0.0.1:55432/owasp_ai_goat_ctf';const pairs=authorizedCapacityPairs(manifest,env);assert.equal(pairs.length,5);
+ assert.equal(createTransactionObserver(pairs).inspect(snapshot({database:'owasp_ai_goat_ctf',role:'dvaia_ctf_delivery'})).openTransactions,1);
+ assert.throws(()=>createTransactionObserver(pairs).inspect(snapshot({database:'owasp_ai_goat_ctf',role:'unrelated'})),{code:'PG_METADATA_INVALID',predicate:'ROLE_OR_STATE'});
+ for(const value of ['postgresql://dvaia_ctf_delivery:synthetic@127.0.0.1:5432/owasp_ai_goat_ctf','postgresql://postgres:synthetic@127.0.0.1:55432/owasp_ai_goat_ctf','postgresql://dvaia_ctf_delivery:synthetic@127.0.0.1:55432/owasp_ai_goat_identity','postgresql://dvaia_ctf_delivery@127.0.0.1:55432/owasp_ai_goat_ctf',env.CTF_DELIVERY_DATABASE_URL+'?sslmode=disable'])assert.throws(()=>authorizedCapacityPairs(manifest,{...env,CTF_DELIVERY_DATABASE_URL:value}),{code:'PG_DELIVERY_TARGET_INVALID'});
 });
 test('metadata diagnostics expose only closed predicate names and retain strict rejection',()=>{
  const {metadataDiagnostic}=require('./fixtures/applicationCapacityTransactionObserver.cjs');

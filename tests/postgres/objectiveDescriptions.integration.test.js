@@ -21,7 +21,7 @@ function ownedUrl(kind, role) {
   const url = new URL(process.env[`${prefix}${kind}_${role}_URL`]);
   assert.equal(url.protocol, 'postgresql:');
   assert.equal(url.hostname, '127.0.0.1');
-  assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   assert.equal(url.username, role === 'MIGRATION'
     ? 'dvaia_identity_migration' : 'dvaia_identity_runtime');
   assert.equal(url.password, '');
@@ -48,7 +48,7 @@ function pools(kind) {
 }
 
 function boundedMigrations(t, lastName) {
-  const workspace = process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
+  const workspace = process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
   assert.equal(typeof workspace, 'string');
   assert.ok(fs.realpathSync(workspace).startsWith('/'));
   const directory = fs.mkdtempSync(path.join(workspace, 'objective-description-migrations-'));

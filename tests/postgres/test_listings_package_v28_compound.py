@@ -43,11 +43,11 @@ class ListingsPackageV28Compound(unittest.TestCase):
                 'cleanup': {'containerNameAbsent': True, 'containerIdAbsent': True, 'browserProfilesAbsent': True, 'browserProcessesAbsent': True, 'errors': [], 'listings': dict.fromkeys(('containerAbsent', 'volumeAbsent', 'networkAbsent', 'profileAbsent'), True)},
             }
             resource = {'image': 'sha256:' + 'b' * 64,
-                        'labels': {'dvaia.listings.source': 'c' * 64, 'dvaia.listings.runtime': 'd' * 64}}
+                        'labels': {'owasp-ai-goat.listings.source': 'c' * 64, 'owasp-ai-goat.listings.runtime': 'd' * 64}}
             (evidence / 'result.json').write_text(json.dumps(result))
             (evidence / 'listings-resources.json').write_text(json.dumps(resource))
             self.assertEqual(L.read_v28_result(evidence, resource['image'], 'c' * 64, 'd' * 64), result)
-            resource['labels']['dvaia.listings.runtime'] = 'e' * 64
+            resource['labels']['owasp-ai-goat.listings.runtime'] = 'e' * 64
             (evidence / 'listings-resources.json').write_text(json.dumps(resource))
             with self.assertRaises(RuntimeError):
                 L.read_v28_result(evidence, 'sha256:' + 'b' * 64, 'c' * 64, 'd' * 64)
@@ -97,7 +97,7 @@ class ListingsPackageV28Compound(unittest.TestCase):
         self.assertLess(body.index('post_package = callback'), body.index('finally:'))
         self.assertIn('cleanup.update(owned.cleanup', body[body.index('finally:'):])
         self.assertIn("command(['image', 'rm', state['image']])", body[body.index('finally:'):])
-        self.assertIn("state['labels']['dvaia.listings.runtime'] = expected_runtime_digest", body)
+        self.assertIn("state['labels']['owasp-ai-goat.listings.runtime'] = expected_runtime_digest", body)
         self.assertIn("pins['package']['sha256'] != expected_source_sha256", body)
 
 

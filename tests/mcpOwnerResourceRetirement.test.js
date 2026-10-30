@@ -9,7 +9,7 @@ const OWNER = 7;
 const TARGET = '11111111-1111-4111-8111-111111111111';
 const OPERATION = '22222222-2222-4222-8222-222222222222';
 const INTENT = '33333333-3333-4333-8333-333333333333';
-const MESSAGE = `mcp-${INTENT}@dvaia.local`;
+const MESSAGE = `mcp-${INTENT}@owasp-ai-goat.local`;
 const MAIL_COMPLETED = '2026-09-16T12:34:55.000Z';
 const RUNNER_COMPLETED = '2026-09-16T12:34:56.000Z';
 const canonical = value => JSON.stringify(Object.fromEntries(Object.keys(value).sort().map(key => [key, value[key]])));

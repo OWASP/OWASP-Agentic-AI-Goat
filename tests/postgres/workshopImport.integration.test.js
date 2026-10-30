@@ -12,7 +12,7 @@ async function archiveSnapshot(snapshot){
   tables.push({name,columns,file,rows:rows.length,...await write(file,encoded)});
  }
  const schemaFile='schema.json',schema=await write(schemaFile,JSON.stringify(tables.map(table=>({type:'table',name:table.name}))));
- await write('manifest.json',JSON.stringify({version:1,format:'dvaia-sqlite-archive-v1',complete:true,files:[{name:snapshot.family==='aria'?'sql_workshop.db':'nosql_workshop.db',schemaFile,schema,tables}]}));return directory;
+ await write('manifest.json',JSON.stringify({version:1,format:'owasp-ai-goat-sqlite-archive-v1',complete:true,files:[{name:snapshot.family==='aria'?'sql_workshop.db':'nosql_workshop.db',schemaFile,schema,tables}]}));return directory;
 }
 const enabled=process.env.PG_TEST_DISPOSABLE==='yes'&&!!process.env.PG_ARIA_IMPORT_TEST_MIGRATION_URL;
 function row(family,table,values){return Object.fromEntries(catalogs[family][table].split(' ').map(key=>[key,Object.hasOwn(values,key)?values[key]:null]));}

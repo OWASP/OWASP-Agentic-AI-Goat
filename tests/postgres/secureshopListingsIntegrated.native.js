@@ -5,7 +5,7 @@ const {qualifyListings}=require('../fixtures/secureshopListingsIntegratedNative'
 const {createResponseLossProxy}=require('../fixtures/secureshopListingsResponseLossProxy');
 (async()=>{
  assert.equal(process.env.LISTINGS_INTEGRATED_NATIVE,'1');const pools=[];let proxy;
- const pool=(label,role)=>{const u=new URL(process.env[`LISTINGS_${label}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_listings_[a-f0-9]+_/);const p=new Pool({connectionString:u.href,max:6,statement_timeout:10000});pools.push(p);return p;};
+ const pool=(label,role)=>{const u=new URL(process.env[`LISTINGS_${label}_${role}_URL`]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_listings_[a-f0-9]+_/);const p=new Pool({connectionString:u.href,max:6,statement_timeout:10000});pools.push(p);return p;};
  try{
  const identity=pool('IDENTITY','RUNTIME'),im=pool('IDENTITY','MIGRATION'),agents=pool('AGENTS','RUNTIME'),am=pool('AGENTS','MIGRATION'),commerce=pool('COMMERCE','RUNTIME'),cm=pool('COMMERCE','MIGRATION'),review=pool('REVIEW','RUNTIME'),rm=pool('REVIEW','MIGRATION'),leases=pool('IDENTITY','RUNTIME');
  await migrate(im,'db/postgres/identity-migrations');await migrate(cm,'db/postgres/workshop-migrations/secureshop');await require('../../server/database/postgres/secureshopSeed').seedSecureShop(cm);

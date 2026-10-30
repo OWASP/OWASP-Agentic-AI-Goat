@@ -4,7 +4,7 @@
 <dict>
     <!-- Service Identification -->
     <key>Label</key>
-    <string>com.dvaia.app</string>
+    <string>com.owasp-ai-goat.app</string>
     
     <key>ProgramArguments</key>
     <array>
@@ -14,7 +14,7 @@
     
     <!-- Working Directory -->
     <key>WorkingDirectory</key>
-    <string>/Users/USER_PLACEHOLDER/path/to/Damn-Vulnerable-AI-Application</string>
+    <string>/Users/USER_PLACEHOLDER/path/to/OWASP Agentic AI GOAT</string>
     
     <!-- Environment Variables -->
     <key>EnvironmentVariables</key>
@@ -39,10 +39,10 @@
     
     <!-- Logging -->
     <key>StandardOutPath</key>
-    <string>/tmp/dvaia-backend.log</string>
+    <string>/tmp/owasp-ai-goat-backend.log</string>
     
     <key>StandardErrorPath</key>
-    <string>/tmp/dvaia-backend-error.log</string>
+    <string>/tmp/owasp-ai-goat-backend-error.log</string>
     
     <!-- Resource Limits -->
     <key>SoftResourceLimits</key>

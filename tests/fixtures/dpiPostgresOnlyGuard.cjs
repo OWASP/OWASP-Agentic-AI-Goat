@@ -2,7 +2,7 @@
 // Disposable full-index DPI qualification must never open retained SQLite stores.
 const Module=require('node:module');
 const path=require('node:path');
-const source=process.env.DVAIA_ISOLATED_TEST_WORKSPACE;
+const source=process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE;
 if(!source||!path.isAbsolute(source))throw Error('Exact DPI PostgreSQL source required');
 const original=Module._load;
 const drivers=new Set(['sqlite3','better-sqlite3','sql.js','node:sqlite']);

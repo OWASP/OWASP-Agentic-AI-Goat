@@ -18,15 +18,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--docker-host', required=True)
 args = parser.parse_args()
 source = Path(__file__).resolve().parents[2]
-root = Path(tempfile.mkdtemp(prefix='dvaia-secureshop-stored-browser-'))
+root = Path(tempfile.mkdtemp(prefix='owasp-ai-goat-secureshop-stored-browser-'))
 workspace = root / 'source'
 workspace.mkdir()
 os.chmod(root, 0o700)
 base_env = {key: os.environ[key] for key in ['PATH', 'HOME', 'TMPDIR'] if key in os.environ}
-managed_node = Path(base_env.get('HOME', '/nonexistent')) / '.dvaia/runtimes/node-v26.8.2-darwin-arm64/bin'
+managed_node = Path(base_env.get('HOME', '/nonexistent')) / '.owasp-ai-goat/runtimes/node-v26.8.2-darwin-arm64/bin'
 base_env['PATH'] = str(managed_node) + os.pathsep + base_env.get('PATH', '')
 docker = ['docker', '--host', args.docker_host]
-container = 'dvaia-secureshop-stored-browser-' + uuid.uuid4().hex[:12]
+container = 'owasp-ai-goat-secureshop-stored-browser-' + uuid.uuid4().hex[:12]
 ownership_path = root / 'ownership.json'
 ownership = {
     'version': 1,
@@ -120,7 +120,7 @@ try:
         for role in [migration_role, runtime_role]:
             run(psql + ['-c', f'CREATE ROLE {role} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE '
                               'NOREPLICATION NOBYPASSRLS'], stdout=subprocess.DEVNULL)
-        database = f'dvaia_test_secureshop_stored_browser_{label}'
+        database = f'owasp_ai_goat_test_secureshop_stored_browser_{label}'
         run(psql + ['-c', f'CREATE DATABASE {database} OWNER {migration_role}'], stdout=subprocess.DEVNULL)
         run(psql + ['-c', f'REVOKE CONNECT ON DATABASE {database} FROM PUBLIC; '
                           f'GRANT CONNECT ON DATABASE {database} TO {migration_role}, {runtime_role}'],
@@ -132,7 +132,7 @@ try:
     env = dict(base_env, NODE_ENV='test', PLATFORM_DATABASE_ENGINE='postgres',
                WORKSHOP_DATABASE_ENGINE='postgres',
                PG_TEST_DISPOSABLE='yes', LIVE_OLLAMA_TEST='1',
-               DVAIA_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true',
+               OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE=str(workspace), AWS_EC2_METADATA_DISABLED='true',
                OLLAMA_BASE_URL=os.environ.get('OLLAMA_BASE_URL', 'http://127.0.0.1:11434'),
                OLLAMA_MODEL='llama3.1:8b', JUDGE_PROVIDER='ollama', JUDGE_MODEL='llama3.1:8b',
                PG_SECURESHOP_STORED_BROWSER_IDENTITY_MIGRATION_URL=urls['identity']['migration'],

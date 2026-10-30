@@ -20,7 +20,7 @@ async function waitFor(check,{timeoutMs=3000,intervalMs=20}={}){const deadline=D
  while(Date.now()<deadline){if(await check())return;await new Promise(resolve=>setTimeout(resolve,intervalMs));}
  throw new Error('Timed out waiting for bounded native concurrency state');}
 function disposableUrl(key){const u=new URL(process.env[PREFIX+key]);assert.equal(u.protocol,'postgresql:');
- assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_[a-z0-9_]+$/);
+ assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_[a-z0-9_]+$/);
  assert.equal(u.password,'');assert.equal(u.search,'');assert.equal(u.hash,'');return u.href;}
 function historicalMigrator(ceiling){const filename=require.resolve('../../db/postgres/migrate');
  const local=createRequire(filename),original=require('node:fs/promises');
@@ -42,7 +42,7 @@ function result(){return {verdict:'pass',provider:'controlled-native-fixture',mo
 
 test('scene reset retires exact V03 scene contributions and preserves immutable evidence and unrelated progress',
  {skip:!ENABLED,timeout:120000},async t=>{
-  assert.equal(path.resolve(process.env.DVAIA_CURRENT_MAIN_WORKSPACE||'/'),process.cwd());
+  assert.equal(path.resolve(process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE||'/'),process.cwd());
   const migration=new Pool({connectionString:disposableUrl('IDENTITY_MIGRATION_URL'),max:2});
   const runtime=new Pool({connectionString:disposableUrl('IDENTITY_RUNTIME_URL'),max:8});
   t.after(async()=>{const ended=await Promise.allSettled([migration.end(),runtime.end()]);

@@ -16,11 +16,11 @@ test('reserved 0046 loads after the exact 0045 ledger, preserves events and repl
   skip: !enabled,
 }, async t => {
   for (const name of ['PG_GRAPH_VALIDATION_PROMOTION_RUNTIME_URL', 'PG_GRAPH_VALIDATION_PROMOTION_MIGRATION_URL']) {
-    assert.match(new URL(process.env[name]).pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(new URL(process.env[name]).pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   }
   const runtime = new Pool({ connectionString: process.env.PG_GRAPH_VALIDATION_PROMOTION_RUNTIME_URL, max: 2 });
   const migration = new Pool({ connectionString: process.env.PG_GRAPH_VALIDATION_PROMOTION_MIGRATION_URL, max: 1 });
-  const staged = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-identity-0046-'));
+  const staged = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-identity-0046-'));
   t.after(() => fs.rm(staged, { recursive: true, force: true }));
   try {
     const applied = await require('../../server/database/postgres/identityRepository')

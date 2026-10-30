@@ -48,7 +48,7 @@ test('actual8B Legacy Sensitive decision loop with disposable PostgreSQL receipt
     assert.equal(process.env.LEGACY_SENSITIVE_LOOP_MODEL_DIGEST, DIGEST);
     const url = new URL(process.env.PG_LEGACY_SENSITIVE_LOOP_RUNTIME_URL);
     assert.equal(url.hostname, '127.0.0.1');
-    assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+    assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
     assert.equal(decodeURIComponent(url.username), 'dvaia_identity_runtime');
     const fixture = process.env.LEGACY_SENSITIVE_LOOP_FIXTURE_ROOT;
     assert.ok(fixture && path.isAbsolute(fixture));

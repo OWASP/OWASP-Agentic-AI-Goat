@@ -9,7 +9,7 @@ const LEASE_PY=String.raw`import os,sys,stat,json,time,re,select,hashlib
 ROOT,RUN,OP=sys.argv[1:]
 def require(value):
  if not value:raise RuntimeError('V03_DIAGNOSTIC_LEASE_UNPROVEN')
-require(re.fullmatch('[a-f0-9]{32}',RUN) and ROOT=='/var/tmp/dvaia-v23-build-'+RUN and os.path.realpath(ROOT)==ROOT)
+require(re.fullmatch('[a-f0-9]{32}',RUN) and ROOT=='/var/tmp/owasp-ai-goat-v23-build-'+RUN and os.path.realpath(ROOT)==ROOT)
 info=os.lstat(ROOT);require(stat.S_ISDIR(info.st_mode) and info.st_uid==0 and stat.S_IMODE(info.st_mode)==0o700)
 def read(name):
  fd=os.open(ROOT+'/'+name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)

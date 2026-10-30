@@ -101,7 +101,7 @@ test('V12 candidate refuses a stale or foreign seed without enabling order', asy
 
 test('current-host IDOR receipt must be new, private, and inside this checkout; legacy stays external', async t => {
   const checkout = path.resolve(__dirname, '..');
-  const tempCandidate = process.env.DVAIA_REPO_LOCAL_UNIT_RUNTIME || process.env.TMPDIR;
+  const tempCandidate = process.env.OWASP_AI_GOAT_REPO_LOCAL_UNIT_RUNTIME || process.env.TMPDIR;
   const tempParent = tempCandidate && path.resolve(tempCandidate).startsWith(
     `${checkout}${path.sep}tasks${path.sep}tmp${path.sep}`)
     ? path.resolve(tempCandidate) : path.join(checkout, 'tasks', 'tmp');

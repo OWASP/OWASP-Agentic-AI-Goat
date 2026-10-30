@@ -11,7 +11,7 @@ test('administrator continuity and concurrent deactivation use a disposable nati
     const target = new URL(process.env.ADMIN_TEST_DATABASE_URL);
     const database = decodeURIComponent(target.pathname.slice(1));
     if (!['127.0.0.1', 'localhost', '[::1]'].includes(target.hostname) ||
-        !/^dvaia_admin_disposable_[a-f0-9]{12}$/.test(database) ||
+        !/^owasp_ai_goat_admin_disposable_[a-f0-9]{12}$/.test(database) ||
         process.env.ADMIN_TEST_OWNED_DATABASE !== database) {
       throw new Error('Administrator native test requires an explicitly owned disposable localhost database');
     }

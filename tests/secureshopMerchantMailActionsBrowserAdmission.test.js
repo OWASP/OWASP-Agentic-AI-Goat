@@ -23,7 +23,7 @@ async function owned(t) {
   const runtime = path.join(run, 'runtime'), temp = path.join(runtime, 'tmp');
   await fs.mkdir(runtime, { mode: 0o700 });
   await fs.mkdir(temp, { mode: 0o700 });
-  const profile = await fs.mkdtemp(path.join(temp, 'dvaia-role-mail-actions-'));
+  const profile = await fs.mkdtemp(path.join(temp, 'owasp-ai-goat-role-mail-actions-'));
   const evidencePath = path.join(run, 'merchant-mail-actions-browser.json');
   const executablePath = syncFs.realpathSync(process.execPath);
   const buildSha256 = (await buildInventory(path.join(ROOT, 'client/build'))).sha256;
@@ -42,7 +42,7 @@ async function owned(t) {
     SECURESHOP_BOUND_BROWSER_BIRTH_PYTHON: syncFs.realpathSync('/usr/bin/python3'),
     PUPPETEER_EXECUTABLE_PATH: executablePath,
     PG_TEST_DISPOSABLE: 'yes', LIVE_OLLAMA_TEST: '1', NODE_ENV: 'test',
-    DVAIA_CURRENT_MAIN_WORKSPACE: ROOT, TMPDIR: temp, MAC_CHROMIUM_TMPDIR: temp,
+    OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: ROOT, TMPDIR: temp, MAC_CHROMIUM_TMPDIR: temp,
   };
   return { run, profile, evidencePath, executablePath, env };
 }
@@ -94,7 +94,7 @@ test('one inherited FIFO is consumed before browser arguments; only exact loopba
     + `const descriptor=Number(process.env.SECURESHOP_MAIL_ACTIONS_ADMISSION_FD);`
     + `const closed=()=>{try{fs.fstatSync(descriptor);return false}catch(e){return e.code==='EBADF'}};`
     + `(async()=>{const admission=await admitMerchantMailActionsBrowser(process.env,`
-    + `{workspace:process.env.DVAIA_CURRENT_MAIN_WORKSPACE,`
+    + `{workspace:process.env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,`
     + `evidencePath:process.env.SECURESHOP_MERCHANT_MAIL_ACTIONS_BROWSER_EVIDENCE_PATH,`
     + `executablePath:process.env.PUPPETEER_EXECUTABLE_PATH});`
     + `const browser=new EventEmitter();const boundary=admission.watchBrowserTargets(browser);`

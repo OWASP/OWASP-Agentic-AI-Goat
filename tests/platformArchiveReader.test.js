@@ -12,7 +12,7 @@ async function fixture(){
  }
  const unknown='unknown.jsonl',cells=[{type:'integer',value:'9007199254740993'},{type:'blob',base64:'AP8='},{type:'text',value:' raw JSON ' }];tables.push({name:'custom_state',columns:['wide','bytes','text'],file:unknown,rows:1,...await write(unknown,JSON.stringify(cells)+'\n')});
  const schemaFile='schema.json',schema=await write(schemaFile,JSON.stringify(tables.map(table=>({type:'table',name:table.name}))));
- const manifest={version:1,format:'dvaia-sqlite-archive-v1',complete:true,files:[{name:'users_auth.db',sourceSha256:'b'.repeat(64),schemaFile,schema,tables}]};
+ const manifest={version:1,format:'owasp-ai-goat-sqlite-archive-v1',complete:true,files:[{name:'users_auth.db',sourceSha256:'b'.repeat(64),schemaFile,schema,tables}]};
  await fs.writeFile(path.join(directory,'manifest.json'),JSON.stringify(manifest));return{directory,manifest,write};
 }
 test('platform archive verifies bytes, exact owner keys, UTC and JSON-safe unmapped values',async()=>{

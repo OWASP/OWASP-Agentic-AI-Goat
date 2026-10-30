@@ -323,7 +323,7 @@ test('confirmed registered self-demotion clears the exact saved request and asks
     expect(global.fetch.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(1);
     expect(global.fetch.mock.calls.some(([url]) => String(url).includes('/admin/users/operations/'))).toBe(false);
     expect(localStorage.length).toBe(0);
-    expect(message).toHaveBeenCalledWith({ channel: 'dvaia-secureshop-standalone-session-v1',
+    expect(message).toHaveBeenCalledWith({ channel: 'owasp-ai-goat-secureshop-standalone-session-v1',
       type: 'auth-required', nonce }, new URL(document.baseURI).origin);
   } finally { message.mockRestore(); window.location.hash = priorHash; }
 });
@@ -446,7 +446,7 @@ test('saved self-demotion with denied receipt read offers explicit sign-in and r
     expect(message).not.toHaveBeenCalled();
     await act(async () => [...container.querySelectorAll('button')]
       .find(button => button.textContent === 'Sign in again').click());
-    expect(message).toHaveBeenCalledWith({ channel: 'dvaia-secureshop-standalone-session-v1',
+    expect(message).toHaveBeenCalledWith({ channel: 'owasp-ai-goat-secureshop-standalone-session-v1',
       type: 'auth-required', nonce }, new URL(document.baseURI).origin);
     expect(localStorage.getItem(key)).toBe(before);
     expect(global.fetch.mock.calls.filter(([, options]) => options?.method === 'POST')).toHaveLength(1);

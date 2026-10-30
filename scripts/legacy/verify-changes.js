@@ -2,7 +2,7 @@
 
 const axios = require('axios');
 
-console.log('🔍 DVAIA Platform Verification');
+console.log('🔍 OWASP-AI-GOAT Platform Verification');
 console.log('================================\n');
 
 async function verifyChanges() {

@@ -29,7 +29,7 @@ async function verifyEmbeddingRuntime({ cacheDirectory, createStore } = {}) {
   try {
     store = createStore ? createStore() : new (require('../server/services/ragVectorStore').RagVectorStore)();
     await store.init();
-    const vector = await store.embedText('DVAIA installation verifies local document retrieval.');
+    const vector = await store.embedText('OWASP-AI-GOAT installation verifies local document retrieval.');
     if (!(vector instanceof Float32Array) || vector.length !== 384 || !vector.every(Number.isFinite)
         || !vector.some(value => value !== 0)) throw new Error('Embedding output is invalid');
     await cache.check();

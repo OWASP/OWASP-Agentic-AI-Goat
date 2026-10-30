@@ -33,7 +33,7 @@ test('application runtime guard exactly matches the declared Node compatibility 
 });
 
 test('setup rejects an unsupported runtime before filesystem or subprocess mutation', async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-node-runtime-setup-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-node-runtime-setup-'));
   const root = path.join(directory, 'workspace');
   const homeDirectory = path.join(directory, 'home');
   fs.mkdirSync(root, { mode: 0o700 });
@@ -50,13 +50,13 @@ test('setup rejects an unsupported runtime before filesystem or subprocess mutat
   }), { code: 'UNSUPPORTED_NODE_RUNTIME' });
 
   assert.equal(subprocessCalls, 0);
-  assert.equal(fs.existsSync(path.join(homeDirectory, '.dvaia')), false);
+  assert.equal(fs.existsSync(path.join(homeDirectory, '.owasp-ai-goat')), false);
   assert.deepEqual(fs.readdirSync(root), []);
 });
 
 test('application launcher rejects an unsupported runtime before loading configuration', async () => {
   const originalLoad = Module._load;
-  const originalDataRoot = process.env.DVAIA_APP_DATA_ROOT;
+  const originalDataRoot = process.env.OWASP_AI_GOAT_APP_DATA_ROOT;
   let dotenvLoaded = false;
   Module._load = function guardedLoad(request, parent, isMain) {
     if (request === 'dotenv') dotenvLoaded = true;
@@ -68,11 +68,11 @@ test('application launcher rejects an unsupported runtime before loading configu
     });
   } finally {
     Module._load = originalLoad;
-    if (originalDataRoot === undefined) delete process.env.DVAIA_APP_DATA_ROOT;
-    else process.env.DVAIA_APP_DATA_ROOT = originalDataRoot;
+    if (originalDataRoot === undefined) delete process.env.OWASP_AI_GOAT_APP_DATA_ROOT;
+    else process.env.OWASP_AI_GOAT_APP_DATA_ROOT = originalDataRoot;
   }
   assert.equal(dotenvLoaded, false);
-  assert.equal(process.env.DVAIA_APP_DATA_ROOT, originalDataRoot);
+  assert.equal(process.env.OWASP_AI_GOAT_APP_DATA_ROOT, originalDataRoot);
 });
 
 test('server entry rejects an unsupported runtime before loading configuration or stores', () => {
@@ -103,7 +103,7 @@ test('server entry rejects an unsupported runtime before loading configuration o
 });
 
 test('Unix runtime resolver returns a clear failure when no supported Node is available', t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'dvaia-node-runtime-path-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'owasp-ai-goat-node-runtime-path-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const bin = path.join(directory, 'bin');
   fs.mkdirSync(bin);
@@ -114,10 +114,10 @@ test('Unix runtime resolver returns a clear failure when no supported Node is av
   // Feed the resolver in memory; only the deliberately failing Node executable
   // is synthetic on disk. Keep its runtime guard pointed at the main module.
   const shellQuote = value => "'" + value.replace(/'/g, "'\"'\"'") + "'";
-  assert.equal((original.match(/^dvaia_runtime_guard=.*$/gm)||[]).length,1);
+  assert.equal((original.match(/^owasp_ai_goat_runtime_guard=.*$/gm)||[]).length,1);
   assert.equal(original.split('/opt/homebrew/bin /usr/local/bin').length-1,1);
-  const isolated = original.replace(/^dvaia_runtime_guard=.*$/m,
-    `dvaia_runtime_guard=${shellQuote(path.join(ROOT, 'scripts/application-node-runtime.js'))}`)
+  const isolated = original.replace(/^owasp_ai_goat_runtime_guard=.*$/m,
+    `owasp_ai_goat_runtime_guard=${shellQuote(path.join(ROOT, 'scripts/application-node-runtime.js'))}`)
     .replace('/opt/homebrew/bin /usr/local/bin',
       `${shellQuote(path.join(directory, 'missing-one'))} ${shellQuote(path.join(directory, 'missing-two'))}`);
   const result = spawnSync('/bin/bash', ['-c', 'eval "$1"', 'controlled-runtime-resolver', isolated], {

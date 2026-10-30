@@ -135,7 +135,7 @@ test('standalone qualifier applies validated managed flags and fixture roots bef
 });
 
 test('private provisioner activates and disables all bound features atomically without touching application env', async t => {
-  const directory = await fsp.mkdtemp(path.join(os.tmpdir(), 'dvaia-ss-managed-'));
+  const directory = await fsp.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ss-managed-'));
   const root = path.join(directory, 'workspace'), home = path.join(directory, 'home');
   await Promise.all([fsp.mkdir(root), fsp.mkdir(home)]);
   const applicationEnv = path.join(root, '.env'); const original = Buffer.from('JWT_SECRET=private-existing-value\n');
@@ -166,7 +166,7 @@ test('private provisioner activates and disables all bound features atomically w
 });
 
 test('managed configuration rejects partial activation, path substitution and untrusted roots', async t => {
-  const directory = await fsp.mkdtemp(path.join(os.tmpdir(), 'dvaia-ss-managed-negative-'));
+  const directory = await fsp.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ss-managed-negative-'));
   const root = path.join(directory, 'workspace'), home = path.join(directory, 'home');
   await Promise.all([fsp.mkdir(root), fsp.mkdir(home)]); t.after(() => fsp.rm(directory, { recursive: true, force: true }));
   const roots = config.expectedRoots(root, home);
@@ -182,7 +182,7 @@ test('managed configuration rejects partial activation, path substitution and un
 });
 
 test('provisioner rejects a malformed existing managed file instead of overwriting it', async t => {
-  const directory = await fsp.mkdtemp(path.join(os.tmpdir(), 'dvaia-ss-managed-existing-'));
+  const directory = await fsp.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ss-managed-existing-'));
   const root = path.join(directory, 'workspace'), home = path.join(directory, 'home');
   await Promise.all([fsp.mkdir(root), fsp.mkdir(home)]); t.after(() => fsp.rm(directory, { recursive:true, force:true }));
   const file = config.managedPath(root, home); await fsp.mkdir(path.dirname(file), { recursive:true, mode:0o700 });
@@ -229,7 +229,7 @@ function relocatedLoader(sourceRoot, destinationRoot, relatives) {
 }
 
 test('installed activation relocates to the current workspace and rejects historical rebuild', async t => {
-  const directory = await fsp.mkdtemp(path.join(os.tmpdir(), 'dvaia-ss-output-'));
+  const directory = await fsp.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-ss-output-'));
   t.after(() => fsp.rm(directory, { recursive:true, force:true }));
   assert.throws(() => builder.build({sourceRoot:ROOT,destinationRoot:directory}), /activation input changed/);
   const manifest = require('../docs/modernization/drafts/secureshop-qualified-activation-manifest-2026-09-14.json');

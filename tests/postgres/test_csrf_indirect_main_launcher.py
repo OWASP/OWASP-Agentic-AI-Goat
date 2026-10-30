@@ -16,10 +16,10 @@ class ClosedCsrfMainProfile(unittest.TestCase):
   plan=json.loads(emit.call_args.args[0]);self.assertEqual(plan['cohort'],'csrf-indirect70b-main');self.assertEqual(plan['mode'],'actual');self.assertEqual(len(plan['stores']),16);self.assertEqual(plan['maxModelCalls'],18);self.assertEqual(plan['modelHttpTimeoutMs'],60000);self.assertFalse(plan['allocation'])
  def test_disposable_store_and_scrubbed_child_environment(self):
   args=self.args();sql,urls=m.store_configuration('csrf',54321,'a'*12,m.CSRF_PROFILE)
-  self.assertEqual(set(urls),{'CSRF_WORKSHOP_DATABASE_URL','CSRF_WORKSHOP_MIGRATION_DATABASE_URL'});self.assertIn('/dvaia_test_csrf_browser_'+'a'*12+'_csrf',next(iter(urls.values())));self.assertIn('REVOKE CONNECT',sql)
+  self.assertEqual(set(urls),{'CSRF_WORKSHOP_DATABASE_URL','CSRF_WORKSHOP_MIGRATION_DATABASE_URL'});self.assertIn('/owasp_ai_goat_test_csrf_browser_'+'a'*12+'_csrf',next(iter(urls.values())));self.assertIn('REVOKE CONNECT',sql)
   for label,_ in m.DPI_STORES:self.assertEqual(len(m.store_configuration(label,54321,'a'*12,m.CSRF_PROFILE)[1]),3 if label=='ctf' else 2)
   with patch.dict(os.environ,{'IDENTITY_DATABASE_URL':'installed','OPENAI_API_KEY':'private','NODE_OPTIONS':'unsafe'}):env=m.child_environment({'PATH':'/pinned'},Path('/evidence'),Path('/external/runtime'),'owner',args)
-  self.assertEqual(env['CSRF_FULL_INDEX_MODE'],'actual-indirect-chain');self.assertEqual(env['CSRF_FULL_INDEX_70B'],'yes');self.assertEqual(env['CSRF_HTML_SUMMARY_TIMEOUT_MS'],'55000');self.assertEqual(env['CSRF_FULL_INDEX_SOURCE_ROOT'],'/main');self.assertEqual(env['CSRF_FULL_INDEX_RUNTIME_ROOT'],'/external/runtime');self.assertEqual(env['DVAIA_APP_DATA_ROOT'],'/external/runtime/appdata');self.assertEqual(env['OLLAMA_MODEL'],'llama3.3:70b')
+  self.assertEqual(env['CSRF_FULL_INDEX_MODE'],'actual-indirect-chain');self.assertEqual(env['CSRF_FULL_INDEX_70B'],'yes');self.assertEqual(env['CSRF_HTML_SUMMARY_TIMEOUT_MS'],'55000');self.assertEqual(env['CSRF_FULL_INDEX_SOURCE_ROOT'],'/main');self.assertEqual(env['CSRF_FULL_INDEX_RUNTIME_ROOT'],'/external/runtime');self.assertEqual(env['OWASP_AI_GOAT_APP_DATA_ROOT'],'/external/runtime/appdata');self.assertEqual(env['OLLAMA_MODEL'],'llama3.3:70b')
   for key in ('IDENTITY_DATABASE_URL','OPENAI_API_KEY','NODE_OPTIONS'):self.assertNotIn(key,env)
  def test_api_only_cleanup_admission_rejects_browser_artifacts(self):
   with tempfile.TemporaryDirectory()as d:

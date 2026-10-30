@@ -22,7 +22,7 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes'
 function disposableUrl(name) {
   const url = new URL(process.env[`${PREFIX}_${name}_URL`]);
   assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname));
-  assert.match(url.pathname, /^\/dvaia_test_[a-z0-9_]+$/);
+  assert.match(url.pathname, /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   return url;
 }
 

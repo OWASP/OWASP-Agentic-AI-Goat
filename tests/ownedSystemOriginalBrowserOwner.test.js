@@ -211,7 +211,7 @@ function endpoint(signal){return {system:{client:{},port:18090,baseURL:'http://1
  signal:signal||new AbortController().signal,deadline:performance.now()+900000};}
 function terminal(runId='a'.repeat(32)){return {version:1,runId,exitCode:0,child:{pid:42,birth:[123,456],reaped:true,
  groupAbsent:true,browserProcessesAbsent:true,profilesAbsent:true,errors:[]},cleanupVerified:true,failure:null,
- browser:{pid:43,birth:[124,123],pgid:43,workerPid:44,profilePath:I.locations({runId}).temporary+'/dvaia-role-policy-instruction-abc123',birthSha256:sha('birth'),acknowledged:true,groupAbsent:true,processAbsent:true,profileAbsent:true,errors:[]},
+ browser:{pid:43,birth:[124,123],pgid:43,workerPid:44,profilePath:I.locations({runId}).temporary+'/owasp-ai-goat-role-policy-instruction-abc123',birthSha256:sha('birth'),acknowledged:true,groupAbsent:true,processAbsent:true,profileAbsent:true,errors:[]},
  tap:{bytes:0,sha256:sha('')}};}
 function tapHandle(bytes=Buffer.alloc(0)){
  return {fd:2,stat:async()=>({isFile:()=>true,nlink:1,size:bytes.length,dev:1,ino:2,mtimeMs:3,ctimeMs:4}),
@@ -241,7 +241,7 @@ test('fixed child environment preserves only original V24 selector, four stores,
  assert.equal(env.PUPPETEER_EXECUTABLE_PATH,'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
  assert.equal(Object.keys(env).filter(k=>k.startsWith('PG_SECURESHOP_POLICY_INSTRUCTION_BROWSER_')).length,8);
  assert.equal(env.PG_SECURESHOP_POLICY_INSTRUCTION_BROWSER_COMMERCE_RUNTIME_URL,
-  'postgresql://dvaia_secureshop_runtime@127.0.0.1:15432/dvaia_test_agent_host_bbbbbbbbbbbb_secureshop');
+  'postgresql://dvaia_secureshop_runtime@127.0.0.1:15432/owasp_ai_goat_test_agent_host_bbbbbbbbbbbb_secureshop');
  assert(!('NODE_OPTIONS' in env));assert(!('HTTPS_PROXY' in env));assert(!('DOCKER_HOST' in env));
  assert.equal(Object.keys(env).filter(k=>k.endsWith('_NATIVE')).length,1);
  for(const mutate of [v=>v.env={},v=>v.command='/bin/sh',v=>v.pgPort=true,v=>v.pgNonce='app',v=>v.node='/usr/bin/node',
@@ -779,7 +779,7 @@ class Api:
  def identity(self,pid):return copy.copy(self.rows.get(pid))
  def arguments(self,pid):return self.argv[pid]
  def group_pids(self,pgid):return [pid for pid,row in self.rows.items() if row is not None and row.pgid==pgid]
-profile=CONF['temporary']+'/dvaia-role-policy-instruction-abc123'
+profile=CONF['temporary']+'/owasp-ai-goat-role-policy-instruction-abc123'
 record=dict(version=1,runId=CONF['runId'],workerPid=44,browserPid=43,profilePath=profile)
 proc=SimpleNamespace(pid=42);identity=(100,4,42,os.getuid(),os.getuid())
 fingerprint=lambda path,digest:events.append(('hash',path,digest))
@@ -983,7 +983,7 @@ test('emitted birth reader and ACK publisher enforce bounded canonical private r
  const p=I.locations(options()),conf={root:I.ROOT,directory:p.directory,temporary:p.temporary,runId:options().runId};
  const checks=String.raw`
 from types import SimpleNamespace
-record=dict(version=1,runId=CONF['runId'],workerPid=44,browserPid=43,profilePath=CONF['temporary']+'/dvaia-role-policy-instruction-abc123')
+record=dict(version=1,runId=CONF['runId'],workerPid=44,browserPid=43,profilePath=CONF['temporary']+'/owasp-ai-goat-role-policy-instruction-abc123')
 def encoded(row):return json.dumps(row,separators=(',',':'),ensure_ascii=False).encode()+b'\n'
 raw=encoded(record);flags=[];closed=[];mode=stat.S_IFREG|0o600;links=1;inode=7
 def snapshot():return SimpleNamespace(st_mode=mode,st_uid=os.getuid(),st_nlink=links,st_size=len(raw),st_dev=1,st_ino=inode,st_mtime_ns=3,st_ctime_ns=4)

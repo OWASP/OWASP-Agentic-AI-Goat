@@ -10,7 +10,7 @@ const enabled = process.env.PG_TEST_DISPOSABLE === 'yes'
   && Boolean(process.env.PG_MCP_SUPPLY_CHAIN_CURRICULUM_TEST_URL);
 const migration = fs.readFileSync(path.resolve(__dirname,
   '../../db/postgres/identity-migrations/0061_mcp_supply_chain_curriculum_defaults.sql'), 'utf8');
-const oldRoot = process.env.DVAIA_MCP_SUPPLY_CHAIN_BASELINE_ROOT;
+const oldRoot = process.env.OWASP_AI_GOAT_MCP_SUPPLY_CHAIN_BASELINE_ROOT;
 const oldSolution = oldRoot
   ? require(path.join(oldRoot, 'server/data/mcpWorkshopSolutions')).mcp_supply_chain : null;
 const oldHint = oldRoot

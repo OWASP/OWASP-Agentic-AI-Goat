@@ -40,8 +40,8 @@ def command(manifest=MANIFEST, digest=None, model_digest=None):
             '--docker', runtime['docker']['path'], '--docker-sha256', runtime['docker']['sha256'],
             '--python-sha256', runtime['python']['sha256'], '--docker-daemon', value['dockerDaemon'],
             '--image-id', value['imageId'], '--model-digest', model_digest or value['modelDigest'],
-            '--docker-host', 'unix:///Users/averma5/.colima/dvaia-pg-verify/docker.sock',
-            '--evidence-dir', '/private/tmp/dpi-main-plan/evidence', '--container', 'dvaia-dpi-live-plan',
+            '--docker-host', 'unix:///Users/averma5/.colima/owasp-ai-goat-pg-verify/docker.sock',
+            '--evidence-dir', '/private/tmp/dpi-main-plan/evidence', '--container', 'owasp-ai-goat-dpi-live-plan',
             '--grant-file', '/private/tmp/dpi-main-plan/grant.json', '--grant-id', 'plan',
             '--scope', 'system_prompt']
 

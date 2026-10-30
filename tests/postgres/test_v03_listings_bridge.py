@@ -39,12 +39,12 @@ class Controls(unittest.TestCase):
     def row(self,b):return dict(parentRunId=b.parent_run_id,runId=b.run_id,combinedPlanSha256=b.plan_sha256,
         guestBootId='12345678-1234-1234-1234-123456789abc',phase='cohortClaim',startedAtMs=100000,deadlineMs=1310000)
     def handoff(self,b):
-        return dict(runId=b.run_id,root='/var/tmp/dvaia-v23-build-'+b.run_id+'/fs',filesystemDevice=1792,
+        return dict(runId=b.run_id,root='/var/tmp/owasp-ai-goat-v23-build-'+b.run_id+'/fs',filesystemDevice=1792,
             filesystemInode=2,namespaceInode=1234,holderPid=200,holderStart=300,containerPid=400,containerStart=500,
             containerId='b'*64,imageId='sha256:'+'c'*64,sourceSha256='d'*64,runtimeSha256='e'*64,
-            environmentSha256='f'*64,publicOrigin=b.origin,workspaceId='a'*12,profileName='dvaia-owned-listings-'+'a'*12,
-            profileSha256='f'*64,containerName='dvaia-owned-listings-'+'a'*12,
-            privateDockerHost='unix:///var/tmp/dvaia-v23-build-'+b.run_id+'/fs/docker.sock',daemonId='d'*36)
+            environmentSha256='f'*64,publicOrigin=b.origin,workspaceId='a'*12,profileName='owasp-ai-goat-owned-listings-'+'a'*12,
+            profileSha256='f'*64,containerName='owasp-ai-goat-owned-listings-'+'a'*12,
+            privateDockerHost='unix:///var/tmp/owasp-ai-goat-v23-build-'+b.run_id+'/fs/docker.sock',daemonId='d'*36)
     def test_explicit_claim_once_preserves_full_child_and_absolute_guest_cap(self):
         b=self.bridge();handoff=self.handoff(b)
         def activated(instance,value):instance._handoff=value;instance.acceptor=object()

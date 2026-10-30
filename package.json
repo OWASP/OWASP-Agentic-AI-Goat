@@ -1,7 +1,7 @@
 {
-  "name": "dvaia",
+  "name": "owasp-ai-goat",
   "version": "1.0.0",
-  "description": "Damn Vulnerable AI Application - A modern educational platform for learning web security vulnerabilities",
+  "description": "OWASP Agentic AI GOAT - An educational platform for learning AI agent and web security",
   "main": "server/index.js",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
@@ -57,7 +57,7 @@
     "ai",
     "web-security"
   ],
-  "author": "DVAIA Team",
+  "author": "OWASP Agentic AI GOAT contributors",
   "license": "GPL-3.0",
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "3.1146.0",

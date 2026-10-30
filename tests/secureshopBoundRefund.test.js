@@ -253,20 +253,20 @@ test('refund router forwards injected SSE and refuses an invalid launch', async 
   const router = createBoundRefundRouter({ launches, authenticatePersona(req, res, next) { req.ssUser = { id: 41, role: 'customer' }; req.ssPersonaSession = personaSession; next(); }, runtime: { async createSession(...input) { sessionInput = input; return { id: 'session-1' }; }, async readRequest(...input) { readInput = input; return { requestId: input[4], status: 'unconfirmed' }; }, runner: { async run(input) { runInput = input; input.stream.send('result', { committed: true, ticketId: 77 }); input.stream.send('done', { stopReason: 'end_turn' }); } } } });
   app.use('/api', router); const server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); }); t.after(() => new Promise(resolve => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}/api`;
-  const admitted = await fetch(`${base}/agents/customer/refund/session`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-dvaia-secureshop-launch': goodLaunch }, body: '{}' });
+  const admitted = await fetch(`${base}/agents/customer/refund/session`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': goodLaunch }, body: '{}' });
   assert.equal(admitted.status, 200); assert.equal((await admitted.json()).sessionId, 'session-1');
   assert.equal(sessionInput[2], personaSession);
-  const good = await fetch(`${base}/agents/customer/refund/chat`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-dvaia-secureshop-launch': goodLaunch }, body: JSON.stringify({ sessionId: 'session-1', message: 'refund order 12' }) });
+  const good = await fetch(`${base}/agents/customer/refund/chat`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': goodLaunch }, body: JSON.stringify({ sessionId: 'session-1', message: 'refund order 12' }) });
   assert.equal(good.status, 200); const body = await good.text(); assert.match(body, /committed/); assert.match(body, /ticketId/);
   const requestId = '40000000-0000-4000-8000-000000000042';
-  const own = await fetch(`${base}/agents/customer/refund/chat`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-dvaia-secureshop-launch': goodLaunch }, body: JSON.stringify({ sessionId: 'session-1', message: 'refund order 12', requestId: requestId.toUpperCase() }) });
+  const own = await fetch(`${base}/agents/customer/refund/chat`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': goodLaunch }, body: JSON.stringify({ sessionId: 'session-1', message: 'refund order 12', requestId: requestId.toUpperCase() }) });
   assert.equal(own.status, 200); await own.text(); assert.equal(runInput.requestId, requestId);
-  const recovery = await fetch(`${base}/agents/customer/refund/operations/${requestId}/${requestId}`, { headers: { 'x-dvaia-secureshop-launch': goodLaunch } });
+  const recovery = await fetch(`${base}/agents/customer/refund/operations/${requestId}/${requestId}`, { headers: { 'x-owasp-ai-goat-secureshop-launch': goodLaunch } });
   assert.equal(recovery.status, 200); assert.deepEqual(await recovery.json(), { requestId, status: 'unconfirmed' });
   assert.equal(readInput[2], personaSession);
-  const malformed = await fetch(`${base}/agents/customer/refund/operations/not-uuid/${requestId}`, { headers: { 'x-dvaia-secureshop-launch': goodLaunch } });
+  const malformed = await fetch(`${base}/agents/customer/refund/operations/not-uuid/${requestId}`, { headers: { 'x-owasp-ai-goat-secureshop-launch': goodLaunch } });
   assert.equal(malformed.status, 400);
-  const bad = await fetch(`${base}/agents/customer/refund/chat`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-dvaia-secureshop-launch': 'bad' }, body: JSON.stringify({ sessionId: 'session-1', message: 'refund order 12' }) });
+  const bad = await fetch(`${base}/agents/customer/refund/chat`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': 'bad' }, body: JSON.stringify({ sessionId: 'session-1', message: 'refund order 12' }) });
   assert.equal(bad.status, 401);
 });
 

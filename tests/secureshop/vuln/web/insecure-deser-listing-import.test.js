@@ -19,7 +19,7 @@ test('insecure-deser-listing-import: __proto__ payload pollutes Object.prototype
   try {
     // Serve a JSON catalog whose element carries a __proto__ pollution payload.
     // JSON.stringify strips __proto__ from a live object, so hand-write the JSON.
-    const jsonPayload = '[{"name":"Legit","description":"legit","price":9.99,"__proto__":{"pollutedFlag":"DVAIA-pwn"}}]';
+    const jsonPayload = '[{"name":"Legit","description":"legit","price":9.99,"__proto__":{"pollutedFlag":"OWASP-AI-GOAT-pwn"}}]';
     const server = http.createServer((req, res) => {
       res.setHeader('content-type', 'application/json');
       res.end(jsonPayload);
@@ -51,7 +51,7 @@ test('insecure-deser-listing-import: __proto__ payload pollutes Object.prototype
     // Recursive traversal follows target.__proto__ into Object.prototype,
     // so a fresh object inherits the flag. Object.assign alone would only
     // replace the target's prototype; it is not the primitive tested here.
-    assert.equal(({}).pollutedFlag, 'DVAIA-pwn', 'Object.prototype polluted (intentional)');
+    assert.equal(({}).pollutedFlag, 'OWASP-AI-GOAT-pwn', 'Object.prototype polluted (intentional)');
   } finally {
     // Clean up prototype pollution so we don't leak into later tests.
     // eslint-disable-next-line no-proto

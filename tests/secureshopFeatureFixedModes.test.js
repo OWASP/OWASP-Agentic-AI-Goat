@@ -76,7 +76,7 @@ test('fixed persona status filters other subjects using canonical launch mode', 
 });
 
 test('fixed SSRF destination authority binds the live owner, exact issued URL, request and public kind', async t => {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-fixed-ssrf-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-fixed-ssrf-'));
   const pool = createSecureShopSsrfTargetPool({ root });
   t.after(async () => { await pool.close(); await fs.rm(root, { recursive: true, force: true }); });
   const binding = { ...scope, targetId };

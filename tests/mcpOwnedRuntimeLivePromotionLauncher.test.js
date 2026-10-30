@@ -18,8 +18,8 @@ function assertReviewedSourceClosure(manifest, read) {
 
 test('live promotion binds the named isolated daemon and one-use owner handshake', () => {
   const text = source();
-  assert.match(text, /unix:\/\/\/Users\/averma5\/\.colima\/dvaia-pg-verify\/docker\.sock/);
-  assert.match(text, /args\.colima_profile != 'colima-dvaia-pg-verify'/);
+  assert.match(text, /unix:\/\/\/Users\/averma5\/\.colima\/owasp-ai-goat-pg-verify\/docker\.sock/);
+  assert.match(text, /args\.colima_profile != 'colima-owasp-ai-goat-pg-verify'/);
   assert.match(text, /stat\.S_ISSOCK\(docker_socket\.stat\(\)\.st_mode\)/);
   assert.match(text, /grant\.get\('allowedLaunches'\) != 1/);
   assert.match(text, /grant\.get\('sourceHashes'\) != state\['sourceHashes'\]/);

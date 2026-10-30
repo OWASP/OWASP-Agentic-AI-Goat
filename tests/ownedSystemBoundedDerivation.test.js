@@ -289,7 +289,7 @@ test('exact shared source derives all holder coordinates in memory and preserves
 });
 function guestControl(extra){
  const source=String.raw`import os,sys,stat,time,types,io,contextlib,json
-ROOT='/var/tmp/dvaia-v23-build-'+'a'*32
+ROOT='/var/tmp/owasp-ai-goat-v23-build-'+'a'*32
 RUN='a'*32
 files={};fds={};events=[];clock=[100000000000];nextfd=[10]
 def info(directory=False,size=0):return types.SimpleNamespace(st_mode=(stat.S_IFDIR|0o700) if directory else (stat.S_IFREG|0o600),st_uid=0,st_nlink=1,st_size=size)

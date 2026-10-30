@@ -81,10 +81,10 @@ function createRelay({token,dispatch,createServer=http.createServer,profile='ori
     async close(){closing=true;for(const controller of controllers)controller.abort();const stopped=new Promise(resolve=>server.close(resolve));for(const socket of sockets)socket.destroy();server.closeAllConnections?.();await Promise.allSettled([...pending]);await stopped;},
   });
 }
-function createArgs(spec,envFile){return ['create','--name',spec.name,'--label','dvaia.runtime='+spec.nonce,'--network','none','--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--memory','512m','--cpus','1','--pids-limit','128','--log-driver','none','--cap-drop','ALL','--security-opt','apparmor='+spec.profile,'--security-opt','seccomp=unconfined','--user','10001:10001','--restart','no','--env-file',envFile,RUNTIME_IMAGE];}
+function createArgs(spec,envFile){return ['create','--name',spec.name,'--label','owasp-ai-goat.runtime='+spec.nonce,'--network','none','--read-only','--tmpfs','/tmp:rw,nosuid,nodev,noexec,size=16m','--memory','512m','--cpus','1','--pids-limit','128','--log-driver','none','--cap-drop','ALL','--security-opt','apparmor='+spec.profile,'--security-opt','seccomp=unconfined','--user','10001:10001','--restart','no','--env-file',envFile,RUNTIME_IMAGE];}
 function verify(spec,id,row,token){
   const h=row?.HostConfig,c=row?.Config;
-  if(row?.Id!==id||row.Name!=='/'+spec.name||row.Image!==RUNTIME_IMAGE||c?.Labels?.['dvaia.runtime']!==spec.nonce)throw fail('REGISTRY_SERVICE_IDENTITY');
+  if(row?.Id!==id||row.Name!=='/'+spec.name||row.Image!==RUNTIME_IMAGE||c?.Labels?.['owasp-ai-goat.runtime']!==spec.nonce)throw fail('REGISTRY_SERVICE_IDENTITY');
   const expectedEnv=['SECURESHOP_MCP_REGISTRY_ENABLED=true','SECURESHOP_MCP_REGISTRY_TOKEN='+token,'SECURESHOP_MCP_REGISTRY_PROFILE='+spec.profile,'SECURESHOP_MCP_REGISTRY_HOST=127.0.0.1','SECURESHOP_MCP_REGISTRY_PORT=8094'];
   if(c.User!=='10001:10001'||JSON.stringify(c.Entrypoint)!==JSON.stringify(['node','sidecars/sandbox-runner/owned-mcp-registry/http-listener.js'])||(c.Cmd||[]).length||
     !Array.isArray(c.Env)||!expectedEnv.every(x=>c.Env.includes(x))||c.Env.filter(x=>x.startsWith('SECURESHOP_MCP_REGISTRY_')).length!==5||

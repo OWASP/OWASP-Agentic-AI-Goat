@@ -110,14 +110,14 @@ def lifecycle():
     watcher.KIND = 'user_lookup_disclosure_browser'
     watcher.owned_environment = owned_environment
     ownership = load(OWNERSHIP, 'lookup_owned_browser_capture')
-    ownership.PROFILE_PREFIX = 'dvaia-user-lookup-browser-'
+    ownership.PROFILE_PREFIX = 'owasp-ai-goat-user-lookup-browser-'
     return watcher, ownership
 
 
 def verify_retirement(owner, ownership):
     profile = Path(owner.captured.profile)
     if profile.parent != owner.evidence / 'runtime/tmp' \
-            or not profile.name.startswith('dvaia-user-lookup-browser-'):
+            or not profile.name.startswith('owasp-ai-goat-user-lookup-browser-'):
         raise RuntimeError('User lookup captured profile ownership mismatch')
     _, _, _, _, absent = ownership._browser_modules()
     owner.retired = absent([owner.captured.record])

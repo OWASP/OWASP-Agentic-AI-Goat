@@ -2,12 +2,12 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{randomUUID}=require('node:crypto'),{Pool}=require('pg');
 const KEY='direct_prompt_injection',MODEL='llama3.1:8b';
 (async()=>{
- const root=process.env.DPI_SCOPED_EVIDENCE_ROOT;assert.ok(root);assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE));
+ const root=process.env.DPI_SCOPED_EVIDENCE_ROOT;assert.ok(root);assert.equal(process.env.PG_TEST_DISPOSABLE,'yes');assert.equal(fs.realpathSync(process.cwd()),fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE));
  const write=(name,value)=>fs.writeFileSync(path.join(root,name),JSON.stringify(value,null,2)+'\n',{mode:0o600});
  const result={status:'preparing',actors:[],calibration:[],scope:['obfuscation-unicode','obfuscation-hex'],limitations:['Retained semantic negatives are qualified separately in DPI v8 retained97816; no synthetic actor response here.','One prospectively fixed actor attempt per encoding, separate owners; all outcomes retained independently, no best-of selection.','No browser or installed database claim.']};const save=()=>write('candidate-result.json',result);save();
  let transport,server,ai,originalChat;const pools=[];
  try{
-  const pool=variable=>{const u=new URL(process.env[variable]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/dvaia_test_dpi_[a-f0-9]+_identity$/);const p=new Pool({connectionString:u.href,max:4});pools.push(p);return p;};
+  const pool=variable=>{const u=new URL(process.env[variable]);assert.equal(u.hostname,'127.0.0.1');assert.match(u.pathname,/^\/owasp_ai_goat_test_dpi_[a-f0-9]+_identity$/);const p=new Pool({connectionString:u.href,max:4});pools.push(p);return p;};
   const runtime=pool('DPI_IDENTITY_RUNTIME_URL'),migration=pool('DPI_IDENTITY_MIGRATION_URL');process.env.IDENTITY_DATABASE_URL=runtime.options.connectionString;
   const identityApi=require('../../server/database/postgres/identityRepository');await identityApi.initializeIdentityRepository(runtime,migration);await require('../../server/database/postgres/workshopPlatformSeed').seedWorkshopPlatform(migration);
   const identity=identityApi.createIdentityRepository(runtime),progress=require('../../server/database/postgres/workshopProgressRepository').createWorkshopProgressRepository(runtime),config=require('../../server/database/postgres/workshopConfigRepository').createWorkshopConfigRepository(runtime);

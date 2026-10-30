@@ -145,7 +145,7 @@ test('PowerShell helper bounds stdin and stdout, has fixed failure DTO, and avoi
   assert(source.includes('$limit = 1500000')); assert(source.includes('[Console]::In.Read('));
   assert(source.includes('GetByteCount($wire) -gt $limit')); assert(source.includes('GetByteCount($json) -gt $limit'));
   assert(source.includes("Add-Type -Path (Join-Path $PSScriptRoot 'windows-private-state.cs')"));
-  assert(source.includes('[Dvaia.WindowsPrivateState]::Invoke('));
+  assert(source.includes('[OwaspAiGoat.WindowsPrivateState]::Invoke('));
   assert(source.includes('"code":"WINDOWS_PRIVATE_STATE_DENIED"')); assert(source.includes('exit 1'));
   assert(!/Invoke-Expression|Write-Error|Write-Host|Write-Verbose|Out-File|\.ReadToEnd\(|-Command/.test(source));
   assert(source.includes('same identity')); assert(!source.includes('Set-Acl'));

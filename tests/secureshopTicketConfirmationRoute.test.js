@@ -41,7 +41,7 @@ test('ticket confirmation forwards only saved identifiers and GET never confirms
   const server = await new Promise(resolve => { const instance = app.listen(0, '127.0.0.1', () => resolve(instance)); });
   t.after(() => new Promise(resolve => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}/agents/customer/tickets/confirm`;
-  const headers = { 'content-type': 'application/json', 'x-dvaia-secureshop-launch': 'a'.repeat(43) };
+  const headers = { 'content-type': 'application/json', 'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43) };
   const post = (body, suffix = '') => fetch(base + suffix,
     { method: 'POST', headers, body: JSON.stringify(body) });
   const accepted = await post(ids);
@@ -58,7 +58,7 @@ test('ticket confirmation forwards only saved identifiers and GET never confirms
   revoked = true;
   const unavailable = await post(ids);
   assert.equal(unavailable.status, 401);
-  assert.equal(unavailable.headers.get('x-dvaia-secureshop-launch-state'), 'unavailable');
+  assert.equal(unavailable.headers.get('x-owasp-ai-goat-secureshop-launch-state'), 'unavailable');
 });
 
 test('admin ticket reads reject owner selectors and never expose private service fields', async t => {
@@ -90,7 +90,7 @@ test('admin ticket reads reject owner selectors and never expose private service
   const server = await new Promise(resolve => { const instance = app.listen(0, '127.0.0.1', () => resolve(instance)); });
   t.after(() => new Promise(resolve => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}/admin/tickets`;
-  const headers = { 'x-dvaia-secureshop-launch': 'a'.repeat(43) };
+  const headers = { 'x-owasp-ai-goat-secureshop-launch': 'a'.repeat(43) };
   const get = suffix => fetch(base + suffix, { headers });
   assert.equal((await get('')).status, 403); assert.equal(calls, 0);
   role = 'admin';
@@ -104,13 +104,13 @@ test('admin ticket reads reject owner selectors and never expose private service
   assert.deepEqual(await list.json(), { version: 1, tickets: [], nextCursor: null });
   corrupt = true; assert.equal((await get('')).status, 503);
   const revoked = await get('/1'); assert.equal(revoked.status, 401);
-  assert.equal(revoked.headers.get('x-dvaia-secureshop-launch-state'), 'unavailable');
+  assert.equal(revoked.headers.get('x-owasp-ai-goat-secureshop-launch-state'), 'unavailable');
   detailValue = null;
   const absent = await get('/9223372036854775807');
   assert.equal(absent.status, 404);
   assert.deepEqual(await absent.json(), { error: 'Ticket unavailable' });
   assert.equal(absent.headers.get('cache-control'), 'no-store');
-  assert.equal(absent.headers.get('x-dvaia-secureshop-launch-state'), null,
+  assert.equal(absent.headers.get('x-owasp-ai-goat-secureshop-launch-state'), null,
     'an absent ticket does not revoke the current launch');
   assert.equal(selectedTicketIds.at(-1), '9223372036854775807',
     'the maximum bigint is forwarded without Number coercion');

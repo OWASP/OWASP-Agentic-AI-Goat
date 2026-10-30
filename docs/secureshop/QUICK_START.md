@@ -1,6 +1,6 @@
-# SecureShop v2 — Quick Start
+# OWASP AI SecureShop v2 — Quick Start
 
-This guide assumes the supported installation has completed. SecureShop is an
+This guide assumes the supported installation has completed. OWASP AI SecureShop is an
 intentionally vulnerable e-commerce app with its own authentication boundary.
 
 ## 1. Boot
@@ -11,7 +11,7 @@ intentionally vulnerable e-commerce app with its own authentication boundary.
 ```
 
 `start_all.sh` runs the controlled backend and frontend process tree in the
-foreground. With SecureShop enabled, the backend supervises its configured
+foreground. With OWASP AI SecureShop enabled, the backend supervises its configured
 Agent Host. The launcher does not start Ollama. Start the configured provider
 separately before launch; for local Ollama, run `ollama serve` in another
 terminal. A mock fallback is controlled-test or ungraded behavior and is not
@@ -21,11 +21,11 @@ Press Ctrl+C in the launcher terminal, or run `./stop_all.sh` to request
 shutdown of that workspace's owned application process tree. It does not stop a
 shared Ollama service, PostgreSQL, or retained Docker sidecar containers.
 
-Guests can browse the catalog at `/secureshop`. SecureShop has its own sign-in
+Guests can browse the catalog at `/secureshop`. OWASP AI SecureShop has its own sign-in
 at `/secureshop/login`; a workshop login is neither required nor accepted as a
 shop login.
 
-## 2. Log in with a SecureShop practice account
+## 2. Log in with a OWASP AI SecureShop practice account
 
 Fresh installations create the following accounts once. All three passwords
 are `student123` (with no space). Existing installations preserve changed or
@@ -37,7 +37,7 @@ removed accounts on repeat initialization.
 | `student_merchant` | Merchant | `/secureshop/merchant` |
 | `student_admin` | Shop administrator | `/secureshop/admin` |
 
-These are synthetic shop identities. A SecureShop administrator is not a DVAIA
+These are synthetic shop identities. A OWASP AI SecureShop administrator is not a OWASP Agentic AI GOAT
 platform administrator and cannot manage workshop authority. Customer and
 merchant registration is also available from the shop sign-in page.
 
@@ -102,7 +102,7 @@ establish overall workflow or release readiness.
 
 ## Safety reminder
 
-SecureShop v2 is **deliberately vulnerable**. Do not deploy it. Do not
+OWASP AI SecureShop v2 is **deliberately vulnerable**. Do not deploy it. Do not
 expose it to the public internet. Every `@intentional-vulnerability` tag
 in the code marks a teaching sink that must not be "fixed" — the
 `npm run verify:secureshop:vuln-coverage` check fails if you accidentally

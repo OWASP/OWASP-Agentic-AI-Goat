@@ -260,7 +260,7 @@ test('Email retrieval graph propagates a controlled Mailpit provider identity in
    modelBody:artifact.body,modelBodySha256:'a'.repeat(64),modelBodyTruncated:false}));},
   sharkLasersScraper:{fetchEmails:async()=>({success:true,emails:[{id:'mailpit-list-id',provider:'mailpit',providerMessageId:'mailpit-api-id'}]}),
    fetchEmail:async()=>({success:true,email:{id:'mailpit-list-id',body:'controlled exact bytes',provider:'mailpit',providerMessageId:'mailpit-api-id'}})}});
- const result=await runEmailFetchGraph({tempEmail:'ipi-email-7@dvaia.invalid',userKey:'7',platformUserId:7},deps);
+ const result=await runEmailFetchGraph({tempEmail:'ipi-email-7@owasp-ai-goat.invalid',userKey:'7',platformUserId:7},deps);
  assert.equal(result.emails[0].provider,'mailpit');
  assert.equal(result.emails[0].providerMessageId,'mailpit-api-id');
  assert.equal(stored[0].provider,'mailpit');
@@ -272,7 +272,7 @@ test('Email retrieval rejects missing or mismatched provider identity before art
   {fetchEmails:async()=>({success:true,emails:[{id:'listed'}]}),fetchEmail:async()=>({success:true,email:{id:'different',body:'body'}})},
  ]){
   let stores=0,credits=0;
-  await assert.rejects(runEmailFetchGraph({tempEmail:'ipi-email-7@dvaia.invalid',userKey:'7',platformUserId:7},
+  await assert.rejects(runEmailFetchGraph({tempEmail:'ipi-email-7@owasp-ai-goat.invalid',userKey:'7',platformUserId:7},
    emailRetrievalDeps({objectiveJudge:fixtureJudge,TARGET_EMAIL:'fixture@example.invalid',
     gmailService:{detectSuspiciousContent:()=>({})},markEmailAgentObjectiveComplete:async()=>{credits+=1;},
     storeEmailArtifacts:async()=>{stores+=1;return[];},sharkLasersScraper:scraper})),/provider|mismatched/);

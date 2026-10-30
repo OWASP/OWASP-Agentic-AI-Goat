@@ -10,7 +10,7 @@ const enabled = process.env.WORKSHOP_RAG_STORE_NATIVE === '1';
 const sha = value => createHash('sha256').update(value).digest('hex');
 test('assembled durable RAG publication, restoration, replacement and lifecycle retain exact sources', { skip: !enabled, timeout: 180000 }, async () => {
   assert.equal(process.env.PG_TEST_DISPOSABLE, 'yes');
-  assert.equal(fs.realpathSync(process.env.DVAIA_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
+  assert.equal(fs.realpathSync(process.env.OWASP_AI_GOAT_ISOLATED_TEST_WORKSPACE), fs.realpathSync(process.cwd()));
   const actual = process.env.WORKSHOP_RAG_ACTUAL_EMBEDDING === '1';
   const evidencePath = process.env.WORKSHOP_RAG_EVIDENCE_PATH;
   assert.ok(path.isAbsolute(evidencePath) && !path.resolve(evidencePath).startsWith(process.cwd() + path.sep));
@@ -18,7 +18,7 @@ test('assembled durable RAG publication, restoration, replacement and lifecycle 
   const save = () => fs.writeFileSync(evidencePath, JSON.stringify(evidence, null, 2) + '\n', { mode: 0o600 }); save();
   const pools = [];
   const pool = role => { const u = new URL(process.env['WORKSHOP_RAG_' + role.toUpperCase() + '_URL']);
-    assert.equal(u.hostname, '127.0.0.1'); assert.match(u.pathname, /^\/dvaia_test_workshop_rag_[a-f0-9]+$/); assert.equal(u.username, 'dvaia_identity_' + role);
+    assert.equal(u.hostname, '127.0.0.1'); assert.match(u.pathname, /^\/owasp_ai_goat_test_workshop_rag_[a-f0-9]+$/); assert.equal(u.username, 'dvaia_identity_' + role);
     const p = new Pool({ connectionString: u.href, max: 5, statement_timeout: 10000, lock_timeout: 5000 }); pools.push(p); return p; };
   const migration = pool('migration'), runtime = pool('runtime'); let temporary;
   try {

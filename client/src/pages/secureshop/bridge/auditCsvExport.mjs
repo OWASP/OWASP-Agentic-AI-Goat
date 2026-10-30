@@ -1,4 +1,4 @@
-export const AUDIT_CSV_CHANNEL = 'dvaia-secureshop-audit-csv-v1';
+export const AUDIT_CSV_CHANNEL = 'owasp-ai-goat-secureshop-audit-csv-v1';
 
 const HEADERS = Object.freeze(['id', 'ts', 'actor', 'action', 'target', 'params_json', 'ip', 'user_agent']);
 const NONCE = /^[a-f0-9]{64}$/;

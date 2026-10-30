@@ -71,7 +71,7 @@ test('accepted-mail observation binds exact scope, recipient, payload and curren
  assert.equal(observed.confusedDeputyWitness.protectedRead.byteCount,Buffer.byteLength(protectedContent));
  for(const changed of [
   {...input,to:'ops@acme-corp.internal'}, {...input,body:`${body} changed`},
-  {...input,protectedContent:'different'}, {...input,messageId:`mcp-${crypto.randomUUID()}@dvaia.local`},
+  {...input,protectedContent:'different'}, {...input,messageId:`mcp-${crypto.randomUUID()}@owasp-ai-goat.local`},
  ]) assert.deepEqual(await service.observeAccepted(changed),{});
  await assert.rejects(service.observeAccepted({...input,scope:SIBLING}),{code:'MCP_RESOURCE_SCOPE_INVALID'});
  assert.deepEqual(await service.observeAccepted({...input,runId:crypto.randomUUID()}),{});
@@ -92,7 +92,7 @@ test('same intent with changed subject conflicts before a second SMTP attempt',a
 });
 
 test('read-only mail projection observes only exact server-owned message receipts',async()=>{
- const repository=memoryRepository(),messageId=`mcp-${crypto.randomUUID()}@dvaia.local`;let observed;
+ const repository=memoryRepository(),messageId=`mcp-${crypto.randomUUID()}@owasp-ai-goat.local`;let observed;
  const service=createDurableMcpMailResources({repository,sendMail:async()=>{},deleteMessages:async()=>({ok:true}),
   listMessages:async ids=>{observed=ids;return{ok:true,messages:[{id:'mailpit-row',messageId:ids[0]}]}}});
  assert.deepEqual(await service.project({scope:SCOPE,messageIds:[messageId]}),
@@ -113,7 +113,7 @@ test('uncertain SMTP delivery is cleaned after service restart and sibling mail 
  repository.retire(SCOPE);const deleted=[];
  const restarted=createDurableMcpMailResources({repository,sendMail:async()=>{throw Error('must not send')},deleteMessages:async ids=>{deleted.push(...ids);return{ok:true}},listMessages:async ids=>({ok:true,messages:ids.filter(id=>!deleted.includes(id))}),clock:()=> '2026-09-13T12:34:56.000Z'});
  const operationId=crypto.randomUUID(),receipt=await restarted.cleanup({scope:SCOPE,operationId});
- assert.deepEqual(deleted,[`mcp-${owned}@dvaia.local`]);assert.equal(receipt.intentCount,1);assert.equal(repository.intents.get(sibling).cleaned,false);
+ assert.deepEqual(deleted,[`mcp-${owned}@owasp-ai-goat.local`]);assert.equal(receipt.intentCount,1);assert.equal(repository.intents.get(sibling).cleaned,false);
  const replayed=createDurableMcpMailResources({repository,sendMail:async()=>{},deleteMessages:async()=>{throw Error('replay must not delete')},listMessages:async()=>({ok:true,messages:[]})});
  assert.deepEqual(await replayed.cleanup({scope:SCOPE,operationId}),receipt);
  await assert.rejects(replayed.cleanup({scope:{...SCOPE,platformOwnerId:8},operationId}),{code:'MCP_RESOURCE_RETIRED'});
@@ -175,7 +175,7 @@ test('repository receipt validation binds canonical scope, count, operation and 
 });
 
 test('mail cleanup repository locks target, retirement, cleanup and intents in one order',async()=>{
- const operationId=crypto.randomUUID(),messageId=`mcp-${crypto.randomUUID()}@dvaia.local`,queries=[];let cleanupExists=false;
+ const operationId=crypto.randomUUID(),messageId=`mcp-${crypto.randomUUID()}@owasp-ai-goat.local`,queries=[];let cleanupExists=false;
  const cleanup=()=>({operation_id:operationId,target_id:SCOPE.targetId,user_key:String(SCOPE.platformOwnerId),
   platform_session_id:SCOPE.platformSessionId,generation:SCOPE.generation,status:'pending',message_ids:[messageId]});
  const client={release(){},async query(sql){

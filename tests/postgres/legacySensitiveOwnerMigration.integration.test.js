@@ -15,9 +15,9 @@ test('0007 moves only exact legacy sensitive audit rows and restores both immuta
   skip: !enabled,
 }, async () => {
   assert.match(new URL(process.env.PG_LEGACY_SENSITIVE_MOVE_TEST_MIGRATION_URL).pathname,
-    /^\/dvaia_test_[a-z0-9_]+$/);
+    /^\/owasp_ai_goat_test_[a-z0-9_]+$/);
   const pool = createPool(process.env, 'PG_LEGACY_SENSITIVE_MOVE_TEST_MIGRATION_URL');
-  const partial = await fs.mkdtemp(path.join(os.tmpdir(), 'dvaia-finflow-pre-0007-'));
+  const partial = await fs.mkdtemp(path.join(os.tmpdir(), 'owasp-ai-goat-finflow-pre-0007-'));
   const migrations = path.join(__dirname, '../../db/postgres/workshop-migrations/finflow');
   try {
     for (const name of (await fs.readdir(migrations)).filter(name => /^000[1-6]_/.test(name))) {

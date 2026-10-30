@@ -36,7 +36,7 @@ function fixture({ mutateAck = value => value, publish = true, late = false,
   ackTransition = null, partialMetadata = null, root = '/owned/repository', streams = {} } = {}) {
   const runId = 'a'.repeat(32);
   const directory = `${root}/tasks/qualification/system-original-owner-${runId}`;
-  const temporary = `${directory}/runtime/tmp`, profile = `${temporary}/dvaia-role-policy-instruction-abc123`;
+  const temporary = `${directory}/runtime/tmp`, profile = `${temporary}/owasp-ai-goat-role-policy-instruction-abc123`;
   const executable = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
   const evidence = `${directory}/policy-instruction-browser.json`;
   const birthPath = `${directory}/browser-birth.json`, ackPath = `${directory}/browser-ack.json`;
@@ -124,7 +124,7 @@ function fixture({ mutateAck = value => value, publish = true, late = false,
     } });
   const env = { SECURESHOP_POLICY_INSTRUCTION_BROWSER_NATIVE: '1', PG_TEST_DISPOSABLE: 'yes', NODE_ENV: 'test',
     SECURESHOP_POLICY_INSTRUCTION_BROWSER_TEST_NO_SANDBOX: '1',
-    DVAIA_CURRENT_MAIN_WORKSPACE: root, SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_RUN_ID: runId,
+    OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE: root, SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_RUN_ID: runId,
     SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_DIRECTORY: directory,
     SECURESHOP_POLICY_INSTRUCTION_BROWSER_OWNER_BROWSER_SHA256: 'b'.repeat(64),
     TMPDIR: temporary, TMP: temporary, TEMP: temporary, MAC_CHROMIUM_TMPDIR: temporary, PUPPETEER_EXECUTABLE_PATH: executable };
@@ -308,7 +308,7 @@ async function composedLaunch({ mode='v24', policyVersion='configuration-readabi
   mutateEnv(env);
   const streams={stdout:new PassThrough(),stderr:new PassThrough()}, captured={stdout:'',stderr:''};
   for(const name of Object.keys(streams)) streams[name].on('data',b=>captured[name]+=b.toString());
-  const f=fixture({root:env.DVAIA_CURRENT_MAIN_WORKSPACE,streams,publish:failure!=='ack'});
+  const f=fixture({root:env.OWASP_AI_GOAT_CURRENT_MAIN_WORKSPACE,streams,publish:failure!=='ack'});
   f.api.selector(env,mode==='v24');
   const events=[], child={pid:321,stdout:new PassThrough(),stderr:new PassThrough()};
   const page={},browser={process:()=>child,newPage:async()=>{events.push('page');return page;}};
