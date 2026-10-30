@@ -136,6 +136,11 @@ test('Disable All sends captured boolean and acknowledges a valid no-op snapshot
   expect(dialog()).toBeNull();
   expect(toast.success).toHaveBeenCalledTimes(1);
 });
+test('an acknowledged bulk snapshot updates the cards before the later roster refresh returns', async () => {
+  await mount(); await click('Enable All'); await click('Confirm Enable All');
+  const card = node.querySelector('[data-exercise-key="example"]');
+  expect(card?.textContent).toContain('VISIBLE');
+});
 test('wrong-target or malformed acknowledgement remains uncertain and cannot replay', async () => {
   axios.post.mockResolvedValueOnce({ ...enabledAck, data: { ...enabledAck.data, enabled: false } });
   await mount(); await click('Enable All'); toast.success.mockClear();

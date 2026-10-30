@@ -899,6 +899,22 @@ const ComprehensiveAdminDashboard = () => {
     return () => { resetActorRef.current = null; };
   }, [user?.id]);
   const { registerReconciler, refreshAfterMutation, retireSnapshotReads, snapshotReadSequence, snapshot: canonicalConfig } = useWorkshopConfig();
+  // Cards render from the shared canonical snapshot. A bulk mutation carries the
+  // same authoritative projection, so retain it until the background snapshot
+  // read catches up instead of making the instructor refresh the page.
+  const [bulkConfigOverlay, setBulkConfigOverlay] = useState(null);
+  const applyBulkConfigOverlay = (exercises, revision) => {
+    const numericRevision = Number(revision);
+    if (!exercises || typeof exercises !== 'object' || !Number.isSafeInteger(numericRevision) || numericRevision < 0) return;
+    setBulkConfigOverlay({ exercises, revision: numericRevision });
+  };
+  useEffect(() => {
+    if (!bulkConfigOverlay) return;
+    const canonicalRevision = Number(canonicalConfig?.revision);
+    if (Number.isSafeInteger(canonicalRevision) && canonicalRevision >= bulkConfigOverlay.revision) {
+      setBulkConfigOverlay(null);
+    }
+  }, [bulkConfigOverlay, canonicalConfig?.revision]);
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -1595,6 +1611,7 @@ const ComprehensiveAdminDashboard = () => {
         && data.changed === (data.affectedCount > 0)
         && validRevision && validSnapshot;
       if (!validAck) throw new Error('The server response did not confirm the visibility change.');
+      applyBulkConfigOverlay(data.exercises, data.revision);
       stagedBulkVisibilityRef.current = null;
       setBulkVisibilityConfirm(null);
       setBulkVisibilityOutcome(null);
@@ -1660,6 +1677,7 @@ const ComprehensiveAdminDashboard = () => {
         || !validRevision || !validExercises) {
         throw new Error('The server response did not confirm the content visibility change.');
       }
+      applyBulkConfigOverlay(exercises, data.revision);
       stagedBulkContentRef.current = null;
       setBulkContentConfirm(null);
       setBulkContentOutcome(null);
@@ -4814,7 +4832,8 @@ const ComprehensiveAdminDashboard = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
             {challenges.map(storedChallenge => {
               const cKey = storedChallenge.key || storedChallenge.id;
-              const canonical = canonicalConfig?.exercises?.[toWorkshopKey(cKey)];
+              const canonical = bulkConfigOverlay?.exercises?.[toWorkshopKey(cKey)]
+                || canonicalConfig?.exercises?.[toWorkshopKey(cKey)];
               const challenge = canonical ? { ...storedChallenge, enabled: canonical.isVisible, showHints: canonical.showHints, showSolutions: canonical.showSolutions } : storedChallenge;
               const { solutionPanel } = resolveExerciseKeys(cKey);
               const active = challenge.enabled;
