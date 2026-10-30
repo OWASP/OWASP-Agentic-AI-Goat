@@ -16,7 +16,8 @@
   <a href="#start-and-use">Use</a> ·
   <a href="#configuration">Configure</a> ·
   <a href="#guides">Documentation</a> ·
-  <a href="#contributing">Contribute</a>
+  <a href="#contributing">Contribute</a> ·
+  <a href="#donations">Donate</a>
 </p>
 
 OWASP Agentic AI GOAT is a deliberately vulnerable application for learning how to attack and defend AI agents. It includes prompt injection, RAG and email attacks, SQL and NoSQL injection, XSS, MCP labs, a prompt-injection CTF, and SecureShop, an AI-powered shopping application.
@@ -93,8 +94,12 @@ Bug fixes, new lessons, and documentation improvements are welcome. Read the [co
 
 Report security problems through the [security policy](docs/SECURITY.md).
 
+## Donations
+
+You can [donate to OWASP Juice Shop through the OWASP Foundation](https://owasp.org/donate?reponame=www-project-juice-shop&title=OWASP%20Juice%20Shop). This donation link supports Juice Shop, not Agentic AI GOAT.
+
 ## License and credits
 
 [GNU General Public License v3.0](LICENSE).
 
-This project originates from [DVAIA](https://github.com/hackerabhinavverma/Damn-Vulnerable-AI-Application) and was inspired by [DVWA](https://github.com/digininja/DVWA) and [WebGoat](https://github.com/WebGoat/WebGoat).
+Created by [Abhinav Verma](https://www.linkedin.com/in/secureabhinavverma/) with love for the security community.
