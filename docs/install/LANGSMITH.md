@@ -1,10 +1,14 @@
-# Inspect agent decisions with LangSmith
+# Inspect agent decisions at smith.langchain.com
 
 LangGraph runs the agent workflow; LangChain connects it to the configured model. LangSmith records traces so you can inspect the steps, model messages, tool arguments, responses, timing, and errors.
 
+[smith.langchain.com](https://smith.langchain.com/) is the LangSmith dashboard used in this guide. LangChain and LangGraph are the open-source libraries installed with the application; the dashboard is a hosted service. You do not need to install a separate tracing server or Docker container to use it.
+
 Tracing is optional and disabled by default. Local LangChain, LangGraph, and Ollama do not need a LangSmith account or key. Enabling hosted tracing sends recorded inputs and outputs to LangSmith, including lab prompts and tool results. Use synthetic data and keep the API key private.
 
-## Configure tracing
+## Installation and configuration
+
+The normal [application installation](INSTALLATION.md) installs the required JavaScript dependencies. If the application is already installed, keep that installation and configure tracing below. If traces already appear in your dashboard, you can go straight to [Generate and find a trace](#generate-and-find-a-trace).
 
 1. Sign in to [LangSmith](https://smith.langchain.com/) and create an API key in Settings. Select the workspace where you want to keep the traces.
 2. Choose a tracing project, such as `owasp-agentic-ai-goat-local`.
@@ -14,12 +18,18 @@ Tracing is optional and disabled by default. Local LangChain, LangGraph, and Oll
    LANGSMITH_TRACING=true
    LANGSMITH_API_KEY=replace-with-your-own-langsmith-key
    LANGSMITH_PROJECT=owasp-agentic-ai-goat-local
-   LANGSMITH_ENDPOINT=https://api.smith.langchain.com
-   # Set this if your key requires an explicit workspace:
-   # LANGSMITH_WORKSPACE_ID=your-workspace-id
    ```
 
-   Use your account's regional API endpoint. For an EU account, use `https://eu.api.smith.langchain.com`. The API key is a LangSmith key, separate from any model provider key. Keep your existing `AI_PROVIDER` and model settings; Ollama can remain local while traces go to LangSmith.
+   These three settings are enough for the standard hosted setup. Without an endpoint override, the SDK uses `https://api.smith.langchain.com`. Open `https://smith.langchain.com` in your browser; do not use the dashboard URL as the API endpoint. The API key is a LangSmith key, separate from any model provider key. Keep your existing `AI_PROVIDER` and model settings; Ollama can remain local while traces go to LangSmith.
+
+   Only add the following overrides if your account needs them:
+
+   ```dotenv
+   # For an EU account:
+   # LANGSMITH_ENDPOINT=https://eu.api.smith.langchain.com
+   # For a key that requires an explicit workspace:
+   # LANGSMITH_WORKSPACE_ID=your-workspace-id
+   ```
 
    This repository uses the SDK's project-based configuration. If your LangSmith workspace uses the newer agent-based interface, create/select an agent and use its environment's `tracer_session_name` compatibility value for `LANGSMITH_PROJECT`. See [LangSmith's LangGraph integration instructions](https://docs.langchain.com/langsmith/trace-with-langgraph). Do not assume that newer SDK environment variables are supported by the repository's locked dependencies, or upgrade packages just to follow an example.
 
