@@ -1,4 +1,23 @@
-# OWASP Agentic AI GOAT
+<p align="center">
+  <img src="client/public/images/branding/owasp-agentic-ai-goat-logo.png" alt="OWASP Agentic AI GOAT logo" width="640">
+</p>
+
+<h1 align="center">OWASP Agentic AI GOAT</h1>
+
+<p align="center">Practice attacking and defending AI agents.</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="License: GPL-3.0"></a>
+  <a href="docs/CONTRIBUTING.md"><img src="https://img.shields.io/badge/contributions-welcome-6f1d46" alt="Contributions welcome"></a>
+</p>
+
+<p align="center">
+  <a href="#installation">Install</a> ·
+  <a href="#start-and-use">Use</a> ·
+  <a href="#configuration">Configure</a> ·
+  <a href="#guides">Documentation</a> ·
+  <a href="#contributing">Contribute</a>
+</p>
 
 OWASP Agentic AI GOAT is a deliberately vulnerable application for learning how to attack and defend AI agents. It includes prompt injection, RAG and email attacks, SQL and NoSQL injection, XSS, MCP labs, a prompt-injection CTF, and SecureShop, an AI-powered shopping application.
 
@@ -6,7 +25,14 @@ Run it locally for training. Never expose it to the internet or use real sensiti
 
 ## Installation
 
-Download or clone this repository, then run the installer from its directory:
+Clone the repository:
+
+```bash
+git clone https://github.com/OWASP/OWASP-Agentic-AI-Goat.git
+cd OWASP-Agentic-AI-Goat
+```
+
+Run the installer for your operating system:
 
 ```bash
 # macOS
@@ -57,13 +83,18 @@ Keep credentials in your private `.env`. Do not commit them.
 - [Architecture](docs/ARCHITECTURE.md)
 - [Current release status and known limitations](docs/modernization/current-release-status.md)
 - [Installation recovery](docs/install/local-recovery-contract.md)
-- [Contributing and testing](docs/CONTRIBUTING.md)
 - [Security policy](docs/SECURITY.md)
 
 Some exercises and model-based grading paths are still being verified. Check the release status before planning a workshop around them.
 
+## Contributing
+
+Bug fixes, new lessons, and documentation improvements are welcome. Read the [contribution guide](docs/CONTRIBUTING.md) for development and testing instructions, or [open an issue](https://github.com/OWASP/OWASP-Agentic-AI-Goat/issues) to report a bug or suggest a change. Preserve the intentional vulnerabilities used by the exercises.
+
+Report security problems through the [security policy](docs/SECURITY.md).
+
 ## License and credits
 
-GNU General Public License v3.0.
+[GNU General Public License v3.0](LICENSE).
 
 This project originates from [DVAIA](https://github.com/hackerabhinavverma/Damn-Vulnerable-AI-Application) and was inspired by [DVWA](https://github.com/digininja/DVWA) and [WebGoat](https://github.com/WebGoat/WebGoat).

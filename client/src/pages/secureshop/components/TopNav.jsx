@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 
 import RoleSwitcher from './RoleSwitcher.jsx';
+import GoatBrand from '../../../components/GoatBrand';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
@@ -184,7 +185,7 @@ export default function TopNav({ role }) {
       </button>
       <style>{`@media (max-width: 900px){.ss-nav__mobile-toggle{display:inline-flex !important;} .ss-nav__desktop-links{display:none !important;} .ss-nav__desktop-search{display:none !important;}}`}</style>
 
-      <Link to={brandTo} className="ss-nav__brand" aria-label="SecureShop home">SECURESHOP</Link>
+      <Link to={brandTo} className="ss-nav__brand" aria-label="SecureShop home"><GoatBrand shop /></Link>
 
       <div className="ss-nav__desktop-links" style={{ display: 'flex', gap: 22, flex: '0 0 auto' }}>
         {items.map((it) => (
@@ -422,7 +423,7 @@ export default function TopNav({ role }) {
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div className="ss-nav__brand">SECURESHOP</div>
+              <div className="ss-nav__brand"><GoatBrand shop /></div>
               <button onClick={() => setMobileOpen(false)} aria-label="Close menu" style={{ background: 'transparent', border: 0 }}>
                 <X size={22} />
               </button>

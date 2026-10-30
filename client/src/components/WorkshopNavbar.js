@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { FiHome, FiShield, FiUser, FiLogOut, FiMenu, FiX, FiTarget, FiSettings, FiChevronDown, FiDatabase, FiCode, FiAward, FiAlertTriangle, FiCpu, FiPackage, FiFileText, FiTerminal, FiActivity, FiLock } from 'react-icons/fi';
 import styled from 'styled-components';
 import axios from 'axios';
+import GoatBrand from './GoatBrand';
 
 const NavbarContainer = styled.nav`
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -52,16 +53,6 @@ const Logo = styled(Link)`
   &:hover {
     transform: translateY(-2px);
   }
-`;
-
-const LogoIcon = styled.div`
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
-  padding: 0.5rem;
-  margin-right: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 `;
 
 const NavLinks = styled.div`
@@ -454,10 +445,7 @@ const WorkshopNavbar = () => {
         <NavContent>
           <BrandSection>
             <Logo to={user ? "/workshop/challenges" : "/"}>
-              <LogoIcon>
-                <FiShield size={20} />
-              </LogoIcon>
-              DVAIA Workshop
+              <GoatBrand />
             </Logo>
           </BrandSection>
 

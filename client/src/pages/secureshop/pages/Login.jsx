@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { safeLoginDestination } from '../utils/loginDestination.mjs';
+import GoatBrand from '../../../components/GoatBrand';
 
 // M14 — the three DISTINCT identities. Post-M14 role changes go through
 // logout + login-as-target instead of mutating a JWT in place. The legacy
@@ -103,7 +104,7 @@ export function SecureShopLoginForm({ login, isAuthed = false, user = null,
             letterSpacing: '0.02em', textTransform: 'uppercase',
             color: 'var(--ink)', textDecoration: 'none',
           }}>
-            SecureShop
+            <GoatBrand shop />
           </Link>
 
           <h1 className="ss-display" style={{ fontSize: 56, margin: '32px 0 12px 0', lineHeight: 1.02 }}>
