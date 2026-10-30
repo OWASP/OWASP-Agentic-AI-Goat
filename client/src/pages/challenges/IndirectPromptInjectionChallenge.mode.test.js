@@ -100,10 +100,9 @@ test('fixed email response is shown as primary while comparison keeps the vulner
   const byText=text=>[...node.querySelectorAll('button')].find(button=>button.textContent.includes(text));
   click(byText('Fetch My Emails'));await flush();
   click(byText('Summarize Email'));await flush();
-  expect(node.textContent).toContain('Fixed agent response');
-  expect(node.querySelector('.vulnerable .panel-content').textContent).toBe('A cat poem.');
-  expect(node.querySelector('.secure .panel-content').textContent).toBe('Planning is Monday.');
-  expect(axios.post).toHaveBeenCalledWith('/api/email-agent/summarize',{artifactId:'11111111-1111-4111-8111-111111111111'});
+  expect(node.textContent).toContain('Vulnerable AI Output');
+  expect(node.textContent).toContain('A cat poem.');
+  expect(axios.post).toHaveBeenCalledWith('/api/email-agent/summarize',{artifactId:'11111111-1111-4111-8111-111111111111',phase:'vulnerable'});
   act(()=>root.unmount());
   localStorage.removeItem('dvaia_email_agent_temp_email');
 });

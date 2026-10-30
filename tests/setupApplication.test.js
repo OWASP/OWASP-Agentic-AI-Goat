@@ -799,11 +799,11 @@ test('fresh setup seeds generated files after databases and publishes an explici
   try {
     const result = await setup({ root, homeDirectory, install: false, ensureModel: false, ownedMcpRegistry:true,
       ownedPolicyRenderer:true,enableOwnedPolicyRenderer:true,
-      provisionOwnedPolicyRenderer:async args=>{assert.deepEqual(Object.keys(args).sort(),['activate','architecture','environment','home','platform','root']);assert.equal(args.root,await fs.realpath(root));assert.equal(args.home,homeDirectory);assert.equal(args.platform,process.platform);assert.equal(args.architecture,process.arch);assert.equal(args.activate,true);assert.deepEqual(args.environment,{ LEGACY_SENSITIVE_FILES_ROOT: fixtureRoot, MCP_SIDECARS_AUTOSTART: 'false', MCP_WORKSHOP_AUTOSTART: 'false', IPI_EMAIL_PROVIDER: 'gmail', ...preservedAssets });await assert.rejects(fs.stat(path.join(root,'.env')),{code:'ENOENT'});return{ready:true,enabled:true,baseUrl:'http://127.0.0.1:8098'};},
+      provisionOwnedPolicyRenderer:async args=>{assert.deepEqual(Object.keys(args).sort(),['activate','architecture','environment','home','platform','root']);assert.equal(args.root,await fs.realpath(root));assert.equal(args.home,homeDirectory);assert.equal(args.platform,process.platform);assert.equal(args.architecture,process.arch);assert.equal(args.activate,true);assert.deepEqual(args.environment,{ LEGACY_SENSITIVE_FILES_ROOT: fixtureRoot, MCP_SIDECARS_AUTOSTART: 'false', MCP_WORKSHOP_AUTOSTART: 'false', IPI_EMAIL_PROVIDER: 'gmail', GMAIL_USER: 'installer@example.test', GMAIL_APP_PASSWORD: 'synthetic-app-password', ...preservedAssets });await assert.rejects(fs.stat(path.join(root,'.env')),{code:'ENOENT'});return{ready:true,enabled:true,baseUrl:'http://127.0.0.1:8098'};},
       setupOwnedMcpRegistry:async args=>{assert(commands.some(row=>row.args[0]==='controlled-scoped-initializer'));await assert.rejects(fs.stat(path.join(root,'.env')),{code:'ENOENT'});assert.equal(args.requested,true);assert.equal(args.explicitActivation,false);return{requested:true,activationEnabled:false};},
       preflightOwnedMcpRegistryArchitecture:async()=>({architecture:'arm64',dockerHost:'unix:///var/run/docker.sock'}),
       adminUrl: 'postgresql://controlled.invalid/postgres',
-      processEnvironment: { LEGACY_SENSITIVE_FILES_ROOT: fixtureRoot, MCP_SIDECARS_AUTOSTART: 'false', MCP_WORKSHOP_AUTOSTART: 'false', IPI_EMAIL_PROVIDER: 'gmail', ...preservedAssets },
+      processEnvironment: { LEGACY_SENSITIVE_FILES_ROOT: fixtureRoot, MCP_SIDECARS_AUTOSTART: 'false', MCP_WORKSHOP_AUTOSTART: 'false', IPI_EMAIL_PROVIDER: 'gmail', GMAIL_USER: 'installer@example.test', GMAIL_APP_PASSWORD: 'synthetic-app-password', ...preservedAssets },
       ensureDockerAuthority: async args => { assert.equal(args.persist,false);return{authority:{host:'unix:///var/run/docker.sock'}}; },
       loadTicketRenderer: () => ({ component: { id: 'SecureShop.AdminTicketBody', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64) } }),
       loadSearchEchoRenderer: () => ({ component: { id: 'SecureShop.SearchEcho', sourceSha256: 'a'.repeat(64), artifactSha256: 'b'.repeat(64) } }),
@@ -829,6 +829,8 @@ test('fresh setup seeds generated files after databases and publishes an explici
     assert.equal(persisted.LEGACY_SENSITIVE_FILES_ROOT, fixtureRoot);
     assert.equal(persisted.SS_BOUND_PROMPT_POLICIES_ENABLED,'true');
     assert.equal(persisted.SS_POLICY_RENDERER_BASE_URL,'http://127.0.0.1:8098');
+    assert.equal(persisted.GMAIL_USER, 'installer@example.test');
+    assert.equal(persisted.GMAIL_APP_PASSWORD, 'synthetic-app-password');
     for(const [key,value] of Object.entries(preservedAssets))assert.equal(persisted[key],value);
     assert.equal(closed, true);
     assert.deepEqual(result.policyRenderer,{requested:true,ready:true,enabled:true});

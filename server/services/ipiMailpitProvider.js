@@ -174,6 +174,7 @@ function createIpiMailpitProvider({
   }
   async function close() { if (closed) return; closed = true; lifecycleEpoch += 1; initialized = false; const active = transporter; transporter = null; await active?.close?.(); }
   return Object.freeze({addressFor, validateRecipientDomain, sendEmail, fetchEmails, fetchEmail,
+    requiresOwnerContext:true,
     initialize, reinitialize:()=>initialize(true),
     getStatus:() => ({initialized, targetEmail:sender, provider:'mailpit', method:'SMTP', error:initError}),
     getAllowedDomains:() => [domain], getSupportedDomains:() => [domain], getTargetSender:() => sender,

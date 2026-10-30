@@ -12,7 +12,14 @@ async function runEmailSendGraph(input,{gmailService,logSentEmail,markEmailAgent
  const evaluate=await require('./indirectObjectiveJudge').beginIpiEvaluation({platformUserId,execution,judge:objectiveJudge,completionService});
  const check=async()=>{if(execution)await execution.check();};let result,projectionPending=false;
  const graph=new StateGraph(Annotation.Root({}))
- .addNode('send',async()=>{await check();result=await gmailService.sendEmail(recipientEmail,emailSubject,emailBody,userKey,ownerContext);await check();return {};})
+ .addNode('send',async()=>{await check();
+  // The local Mailpit provider binds a delivery to its owner/generation. Gmail
+  // uses the fifth argument for rendering options, so never pass local context
+  // to it as though it were HTML configuration.
+  result=gmailService.requiresOwnerContext===true
+    ?await gmailService.sendEmail(recipientEmail,emailSubject,emailBody,userKey,ownerContext)
+    :await gmailService.sendEmail(recipientEmail,emailSubject,emailBody,userKey);
+  await check();return {};})
  .addNode('audit',async()=>{await check();await logSentEmail(userKey,recipientEmail,scenario,emailSubject,result.messageId);return {};})
  .addNode('credit',async()=>{await check();const outcome=await evaluate('email_send_attack',[{id:'delivery',source:'tool_result',content:{messageId:result.messageId||null,success:result.success??Boolean(result.messageId),recipient:recipientEmail||null,body:emailBody||'',scenario:scenario||null,emailSubject:emailSubject||null}}],{delivery_confirmed:Boolean(result.messageId)&&result.success!==false});result={...result,judgments:[outcome.judgment],objectiveCompleted:outcome.completed?2:null};if(outcome.completed){const projection=await markEmailAgentObjectiveComplete(userKey,2,recipientEmail,platformUserId,{durable:outcome.durable});projectionPending=projection?.projectionPending===true;}result.projectionPending=projectionPending;return {};})
  .addEdge(START,'send').addEdge('send','audit').addEdge('audit','credit').addEdge('credit',END).compile();

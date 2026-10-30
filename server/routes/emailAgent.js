@@ -711,8 +711,9 @@ router.post('/fetch-sharklasers', authenticateToken, express.json(), async (req,
 router.post('/summarize', authenticateToken, express.json(), async (req, res) => {
   const bodyKeys = req.body && typeof req.body === 'object' && !Array.isArray(req.body)
     ? Object.keys(req.body).sort() : [];
-  const artifactId = bodyKeys.length === 1 && bodyKeys[0] === 'artifactId' ? req.body.artifactId : null;
-  if (typeof artifactId !== 'string' || !UUID_REGEX.test(artifactId)) {
+  const artifactId = bodyKeys.includes('artifactId') && bodyKeys.every(key=>['artifactId','phase'].includes(key)) ? req.body.artifactId : null;
+  const phase = req.body?.phase === undefined ? 'both' : req.body.phase;
+  if (typeof artifactId !== 'string' || !UUID_REGEX.test(artifactId) || !['vulnerable','secure','both'].includes(phase)) {
     return res.status(400).json({
       success: false,
       error: 'A selected email artifact is required'
@@ -729,7 +730,7 @@ router.post('/summarize', authenticateToken, express.json(), async (req, res) =>
         ownerKey:execution.ownerKey, generation:execution.durableGeneration };
       const admitted = await emailArtifacts.resolveCurrent(scope);
       await execution.check();
-      const result = await runIndirectEmailGraph({ artifactId, userKey, platformUserId, mode },
+      const result = await runIndirectEmailGraph({ artifactId, userKey, platformUserId, mode, phase },
         {aiService, VULNERABLE_SYSTEM_PROMPT, SECURE_SYSTEM_PROMPT, markEmailAgentObjectiveComplete,
           detectInjectionInResponse, extractInjectedInstructions, execution,
           readEmailArtifact:() => emailArtifacts.resolveCurrent(scope)});
