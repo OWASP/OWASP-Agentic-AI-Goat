@@ -1611,14 +1611,22 @@ const ComprehensiveAdminDashboard = () => {
       const data = response.data;
       const validRevision = (typeof data?.revision === 'string' && /^\d+$/.test(data.revision))
         || (typeof data?.revision === 'number' && Number.isSafeInteger(data.revision) && data.revision >= 0);
-      if (response.status !== 200 || data?.success !== true || typeof data.changed !== 'boolean' || !validRevision) {
+      const exercises = data?.exercises;
+      const validExercises = exercises && typeof exercises === 'object' && !Array.isArray(exercises)
+        && Object.values(exercises).every(exercise => exercise && typeof exercise === 'object'
+          && exercise.showHints === enabled && exercise.showSolutions === enabled);
+      if (response.status !== 200 || data?.success !== true || typeof data.changed !== 'boolean'
+        || !validRevision || !validExercises) {
         throw new Error('The server response did not confirm the content visibility change.');
       }
-      const snapshot = await refreshAfterMutation();
-      if (!current() || !snapshot?.exercises || !Object.values(snapshot.exercises).every(exercise =>
-        exercise.showHints === enabled && exercise.showSolutions === enabled)) {
-        throw new Error('Canonical content visibility readback unavailable.');
-      }
+      setChallenges(previous => previous.map(challenge => {
+        const exercise = exercises[toWorkshopKey(challenge.key || challenge.id || challenge.workshopKey)];
+        return exercise ? { ...challenge, enabled: exercise.isVisible, showHints: exercise.showHints,
+          showSolutions: exercise.showSolutions } : challenge;
+      }));
+      // The mutation response is authoritative. Refresh the shared projection afterwards,
+      // but do not report a committed update as failed if that independent read is delayed.
+      void refreshAfterMutation();
       toast.success(`All available hints and solutions ${enabled ? 'enabled' : 'disabled'}${data.changed ? '' : ' (already in this state)'}.`);
     } catch (error) {
       if (current()) toast.error(error.response?.data?.error || error.message || 'Unable to update all hints and solutions.');

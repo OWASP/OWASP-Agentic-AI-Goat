@@ -45,7 +45,8 @@ beforeEach(() => {
   axios.get.mockImplementation(url => Promise.resolve({ data: url === '/api/admin/challenges'
     ? { success: true, challenges: [challenge] } : { success: true } }));
   axios.post.mockResolvedValue(enabledAck);
-  axios.patch.mockResolvedValue({ status: 200, data: { success: true, changed: true, revision: '3' } });
+  axios.patch.mockResolvedValue({ status: 200, data: { success: true, changed: true, revision: '3',
+    exercises: { example: { isVisible: false, showHints: true, showSolutions: true } } } });
   jest.spyOn(console, 'error').mockImplementation(() => {});
   jest.spyOn(console, 'warn').mockImplementation(() => {});
   jest.spyOn(console, 'log').mockImplementation(() => {});
