@@ -4,7 +4,7 @@ const c=require('../server/config/secureshopCurriculum');
 const {MAIL_OBJECTIVE_QUALIFICATION:q,mailObjectiveReadiness}=require('../server/services/secureshopMailObjectiveReadiness');
 test('reply eligibility preserves fresh disabled defaults and all unrelated mail release gates',()=>{
  assert.deepEqual(q,{ss_mail_reply_redirect:true,ss_mail_header_construction:true,ss_mail_cross_persona_read:true,ss_mail_stored_browser_execution:true,ss_mail_agent_html_injection:true,ss_mail_agent_cross_persona_read:true});
- assert.equal(c.CHALLENGE.defaultVisible,false);
+ assert.equal(c.CHALLENGE.defaultVisible,true);
  for(const id of Object.keys(q))assert.equal(c.OBJECTIVES.find(x=>x.id===id).defaultEnabled,false);
  assert.equal(c.isQualifiedObjective('ss_mail_reply_redirect'),true);
  assert.doesNotMatch(c.HINTS.ss_mail_reply_redirect.hints.join(' '),/not yet available/);

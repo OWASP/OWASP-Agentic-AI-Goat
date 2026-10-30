@@ -5,10 +5,13 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import ComprehensiveAdminDashboard from './ComprehensiveAdminDashboard';
 
-jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn(), put: jest.fn(), delete: jest.fn() }));
+jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn(), patch: jest.fn(), put: jest.fn(), delete: jest.fn() }));
 let mockUser, mockAuthRevision;
 jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: mockUser, logout: jest.fn(), getAuthRevision: () => mockAuthRevision }) }));
-jest.mock('../context/WorkshopConfigContext', () => ({ useWorkshopConfig: () => ({ registerReconciler: () => () => {} }) }));
+const mockContentSnapshot = { exercises: { example: { showHints: true, showSolutions: true } } };
+jest.mock('../context/WorkshopConfigContext', () => ({ useWorkshopConfig: () => ({
+  registerReconciler: () => () => {}, refreshAfterMutation: jest.fn(() => Promise.resolve(mockContentSnapshot)), retireSnapshotReads: jest.fn(),
+}) }));
 jest.mock('react-toastify', () => ({ toast: { error: jest.fn(), success: jest.fn() } }));
 jest.mock('./admin/CTFAdminPanel', () => () => null);
 jest.mock('../components/admin/AIProviderManagement', () => () => null);
@@ -42,6 +45,7 @@ beforeEach(() => {
   axios.get.mockImplementation(url => Promise.resolve({ data: url === '/api/admin/challenges'
     ? { success: true, challenges: [challenge] } : { success: true } }));
   axios.post.mockResolvedValue(enabledAck);
+  axios.patch.mockResolvedValue({ status: 200, data: { success: true, changed: true, revision: '3' } });
   jest.spyOn(console, 'error').mockImplementation(() => {});
   jest.spyOn(console, 'warn').mockImplementation(() => {});
   jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -57,6 +61,13 @@ test('Enable All stages full-catalog consequence and Cancel sends no POST', asyn
   expect(dialog().textContent).toMatch(/progress/i);
   await click('Cancel');
   expect(axios.post).not.toHaveBeenCalled();
+});
+test('global hint and solution controls use the database-backed bulk endpoint', async () => {
+  await mount(); await click('Enable All Hints & Solutions');
+  expect(axios.patch).toHaveBeenCalledWith('/api/admin/exercises/content-visibility', { enabled: true }, expect.objectContaining({
+    headers: { Authorization: 'Bearer admin-a' }, timeout: 10000,
+  }));
+  expect(toast.success).toHaveBeenCalledWith('All available hints and solutions enabled.');
 });
 test('a retained Enable All handler from A cannot dispatch under equally authorized B', async () => {
   await mount(); const retained = reactHandler(button('Enable All'));

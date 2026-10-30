@@ -69,7 +69,7 @@ test('promotion package preserves hidden controls across candidate and generated
     assert.equal(objective?.defaultEnabled, false);
   }
   assert.equal(curriculum.CHALLENGE.route, phase.generated ? '/workshop/secureshop' : '');
-  assert.equal(curriculum.CHALLENGE.defaultVisible, false);
+  assert.equal(curriculum.CHALLENGE.defaultVisible, true);
   assert.equal(manifest.defaults.environmentDefault, false);
   assert.equal(manifest.defaults.draftsRegistered, true);
   assert.equal(manifest.requiredSourceRepair.status, 'implemented-focused-qualified');

@@ -1280,6 +1280,8 @@ const ComprehensiveAdminDashboard = () => {
 
   // Bulk challenge toggle state
   const [bulkTogglingChallenges, setBulkTogglingChallenges] = useState(false);
+  const [bulkContentPending, setBulkContentPending] = useState(false);
+  const bulkContentRef = useRef(false);
   const [bulkVisibilityConfirm, setBulkVisibilityConfirm] = useState(null);
   const [bulkVisibilityOutcome, setBulkVisibilityOutcome] = useState(null);
   const stagedBulkVisibilityRef = useRef(null);
@@ -1589,6 +1591,40 @@ const ComprehensiveAdminDashboard = () => {
         pendingBulkVisibilityRef.current = null;
         if (studentDeletionMountedRef.current) setBulkTogglingChallenges(false);
       }
+    }
+  };
+
+  const setAllHintAndSolutionVisibility = async enabled => {
+    if (bulkContentRef.current || !challengePermissionRef.current
+      || activeSectionRef.current !== 'exercises') return;
+    const authority = captureAdminAuthority();
+    if (!authority) return;
+    bulkContentRef.current = true;
+    setBulkContentPending(true);
+    const current = () => challengePermissionRef.current && activeSectionRef.current === 'exercises'
+      && isCurrentAdminAuthority(authority);
+    try {
+      const response = await axios.patch('/api/admin/exercises/content-visibility', { enabled }, {
+        headers: { Authorization: `Bearer ${authority.token}` }, timeout: 10000,
+      });
+      if (!current()) return;
+      const data = response.data;
+      const validRevision = (typeof data?.revision === 'string' && /^\d+$/.test(data.revision))
+        || (typeof data?.revision === 'number' && Number.isSafeInteger(data.revision) && data.revision >= 0);
+      if (response.status !== 200 || data?.success !== true || typeof data.changed !== 'boolean' || !validRevision) {
+        throw new Error('The server response did not confirm the content visibility change.');
+      }
+      const snapshot = await refreshAfterMutation();
+      if (!current() || !snapshot?.exercises || !Object.values(snapshot.exercises).every(exercise =>
+        exercise.showHints === enabled && exercise.showSolutions === enabled)) {
+        throw new Error('Canonical content visibility readback unavailable.');
+      }
+      toast.success(`All available hints and solutions ${enabled ? 'enabled' : 'disabled'}${data.changed ? '' : ' (already in this state)'}.`);
+    } catch (error) {
+      if (current()) toast.error(error.response?.data?.error || error.message || 'Unable to update all hints and solutions.');
+    } finally {
+      bulkContentRef.current = false;
+      setBulkContentPending(false);
     }
   };
 
@@ -4626,6 +4662,20 @@ const ComprehensiveAdminDashboard = () => {
         <h2><FiBookOpen /> Exercises Management</h2>
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <ActionButton
+            onClick={() => setAllHintAndSolutionVisibility(true)}
+            disabled={bulkContentPending || !canManageChallenges}
+            style={{ background: '#3182ce', color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <FiToggleRight /> Enable All Hints &amp; Solutions
+          </ActionButton>
+          <ActionButton
+            onClick={() => setAllHintAndSolutionVisibility(false)}
+            disabled={bulkContentPending || !canManageChallenges}
+            style={{ background: '#dd6b20', color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <FiToggleLeft /> Disable All Hints &amp; Solutions
+          </ActionButton>
+          <ActionButton
             onClick={() => stageBulkVisibility(true)}
             disabled={bulkTogglingChallenges || !!bulkVisibilityConfirm || !canManageChallenges}
             style={{ background: '#48bb78', color: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
@@ -4645,7 +4695,7 @@ const ComprehensiveAdminDashboard = () => {
       <div style={{ marginBottom: '2rem' }}>
         <p style={{ color: '#718096', marginBottom: '1.5rem' }}>
           Show or hide each exercise, control student visibility of solutions &amp; hints, and open
-          <strong> Manage Objectives</strong> for per-objective control. Visible exercises with no enabled objectives remain locked for students. Use <strong>Enable / Disable All</strong> above to change exercise visibility.
+          <strong> Manage Objectives</strong> for per-objective control. Visible exercises with no enabled objectives remain locked for students. Use the bulk controls above to change exercise visibility or all available hints and solutions.
         </p>
 
         {loading && (

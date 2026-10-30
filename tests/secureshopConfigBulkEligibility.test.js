@@ -48,6 +48,23 @@ test('master disable clears all active objectives without a qualification filter
   }
 });
 
+test('global help enable keeps unqualified SecureShop objectives disabled', async () => {
+  const enabled = fixture();
+  await enabled.service.setAllHintAndSolutionVisibility(true, 9);
+  for (const field of ['hint_enabled', 'solution_enabled']) {
+    const update = objectiveUpdate(enabled.calls, field);
+    assert.match(update.sql, /workshop_key<>\$3 OR objective_id=ANY\(\$4::text\[\]\)/);
+    assert.deepEqual(update.params, [true, 9, WORKSHOP_KEY, QUALIFIED_OBJECTIVE_IDS]);
+  }
+  const disabled = fixture();
+  await disabled.service.setAllHintAndSolutionVisibility(false, 9);
+  for (const field of ['hint_enabled', 'solution_enabled']) {
+    const update = objectiveUpdate(disabled.calls, field);
+    assert.doesNotMatch(update.sql, /objective_id=ANY/);
+    assert.deepEqual(update.params, [false, 9]);
+  }
+});
+
 test('exercise showSolutions enable updates only qualified objectives', async () => {
   const f = fixture();
   await f.service.updateExercise({ key: WORKSHOP_KEY, challengeName: 'SecureShop', category: 'ai', difficulty: 'advanced',

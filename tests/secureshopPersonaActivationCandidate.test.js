@@ -248,8 +248,8 @@ test('copied curriculum exposes exactly the three persona objectives while prese
   fs.writeFileSync(filename, build().curriculum);
   const curriculum = require(filename);
   assert.equal(curriculum.CHALLENGE.route, '/workshop/secureshop');
-  assert.equal(curriculum.CHALLENGE.defaultVisible, false);
-  assert.equal(curriculum.CHALLENGE.visible, 0);
+  assert.equal(curriculum.CHALLENGE.defaultVisible, true);
+  assert.equal(curriculum.CHALLENGE.visible, 1);
   const newlyQualified = curriculum.OBJECTIVES.filter(row => candidate.QUALIFIED.includes(row.id));
   assert.deepEqual(newlyQualified.map(row => row.id), candidate.QUALIFIED);
   assert.ok(newlyQualified.every(row => row.qualification === 'native-model'));

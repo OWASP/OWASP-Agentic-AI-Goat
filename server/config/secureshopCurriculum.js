@@ -124,7 +124,7 @@ const OBJECTIVES = Object.freeze([
 
 const CHALLENGE = Object.freeze({ key: WORKSHOP_KEY, name: 'SecureShop Agent Security',
   description: 'Explore agent decisions, review injection, authorization, MCP trust, browser sinks and controlled server requests in isolated shop scenarios. Only connected workflows can be enabled by an instructor.',
-  category: 'ai', difficulty: 'advanced', route: '/workshop/secureshop', visible: 0, defaultVisible: false });
+  category: 'ai', difficulty: 'advanced', route: '/workshop/secureshop', visible: 1, defaultVisible: true });
 
 const QUALIFIED_MECHANISMS = Object.freeze(['native-model', 'native-browser-judge']);
 const QUALIFIED_MECHANISM_SET = new Set(QUALIFIED_MECHANISMS);

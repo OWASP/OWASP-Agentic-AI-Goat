@@ -185,6 +185,19 @@ function createWorkshopConfigRepository(pool,{isSecureShopReady=()=>{
    if(enabled)for(const row of (await client.query('SELECT workshop_key,route FROM workshop_platform.exercises WHERE catalog_active=true')).rows)requireExerciseReady(row,true);
    return {changed:(await client.query('UPDATE workshop_platform.exercises SET is_visible=$1,updated_by=$2,updated_at=now() WHERE catalog_active=true AND is_visible IS DISTINCT FROM $1',[enabled,updatedBy??null])).rowCount};
   });},
+  setAllHintAndSolutionVisibility(enabled,updatedBy){boolean(enabled);return mutate(null,async client=>{
+   let changed=0;
+   for(const [master,gate,content] of [['show_hints','hint_enabled','hint_content'],['show_solutions','solution_enabled','solution_content']]){
+    changed+=(await client.query(`UPDATE workshop_platform.exercises SET ${master}=$1,updated_by=$2,updated_at=now()
+      WHERE catalog_active=true AND ${master} IS DISTINCT FROM $1`,[enabled,updatedBy??null])).rowCount;
+    const qualified=enabled?secureShopCurriculum.QUALIFIED_OBJECTIVE_IDS:null;
+    const eligible=qualified?' AND (workshop_key<>$3 OR objective_id=ANY($4::text[]))':'';
+    const params=qualified?[enabled,updatedBy??null,secureShopCurriculum.WORKSHOP_KEY,qualified]:[enabled,updatedBy??null];
+    changed+=(await client.query(`UPDATE workshop_platform.objectives SET ${gate}=$1,updated_by=$2,updated_at=now()
+      WHERE catalog_active=true AND ${gate} IS DISTINCT FROM $1 AND (${content} IS NOT NULL OR $1=false)${eligible}`,params)).rowCount;
+   }
+   return {changed};
+  });},
   setAllObjectiveVisibility(key,enabled,updatedBy){boolean(enabled);return mutate(key,async(client,w)=>{
    const qualified=enabled&&w.workshop_key===secureShopCurriculum.WORKSHOP_KEY?secureShopCurriculum.QUALIFIED_OBJECTIVE_IDS:null;
    const eligible=qualified?' AND objective_id = ANY($2::text[])':'';

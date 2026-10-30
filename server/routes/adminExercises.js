@@ -82,6 +82,10 @@ function createAdminExercisesRouter({
 
   router.use(requirePermission('challenge_management'));
 
+  router.patch('/content-visibility', mutate((req) =>
+    service.setAllHintAndSolutionVisibility(req.body?.enabled, req.user.id),
+    () => ({ type: 'hintAndSolutionVisibility', bulk: true })));
+
   router.patch('/:challengeKey', mutate((req) =>
     service.setExerciseVisibility(
       req.params.challengeKey, req.body?.enabled, req.user.id),
