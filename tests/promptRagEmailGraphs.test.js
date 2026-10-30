@@ -201,6 +201,16 @@ test('Email delivery graph orders side effect, audit and credit without retry',a
  objectiveJudge:fixtureJudge,gmailService:{sendEmail:async()=>{order.push('send');return {messageId:'fixture'};}},logSentEmail:async()=>order.push('audit'),markEmailAgentObjectiveComplete:async()=>order.push('credit')});
  assert.equal(result.messageId,'fixture');assert.deepEqual(order,['send','audit','credit']);
 });
+test('Email delivery passes owner context only to the local Mailpit provider',async()=>{
+ const context={ownerId:7,generation:'3'};let externalArgs,localArgs;
+ await runEmailSendGraph({userKey:'a',recipientEmail:'fixture@example.invalid',emailBody:'raw',scenario:'fixture',ownerContext:context}, {
+  objectiveJudge:fixtureJudge,gmailService:{sendEmail:async(...args)=>{externalArgs=args;return {messageId:'external'};}},logSentEmail:async()=>{},markEmailAgentObjectiveComplete:async()=>({})
+ });
+ await runEmailSendGraph({userKey:'a',recipientEmail:'fixture@example.invalid',emailBody:'raw',scenario:'fixture',ownerContext:context}, {
+  objectiveJudge:fixtureJudge,gmailService:{requiresOwnerContext:true,sendEmail:async(...args)=>{localArgs=args;return {messageId:'local'};}},logSentEmail:async()=>{},markEmailAgentObjectiveComplete:async()=>({})
+ });
+ assert.equal(externalArgs.length,4);assert.equal(localArgs.length,5);assert.equal(localArgs[4],context);
+});
 test('Email delivery preserves immutable provider receipts while adding grading results',async()=>{
  const receipt=Object.freeze({messageId:'frozen-mailpit-id',success:true,provider:'mailpit'});let sends=0;
  const result=await runEmailSendGraph({userKey:'a',recipientEmail:'fixture@example.invalid',emailBody:'raw',scenario:'fixture'}, {

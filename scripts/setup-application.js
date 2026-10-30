@@ -1093,6 +1093,11 @@ async function executeSetupDatabasePhase(request, maintenanceScope, dependencies
     ...(runtime.browser.configuredExecutablePath ? { PUPPETEER_EXECUTABLE_PATH: runtime.browser.configuredExecutablePath } : {}),
     ...(runtime.embedding ? { XENOVA_CACHE: runtime.embedding.cacheDirectory } : {}),
     AI_PROVIDER: 'ollama', OLLAMA_MODEL: 'llama3.1:8b', OLLAMA_BASE_URL: 'http://localhost:11434',
+    // Always publish editable placeholders. When supplied to setup, credentials
+    // are carried into the private .env so external SharkLasers delivery works
+    // after installation without a second configuration migration.
+    GMAIL_USER: processEnvironment.GMAIL_USER || '',
+    GMAIL_APP_PASSWORD: processEnvironment.GMAIL_APP_PASSWORD || '',
     IPI_EMAIL_PROVIDER: requestedEmailProvider === 'gmail' ? 'gmail' : 'mailpit',
     IPI_MAIL_DOMAIN: 'dvaia.invalid', IPI_MAIL_FROM: 'indirectpromptinjection@dvaia.invalid',
     MAILPIT_SMTP_HOST: localMailpit?.smtpHost || '127.0.0.1',

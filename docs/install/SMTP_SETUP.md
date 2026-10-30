@@ -13,8 +13,10 @@ only when choosing Gmail explicitly; existing installations retain their selecte
 provider. External email delivery and HTML filtering differ from local Mailpit
 and are not proof of exact exploit-body preservation.
 
-The fresh installer deliberately does not collect third-party credentials.
-Configure SMTP after setup by following the steps below.
+The fresh installer deliberately does not collect third-party credentials, but
+it writes blank `GMAIL_USER` and `GMAIL_APP_PASSWORD` placeholders into the
+private `.env` it creates. Configure SMTP after setup by following the steps
+below.
 
 ---
 
