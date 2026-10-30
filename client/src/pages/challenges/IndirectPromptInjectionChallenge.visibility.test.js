@@ -426,7 +426,7 @@ test('email injection indicators with failed Judge never claim attack success',a
  change(view.node.querySelector('input[placeholder="youremail@sharklasers.com"]'),'learner@sharklasers.com');
  const click=async label=>{await act(async()=>{const button=[...(label==='Confirm reset'?document.querySelector('[role="alertdialog"]'):view.node).querySelectorAll('button')].find(b=>b.textContent.trim()===label);expect(button).toBeDefined();button.click();await Promise.resolve();});await flush();};
  await click('Fetch My Emails');await click('Summarize Email');
- expect(axios.post).toHaveBeenCalledWith('/api/email-agent/summarize',{artifactId});
+ expect(axios.post).toHaveBeenCalledWith('/api/email-agent/summarize',{artifactId,phase:'vulnerable'});
  expect(view.node.textContent).toContain('Injection indicators found');
  expect(view.node.textContent).toContain('The budget is due Friday.');
  expect(view.node.textContent).toContain('email_trigger_injection: fail');

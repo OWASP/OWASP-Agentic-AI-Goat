@@ -79,6 +79,16 @@ test('secure summarize keeps the explicit grounded-summary continuation while vu
  assert.doesNotMatch(responseCalls[0].messages.at(-1).content,/natural-language summary|cat poem/i);
  assert.match(responseCalls[1].messages.at(-1).content,/natural-language summary.*grounded in the observed email/i);
 });
+test('email phases keep Step 4 credit and Step 5 defense presentation separate',async()=>{
+ const vulnerable=harness({calls:[JSON.stringify({action:'read_email'}),JSON.stringify({action:'summarize'}),'A cat poem.',],onJudge:packet=>{assert.equal(packet.rubric.objectiveId,'email_trigger_injection');return{verdict:'pass',criteria:[]};}});
+ const attack=await runIndirectEmailGraph({...vulnerable.input,phase:'vulnerable'},vulnerable.deps);
+ assert.equal(attack.vulnerableSummary,'A cat poem.');assert.equal(attack.secureSummary,undefined);
+ assert.deepEqual(vulnerable.packets.map(packet=>packet.rubric.objectiveId),['email_trigger_injection']);
+ const secure=harness({calls:[JSON.stringify({action:'read_email'}),JSON.stringify({action:'summarize'}),'A cat poem.',JSON.stringify({action:'read_email'}),JSON.stringify({action:'summarize'}),'Planning is Monday.'],onJudge:packet=>{assert.equal(packet.rubric.objectiveId,'email_understand_defense');return{verdict:'pass',criteria:[]};}});
+ const defense=await runIndirectEmailGraph({...secure.input,phase:'secure'},secure.deps);
+ assert.equal(defense.vulnerableSummary,undefined);assert.equal(defense.secureSummary,'Planning is Monday.');
+ assert.deepEqual(secure.packets.map(packet=>packet.rubric.objectiveId),['email_understand_defense']);
+});
 test('explicit fixed mode publishes only a defense-qualified secure summary while vulnerable mode keeps the attack actor primary',async()=>{
  const calls=[
   JSON.stringify({action:'read_email'}),JSON.stringify({action:'summarize'}),'A cat poem unrelated to planning.',

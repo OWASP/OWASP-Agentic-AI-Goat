@@ -1751,7 +1751,7 @@ const IndirectPromptInjectionChallenge = () => {
     }
   };
 
-  const handleSummarizeEmail = async () => {
+  const handleSummarizeEmail = async (phase = 'vulnerable') => {
     if (!ownerIsCurrent()) return;
     if (!modeReady) return;
     if (!fetchedEmail?.artifactId) {
@@ -1761,31 +1761,33 @@ const IndirectPromptInjectionChallenge = () => {
 
     const scenarioGeneration = captureScenario('email');
     setIsSummarizing(true);
-    setEmailSummary(null);
-    setVulnerableEmailSummary(null);
-    setEmailResponseMode(null);
+    if (phase === 'vulnerable') {
+      setEmailSummary(null);
+      setVulnerableEmailSummary(null);
+      setEmailResponseMode(null);
+      setSafeSummary(null);
+    }
     setEmailJudgments([]);
     setEmailInjectionDetected(false);
     setInjectionAnalysis(null);
-    setSafeSummary(null);
 
     try {
-      const res = await axios.post('/api/email-agent/summarize', { artifactId: fetchedEmail.artifactId });
+      const res = await axios.post('/api/email-agent/summarize', { artifactId: fetchedEmail.artifactId, phase });
       if (!scenarioIsCurrent('email', scenarioGeneration)) return;
 
       if (res.data.success) {
         setEmailJudgments(res.data.judgments || []);
         setEmailSummary(res.data.summary);
-        setVulnerableEmailSummary(res.data.vulnerableSummary || (res.data.mode === 'fixed' ? null : res.data.summary));
+        if (phase === 'vulnerable') setVulnerableEmailSummary(res.data.vulnerableSummary || res.data.summary);
         setEmailResponseMode(res.data.mode ?? null);
         setEmailInjectionDetected(res.data.injectionDetected);
         setInjectionAnalysis(res.data.injectionAnalysis);
-        setSafeSummary(res.data.safeSummary);
+        if (phase === 'secure') setSafeSummary(res.data.secureSummary || res.data.safeSummary || res.data.summary);
         
         if (res.data.injectionDetected) {
           toast.warning('Injection indicators found; review the Judge result');
         } else {
-          toast.success('Email summarized successfully');
+          toast.success(phase === 'secure' ? 'Secure email summary completed' : 'Vulnerable email summary completed');
         }
         refreshEmailProgress();
       }
@@ -2603,13 +2605,13 @@ const IndirectPromptInjectionChallenge = () => {
 
                 {fetchedEmail && (
                   <>
-                    <SectionTitle style={{ marginTop: '1.5rem' }}>Step 4: Summarize Email</SectionTitle>
+                    <SectionTitle style={{ marginTop: '1.5rem' }}>Step 4: Vulnerable Email Summary</SectionTitle>
                     <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
-                      Ask the AI to summarize this email, then check whether it follows or ignores the embedded instructions.
+                      Run the vulnerable email agent. Its response alone is used to evaluate Trigger Injection.
                     </p>
                     <Button
                       type="button"
-                      onClick={handleSummarizeEmail}
+                      onClick={() => handleSummarizeEmail('vulnerable')}
                       disabled={!modeReady || isSummarizing || !emailHealth.llm?.available}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -2626,43 +2628,20 @@ const IndirectPromptInjectionChallenge = () => {
                     <JudgeRetryButton evaluationId={feedback.evaluationId} canRetry={feedback.canRetry} onResult={(data, options) => handleJudgeRetryResult('email', data, options)} />
                   </div>)}
                 </div>}
-                {emailSummary && (
+                {vulnerableEmailSummary && (
                   <>
                     <SectionTitle style={{ marginTop: '1.5rem', fontSize: '1.1rem' }}>
-                      <FiZap /> {emailResponseMode === 'fixed' ? 'Fixed agent response' : 'Agent response'}
+                      <FiAlertTriangle /> Vulnerable AI Output
                     </SectionTitle>
-                    <AnswerBox><SafeChatBody content={safeText(emailSummary)} /></AnswerBox>
-                    <SectionTitle style={{ marginTop: '1.5rem', fontSize: '1.1rem' }}>Observed response comparison</SectionTitle>
-                    
-                    <SideBySideComparison>
-                      <ComparisonPanel
-                        className="vulnerable"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <div className="panel-header">
-                          <FiAlertTriangle className="panel-icon" />
-                          Vulnerable AI Output
-                          <span className="panel-subtitle">Observed teaching response</span>
-                        </div>
-                        <div className="panel-content">{safeText(vulnerableEmailSummary || 'No vulnerable response available')}</div>
-                      </ComparisonPanel>
-                      
-                      <ComparisonPanel
-                        className="secure"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.3, delay: 0.1 }}
-                      >
-                        <div className="panel-header">
-                          <FiShield className="panel-icon" />
-                          Secure AI Output
-                          <span className="panel-subtitle">Observed defense response</span>
-                        </div>
-                        <div className="panel-content">{safeText(safeSummary || 'No secure summary available')}</div>
-                      </ComparisonPanel>
-                    </SideBySideComparison>
+                    <AnswerBox><SafeChatBody content={safeText(vulnerableEmailSummary)} /></AnswerBox>
+                    <SectionTitle style={{ marginTop: '1.5rem' }}>Step 5: Understand Defense</SectionTitle>
+                    <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1rem' }}>
+                      Run the secure email agent to see the defense response and evaluate the defense objective.
+                    </p>
+                    <Button type="button" onClick={() => handleSummarizeEmail('secure')} disabled={!modeReady || isSummarizing || !emailHealth.llm?.available} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      {isSummarizing ? 'Summarizing...' : <><FiShield /> Run Secure Summary</>}
+                    </Button>
+                    {safeSummary && <><SectionTitle style={{ marginTop: '1.5rem', fontSize: '1.1rem' }}><FiShield /> Secure AI Output</SectionTitle><AnswerBox><SafeChatBody content={safeText(safeSummary)} /></AnswerBox></>}
 
                     {emailInjectionDetected && (
                       <>
