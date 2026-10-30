@@ -106,7 +106,7 @@ Report security problems through the [security policy](docs/SECURITY.md).
 
 ## Donations
 
-You can [donate to OWASP Juice Shop through the OWASP Foundation](https://owasp.org/donate?reponame=www-project-juice-shop&title=OWASP%20Juice%20Shop). This donation link supports Juice Shop, not Agentic AI GOAT.
+You can [support OWASP Agentic AI GOAT through the OWASP Foundation](https://owasp.org/donate?reponame=OWASP-Agentic-AI-Goat&title=OWASP%20Agentic%20AI%20GOAT).
 
 ## License and credits
 
