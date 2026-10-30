@@ -10,11 +10,11 @@ const { createAdminEmailConfiguration } = require('../server/services/adminEmail
 const { createAdminEmailConfigurationRouter } = require('../server/routes/adminEmailConfiguration');
 const express = require('express');
 
-async function fixture(source = 'IPI_EMAIL_PROVIDER=mailpit\nXSS_MAIL_PROVIDER=gmail\nGMAIL_USER=sender@example.test\nGMAIL_APP_PASSWORD=initial-password\n') {
+async function fixture(source = 'IPI_EMAIL_PROVIDER=mailpit\nXSS_MAIL_PROVIDER=gmail\nGMAIL_USER=sender@example.test\nGMAIL_APP_PASSWORD=initial-password\n', options = {}) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'ai-goat-mail-config-'));
   const envPath = path.join(directory, '.env');
   await fs.writeFile(envPath, source, { mode: 0o600 });
-  return { directory, envPath, configuration: createAdminEmailConfiguration({ envPath, readProcessEnv: () => ({}) }) };
+  return { directory, envPath, configuration: createAdminEmailConfiguration({ envPath, readProcessEnv: () => ({}), applyRuntime: () => {}, ...options }) };
 }
 
 test('admin email configuration reports only safe SMTP status fields', async (t) => {
@@ -52,6 +52,18 @@ test('admin email configuration updates providers and Gmail credentials without 
   assert.equal(saved.IPI_EMAIL_PROVIDER, 'gmail');
   assert.equal(saved.XSS_MAIL_PROVIDER, 'mailpit');
   assert.equal((await fs.stat(f.envPath)).mode & 0o777, 0o600);
+});
+
+test('runtime providers are refreshed only after a successful private configuration write', async (t) => {
+  const applied = [];
+  const f = await fixture(undefined, { applyRuntime: updates => applied.push({ ...updates }) });
+  t.after(() => fs.rm(f.directory, { recursive: true, force: true }));
+  await f.configuration.save({ ipiProvider: 'gmail', xssProvider: 'mailpit' });
+  assert.deepEqual(applied, [{ IPI_EMAIL_PROVIDER: 'gmail', XSS_MAIL_PROVIDER: 'mailpit' }]);
+  const broken = await fixture('IPI_EMAIL_PROVIDER=mailpit\nXSS_MAIL_PROVIDER=mailpit\n');
+  t.after(() => fs.rm(broken.directory, { recursive: true, force: true }));
+  await assert.rejects(() => broken.configuration.save({ ipiProvider: 'gmail', xssProvider: 'mailpit' }));
+  assert.deepEqual(applied, [{ IPI_EMAIL_PROVIDER: 'gmail', XSS_MAIL_PROVIDER: 'mailpit' }]);
 });
 
 test('selecting IPI Mailpit provisions its private signing secret', async (t) => {

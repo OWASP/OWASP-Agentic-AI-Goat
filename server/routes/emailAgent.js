@@ -15,9 +15,21 @@ const emailRuns = createRunCoordinator({family:'IndirectEmail'});
 const emailStore = require('../services/emailWorkshopStore');
 const emailArtifacts = require('../services/emailArtifactStore');
 const { getIpiEmailProvider, isLocal } = require('../services/ipiEmailProvider');
-const ipiProvider = getIpiEmailProvider();
-const gmailService = ipiProvider.sender;
-const sharkLasersScraper = ipiProvider.inbox;
+// The admin can change the delivery provider while the application is running.
+// Resolve the provider on every service method instead of retaining startup-only
+// references in this route module.
+function liveProviderProperty(property) {
+  return new Proxy({}, { get(_target, key) {
+    const value = getIpiEmailProvider()[property]?.[key];
+    return typeof value === 'function' ? value.bind(getIpiEmailProvider()[property]) : value;
+  } });
+}
+const ipiProvider = new Proxy({}, { get(_target, key) {
+  const value = getIpiEmailProvider()[key];
+  return typeof value === 'function' ? value.bind(getIpiEmailProvider()) : value;
+} });
+const gmailService = liveProviderProperty('sender');
+const sharkLasersScraper = liveProviderProperty('inbox');
 const aiService = require('../services/multiProviderAIService');
 const { authenticateToken } = require('../middleware/adminAuth');
 const modeService = require('../services/workshopModeService');
@@ -32,7 +44,7 @@ const { syncObjectiveComplete, checkAndMarkWorkshopComplete, resetWorkshopProgre
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const TARGET_EMAIL = ipiProvider.sender.getTargetEmail?.() || ipiProvider.sender.getTargetSender?.() || 'indirectpromptinjection@gmail.com';
+const targetEmail = () => ipiProvider.sender.getTargetEmail?.() || ipiProvider.sender.getTargetSender?.() || 'indirectpromptinjection@gmail.com';
 
 function sendEmailCapacityError(res,error){
   if(error?.code!=='GRAPH_RUN_CAPACITY_EXCEEDED')return false;
@@ -621,7 +633,7 @@ router.post('/send', authenticateToken, express.json(), async (req, res) => {
       remainingSends: result.remainingSends,
       objectiveCompleted: result.objectiveCompleted, judgments:result.judgments,
       projectionPending: result.projectionPending === true,
-      message: `Attack email sent from ${TARGET_EMAIL} to ${recipientEmail}. Check your inbox in 1-2 minutes.`
+      message: `Attack email sent from ${targetEmail()} to ${recipientEmail}. Check your inbox in 1-2 minutes.`
     });
   } catch (err) {
     if(sendEmailSessionError(res,err))return;
@@ -692,7 +704,7 @@ router.post('/fetch-sharklasers', authenticateToken, express.json(), async (req,
       const ownerContext = isLocal() ? {ownerId:platformUserId, generation:execution.durableGeneration ?? execution.generation} : null;
       const ownedEmail = ownerContext ? ipiProvider.addressFor(ownerContext) : tempEmail;
       if (ownerContext && tempEmail.toLowerCase() !== ownedEmail.toLowerCase()) { const error = new Error('Use the server-assigned local IPI inbox'); error.statusCode = 403; throw error; }
-      return runEmailFetchGraph({tempEmail:ownedEmail,manualContent,userKey,platformUserId,ownerContext}, {gmailService,sharkLasersScraper,markEmailAgentObjectiveComplete,TARGET_EMAIL,execution,
+      return runEmailFetchGraph({tempEmail:ownedEmail,manualContent,userKey,platformUserId,ownerContext}, {gmailService,sharkLasersScraper,markEmailAgentObjectiveComplete,TARGET_EMAIL:targetEmail(),execution,
         storeEmailArtifacts: scope => emailArtifacts.createMany(scope)});
     });
     res.json(result);

@@ -7,7 +7,7 @@
 
 const nodemailer = require('nodemailer');
 
-const TARGET_EMAIL = process.env.GMAIL_USER || 'indirectpromptinjection@gmail.com';
+const DEFAULT_TARGET_EMAIL = 'indirectpromptinjection@gmail.com';
 
 const SUSPICIOUS_KEYWORDS = [
   'IGNORE',
@@ -52,7 +52,7 @@ const SEND_RATE_LIMIT_MAX = 50;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 class GmailEmailAgentService {
-  constructor({ transporter = null, initialized = false, targetEmail = TARGET_EMAIL } = {}) {
+  constructor({ transporter = null, initialized = false, targetEmail = process.env.GMAIL_USER || DEFAULT_TARGET_EMAIL } = {}) {
     this.transporter = transporter;
     this.initialized = initialized;
     this.targetEmail = targetEmail;
@@ -166,6 +166,22 @@ class GmailEmailAgentService {
     this.transporter = null;
     this.initError = null;
     return this.initialize(true);
+  }
+
+  // Admin email configuration can change at runtime. Reset the pooled SMTP
+  // connection and sender identity so the next workshop operation uses the
+  // committed private configuration without requiring a server restart.
+  reconfigureFromEnvironment() {
+    const active = this.transporter;
+    this.transporter = null;
+    this.initialized = false;
+    this.initError = null;
+    this.lastInitAttempt = null;
+    this.targetEmail = process.env.GMAIL_USER || DEFAULT_TARGET_EMAIL;
+    try {
+      const closing = active?.close?.();
+      if (closing && typeof closing.catch === 'function') closing.catch(() => {});
+    } catch {}
   }
 
   checkRateLimit(userKey) {

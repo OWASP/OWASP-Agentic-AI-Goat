@@ -14,4 +14,12 @@ function getIpiEmailProvider() {
   return {mode:'gmail', sender:gmailService, inbox:sharkLasersScraper, addressFor:null};
 }
 function resetIpiEmailProviderForTests() { local?.close?.().catch?.(() => {}); local = null; }
-module.exports = {getIpiEmailProvider, isLocal, resetIpiEmailProviderForTests};
+function refreshIpiEmailProvider() {
+  const retired = local;
+  local = null;
+  try {
+    const closing = retired?.close?.();
+    if (closing && typeof closing.catch === 'function') closing.catch(() => {});
+  } catch {}
+}
+module.exports = {getIpiEmailProvider, isLocal, resetIpiEmailProviderForTests, refreshIpiEmailProvider};

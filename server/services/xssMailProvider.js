@@ -75,6 +75,20 @@ function createXssMailProviderSelector({
       mode: 'external', provider: 'gmail', editable: true, sender });
   }
 
+  function refreshXssMailProvider() {
+    if (closed) throw new Error('XSS mail provider selector is closed');
+    const retired = cached;
+    cached = null;
+    // The shared Gmail service owns its reconfiguration. Only close the
+    // disposable local transport when switching away from Mailpit.
+    if (retired?.provider === 'mailpit') {
+      try {
+        const closing = retired.transport?.close?.();
+        if (closing && typeof closing.catch === 'function') closing.catch(() => {});
+      } catch {}
+    }
+  }
+
   function close() {
     if (closePromise) return closePromise;
     closed = true;
@@ -87,7 +101,7 @@ function createXssMailProviderSelector({
     return closePromise;
   }
 
-  return Object.freeze({ getXssMailProvider, resolveXssMailContext, close });
+  return Object.freeze({ getXssMailProvider, resolveXssMailContext, refreshXssMailProvider, close });
 }
 
 const singleton = createXssMailProviderSelector();
@@ -95,6 +109,7 @@ const singleton = createXssMailProviderSelector();
 module.exports = {
   getXssMailProvider: singleton.getXssMailProvider,
   resolveXssMailContext: singleton.resolveXssMailContext,
+  refreshXssMailProvider: singleton.refreshXssMailProvider,
   close: singleton.close,
   createXssMailProviderSelector,
   LOCAL_SENDER,

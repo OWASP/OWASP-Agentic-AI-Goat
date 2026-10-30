@@ -75,9 +75,19 @@ async function atomicWritePrivateEnv(envPath, content) {
   }
 }
 
+function applyRuntimeEmailConfiguration(updates) {
+  for (const [key, value] of Object.entries(updates)) process.env[key] = value;
+  // Each provider switch is explicit and happens only after the private file
+  // is durably committed. New workshop operations resolve these fresh adapters.
+  require('./gmailEmailAgentService').reconfigureFromEnvironment();
+  require('./ipiEmailProvider').refreshIpiEmailProvider();
+  require('./xssMailProvider').refreshXssMailProvider();
+}
+
 function createAdminEmailConfiguration({
   envPath = path.resolve(__dirname, '../..', '.env'),
   readProcessEnv = () => process.env,
+  applyRuntime = applyRuntimeEmailConfiguration,
 } = {}) {
   async function readPrivateEnv() {
     let stat;
@@ -131,10 +141,11 @@ function createAdminEmailConfiguration({
       updates.IPI_MAIL_HMAC_SECRET = crypto.randomBytes(32).toString('hex');
     }
     await atomicWritePrivateEnv(envPath, updateEnvText(text, updates));
+    applyRuntime(updates);
     return status();
   }
 
   return Object.freeze({ status, save });
 }
 
-module.exports = { createAdminEmailConfiguration, updateEnvText, serializeEnvValue };
+module.exports = { createAdminEmailConfiguration, updateEnvText, serializeEnvValue, applyRuntimeEmailConfiguration };

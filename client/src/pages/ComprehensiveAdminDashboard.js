@@ -7414,7 +7414,7 @@ const ComprehensiveAdminDashboard = () => {
                     <option value="gmail">Gmail / SharkLasers</option>
                     <option value="mailpit">Mailpit (local lab)</option>
                   </select>
-                  <span>{emailConfigurationDraft.xssProvider === 'gmail' ? 'Use the learner-selected external temporary inbox.' : 'Use an isolated xss-&lt;learner&gt;@dvaia.invalid inbox.'}</span>
+                  <span>{emailConfigurationDraft.xssProvider === 'gmail' ? 'Use the learner-selected external temporary inbox.' : 'Use an isolated xss-<learner>@dvaia.invalid inbox.'}</span>
                 </EmailProviderField>
               </EmailProviderGrid>
               {gmailSelected && (

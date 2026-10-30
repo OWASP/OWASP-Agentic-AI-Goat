@@ -87,6 +87,20 @@ test('provider selection is fixed after lazy initialization', () => {
   assert.throws(() => selector.getXssMailProvider(), /cannot change after initialization/);
 });
 
+test('an explicit administrator refresh changes provider for subsequent operations', () => {
+  let provider = 'mailpit';
+  const selector = createXssMailProviderSelector({
+    readProvider: () => provider,
+    createLocal: adapter,
+    getGmail: adapter,
+    getExternalMailbox: adapter,
+  });
+  assert.equal(selector.getXssMailProvider().provider, 'mailpit');
+  provider = 'gmail';
+  selector.refreshXssMailProvider();
+  assert.equal(selector.getXssMailProvider().provider, 'gmail');
+});
+
 test('close before selection is lazy, idempotent, and permanently revokes the selector', async () => {
   let created = 0;
   const selector = createXssMailProviderSelector({
