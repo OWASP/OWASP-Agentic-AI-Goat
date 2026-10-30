@@ -25,6 +25,19 @@ test('admin email configuration reports only safe SMTP status fields', async (t)
   });
 });
 
+test('saved provider selections are the IPI and XSS startup defaults after restart', async (t) => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'ai-goat-mail-defaults-'));
+  const envPath = path.join(directory, '.env');
+  const source = 'IPI_EMAIL_PROVIDER=mailpit\nXSS_MAIL_PROVIDER=gmail\nGMAIL_USER=sender@example.test\nGMAIL_APP_PASSWORD=app-password\nIPI_MAIL_HMAC_SECRET=01234567890123456789012345678901\n';
+  await fs.writeFile(envPath, source, { mode: 0o600 });
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const configuration = createAdminEmailConfiguration({ envPath, readProcessEnv: () => dotenv.parse(source) });
+  const status = await configuration.status();
+  assert.equal(status.ipiProvider, 'mailpit');
+  assert.equal(status.xssProvider, 'gmail');
+  assert.equal(status.restartRequired, false);
+});
+
 test('admin email configuration updates providers and Gmail credentials without returning secrets', async (t) => {
   const f = await fixture(); t.after(() => fs.rm(f.directory, { recursive: true, force: true }));
   const result = await f.configuration.save({ ipiProvider: 'gmail', xssProvider: 'mailpit',
