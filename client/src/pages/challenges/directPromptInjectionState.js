@@ -27,6 +27,27 @@ export function buildConversationHistory(transcript = []) {
     .map(({ type, content }) => ({ type, content }));
 }
 
+// Only the server's explicit tool projection is activity. Assistant prose and
+// model/Judge responses are never interpreted as tool execution.
+export function readDpiToolActivity(activity) {
+  if (!Array.isArray(activity)) return [];
+  return activity.filter(entry => entry && typeof entry.id === 'string'
+    && entry.name === 'decode_payload'
+    && ['success', 'error'].includes(entry.status)
+    && typeof entry.timestamp === 'string'
+    && Number.isFinite(Date.parse(entry.timestamp)))
+    .map(entry => ({
+      id: entry.id,
+      name: entry.name,
+      arguments: entry.arguments,
+      status: entry.status,
+      timestamp: entry.timestamp,
+      ...(Object.prototype.hasOwnProperty.call(entry, 'result') ? { result: entry.result } : {}),
+      ...(Object.prototype.hasOwnProperty.call(entry, 'error') ? { error: entry.error } : {}),
+      ...(entry.controlled === true ? { controlled: true } : {}),
+    }));
+}
+
 export function appendToTranscript(transcripts, objectiveId, message) {
   return {
     ...transcripts,

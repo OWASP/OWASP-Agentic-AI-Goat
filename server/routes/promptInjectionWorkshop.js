@@ -126,6 +126,8 @@ router.get('/llm-status', async (req, res) => {
  */
 router.post('/chat', async (req, res) => {
   console.log('[PromptInjection API] POST /chat hit');
+  let failedToolActivity = [];
+  let checkActivitySession;
   try {
     const userId = getAuthenticatedUserId(req);
     if (!userId) {
@@ -139,6 +141,7 @@ router.post('/chat', async (req, res) => {
     const validator=validateSession||(token=>require('../services/postgresIdentityAdapter').getPostgresIdentityAdapter().validateSession(token));
     const sessionFence=legacyFixture===true?{check:async()=>{},wrap:e=>e}:require('../agent-runtime/admittedPlatformSession').createAdmittedPlatformSessionFence(req,{validateSession:validator});
     const sessionCheck=sessionFence.check;
+    checkActivitySession=sessionCheck;
     await sessionCheck();
     const { userMessage, conversationHistory = [], completedObjectives = {}, activeObjectiveId = 'interact' } = req.body;
 
@@ -158,13 +161,19 @@ router.post('/chat', async (req, res) => {
       userId, workshopKey: 'direct_prompt_injection', objectiveId: activeObjectiveId,
       execution: gradingExecution,
     }) : null;
-    const result = await workshopService.chat(
+    let result;
+    try { result = await workshopService.chat(
       userMessage.trim(),
       Array.isArray(conversationHistory) ? conversationHistory : [],
       typeof completedObjectives === 'object' ? completedObjectives : {},
       activeObjectiveId,
       {execution:gradingExecution,completionService:durableCompletion,attempt,userId}
-    );
+    ); } catch (error) {
+      // Capture only while the owner/reset lease and admitted session are valid.
+      await gradingExecution.check();
+      failedToolActivity = require('../agent-runtime/dpiToolActivity').readToolActivityFailure(error);
+      throw error;
+    }
 
     await gradingExecution.check();
     const userKey = String(userId);
@@ -190,6 +199,7 @@ router.post('/chat', async (req, res) => {
     return {
       success: true,
       response: result.response,
+      toolActivity: require('../agent-runtime/dpiToolActivity').projectToolActivity(result.toolActivity),
       ...(result.selectedLesson ? {selectedLesson: require('../agent-runtime/dpiPolicyContract').admitSelectedLesson(result.selectedLesson, activeObjectiveId, attempt?.mode)} : {}),
       ...(result.publication ? {publication:result.publication} : {}),
       model: result.model,
@@ -203,6 +213,11 @@ router.post('/chat', async (req, res) => {
     await sessionCheck();
     res.json(payload);
   } catch (err) {
+    if (failedToolActivity.length) {
+      try { await checkActivitySession(); }
+      catch (sessionError) { return sendProgressError(res, sessionError, 'Session unavailable'); }
+    }
+    const activity = failedToolActivity.length ? { toolActivity: failedToolActivity } : {};
     if (err.code === 'GRAPH_RUN_CAPACITY_EXCEEDED') return res.status(503).json({success:false,code:'GRAPH_RUN_CAPACITY_EXCEEDED',error:'Agent capacity is unavailable.',response:null,completedObjectiveId:null});
     if (err.name === 'AbortError' || err.code === 'AGENT_RUN_CANCELLED') {
       return res.status(409).json({ success: false, code: 'AGENT_RUN_CANCELLED', error: 'Agent run was cancelled.', response: null, completedObjectiveId: null });
@@ -217,6 +232,7 @@ router.post('/chat', async (req, res) => {
       return res.status(504).json({
         success: false,
         code: 'AI_PROVIDER_TIMEOUT',
+        ...activity,
         error: 'The model did not finish within the request deadline. Check inference speed and server logs before retrying.',
         provider: info.provider || provider,
         providerName: info.providerName || 'AI provider',
@@ -238,6 +254,7 @@ router.post('/chat', async (req, res) => {
     res.status(isOllamaUnavailable ? 503 : 500).json({
       success: false,
       error: (err.message || 'Chat failed') + hint,
+      ...activity,
       provider: info.provider || provider,
       providerName: info.providerName || 'AI provider',
       ...(ollamaUrl ? { ollamaBaseURL: ollamaUrl } : {}),

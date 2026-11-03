@@ -4,7 +4,19 @@ import {
   createObjectiveTranscript,
   getVisibleObjectives,
   normalizeSolution,
+  readDpiToolActivity,
 } from './directPromptInjectionState';
+
+test('tool activity adapter accepts explicit decoder events without leaking metadata or inferring calls', () => {
+  const event = { id: 'decoder-1', name: 'decode_payload', arguments: {},
+    timestamp: '2026-11-01T12:00:00Z', status: 'success', result: false,
+    proof: { private: true }, ownerKey: 'private' };
+  expect(readDpiToolActivity('The assistant called decode_payload')).toEqual([]);
+  expect(readDpiToolActivity([null, { ...event, name: 'invented' }, { ...event, timestamp: 'invalid' }])).toEqual([]);
+  expect(readDpiToolActivity([event])).toEqual([{ id: event.id, name: event.name,
+    arguments: {}, timestamp: event.timestamp, status: 'success', result: false }]);
+  expect(readDpiToolActivity([{ ...event, result: 0 }])[0].result).toBe(0);
+});
 
 test('switching objectives preserves independent transcripts', () => {
   let transcripts = {

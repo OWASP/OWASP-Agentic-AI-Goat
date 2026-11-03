@@ -123,8 +123,13 @@ async function runDpiGraph(userMessage, conversationHistory, completedObjectives
       return {};
     }
   });
-  await graph.invoke({}, { recursionLimit: 8 });
+  try { await graph.invoke({}, { recursionLimit: 8 }); }
+  catch (error) {
+    if (decoderProof) require('./dpiToolActivity').recordToolActivityFailure(error, result.toolActivity || []);
+    throw error;
+  }
   return { response: responseText, model: result.model, provider: result.provider,
+    toolActivity: decoderProof ? result.toolActivity : [],
     ...(selectedLesson?{selectedLesson}:{}), completedObjectiveId: completedId || undefined, validInteraction: validInteraction || undefined, judgment, durableGrading, ...(publication?{publication}:{}) };
 }
 module.exports = { runDpiGraph, compileDpiGraph, getDpiGraphDefinition };
