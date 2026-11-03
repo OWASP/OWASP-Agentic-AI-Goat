@@ -27,6 +27,7 @@ import WorkshopObjectiveEditor from '../components/admin/WorkshopObjectiveEditor
 import WorkshopSolutionEditor from '../components/admin/WorkshopSolutionEditor';
 import AgentRunInspector from '../components/observability/AgentRunInspector';
 import { readAdminExerciseState } from '../utils/adminExerciseLoading';
+import { XSS_ADMIN_KEY, XSS_ADMIN_SOURCES, XSS_CONFIG_KEYS, isXssAdminKey, sameAdminExercise, projectXssAdminCard } from '../utils/adminXssGroup';
 import { runAfterTrackedLoad } from '../utils/serializedReconciliation';
 
 const {
@@ -467,7 +468,7 @@ const ChallengeCard = styled.div`
 const ToggleSwitch = styled.div`
   width: 50px;
   height: 26px;
-  background: ${props => props.enabled ? '#48bb78' : '#cbd5e0'};
+  background: ${props => props.$mixed ? '#d69e2e' : props.enabled ? '#48bb78' : '#cbd5e0'};
   border-radius: 13px;
   position: relative;
   cursor: pointer;
@@ -481,7 +482,7 @@ const ToggleSwitch = styled.div`
     border-radius: 50%;
     background: white;
     top: 2px;
-    left: ${props => props.enabled ? '26px' : '2px'};
+    left: ${props => props.$mixed ? '14px' : props.enabled ? '26px' : '2px'};
     transition: all 0.3s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
@@ -2038,15 +2039,14 @@ const ComprehensiveAdminDashboard = () => {
       if (!current()) return false;
       setChallenges(result.challenges.filter(row => row.key !== 'ctf_prompt_injection_challenge'));
       if (key) {
-        setWorkshopObjectives({ [key]: result.objectives });
-        const enabled = {};
-        result.objectives.forEach(row => { enabled[row.objective_id] = !!row.hint_enabled; });
-        // The hints endpoint is effective visibility; editable toggles retain stored objective flags.
-        setWorkshopHints({ [key]: enabled });
+        const groups = result.groups || [{ ...result, key }];
+        setWorkshopObjectives(Object.fromEntries(groups.map(group => [group.key, group.objectives])));
+        setWorkshopHints(Object.fromEntries(groups.map(group => [group.key,
+          Object.fromEntries(group.objectives.map(row => [row.objective_id, !!row.hint_enabled]))])));
         const setters = { pi: setPiSolutionChallenges, xss: setXssObjectives, csrf: setCsrfObjectives,
           finflow: setFinflowSolutions, supplyChain: setScSolutions, ea: setEaSolutions, ipi: setIpiSolutions,
           mcp: setMcpSolutions, sql: setSqliObjectives, nosql: setNosqliObjectives, generic: setSolutions };
-        if (result.target) setters[result.target](result.content);
+        groups.forEach(group => { if (group.target) setters[group.target](group.content); });
         setObjModalKey(key);
       }
       setLoading(false);
@@ -2372,6 +2372,7 @@ const ComprehensiveAdminDashboard = () => {
   };
 
   const toggleChallenge = async (challengeKey, enabled) => {
+    if (challengeKey === XSS_ADMIN_KEY) return toggleXssGroup('active', enabled);
     const challenge = challenges.find(c => c.key === challengeKey || c.id === challengeKey);
     if (!challenge) return;
     return runMasterMutation(challengeKey, 'active', enabled, post =>
@@ -2387,7 +2388,7 @@ const ComprehensiveAdminDashboard = () => {
         `/api/admin/exercises/${apiKey}/objectives/${objectiveId}/hint`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
-      if (identity !== exerciseIdentityRef.current || token !== localStorage.getItem('token') || exerciseLoadRef.current.key !== workshopKey) return;
+      if (identity !== exerciseIdentityRef.current || token !== localStorage.getItem('token') || !sameAdminExercise(exerciseLoadRef.current.key, workshopKey)) return;
       if (!response.data.hint || typeof response.data.hint !== 'object') throw new Error('Hint content unavailable');
       setHintEditor({
         workshopKey,
@@ -2413,7 +2414,7 @@ const ComprehensiveAdminDashboard = () => {
         content,
         { headers: { Authorization: `Bearer ${token}` } },
       );
-      await loadExerciseState(hintEditor.workshopKey);
+      await loadExerciseState(exerciseLoadRef.current.key);
       await refreshAfterMutation();
       setHintEditor(null);
       toast.success('Hint updated successfully');
@@ -2431,7 +2432,7 @@ const ComprehensiveAdminDashboard = () => {
     try {
       const { data } = await axios.get(`/api/admin/exercises/${toWorkshopKey(workshopKey)}/objectives/${objectiveId}`,
         { headers: { Authorization: `Bearer ${token}` } });
-      if (identity !== exerciseIdentityRef.current || token !== localStorage.getItem('token') || exerciseLoadRef.current.key !== workshopKey) return;
+      if (identity !== exerciseIdentityRef.current || token !== localStorage.getItem('token') || !sameAdminExercise(exerciseLoadRef.current.key, workshopKey)) return;
       if (!data.objective || data.objective.objectiveId !== objectiveId) throw new Error('Objective unavailable');
       setObjectiveEditor({ workshopKey, ...data.objective });
     } catch (error) { toast.error(error.response?.data?.error || 'Failed to load objective'); }
@@ -2442,7 +2443,7 @@ const ComprehensiveAdminDashboard = () => {
     const { workshopKey, objectiveId } = objectiveEditor, token = localStorage.getItem('token');
     await axios.put(`/api/admin/exercises/${toWorkshopKey(workshopKey)}/objectives/${objectiveId}`, patch,
       { headers: { Authorization: `Bearer ${token}` } });
-    await loadExerciseState(workshopKey);
+    await loadExerciseState(exerciseLoadRef.current.key);
     await refreshAfterMutation();
     setObjectiveEditor(null);
     toast.success('Objective updated');
@@ -2453,7 +2454,7 @@ const ComprehensiveAdminDashboard = () => {
     try {
       const { data } = await axios.get(`/api/admin/exercises/${toWorkshopKey(workshopKey)}/objectives/${objectiveId}/solution`,
         { headers: { Authorization: `Bearer ${token}` } });
-      if (identity !== exerciseIdentityRef.current || token !== localStorage.getItem('token') || exerciseLoadRef.current.key !== workshopKey) return;
+      if (identity !== exerciseIdentityRef.current || token !== localStorage.getItem('token') || !sameAdminExercise(exerciseLoadRef.current.key, workshopKey)) return;
       if (!data.solution || typeof data.solution !== 'object') throw new Error('Solution content unavailable');
       setSolutionEditor({ workshopKey, objectiveId, solution: data.solution });
     } catch (error) { toast.error(error.response?.data?.error || 'Failed to load solution'); }
@@ -2464,7 +2465,7 @@ const ComprehensiveAdminDashboard = () => {
     const { workshopKey, objectiveId } = solutionEditor, token = localStorage.getItem('token');
     await axios.put(`/api/admin/exercises/${toWorkshopKey(workshopKey)}/objectives/${objectiveId}/solution`, patch,
       { headers: { Authorization: `Bearer ${token}` } });
-    await loadExerciseState(workshopKey);
+    await loadExerciseState(exerciseLoadRef.current.key);
     await refreshAfterMutation();
     setSolutionEditor(null);
     toast.success('Solution updated');
@@ -2475,7 +2476,7 @@ const ComprehensiveAdminDashboard = () => {
     const token = localStorage.getItem('token');
     const current = () => identity === exerciseIdentityRef.current
       && token === localStorage.getItem('token') && exerciseLoadRef.current.mounted
-      && exerciseLoadRef.current.key === workshopKey && activeSectionRef.current === 'exercises';
+      && sameAdminExercise(exerciseLoadRef.current.key, workshopKey) && activeSectionRef.current === 'exercises';
     try {
       const apiKey = toWorkshopKey(workshopKey);
       const { data } = await axios.post(`/api/admin/workshops/${apiKey}/hints/${objectiveId}/toggle`,
@@ -2502,7 +2503,7 @@ const ComprehensiveAdminDashboard = () => {
     const token = localStorage.getItem('token');
     const current = () => identity === exerciseIdentityRef.current
       && token === localStorage.getItem('token') && exerciseLoadRef.current.mounted
-      && exerciseLoadRef.current.key === workshopKey && activeSectionRef.current === 'exercises';
+      && sameAdminExercise(exerciseLoadRef.current.key, workshopKey) && activeSectionRef.current === 'exercises';
     try {
       const apiKey = toWorkshopKey(workshopKey);
       const { data } = await axios.post(`/api/admin/workshops/${apiKey}/objectives/${objectiveId}/toggle`,
@@ -2531,13 +2532,26 @@ const ComprehensiveAdminDashboard = () => {
     const identity = exerciseIdentityRef.current, token = localStorage.getItem('token');
     const current = () => identity === exerciseIdentityRef.current && token === localStorage.getItem('token')
       && challengePermissionRef.current && exerciseLoadRef.current.mounted
-      && exerciseLoadRef.current.key === workshopKey && activeSectionRef.current === 'exercises';
+      && sameAdminExercise(exerciseLoadRef.current.key, workshopKey) && activeSectionRef.current === 'exercises';
     if (!current()) return;
     objectiveBulkRef.current = true; setObjectiveBulkPending(true);
     try {
-      const { data } = await axios.post(`/api/admin/workshops/${toWorkshopKey(workshopKey)}/objectives/bulk-toggle`,
-        { enabled }, { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 });
+      const combined = workshopKey === XSS_ADMIN_KEY;
+      const { data } = await axios.post(combined
+        ? '/api/admin/exercises/reflected_xss_llm/group-controls'
+        : `/api/admin/workshops/${toWorkshopKey(workshopKey)}/objectives/bulk-toggle`,
+        combined ? { dimension: 'objectives', enabled } : { enabled }, { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 });
       if (!current()) return;
+      if (combined) {
+        const rows = XSS_ADMIN_SOURCES.flatMap(key => (workshopObjectives[key] || []).map(row => ({key, ...row})));
+        if (data.success !== true || !rows.length || rows.some(row =>
+          typeof data.exercises?.[toWorkshopKey(row.key)]?.objectives?.[row.objective_id]?.raw?.objectiveEnabled !== 'boolean')) throw new Error('Canonical XSS objective mutation readback unavailable');
+        setWorkshopObjectives(previous => ({ ...previous, ...Object.fromEntries(XSS_ADMIN_SOURCES.map(key => [key,
+          (previous[key] || []).map(row => ({ ...row, is_enabled: data.exercises[toWorkshopKey(key)].objectives[row.objective_id].raw.objectiveEnabled }))])) }));
+        await refreshAfterMutation();
+        if (current()) toast.success(enabled ? 'Available objectives enabled; unavailable objectives remain disabled.' : 'All objectives disabled.');
+        return;
+      }
       const rows = workshopObjectives[workshopKey] || [];
       if (data.success !== true || !rows.length || rows.some(row =>
         typeof data.exercise?.objectives?.[row.objective_id]?.raw?.objectiveEnabled !== 'boolean')) {
@@ -2560,7 +2574,7 @@ const ComprehensiveAdminDashboard = () => {
     const identity = exerciseIdentityRef.current, token = localStorage.getItem('token');
     const current = () => identity === exerciseIdentityRef.current
       && token === localStorage.getItem('token') && exerciseLoadRef.current.mounted
-      && exerciseLoadRef.current.key === workshopKey && activeSectionRef.current === 'exercises';
+      && sameAdminExercise(exerciseLoadRef.current.key, workshopKey) && activeSectionRef.current === 'exercises';
     try {
       const { data } = await axios.patch(`/api/admin/exercises/${toWorkshopKey(workshopKey)}/objectives/${objectiveId}/solution`,
         { enabled: !currentEnabled }, { headers: { Authorization: `Bearer ${token}` } });
@@ -2648,9 +2662,8 @@ const ComprehensiveAdminDashboard = () => {
     }
   };
 
-  const runMasterMutation = async (challengeKey, dimension, enabled, mutate) => {
-    const key = toWorkshopKey(challengeKey);
-    if (masterMutationsRef.current.has(key) || staleMastersRef.current.has(key)) return;
+  const runMasterMutation = async (challengeKey, dimension, enabled, mutate, scopeKeys = [toWorkshopKey(challengeKey)]) => {
+    if (scopeKeys.some(key => masterMutationsRef.current.has(key) || staleMastersRef.current.has(key))) return;
     const controller = new AbortController(), epoch = masterEpochRef.current;
     const identity = exerciseIdentityRef.current, token = localStorage.getItem('token');
     const current = () => !controller.signal.aborted && epoch === masterEpochRef.current
@@ -2661,10 +2674,9 @@ const ComprehensiveAdminDashboard = () => {
       : dimension === 'solutions' ? 'showSolutions' : 'isVisible';
     const barrier = retireSnapshotReads();
     // Preserve uncertainty even if navigation retires the caller before its catch runs.
-    staleMastersRef.current.set(key, { barrier, field, enabled });
-    setStaleMasters(previous => ({ ...previous, [key]: true }));
-    masterMutationsRef.current.set(key, controller);
-    setPendingMasters(previous => ({ ...previous, [key]: true }));
+    scopeKeys.forEach(key => { staleMastersRef.current.set(key, { barrier, field, enabled }); masterMutationsRef.current.set(key, controller); });
+    setStaleMasters(previous => ({ ...previous, ...Object.fromEntries(scopeKeys.map(key => [key, true])) }));
+    setPendingMasters(previous => ({ ...previous, ...Object.fromEntries(scopeKeys.map(key => [key, true])) }));
     let onAbort;
     const cancelled = new Promise((_, reject) => {
       onAbort = () => reject(new Error('Exercise mutation deadline or cancellation'));
@@ -2686,34 +2698,39 @@ const ComprehensiveAdminDashboard = () => {
       check();
       const snapshot = await refreshAfterMutation({ signal: controller.signal });
       check();
-      if (snapshot?.exercises?.[key]?.[field] !== enabled) {
+      if (scopeKeys.some(key => snapshot?.exercises?.[key]?.[field] !== enabled)) {
         throw new Error('Canonical exercise mutation readback unavailable');
       }
       })(), cancelled]);
       check();
-      staleMastersRef.current.delete(key);
-      setStaleMasters(previous => { const next = { ...previous }; delete next[key]; return next; });
+      scopeKeys.forEach(key => staleMastersRef.current.delete(key));
+      setStaleMasters(previous => { const next = { ...previous }; scopeKeys.forEach(key => delete next[key]); return next; });
       toast.success(dimension === 'active'
         ? `Challenge ${enabled ? 'enabled' : 'disabled'} successfully! Students will ${enabled ? 'now see' : 'no longer see'} this challenge.`
         : `Challenge ${dimension} ${enabled ? 'enabled' : 'disabled'} successfully!`);
     } catch (error) {
       if (epoch === masterEpochRef.current && identity === exerciseIdentityRef.current
           && token === localStorage.getItem('token') && exerciseLoadRef.current.mounted) {
-        staleMastersRef.current.set(key, { barrier: retireSnapshotReads(), field, enabled });
-        setStaleMasters(previous => ({ ...previous, [key]: true }));
+        const failedBarrier = retireSnapshotReads();
+        scopeKeys.forEach(key => staleMastersRef.current.set(key, { barrier: failedBarrier, field, enabled }));
+        setStaleMasters(previous => ({ ...previous, ...Object.fromEntries(scopeKeys.map(key => [key, true])) }));
         toast.error('Unable to confirm current exercise controls. Reload before trying again.');
       }
     } finally {
       clearTimeout(deadline);
       controller.signal.removeEventListener('abort', onAbort);
-      if (masterMutationsRef.current.get(key) === controller) {
-        masterMutationsRef.current.delete(key);
-        setPendingMasters(previous => { const next = { ...previous }; delete next[key]; return next; });
-      }
+      const ownedKeys = scopeKeys.filter(key => masterMutationsRef.current.get(key) === controller);
+      ownedKeys.forEach(key => masterMutationsRef.current.delete(key));
+      setPendingMasters(previous => { const next = { ...previous }; ownedKeys.forEach(key => delete next[key]); return next; });
     }
   };
 
-  const handleToggleChallengeSolution = (challengeKey, showSolutions) => runMasterMutation(challengeKey, 'solutions', showSolutions, async post => {
+  const toggleXssGroup = (dimension, enabled) => runMasterMutation(XSS_ADMIN_KEY, dimension, enabled,
+    post => post('/api/admin/exercises/reflected_xss_llm/group-controls', { dimension, enabled }), XSS_CONFIG_KEYS);
+
+  const handleToggleChallengeSolution = (challengeKey, showSolutions) => challengeKey === XSS_ADMIN_KEY
+    ? toggleXssGroup('solutions', showSolutions)
+    : runMasterMutation(challengeKey, 'solutions', showSolutions, async post => {
       const token = localStorage.getItem('token');
       if (PROMPT_INJECTION_EXERCISES.has(challengeKey)) {
         const result = await mutatePromptInjectionMasterSolution(
@@ -2787,7 +2804,9 @@ const ComprehensiveAdminDashboard = () => {
       setRows(reconcileRows);
   });
 
-  const handleToggleChallengeHints = (challengeKey, showHints) => runMasterMutation(challengeKey, 'hints', showHints, async post => {
+  const handleToggleChallengeHints = (challengeKey, showHints) => challengeKey === XSS_ADMIN_KEY
+    ? toggleXssGroup('hints', showHints)
+    : runMasterMutation(challengeKey, 'hints', showHints, async post => {
       const { data: result } = await post('/api/admin/challenges/hints/toggle', {
         challengeKey,
         showHints
@@ -4672,8 +4691,10 @@ const ComprehensiveAdminDashboard = () => {
     if (!objModalKey) return null;
     const challenge = challenges.find(c => (c.key || c.id) === objModalKey);
     const { objectivesKey, solutionPanel } = resolveExerciseKeys(objModalKey);
-    const objectives = workshopObjectives[objectivesKey] || [];
-    const solByObj = buildSolutionByObjId(solutionPanel);
+    const sourceKeys = isXssAdminKey(objModalKey) ? XSS_ADMIN_SOURCES : [objectivesKey];
+    const objectives = sourceKeys.flatMap(sourceKey => (workshopObjectives[sourceKey] || []).map(obj => ({ ...obj, sourceKey })));
+    const sourcePanels = Object.fromEntries(sourceKeys.map(sourceKey => [sourceKey, resolveExerciseKeys(sourceKey).solutionPanel]));
+    const sourceSolutions = Object.fromEntries(sourceKeys.map(sourceKey => [sourceKey, buildSolutionByObjId(sourcePanels[sourceKey])]));
     const close = () => { exerciseLoadRef.current.key = null; exerciseLoadRef.current.sequence++; exerciseLoadRef.current.controller?.abort(); setObjModalKey(null); };
     return (
       <ModalOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={close}>
@@ -4683,7 +4704,9 @@ const ComprehensiveAdminDashboard = () => {
         >
           <ModalHeader>
             <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FiTarget /> Objectives — {challenge?.name || objModalKey}
+              <FiTarget /> Objectives — {isXssAdminKey(objModalKey)
+                ? challenges.find(row => (row.key || row.id) === XSS_ADMIN_KEY)?.name || 'XSS in AI Powered Chat System'
+                : challenge?.name || objModalKey}
             </h3>
             <button onClick={close} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#718096', display: 'flex' }}><FiX size={20} /></button>
           </ModalHeader>
@@ -4705,7 +4728,7 @@ const ComprehensiveAdminDashboard = () => {
                       <button disabled={objectiveBulkPending} onClick={() => toggleAllObjectives(objectivesKey, false)} style={{ fontSize: '0.72rem', padding: '0.3rem 0.7rem', background: '#fc8181', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Disable All Objectives</button>
                     </div>
                   )}
-                  {solutionPanel && solutionPanel.bulkToggle && (
+                  {solutionPanel && solutionPanel.bulkToggle && !isXssAdminKey(objModalKey) && (
                     <div style={{ display: 'flex', gap: '0.4rem' }}>
                       <button onClick={() => solutionPanel.bulkToggle(true)} style={{ fontSize: '0.72rem', padding: '0.3rem 0.7rem', background: '#48bb78', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>Solutions: All On</button>
                       <button onClick={() => solutionPanel.bulkToggle(false)} style={{ fontSize: '0.72rem', padding: '0.3rem 0.7rem', background: '#fc8181', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}>All Off</button>
@@ -4717,7 +4740,7 @@ const ComprehensiveAdminDashboard = () => {
                     <span key={h} style={{ fontSize: '0.7rem', color: '#718096', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: j==='center'?'center':'left' }}>{h}</span>
                   ))}
                 </div>
-                {objectives.map((obj, i) => renderObjectiveRow(objectivesKey, obj, solutionPanel, solByObj[String(obj.objective_id)], i))}
+                {objectives.map((obj, i) => renderObjectiveRow(obj.sourceKey, obj, sourcePanels[obj.sourceKey], sourceSolutions[obj.sourceKey][String(obj.objective_id)], i))}
               </>
             )}
           </ModalBody>
@@ -4959,19 +4982,38 @@ const ComprehensiveAdminDashboard = () => {
 
         {!loading && challenges.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.25rem', alignItems: 'start' }}>
-            {challenges.map(storedChallenge => {
-              const cKey = storedChallenge.key || storedChallenge.id;
-              const canonical = bulkConfigOverlay?.exercises?.[toWorkshopKey(cKey)]
-                || canonicalConfig?.exercises?.[toWorkshopKey(cKey)];
-              const challenge = canonical ? { ...storedChallenge, enabled: canonical.isVisible, showHints: canonical.showHints, showSolutions: canonical.showSolutions } : storedChallenge;
+            {challenges.filter(row => (row.key || row.id) !== 'xss_email_builder'
+              || !challenges.some(parent => (parent.key || parent.id) === 'reflected_xss_llm'))
+              .map(storedChallenge => {
+              const storedKey = storedChallenge.key || storedChallenge.id;
+              const isXssGroup = isXssAdminKey(storedKey);
+              const cKey = isXssGroup ? XSS_ADMIN_KEY : storedKey;
+              const effectiveConfig = bulkConfigOverlay?.exercises || canonicalConfig?.exercises;
+              const canonical = effectiveConfig?.[toWorkshopKey(cKey)];
+              const challenge = isXssGroup ? projectXssAdminCard(challenges, effectiveConfig)
+                : canonical ? { ...storedChallenge, enabled: canonical.isVisible, showHints: canonical.showHints, showSolutions: canonical.showSolutions } : storedChallenge;
               const { solutionPanel } = resolveExerciseKeys(cKey);
               const active = challenge.enabled;
-              const objectiveEntries = canonical ? Object.values(canonical.objectives || {}) : null;
+              const objectiveEntries = isXssGroup ? challenge.objectiveEntries : canonical ? Object.values(canonical.objectives || {}) : null;
               const availableObjectives = objectiveEntries?.filter(objective => objective.isVisible === true).length;
+              const controlPending = isXssGroup ? XSS_CONFIG_KEYS.some(key => pendingMasters[key] || staleMasters[key]) : pendingMasters[toWorkshopKey(cKey)] || staleMasters[toWorkshopKey(cKey)];
+              if (cKey === 'secureshop_agent_security') return (
+                <section key={cKey} data-application-key={cKey} aria-label="SecureShop learning settings"
+                  style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '1.15rem 1.25rem' }}>
+                  <h3 style={{ margin: '0 0 0.6rem', color: '#1a202c', fontSize: '1.02rem' }}>SecureShop learning settings</h3>
+                  <p style={{ color: '#718096', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                    Sign in to SecureShop with a shop administrator account, then open <strong>Shop settings → Assessment objectives</strong> to enable or disable its learning objectives.
+                  </p>
+                  <p style={{ color: '#718096', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                    SecureShop uses its own objective settings. Workshop visibility, hint and solution controls on this page do not configure the separate shop application.
+                  </p>
+                  <a href="/secureshop" style={{ display: 'inline-flex', padding: '0.6rem 0.85rem', borderRadius: '8px', background: '#eef2ff', color: '#4f46e5', fontWeight: 600, textDecoration: 'none' }}>Open SecureShop</a>
+                </section>
+              );
               return (
-              <React.Fragment key={challenge.id || challenge.key}>
-              {cKey === 'secureshop_agent_security' && <h3 style={{ gridColumn: '1 / -1', margin: '1rem 0 0' }}>Separate application configuration</h3>}
-              <div data-exercise-key={cKey === 'secureshop_agent_security' ? undefined : cKey} data-application-key={cKey === 'secureshop_agent_security' ? cKey : undefined} style={{
+              <React.Fragment key={storedChallenge.id || storedChallenge.key}>
+              <div data-exercise-key={isXssGroup ? 'reflected_xss_llm' : cKey}
+                data-exercise-scope={cKey} style={{
                 background: 'white',
                 border: `1px solid ${active ? '#9ae6b4' : '#e2e8f0'}`,
                 borderLeft: `4px solid ${active ? '#48bb78' : '#cbd5e0'}`,
@@ -4989,9 +5031,13 @@ const ComprehensiveAdminDashboard = () => {
                     </span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.15rem', flexShrink: 0 }}>
-                    <ToggleSwitch data-control="active" enabled={active} aria-disabled={!!(pendingMasters[toWorkshopKey(cKey)] || staleMasters[toWorkshopKey(cKey)])} onClick={pendingMasters[toWorkshopKey(cKey)] || staleMasters[toWorkshopKey(cKey)] ? undefined : () => toggleChallenge(cKey, !active)} />
+                    <ToggleSwitch data-control="active" enabled={active} $mixed={challenge.mixed?.active}
+                      role="switch" aria-label={`${challenge.name} visibility`} aria-checked={challenge.mixed?.active ? 'mixed' : !!active}
+                      aria-disabled={!!controlPending} tabIndex={controlPending ? -1 : 0}
+                      onClick={controlPending ? undefined : () => toggleChallenge(cKey, !active)}
+                      onKeyDown={event => { if (!controlPending && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); void toggleChallenge(cKey, !active); } }} />
                     <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.06em', color: active ? '#276749' : '#a0aec0' }}>
-                      {active ? 'VISIBLE' : 'HIDDEN'}
+                      {challenge.mixed?.active ? 'PARTLY VISIBLE' : active ? 'VISIBLE' : 'HIDDEN'}
                     </span>
                   </div>
                 </div>
@@ -5004,7 +5050,7 @@ const ComprehensiveAdminDashboard = () => {
                   {challenge.description || 'No description available'}
                 </p>
 
-                {active && objectiveEntries && (
+                {(active || challenge.mixed?.active) && objectiveEntries && (
                   <p data-exercise-availability={cKey} style={{ margin: 0, fontSize: '0.78rem', color: availableObjectives === 0 ? '#975a16' : '#4a5568' }}>
                     {availableObjectives} of {objectiveEntries.length} objectives available to students.
                     {availableObjectives === 0 && ' Locked for students: no enabled objectives. Review Manage Objectives; unavailable objectives remain disabled.'}
@@ -5023,7 +5069,10 @@ const ComprehensiveAdminDashboard = () => {
                       border: `1px solid ${ctl.on ? '#c6f6d5' : '#edf2f7'}`, borderRadius: '8px'
                     }}>
                       <span style={{ fontSize: '0.78rem', fontWeight: 500, color: '#4a5568' }}>{ctl.label}</span>
-                      <ToggleSwitch data-control={ctl.label.toLowerCase()} enabled={ctl.on} aria-disabled={!!(pendingMasters[toWorkshopKey(cKey)] || staleMasters[toWorkshopKey(cKey)])} onClick={pendingMasters[toWorkshopKey(cKey)] || staleMasters[toWorkshopKey(cKey)] ? undefined : ctl.fn} />
+                      <ToggleSwitch data-control={ctl.label.toLowerCase()} enabled={ctl.on} $mixed={challenge.mixed?.[ctl.label.toLowerCase()]}
+                        role="switch" aria-label={`${challenge.name} ${ctl.label.toLowerCase()}`} aria-checked={challenge.mixed?.[ctl.label.toLowerCase()] ? 'mixed' : !!ctl.on}
+                        aria-disabled={!!controlPending} tabIndex={controlPending ? -1 : 0} onClick={controlPending ? undefined : ctl.fn}
+                        onKeyDown={event => { if (!controlPending && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); ctl.fn(); } }} />
                     </div>
                   ))}
                 </div>
@@ -5047,13 +5096,13 @@ const ComprehensiveAdminDashboard = () => {
                 {/* Footer: completions · reset · status pills */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '0.75rem', borderTop: '1px solid #edf2f7', fontSize: '0.78rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <span style={{ color: '#718096' }}>✓ {challenge.completions}</span>
+                    <span style={{ color: '#718096' }} title={challenge.completions == null ? 'Completion count unavailable' : 'Students who completed this exercise'}>✓ {challenge.completions ?? '—'}</span>
                     {canManageProgress && <button
-                      onClick={() => resetAllStudentsForWorkshop(cKey, challenge.name)}
-                      disabled={!!resettingWorkshop[cKey]}
+                      onClick={() => resetAllStudentsForWorkshop(isXssGroup ? 'xss_combined' : cKey, challenge.name)}
+                      disabled={!!resettingWorkshop[isXssGroup ? 'xss_combined' : cKey]}
                       style={{ padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.72rem', background: '#fff5f5', color: '#c53030', border: '1px solid #feb2b2', cursor: 'pointer', fontWeight: 600 }}
                     >
-                      {resettingWorkshop[cKey] ? 'Resetting…' : 'Reset'}
+                      {resettingWorkshop[isXssGroup ? 'xss_combined' : cKey] ? 'Resetting…' : 'Reset'}
                     </button>}
                   </div>
                   <div style={{ display: 'flex', gap: '0.35rem' }}>

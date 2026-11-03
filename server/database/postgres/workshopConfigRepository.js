@@ -181,6 +181,37 @@ function createWorkshopConfigRepository(pool,{isSecureShopReady=()=>{
     return {changed};
    });
   },
+  // One admin card controls both XSS curriculum families. Keep their stored
+  // identities and per-objective endpoints intact; commit the shared controls
+  // under the same configuration lock so a failed write cannot split the card.
+  setXssGroupControls(dimension,enabled,updatedBy){
+   boolean(enabled);
+   if(!['active','hints','solutions','objectives'].includes(dimension))throw error('BAD_REQUEST','Invalid XSS group control');
+   const keys=['xss_workshop','xss_email_builder'];
+   return mutate(null,async client=>{
+    // Validate both active catalog identities before writing either family.
+    for(const key of keys)await exercise(client,key);
+    let changed=0;
+    if(dimension==='active'){
+     changed=(await client.query(`UPDATE workshop_platform.exercises SET is_visible=$1,updated_by=$2,updated_at=now()
+       WHERE workshop_key=ANY($3::text[]) AND catalog_active=true AND is_visible IS DISTINCT FROM $1`,[enabled,updatedBy??null,keys])).rowCount;
+    }else if(dimension==='objectives'){
+     changed=(await client.query(`UPDATE workshop_platform.objectives SET is_enabled=$1,updated_by=$2,updated_at=now()
+       WHERE workshop_key=ANY($3::text[]) AND catalog_active=true AND is_enabled IS DISTINCT FROM $1`,[enabled,updatedBy??null,keys])).rowCount;
+    }else{
+     const [master,gate,content]=dimension==='hints'?['show_hints','hint_enabled','hint_content']:['show_solutions','solution_enabled','solution_content'];
+     changed=(await client.query(`UPDATE workshop_platform.exercises SET ${master}=$1,updated_by=$2,updated_at=now()
+       WHERE workshop_key=ANY($3::text[]) AND catalog_active=true AND ${master} IS DISTINCT FROM $1`,[enabled,updatedBy??null,keys])).rowCount;
+     changed+=(await client.query(`UPDATE workshop_platform.objectives SET ${gate}=$1,updated_by=$2,updated_at=now()
+       WHERE workshop_key=ANY($3::text[]) AND catalog_active=true AND ${gate} IS DISTINCT FROM $1
+         AND (${content} IS NOT NULL OR $1=false)`,[enabled,updatedBy??null,keys])).rowCount;
+     if(dimension==='solutions')changed+=(await client.query(`UPDATE workshop_platform.xss_legacy_solution_visibility
+       SET solutions_enabled=$1,enabled_by=$2,enabled_at=CASE WHEN $1 THEN now() ELSE enabled_at END,updated_at=now()
+       WHERE solutions_enabled IS DISTINCT FROM $1`,[enabled,updatedBy??null])).rowCount;
+    }
+    return {changed};
+   });
+  },
   setAllExerciseVisibility(enabled,updatedBy){boolean(enabled);return mutate(null,async client=>{
    const unavailableWorkshops=[];
    if(enabled)for(const row of (await client.query('SELECT workshop_key,route FROM workshop_platform.exercises WHERE catalog_active=true')).rows){

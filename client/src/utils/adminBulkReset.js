@@ -19,8 +19,10 @@ export async function runAdminBulkReset({api, actorId, token, workshopKey, confi
     const pending = await api.get('/api/admin/workshops/reset-operations', {headers,params:workshopKey?{requestKind:'workshop',workshopKey}:{requestKind:'all'}});
     if (!isCurrent()) throw new Error('Administrator session changed');
     if (pending.data?.success !== true || !Array.isArray(pending.data.operations)) throw new Error('Reset recovery state is unavailable');
+    const expectedKeys = workshopKey === 'xss_combined' ? ['xss_email_builder', 'xss_workshop'] : [workshopKey];
     const matches = pending.data.operations.filter(op => workshopKey
-      ? op.requestKind === 'workshop' && op.workshopKeys?.length === 1 && op.workshopKeys[0] === workshopKey
+      ? op.requestKind === 'workshop' && op.workshopKeys?.length === expectedKeys.length
+        && expectedKeys.every(key => op.workshopKeys.includes(key))
       : op.requestKind === 'all');
     let operationId = storage.getItem(key);
     if (operationId && !UUID.test(operationId)) throw new Error('Saved reset recovery identifier is invalid');

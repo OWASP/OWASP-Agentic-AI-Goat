@@ -47,16 +47,17 @@ const flush = async () => act(async () => {
   await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
 });
 
-test('OWASP AI SecureShop Manage Objectives exposes the pending audit solution controls through the generic ledger', async () => {
+test('File and SSI Manage Objectives exposes the pending audit solution controls through the generic ledger', async () => {
+  const family = 'legacy_sensitive_file_ssi';
   global.IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.setItem('token', 'fixture');
   axios.get.mockImplementation(url => {
-    if (url === '/api/admin/challenges') return Promise.resolve({ data: { success: true, challenges: [challenge] } });
-    if (url === '/api/admin/solutions') return Promise.resolve({ data: { success: true, solutions: [solution] } });
-    if (url === '/api/admin/workshops/secureshop_agent_security/objectives') {
+    if (url === '/api/admin/challenges') return Promise.resolve({ data: { success: true, challenges: [{ ...challenge, id: family, key: family, workshopKey: family, name: 'File and SSI Security' }] } });
+    if (url === '/api/admin/solutions') return Promise.resolve({ data: { success: true, solutions: [{ ...solution, id: `${family}:ss_audit_instruction_followed`, challengeKey: family, challenge_key: family }] } });
+    if (url === '/api/admin/workshops/legacy_sensitive_file_ssi/objectives') {
       return Promise.resolve({ data: { success: true, objectives: [objective] } });
     }
-    if (url === '/api/admin/workshops/secureshop_agent_security/hints') {
+    if (url === '/api/admin/workshops/legacy_sensitive_file_ssi/hints') {
       return Promise.resolve({ data: { success: true, hints: { ss_audit_instruction_followed: false } } });
     }
     return Promise.resolve({ data: {} });
@@ -91,7 +92,7 @@ test('OWASP AI SecureShop Manage Objectives exposes the pending audit solution c
   await act(async () => [...node.querySelectorAll('form')].at(-1).dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
   await flush();
   expect(axios.put).toHaveBeenCalledWith(
-    '/api/admin/solutions/secureshop_agent_security:ss_audit_instruction_followed',
+    '/api/admin/solutions/legacy_sensitive_file_ssi:ss_audit_instruction_followed',
     expect.objectContaining({
       solution_title: objective.label,
       solution_steps: ['Use the owned event source.'],
@@ -107,7 +108,7 @@ test('OWASP AI SecureShop Manage Objectives exposes the pending audit solution c
 });
 
 
-test('visible OWASP AI SecureShop with disabled objectives explains student availability without enabling anything', async () => {
+test('standalone SecureShop points to its own settings without exposing disconnected workshop toggles', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   localStorage.setItem('token', 'fixture');
   mockSnapshot = { exercises: { secureshop_agent_security: { isVisible: true, showHints: false, showSolutions: false, objectives: { ss_audit_instruction_followed: { isVisible: false } } } } };
@@ -118,9 +119,11 @@ test('visible OWASP AI SecureShop with disabled objectives explains student avai
     await act(async () => root.render(<MemoryRouter initialEntries={['/admin/exercises']}><ComprehensiveAdminDashboard /></MemoryRouter>));
     await flush();
     const card = node.querySelector('[data-application-key="secureshop_agent_security"]');
-    expect(card.textContent).toContain('VISIBLE');
-    expect(card.textContent).toContain('0 of 1 objectives available to students.');
-    expect(card.textContent).toContain('Locked for students: no enabled objectives.');
+    expect(card.textContent).toContain('Shop settings → Assessment objectives');
+    expect(card.querySelector('a').getAttribute('href')).toBe('/secureshop');
+    expect(card.querySelector('[data-control]')).toBeNull();
+    expect(card.querySelector('button')).toBeNull();
+    expect(node.textContent).not.toContain('Separate application configuration');
     expect(axios.post).not.toHaveBeenCalled(); expect(axios.patch).not.toHaveBeenCalled();
   } finally { act(() => root.unmount()); node.remove(); localStorage.clear(); mockSnapshot = undefined; jest.clearAllMocks(); }
 });

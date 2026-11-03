@@ -75,3 +75,27 @@ test('failed canonical commit retains operation until mutation and refresh both 
   expect(f.api.post.mock.calls[1][2].headers['x-reset-operation-id']).toBe(saved);
   expect(f.onCommit).toHaveBeenCalledTimes(2); expect(sessionStorage.getItem(key)).toBeNull();
 });
+test('combined XSS reset resumes only the exact two-family cohort through the single alias', async () => {
+  const f = {...fixture(), workshopKey:'xss_combined'};
+  f.api.get.mockResolvedValue({data:{success:true,operations:[
+    {operationId:'22222222-2222-4222-8222-222222222222',requestKind:'workshop',workshopKeys:['xss_workshop']},
+    {operationId:ID,requestKind:'workshop',workshopKeys:['xss_workshop','xss_email_builder']},
+  ]}});
+  await runAdminBulkReset(f);
+  expect(f.api.get.mock.calls[0][1].params).toEqual({requestKind:'workshop',workshopKey:'xss_combined'});
+  expect(f.api.post).toHaveBeenCalledWith('/api/admin/workshops/xss_combined/reset-all-students',{},
+    {headers:{Authorization:'Bearer controlled','x-reset-operation-id':ID}});
+});
+test('combined XSS retry preserves its own operation without adopting a single-family reset', async () => {
+  const f = {...fixture(), workshopKey:'xss_combined'};
+  f.api.get.mockResolvedValue({data:{success:true,operations:[
+    {operationId:ID,requestKind:'workshop',workshopKeys:['xss_email_builder']},
+  ]}});
+  f.api.post.mockRejectedValueOnce(new Error('connection lost'));
+  await expect(runAdminBulkReset(f)).rejects.toThrow('connection lost');
+  const saved=sessionStorage.getItem('owasp-ai-goat:admin-reset:7:workshop:xss_combined');
+  expect(saved).not.toBe(ID);
+  await runAdminBulkReset(f);
+  expect(f.api.post.mock.calls[1][2].headers['x-reset-operation-id']).toBe(saved);
+  expect(sessionStorage.getItem('owasp-ai-goat:admin-reset:7:workshop:xss_combined')).toBeNull();
+});

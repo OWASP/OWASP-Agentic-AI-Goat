@@ -238,6 +238,14 @@ function createPostgresAdminRouter({ adapter, stores, auth, repository, resetSer
         description: row.challenge_description, enabled: row.is_visible,
         showSolutions: row.show_solutions, showHints: row.show_hints,
         completions: row.students_completed || 0 }));
+      const xssKeys = ['xss_workshop', 'xss_email_builder'];
+      if (configurations.some(row => xssKeys.includes(row.workshopKey))) {
+        const grouped = await repository.listExercisesWithStats({ groupDisplay: true });
+        const xss = grouped.find(row => xssKeys.includes(row.workshop_key));
+        if (xss) for (const row of configurations) {
+          if (xssKeys.includes(row.workshopKey)) row.displayCompletions = xss.students_completed || 0;
+        }
+      }
       res.json({ success: true,
         challenges: configurations.filter(row => isWorkshopSurfaceEligible(row.workshopKey)),
         applications: configurations.filter(row => !isWorkshopSurfaceEligible(row.workshopKey)) });

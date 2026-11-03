@@ -125,9 +125,16 @@ function createPostgresWorkshopResetService({
     },
     async listPendingBulkResets({actorRequest,scope}={}) {
       if(!bulkJournal || !resolveBulkActor) throw Object.assign(new Error('Durable bulk reset storage required'),{code:'RESET_STORAGE_NOT_READY',statusCode:503});
+      if(scope?.requestKind==='workshop'&&scope.workshopKey==='xss_combined')await bulkJournal.assertCombinedReady?.();
       return bulkJournal.listPending(await resolveBulkActor(actorRequest),scope);
     },
     resetWorkshop({workshopKey,operationId,actorRequest}) {
+      // This display alias exists only for the administrative bulk scope. Durable
+      // canonical children retain each family's reset and replay authority.
+      if(workshopKey==='xss_combined') return (async()=>{
+        await bulkJournal?.assertCombinedReady?.();
+        return resetBulk({requestKind:'workshop',workshopKeys:['xss_email_builder','xss_workshop'],operationId,actorRequest});
+      })();
       if(!bulkJournal){
         if(!listUserIds)throw new TypeError('User inventory required for bulk reset');
         return (async()=>{for(const id of await listUserIds())await api.resetAdministrativeStudent({userId:id,workshopKey,actorRequest,...(operationId?{operationId:resetChildOperation(operationId,String(id))}:{})});})();

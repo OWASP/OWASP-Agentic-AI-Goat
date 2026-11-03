@@ -36,19 +36,93 @@ beforeEach(()=>{mockReadSequence=1;global.IS_REACT_ACT_ENVIRONMENT=true;mockSnap
 afterEach(()=>{act(()=>root.unmount());node.remove();localStorage.clear();jest.restoreAllMocks();jest.clearAllMocks();});
 async function render(path='/admin/exercises'){await act(async()=>root.render(<MemoryRouter initialEntries={[path]}><Navigation/><ComprehensiveAdminDashboard/></MemoryRouter>));await flush();}
 async function open(index){const buttons=[...node.querySelectorAll('button')].filter(b=>b.textContent.includes('Manage Objectives'));await act(async()=>buttons[index].click());await flush();}
-test('builder objectives load canonical solutions and expose the existing preview',async()=>{
- const key='xss_email_builder',id='xss_email_level_1';
- axios.get.mockImplementation(url=>Promise.resolve(url==='/api/admin/challenges'?{data:{success:true,challenges:[{id:key,key,workshopKey:key,name:'Email Builder',enabled:true,showHints:true,showSolutions:true,completions:0}]}}:
-  url==='/api/admin/solutions'?{data:{success:true,solutions:[{id:key+':'+id,objective_id:id,challengeKey:key,title:'Builder solution',description:'Stored profile lesson',explanation:'Preserve the exact profile source.',isPublic:true}]}}:
-  url.endsWith('/objectives')?{data:{objectives:[{objective_id:id,label:'Name field',is_enabled:true,hint_enabled:true,has_hint_content:true}]}}:
-  url.endsWith('/hints')?{data:{hints:{[id]:true}}}:response(url)));
- await render();await open(0);
- expect(axios.get.mock.calls.map(([url])=>url)).toContain('/api/admin/solutions');
- const preview=node.querySelector(`[data-objective-id="${id}"] button[title="Preview Solution"]`);
+function xssFixture({mixed = false} = {}) {
+ const parent={id:'reflected_xss_llm',key:'reflected_xss_llm',name:'XSS in AI Powered Chat System',enabled:true,showHints:true,showSolutions:true,completions:9,displayCompletions:11};
+ const builder={id:'xss_email_builder',key:'xss_email_builder',name:'XSS Email Template Builder',enabled:!mixed,showHints:true,showSolutions:true,completions:8,displayCompletions:11};
+ const objectives = (builder) => Array.from({length:8},(_,i)=>({objective_id:builder?`xss_email_level_${i+1}`:`xss_${i+1}`,label:builder?`Builder objective ${i+1}`:`Chat objective ${i+1}`,is_enabled:true,hint_enabled:true,has_hint_content:true}));
+ mockSnapshot={revision:1,exercises:Object.fromEntries(['xss_workshop','xss_email_builder'].map(key=>[key,{isVisible:key==='xss_workshop'||!mixed,showHints:true,showSolutions:true,objectives:Object.fromEntries(objectives(key==='xss_email_builder').map(obj=>[obj.objective_id,{isVisible:true,raw:{objectiveEnabled:true}}]))}]))};
+ axios.get.mockImplementation(url=>Promise.resolve(url==='/api/admin/challenges'?{data:{success:true,challenges:[builder,parent]}}:
+  url==='/api/admin/solutions'?{data:{solutions:[{id:'builder-solution',objective_id:'xss_email_level_1',challengeKey:'xss_email_builder',title:'Builder solution',description:'Stored profile lesson',explanation:'Preserve the exact profile source.',isPublic:true}]}}:
+  url==='/api/admin/xss-workshop/objective-solutions'?{data:{objectives:[]}}:
+  url.endsWith('/objectives')?{data:{objectives:objectives(url.includes('xss_email_builder'))}}:
+  url.endsWith('/hints')?{data:{hints:{}}}:response(url)));
+}
+test('one XSS card and one flat objective window include both families and deduplicated completions',async()=>{
+ xssFixture();await render();
+ const card=node.querySelector('[data-exercise-key="reflected_xss_llm"]');
+ expect(node.querySelectorAll('[data-exercise-key]')).toHaveLength(1);
+ expect(card.textContent).toContain('16 of 16 objectives');
+ expect(card.textContent).not.toContain('Chat scenarios');
+ expect(card.textContent).not.toContain('Email Template Builder');
+ expect(card.textContent).not.toContain('Controls apply to');
+ expect(card.textContent).toContain('11');
+ expect(card.querySelectorAll('[role="switch"]')).toHaveLength(3);
+ expect([...card.querySelectorAll('button')].filter(b=>b.textContent.includes('Manage Objectives'))).toHaveLength(1);
+ await open(0);
+ expect(node.querySelectorAll('[data-objective-id]')).toHaveLength(16);
+ expect(node.textContent).toContain('Chat objective 8');expect(node.textContent).toContain('Builder objective 8');
+ const preview=node.querySelector('[data-objective-id="xss_email_level_1"] button[title="Preview Solution"]');
  expect(preview).not.toBeNull();await act(async()=>preview.click());
- expect(node.textContent).toContain('Solution Details');
- expect(node.textContent).toContain('Stored profile lesson');
- expect(node.textContent).toContain('Preserve the exact profile source.');
+ expect(node.textContent).toContain('Stored profile lesson');expect(node.textContent).toContain('Preserve the exact profile source.');
+});
+test('builder row visibility retains its canonical family within the combined window',async()=>{
+ xssFixture();axios.post.mockResolvedValue({data:{exercise:{objectives:{xss_email_level_1:{raw:{objectiveEnabled:false}}}}}});
+ await render();await open(0);
+ await act(async()=>node.querySelector('[data-objective-id="xss_email_level_1"] [data-control="visible"]').click());await flush();
+ expect(axios.post).toHaveBeenCalledWith('/api/admin/workshops/xss_email_builder/objectives/xss_email_level_1/toggle',{enabled:false},expect.any(Object));
+ expect(node.querySelectorAll('[data-objective-id]')).toHaveLength(16);
+ expect(node.textContent).toContain('Chat objective 8');
+});
+test('editing a builder objective saves to its own family and keeps the combined window open',async()=>{
+ xssFixture();const read=axios.get.getMockImplementation();
+ axios.get.mockImplementation(url=>url==='/api/admin/exercises/xss_email_builder/objectives/xss_email_level_1'
+  ?Promise.resolve({data:{objective:{objectiveId:'xss_email_level_1',label:'Builder objective 1',description:'',category:'AI'}}}):read(url));
+ axios.put.mockResolvedValue({data:{success:true}});
+ await render();await open(0);
+ await act(async()=>node.querySelector('[data-objective-id="xss_email_level_1"] button[title="Edit Objective"]').click());await flush();
+ const dialog=node.querySelector('[role="dialog"][aria-label="Edit objective xss_email_level_1"]');
+ expect(dialog).not.toBeNull();
+ const title=dialog.querySelector('input');
+ await act(async()=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(title,'Instructor builder title');title.dispatchEvent(new Event('input',{bubbles:true}));});
+ await act(async()=>[...dialog.querySelectorAll('button')].find(button=>button.textContent==='Save Changes').click());await flush();
+ expect(axios.put).toHaveBeenCalledWith('/api/admin/exercises/xss_email_builder/objectives/xss_email_level_1',{label:'Instructor builder title'},expect.any(Object));
+ expect(node.querySelectorAll('[data-objective-id]')).toHaveLength(16);
+ expect(node.textContent).toContain('Chat objective 8');
+ expect(axios.post).not.toHaveBeenCalled();
+});
+test.each(['active','hints','solutions'])('XSS %s switch applies one atomic mutation and confirms both canonical families',async dimension=>{
+ xssFixture();
+ axios.post.mockImplementation(async()=>{
+  const field=dimension==='active'?'isVisible':dimension==='hints'?'showHints':'showSolutions';
+  mockSnapshot={...mockSnapshot,revision:2,exercises:Object.fromEntries(Object.entries(mockSnapshot.exercises).map(([key,value])=>[key,{...value,[field]:false}]))};
+  return {data:{success:true}};
+ });
+ await render();
+ const card=()=>node.querySelector('[data-exercise-key="reflected_xss_llm"]');
+ await act(async()=>card().querySelector(`[data-control="${dimension}"]`).click());await flush();
+ expect(axios.post).toHaveBeenCalledTimes(1);
+ expect(axios.post).toHaveBeenCalledWith('/api/admin/exercises/reflected_xss_llm/group-controls',{dimension,enabled:false},expect.any(Object));
+ expect(mockRefresh).toHaveBeenCalled();
+ expect(card().querySelector(`[data-control="${dimension}"]`).getAttribute('aria-checked')).toBe('false');
+});
+test('mixed XSS visibility is explicit and enabling it targets both families',async()=>{
+ xssFixture({mixed:true});axios.post.mockResolvedValue({data:{success:true}});await render();
+ const card=node.querySelector('[data-exercise-key="reflected_xss_llm"]');
+ expect(card.textContent).toContain('PARTLY VISIBLE');
+ expect(card.querySelector('[data-control="active"]').getAttribute('aria-checked')).toBe('mixed');
+ await act(async()=>card.querySelector('[data-control="active"]').click());await flush();
+ expect(axios.post).toHaveBeenCalledWith('/api/admin/exercises/reflected_xss_llm/group-controls',{dimension:'active',enabled:true},expect.any(Object));
+});
+test('XSS master readback cannot confirm only the chat family',async()=>{
+ xssFixture();axios.post.mockImplementation(async()=>{
+  mockSnapshot={...mockSnapshot,revision:2,exercises:{...mockSnapshot.exercises,xss_workshop:{...mockSnapshot.exercises.xss_workshop,showHints:false}}};
+  return {data:{success:true}};
+ });await render();
+ await act(async()=>node.querySelector('[data-exercise-key="reflected_xss_llm"] [data-control="hints"]').click());await flush();
+ expect(require('react-toastify').toast.error).toHaveBeenCalled();
+ expect(require('react-toastify').toast.success).not.toHaveBeenCalled();
+ const control=node.querySelector('[data-exercise-key="reflected_xss_llm"] [data-control="hints"]');
+ expect(control.disabled || control.getAttribute('aria-disabled')==='true').toBe(true);
 });
 test('mounted objective and new solution editors persist teaching content without enabling gates',async()=>{
  const key='sql_injection_workshop',id='sqli_1';
@@ -323,27 +397,19 @@ test('noncooperative mutation deadline leaves controls stale and never replays o
  expect(control().getAttribute('aria-disabled')).toBe('false');expect(axios.post).toHaveBeenCalledTimes(1);
  });
 
-test('objective bulk controls use canonical readback and leave pending OWASP AI SecureShop objectives disabled',async()=>{
- const key='secureshop_agent_security',ids=['ss_loop_observation','ss_pricing_false_grounding','ss_pricing_manual_injection'];
- const rows=ids.map(objective_id=>({objective_id,label:objective_id,is_enabled:false,hint_enabled:false,has_hint_content:false}));
- axios.get.mockImplementation(url=>Promise.resolve(url==='/api/admin/challenges'?{data:{success:true,challenges:[{id:key,key,workshopKey:key,name:'OWASP AI SecureShop',enabled:true}]}}:url.endsWith('/objectives')?{data:{objectives:rows}}:url.endsWith('/hints')?{data:{hints:{}}}:url==='/api/admin/solutions'?{data:{solutions:[]}}:{data:{}}));
- let resolveWrite;
- axios.post.mockImplementation((url,body)=>new Promise(resolve=>{
-   resolveWrite=()=>resolve({data:{success:true,exercise:{objectives:Object.fromEntries(
-     ids.map((id,index)=>[id,{raw:{objectiveEnabled:body.enabled&&index===0}}])
-   )}}});
- }));
- await render();await open(0);expect(axios.post).not.toHaveBeenCalled();
- const enable=()=>[...node.querySelectorAll('button')].find(button=>button.textContent==='Enable Available Objectives');
- const disable=()=>[...node.querySelectorAll('button')].find(button=>button.textContent==='Disable All Objectives');
- const switchClass=id=>node.querySelector(`[data-objective-id="${id}"] [data-control="visible"]`).className;
- const disabledClass=switchClass(ids[0]);await act(async()=>enable().click());
- expect(enable().disabled).toBe(true);expect(disable().disabled).toBe(true);expect(axios.post).toHaveBeenCalledTimes(1);
- expect(axios.post).toHaveBeenLastCalledWith(`/api/admin/workshops/${key}/objectives/bulk-toggle`,{enabled:true},expect.objectContaining({headers:{Authorization:'Bearer owned'}}));
- await act(async()=>resolveWrite());await flush();
- expect(switchClass(ids[0])).not.toBe(disabledClass);expect(switchClass(ids[1])).toBe(disabledClass);expect(switchClass(ids[2])).toBe(disabledClass);expect(mockRefresh).toHaveBeenCalled();
- await act(async()=>disable().click());await act(async()=>resolveWrite());await flush();
- expect(axios.post).toHaveBeenLastCalledWith(`/api/admin/workshops/${key}/objectives/bulk-toggle`,{enabled:false},expect.any(Object));expect(switchClass(ids[0])).toBe(disabledClass);
+test('standalone SecureShop never exposes platform objective bulk controls',async()=>{
+ const key='secureshop_agent_security';
+ axios.get.mockImplementation(url=>Promise.resolve(url==='/api/admin/challenges'
+   ?{data:{success:true,challenges:[],applications:[{id:key,key,workshopKey:key,name:'OWASP AI SecureShop',enabled:true}]}}
+   :{data:{}}));
+ await render();
+ const card=node.querySelector(`[data-application-key="${key}"]`);
+ expect(card.querySelector('a').getAttribute('href')).toBe('/secureshop');
+ expect(card.textContent).toContain('Shop settings → Assessment objectives');
+ expect(card.querySelector('button')).toBeNull();
+ expect(node.textContent).not.toContain('Enable Available Objectives');
+ expect(node.textContent).not.toContain('Disable All Objectives');
+ expect(axios.post).not.toHaveBeenCalled();
 });
 
 test('objective bulk controls are absent without challenge management permission',async()=>{
