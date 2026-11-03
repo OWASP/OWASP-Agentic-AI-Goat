@@ -52,6 +52,7 @@ test('both stored XSS flows reject model updates when the learner requests an ex
       });
       assert.equal(effects, 0, `${exerciseId}: ${message}`);
       assert.equal(result.grading.toolSteps, 0);
+      assert.deepEqual(result.toolActivity, [], 'rejected decisions are not executed tools');
       assert.match(result.response, /No profile changes were made/);
       assert.notEqual(result.completedObjectiveId, exerciseId === 'stored_user' ? 'xss_s2' : 'xss_g2');
     }
@@ -99,6 +100,15 @@ test('XSS model observes one tool and selects the next while candidate provenanc
   assert.equal(result.grading.modelProvider, 'first-provider');
   assert.equal(result.grading.candidateObservationIndex, 0);
   assert.equal(result.grading.toolObservations.length, 2);
+  assert.deepEqual(result.toolActivity.map(entry => entry.name), effects);
+  assert.deepEqual(result.toolActivity[0].arguments, { field: 'bio', value: '<img onerror=one()>' });
+  assert.deepEqual(result.toolActivity[1].result, { profile: { bio: '<img onerror=one()>' } });
+  for (const entry of result.toolActivity) {
+    assert.equal(entry.status, 'success');
+    assert.equal(entry.controlled, false);
+    assert.ok(Number.isFinite(Date.parse(entry.timestamp)));
+    assert.equal(Object.hasOwn(entry, 'rawDecisionResponse'), false);
+  }
 });
 
 test('stored-user graph repairs rewritten artifacts and permits only one profile mutation', async () => {
@@ -345,6 +355,9 @@ test('XSS stored-LLM renderer never reports a failed update as saved', async () 
   });
   assert.match(result.response, /could not save.*write rejected/i);
   assert.doesNotMatch(result.response, /generated and saved/i);
+  assert.equal(result.toolActivity[0].status, 'error');
+  assert.equal(result.toolActivity[0].error, 'The tool could not complete this action.');
+  assert.equal(Object.hasOwn(result.toolActivity[0], 'result'), false);
 });
 
 test('XSS scripted tool output may execute for display but cannot nominate agentic credit', async () => {
@@ -357,6 +370,30 @@ test('XSS scripted tool output may execute for display but cannot nominate agent
   });
   assert.equal(result.grading.toolSteps, 1); assert.equal(result.completedObjectiveId, null);
   assert.equal(result.grading.toolObservations[0].decision.decisionSource, 'scripted');
+  assert.equal(result.toolActivity[0].controlled, true);
+});
+
+test('XSS public activity excludes internal artifact metadata while preserving teaching HTML as data', async () => {
+  for (const [exerciseId, tool, toolResult, expected] of [
+    ['stored_user', 'getProfile', { profile: { name: 'Student', bio: '<b>hello</b>', user_id: 'private-owner', generation: 9 }, receipt: 'private-receipt' },
+      { profile: { name: 'Student', bio: '<b>hello</b>' } }],
+    ['email', 'getEmail', { email: { sender: 'fixture@example.test', subject: 'Test', body: '<img onerror=one()>', id: 'private-id', receipt: 'private-receipt' } },
+      { email: { sender: 'fixture@example.test', subject: 'Test', body: '<img onerror=one()>' } }],
+    ['email', 'listEmails', { emails: [{ subject: 'Test', sender: 'fixture@example.test', id: 'private-id', receipt: 'private-receipt' }] },
+      { emails: [{ subject: 'Test', sender: 'fixture@example.test' }] }],
+  ]) {
+    const responses = [JSON.stringify({ tool, args: {} }), 'Done'];
+    const result = await runXssWorkshopGraph({ exerciseId, message: 'show profile and read email', userKey: '17', systemPrompt: '' }, {
+      aiService: { chatWithMessages: async () => ({ response: responses.shift(), mocked: true, provider: 'mock' }) },
+      parseToolCall: value => value.startsWith('{') ? JSON.parse(value) : null,
+      executeXssTool: async () => toolResult, detectXss: () => false,
+      xssLogger: { error() {} }, EDUCATIONAL_PREAMBLE: '',
+    });
+    assert.deepEqual(result.toolActivity[0].result, expected);
+    assert.doesNotMatch(JSON.stringify(result.toolActivity), /private-/);
+    assert.equal(result.toolActivity[0].controlled, true);
+    assert.equal(result.completedObjectiveId, null);
+  }
 });
 
 test('XSS cancellation after an admitted effect prevents another model call and any result publication', async () => {
