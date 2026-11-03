@@ -1464,3 +1464,130 @@ test.each([
     expect(transcript.textContent).toContain('Real retry response');
   } finally { act(() => root.unmount()); node.remove(); }
 });
+
+const decoderActivity = (id = 'decode-1') => ({
+  id, name: 'decode_payload', arguments: {},
+  result: { encoding: 'base64', decodedRequest: `Decoded ${id}` },
+  status: 'success', timestamp: '2026-11-01T12:00:00.000Z',
+});
+const activityTab = node => [...node.querySelectorAll('[role="tab"]')].find(tab => tab.textContent.includes('Tool Activity'));
+const chatTab = node => [...node.querySelectorAll('[role="tab"]')].find(tab => tab.textContent === 'Chat');
+
+test('Tool Activity preserves the draft and displays only recorded calls, independently of completion', async () => {
+  mockWorkshopConfig = config(true, objectiveGates(['obfuscation']));
+  const pending = deferred();
+  axios.post.mockReturnValueOnce(pending.promise);
+  const node = document.createElement('div');
+  const root = createRoot(node);
+  act(() => root.render(<DirectPromptInjectionChallenge />));
+  await flush();
+  expect(chatTab(node).getAttribute('aria-selected')).toBe('true');
+  change(node.querySelector('textarea'), 'unsent draft');
+  click(activityTab(node));
+  expect(node.textContent).toContain('No tool executions yet');
+  click(chatTab(node));
+  expect(node.querySelector('textarea').value).toBe('unsent draft');
+  await submit(node, 'Decode this input');
+  click(activityTab(node));
+  pending.resolve({ data: { response: 'Decoded response', toolActivity: [decoderActivity()] } });
+  await flush();
+  expect(activityTab(node).getAttribute('aria-selected')).toBe('true');
+  expect(activityTab(node).textContent).toContain('1');
+  expect(node.textContent).toContain('Decoded decode-1');
+  expect(node.textContent).toContain('0 of 1 objectives completed');
+  click(chatTab(node));
+  await submit(node, 'ordinary model response');
+  expect(chatTab(node).getAttribute('aria-selected')).toBe('true');
+  // Activity metadata is never sent back as model conversation text.
+  expect(axios.post.mock.calls[1][1].conversationHistory.every(message => !('toolActivity' in message))).toBe(true);
+  act(() => root.unmount());
+});
+
+test('tool activity stays with its objective and mode, and local conversation reset clears its log', async () => {
+  mockWorkshopConfig = config(true, objectiveGates(['interact', 'obfuscation']));
+  axios.post.mockImplementation((url, body) => Promise.resolve(url.endsWith('/mode')
+    ? modeDto(body.mode) : { data: { response: 'Decoded response', toolActivity: [decoderActivity()] } }));
+  const node = document.createElement('div');
+  const root = createRoot(node);
+  act(() => root.render(<DirectPromptInjectionChallenge />));
+  await flush();
+  click(node.querySelector('[data-testid="objective-card-obfuscation"]'));
+  await submit(node, 'Decode this input');
+  click(activityTab(node));
+  expect(activityTab(node).textContent).toContain('1');
+  click(node.querySelector('[data-testid="objective-card-interact"]'));
+  expect(activityTab(node).textContent).toContain('0');
+  click(node.querySelector('[data-testid="objective-card-obfuscation"]'));
+  expect(activityTab(node).textContent).toContain('1');
+  click(modeButton(node, 'Fixed'));
+  await flush();
+  expect(activityTab(node).textContent).toContain('0');
+  click(modeButton(node, 'Vulnerable'));
+  await flush();
+  expect(activityTab(node).textContent).toContain('1');
+  click([...node.querySelectorAll('button')].find(button => button.textContent === 'Reset conversation'));
+  expect(activityTab(node).textContent).toContain('0');
+  act(() => root.unmount());
+});
+
+test.each(['conversation', 'owner'])('late tool activity is rejected after %s changes', async boundary => {
+  mockWorkshopConfig = config(true, objectiveGates(['obfuscation']));
+  const pending = deferred();
+  axios.post.mockReturnValueOnce(pending.promise);
+  const node = document.createElement('div');
+  const root = createRoot(node);
+  act(() => root.render(<DirectPromptInjectionChallenge />));
+  await flush();
+  await submit(node, 'Decode pending input');
+  if (boundary === 'conversation') {
+    click([...node.querySelectorAll('button')].find(button => button.textContent === 'Reset conversation'));
+  } else {
+    localStorage.setItem('token', 'new-tool-activity-owner');
+    act(() => root.render(<DirectPromptInjectionChallenge />));
+    await flush();
+  }
+  pending.resolve({ data: { response: 'Stale response', toolActivity: [decoderActivity('stale')] } });
+  await flush();
+  click(activityTab(node));
+  expect(activityTab(node).textContent).toContain('0');
+  expect(node.textContent).not.toContain('Decoded stale');
+  act(() => root.unmount());
+});
+
+test.each([true, false])('progress reset preserves activity until acknowledged (success=%s)', async success => {
+  mockWorkshopConfig = config(true, objectiveGates(['obfuscation']));
+  const reset = deferred();
+  axios.post.mockImplementation(url => url.endsWith('/progress/reset') ? reset.promise
+    : Promise.resolve({ data: { response: 'Decoded response', toolActivity: [decoderActivity()] } }));
+  const node = document.createElement('div');
+  const root = createRoot(node);
+  act(() => root.render(<DirectPromptInjectionChallenge />));
+  await flush();
+  await submit(node, 'Decode this input');
+  click(activityTab(node));
+  click([...node.querySelectorAll('button')].find(button => button.textContent === 'Reset Progress'));
+  click([...document.querySelector('[role="alertdialog"]').querySelectorAll('button')].find(button => button.textContent === 'Confirm reset'));
+  expect(activityTab(node).textContent).toContain('1');
+  if (success) reset.resolve({ data: { progress: { objectives: {} } } });
+  else reset.reject(new Error('Controlled reset failure'));
+  await flush();
+  expect(activityTab(node).textContent).toContain(success ? '0' : '1');
+  act(() => root.unmount());
+});
+
+test('an admitted failed tool call is shown from the error response', async () => {
+  mockWorkshopConfig = config(true, objectiveGates(['obfuscation']));
+  const activity = { ...decoderActivity(), status: 'error', error: 'Input could not be decoded' };
+  delete activity.result;
+  axios.post.mockRejectedValueOnce({ response: { status: 400, data: { error: 'Decoder failed', toolActivity: [activity] } } });
+  const node = document.createElement('div');
+  const root = createRoot(node);
+  act(() => root.render(<DirectPromptInjectionChallenge />));
+  await flush();
+  await submit(node, 'Invalid encoded input');
+  click(activityTab(node));
+  expect(activityTab(node).textContent).toContain('1');
+  expect(node.textContent).toContain('Input could not be decoded');
+  expect(node.textContent).toContain('0 of 1 objectives completed');
+  act(() => root.unmount());
+});

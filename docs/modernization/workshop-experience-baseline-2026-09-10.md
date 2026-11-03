@@ -98,6 +98,24 @@ Keep DPI's familiar user/assistant presentation, purple chat header and multilin
 
 Actions use stable variants: primary for the main action, secondary for navigation/utilities, tertiary for copy/help where appropriate, danger for destructive confirmation. Consistent icon placement, sizes, hit targets, focus rings and disabled/loading behavior are mandatory. Labels state scope and action; avoid a generic “Reset” when it could erase different data.
 
+## Chat and Tool Activity tabs — required baseline addition
+
+Tool-enabled chat workspaces must provide **Chat** and **Tool Activity** tabs within the same chat panel, using Excessive Agency (`/vulnerabilities/excessive-agency`, `client/src/pages/challenges/ExcessiveAgencyBolaLab.js`) as the interaction reference. This requirement applies to chat workspaces in both baseline templates. Preserve the shared DPI visual design. These are views of the same conversation, separate from scenario navigation; selecting Tool Activity must not switch scenarios or objectives.
+
+The source reference provides a tool-call count badge, a newest-first execution log, tool names, formatted arguments/results, Success/Error labels, timestamps and a “No tool executions yet” empty state. DPI implements this capability through the shared `ChatActivityTabs` component and its authenticated decoder activity adapter. Other exercise adoption and full rendered qualification remain implementation work; see the [current verification record](dpi-tool-activity.md).
+
+Required behavior:
+
+- Open on **Chat** by default. Keep **Tool Activity** available before the first call in tool-enabled workspaces, with a helpful empty state. Chats without tool support may omit that tab; never fabricate activity.
+- Show the number of recorded calls in the Tool Activity badge. Each entry shows the tool name, arguments, available result or error, timestamp and server-reported status. Show pending/running states only when the backend supplies them. Preserve valid empty, zero and false results; distinguish missing results from failure.
+- Use safely rendered, readable structured output with bounded scrolling for long arguments/results. Keep intentional raw-output lessons in their declared isolated lab slots. Expose only activity the learner is authorized to view.
+- Switching views preserves the transcript, draft, activity and active run; returning to Chat restores the composer state. Incoming activity updates the badge without forcing a tab switch. Use accessible keyboard-operated tabs, visible focus and labelled tab panels on desktop and mobile.
+- Bind activity to the same attendee, workshop, scenario, conversation/run and reset generation as its chat. Respect each exercise's declared objective/conversation ownership; discard stale responses and prevent activity from appearing in sibling conversations or scenarios.
+- Reset conversation clears the associated visible conversation activity only after server acknowledgement, preserving canonical progress and immutable grading evidence. Progress/scenario/lab resets follow their declared scope; failed resets preserve the last confirmed chat and activity.
+- Populate the log from the existing server tool-event/result adapter, never by inferring calls from assistant prose. A successful tool call is not objective completion; canonical evidence/Judge decisions remain authoritative. Label controlled/mock activity honestly.
+
+Implement this as a reusable chat-panel capability with a shared Tool Activity view and exercise-specific data adapters, rather than copying Excessive Agency's page. Qualification must cover tab navigation, empty and populated logs, successful/failed calls, long and false/zero results, draft preservation, activity arriving while either tab is selected, reset races and scenario/conversation isolation. DPI reuses the shared capability; this does not imply adoption or qualification across all tool-enabled exercises.
+
 ## Reset contract
 
 | Control | Intended scope | Must preserve | Confirmation |

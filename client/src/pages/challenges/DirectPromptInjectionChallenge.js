@@ -14,6 +14,7 @@ import {
 import { toast } from 'react-toastify';
 import { getJudgeFeedback, isGradingUnqualified } from '../../utils/judgeFeedback.mjs';
 import JudgeRetryButton from '../../components/workshop/JudgeRetryButton';
+import ChatActivityTabs from '../../components/workshop/ChatActivityTabs';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import VulnerabilityTemplate from '../../components/VulnerabilityTemplate';
@@ -43,6 +44,7 @@ import {
   createObjectiveTranscript,
   getVisibleObjectives,
   normalizeSolution,
+  readDpiToolActivity,
 } from './directPromptInjectionState';
 
 // ----- Styled components matching XSS vulnerability page -----
@@ -792,6 +794,7 @@ const DirectPromptInjectionChallenge = () => {
     [activeObjectiveId, labMode, transcripts]
   );
   const loading = Boolean(activeObjectiveId && loadingObjectives[activeObjectiveId]);
+  const toolActivity = useMemo(() => messages.flatMap(message => message.toolActivity || []), [messages]);
   const anySubmitting = Object.keys(loadingObjectives).length > 0;
   const completedCount = visibleObjectives.filter(o => completedObjectives[o.id]).length;
   const allComplete = visibleObjectives.length > 0 && completedCount === visibleObjectives.length;
@@ -1111,6 +1114,7 @@ const DirectPromptInjectionChallenge = () => {
         displayType: completedId ? 'objective-complete' : undefined,
         content: aiContent,
         selectedLesson: readSelectedLesson(data.selectedLesson, objectiveId),
+        toolActivity: readDpiToolActivity(data.toolActivity),
         timestamp: new Date(),
         objectiveId: completedId || undefined
       };
@@ -1211,6 +1215,7 @@ const DirectPromptInjectionChallenge = () => {
         type: 'system',
         plain: true,
         content: displayMsg,
+        toolActivity: readDpiToolActivity(body?.toolActivity),
         timestamp: new Date()
       };
       setTranscripts(current => appendToTranscript(current, key, diagnostic));
@@ -1485,6 +1490,7 @@ const DirectPromptInjectionChallenge = () => {
                 </div>
               )}
             </div>
+            <ChatActivityTabs activity={toolActivity}>
             <ChatContainer>
               {!exerciseUsable && (
                 <div role="status" style={{ padding: '1rem 1.25rem', color: '#856404', background: '#fff3cd', borderBottom: '1px solid #ffe69c' }}>
@@ -1545,6 +1551,7 @@ const DirectPromptInjectionChallenge = () => {
               </MessageList>
               <InputContainer onSubmit={handleSubmit}>
                 <MessageInput
+                  aria-label="Message to the AWS assistant"
                   value={inputMessage}
                   onChange={e => setInputMessage(e.target.value)}
                   onKeyDown={handleKeyPress}
@@ -1556,6 +1563,7 @@ const DirectPromptInjectionChallenge = () => {
                 </SendButton>
               </InputContainer>
             </ChatContainer>
+            </ChatActivityTabs>
           </ChatSection>
 
           {/* Right column: Exercise Objectives + Progress (same white box style as XSS) */}

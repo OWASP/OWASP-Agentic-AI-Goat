@@ -28,6 +28,7 @@ test('actual route forwards only selected lesson matching admitted objective and
  const mode={WORKSHOP_MODE_CATALOG:{direct_prompt_injection:{}}};
  const exports={};
  const context={module:{exports},exports,console:{log(){},warn(){},error(){}},process:{env:{PLATFORM_DATABASE_ENGINE:'postgres'}},require(id){
+  if(id==='../agent-runtime/dpiToolActivity')return require('../server/agent-runtime/dpiToolActivity');
   if(id==='express')return {Router:router};
   if(id==='../agent-runtime/dpiPolicyContract')return contract;
   if(id==='../config/workshopCatalog')return {WORKSHOP_OBJECTIVES:{direct_prompt_injection:[]}};
@@ -40,13 +41,14 @@ test('actual route forwards only selected lesson matching admitted objective and
  vm.runInNewContext(fs.readFileSync(filename,'utf8'),context,{filename});
  const create=context.module.exports.createPromptInjectionWorkshopRouter;
  const selected=contract.selectedLesson(contract.selectPolicy({objectiveId:'obfuscation',mode:'fixed'}));
+ const toolActivity=[{id:'dpi_decode_'+'a'.repeat(32),name:'decode_payload',arguments:{private:'discard'},result:{encoding:'base64',decodedRequest:'2+2',ownerKey:'private'},status:'success',timestamp:'2026-11-01T00:00:00.000Z',ownerKey:'private'}];
  async function invoke(value){
-  const r=create({progressService:progress,legacyFixture:true,completionService:{beginAttempt:async()=>({mode:'fixed'})},logger:{error(){}},workshopService:{chat:async()=>({response:'controlled response',durableGrading:true,...(value?{selectedLesson:value}:{})})},runCoordinator:{run:async(_u,_o,work)=>work({check:async()=>{},trace:async()=>{}})}});
+  const r=create({progressService:progress,legacyFixture:true,completionService:{beginAttempt:async()=>({mode:'fixed'})},logger:{error(){}},workshopService:{chat:async()=>({response:'controlled response',durableGrading:true,toolActivity,...(value?{selectedLesson:value}:{})})},runCoordinator:{run:async(_u,_o,work)=>work({check:async()=>{},trace:async()=>{}})}});
   let body,status=200;const res={status(n){status=n;return this;},json(v){body=v;return this;}};
   await r.handlers['/chat']({user:{id:7},body:{userMessage:'request',activeObjectiveId:'obfuscation'}},res);
   return {body,status};
  }
- const good=await invoke(selected);assert.equal(good.status,200);assert.deepEqual(good.body.selectedLesson,selected);
+ const good=await invoke(selected);assert.equal(good.status,200);assert.deepEqual(good.body.selectedLesson,selected);assert.deepEqual(good.body.toolActivity,[{id:toolActivity[0].id,name:'decode_payload',arguments:{},result:{encoding:'base64',decodedRequest:'2+2'},status:'success',timestamp:toolActivity[0].timestamp}]);
  assert.equal(Object.hasOwn((await invoke()).body,'selectedLesson'),false);
  for(const bad of [{...selected,mode:'vuln'},{...selected,objectiveId:'interact'},{...selected,extra:'private'}])assert.notEqual((await invoke(bad)).status,200);
 });
