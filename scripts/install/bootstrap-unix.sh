@@ -181,7 +181,7 @@ command -v ollama >/dev/null || die 'Ollama installation failed.'
 wait_for_local_ollama
 if [[ -z "${PG_ADMIN_DATABASE_URL:-}" ]]; then
   if [[ "$EXPECTED_OS" == Darwin ]]; then
-    docker --context "$OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE" info >/dev/null 2>&1 ||
+    docker --context "$(macos_colima_context "$OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE")" info >/dev/null 2>&1 ||
       die 'The selected Colima Docker daemon is unavailable for PostgreSQL provisioning; inspect that profile and rerun.'
   else
     docker info >/dev/null 2>&1 || die 'Docker is unavailable for PostgreSQL provisioning; check the service and user permissions.'

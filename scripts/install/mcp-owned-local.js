@@ -116,14 +116,24 @@ async function writePrivateAtomic(file, bytes) {
   } finally { if (handle) await handle.close(); }
 }
 
-async function prepareOwnedManagedConfiguration({ envPath, managedPath,
+function snapshotApplicationEnvironment(environment) {
+  if (!environment || typeof environment !== 'object' || Array.isArray(environment)
+    || Object.values(environment).some(value => typeof value !== 'string')) fail('MCP_INSTALL_ENV_INVALID');
+  const snapshot = Object.freeze({ ...environment });
+  assertPlatformSigningConfiguration(snapshot);
+  return snapshot;
+}
+
+async function prepareOwnedManagedConfiguration({ envPath, managedPath, applicationEnvironment,
   randomToken = () => crypto.randomBytes(48).toString('base64url'), activateQualified = false,
   activateObservedAction = false, activateSupplyChain = false,
   activateIndirectInjection = false, activateProtectedRecovery = false, protectedRecoveryQualified = false,
   forceDisabled = false, storage=defaultStorage } = {}) {
   if (!storage.path.isAbsolute(envPath || '') || !storage.path.isAbsolute(managedPath || '')) fail('MCP_INSTALL_ENV_INVALID');
-  const original = await storage.read(envPath,{workspace:true});
-  const privateParsed = dotenv.parse(original); assertPlatformSigningConfiguration(privateParsed);
+  const original = applicationEnvironment === undefined ? await storage.read(envPath,{workspace:true}) : null;
+  const privateParsed = applicationEnvironment === undefined
+    ? dotenv.parse(original) : snapshotApplicationEnvironment(applicationEnvironment);
+  assertPlatformSigningConfiguration(privateParsed);
   let existing = null,existingBytes=null;
   try { existingBytes=await storage.read(managedPath);existing = parseManagedConfiguration(existingBytes); }
   catch (error) { if (error.code !== 'MCP_INSTALL_ENV_REQUIRED') throw error; }
@@ -160,7 +170,7 @@ async function prepareOwnedManagedConfiguration({ envPath, managedPath,
   }
   const encoded = Buffer.from(encodeManaged(values));
   if (!existing || !Buffer.from(encodeManaged(existing)).equals(encoded)) await storage.write(managedPath, encoded,existingBytes);
-  if (!(await storage.read(envPath,{workspace:true})).equals(original)) fail('MCP_INSTALL_ENV_CHANGED');
+  if (original !== null && !(await storage.read(envPath,{workspace:true})).equals(original)) fail('MCP_INSTALL_ENV_CHANGED');
   return Object.freeze({ values, managedPath, activationEnabled: enabled,
     tokenPreserved: Boolean(existing?.MCP_OWNED_TARGET_TOKEN || privateParsed.MCP_OWNED_TARGET_TOKEN) });
 }
@@ -176,9 +186,11 @@ function localProfilePlan({ platform = process.platform, root = path.resolve(__d
     if (typeof colimaProfile !== 'string' || !/^colima-[a-z0-9][a-z0-9-]{0,47}$/.test(colimaProfile)) {
       fail('MCP_INSTALL_COLIMA_PROFILE_REQUIRED');
     }
+    // Colima names the default Lima VM "colima", while named profiles retain their prefix.
+    const vmName = colimaProfile === 'colima-default' ? 'colima' : colimaProfile;
     return Object.freeze({ platform, profile: PROFILE, template, renderer, colimaProfile,
-      sshConfig: path.join(home, '.colima/_lima', colimaProfile, 'ssh.config'),
-      sshHost: `lima-${colimaProfile}`, destination: '/etc/apparmor.d/owasp-ai-goat-mcp-sandbox',
+      sshConfig: path.join(home, '.colima/_lima', vmName, 'ssh.config'),
+      sshHost: `lima-${vmName}`, destination: '/etc/apparmor.d/owasp-ai-goat-mcp-sandbox',
       dockerHost: `unix://${path.join(home, '.colima', colimaProfile.slice('colima-'.length), 'docker.sock')}`,
       privilegedSteps: 'remote-sudo-non-interactive' });
   }
@@ -194,5 +206,5 @@ function localProfilePlan({ platform = process.platform, root = path.resolve(__d
   fail('MCP_INSTALL_PLATFORM_UNSUPPORTED');
 }
 
-module.exports = { createOwnedPrivateStorage, prepareOwnedEnvironment, prepareOwnedManagedConfiguration, managedConfigurationPath,
+module.exports = { snapshotApplicationEnvironment, createOwnedPrivateStorage, prepareOwnedEnvironment, prepareOwnedManagedConfiguration, managedConfigurationPath,
   localProfilePlan, PROFILE, MANAGED };

@@ -568,6 +568,6 @@ test('configurationHome isolates private records without changing canonical Dock
  assert.equal(isolated.directory,'/owned-rehearsal/.owasp-ai-goat/'+p.workspace);
  for(const key of ['dockerHost','sshConfig','sshHost','profile','destination','container','network','root','workspace'])assert.equal(isolated[key],normal[key]);
  assert.equal(isolated.dockerHost,'unix:///canonical-home/.colima/default/docker.sock');
- assert.equal(isolated.sshConfig,'/canonical-home/.colima/_lima/colima-default/ssh.config');
+ assert.equal(isolated.sshConfig,'/canonical-home/.colima/_lima/colima/ssh.config');
  for(const value of [null,'relative',1])assert.throws(()=>plan({...options,configurationHome:value}),{code:'REGISTRY_CONFIGURATION_HOME_INVALID'});
 });

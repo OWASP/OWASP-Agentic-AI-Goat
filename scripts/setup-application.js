@@ -492,7 +492,7 @@ function ownedRunnerOptions({ platform = process.platform, environment = process
   return Object.freeze({ platform, colimaProfile: undefined });
 }
 async function provisionOwnedRunnerForSetup({ root, directory, homeDirectory, platform = process.platform,
-  environment = process.env, provisionFromEnvironment, ownedLabSession } = {}) {
+  environment = process.env, applicationEnvironment, provisionFromEnvironment, ownedLabSession } = {}) {
   if (['false', '0'].includes(environment.MCP_SIDECARS_AUTOSTART)) return Object.freeze({ available: false, activationEnabled: false, profile: null, managedPath: path.join(directory, 'mcp-owned.env'), code: 'MCP_INSTALL_EXPLICITLY_DISABLED', stage: null });
   const options = ownedRunnerOptions({ platform, environment });
   try {
@@ -501,6 +501,7 @@ async function provisionOwnedRunnerForSetup({ root, directory, homeDirectory, pl
       root,
       home: homeDirectory,
       envPath: path.join(root, '.env'),
+      ...(applicationEnvironment === undefined ? {} : { applicationEnvironment }),
       managedPath: path.join(directory, 'mcp-owned.env'),
       platform: options.platform,
       colimaProfile: options.colimaProfile,
@@ -529,8 +530,11 @@ async function provisionOwnedRunnerForSetup({ root, directory, homeDirectory, pl
 function admitOwnedRunnerForSetup(ownedRunner, { required = true } = {}) {
   if (!required) return ownedRunner;
   if (ownedRunner?.available !== true) {
+    const diagnosticCode = /^MCP_INSTALL_[A-Z_]{1,64}$/.test(ownedRunner?.code || '') ? ownedRunner.code : null;
+    const diagnosticStage = /^[a-z][a-z-]{0,63}$/.test(ownedRunner?.stage || '') ? ownedRunner.stage : null;
+    const diagnostic = diagnosticCode ? ` (${diagnosticCode}${diagnosticStage ? `; stage: ${diagnosticStage}` : ''})` : '';
     throw Object.assign(new SetupError(
-      'Required owned MCP/CodeBot runner readiness was not confirmed. Existing private setup configuration was preserved; inspect the private managed runner state, then run npm run setup:mcp-owned before starting the application.'),
+      `Required owned MCP/CodeBot runner readiness was not confirmed${diagnostic}. Existing private setup configuration was preserved; inspect the private managed runner state, then run npm run setup:mcp-owned before starting the application.`),
     { code: 'MCP_INSTALL_REQUIRED_UNAVAILABLE' });
   }
   if (ownedRunner.activationEnabled !== true) {
@@ -1133,6 +1137,7 @@ async function executeSetupDatabasePhase(request, maintenanceScope, dependencies
   maintenanceScope.assertHeld();
   const ownedRunner = await provisionOwnedRunnerForSetup({
     root, directory, homeDirectory, platform, environment: processEnvironment,
+    applicationEnvironment: { ...processEnvironment, ...applicationEnv },
     provisionFromEnvironment: provisionOwnedRunner,
     ...(windowsLab ? { ownedLabSession: windowsLab.session } : {}),
   });

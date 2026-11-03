@@ -341,12 +341,16 @@ test('missing Node is installed through mocked Homebrew and setup delegates', ()
   } finally { cleanup(value); }
 });
 
-test('macOS fresh setup rechecks its selected Colima context, not an unavailable default context', () => {
+for (const [profile, context] of [['colima-default', 'colima'], ['colima-workshop', 'colima-workshop']]) {
+ test(`macOS fresh setup checks only the actual context for ${profile}`, () => {
   const value = fixture();
+  value.env.OWASP_AI_GOAT_MCP_OWNED_COLIMA_PROFILE = profile;
   delete value.env.PG_ADMIN_DATABASE_URL;
   fs.writeFileSync(path.join(value.bin, 'docker'), `#!/bin/sh
 echo "docker $*" >> "$FAKE_LOG"
-if [ "$1" = --context ] && [ "$2" = colima-default ] && [ "$3" = info ]; then exit 0; fi
+if [ "$1" = --context ]; then
+  [ "$2" = ${context} ] && [ "$3" = info ]; exit $?
+fi
 if [ "$1" = info ]; then exit 9; fi
 exit 0
 `, { mode: 0o700 });
@@ -354,9 +358,28 @@ exit 0
     const result = runFixture(value, ['--no-install']);
     assert.equal(result.status, 0, result.stderr);
     const log = fs.readFileSync(value.log, 'utf8');
-    assert.equal((log.match(/^docker --context colima-default info$/gm) || []).length, 2);
+    assert.equal(log.split('\n').filter(line => line === `docker --context ${context} info`).length, 2);
     assert.doesNotMatch(log, /^docker info$/m);
     assert.match(log, /^npm run setup -- --no-install$/m);
+  } finally { cleanup(value); }
+ });
+}
+
+test('macOS default profile does not fall back when its actual context is unavailable', () => {
+  const value = fixture();
+  fs.writeFileSync(path.join(value.bin, 'docker'), `#!/bin/sh
+echo "docker $*" >> "$FAKE_LOG"
+if [ "$1" = --context ]; then exit 9; fi
+exit 0
+`, { mode: 0o700 });
+  fs.writeFileSync(path.join(value.bin, 'sleep'), '#!/bin/sh\nexit 0\n', { mode: 0o700 });
+  try {
+    const result = runFixture(value, ['--no-install']);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /selected Colima Docker daemon did not become ready/);
+    const log = fs.readFileSync(value.log, 'utf8');
+    assert.match(log, /^docker --context colima info$/m);
+    assert.doesNotMatch(log, /^docker info$|^docker --context colima-default info$|npm run setup/m);
   } finally { cleanup(value); }
 });
 

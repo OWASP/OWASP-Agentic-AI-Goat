@@ -12,3 +12,32 @@ test('actual setup invokes both ci calls with admitted Node CLI pair',async t=>{
 test('install false never admits npm and retains renderer command path',async t=>{const options=await setupFixture(t),stop=Error('controlled renderer stop');await assert.rejects(setup({...options,install:false,processEnvironment:{npm_execpath:'/missing'},execute:async()=>assert.fail('no npm admission'),runCommand:async(command,args)=>{assert.deepEqual(args,['run','build:review-renderer']);throw stop;}}),e=>e===stop);});
 
 test('fresh setup binds renderer after both ci commands despite missing ambient npm',async t=>{const options=await setupFixture(t),cli=await fixture(t),calls=[],stop=Error('controlled renderer boundary');await assert.rejects(setup({...options,processEnvironment:{npm_execpath:cli,PATH:'/missing',PUPPETEER_EXECUTABLE_PATH:'/controlled/browser'},execute:async()=>({stdout:'12.1.0'}),runCommand:async(command,args)=>{calls.push({command,args});if(calls.length===3)throw stop;}}),e=>e===stop);assert.equal(calls.length,3);for(const call of calls){assert.equal(call.command,process.execPath);assert.equal(call.args[0],cli);}assert.deepEqual(calls[2].args,[cli,'run','build:review-renderer']);});
+
+for (const workspace of ['', 'client']) {
+  test(`${workspace || 'root'} lifecycle approvals match exact locked package versions`, async () => {
+    const directory = path.join(__dirname, '..', workspace);
+    const [manifest, lock] = await Promise.all(['package.json', 'package-lock.json'].map(async name =>
+      JSON.parse(await fs.readFile(path.join(directory, name), 'utf8'))));
+    const approvals = manifest.allowScripts;
+    assert.ok(approvals && typeof approvals === 'object', 'Strict setup requires explicit lifecycle decisions');
+    const locked = new Set();
+    const requiresDecision = new Set();
+    for (const [location, pkg] of Object.entries(lock.packages)) {
+      if (!location || pkg.link) continue;
+      // Use lock metadata, including optional packages for other platforms;
+      // installed node_modules is intentionally irrelevant to a fresh setup.
+      const name = pkg.name || location.slice(location.lastIndexOf('node_modules/') + 'node_modules/'.length);
+      const identity = `${name}@${pkg.version}`;
+      locked.add(identity);
+      if (pkg.hasInstallScript) requiresDecision.add(identity);
+    }
+    for (const [identity, allowed] of Object.entries(approvals)) {
+      assert.equal(typeof allowed, 'boolean', `${identity}: lifecycle decision must be explicit`);
+      assert.ok(locked.has(identity), `${identity}: stale lifecycle approval; review the locked version before updating it`);
+    }
+    for (const identity of requiresDecision) {
+      assert.ok(Object.hasOwn(approvals, identity),
+        `${identity}: locked lifecycle script has no explicit approval or denial; strict npm ci would fail`);
+    }
+  });
+}

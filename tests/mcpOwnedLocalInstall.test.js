@@ -161,6 +161,11 @@ test('local profile plans are exact for Linux and an explicitly named Colima VM 
   assert.equal(mac.sshConfig, '/home/test/.colima/_lima/colima-owasp-ai-goat-local/ssh.config');
   assert.equal(mac.sshHost, 'lima-colima-owasp-ai-goat-local');
   assert.equal(mac.dockerHost, 'unix:///home/test/.colima/owasp-ai-goat-local/docker.sock');
+  const defaultMac = localProfilePlan({ platform: 'darwin', root: '/app', home: '/home/test', colimaProfile: 'colima-default' });
+  assert.equal(defaultMac.colimaProfile, 'colima-default');
+  assert.equal(defaultMac.sshConfig, '/home/test/.colima/_lima/colima/ssh.config');
+  assert.equal(defaultMac.sshHost, 'lima-colima');
+  assert.equal(defaultMac.dockerHost, 'unix:///home/test/.colima/default/docker.sock');
   assert.throws(() => localProfilePlan({ platform: 'darwin', colimaProfile: 'default' }), { code: 'MCP_INSTALL_COLIMA_PROFILE_REQUIRED' });
   assert.throws(() => localProfilePlan({ platform: 'win32' }), { code: 'MCP_INSTALL_PLATFORM_UNSUPPORTED' });
 });

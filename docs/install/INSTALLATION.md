@@ -156,6 +156,10 @@ existing plugins or Docker configuration. Linux uses the configured apt
 repositories and stops if an installed package does not provide a usable plugin.
 Fresh macOS setup checks its selected Colima profile; it does not start Docker
 Desktop as a fallback. Repair keeps the existing daemon selection.
+The default configured profile `colima-default` uses Colima's Docker context
+`colima` and Lima VM `colima`; its socket remains under `.colima/default/`.
+Named profiles such as `colima-workshop` retain that name for their context
+and VM. Setup resolves these names automatically.
 
 The optional owned MCP registry streams its 20 manifest-verified source files
 to the selected local Docker daemon. Build layers stay in that daemon's storage;
