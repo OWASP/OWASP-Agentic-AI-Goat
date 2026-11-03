@@ -95,3 +95,33 @@ test('a mode switch suppresses a late vulnerable chat response without clearing 
  expect(node.textContent).toContain('<strong>safe</strong>');
  expect(node.querySelector('.message-text strong')).toBeNull();
 });
+
+test('owner replacement clears private drafts and tool activity', async () => {
+ axios.post.mockResolvedValue({data:{response:'Owned profile',toolActivity:[{
+   id:'xss-tool-0',name:'getProfile',arguments:{},result:{profile:{bio:'owner-a-private-tool-output'}},
+   status:'success',timestamp:'2026-11-01T12:00:00.000Z',controlled:true,
+ }]}});
+ await send('show my profile');
+ expect(node.textContent).toContain('owner-a-private-tool-output');
+ const input=node.querySelector('textarea');
+ await act(async()=>{Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value').set.call(input,'owner-a-private-draft');input.dispatchEvent(new Event('input',{bubbles:true}));});
+ await replace();
+ expect(node.textContent).not.toContain('owner-a-private-tool-output');
+ expect(node.querySelector('textarea').value).toBe('');
+ expect(node.querySelector('[aria-label="0 recorded tool calls"]')).toBeTruthy();
+});
+
+test('unknown mode blocks submission until authoritative mode resolves', async () => {
+ const pending=deferred();
+ const base=axios.get.getMockImplementation();
+ axios.get.mockImplementation((url,...args)=>url==='/api/workshop/xss/mode'?pending.promise:base(url,...args));
+ await replace();
+ expect(node.querySelector('textarea').disabled).toBe(true);
+ expect(node.querySelector('[aria-label="Send message"]').disabled).toBe(true);
+ await send('not admitted while mode is unknown');
+ expect(axios.post).not.toHaveBeenCalled();
+ await act(async()=>pending.resolve({data:{mode:'vuln',effectiveMode:'vuln',scope:{kind:'workshop',id:'xss_workshop'}}}));
+ expect(node.querySelector('textarea').disabled).toBe(false);
+ await send('admitted after readiness');
+ expect(axios.post.mock.calls.filter(([url])=>url==='/api/workshop/xss/chat')).toHaveLength(1);
+});

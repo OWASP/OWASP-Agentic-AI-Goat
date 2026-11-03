@@ -311,3 +311,64 @@ test('reset aborts a pending preview and its late HTML cannot replace the cleare
   expect([...node.querySelectorAll('button')].find(button => button.textContent.includes('Generate')).disabled).toBe(false);
   act(() => root.unmount());
 });
+
+test('builder progress counts enabled catalog membership and retains canonical help titles', async () => {
+  const originalGet = axios.get.getMockImplementation();
+  axios.get.mockImplementation(url => url.includes('/challenge/progress/')
+    ? Promise.resolve({ data: { canonical: { objectives: [
+      { id: 'xss_email_level_1', completed: true },
+      { id: 'xss_email_level_4', completed: true },
+    ] } } })
+    : url.includes('/solutions/xss-email-builder/')
+      ? Promise.resolve({ data: { solution: { title: 'Authored solution heading', description: 'Solution details' } } })
+      : originalGet(url));
+  const node = document.createElement('div'); document.body.appendChild(node);
+  const root = createRoot(node);
+  act(() => root.render(<XssEmailBuilder objectives={objectives.slice(0, 2).map(item => ({ ...item, solutionVisible: true }))} />));
+  await flush();
+  expect(node.textContent).toContain('1 of 2 objectives completed');
+  const bar = node.querySelector('[role="progressbar"]');
+  expect(bar.getAttribute('aria-valuenow')).toBe('1');
+  expect(bar.getAttribute('aria-valuemax')).toBe('2');
+  act(() => node.querySelector('[data-testid="solution-button-xss_email_level_1"]').click());
+  await flush();
+  const dialog = document.querySelector('[data-testid="objective-help-modal"]');
+  expect(dialog.querySelector('h2').textContent).toContain('Edited level 1');
+  expect(dialog.textContent).toContain('Authored solution heading');
+  act(() => root.unmount());
+});
+
+test('builder keeps execution disabled until its mode is confirmed', async () => {
+  let resolveMode;
+  const originalGet = axios.get.getMockImplementation();
+  axios.get.mockImplementation(url => url === '/api/xss-email/mode'
+    ? new Promise(resolve => { resolveMode = resolve; }) : originalGet(url));
+  const { node, root } = renderBuilder(); await flush();
+  const generate = () => [...node.querySelectorAll('button')].find(button => button.textContent.includes('Generate'));
+  expect(generate().disabled).toBe(true);
+  expect(node.textContent).toContain('Checking builder mode');
+  await act(async () => resolveMode({ data: { effectiveMode: 'vuln', scope: { id: 'xss_email_builder' } } }));
+  expect(generate().disabled).toBe(false);
+  act(() => root.unmount());
+});
+
+test('inactive builder retains its draft and closes portal help', async () => {
+  const withSolution = objectives.map(item => ({ ...item, solutionVisible: true }));
+  const node = document.createElement('div'); document.body.appendChild(node);
+  const root = createRoot(node);
+  act(() => root.render(<XssEmailBuilder objectives={withSolution} active />));
+  await flush();
+  const prompt = node.querySelector('textarea[aria-label="Generation prompt"]');
+  act(() => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set.call(prompt, 'My retained builder draft');
+    prompt.dispatchEvent(new Event('input', { bubbles: true }));
+    node.querySelector('[data-testid="solution-button-xss_email_level_1"]').click();
+  });
+  await flush();
+  expect(document.querySelector('[data-testid="objective-help-modal"]')).not.toBeNull();
+  act(() => root.render(<XssEmailBuilder objectives={withSolution} active={false} />));
+  expect(document.querySelector('[data-testid="objective-help-modal"]')).toBeNull();
+  act(() => root.render(<XssEmailBuilder objectives={withSolution} active />));
+  expect(node.querySelector('textarea[aria-label="Generation prompt"]').value).toBe('My retained builder draft');
+  act(() => root.unmount());
+});

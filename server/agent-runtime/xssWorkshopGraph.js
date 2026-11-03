@@ -105,6 +105,36 @@ function escapeProfileNarrative(response) {
   return String(response || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// Learner activity is a presentation projection, never grading evidence. Only
+// expose fields from the owned teaching artifact, not database/dispatch metadata.
+function publicToolActivity(observations) {
+  const fields = (value, names) => Object.fromEntries(names
+    .filter(name => ['string', 'number', 'boolean'].includes(typeof value?.[name]))
+    .map(name => [name, value[name]]));
+  return observations.map(observation => {
+    const { toolCall, toolResult, index, timestamp, decision } = observation;
+    const failed = Boolean(toolResult?.error) || toolResult?.success === false;
+    let result = {};
+    if (!failed) {
+      if (toolCall.tool === 'getProfile') result = { profile: fields(toolResult?.profile, ['name', 'bio', 'website']) };
+      if (toolCall.tool === 'updateProfile') result = fields(toolResult, ['success', 'field', 'value', 'message']);
+      if (toolCall.tool === 'getEmail') result = { email: fields(toolResult?.email, ['sender', 'subject', 'body']) };
+      if (toolCall.tool === 'listEmails') result = {
+        emails: (Array.isArray(toolResult?.emails) ? toolResult.emails : [])
+          .map(email => fields(email, ['subject', 'sender', 'received_at'])),
+        ...fields(toolResult, ['note']),
+      };
+    }
+    return {
+      id: `xss-tool-${index}`, name: toolCall.tool, arguments: { ...toolCall.args },
+      ...(failed ? { error: 'The tool could not complete this action.' } : { result }),
+      status: failed ? 'error' : 'success', timestamp,
+      controlled: decision?.modelSucceeded !== true || decision?.decisionSource !== 'model'
+        || ['mock', 'fixture', 'controlled'].includes(String(decision?.provider || '').toLowerCase()),
+    };
+  });
+}
+
 async function runXssWorkshopGraph({ exerciseId, message, clientCompleted, sharklaserEmail, userKey, systemPrompt, mode = 'vuln' }, {
   aiService, parseToolCall, executeXssTool, detectXss, xssLogger, EDUCATIONAL_PREAMBLE, execution = getOwnerExecution(),
 }) {
@@ -238,7 +268,7 @@ async function runXssWorkshopGraph({ exerciseId, message, clientCompleted, shark
         : await invoke();
       await execution?.trace?.({ node: 'tool', type: 'tool', data: { tool: call.tool, attempt: index + 1, evidenceSummary: toolResult?.error ? 'Tool observation returned an error' : 'Tool observation received' } });
       await check();
-      const observation = { index, toolCall: call, toolResult, rawDecisionResponse: state.rawResponse,
+      const observation = { index, toolCall: call, toolResult, timestamp: new Date().toISOString(), rawDecisionResponse: state.rawResponse,
         decisionKey: decisionKey(call),
         decision: { ...state.decisionMeta } };
       const observationForModel = call.tool === 'getEmail' && toolResult?.email
@@ -290,6 +320,7 @@ async function runXssWorkshopGraph({ exerciseId, message, clientCompleted, shark
       return { result: { success: state.stopReason !== 'model_unavailable', response: renderChatHtml(finalResponse, renderingMode),
         ...(renderingMode === 'fixed' ? { responseText: finalResponse } : {}),
         mode: renderingMode, xssDetected: renderingMode === 'vuln' && detectXss(finalResponse), completedObjectiveId,
+        toolActivity: publicToolActivity(observations),
         grading: { llmResponse: candidateObservation?.rawDecisionResponse || state.rawResponse,
           toolCall, toolResult, modelSucceeded: provenance.modelSucceeded,
           modelProvider: provenance.provider, modelName: provenance.model,

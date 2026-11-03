@@ -10,16 +10,17 @@ import {
   FiCheckCircle, FiMessageSquare, FiZap, FiRotateCcw, FiCopy, FiMail, FiExternalLink
 } from 'react-icons/fi';
 import { toast } from 'react-toastify';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import axios from 'axios';
 import VulnerabilityTemplate from '../../components/VulnerabilityTemplate';
+import ChatActivityTabs from '../../components/workshop/ChatActivityTabs';
 import HintPanel from '../../components/HintPanel';
 import ObjectiveHelpModal from '../../components/workshop/ObjectiveHelpModal';
 import useChangePolling from '../../hooks/useChangePolling';
 import useWorkshopHeartbeat from '../../hooks/useWorkshopHeartbeat';
 import useReconciliationGuard, { useGuardedSetter } from '../../hooks/useReconciliationGuard';
 import { useWorkshopConfig } from '../../context/WorkshopConfigContext';
-import { MultiScenarioWorkshop, ScenarioNavigator, WorkshopButton as WorkshopButtonBase, WorkshopModeControl, ScopedResetButton, ObjectiveHelpActions, ResetConfirmation } from '../../components/workshop/WorkshopExperience';
+import { MultiScenarioWorkshop, ScenarioNavigator, ScenarioWorkspace, WorkshopButton as WorkshopButtonBase, WorkshopModeControl, ScopedResetButton, ObjectiveHelpActions, ResetConfirmation } from '../../components/workshop/WorkshopExperience';
 import { xssWorkshopExperience } from '../../components/workshop/experience.mjs';
 import JudgeRetryButton from '../../components/workshop/JudgeRetryButton';
 import { getJudgeFeedback } from '../../utils/judgeFeedback.mjs';
@@ -138,9 +139,10 @@ const IntroSection = styled.div`
   border: 2px solid #667eea;
   border-radius: 16px;
   padding: 2rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
+  @media (max-width: 600px) { padding: 1.25rem; }
 
-  h3 {
+  h2 {
     color: #667eea;
     font-size: 1.3rem;
     margin: 0 0 1rem 0;
@@ -165,6 +167,25 @@ const IntroSection = styled.div`
     color: #444;
     strong { color: #667eea; }
   }
+`;
+
+const EmailSetupGrid = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 2rem;
+  @media (max-width: 768px) { grid-template-columns: minmax(0, 1fr); }
+`;
+
+const ProviderStatus = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 1rem 0;
+  overflow-wrap: anywhere;
+  color: ${props => props.$ready ? '#28a745' : '#555'};
+  font-weight: 600;
+  > span { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+  small { font-size: 0.85rem; font-weight: 400; line-height: 1.7; }
 `;
 
 const TabContainer = styled.div`
@@ -196,8 +217,10 @@ const Tab = styled.button`
 `;
 
 const TwoColumnLayout = styled.div`
+  button { min-height: 44px; }
+  @media (prefers-reduced-motion: reduce) { &, * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 2rem;
   align-items: stretch;
 
@@ -232,7 +255,8 @@ const PanelHeader = styled.div`
   h3 {
     margin: 0;
     color: #333;
-    font-size: 1.2rem;
+    font-weight: 600;
+    font-size: 1.5rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -246,23 +270,27 @@ const ChatSection = styled.div`
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  height: 560px;
+  height: 600px;
+  min-width: 0;
+  @media (max-width: 600px) { height: min(700px, 85svh); min-height: 440px; }
   border: 2px solid #e9ecef;
 `;
 
 const ChatHeader = styled.div`
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 1.1rem 1.25rem;
+  padding: 1.25rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   flex-shrink: 0;
 
+  flex-wrap: wrap;
+  > div { min-width: 0; }
   h3 {
     margin: 0;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -276,7 +304,7 @@ const StatusIndicator = styled.div`
   border-radius: 50%;
   background: ${({ $available }) => $available === true ? '#4ade80' : $available === false ? '#f87171' : '#9ca3af'};
   box-shadow: 0 0 8px ${({ $available }) => $available === true ? '#4ade80' : $available === false ? '#f87171' : '#9ca3af'};
-  animation: xsspulse 2s infinite;
+  @media (prefers-reduced-motion: reduce) { animation: none; }
   flex-shrink: 0;
 
   @keyframes xsspulse {
@@ -297,7 +325,8 @@ const MessageList = styled.div`
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  padding: 1.25rem 1rem 1.25rem 1.25rem;
+  padding: 1.5rem;
+  padding-right: 0.5rem;
 
   &::-webkit-scrollbar { width: 8px; }
   &::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); border-radius: 4px; }
@@ -345,8 +374,8 @@ const MessageBubble = styled(motion.div)`
 
   .message-icon {
     flex-shrink: 0;
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -375,8 +404,8 @@ const MessageBubble = styled(motion.div)`
     overflow-wrap: break-word;
   }
   .message-header {
-    font-size: 0.72rem;
-    opacity: 0.85;
+    font-size: 0.75rem;
+    opacity: 0.9;
     margin-bottom: 0.25rem;
     display: flex;
     align-items: center;
@@ -406,6 +435,7 @@ const InputRow = styled.form`
 
 const Input = styled.textarea`
   flex: 1;
+  min-width: 0;
   padding: 0.8rem 1rem;
   border: 2px solid #e2e8f0;
   border-radius: 12px;
@@ -429,8 +459,8 @@ const SendButton = styled(WorkshopButtonBase)`
   color: white;
   border: none;
   border-radius: 12px;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -448,8 +478,8 @@ const SendButton = styled(WorkshopButtonBase)`
 const ObjectiveItem = styled(motion.div)`
   display: flex;
   align-items: flex-start;
-  gap: 0.875rem;
-  padding: 0.875rem 1.125rem;
+  gap: 1rem;
+  padding: 0.875rem 1.25rem;
   background: ${props => props.$completed ? '#f0fdf4' : props.$active ? 'rgba(102, 126, 234, 0.08)' : '#f8f9fa'};
   border: 1px solid ${props => props.$completed ? '#22c55e' : props.$active ? '#667eea' : '#e2e8f0'};
   border-radius: 10px;
@@ -477,8 +507,8 @@ const ObjectiveItem = styled(motion.div)`
 
   .obj-icon {
     flex-shrink: 0;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -488,15 +518,15 @@ const ObjectiveItem = styled(motion.div)`
     color: white;
     margin-top: 2px;
   }
-  .obj-content { flex: 1; }
+  .obj-content { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .obj-name {
     font-weight: 600;
     color: #333;
-    font-size: 0.9rem;
-    margin-bottom: 0.2rem;
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
   }
   .obj-desc {
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     color: #666;
     line-height: 1.4;
   }
@@ -508,7 +538,7 @@ const ProgressBlock = styled.div`
   border-top: 2px solid #e9ecef;
 
   .progress-title {
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: #333;
     margin-bottom: 0.6rem;
@@ -517,7 +547,7 @@ const ProgressBlock = styled.div`
     gap: 0.5rem;
   }
   .progress-text {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     color: #666;
     margin-bottom: 0.6rem;
   }
@@ -855,8 +885,10 @@ const XSSWorkshop = () => {
   const progressResetPendingRef = useRef(false);
   const [xssDetected, setXssDetected] = useState(false);
   const tabXssDetected = useRef({ reflected: false, stored_user: false, stored_llm: false, email: false });
-  const [inputMessage, setInputMessage] = useState('');
-  const [llmStatus, setLlmStatus] = useState({ available: false, model: null, message: '', ollamaBaseURL: 'http://localhost:11434', ollamaVersion: null, availableModels: [] });
+  const [drafts, setDrafts] = useState({});
+  const inputMessage = drafts[visibleTabs[activeTab]?.exerciseId] || '';
+  const setInputMessage = value => setDrafts(previous => ({ ...previous, [visibleTabs[activeTab]?.exerciseId]: value }));
+  const [llmStatus, setLlmStatus] = useState({ available: null, model: null, availableModels: [] });
 
   // Per-tab message history using a ref of arrays keyed by tab id
   const tabMessages = useRef({
@@ -896,7 +928,8 @@ const XSSWorkshop = () => {
     externalEmailEditedRef.current = false;
     const emptyMail = { resolved: false, mode: null, provider: null, editable: false, sender: '', mailpitInboxUrl: null };
     emailConfigRef.current = emptyMail; setEmailConfig(emptyMail);
-    setLlmStatus({ available: false, model: null, message: '', availableModels: [] });
+    setLlmStatus({ available: null, model: null, availableModels: [] });
+    setDrafts({});
     activeExerciseRef.current = null; queryTabApplied.current = false;
   }, [ownerRevision, progressGuard]);
 
@@ -965,10 +998,11 @@ const XSSWorkshop = () => {
     }
   }, [progressGuard, revision, viewingObjectiveSolution, visibleObjectiveIds]);
 
-  // Scroll chat to bottom whenever messages change
+  const followOutput = useRef(true);
+  // Follow new output only while the learner is near the bottom.
   useEffect(() => {
     const el = messageListRef.current;
-    if (!el) return;
+    if (!el || !followOutput.current) return;
     requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
   }, [messages, loading, xssDetected]);
 
@@ -1014,8 +1048,11 @@ const XSSWorkshop = () => {
     setActiveTab(idx);
     setMessages(tabMessages.current[targetExerciseId] || []);
     setXssDetected(Boolean(tabXssDetected.current[targetExerciseId]));
-    setInputMessage('');
-  }, [visibleTabs, ownerIsCurrent]);
+    followOutput.current = true;
+    pendingObjectiveSolutionRef.current = null;
+    progressGuard.mark('solutionModal');
+    setViewingObjectiveSolution(null);
+  }, [visibleTabs, ownerIsCurrent, progressGuard]);
 
   useEffect(() => {
     if (!visibleTabs.length) return;
@@ -1037,7 +1074,8 @@ const XSSWorkshop = () => {
       const { data } = await axios.get('/api/workshop/xss/llm-status');
       if (!ownerIsCurrent()) return;
       setLlmStatus({
-        available: data.available,
+        available: data.available === true,
+        provider: data.provider || (data.ollamaBaseURL ? 'ollama' : null),
         model: data.model || null,
         providerName: data.providerName || null,
         region: data.region || null,
@@ -1048,7 +1086,7 @@ const XSSWorkshop = () => {
       });
     } catch {
       if (!ownerIsCurrent()) return;
-      setLlmStatus({ available: false, model: null, message: 'Could not reach AI service.', ollamaBaseURL: 'http://localhost:11434', ollamaVersion: null, availableModels: [] });
+      setLlmStatus({ available: false, refreshFailed: true, model: null, availableModels: [] });
     }
   }, [ownerIsCurrent]);
 
@@ -1220,7 +1258,8 @@ const XSSWorkshop = () => {
   const handleSend = async (e) => {
     e.preventDefault();
     const text = inputMessage.trim();
-    if (!ownerIsCurrent() || !text || loading) return;
+    if (!ownerIsCurrent() || !text || loading || !chatModeResolved || chatModePending) return;
+    followOutput.current = true;
     const chatGeneration = interactionGeneration.current;
     const chatModeGeneration = modeGeneration.current;
     const controller = new AbortController();
@@ -1281,6 +1320,7 @@ const XSSWorkshop = () => {
         raw: responseMode === 'vuln',
         mode: responseMode,
         objectiveId: completedId || undefined,
+        toolActivity: Array.isArray(data.toolActivity) ? data.toolActivity : [],
       };
       const withAi = [...(tabMessages.current[exerciseId] || updatedMessages), aiMsg, ...judgmentMessages(data.judgments)];
       if (activeExerciseRef.current === exerciseId) setMessages(withAi);
@@ -1309,6 +1349,7 @@ const XSSWorkshop = () => {
       const withErr = [...(tabMessages.current[exerciseId] || updatedMessages), errMsg];
       if (activeExerciseRef.current === exerciseId) setMessages(withErr);
       tabMessages.current[exerciseId] = withErr;
+      setDrafts(previous => previous[exerciseId] ? previous : { ...previous, [exerciseId]: text });
       toast.error(errText);
     } finally {
       interactionControllers.current.delete(controller);
@@ -1317,7 +1358,7 @@ const XSSWorkshop = () => {
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent?.isComposing && e.keyCode !== 229) {
       e.preventDefault();
       handleSend(e);
     }
@@ -1499,6 +1540,7 @@ const XSSWorkshop = () => {
   };
 
   const handleResetConversation = () => {
+    setDrafts(previous => ({ ...previous, [exerciseId]: '' }));
     conversationGeneration.current[exerciseId] = (conversationGeneration.current[exerciseId] || 0) + 1;
     tabMessages.current[exerciseId] = [];
     setMessages([]);
@@ -1593,7 +1635,7 @@ const XSSWorkshop = () => {
   };
 
   return (
-    <VulnerabilityTemplate
+    <MotionConfig reducedMotion="user"><VulnerabilityTemplate
       challengeId={CHALLENGE_KEY}
       icon={FiCode}
       hideSidePanel={true}
@@ -1601,34 +1643,14 @@ const XSSWorkshop = () => {
       <MultiScenarioWorkshop definition={xssWorkshopExperience} activeScenarioId={currentTab.id}>
         {/* Intro */}
         <IntroSection>
-          <h3><FiAlertTriangle /> {exerciseId === 'email_builder' ? 'XSS Email Template Builder' : 'XSS in AI Powered Chat System'}</h3>
-          <p style={exerciseId === 'email_builder' ? { display: 'none' } : undefined}>
-            This workshop shows how <strong>Cross-Site Scripting (XSS)</strong> appears when an AI
-            vulnerable-mode assistant replies are rendered as HTML via React’s <code>dangerouslySetInnerHTML</code>{' '}
-            instead of being escaped—so unsanitized HTML with executable event-handler attributes can run in the browser.
-            Script elements inserted through <code>innerHTML</code> remain inert.
-            Four exercises cover <strong>reflected</strong> XSS (payload in the immediate response),{' '}
-            <strong>stored</strong> XSS (payload persisted and replayed), XSS from{' '}
-            <strong>model-authored</strong> HTML saved to a profile, and XSS when{' '}
-            <strong>untrusted email</strong> is fetched and summarized into the chat.
-          </p>
-          {exerciseId === 'email_builder' && (
-            <p>
-              This builder lesson follows profile data into model-generated email HTML. Work through the four catalog objectives, then inspect the teaching document inside its isolated preview frame. Unlike chat HTML inserted through innerHTML, this preview parses a complete document, so preserved script elements can execute in vulnerable mode.
-            </p>
-          )}
-          {exerciseId !== 'email_builder' && <div style={{ marginTop: '1rem' }}>
-            <WorkshopModeControl mode={chatMode} allowedModes={['vuln', 'fixed']}
-              onChange={changeChatMode} pending={chatModePending} disabled={!chatModeResolved}
-              scopeLabel="XSS chat workshop" />
-            <p role="status" style={{ fontSize: '0.86rem', marginTop: '0.45rem' }}>
-              {chatMode === 'fixed'
-                ? 'Fixed mode displays model replies as text. Completed objectives shown below are prior workshop progress; fixed responses do not earn attack credit.'
-                : 'Vulnerable mode renders assistant HTML so the XSS teaching sinks can execute.'}
-            </p>
-          </div>}
+          <h2><FiAlertTriangle /> About the XSS workshop</h2>
+          <p>The <strong>AI assistant</strong> formats responses, manages a practice profile and summarizes email.
+            Explore how untrusted input and model-generated HTML can cross into executable browser content.</p>
+          <p>These deliberately vulnerable teaching workflows use the configured AI provider.
+            Their weakened lab policies do not establish how an unmodified model behaves.</p>
+          <p>In vulnerable chat, unsanitized HTML with executable event-handler attributes can run. Script elements inserted through innerHTML remain inert. The email builder instead previews a complete document in an isolated frame.</p>
           <div className="scenario">
-            <strong>Note:</strong> Each tab is an independent exercise. Work through the objectives in order.
+            <strong>Your task:</strong> Choose a scenario, send a message, and work through its objectives. Each tab is an independent exercise. Work through the objectives in order.
             The server collects observed evidence for each attempted step, and a passing Judge verdict records completion.
             Final execution objectives require the event handler to run in the isolated qualification browser.
           </div>
@@ -1639,25 +1661,36 @@ const XSSWorkshop = () => {
           definition={navigatorDefinition}
           activeScenarioId={currentTab.id}
           onScenarioChange={(scenarioId) => switchToTab(visibleTabs.findIndex((tab) => tab.id === scenarioId))}
-          renderTab={({ scenario, active, tabProps }) => {
-            const tab = visibleTabs.find((candidate) => candidate.id === scenario.id) || { ...scenario, objectives: [] };
-            return (
-              <Tab key={scenario.id} $active={active} {...tabProps}>
-                {tabIcon(tab)} {tab.label}
-                {tabCompleted(tab) && <FiCheckCircle size={13} style={{ color: active ? '#fff' : '#22c55e', marginLeft: '2px' }} />}
-              </Tab>
-            );
-          }}
         />}
 
-        {exerciseId === 'email_builder' && (
+          {exerciseId !== 'email_builder' && <div style={{ marginTop: '1rem' }}>
+            <WorkshopModeControl mode={chatMode} allowedModes={['vuln', 'fixed']}
+              onChange={changeChatMode} pending={chatModePending} disabled={!chatModeResolved}
+              scopeLabel="XSS chat workshop" />
+            <p role="status" style={{ fontSize: '0.86rem', marginTop: '0.45rem' }}>
+              {chatMode === 'fixed'
+                ? 'Fixed mode displays model replies as text. Completed objectives shown below are prior workshop progress; fixed responses do not earn attack credit.'
+                : 'Vulnerable mode renders assistant HTML so the XSS teaching sinks can execute.'}
+            </p>
+          </div>}
+        {exerciseId !== 'email_builder' && <ProviderStatus role="status" $ready={llmStatus.available === true && llmStatus.provider !== 'mock'}>
+          {llmStatus.available === null ? <span>Checking AI availability…</span>
+            : llmStatus.provider === 'mock' ? <span><FiAlertTriangle /> Controlled response provider — not a genuine model run</span>
+            : llmStatus.available ? <>
+              <span><FiCheckCircle /> {llmStatus.providerName || ({ ollama: 'Ollama', openai: 'OpenAI', anthropic: 'Anthropic', bedrock: 'Bedrock' }[llmStatus.provider]) || 'AI'} actor available{llmStatus.model ? <> — model: <strong>{llmStatus.model}</strong></> : ' — Model information unavailable'}</span>
+              <small>Actor availability does not confirm Judge readiness. Objective credit requires a successful Judge assessment of genuine model output and the required evidence.</small>
+              {llmStatus.availableModels?.length > 0 && <small>Available models: {llmStatus.availableModels.slice(0, 6).join(', ')}{llmStatus.availableModels.length > 6 ? '…' : ''}</small>}
+            </> : <><span><FiAlertTriangle /> {llmStatus.refreshFailed ? 'Could not refresh AI availability' : 'AI unavailable'}</span><small>Check the configured service and reload to try again.</small></>}
+        </ProviderStatus>}
+        {visibleTabs.some(tab => tab.id === 'email_builder') && <ScenarioWorkspace scenarioId="email_builder" activeScenarioId={currentTab.id}>
           <XssEmailBuilder key={ownerRevision}
-            objectives={currentTab.objectives}
+            active={exerciseId === 'email_builder'}
+            objectives={visibleTabs.find(tab => tab.id === 'email_builder').objectives}
             revision={revision}
             onProgressChange={handleBuilderProgress}
           />
-        )}
-
+        </ScenarioWorkspace>}
+        {exerciseId !== 'email_builder' && <ScenarioWorkspace scenarioId={currentTab.id} activeScenarioId={currentTab.id}>
         {/* Email Setup Panel — full-width, only on email tab */}
         {exerciseId === 'email' && (
           <div style={{
@@ -1669,7 +1702,7 @@ const XSSWorkshop = () => {
               Step 2: Send from {emailConfig.sender || 'the workshop sender'} to Your Workshop Inbox
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem' }}>
+            <EmailSetupGrid>
               {/* Left: email input */}
               <div>
                 <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#475569', marginBottom: '0.4rem' }}>
@@ -1838,7 +1871,7 @@ const XSSWorkshop = () => {
                   />
                 )}
               </div>
-            </div>
+            </EmailSetupGrid>
           </div>
         )}
 
@@ -1849,37 +1882,13 @@ const XSSWorkshop = () => {
             <ChatHeader>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <StatusIndicator $available={llmStatus.available} />
-                  <h3><FiCode /> {currentTab.label}</h3>
+                  {llmStatus.available === true && llmStatus.provider !== 'mock' && <StatusIndicator $available />}
+                  <h3><FiCode /> {currentTab.label} — {llmStatus.providerName || ({ ollama: 'Ollama', openai: 'OpenAI', anthropic: 'Anthropic', bedrock: 'Bedrock' }[llmStatus.provider]) || 'AI Model'}</h3>
                 </div>
-                {llmStatus.available ? (
-                  <p style={{ marginTop: '0.4rem', color: '#28a745', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '0.15rem', fontSize: '0.85rem' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <FiCheckCircle size={13} /> AI ready
-                      {llmStatus.providerName && <> — {llmStatus.providerName}</>}
-                      {llmStatus.model && <> · model: <strong>{llmStatus.model}</strong></>}
-                      {llmStatus.region && <> · {llmStatus.region}</>}
-                      {llmStatus.ollamaVersion && <> (Ollama {llmStatus.ollamaVersion})</>}
-                    </span>
-                    {llmStatus.availableModels?.length > 0 && (
-                      <span style={{ fontSize: '0.78rem', fontWeight: 'normal', opacity: 0.9 }}>
-                        Available models: {llmStatus.availableModels.slice(0, 6).join(', ')}{llmStatus.availableModels.length > 6 ? '…' : ''}
-                      </span>
-                    )}
-                  </p>
-                ) : (
-                  <p style={{ marginTop: '0.4rem', color: '#dc3545', fontWeight: 600, display: 'flex', flexDirection: 'column', gap: '0.15rem', fontSize: '0.85rem' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <FiAlertTriangle size={13} /> AI unavailable
-                    </span>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 'normal' }}>
-                      {llmStatus.message || 'AI provider is not reachable.'}
-                    </span>
-                  </p>
-                )}
+                <div style={{ fontSize: '0.85rem', opacity: 0.95, marginTop: '0.4rem' }}>Exercise: {currentTab.objectives.find(obj => !completedObjectives[obj.id])?.label || (currentTab.objectives.length ? 'All objectives completed!' : 'No objectives available')}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <ScopedResetButton label="Reset Conversation" onClick={handleResetConversation} />
+                <ScopedResetButton label="Reset conversation" onClick={handleResetConversation} />
                 {showResetProfile && (
                   <ScopedResetButton label="Reset Profile" onClick={requestProfileReset}
                     disabled={Boolean(profileResetConfirmation)} />
@@ -1921,8 +1930,9 @@ const XSSWorkshop = () => {
               </div>
             )}
 
+            <ChatActivityTabs key={exerciseId} activity={messages.flatMap(message => (message.toolActivity || []).map(entry => ({ ...entry, id: `${message.id}:${entry.id}` })))}>
             <ChatContainer>
-              <MessageList ref={messageListRef}>
+              <MessageList ref={messageListRef} onScroll={event => { const el = event.currentTarget; followOutput.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80; }}>
                 <AnimatePresence initial={false}>
                   {messages.map(msg => (
                     <MessageBubble
@@ -2005,14 +2015,16 @@ const XSSWorkshop = () => {
                 <Input
                   value={inputMessage}
                   onChange={e => setInputMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
+                  onKeyDown={handleKeyPress}
+                  aria-label="Message the XSS assistant"
                   placeholder={`Message the XSS assistant (${currentTab.label})…`}
-                  disabled={loading}
+                  disabled={loading || !chatModeResolved || chatModePending}
                   rows={1}
                 />
                 <SendButton
                   type="submit"
-                  disabled={loading || !inputMessage.trim()}
+                  aria-label="Send message"
+                  disabled={loading || !inputMessage.trim() || !chatModeResolved || chatModePending}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -2020,6 +2032,7 @@ const XSSWorkshop = () => {
                 </SendButton>
               </InputRow>
             </ChatContainer>
+            </ChatActivityTabs>
           </ChatSection>
 
           {/* Right column: Objectives + Progress + Solution */}
@@ -2036,7 +2049,7 @@ const XSSWorkshop = () => {
                   <ObjectiveItem
                     key={obj.id}
                     $completed={done}
-                    $active={!done}
+                    $active={obj.id === currentTab.objectives.find(item => !completedObjectives[item.id])?.id}
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: idx * 0.06 }}
@@ -2048,23 +2061,23 @@ const XSSWorkshop = () => {
                     <div className="obj-content">
                       <div className="obj-name">{obj.label}</div>
                       <div className="obj-desc">{obj.description}</div>
-                      <div onClick={(e) => e.stopPropagation()}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        {hintsEnabled[obj.id] === true && <HintPanel workshopKey="xss_workshop" objective={{ title: obj.label }} objectiveId={obj.id} revision={hintRefreshRevision} />}
                         <ObjectiveHelpActions objectiveId={obj.id} hintVisible={false}
                           solutionVisible={solutionsEnabled[obj.id] === true}
                           activeKind={viewingObjectiveSolution?.objectiveId === obj.id ? 'solution' : undefined}
                           onOpen={(_kind, objectiveId) => handleViewObjectiveSolution(objectiveId)} />
                       </div>
-                      {hintsEnabled[obj.id] === true && (
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <HintPanel workshopKey="xss_workshop" objectiveId={obj.id} accentColor="#667eea" revision={hintRefreshRevision} />
-                        </div>
-                      )}
                     </div>
                   </ObjectiveItem>
                 );
               })}
             </div>
 
+            <div aria-label="Scenario progress" style={{ marginTop: '1rem', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Progress</h3>
+              <p style={{ fontSize: '0.95rem', color: '#666' }}>{currentTab.objectives.filter(obj => completedObjectives[obj.id]).length} of {currentTab.objectives.length} objectives completed in this scenario</p>
+            </div>
             {/* Reset Above Objectives (formerly Reset This Tab) */}
             <ScopedResetButton label="Reset Above Objectives"
               onClick={() => requestProgressReset('tab', exerciseId)} disabled={resettingProgress} />
@@ -2073,7 +2086,7 @@ const XSSWorkshop = () => {
             <ProgressBlock>
               <div className="progress-title"><FiActivity size={15} /> Overall Progress</div>
               <div className="progress-text">{completedCount} of {visibleObjectiveCount} objectives completed</div>
-              <div className="progress-bar-track">
+              <div className="progress-bar-track" role="progressbar" aria-label="Overall XSS progress" aria-valuemin={0} aria-valuemax={visibleObjectiveCount} aria-valuenow={completedCount}>
                 <motion.div
                   className="progress-bar-fill"
                   initial={{ width: 0 }}
@@ -2105,6 +2118,8 @@ const XSSWorkshop = () => {
                 return (
                   <div
                     key={tab.id}
+                    role="button" tabIndex={0}
+                    onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); switchToTab(idx); } }}
                     onClick={() => switchToTab(idx)}
                     style={{
                       display: 'flex',
@@ -2146,11 +2161,12 @@ const XSSWorkshop = () => {
             </div>
           </Panel>
         </TwoColumnLayout>}
+        </ScenarioWorkspace>}
       </MultiScenarioWorkshop>
 
       {viewingObjectiveSolution && visibleObjectiveIds.has(viewingObjectiveSolution.objectiveId) && (
         <ObjectiveHelpModal kind="solution" appearance="legacy-light"
-          objective={{ title: viewingObjectiveSolution.title }}
+          objective={{ title: currentTab.objectives.find(obj => obj.id === viewingObjectiveSolution.objectiveId)?.label || viewingObjectiveSolution.title }}
           content={{
             explanation: viewingObjectiveSolution.explanation,
             tips: hintsEnabled[viewingObjectiveSolution.objectiveId] === true && viewingObjectiveSolution.hint
@@ -2188,7 +2204,7 @@ const XSSWorkshop = () => {
         error={profileResetConfirmation?.error}
         onCancel={() => { if (!profileResetPendingRef.current) setProfileResetConfirmation(null); }}
         onConfirm={confirmProfileReset} />
-    </VulnerabilityTemplate>
+    </VulnerabilityTemplate></MotionConfig>
   );
 };
 

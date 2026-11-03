@@ -119,6 +119,7 @@ function installResponses() {
     if (url.startsWith('/api/solutions/xss-workshop/objective/')) {
       return Promise.resolve({ data: { solution: { title: 'Current XSS solution', hint: 'Current hint' } } });
     }
+    if (url === '/api/workshop/xss/mode') return Promise.resolve({ data: { mode: 'vuln', effectiveMode: 'vuln', scope: { kind: 'workshop', id: 'xss_workshop' } } });
     if (url === '/api/workshop/xss/llm-status') return Promise.resolve({ data: { available: true } });
     if (url === '/api/workshop/xss/emails/sharklaser-email') return Promise.resolve({ data: {
       email: 'xss-42@owasp-ai-goat.invalid', mode: 'local', provider: 'mailpit', editable: false,
@@ -198,7 +199,7 @@ test('builder-only visibility uses the combined XSS template while hiding main o
   await flush();
 
   expect(view.node.querySelector('[data-challenge-id]')?.getAttribute('data-challenge-id')).toBe('reflected_xss_llm');
-  expect(view.node.textContent).toContain('XSS Email Template Builder');
+  expect(view.node.textContent).toContain('About the XSS workshop');
   expect(view.node.textContent).toContain('Builder workspace');
   expect(view.node.textContent).not.toContain('Interact with the assistant');
   expect(view.node.textContent).not.toContain('XSS in AI Powered Chat System');
@@ -215,7 +216,7 @@ test('a polled snapshot hides an objective and closes its open solution', async 
   act(() => solutionButton.dispatchEvent(new MouseEvent('click', { bubbles: true })));
   await flush();
   expect(document.querySelector('[data-testid="objective-help-modal"]')).toBeTruthy();
-  expect(document.body.textContent).toContain('Solution · Current XSS solution');
+  expect(document.body.textContent).toContain('Solution · Interact with the assistant');
   expect(document.body.textContent).toContain('Current hint');
 
   objectiveVisibility.xss_r1.isVisible = false;
@@ -558,7 +559,7 @@ test('clearing one conversation fences its delayed response without clearing pro
   await act(async () => input.closest('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
   await flush();
   await act(async () => [...view.node.querySelectorAll('button')]
-    .find(button => button.textContent.includes('Reset Conversation')).click());
+    .find(button => button.textContent.includes('Reset conversation')).click());
   await flush();
   expect(view.node.textContent).not.toContain('discard this delayed request');
   expect(view.node.querySelector('textarea').disabled).toBe(false);
@@ -735,10 +736,10 @@ test('summary revisions received on builder remain current when returning to sum
   const view = renderWorkshop(); await flush();
   act(() => view.node.querySelector('[data-scenario-tab="email_builder"]').click()); await flush();
   expect(view.node.textContent).toContain('Builder workspace');
-  expect(view.node.textContent).toContain('XSS Email Template Builder');
+  expect(view.node.textContent).toContain('About the XSS workshop');
   expect(view.node.textContent).not.toContain('XSS in AI Powered Chat System');
   act(() => view.node.querySelector('[data-scenario-tab="reflected"]').click()); await flush();
-  expect(view.node.textContent).toContain('XSS in AI Powered Chat System');
+  expect(view.node.textContent).toContain('About the XSS workshop');
   act(() => view.node.querySelector('[data-scenario-tab="email_builder"]').click()); await flush();
   act(() => [...view.node.querySelectorAll('button')].find(button => button.textContent === 'Builder workspace').click());
   const originalGet = axios.get.getMockImplementation();
@@ -773,7 +774,7 @@ test.each(['current', 'during-reset', 'after-reset', 'aborted'])('Judge retry re
   axios.get.mockImplementation(() => progress);
   axios.get.mockClear();
   toast.success.mockClear();
-  const reset = () => [...view.node.querySelectorAll('button')].find(button => button.textContent.trim() === 'Reset Conversation').click();
+  const reset = () => [...view.node.querySelectorAll('button')].find(button => button.textContent.trim() === 'Reset conversation').click();
   let pending;
   try {
     if (timing === 'after-reset') await act(async () => reset());
@@ -907,5 +908,80 @@ test('chat-wide reset preserves builder completion and states its scope', async 
   expect(view.node.querySelector('.progress-text').textContent).toContain('1 of 16 objectives completed');
   expect(axios.post).toHaveBeenCalledWith('/api/workshop/xss/progress/reset');
   expect(axios.post.mock.calls.some(([url]) => url === '/api/xss-email/challenge/reset')).toBe(false);
+  act(() => view.root.unmount());
+});
+
+test('scenario navigation preserves independent drafts without sending a message', async () => {
+  const view = renderWorkshop(); await flush();
+  change(view.node.querySelector('textarea'), 'unsent reflected draft');
+  await act(async () => view.node.querySelector('[data-scenario-tab="stored_user"]').click());
+  await flush();
+  expect(view.node.querySelector('textarea').value).toBe('');
+  change(view.node.querySelector('textarea'), 'unsent profile draft');
+  await act(async () => view.node.querySelector('[data-scenario-tab="reflected"]').click());
+  await flush();
+  expect(view.node.querySelector('textarea').value).toBe('unsent reflected draft');
+  await act(async () => view.node.querySelector('[data-scenario-tab="stored_user"]').click());
+  await flush();
+  expect(view.node.querySelector('textarea').value).toBe('unsent profile draft');
+  expect(axios.post).not.toHaveBeenCalled();
+  act(() => view.root.unmount());
+});
+
+test('composer distinguishes Enter from Shift+Enter and IME composition', async () => {
+  const view = renderWorkshop(); await flush();
+  const input = view.node.querySelector('textarea');
+  expect(input.getAttribute('aria-label')).toBe('Message the XSS assistant');
+  change(input, 'compose this');
+  for (const options of [{ shiftKey: true }, { isComposing: true }, { keyCode: 229 }]) {
+    await act(async () => input.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'Enter', bubbles: true, cancelable: true, ...options,
+    })));
+  }
+  expect(axios.post).not.toHaveBeenCalled();
+  expect(input.value).toBe('compose this');
+  await act(async () => input.dispatchEvent(new KeyboardEvent('keydown', {
+    key: 'Enter', bubbles: true, cancelable: true,
+  })));
+  expect(axios.post.mock.calls.filter(([url]) => url === '/api/workshop/xss/chat')).toHaveLength(1);
+  act(() => view.root.unmount());
+});
+
+test('server tool activity stays inert and returns to its originating scenario', async () => {
+  const view = renderWorkshop(); await flush();
+  await act(async () => view.node.querySelector('[data-scenario-tab="stored_user"]').click());
+  await flush();
+  let finish;
+  axios.post.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const input = view.node.querySelector('textarea'); change(input, 'show my profile');
+  await act(async () => input.closest('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+  await act(async () => view.node.querySelector('[data-scenario-tab="reflected"]').click());
+  await act(async () => finish({ data: { response: 'Profile loaded.', toolActivity: [{
+    id: 'xss-tool-0', name: 'getProfile', arguments: {},
+    result: { profile: { bio: '<img id="activity-only-payload" src=x onerror=alert(1)>' } },
+    timestamp: '2026-11-01T12:00:00.000Z', status: 'success', controlled: true,
+  }] } }));
+  await flush();
+  const activityTab = () => [...view.node.querySelectorAll('[role="tab"]')]
+    .find(button => button.textContent.startsWith('Tool Activity'));
+  await act(async () => activityTab().click());
+  expect(view.node.querySelector('[aria-label="0 recorded tool calls"]')).toBeTruthy();
+  expect(view.node.textContent).not.toContain('activity-only-payload');
+  await act(async () => view.node.querySelector('[data-scenario-tab="stored_user"]').click());
+  await flush();
+  change(view.node.querySelector('textarea'), 'retained activity draft');
+  await act(async () => activityTab().click());
+  expect(view.node.querySelector('[aria-label="1 recorded tool calls"]')).toBeTruthy();
+  expect(view.node.textContent).toContain('Controlled/mock execution');
+  expect(JSON.parse(view.node.querySelector('[aria-label="getProfile result"]').textContent).profile.bio)
+    .toBe('<img id="activity-only-payload" src=x onerror=alert(1)>');
+  expect(view.node.querySelector('#activity-only-payload')).toBeNull();
+  await act(async () => [...view.node.querySelectorAll('[role="tab"]')]
+    .find(button => button.textContent === 'Chat').click());
+  expect(view.node.querySelector('textarea').value).toBe('retained activity draft');
+  await act(async () => [...view.node.querySelectorAll('button')]
+    .find(button => button.textContent.trim() === 'Reset conversation').click());
+  expect(view.node.querySelector('[aria-label="0 recorded tool calls"]')).toBeTruthy();
+  expect(view.node.textContent).not.toContain('activity-only-payload');
   act(() => view.root.unmount());
 });
