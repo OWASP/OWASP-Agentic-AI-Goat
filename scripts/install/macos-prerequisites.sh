@@ -78,12 +78,17 @@ install_macos_prerequisites() {
   fi
 }
 
+macos_colima_context() {
+  # Colima reserves the unqualified context/VM name for its default profile.
+  if [[ "$1" == colima-default ]]; then printf '%s\n' colima; else printf '%s\n' "$1"; fi
+}
+
 ensure_macos_docker_ready() {
   local repair_existing="$1" owned_profile="$2" attempt
   local docker_probe=(docker)
   # Fresh setup selected this profile explicitly. Never start Docker Desktop
   # or probe an unrelated active context when that selected daemon is unavailable.
-  if [[ "$repair_existing" == false ]]; then docker_probe+=(--context "$owned_profile"); fi
+  if [[ "$repair_existing" == false ]]; then docker_probe+=(--context "$(macos_colima_context "$owned_profile")"); fi
   if ! "${docker_probe[@]}" info >/dev/null 2>&1; then
     if "$repair_existing"; then
       die 'Repair requires the previously bound local Docker daemon to be running. Start that daemon or its recorded Colima profile, then rerun; repair will not start a different Docker service.'

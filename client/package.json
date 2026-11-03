@@ -103,7 +103,7 @@
     "@parcel/watcher@2.6.0": true,
     "fsevents@2.3.3": true,
     "unrs-resolver@1.12.2": true,
-    "@swc/core@1.16.2": true
+    "@swc/core@1.16.13": true
   },
   "overrides": {
     "@istanbuljs/load-nyc-config": {

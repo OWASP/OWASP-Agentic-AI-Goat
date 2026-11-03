@@ -10,7 +10,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { renderMcpSandboxAppArmor } = require('../render-mcp-sandbox-apparmor');
 const dotenv = require('dotenv');
-const { PROFILE, localProfilePlan, prepareOwnedManagedConfiguration, managedConfigurationPath, createOwnedPrivateStorage } = require('./mcp-owned-local');
+const { snapshotApplicationEnvironment, PROFILE, localProfilePlan, prepareOwnedManagedConfiguration, managedConfigurationPath, createOwnedPrivateStorage } = require('./mcp-owned-local');
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const ENFORCED = `${PROFILE} (enforce)`;
@@ -333,7 +333,7 @@ function assertRequestedCapabilities(receipt, { activateObservedAction = false, 
   return true;
 }
 
-async function provisionFromEnvironment({ envPath, platform = process.platform, root = path.resolve(__dirname, '../..'),
+async function provisionFromEnvironment({ envPath, applicationEnvironment, platform = process.platform, root = path.resolve(__dirname, '../..'),
   home = os.homedir(), managedPath = managedConfigurationPath({ root, home }), activateQualified = false,
   activateObservedAction = false, activateSupplyChain = false, activateIndirectInjection = false,
   activateProtectedRecovery = false, protectedRecoveryRelease = null,
@@ -342,8 +342,11 @@ async function provisionFromEnvironment({ envPath, platform = process.platform, 
   provision = provisionOwnedLocal,
   targetClientFactory = require('../../server/services/mcp/ownedTargetClient').createMcpOwnedTargetClient } = {}) {
   if(platform==='win32')localProfilePlan({platform,root,home,ownedLabSession});
-  const prepared = await prepareOwnedManagedConfiguration({ envPath, managedPath, forceDisabled: true,storage });
-  const privateValues = dotenv.parse(await storage.read(envPath,{workspace:true}));
+  // Fresh setup has not published .env yet. Capture its explicit private input
+  // once so asynchronous provisioning cannot change the activation source.
+  const snapshot = applicationEnvironment === undefined ? undefined : snapshotApplicationEnvironment(applicationEnvironment);
+  const prepared = await prepareOwnedManagedConfiguration({ envPath, managedPath, applicationEnvironment: snapshot, forceDisabled: true,storage });
+  const privateValues = snapshot || dotenv.parse(await storage.read(envPath,{workspace:true}));
   const parsed = { ...privateValues, ...prepared.values };
   const targets = targetClientFactory({
     baseURL: parsed.MCP_OWNED_TARGET_URL, token: parsed.MCP_OWNED_TARGET_TOKEN,
@@ -364,7 +367,7 @@ async function provisionFromEnvironment({ envPath, platform = process.platform, 
   if ((activateObservedAction || activateIndirectInjection || activateSupplyChain) && !capabilityReadinessVerified) {
     throw failure('MCP_INSTALL_CAPABILITY_UNAVAILABLE', 'owned-readiness');
   }
-  const activated = await prepareOwnedManagedConfiguration({ envPath, managedPath, activateQualified: true,
+  const activated = await prepareOwnedManagedConfiguration({ envPath, managedPath, applicationEnvironment: snapshot, activateQualified: true,
     activateObservedAction, activateSupplyChain, activateIndirectInjection,activateProtectedRecovery,protectedRecoveryQualified:provisioned.protectedRecoveryQualified===true,storage });
   return Object.freeze({ ...provisioned, managedPath, activationEnabled: activated.activationEnabled });
 }
