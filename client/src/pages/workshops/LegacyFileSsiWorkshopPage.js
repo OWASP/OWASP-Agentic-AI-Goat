@@ -1,7 +1,6 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import axios from 'axios';
 import LegacyFileSsiWorkshop from './LegacyFileSsiWorkshop';
-import {StatusNotice} from '../../components/workshop/WorkshopExperience';
 import {createLegacyFileSsiController} from '../../utils/legacyFileSsiController.mjs';
 import {useAuth} from '../../context/AuthContext';
 import {useWorkshopConfig} from '../../context/WorkshopConfigContext';
@@ -95,5 +94,5 @@ export default function LegacyFileSsiWorkshopPage(){
  useEffect(()=>registerReconciler((_revision,{signal}={})=>refresh({background:true,signal})),[registerReconciler,refresh]);
  const visibleSnapshot=snapshotSessionKey===sessionKey?snapshot:null;
  const visibleError=errorSessionKey===sessionKey?error:'';
- return <>{visibleError&&<StatusNotice status="error">{visibleError}</StatusNotice>}<LegacyFileSsiWorkshop key={sessionKey} snapshot={visibleSnapshot} onAttempt={runAttempt} onReset={runReset} onModeChange={runModeChange} onRefresh={refresh}/></>;
+ return <LegacyFileSsiWorkshop key={sessionKey} loading={!visibleSnapshot&&!visibleError} pageError={visibleError} snapshot={visibleSnapshot} onAttempt={runAttempt} onReset={runReset} onModeChange={runModeChange} onRefresh={refresh}/>;
 }

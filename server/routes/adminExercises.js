@@ -82,6 +82,16 @@ function createAdminExercisesRouter({
 
   router.use(requirePermission('challenge_management'));
 
+  router.post('/reflected_xss_llm/group-controls', mutate((req) => {
+    const body = req.body;
+    if (!body || typeof body !== 'object' || Array.isArray(body)
+      || Object.keys(body).length !== 2 || !Object.hasOwn(body, 'dimension') || !Object.hasOwn(body, 'enabled')
+      || !['active', 'hints', 'solutions', 'objectives'].includes(body.dimension) || typeof body.enabled !== 'boolean') {
+      throw Object.assign(new Error('Invalid XSS group controls'), { code: 'BAD_REQUEST' });
+    }
+    return service.setXssGroupControls(body.dimension, body.enabled, req.user.id);
+  }, req => ({ type: 'xssGroupControls', dimension: req.body.dimension, bulk: true })));
+
   router.patch('/content-visibility', mutate((req) =>
     service.setAllHintAndSolutionVisibility(req.body?.enabled, req.user.id),
     () => ({ type: 'hintAndSolutionVisibility', bulk: true })));

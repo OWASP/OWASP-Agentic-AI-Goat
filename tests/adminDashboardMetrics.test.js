@@ -221,3 +221,38 @@ test('all workshop admin counts and lists exclude separate apps while configurat
  statements.length=0;await repository.listExercisesWithStats({includeStandaloneApps:true});await repository.listAllSolutions({includeStandaloneApps:true});
  for(const sql of statements)assert.doesNotMatch(sql,/e\.workshop_key<>'secureshop_agent_security'/);
 });
+
+test('admin exercise catalog attaches grouped XSS completion counts without summing or replacing canonical rows', async t => {
+  const pass = (_req, _res, next) => next();
+  const auth = { authenticateToken: pass, requireAdminLevel: () => pass,
+    requirePermission: () => pass, logActivity: () => pass };
+  const calls = [];
+  const configurations = [
+    { workshop_key: 'xss_workshop', challenge_key: 'reflected_xss_llm', challenge_name: 'XSS', is_visible: true, students_completed: 7 },
+    { workshop_key: 'xss_email_builder', challenge_key: 'xss_email_builder', challenge_name: 'Builder', is_visible: true, students_completed: 5 },
+    { workshop_key: 'csrf_workshop', challenge_key: 'csrf_prompt_injection', challenge_name: 'CSRF', is_visible: true, students_completed: 2 },
+  ];
+  const repository = { async listExercisesWithStats(options) {
+    calls.push(options);
+    return options.groupDisplay ? [{ workshop_key: 'xss_workshop', students_completed: 3 }] : configurations;
+  } };
+  const operational = Object.fromEntries(['providerStatus', 'switchProvider', 'configureProvider', 'testProvider', 'testLlm',
+    'appLogs', 'llmLogs', 'logStats', 'systemMonitoring'].map(key => [key, (_req, res) => res.sendStatus(501)]));
+  const app = express();
+  app.use('/api/admin', createPostgresAdminRouter({ adapter: {}, stores: { pool: {}, config: {}, progress: {} },
+    auth, repository, analytics: {}, resetService: {}, operational, xssLegacyRepository: {}, deletionService: {} }));
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const response = await fetch(`http://127.0.0.1:${server.address().port}/api/admin/challenges`);
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.deepEqual(calls, [{ includeStandaloneApps: true }, { groupDisplay: true }]);
+  assert.equal(result.challenges.length, 3);
+  assert.equal(result.challenges[0].completions, 7);
+  assert.equal(result.challenges[1].completions, 5);
+  assert.equal(result.challenges[0].displayCompletions, 3);
+  assert.equal(result.challenges[1].displayCompletions, 3);
+  assert.equal(result.challenges[2].displayCompletions, undefined);
+  assert.deepEqual(result.applications, []);
+});

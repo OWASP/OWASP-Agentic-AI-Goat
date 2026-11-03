@@ -8,10 +8,11 @@ const mockRegisterReconciler=jest.fn(()=>()=>{});
 jest.mock('axios',()=>({get:jest.fn(),post:jest.fn()}));
 jest.mock('../../context/AuthContext',()=>({useAuth:()=>({user:mockUser})}));
 jest.mock('../../context/WorkshopConfigContext',()=>({useWorkshopConfig:()=>({registerReconciler:mockRegisterReconciler})}));
-jest.mock('./LegacyFileSsiWorkshop',()=>({__esModule:true,default:({snapshot,onAttempt,onReset,onModeChange,onRefresh})=>{
+jest.mock('./LegacyFileSsiWorkshop',()=>({__esModule:true,default:({snapshot,onAttempt,onReset,onModeChange,onRefresh,pageError})=>{
  const [error,setError]=useState('');
  const invoke=fn=>Promise.resolve().then(fn).catch(e=>setError(e.message));
  return <div data-testid="legacy-page">
+  {pageError&&<div role="alert">{pageError}</div>}
   <span data-testid="snapshot">{snapshot?.objectives?.[0]?.label||'loading'}</span>
   <span data-testid="objectives">{snapshot?.objectives?.map(objective=>objective.id).join(',')||''}</span>
   {error&&<span data-testid="child-error">{error}</span>}

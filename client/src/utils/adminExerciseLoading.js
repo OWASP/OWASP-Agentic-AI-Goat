@@ -1,3 +1,4 @@
+import { XSS_ADMIN_KEY } from './adminXssGroup';
 // Editable family content is fetched only for the open objectives panel.
 export const ADMIN_FAMILY_CONTENT = Object.freeze({
  direct_prompt_injection: ['/api/admin/pi-workshop/solutions','challenges','pi'],
@@ -22,6 +23,19 @@ export async function readAdminExerciseState({get,config,key,workshopKey}) {
  if(catalog.data?.success!==true||!Array.isArray(catalog.data.challenges))throw Error('Invalid admin exercise catalog');
  const challenges=[...catalog.data.challenges,...(catalog.data.applications || [])];
  if(!key)return {challenges};
+ if(key===XSS_ADMIN_KEY && challenges.some(row=>(row.key||row.id)==='xss_email_builder')) {
+  const [builderObjectives,builderHints,builderContent]=await Promise.all([
+   get('/api/admin/workshops/xss_email_builder/objectives',config),
+   get('/api/admin/workshops/xss_email_builder/hints',config),
+   get('/api/admin/solutions',config),
+  ]);
+  if(!Array.isArray(objectives.data?.objectives)||!hints.data?.hints||!Array.isArray(content?.data?.[selected[1]])
+   ||!Array.isArray(builderObjectives.data?.objectives)||!builderHints.data?.hints||!Array.isArray(builderContent.data?.solutions))throw Error('Invalid unified XSS objective content');
+  return {challenges,groups:[
+   {key,objectives:objectives.data.objectives,hints:hints.data.hints,content:content.data[selected[1]],target:selected[2]},
+   {key:'xss_email_builder',objectives:builderObjectives.data.objectives,hints:builderHints.data.hints,content:builderContent.data.solutions,target:'generic'},
+  ]};
+ }
  if(!Array.isArray(objectives.data?.objectives)||!hints.data?.hints||typeof hints.data.hints!=='object')throw Error('Invalid admin objective content');
  if(selected&&!Array.isArray(content.data?.[selected[1]]))throw Error('Invalid admin solution content');
  return {challenges,objectives:objectives.data.objectives,hints:hints.data.hints,

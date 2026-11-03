@@ -18,7 +18,7 @@ test('exercise configuration writes require a current challenge-management grant
   }) });
   const methods = ['setAllHintAndSolutionVisibility', 'setExerciseVisibility', 'setObjectiveVisibility', 'setMasterHintVisibility',
     'setObjectiveHintVisibility', 'setMasterSolutionVisibility', 'setObjectiveSolutionVisibility',
-    'updateObjectiveMetadata', 'updateHintContent', 'updateSolutionContent'];
+    'updateObjectiveMetadata', 'updateHintContent', 'updateSolutionContent', 'setXssGroupControls'];
   const service = {
     getHintContent: async () => ({ title: 'Instructor hint', hints: ['Owned'] }),
     getSolutionContent: async () => ({ title: 'Instructor solution' }),
@@ -49,6 +49,7 @@ test('exercise configuration writes require a current challenge-management grant
     ['PUT', `${base}/objectives/objective`, { label: 'Updated objective' }],
     ['PUT', `${base}/objectives/objective/hint`, { title: 'Owned hint' }],
     ['PUT', `${base}/objectives/objective/solution`, { title: 'Owned solution' }],
+    ['POST', `${root}/reflected_xss_llm/group-controls`, { dimension: 'solutions', enabled: true }],
   ];
   const request = ([method, url, body], token = 'admin') => fetch(url, {
     method, headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -72,6 +73,12 @@ test('exercise configuration writes require a current challenge-management grant
   assert.deepEqual(calls, []);
   for (const entry of requests) assert.equal((await request(entry)).status, 200);
   assert.deepEqual(calls, methods);
+  for (const body of [{}, { dimension: 'other', enabled: true },
+    { dimension: 'hints', enabled: 'true' }, { dimension: 'hints', enabled: true, workshopKey: 'csrf_workshop' }]) {
+    assert.equal((await request(['POST', `${root}/reflected_xss_llm/group-controls`, body])).status, 400);
+  }
+  assert.equal(calls.length, methods.length, 'malformed group controls never reach the service');
+  assert.equal((await request(['POST', `${root}/csrf_workshop/group-controls`, { dimension: 'active', enabled: false }])).status, 404);
   granted = false;
   assert.equal((await request(requests[0])).status, 403, 'revocation applies to the next request');
   assert.equal(calls.length, methods.length);

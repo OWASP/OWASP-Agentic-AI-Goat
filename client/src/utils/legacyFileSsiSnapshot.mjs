@@ -46,7 +46,7 @@ function modeProjection(value){
 export function projectLegacyFileSsiSnapshot(challenges,content={},mode=null){
  const row=Array.isArray(challenges)?challenges.find(c=>c.workshopKey===KEY):null;
  if(!row||!Array.isArray(row.objectives))return null;
- return Object.freeze({workshopKey:KEY,mode:modeProjection(mode),objectives:Object.freeze(row.objectives.map(o=>{
+ return Object.freeze({workshopKey:KEY,title:text(row.title)||text(row.name),description:text(row.description),difficulty:text(row.difficulty),mode:modeProjection(mode),objectives:Object.freeze(row.objectives.map(o=>{
   const source=content[o.id];
   const label=text(o.label)||text(o.text)||text(source?.title)||o.id;
   const description=text(o.description)||text(source?.description)||text(source?.solution?.description)||label;
