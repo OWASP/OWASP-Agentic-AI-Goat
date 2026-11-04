@@ -112,9 +112,12 @@ function createXssBrowserQualification({ puppeteer, connectBrowser, clientMount,
       if (externalBrowser) browserPromise = Promise.resolve().then(connectBrowser);
       else {
         const api = puppeteer || require('puppeteer');
-        // Do not weaken Chrome's sandbox. Each qualification also receives a new
-        // BrowserContext, synthetic cookie, and a fully intercepted network.
-        browserPromise = api.launch({ headless: true, timeout: startupTimeoutMs }).then(browser => {
+        // Do not weaken Chrome's sandbox locally. Each qualification also receives
+        // a new BrowserContext, synthetic cookie, and a fully intercepted network.
+        // On Fargate (no SYS_ADMIN capability) the container is the isolation
+        // boundary, so BROWSER_NO_SANDBOX=1 drops the SUID sandbox there only.
+        const launchArgs = process.env.BROWSER_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-setuid-sandbox'] : [];
+        browserPromise = api.launch({ headless: true, timeout: startupTimeoutMs, ...(launchArgs.length ? { args: launchArgs } : {}) }).then(browser => {
           // Synchronous process cleanup is the last line of defence if normal
           // async close hooks cannot run during process exit.
           exitCleanup = () => browser.process()?.kill();

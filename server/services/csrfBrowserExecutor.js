@@ -170,11 +170,14 @@ function createCsrfBrowserExecutor({ puppeteer, attackerOrigin, victimOrigin,
 
   async function getBrowser() {
     if (!browserPromise) {
+      // BROWSER_NO_SANDBOX=1 drops the SUID sandbox on Fargate (no SYS_ADMIN); the
+      // container is the isolation boundary. Unset locally keeps the real sandbox.
+      const noSandboxArgs = process.env.BROWSER_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-setuid-sandbox'] : [];
       browserPromise = getProxy().then(port => (puppeteer || require('puppeteer')).launch({
         headless: true,
         args: [`--proxy-server=http://127.0.0.1:${port}`, '--proxy-bypass-list=<-loopback>',
           '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
-          '--webrtc-ip-handling-policy=disable_non_proxied_udp'],
+          '--webrtc-ip-handling-policy=disable_non_proxied_udp', ...noSandboxArgs],
       }));
       browserPromise.catch(() => { browserPromise = undefined; });
     }

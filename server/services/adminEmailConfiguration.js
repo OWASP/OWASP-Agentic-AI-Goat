@@ -42,8 +42,9 @@ function serializeEnvValue(value) {
 }
 
 function mailpitInboxUrl(value) {
+  // Prefer an explicit public inbox URL (AWS) over the loopback API URL.
   try {
-    const url = new URL(String(value || 'http://127.0.0.1:8025'));
+    const url = new URL(String(value || process.env.MAILPIT_PUBLIC_INBOX_URL || 'http://127.0.0.1:8025'));
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) return null;
     return `${url.origin}${url.pathname.replace(/\/$/, '')}`;
   } catch { return null; }

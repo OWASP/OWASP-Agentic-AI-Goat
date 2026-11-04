@@ -453,7 +453,7 @@ router.get('/health', async (req, res) => {
     mode: 'reversed-flow',
     provider: ipiProvider.mode,
     ownedInbox: undefined,
-    mailpitInboxUrl: isLocal() ? workshopMailpitInboxUrl() : null,
+    mailpitInboxUrl: (isLocal() || process.env.MAILPIT_PUBLIC_INBOX_URL) ? workshopMailpitInboxUrl() : null,
     gmail: {
       initialized: gmailStatus.initialized,
       targetEmail: gmailStatus.targetEmail,

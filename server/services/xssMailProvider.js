@@ -3,9 +3,13 @@
 const LOCAL_SENDER = 'attacker@owasp-ai-goat.invalid';
 const PROVIDERS = new Set(['mailpit', 'gmail']);
 
-function workshopMailpitInboxUrl(value = process.env.WORKSHOP_MAILPIT_API_URL || 'http://127.0.0.1:8025') {
+function workshopMailpitInboxUrl(value) {
+  // The browser-facing inbox link. On AWS the internal API URL is loopback, so
+  // prefer an explicit public URL when provided; otherwise derive from the API URL.
+  const source = value ?? process.env.MAILPIT_PUBLIC_INBOX_URL
+    ?? process.env.WORKSHOP_MAILPIT_API_URL ?? 'http://127.0.0.1:8025';
   try {
-    const url = new URL(String(value));
+    const url = new URL(String(source));
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) return null;
     return `${url.origin}${url.pathname.replace(/\/$/, '')}`;
   } catch {
