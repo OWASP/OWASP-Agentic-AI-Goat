@@ -86,7 +86,7 @@ async function runDpiGraph(userMessage, conversationHistory, completedObjectives
     },
     detect: () => {
   // Strip any marker or evaluation text the LLM may have leaked (belt-and-suspenders)
-  if(!decoderProof)responseText = responseText
+  if(!decoderProof && !require('../config/dpiBoundedCurriculum').IDS.includes(activeObjectiveId))responseText = responseText
     .replace(/---\s*\r?\nINTERNAL EVALUATION:[\s\S]*?(?=\|\|SUCCESS\|\||$)/g, '')
     .replace(/INTERNAL EVALUATION:\s*[\s\S]*?(?=\|\|SUCCESS\|\||$)/g, '')
     .replace(/Did (?:I|user) [^\n]+\? (?:YES|NO)\r?\n?/g, '')

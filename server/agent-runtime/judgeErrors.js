@@ -8,7 +8,15 @@ const ERROR_CODES = Object.freeze([...RETRYABLE_CODES,'INVALID_OR_OVERSIZED_EVID
 function judgeFailureCode(cause, {timedOut = false} = {}) {
   if (cause?.code === 'AI_QUEUE_FULL') return 'JUDGE_QUEUE_FULL';
   if (timedOut || cause?.name === 'TimeoutError' || ['ETIMEDOUT','UND_ERR_CONNECT_TIMEOUT','UND_ERR_HEADERS_TIMEOUT'].includes(cause?.code)) return 'JUDGE_TIMEOUT';
-  if (cause?.code === '23514') return 'JUDGE_STORAGE_CONSTRAINT';
+  if (cause?.code === '23514') {
+    // Deployment diagnostic: surface exactly which check constraint rejected the
+    // judgment so a storage failure can be root-caused without guessing. The
+    // values are schema identifiers, never learner evidence.
+    try { console.error(JSON.stringify({ level: 'error', message: 'judge_storage_constraint_detail',
+      constraint: cause.constraint || null, table: cause.table || null, column: cause.column || null,
+      detail: typeof cause.detail === 'string' ? cause.detail.slice(0, 300) : null })); } catch { /* best effort */ }
+    return 'JUDGE_STORAGE_CONSTRAINT';
+  }
   if (['42P01','42703'].includes(cause?.code)) return 'JUDGE_STORAGE_SCHEMA';
   if (cause?.code === '42501') return 'JUDGE_STORAGE_PERMISSION';
   if (['ECONNREFUSED','ECONNRESET','ENOTFOUND','EAI_AGAIN','UND_ERR_SOCKET'].includes(cause?.code)) return 'JUDGE_TRANSPORT';

@@ -2,39 +2,39 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { solutions } = require('../server/data/promptInjectionSolutions');
+const hints = require('../server/data/workshopHints').direct_prompt_injection;
+const ui = require('node:fs').readFileSync(require('node:path').join(__dirname,
+  '../client/src/pages/challenges/DirectPromptInjectionChallenge.js'), 'utf8');
 
-test('DPI solutions distinguish deliberately weakened training from model benchmarking', () => {
-  for (const [id, solution] of Object.entries(solutions)) {
-    assert.match(solution.approach, /objective-specific application policy/, id);
-    assert.match(solution.approach, /encoding exercise starts with an AWS-only rule/, id);
-    assert.match(solution.approach, /not the resistance of an unmodified model/, id);
-    assert.match(solution.approach, /do not guarantee success/, id);
+test('the shared DPI introduction explains the lab policy and Judge requirement once', () => {
+  assert.match(ui, /Each objective selects its own application policy/);
+  assert.match(ui, /does not prove the model disobeyed its governing instructions/);
+  assert.match(ui, /A refusal or unrelated answer earns no credit/);
+  for (const solution of Object.values(solutions)) {
+    assert.doesNotMatch(solution.approach, /Training scope:/);
+    assert.ok(solution.examples.length > 0);
   }
 });
 
-test('encoding and language lessons describe the actual actor boundary', () => {
+test('encoding and language help retain the actual teaching boundaries', () => {
   const encoding = JSON.stringify(solutions.obfuscation);
-  assert.match(encoding, /LangGraph agent can choose decode_payload/);
-  assert.match(encoding, /application trust-boundary flaw/);
-  assert.match(encoding, /not a verified defense/);
-  assert.doesNotMatch(encoding, /server decoding is only Judge ground truth|server does not decode/);
-  assert.match(encoding, /Judge ground truth/);
-  assert.doesNotMatch(encoding, /decoded by the preprocessor|treated as trusted input/);
-  const language = JSON.stringify(solutions.multi_language);
-  assert.match(language, /exception deliberately written into the training prompt/);
-  assert.doesNotMatch(language, /cannot be parsed|bypasses the English-only safety filter/);
+  assert.match(encoding, /decoder tool/);
+  assert.match(encoding, /application promotes the decoder output into instructions/);
+  assert.match(encoding, /answer to the decoded question/);
+  assert.match(encoding, /Leetspeak and split words are unsupported/);
+  assert.match(encoding, /fixed mode earns no attack credit/);
+  assert.doesNotMatch(encoding, /decoded by the preprocessor|server does not decode/);
+  assert.match(hints.multi_language.hints.join(' '), /lab prompt has an exception/);
+  assert.doesNotMatch(JSON.stringify(solutions.multi_language), /cannot be parsed|bypasses the English-only safety filter/);
 });
 
-// Copy assertions describe deliberate lab policy, not a model success guarantee.
-test('DPI hints and persona card name the actual deliberate application-policy exceptions',()=>{
- const hints=require('../server/data/workshopHints').direct_prompt_injection;
- assert.match(hints.system_prompt.hints[0],/deliberately includes a SYSTEM AUDIT PROTOCOL/);
- assert.match(hints.system_prompt.hints[0],/synthetic protected instructions/);
- assert.match(hints.jailbreak.hints[0],/AWS-only scope policy.*instruction-override exception/);
- assert.doesNotMatch(hints.jailbreak.hints[0],/safety guidelines/);
- assert.match(hints.virtualization.hints[0],/non-AWS answers.*hypothetical-context exception/);
- assert.doesNotMatch(hints.virtualization.hints[0],/content filters/);
- const ui=require('node:fs').readFileSync(require('node:path').join(__dirname,'../client/src/pages/challenges/DirectPromptInjectionChallenge.js'),'utf8');
- assert.match(ui,/Assign a persona and test the training prompt’s explicit exception to its AWS-only scope\./);
- assert.doesNotMatch(ui,/Make the AI assume a different persona to circumvent guardrails/);
+test('short help retains lab-specific exceptions and matches the canonical technique names', () => {
+  assert.match(hints.system_prompt.hints.join(' '), /lab prompt.*weak audit rule/);
+  assert.match(hints.jailbreak.hints.join(' '), /lab prompt permits some instruction overrides/);
+  assert.match(hints.virtualization.hints.join(' '), /lab prompt has an exception for hypothetical questions/);
+  const catalog = require('../server/config/workshopCatalog').WORKSHOP_OBJECTIVES.direct_prompt_injection;
+  for (const objective of catalog) {
+    assert.equal(hints[objective.id].title, objective.text);
+    if (solutions[objective.id]) assert.equal(solutions[objective.id].title, objective.text);
+  }
 });

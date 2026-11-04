@@ -96,14 +96,14 @@ test('all fixed text objectives dispatch the bound server policy and suppress at
    completionService:{evaluate:async input=>{packet=input;require('../server/agent-runtime/objectiveJudge').prepareJudgeInput(input);return {completed:true,judgment:{verdict:'pass',explanation:'Controlled verdict only.'}};}},
   });
   assert.equal(submitted[0].role,'system');
-  assert.equal(submitted[0].content,contract.FIXED_TEXT_POLICY);
+  assert.equal(submitted[0].content,require('../server/config/dpiBoundedCurriculum').FIXED_PROMPTS[objective]||contract.FIXED_TEXT_POLICY);
   assert.deepEqual(submitted.slice(1).map(message=>message.role),objective==='interact'?['user']:['user','assistant','user']);
   assert.equal(submitted.at(-1).content,request);
   assert.equal(packet.rubric.mode,'fixed');
   assert.equal(packet.rubric.dpiPolicyBinding,'dpi-policy-binding-v2');
   const proof=require('../server/agent-runtime/dpiPolicyBinding').admitPolicyBinding(packet).proof;
   assert.equal(proof.policy.profile,'fixed');
-  assert.equal(proof.policy.systemPolicySha256,hash(contract.FIXED_TEXT_POLICY));
+  assert.equal(proof.policy.systemPolicySha256,hash(require('../server/config/dpiBoundedCurriculum').FIXED_PROMPTS[objective]||contract.FIXED_TEXT_POLICY));
   assert.equal(proof.messagesSha256,hash(JSON.stringify(submitted)));
   if(objective==='multi_language'){
    assert.equal(packet.facts.owned_actor_observed,false);

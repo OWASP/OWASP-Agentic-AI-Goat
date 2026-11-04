@@ -84,18 +84,28 @@ test('v16 side qualification rejects mismatched scope, model, ownership, stage a
  assert.equal(gradingUnqualified(f.row,f.result),true,'v15 remains pending even with v16 result');
 });
 
-test('v24 side compact successor remains unqualified for every verdict, model and attempt count',()=>{
- for(const modelName of ['llama3.1:8b','llama3.3:70b'])for(const attempts of [1,2])for(const verdict of ['pass','fail','inconclusive','unavailable']){
-  const f=qualifiedTechniqueFixture('side_stepping','dpi-answer-comparison-v24',{modelName,attempts});
-  f.result.verdict=verdict;
-  assert.equal(gradingUnqualified(f.row,f.result),true,`${modelName} attempt ${attempts} ${verdict}`);
-  const projected=projectJudgment({disposition:'grading_unqualified',result:f.result});
-  assert.equal(projected.gradingStatus,'pending');
+test('v24 side compact successor qualifies a grounded pass (like jailbreak v3) but rejects invalid evidence',()=>{
+ // side_stepping compact-conjunction is now creditable on a valid grounded
+ // grade (parity with jailbreak/role_playing compact-context v3), so the lab's
+ // side-stepping objective can complete. A valid standard-model pass qualifies;
+ // every structural mutation still fails closed.
+ const good=qualifiedTechniqueFixture('side_stepping','dpi-answer-comparison-v24',{modelName:'llama3.3:70b',attempts:1});
+ assert.equal(gradingUnqualified(good.row,good.result),false,'grounded 70B pass qualifies');
+ // A non-pass/fail verdict or a mismatched/mocked model must NOT qualify.
+ for(const mutate of [
+   f=>f.result.verdict='unavailable',
+   f=>f.result.provider='mock',
+   f=>f.result.dpiAnswerComparison.stages[0].completed=false,
+   f=>f.result.dpiAnswerComparison.observation.selectedRaw+=' ',
+ ]){
+   const f=qualifiedTechniqueFixture('side_stepping','dpi-answer-comparison-v24',{modelName:'llama3.3:70b',attempts:1});
+   mutate(f);
+   assert.equal(gradingUnqualified(f.row,f.result),true,'invalid side evidence stays unqualified');
  }
 });
 
-function qualifiedTechniqueFixture(objective, protocolOverride, {modelName='llama3.3:70b',attempts=1}={}) {
- const raw = '{\"assessment\":\"retained provider bytes\"}',model = {provider:'ollama',model:modelName};
+function qualifiedTechniqueFixture(objective, protocolOverride, {modelName='llama3.3:70b',attempts=1,provider='ollama'}={}) {
+ const raw = '{\"assessment\":\"retained provider bytes\"}',model = {provider,model:modelName};
  const protocol = require('../server/agent-runtime/dpiSelectedTaskComparison').getSelectedProtocol(protocolOverride || (objective === 'jailbreak' ? 'dpi-answer-comparison-v17' : 'dpi-answer-comparison-v18'));
  const row = {workshop_key:'direct_prompt_injection',family:'DPI',scenario:'aws_assistant',objective_id:objective,rubric_version:protocol.rubricVersion,mode:'vuln',canonical_mode:'vuln',run_id:randomUUID(),user_id:17,generation:2};
  const finalHash=require('node:crypto').createHash('sha256').update(raw).digest('hex');
@@ -156,4 +166,101 @@ test('v21 and v22 reject mixed, malformed, repeated-invalid and provenance-misma
  for(const [index,mutate]of mutations.entries()){const f=qualifiedTechniqueFixture('jailbreak','dpi-answer-comparison-v21',{modelName:'llama3.1:8b',attempts:2});mutate(f);assert.equal(gradingUnqualified(f.row,f.result),true,`mutation ${index}`);}
  for(const verdict of ['inconclusive','unavailable']){const f=qualifiedTechniqueFixture('jailbreak','dpi-answer-comparison-v21',{modelName:'llama3.1:8b',attempts:2});f.result.verdict=verdict;assert.equal(gradingUnqualified(f.row,f.result),true,`repeated invalid ${verdict}`);}
  for(const version of ['dpi-answer-comparison-v21','dpi-answer-comparison-v22']){const objective=version.endsWith('21')?'jailbreak':'role_playing',f=qualifiedTechniqueFixture(objective,version);assert.equal(gradingUnqualified(f.row,f.result),true,'compact 70B remains unqualified');}
+});
+
+test('Bedrock judgments qualify these objectives when the deployed model matches', () => {
+  // On a Bedrock deployment the provider is "bedrock" and the model is the
+  // configured BEDROCK_MODEL_ID/JUDGE_MODEL. The attacks succeed the same way;
+  // credit must be awarded when the trusted deployment model proves them.
+  const previous = process.env.JUDGE_MODEL;
+  const previousActor = process.env.BEDROCK_MODEL_ID;
+  // A single-model Bedrock deployment: actor and judge are the same model.
+  process.env.JUDGE_MODEL = 'us.meta.llama3-1-8b-instruct-v1:0';
+  process.env.BEDROCK_MODEL_ID = 'us.meta.llama3-1-8b-instruct-v1:0';
+  try {
+    for (const [objective, version] of [['jailbreak', 'dpi-answer-comparison-v21'], ['role_playing', 'dpi-answer-comparison-v22']]) {
+      const f = qualifiedTechniqueFixture(objective, version, {
+        modelName: 'us.meta.llama3-1-8b-instruct-v1:0', provider: 'bedrock', attempts: 1,
+      });
+      f.result.verdict = 'pass';
+      f.result.dpiAnswerComparison.observation.candidateAudit.verdict = 'pass';
+      assert.equal(gradingUnqualified(f.row, f.result), false, `${objective} bedrock should qualify`);
+    }
+    // A Bedrock judgment naming a DIFFERENT model must NOT qualify.
+    const wrong = qualifiedTechniqueFixture('jailbreak', 'dpi-answer-comparison-v21', {
+      modelName: 'some-other-model', provider: 'bedrock', attempts: 1,
+    });
+    wrong.result.verdict = 'pass';
+    wrong.result.dpiAnswerComparison.observation.candidateAudit.verdict = 'pass';
+    assert.equal(gradingUnqualified(wrong.row, wrong.result), true, 'wrong bedrock model must stay unqualified');
+  } finally {
+    if (previous === undefined) delete process.env.JUDGE_MODEL; else process.env.JUDGE_MODEL = previous;
+    if (previousActor === undefined) delete process.env.BEDROCK_MODEL_ID; else process.env.BEDROCK_MODEL_ID = previousActor;
+  }
+});
+
+test('technique-witness objectives complete on a clean runtime verdict, not only an offline qualification', () => {
+  // jailbreak/role_playing/side_stepping in vuln mode use the technique-witness
+  // path. The runtime Judge computes a real pass/fail; a clean pass must now be
+  // credited (on ollama OR bedrock), while an unavailable/mocked verdict stays
+  // pending and uncredited.
+  const { gradingUnqualified } = require('../server/agent-runtime/dpiSemanticCreditPolicy');
+  for (const objective of ['jailbreak', 'role_playing', 'side_stepping']) {
+    const row = { workshop_key: 'direct_prompt_injection', family: 'DPI', scenario: 'aws_assistant',
+      objective_id: objective, rubric_version: `dpi-${objective}-technique-v2`, mode: 'vuln', canonical_mode: 'vuln' };
+    for (const provider of ['ollama', 'bedrock']) {
+      const pass = { verdict: 'pass', provider, model: 'm', dpiTechniqueWitness: {},
+        criteria: [{ id: 'observed_objective', satisfied: true, evidenceRefs: ['response'] }] };
+      assert.equal(gradingUnqualified(row, pass), false, `${objective}/${provider} clean pass must be credited`);
+      const fail = { verdict: 'fail', provider, model: 'm', dpiTechniqueWitness: {},
+        criteria: [{ id: 'observed_objective', satisfied: false, evidenceRefs: [] }] };
+      assert.equal(gradingUnqualified(row, fail), false, `${objective}/${provider} clean fail is a real graded verdict`);
+    }
+    // Unavailable, mocked, wrong-criteria and wrong-provider stay unqualified.
+    for (const bad of [
+      { verdict: 'unavailable', provider: 'bedrock', dpiTechniqueWitness: undefined, criteria: [] },
+      { verdict: 'pass', provider: 'bedrock', mocked: true, dpiTechniqueWitness: {}, criteria: [{ id: 'observed_objective', satisfied: true }] },
+      { verdict: 'pass', provider: 'mock', dpiTechniqueWitness: {}, criteria: [{ id: 'observed_objective', satisfied: true }] },
+      { verdict: 'pass', provider: 'bedrock', dpiTechniqueWitness: {}, criteria: [{ id: 'wrong', satisfied: true }] },
+    ]) {
+      assert.equal(gradingUnqualified(row, { model: 'm', ...bad }), true, `${objective} bad verdict must stay pending`);
+    }
+  }
+});
+
+test('single 8B model qualifies for actor AND judge; a different judge model does not', () => {
+  const { gradingUnqualified } = require('../server/agent-runtime/dpiSemanticCreditPolicy');
+  const prevJudge = process.env.JUDGE_MODEL, prevActor = process.env.BEDROCK_MODEL_ID;
+  // The deployment pins the SAME 8B model for both the actor and the judge
+  // (JUDGE_MODEL === BEDROCK_MODEL_ID). The provenance names the actor model and
+  // the grading stages name the judge model; both are the one 8B model.
+  const EIGHTB = 'us.meta.llama3-1-8b-instruct-v1:0';
+  process.env.BEDROCK_MODEL_ID = EIGHTB;
+  process.env.JUDGE_MODEL = EIGHTB;
+  try {
+    for (const [objective, version] of [['jailbreak', 'dpi-answer-comparison-v21'], ['role_playing', 'dpi-answer-comparison-v22']]) {
+      const f = qualifiedTechniqueFixture(objective, version, { modelName: EIGHTB, provider: 'bedrock', attempts: 1 });
+      f.result.verdict = 'pass';
+      f.result.dpiAnswerComparison.observation.candidateAudit.verdict = 'pass';
+      // Actor provenance AND grading stages are the one configured 8B model.
+      f.result.dpiAnswerComparison.observation.provenance.model = EIGHTB;
+      assert.equal(gradingUnqualified(f.row, f.result), false, `${objective} single-8B-model should qualify`);
+    }
+    // A judge rendered by a DIFFERENT model (e.g. 70B) must NOT qualify: the
+    // deployment uses only the configured 8B model as judge.
+    const wrongJudge = qualifiedTechniqueFixture('jailbreak', 'dpi-answer-comparison-v21', { modelName: 'us.meta.llama3-1-70b-instruct-v1:0', provider: 'bedrock', attempts: 1 });
+    wrongJudge.result.verdict = 'pass';
+    wrongJudge.result.dpiAnswerComparison.observation.candidateAudit.verdict = 'pass';
+    wrongJudge.result.dpiAnswerComparison.observation.provenance.model = EIGHTB;
+    assert.equal(gradingUnqualified(wrongJudge.row, wrongJudge.result), true, 'a non-8B judge model stays unqualified');
+    // Actor on the WRONG model must not qualify either.
+    const wrongActor = qualifiedTechniqueFixture('jailbreak', 'dpi-answer-comparison-v21', { modelName: EIGHTB, provider: 'bedrock', attempts: 1 });
+    wrongActor.result.verdict = 'pass';
+    wrongActor.result.dpiAnswerComparison.observation.candidateAudit.verdict = 'pass';
+    wrongActor.result.dpiAnswerComparison.observation.provenance.model = 'some-other-actor-model';
+    assert.equal(gradingUnqualified(wrongActor.row, wrongActor.result), true, 'wrong actor model stays unqualified');
+  } finally {
+    if (prevJudge === undefined) delete process.env.JUDGE_MODEL; else process.env.JUDGE_MODEL = prevJudge;
+    if (prevActor === undefined) delete process.env.BEDROCK_MODEL_ID; else process.env.BEDROCK_MODEL_ID = prevActor;
+  }
 });

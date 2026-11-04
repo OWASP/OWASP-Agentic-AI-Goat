@@ -38,7 +38,7 @@ test('a new transcript names only its selected objective', () => {
   const transcript = createObjectiveTranscript({ id: 'jailbreak', name: 'Instructor-edited jailbreak' });
   expect(transcript.filter(message => message.type === 'system').map(message => message.content))
     .toEqual(['Exercise: Instructor-edited jailbreak']);
-  expect(transcript.map(message => message.content)).not.toContain('Exercise: Interact with Chat Agent');
+  expect(transcript.map(message => message.content)).not.toContain('Exercise: Practice Mode');
 });
 
 test('conversation history includes the latest assistant response exactly once', () => {
@@ -102,7 +102,7 @@ test('current obfuscation projection retains the authored experimental defense c
     expect(normalized.explanation).toContain(source.approach);
     for (const tip of source.tips) expect(normalized.explanation).toContain(tip);
   }
-  expect(normalizeSolution(solutions.obfuscation).explanation).toContain('experimental publication reviewer is not a verified defense');
+  expect(normalizeSolution(solutions.obfuscation).explanation).toContain('The fixed-mode reviewer is experimental, not a verified defense.');
 });
 
 test('authored tips remain ordered, empty or malformed tips are omitted, repeated tips appear once', () => {
