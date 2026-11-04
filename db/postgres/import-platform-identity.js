@@ -9,9 +9,12 @@ const { applyPlatformSolutions } = require('./apply-platform-solutions');
 const { applyAdditionalPlatformSolutions } = require('./apply-platform-additional-solutions');
 const { normalizeArchiveOwnerBinding, recordArchiveOwnerBinding } = require('./archive-owner-binding');
 
+// Must match a freshly-migrated identity.system_config read with ORDER BY config_key
+// (see the guard below). Keep entries in config_key alphabetical order.
 const INITIAL_CONFIG = [
   { config_key: 'allow_registration', config_value: 'true', config_type: 'boolean', is_public: false },
   { config_key: 'enable_rate_limiting', config_value: 'false', config_type: 'boolean', is_public: false },
+  { config_key: 'secureshop_visible', config_value: 'true', config_type: 'boolean', is_public: true },
   { config_key: 'workshop_signup_random_email_enabled', config_value: 'false', config_type: 'boolean', is_public: false },
 ];
 

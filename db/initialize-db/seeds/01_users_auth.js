@@ -381,7 +381,7 @@ function runSeed(dbPath) {
       );
       db.run(
         `INSERT OR IGNORE INTO system_config (config_key, config_value, config_type, description, is_public)
-         VALUES ('secureshop_visible', 'false', 'boolean', 'Show SecureShop Playground card on landing and workshop pages', 1)`,
+         VALUES ('secureshop_visible', 'true', 'boolean', 'Show SecureShop Playground card on landing and workshop pages', 1)`,
         (err) => { if (err) console.error('   ⚠️  Error seeding secureshop_visible:', err.message); }
       );
 

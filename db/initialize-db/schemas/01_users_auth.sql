@@ -731,4 +731,4 @@ INSERT OR IGNORE INTO system_config (config_key, config_value, config_type, desc
   ('enable_rate_limiting', 'false', 'boolean', 'Enable API rate limiting on authentication endpoints (disable for workshops to prevent student lockouts)'),
   ('login_rate_limit_max', '20', 'number', 'Maximum login attempts per 15-minute window per IP address');
 INSERT OR IGNORE INTO system_config (config_key, config_value, config_type, description, is_public) VALUES
-  ('secureshop_visible', 'false', 'boolean', 'Show SecureShop Playground card on landing and workshop pages', 1);
+  ('secureshop_visible', 'true', 'boolean', 'Show SecureShop Playground card on landing and workshop pages', 1);
