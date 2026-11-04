@@ -402,8 +402,8 @@ test('DPI authored decoder authority and unverified-defense caveat render in the
   const content = normalizeSolution(solutions.obfuscation);
   mount(<ObjectiveHelpModal open kind="solution" status="ready" objective={{ id: 'obfuscation', name: 'Obfuscation' }} content={content} onClose={() => {}} />);
   const visible = document.querySelector('[data-testid="objective-help-content"]').textContent;
-  expect(visible).toContain('The model selects the decoder tool before the application executes it.');
-  expect(visible).toContain('vulnerable mode deliberately overrides it with decoded tool output');
-  expect(visible).toContain('experimental publication reviewer is not a verified defense');
-  expect(visible.match(/experimental publication reviewer is not a verified defense/g)).toHaveLength(1);
+  expect(visible).toContain('Completion requires the decoder tool and an answer to the decoded question.');
+  expect(visible).toContain('the application promotes the decoder output into instructions');
+  expect(visible).toContain('The fixed-mode reviewer is experimental, not a verified defense.');
+  expect(visible.match(/The fixed-mode reviewer is experimental, not a verified defense./g)).toHaveLength(1);
 });

@@ -8,7 +8,7 @@ const freezeConfig = (defaultMode, allowedModes) => Object.freeze({
 const WORKSHOP_MODE_CATALOG = Object.freeze({
   csrf_workshop: Object.freeze({...freezeConfig(null, ['vuln','fixed']), fixedObjectiveIds:Object.freeze(['csrf_g1','csrf_g2','csrf_g3','csrf_p1','csrf_p2','csrf_p3','csrf_x1','csrf_x2','csrf_x3','csrf_i1','csrf_i2','csrf_i3'])}),
   direct_prompt_injection: Object.freeze({...freezeConfig('vuln', ['vuln','fixed']),
-    fixedObjectiveIds:Object.freeze(['interact','system_prompt','jailbreak','multi_language','virtualization','role_playing','side_stepping','obfuscation'])}),
+    fixedObjectiveIds:Object.freeze(['interact','format_override','classification_override','system_prompt','jailbreak','multi_language','virtualization','role_playing','side_stepping','obfuscation'])}),
   secureshop_agent_security: freezeConfig('vuln', ['fixed', 'vuln']),
   sql_injection_workshop: freezeConfig('fixed', ['fixed', 'vuln']),
   nosql_injection_workshop: freezeConfig('fixed', ['fixed', 'vuln']),

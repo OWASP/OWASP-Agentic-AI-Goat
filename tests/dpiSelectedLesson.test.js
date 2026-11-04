@@ -5,7 +5,7 @@ const view=require('../client/src/utils/dpiSelectedLesson');
 test('selected lesson projection is closed, scoped and contains no policy material',()=>{
  for(const objectiveId of [...contract.TEXT_OBJECTIVES,'obfuscation'])for(const mode of objectiveId==='obfuscation'?['vuln','fixed']:['vuln']){
   const policy=contract.selectPolicy({objectiveId,mode}),value=contract.selectedLesson(policy);
-  assert.deepEqual(view.readSelectedLesson(value),value);assert.equal(Object.keys(view.LESSONS).length,8);assert.equal(Object.keys(value).length,6);assert.equal(value.lessonKind,policy.lessonKind);
+  assert.deepEqual(view.readSelectedLesson(value),value);assert.equal(Object.keys(view.LESSONS).length,contract.TEXT_OBJECTIVES.length+1);assert.equal(Object.keys(value).length,6);assert.equal(value.lessonKind,policy.lessonKind);
   assert.deepEqual(contract.admitSelectedLesson(value,objectiveId,mode),value);
   assert(view.describeSelectedLesson(value).includes(mode==='fixed'?'fixed mode':'vulnerable mode'));
   assert.throws(()=>contract.admitSelectedLesson(value,'other',mode));
@@ -55,7 +55,7 @@ test('actual route forwards only selected lesson matching admitted objective and
 test('server policy selection loads without frontend source in packaged deployment',()=>{
  const fs=require('node:fs'),vm=require('node:vm');
  const module={exports:{}};
- vm.runInNewContext(fs.readFileSync(require.resolve('../server/agent-runtime/dpiPolicyContract'),'utf8'),{module,require(id){assert(!id.includes('client/'));if(id==='node:crypto')return require(id);throw Error('Unexpected dependency '+id);}});
+ vm.runInNewContext(fs.readFileSync(require.resolve('../server/agent-runtime/dpiPolicyContract'),'utf8'),{module,require(id){assert(!id.includes('client/'));if(id==='node:crypto')return require(id);if(id==='../config/dpiBoundedCurriculum')return require('../server/config/dpiBoundedCurriculum');throw Error('Unexpected dependency '+id);}});
  for(const id of [...module.exports.TEXT_OBJECTIVES,'obfuscation']){
   const selected=module.exports.selectedLesson(module.exports.selectPolicy({objectiveId:id,mode:'vuln'}));
   assert.equal(view.readSelectedLesson(selected).lessonKind,selected.lessonKind);

@@ -24,16 +24,24 @@ function createWorkshopPlatformSeed({ withTransaction, bump, provenance, toChall
   const exerciseFields = ['challenge_name','challenge_description','category','difficulty','route'];
   const objectiveFields = ['label','description','category','hint_content','solution_content'];
   return async function seedWorkshopPlatform(pool, { catalog, hints, solutions, challenges,
-    catalogVersion } = {}) {
+    catalogVersion, workshopKeys } = {}) {
     if (!catalog || !hints || !solutions || !Array.isArray(challenges)
         || typeof catalogVersion !== 'string' || !/^[a-z0-9][a-z0-9._-]{0,79}$/i.test(catalogVersion)) {
       throw new TypeError('versioned workshop catalog required');
     }
+    if (workshopKeys !== undefined && (!Array.isArray(workshopKeys) || !workshopKeys.length
+        || new Set(workshopKeys).size !== workshopKeys.length
+        || workshopKeys.some(key => typeof key !== 'string' || !Object.hasOwn(catalog, key)))) {
+      throw new TypeError('seed workshop scope must name unique catalog workshops');
+    }
+    const scoped = workshopKeys === undefined ? null : new Set(workshopKeys);
     return withTransaction(pool, async client => {
       await client.query('SELECT revision FROM workshop_platform.config_revision WHERE id=1 FOR UPDATE');
       let changed = 0; let ordinal = 0;
       const presentWorkshops = [];
       for (const [workshopKey, objectives] of Object.entries(catalog)) {
+        const exerciseOrdinal = ordinal++;
+        if (scoped && !scoped.has(workshopKey)) continue;
         presentWorkshops.push(workshopKey);
         const challengeKey = toChallengeKey(workshopKey);
         const meta = challenges.find(value => value.key === challengeKey) || {};
@@ -44,7 +52,7 @@ function createWorkshopPlatformSeed({ withTransaction, bump, provenance, toChall
           (workshop_key,challenge_key,challenge_name,challenge_description,category,difficulty,route,ordinal,is_visible)
           VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT DO NOTHING`,
         [workshopKey,challengeKey,exercise.challenge_name,exercise.challenge_description,exercise.category,
-          exercise.difficulty,exercise.route,ordinal++,meta.defaultVisible !== false]);
+          exercise.difficulty,exercise.route,exerciseOrdinal,meta.defaultVisible !== false]);
         if (inserted.rowCount) {
           changed += 1;
           for (const fieldName of exerciseFields) await provenance.adoptInsertedField(client,
@@ -52,7 +60,7 @@ function createWorkshopPlatformSeed({ withTransaction, bump, provenance, toChall
         } else {
           const structural = await client.query(`UPDATE workshop_platform.exercises
             SET catalog_active=true,ordinal=$2,updated_at=now() WHERE workshop_key=$1
-            AND (catalog_active=false OR ordinal<>$2)`, [workshopKey, ordinal - 1]);
+            AND (catalog_active=false OR ordinal<>$2)`, [workshopKey, exerciseOrdinal]);
           changed += structural.rowCount;
           for (const fieldName of exerciseFields) changed += Number((await provenance.reconcileField(client,
             { entityKind:'exercise',workshopKey,fieldName,sourceValue:exercise[fieldName],
@@ -101,11 +109,11 @@ function createWorkshopPlatformSeed({ withTransaction, bump, provenance, toChall
           WHERE workshop_key=$1 AND NOT(objective_id=ANY($2::text[]))
           AND (catalog_active=true OR is_enabled=true)`, [workshopKey,presentObjectives])).rowCount;
       }
-      changed += (await client.query(`UPDATE workshop_platform.exercises
+      if (!scoped) changed += (await client.query(`UPDATE workshop_platform.exercises
         SET catalog_active=false,is_visible=false,updated_at=now()
         WHERE NOT(workshop_key=ANY($1::text[])) AND (catalog_active=true OR is_visible=true)`,
       [presentWorkshops])).rowCount;
-      for (const challengeId of ['reflected','stored_user','stored_llm','email']) {
+      for (const challengeId of (!scoped || scoped.has('xss_workshop') ? ['reflected','stored_user','stored_llm','email'] : [])) {
         const solution = legacyXssSolutions[challengeId];
         changed += (await client.query(`INSERT INTO workshop_platform.xss_legacy_solution_visibility
           (challenge_id,solutions_enabled) VALUES($1,false) ON CONFLICT DO NOTHING`,[challengeId])).rowCount;

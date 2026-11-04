@@ -37,8 +37,8 @@ function solutionFixtures(){
 
 const seed=createWorkshopPlatformSeed({withTransaction,bump,provenance,toChallengeKey,legacyXssSolutions});
 function seedWorkshopPlatform(pool,{catalog=WORKSHOP_OBJECTIVES,hints=hintFixtures,
- solutions=solutionFixtures(),challenges=challengeFixtures,catalogVersion=CATALOG_VERSION}={}){
- return seed(pool,{catalog,hints,solutions,challenges,catalogVersion});
+ solutions=solutionFixtures(),challenges=challengeFixtures,catalogVersion=CATALOG_VERSION,workshopKeys}={}){
+ return seed(pool,{catalog,hints,solutions,challenges,catalogVersion,workshopKeys});
 }
 
 module.exports={CATALOG_VERSION,solutionFixtures,seedWorkshopPlatform};

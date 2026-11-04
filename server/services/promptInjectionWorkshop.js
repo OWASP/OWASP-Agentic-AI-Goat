@@ -1,6 +1,6 @@
 /**
  * Prompt Injection Workshop Service
- * AWS Assistant with 7 intentionally exploitable prompt injection surfaces (Llama/Ollama).
+ * Objective-specific synthetic assistants with deliberate prompt-injection surfaces.
  * Educational: secure enough to be challenging, defeatable with the right techniques.
  */
 
@@ -10,6 +10,8 @@ const {decodeDpiRequest}=require('./dpiDecodedRequest');
 // Objective IDs matching client
 const OBJECTIVE_IDS = {
   INTERACT: 'interact',
+  FORMAT_OVERRIDE: 'format_override',
+  CLASSIFICATION_OVERRIDE: 'classification_override',
   SYSTEM_PROMPT: 'system_prompt',
   JAILBREAK: 'jailbreak',
   MULTI_LANGUAGE: 'multi_language',
@@ -20,7 +22,7 @@ const OBJECTIVE_IDS = {
 };
 
 /**
- * 8 System Prompts — Medium difficulty.
+ * Objective-specific system prompts — deliberate training weaknesses.
  * Vulnerability sections describe the flaw implicitly without listing exact trigger phrases,
  * so students must experiment to discover the attack vector.
  */
@@ -594,6 +596,12 @@ async function evaluateDpiObjective(userMessage, assistantResponse, objectiveId,
     }
   }
   const capturedActor=actorProof?require('../agent-runtime/dpiActorProof').captureActorProof(actorProof,{request:userMessage,response:assistantResponse,execution,attempt}):null;
+  if (require('../config/dpiBoundedCurriculum').IDS.includes(objectiveId)) {
+    return require('../agent-runtime/dpiBoundedEvidence').evaluateBoundedObjective({
+      request: userMessage, response: assistantResponse, objectiveId, proof: capturedActor,
+      mode: attempt?.mode || mode, execution, completionService, attempt, userId, judge,
+    });
+  }
   const actorEvidence=capturedActor?.version==='dpi-owned-actor-v3'
     ? require('../agent-runtime/dpiActorProof').projectLegacyActorEvidence(capturedActor):capturedActor;
   if(capturedActor?.version==='dpi-owned-actor-v3'){

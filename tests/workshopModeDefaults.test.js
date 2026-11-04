@@ -22,7 +22,7 @@ test('catalog preserves exact defaults and allowed modes including staged Secure
   ]);
   assert.deepEqual(resolveWorkshopModeConfig('csrf_workshop'), {defaultMode:null,allowedModes:['vuln','fixed'],fixedObjectiveIds:require('../server/services/csrfVictimSandbox').ALL_OBJECTIVES});
   assert.deepEqual(resolveWorkshopModeConfig('direct_prompt_injection'), {defaultMode:'vuln',allowedModes:['vuln','fixed'],
-    fixedObjectiveIds:['interact','system_prompt','jailbreak','multi_language','virtualization','role_playing','side_stepping','obfuscation']});
+    fixedObjectiveIds:['interact','format_override','classification_override','system_prompt','jailbreak','multi_language','virtualization','role_playing','side_stepping','obfuscation']});
   assert.deepEqual(resolveWorkshopModeConfig('sql_injection_workshop'), { defaultMode: 'fixed', allowedModes: ['fixed', 'vuln'] });
   assert.deepEqual(resolveWorkshopModeConfig('nosql_injection_workshop'), { defaultMode: 'fixed', allowedModes: ['fixed', 'vuln'] });
   assert.deepEqual(resolveWorkshopModeConfig('sensitive_info_disclosure'), { defaultMode: 'vulnerable', allowedModes: ['fixed', 'vulnerable'] });
