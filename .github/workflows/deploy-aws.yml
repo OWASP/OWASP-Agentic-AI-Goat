@@ -1,0 +1,65 @@
+name: Deploy to AWS
+
+# Merging to main builds and deploys automatically. The build runs INSIDE AWS
+# (CodeBuild clones this repository directly), so no source archive or image
+# layer ever crosses a developer machine, and layer caching means an unchanged
+# dependency set is not rebuilt or re-pushed.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  # Never let two deployments race onto the same cluster.
+  group: deploy-aws
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # Required to request the OIDC token.
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assume the deployment role via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::551826362300:role/owasp-ai-goat-aws-github-deploy
+          aws-region: us-west-2
+
+      - name: Build and deploy
+        run: |
+          set -euo pipefail
+          BUILD_ID=$(aws codebuild start-build \
+            --project-name owasp-ai-goat-aws-github \
+            --source-version "$GITHUB_SHA" \
+            --query 'build.id' --output text)
+          echo "Started $BUILD_ID"
+
+          # Poll to completion so a failed build fails the workflow.
+          while true; do
+            STATUS=$(aws codebuild batch-get-builds --ids "$BUILD_ID" \
+              --query 'builds[0].buildStatus' --output text)
+            case "$STATUS" in
+              SUCCEEDED) echo "Build succeeded"; break ;;
+              IN_PROGRESS) sleep 20 ;;
+              *) echo "Build ended: $STATUS"; exit 1 ;;
+            esac
+          done
+
+      - name: Wait for the service to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster owasp-ai-goat-aws --services app
+
+      - name: Verify the deployed application responds
+        run: |
+          set -euo pipefail
+          # Use the dependency-free liveness check. /health is the deep probe and
+          # reports "degraded" (still HTTP 200) under Bedrock because it looks for
+          # a local Ollama that is intentionally absent; /ping is the clean signal.
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 30 \
+            https://owasp.abhinavverma.me/api/monitoring/ping)
+          echo "liveness: HTTP $CODE"
+          test "$CODE" = "200"

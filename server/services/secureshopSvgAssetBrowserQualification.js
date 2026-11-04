@@ -101,9 +101,12 @@ function createSecureShopSvgAssetBrowserQualification({
   };
   async function browser() {
     if (!browserPromise) {
+      // BROWSER_NO_SANDBOX=1 drops the SUID sandbox on Fargate (no SYS_ADMIN); the
+      // container is the isolation boundary. Unset locally keeps the real sandbox.
+      const svgLaunchArgs = process.env.BROWSER_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-setuid-sandbox'] : [];
       browserPromise = Promise.resolve().then(() => externalBrowser
         ? connectBrowser()
-        : (puppeteer || require('puppeteer')).launch({ headless: true, timeout: startupTimeoutMs }).then(value => {
+        : (puppeteer || require('puppeteer')).launch({ headless: true, timeout: startupTimeoutMs, ...(svgLaunchArgs.length ? { args: svgLaunchArgs } : {}) }).then(value => {
           exitCleanup = () => value.process?.()?.kill?.();
           process.once('exit', exitCleanup);
           return value;
