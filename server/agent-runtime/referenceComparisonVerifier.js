@@ -35,10 +35,72 @@ function hasOnlyKeys(value, keys) {
     && Object.keys(value).every(key => keys.includes(key));
 }
 
-function parseStrictJson(text) {
-  if (typeof text !== 'string' || Buffer.byteLength(text) > 65536) {
+// Several hosted models (Llama 3.1 and Mistral on Amazon Bedrock among them)
+// return JSON wrapped in a markdown code fence even when asked for raw JSON.
+// The fence is presentation, not content, so unwrap exactly one complete fence
+// before validation. Everything inside is still parsed and audited strictly:
+// this never tolerates trailing prose, a second fence, or malformed JSON.
+function unwrapJsonCodeFence(text) {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('```') || !trimmed.endsWith('```')) return text;
+  const firstNewline = trimmed.indexOf('\n');
+  if (firstNewline === -1) return text;
+  // Only a bare fence or a language tag may precede the newline.
+  if (!/^[a-zA-Z0-9_-]*$/.test(trimmed.slice(3, firstNewline).trim())) return text;
+  const body = trimmed.slice(firstNewline + 1, trimmed.length - 3);
+  // A fence inside the body means this is not a single wrapped document.
+  if (body.includes('```')) return text;
+  return body.trim();
+}
+
+// Weaker models (e.g. Bedrock Llama 3.1 8B) often emit a complete, valid JSON
+// object followed (or preceded) by conversational prose — "Here is the result:
+// {...}\n\nI hope this helps." JSON.parse rejects the whole string. This lifts
+// out the FIRST balanced top-level {...} object via a string-aware brace scan so
+// the strict schema/grounding validation that follows runs on exactly that
+// object. It is purely a formatting-noise strip: the extracted text must still
+// parse and pass every downstream check unchanged. Returns the original text
+// when it already is (or already contains) no cleanly extractable object, so the
+// existing strict path and its error still apply.
+function extractFirstJsonObject(text) {
+  const start = text.indexOf('{');
+  if (start === -1) return text;
+  let depth = 0, inString = false, escaped = false;
+  for (let i = start; i < text.length; i += 1) {
+    const ch = text[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (ch === '\\') escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') { inString = true; continue; }
+    if (ch === '{') depth += 1;
+    else if (ch === '}') {
+      depth -= 1;
+      if (depth === 0) {
+        const candidate = text.slice(start, i + 1);
+        // Only use the extraction when it is a strict superset-free object: it
+        // must parse on its own. If not, fall back to the original text so the
+        // caller's strict parser surfaces the real error.
+        try { JSON.parse(candidate); return candidate; }
+        catch { return text; }
+      }
+    }
+  }
+  return text;
+}
+
+function parseStrictJson(rawText) {
+  if (typeof rawText !== 'string' || Buffer.byteLength(rawText) > 65536) {
     invalid(VALIDATION_CODES.schema, 'Reference comparison JSON exceeds bounds');
   }
+  // Normalize once: the duplicate-key scan below walks this same string and
+  // requires it to end exactly where the JSON document ends. Strip a code fence,
+  // then lift out the first balanced {...} object so surrounding prose from a
+  // weaker model does not fail the parse (the extracted object still faces the
+  // full strict schema + grounding validation below).
+  const text = extractFirstJsonObject(unwrapJsonCodeFence(rawText).trim());
   let value;
   try { value = JSON.parse(text); }
   catch { invalid(VALIDATION_CODES.json, 'Reference comparison JSON is invalid'); }
@@ -363,4 +425,4 @@ function createReferenceComparison(spec, evidence) {
   };
 }
 
-module.exports = { createReferenceComparison, COMPARISON_VERSION, VALIDATION_CODES, parseStrictJson };
+module.exports = { createReferenceComparison, COMPARISON_VERSION, VALIDATION_CODES, parseStrictJson, unwrapJsonCodeFence };

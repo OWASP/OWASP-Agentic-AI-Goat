@@ -49,7 +49,12 @@ async function runDpiObfuscationGraph({request,execution,attempt,aiService}){
  const mode=attempt.mode,policy=selectPolicy({objectiveId:'obfuscation',mode}),selectedLesson=projectSelectedLesson(policy);let selected,selectedModel,finalModel,receipt,output,response,decisionRaw,decisionMessagesSha256,finalMessagesSha256=null;
  const toolActivity=[];
  const check=()=>execution.check();
- const call=async(messages,format)=>{const freeze=value=>{if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;};freeze(messages);await check();const r=await aiService.chatWithMessages(messages,{temperature:0.2,max_tokens:1024,timeout:format?60000:120000,signal:execution.signal,...(format?{format}:{})});await check();model(r);return r;};
+ // Bedrock's Converse rejects the decision call's JSON-schema `format` the same
+ // way it rejects bare tool blocks ("Reference comparison JSON is invalid"), so
+ // on Bedrock we drop the schema constraint and rely on the tolerant strict JSON
+ // parser (extractFirstJsonObject) to read the decision from the plain response.
+ const isBedrock=(process.env.AI_PROVIDER||'').toLowerCase()==='bedrock';
+ const call=async(messages,format)=>{const freeze=value=>{if(value&&typeof value==='object'){Object.values(value).forEach(freeze);Object.freeze(value);}return value;};freeze(messages);await check();const useFormat=format&&!isBedrock;const r=await aiService.chatWithMessages(messages,{temperature:0.2,max_tokens:1024,timeout:format?60000:120000,signal:execution.signal,...(useFormat?{format}:{})});await check();model(r);return r;};
  const graph=compileDpiObfuscationGraph({decoder_decision:async()=>{
   const messages=[{role:'system',content:DECISION_POLICY},{role:'user',content:request}];decisionMessagesSha256=hash(JSON.stringify(messages));const r=await call(messages,FORMAT);decisionRaw=r.response;selectedModel=model(r);selected=decision(r.response);await execution.trace?.({node:'decoder_decision',type:'decision',data:{decisionSource:'model',decision:selected,provider:r.provider,model:r.model,responseSha256:hash(r.response)}});
   if(selected.action==='final'){response=selected.response;finalModel=selectedModel;}return {action:selected.action};
@@ -61,7 +66,21 @@ async function runDpiObfuscationGraph({request,execution,attempt,aiService}){
   toolActivity.push({id:decoderCall(output,decisionRaw).id,name:'decode_payload',arguments:{},result:{encoding:output.encoding,decodedRequest:output.decodedRequest},status:'success',timestamp:new Date().toISOString()});
   await execution.trace?.({node:'decode_payload',type:'node_end',data:{effectKey:receipt.effectKey,inputSha256:hash(request),outputSha256:hash(output.decodedRequest),mode,promotionRole:mode==='vuln'?'system':'tool'}});return {};
  },decoder_response:async()=>{
-  const messages=finalMessages(request,output,mode,decisionRaw);finalMessagesSha256=hash(JSON.stringify(messages));const r=await call(messages);response=r.response;finalModel=model(r);await execution.trace?.({node:'actor_model',type:'node_end',data:{decisionSource:'model',provider:r.provider,model:r.model,responseSha256:hash(response)}});return {};
+  const messages=finalMessages(request,output,mode,decisionRaw);finalMessagesSha256=hash(JSON.stringify(messages));
+  // Bedrock Converse rejects raw tool_calls/tool-result message blocks unless a
+  // toolConfig is supplied. For Bedrock ONLY, fold the validated decode call + its
+  // observation into plain-content turns for the actual provider call (the proof
+  // above still hashes the canonical tool-structured messages, and Ollama/other
+  // providers keep the original tool-structured wire, so provenance is unchanged).
+  const isBedrock=(process.env.AI_PROVIDER||'').toLowerCase()==='bedrock';
+  const wire=isBedrock
+    ? messages.map(m=>m.role==='assistant'&&m.tool_calls
+        ? {role:'assistant',content:`${m.content}\n[decode_payload invoked]`}
+        : m.role==='tool'
+        ? {role:'user',content:`decode_payload result:\n${m.content}`}
+        : m)
+    : messages;
+  const r=await call(wire);response=r.response;finalModel=model(r);await execution.trace?.({node:'actor_model',type:'node_end',data:{decisionSource:'model',provider:r.provider,model:r.model,responseSha256:hash(response)}});return {};
  }});
  try {await graph.invoke({}, {recursionLimit:8,signal:execution.signal});await check();}
  catch(error){recordToolActivityFailure(error,toolActivity);throw error;}

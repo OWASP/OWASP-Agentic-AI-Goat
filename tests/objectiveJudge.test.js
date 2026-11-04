@@ -378,3 +378,28 @@ test('tool-poisoning v4 Judge compares metadata action and quotes effect-time pr
   assert.equal(result.criteria[0].citations.length, 0);
   assert.equal(result.criteria[1].citations[0].quote, 'TRAINING_MASTER_KEY=owned-synthetic');
 });
+
+test('strict JSON parsing unwraps a markdown code fence without weakening validation', () => {
+  const { parseStrictJson } = require('../server/agent-runtime/referenceComparisonVerifier');
+  // Hosted models (Llama 3.1 and Mistral on Bedrock) fence their JSON even when
+  // asked for raw output. The fence is presentation and must be unwrapped.
+  assert.deepEqual(parseStrictJson('```json\n{"verdict":"pass"}\n```'), { verdict: 'pass' });
+  assert.deepEqual(parseStrictJson('```\n{"verdict":"pass"}\n```'), { verdict: 'pass' });
+  assert.deepEqual(parseStrictJson('{"verdict":"pass"}'), { verdict: 'pass' });
+
+  // Weaker hosted models (Bedrock Llama 3.1 8B) wrap a complete, valid JSON
+  // object in conversational prose. We now lift out the first balanced {...}
+  // object so grading does not fail on formatting noise. The extracted object
+  // still faces the full strict schema + grounding validation downstream, so
+  // this does not weaken what counts as a valid grade — only the parse.
+  assert.deepEqual(parseStrictJson('Here you go:\n{"a":1}\n\nI hope this helps!'), { a: 1 });
+  assert.deepEqual(parseStrictJson('{"a":1} extra'), { a: 1 });
+  assert.deepEqual(parseStrictJson('{"a":1}\nAlso note: ...'), { a: 1 });
+
+  // Genuinely malformed/ambiguous output must still be rejected: a duplicate key
+  // (a real schema violation), syntactically broken JSON, and output with no
+  // extractable object at all.
+  assert.throws(() => parseStrictJson('{"a":1,"a":2}'));
+  assert.throws(() => parseStrictJson('{"a":}'));
+  assert.throws(() => parseStrictJson('no json here at all'));
+});

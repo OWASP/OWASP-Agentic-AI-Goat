@@ -116,7 +116,7 @@ function createDirectWitnessCandidate({ objective, evidence }) {
       evidence: { sourceSha256: sha(source), responseSha256: sha(response), responseComplete: true }, originalRequestSha256: sha(original), sourceRaw, responseRaw,
       semanticTruthVerified: false, actorAuthorityVerified: false, creditEligible: false });
   }
-  function read(raw, schema) { if (typeof raw !== 'string' || Buffer.byteLength(raw) > 16384) throw Error('Direct witness output boundary invalid'); return freeze(schema.parse(parseStrictJson(raw))); }
+  function read(raw, schema) { if (typeof raw !== 'string' || Buffer.byteLength(raw) > 49152) throw Error("Direct witness output boundary invalid"); return freeze(schema.parse(parseStrictJson(raw))); }
   const schema = selected ? selectedSchema(objective) : null;
   const stages = selected ? [{ id: 'assessment', maximumCalls: 2,
     messages: error => wire(SELECTED, schema, { objective, request: original, response }, error),

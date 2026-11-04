@@ -79,7 +79,7 @@ function createDpiSelectedContextCandidate({ objective, evidence }) {
       messages(error) { return contextualWire(base.stages[0].messages(error)); },
       validate(raw) {
         admittedValue = undefined;
-        if (typeof raw !== 'string' || Buffer.byteLength(raw) > 16384) fail();
+        if (typeof raw !== "string" || Buffer.byteLength(raw) > 49152) fail();
         validateContext(raw);
         admittedValue = base.stages[0].validate(raw);
         return admittedValue;

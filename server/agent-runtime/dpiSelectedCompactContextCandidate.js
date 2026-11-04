@@ -102,7 +102,12 @@ function createDpiSelectedCompactContextCandidate(input, options) {
     stages: freeze([freeze({
       id: 'assessment',
       maximumCalls: responseConsistency ? 2 : 1,
-      ...(responseConsistency ? { retryWhen(error) { return error?.code === CONTRADICTION_CODE; } } : {}),
+      // Retry the second (bounded) attempt on ANY validation failure, not only a
+      // label contradiction. The 8B judge occasionally emits a malformed or
+      // non-grounded first draft; a single repair attempt recovers it. The
+      // 2-attempt cap is unchanged, and a genuinely ungradeable response still
+      // fails after the retry — grounding is never relaxed.
+      ...(responseConsistency ? { retryWhen() { return true; } } : {}),
       repairMessage(error) { return error?.code === CONTRADICTION_CODE
         ? CONTRADICTION_CODE : base.stages[0].repairMessage(error); },
       messages(error) { const contradictionRepair = responseConsistency && error === CONTRADICTION_CODE;

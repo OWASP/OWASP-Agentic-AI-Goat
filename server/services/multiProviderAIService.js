@@ -718,6 +718,12 @@ class MultiProviderAIService {
     let selectedConfig;
     try {
       selectedConfig = this._modelConfiguration(provider);
+      // Optional per-call model override (e.g. route a specific hard objective's
+      // actor to a stronger Bedrock model). Only applies when explicitly passed
+      // and the override is a non-empty string; the provider/region are unchanged.
+      if (typeof options?.modelOverride === 'string' && options.modelOverride.trim()) {
+        selectedConfig = { ...selectedConfig, model: options.modelOverride.trim() };
+      }
       const adapter = this._modelAdapter(provider, selectedConfig);
       const result = await adapter.chat(messages, adapter.capabilities.tools ? tools : [], options);
       logLLMCall({ provider, model: result.model, promptLength, responseLength: result.response.length,
