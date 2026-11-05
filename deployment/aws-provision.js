@@ -461,9 +461,19 @@ async function hasCtfActivation() {
     console.log(JSON.stringify({ step: 'secureshop_reset_key', outcome: 'restored' }));
   } else {
     require('/app/scripts/lib/setup-password-reset-key').ensurePasswordResetKey({ directory: resetKeyDirectory });
-    await putSecret(resetKeySecret, fs.readFileSync(resetKeyPath, 'utf8'));
+    resetKeyBytes = fs.readFileSync(resetKeyPath, 'utf8');
+    await putSecret(resetKeySecret, resetKeyBytes);
     console.log(JSON.stringify({ step: 'secureshop_reset_key', outcome: 'created' }));
   }
+  // The key lives only on THIS installer's ephemeral filesystem; the long-running
+  // app container never sees it. Publish the path + material into app/config so
+  // deployment/entrypoint.js materialises the file at app boot (ECS injects
+  // secrets only as env). Without this, registeredAdminReset is undefined and
+  // SecureShop fails its standalone readiness check, aborting app startup.
+  const secureshopResetConfig = {
+    SS_PASSWORD_RESET_KEY_PATH: resetKeyPath,
+    SS_PASSWORD_RESET_KEY_JSON: resetKeyBytes,
+  };
 
   // The IPI Mailpit provider requires a private 32-character HMAC secret; the
   // email-agent endpoints return 500 without it. Generate once and reuse, so
@@ -493,7 +503,7 @@ async function hasCtfActivation() {
 
   // Publish only the scoped application configuration. The administrator
   // credential stays in its own secret, readable by the installer alone.
-  const published = { ...installerExtra, ...configuration, ...deliveryConfiguration, PG_TLS: 'require', JWT_SECRET: signingKey, IPI_MAIL_HMAC_SECRET: mailHmacSecret };
+  const published = { ...installerExtra, ...configuration, ...deliveryConfiguration, ...secureshopResetConfig, PG_TLS: 'require', JWT_SECRET: signingKey, IPI_MAIL_HMAC_SECRET: mailHmacSecret };
   delete published.PG_ADMIN_DATABASE_URL;
   const outcome = await putSecret(`${deploymentId}/app/config`, JSON.stringify(published));
   console.log(JSON.stringify({ step: 'publish_runtime_configuration', outcome, keys: Object.keys(published).length }));
